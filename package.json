@@ -1,0 +1,55 @@
+{
+  "name": "@kluster/mast",
+  "version": "0.1.0",
+  "description": "MAST — Monorepo AST Search Tool: semantic code search MCP server and CLI",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mast": "./dist/cli/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/cli/index.js",
+      "types": "./dist/cli/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src"
+  },
+  "dependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4",
+    "@huggingface/transformers": "^4.2.0",
+    "@lancedb/lancedb": "^0.27.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "apache-arrow": "^18.1.0",
+    "better-sqlite3": "^12.10.0",
+    "kysely": "^0.29.0",
+    "commander": "^14.0.3",
+    "fast-glob": "^3.3.3",
+    "proper-lockfile": "^4.1.2",
+    "tree-sitter": "0.21.1",
+    "tree-sitter-typescript": "0.21.2",
+    "tsconfig-paths": "^4.2.0",
+    "uuid": "^14.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.0.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "license": "MIT"
+}
