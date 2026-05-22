@@ -90,27 +90,26 @@ export async function populateFile(
     await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
     await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
 
-    for (const chunk of data.chunks) {
+    // Batch-insert all chunks in one statement instead of one INSERT per chunk.
+    if (data.chunks.length > 0) {
       await trx
         .insertInto('chunk_fts')
-        .values({
+        .values(data.chunks.map((chunk) => ({
           content: chunk.content,
           symbol_name: chunk.symbol_name,
           chunk_id: chunk.chunk_id,
           file_path: data.filePath,
-        })
+        })))
         .execute();
 
-      const identifiers = extractIdentifiers(chunk.content);
-      if (identifiers.length > 0) {
-        await trx
-          .insertInto('identifier_fts')
-          .values({
-            identifiers,
-            chunk_id: chunk.chunk_id,
-            file_path: data.filePath,
-          })
-          .execute();
+      const identifierRows = data.chunks.flatMap((chunk) => {
+        const identifiers = extractIdentifiers(chunk.content);
+        return identifiers.length > 0
+          ? [{ identifiers, chunk_id: chunk.chunk_id, file_path: data.filePath }]
+          : [];
+      });
+      if (identifierRows.length > 0) {
+        await trx.insertInto('identifier_fts').values(identifierRows).execute();
       }
     }
 
@@ -128,34 +127,46 @@ export async function populateFile(
 export async function insertEdges(db: Db, filePath: string, edges: readonly EdgeRecord[]): Promise<void> {
   if (edges.length === 0) return;
 
-  for (const edge of edges) {
-    const fromRow = await db
-      .selectFrom('symbols as s')
-      .innerJoin('files as f', 'f.id', 's.file_id')
-      .select('s.id')
-      .where('s.name', '=', edge.fromName)
-      .where('f.path', '=', filePath)
-      .executeTakeFirst();
+  const fromNames = [...new Set(edges.map((e) => e.fromName))];
+  const toNames   = [...new Set(edges.map((e) => e.toName))];
 
-    const toRow = await db
-      .selectFrom('symbols')
-      .select('id')
-      .where('name', '=', edge.toName)
-      .executeTakeFirst();
+  // Batch-resolve "from" IDs — must belong to filePath.
+  const fromRows = await db
+    .selectFrom('symbols as s')
+    .innerJoin('files as f', 'f.id', 's.file_id')
+    .select(['s.id', 's.name'])
+    .where('s.name', 'in', fromNames)
+    .where('f.path', '=', filePath)
+    .execute();
 
-    if (fromRow === undefined || toRow === undefined) continue;
+  // Batch-resolve "to" IDs — any file; first match per name preserves prior behaviour.
+  const toRows = await db
+    .selectFrom('symbols')
+    .select(['id', 'name'])
+    .where('name', 'in', toNames)
+    .execute();
 
-    // Composite PK on (from_id, to_id, edge_type) — ignore duplicates.
-    await db
-      .insertInto('edges')
-      .values({
-        from_id: fromRow.id,
-        to_id: toRow.id,
-        edge_type: edge.edgeType,
-      })
-      .onConflict((oc) => oc.doNothing())
-      .execute();
+  const fromMap = new Map(fromRows.map((r) => [r.name, r.id]));
+  const toMap   = new Map<string, number>();
+  for (const row of toRows) {
+    if (!toMap.has(row.name)) toMap.set(row.name, row.id);
   }
+
+  const edgeValues = edges.flatMap((edge) => {
+    const from_id = fromMap.get(edge.fromName);
+    const to_id   = toMap.get(edge.toName);
+    if (from_id === undefined || to_id === undefined) return [];
+    return [{ from_id, to_id, edge_type: edge.edgeType }];
+  });
+
+  if (edgeValues.length === 0) return;
+
+  // Composite PK on (from_id, to_id, edge_type) — ignore duplicates.
+  await db
+    .insertInto('edges')
+    .values(edgeValues)
+    .onConflict((oc) => oc.doNothing())
+    .execute();
 }
 
 /**

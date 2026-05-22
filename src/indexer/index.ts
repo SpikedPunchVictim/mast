@@ -7,7 +7,7 @@ import { LanceStore, chunkRecordToChunk } from '../store/lance.js';
 import { openDatabase } from '../graph/db.js';
 import { populateFile, insertEdges, removeDeletedFiles } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
-import { walkProject, buildManifest, diffManifest } from './walker.js';
+import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
 import { createEmbedder, type EmbedderLike } from './embedder.js';
 import type { IndexMeta } from '../ast/types.js';
 
@@ -23,6 +23,8 @@ export interface IndexResult {
 export interface IndexOptions {
   /** When true, only reindex files whose mtime changed since the last run. */
   readonly incremental: boolean;
+  /** Called after each file is processed (parse phase) with running and total counts. */
+  readonly onProgress?: (processed: number, total: number) => void;
 }
 
 /**
@@ -66,13 +68,48 @@ export async function runIndex(
     let chunksAdded = 0;
     let chunksRemoved = 0;
 
-    // Pass 1: parse all files, insert chunks + symbols.
+    // Pass 1: parse → lance (concurrent) → SQLite, processed in batches so
+    // lance IO overlaps across files without holding all results in memory.
+    // SQLite writes remain sequential — better-sqlite3 serialises internally.
+    const LANCE_BATCH = 16;
+    type ParsedItem = { entry: FileEntry; result: ReturnType<typeof extractFile> };
     const edgeDataByFile = new Map<string, ReturnType<typeof extractFile>>();
 
-    for (const entry of toIndex) {
-      try {
-        const result = extractFile(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold);
-        await lance.replaceChunksForFile(entry.relativePath, result.chunks);
+    for (let i = 0; i < toIndex.length; i += LANCE_BATCH) {
+      const batch = toIndex.slice(i, i + LANCE_BATCH);
+
+      // Parse phase — synchronous tree-sitter, cannot be parallelised without workers.
+      const parsed: ParsedItem[] = [];
+      for (const entry of batch) {
+        try {
+          const result = extractFile(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold);
+          parsed.push({ entry, result });
+          chunksAdded += result.chunks.length;
+          filesIndexed++;
+        } catch (err) {
+          process.stderr.write(`[mast] WARN: parse error in ${entry.path}: ${String(err)}\n`);
+          parseErrors++;
+        }
+        options.onProgress?.(filesIndexed + parseErrors, toIndex.length);
+      }
+
+      // Lance writes — all concurrent within the batch.
+      const lanceOk = new Set<string>();
+      await Promise.all(
+        parsed.map(async ({ entry, result }) => {
+          try {
+            await lance.replaceChunksForFile(entry.relativePath, result.chunks);
+            lanceOk.add(entry.relativePath);
+          } catch (err) {
+            process.stderr.write(`[mast] WARN: lance write error in ${entry.path}: ${String(err)}\n`);
+            parseErrors++;
+          }
+        }),
+      );
+
+      // SQLite writes — sequential.
+      for (const { entry, result } of parsed) {
+        if (!lanceOk.has(entry.relativePath)) continue;
         await populateFile(db, {
           filePath: entry.relativePath,
           language: result.language as 'typescript' | 'javascript',
@@ -81,13 +118,7 @@ export async function runIndex(
           imports: result.imports,
           symbols: result.symbols,
         });
-        chunksAdded += result.chunks.length;
-        filesIndexed++;
-        // Store edge data for pass 2.
         edgeDataByFile.set(entry.relativePath, result);
-      } catch (err) {
-        process.stderr.write(`[mast] WARN: parse error in ${entry.path}: ${String(err)}\n`);
-        parseErrors++;
       }
     }
 

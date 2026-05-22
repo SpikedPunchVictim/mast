@@ -17,6 +17,7 @@
     "dist"
   ],
   "scripts": {
+    "setup": "node install.mjs",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -49,7 +50,7 @@
     "vitest": "^1.0.0"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=22.0.0"
   },
   "license": "MIT"
 }

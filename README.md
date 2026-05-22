@@ -370,16 +370,16 @@ The `counterfactual` field is a human-readable sentence: *"Would have cost ~14,2
 
 MAST reads configuration from `mast.config.json` in the project root, environment variables, or CLI flags. Priority order (highest to lowest): CLI flag → `MAST_STATE_DIR` env var → `mast.config.json` → built-in defaults.
 
-| Key | Default | Description |
-|---|---|---|
-| `state_dir` | `.mast` | Directory for all index state (relative to project root) |
-| `file_extensions` | `.ts,.tsx,.js,.jsx` | Source file extensions to index |
-| `exclude_patterns` | `node_modules/**`, `dist/**`, `coverage/**`, `**/*.test.ts`, `**/*.spec.ts` | Glob patterns to skip |
-| `embedding_model` | `jinaai/jina-embeddings-v2-base-code` | HuggingFace model ID for vector embeddings |
-| `similarity_threshold` | `0.70` | Minimum cosine similarity for a vector hit to count |
-| `rrf_k` | `60` | Reciprocal Rank Fusion constant (higher = flatter ranking) |
-| `chunk_split_threshold` | `100` | Lines above which a declaration is split into overlapping sub-chunks |
-| `context_lines` | `3` | Source lines before/after AST boundaries included in stored content |
+| Key                     | Default                                                                     | Description                                                          |
+| ----------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `state_dir`             | `.mast`                                                                     | Directory for all index state (relative to project root)             |
+| `file_extensions`       | `.ts,.tsx,.js,.jsx`                                                         | Source file extensions to index                                      |
+| `exclude_patterns`      | `node_modules/**`, `dist/**`, `coverage/**`, `**/*.test.ts`, `**/*.spec.ts` | Glob patterns to skip                                                |
+| `embedding_model`       | `jinaai/jina-embeddings-v2-base-code`                                       | HuggingFace model ID for vector embeddings                           |
+| `similarity_threshold`  | `0.70`                                                                      | Minimum cosine similarity for a vector hit to count                  |
+| `rrf_k`                 | `60`                                                                        | Reciprocal Rank Fusion constant (higher = flatter ranking)           |
+| `chunk_split_threshold` | `100`                                                                       | Lines above which a declaration is split into overlapping sub-chunks |
+| `context_lines`         | `3`                                                                         | Source lines before/after AST boundaries included in stored content  |
 
 **`mast.config.json` example:**
 
@@ -495,3 +495,15 @@ avg_duration_ms = (old_avg * old_n + new_val) / (old_n + 1)
 ```
 
 Use `mast metrics --since 7d` for a human-readable table, or `mast_efficiency` from within an MCP session for a machine-readable JSON summary with a `counterfactual` narrative.
+
+
+-- 
+
+## Storage
+
+| Component       | Storage Type | Technology                          |
+| --------------- | ------------ | ----------------------------------- |
+| Code Chunks     | Disk         | LanceDB (chunks.lance)              |
+| Vectors         | Disk         | LanceDB (vectors.lance)             |
+| Knowledge Graph | Disk         | SQLite (graph.db)                   |
+| Embedding Model | Memory       | Transformers.js / ONNX (during use) |

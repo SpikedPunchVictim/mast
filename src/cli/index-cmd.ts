@@ -9,17 +9,30 @@ export function registerIndexCommand(program: Command): void {
     .option('--state-dir <dir>', 'State directory (resolved from config if omitted)')
     .option('--incremental', 'Only reindex files changed since last index run')
     .option('--phase1-only', 'Parse and chunk only; skip embedding')
+    .option('--show-progress', 'Print indexing progress to stderr')
     .action(async (projectPath: string | undefined, opts: {
       stateDir?: string;
       incremental?: boolean;
       phase1Only?: boolean;
+      showProgress?: boolean;
     }) => {
       const config = resolveConfig({
         projectRoot: projectPath,
         stateDirOverride: opts.stateDir,
       });
 
-      const result = await runIndex(config, { incremental: opts.incremental ?? false });
+      const onProgress = opts.showProgress
+        ? (processed: number, total: number) => {
+            if (total === 0) return;
+            const pct = Math.round((processed / total) * 100);
+            const line = `  indexing ${processed}/${total} files (${pct}%)`;
+            // \r rewrites the line in place on a TTY; fall back to newlines otherwise.
+            process.stderr.write(process.stderr.isTTY ? `\r${line}` : `${line}\n`);
+            if (processed === total && process.stderr.isTTY) process.stderr.write('\n');
+          }
+        : undefined;
+
+      const result = await runIndex(config, { incremental: opts.incremental ?? false, onProgress });
 
       process.stdout.write(
         `files: ${result.filesIndexed} indexed, ${result.filesSkipped} skipped` +

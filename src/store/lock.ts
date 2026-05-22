@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import lockfile from 'proper-lockfile';
 
@@ -69,7 +69,10 @@ export async function acquireLock(
 
 /**
  * Run `fn` while holding the given lock.
- * The lock is released in a finally block regardless of outcome.
+ *
+ * Registers SIGTERM and SIGINT handlers for the duration so that the lock
+ * directory is removed on graceful shutdown. Without these, a Ctrl-C or
+ * `kill` leaves `<type>.lock` on disk until the stale timeout clears it.
  */
 export async function withLock<T>(
   stateDir: string,
@@ -78,9 +81,25 @@ export async function withLock<T>(
   fn: () => Promise<T>,
 ): Promise<T> {
   const release = await acquireLock(stateDir, type, options);
+
+  const cleanup = (): never => {
+    // proper-lockfile's release() is async and cannot be awaited in a signal
+    // handler, so we remove the lock directory synchronously as a best-effort
+    // fallback before exiting.
+    try {
+      rmSync(markerPath(stateDir, type) + '.lock', { recursive: true, force: true });
+    } catch { /* best-effort: directory may already be gone */ }
+    process.exit(1);
+  };
+
+  process.once('SIGTERM', cleanup);
+  process.once('SIGINT', cleanup);
+
   try {
     return await fn();
   } finally {
+    process.off('SIGTERM', cleanup);
+    process.off('SIGINT', cleanup);
     await release();
   }
 }
