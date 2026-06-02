@@ -1,104 +1,60 @@
-import type { Db } from './db.js';
+import type { CallerResolution } from '../ast/types.js';
 
 /**
- * Heuristic resolver for `POTENTIAL_CALL` edges.
+ * Synchronous heuristic resolver for `POTENTIAL_CALL` edges (§10.3.1).
  *
- * Attempts to statically link a call-site receiver to a known indexed symbol
- * using a small set of high-frequency patterns (§10.3.1). Returns null when
- * the receiver cannot be resolved — callers treat unresolved sites as
- * `potential_matches` via `identifier_fts` rather than as verified edges.
+ * Built up per function/method scope during the AST walk, then queried for
+ * each call site. It resolves a call's receiver to a callee *symbol name* using
+ * a small set of high-frequency, statically-decidable patterns. It does NOT
+ * touch the database — whether the resolved name corresponds to a real indexed
+ * symbol is decided later, in `insertEdges`' name→id resolution (an unknown
+ * name simply yields no edge).
  *
- * This is intentionally conservative: false negatives (missed edges) are
- * acceptable; false positives (wrong edges) are not, as they would poison
- * the `verified_callers` contract in `mast_callers`.
+ * Intentionally conservative: false negatives (missed edges) are acceptable;
+ * false positives (wrong edges) are not, as they would poison the
+ * `verified_callers` contract in `mast_callers`.
  */
 export class LocalTypeEnvironment {
-  /**
-   * Map of local name → resolved symbol name.
-   * Populated incrementally as the AST walk processes declarations.
-   */
-  private readonly bindings = new Map<string, string>();
+  /** Named imports and same-file top-level symbols, by bare name. */
+  private readonly bareCallables = new Map<string, CallerResolution>();
+  /** Receiver expression (`repo`, `this.repo`) → its resolved type name. */
+  private readonly receiverTypes = new Map<string, { type: string; resolution: CallerResolution }>();
 
-  constructor(private readonly db: Db, private readonly filePath: string) {}
+  /** `import { handleLogin } from './h'` → bare call `handleLogin()` resolves. */
+  recordImport(localName: string): void {
+    if (!this.bareCallables.has(localName)) this.bareCallables.set(localName, 'import');
+  }
 
-  /**
-   * Record a named import binding.
-   *   `import { handleLogin } from './handler'`
-   * → `'handleLogin'` resolves to itself (same name, known import).
-   */
-  recordNamedImport(localName: string, importedName: string): void {
-    this.bindings.set(localName, importedName);
+  /** A top-level function/const in the same file → bare call resolves to it. */
+  recordSameFileSymbol(name: string): void {
+    if (!this.bareCallables.has(name)) this.bareCallables.set(name, 'same_file');
   }
 
   /**
-   * Record a class field with a known type annotation.
-   *   `private userRepo: UserRepository`
-   * → calls on `this.userRepo.method()` resolve via `UserRepository.method`.
+   * A typed receiver binding. `receiver` is the literal receiver expression as
+   * it appears before the method call — e.g. `repo` (local/param) or
+   * `this.repo` (class field / constructor parameter property).
    */
-  recordField(fieldName: string, typeName: string): void {
-    this.bindings.set(`this.${fieldName}`, typeName);
+  recordReceiverType(receiver: string, type: string, resolution: CallerResolution): void {
+    if (!this.receiverTypes.has(receiver)) this.receiverTypes.set(receiver, { type, resolution });
   }
 
   /**
-   * Record a `new` expression binding.
-   *   `const repo = new UserRepository()`
-   * → `repo` resolves to type `UserRepository`.
-   */
-  recordNewExpression(localName: string, className: string): void {
-    this.bindings.set(localName, className);
-  }
-
-  /**
-   * Try to resolve a call expression receiver to a known symbol name.
+   * Resolve a call to `{ callee, resolution }`, or null when the receiver
+   * cannot be statically linked.
    *
-   * Returns `{ resolvedSymbol, resolution }` when the receiver can be
-   * statically linked, or `null` when it cannot. Callers use the returned
-   * symbol to look up the callee's `symbols` row for edge insertion.
+   * @param receiver - the receiver expression (`repo`, `this.repo`), or null
+   *   for a bare call (`foo()`).
+   * @param method - the called identifier (the function name for a bare call,
+   *   the member name for a receiver call).
    */
-  async resolve(
-    receiverExpr: string,
-    methodName: string,
-  ): Promise<{ resolvedSymbol: string; resolution: string } | null> {
-    // Pattern 1: top-level named import — direct function call.
-    const directBinding = this.bindings.get(receiverExpr);
-    if (directBinding !== undefined) {
-      return { resolvedSymbol: directBinding, resolution: 'import' };
+  resolveCall(receiver: string | null, method: string): { callee: string; resolution: CallerResolution } | null {
+    if (receiver === null) {
+      const resolution = this.bareCallables.get(method);
+      return resolution === undefined ? null : { callee: method, resolution };
     }
-
-    // Pattern 2: `this.field.method()` — resolve via field type annotation.
-    if (receiverExpr.startsWith('this.')) {
-      const fieldKey = receiverExpr; // e.g. 'this.userRepo'
-      const typeName = this.bindings.get(fieldKey);
-      if (typeName !== undefined) {
-        const qualifiedName = `${typeName}.${methodName}`;
-        const exists = await this.symbolExists(qualifiedName);
-        if (exists) return { resolvedSymbol: qualifiedName, resolution: 'field_type' };
-      }
-    }
-
-    // Pattern 3: same-file function call — receiver is undefined, methodName
-    // is the callee.
-    const sameFileSymbol = await this.db
-      .selectFrom('symbols as s')
-      .innerJoin('files as f', 'f.id', 's.file_id')
-      .select('s.name')
-      .where('s.name', '=', methodName)
-      .where('f.path', '=', this.filePath)
-      .executeTakeFirst();
-
-    if (sameFileSymbol !== undefined) {
-      return { resolvedSymbol: sameFileSymbol.name, resolution: 'same_file' };
-    }
-
-    return null;
-  }
-
-  private async symbolExists(name: string): Promise<boolean> {
-    const row = await this.db
-      .selectFrom('symbols')
-      .select('id')
-      .where('name', '=', name)
-      .executeTakeFirst();
-    return row !== undefined;
+    const binding = this.receiverTypes.get(receiver);
+    if (binding === undefined) return null;
+    return { callee: `${binding.type}.${method}`, resolution: binding.resolution };
   }
 }

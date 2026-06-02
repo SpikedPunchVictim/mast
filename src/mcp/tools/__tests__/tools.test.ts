@@ -127,6 +127,7 @@ beforeAll(async () => {
     config,
     getEmbedder: () => null,
     searchMode: () => 'lexical',
+    embedPending: async () => {},
     sessionId: 'test-session',
   };
 

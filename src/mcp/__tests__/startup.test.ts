@@ -1,9 +1,10 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { runIndex, loadIndexMeta, writeIndexMeta } from '../../indexer/index.js';
+import { bootstrapState, wipeDerivedState } from '../startup.js';
 import { openDatabase } from '../../graph/db.js';
 import { LanceStore } from '../../store/lance.js';
 import { initLockMarkers } from '../../store/lock.js';
@@ -179,5 +180,88 @@ describe('dynamic dimension detection', () => {
     expect(detectedDimension).toBe(customDim);
 
     rmSync(tmpDir2, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Schema-version guard: wipe derived state on mismatch (§7.4 Step 2 — H3)
+// ---------------------------------------------------------------------------
+
+const NO_SEED = join(tmpdir(), 'mast-no-such-seed-dir');
+
+describe('wipeDerivedState', () => {
+  it('removes index-derived state but keeps config.json and lock markers', () => {
+    const stateDir = mkdtempSync(join(tmpdir(), 'mast-wipe-'));
+    try {
+      // Derived state.
+      mkdirSync(join(stateDir, 'lance'));
+      mkdirSync(join(stateDir, 'embed_cache'));
+      writeFileSync(join(stateDir, 'graph.db'), 'x');
+      writeFileSync(join(stateDir, 'graph.db-wal'), 'x');
+      writeFileSync(join(stateDir, 'file_manifest.json'), '{}');
+      // Preserved state.
+      writeFileSync(join(stateDir, 'config.json'), '{}');
+      writeFileSync(join(stateDir, 'structure'), '');
+      writeFileSync(join(stateDir, 'vectors'), '');
+
+      wipeDerivedState(stateDir);
+
+      expect(existsSync(join(stateDir, 'lance'))).toBe(false);
+      expect(existsSync(join(stateDir, 'embed_cache'))).toBe(false);
+      expect(existsSync(join(stateDir, 'graph.db'))).toBe(false);
+      expect(existsSync(join(stateDir, 'graph.db-wal'))).toBe(false);
+      expect(existsSync(join(stateDir, 'file_manifest.json'))).toBe(false);
+
+      expect(existsSync(join(stateDir, 'config.json'))).toBe(true);
+      expect(existsSync(join(stateDir, 'structure'))).toBe(true);
+      expect(existsSync(join(stateDir, 'vectors'))).toBe(true);
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('bootstrapState — schema-version guard', () => {
+  let tmpDir: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-bootstrap-'));
+    writeFileSync(join(tmpDir, 'math.ts'), MATH_SRC);
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('wipes derived state and flags a full reindex on schema mismatch', async () => {
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    const stateDir = config.resolved_state_dir;
+    expect(existsSync(join(stateDir, 'graph.db'))).toBe(true);
+
+    // Stamp the index with a stale schema version.
+    writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '0.0.0-stale' });
+
+    const { needsFullReindex } = await bootstrapState(config, NO_SEED);
+
+    expect(needsFullReindex).toBe(true);
+    expect(existsSync(join(stateDir, 'graph.db'))).toBe(false);
+    expect(existsSync(join(stateDir, 'lance'))).toBe(false);
+    expect(existsSync(join(stateDir, 'file_manifest.json'))).toBe(false);
+
+    const meta = loadIndexMeta(stateDir)!;
+    expect(meta.schema_version).toBe(CURRENT_SCHEMA_VERSION);
+    expect(meta.last_indexed).toBeNull();
+  });
+
+  it('is a no-op (no wipe, no reindex) when the schema matches', async () => {
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    const stateDir = config.resolved_state_dir;
+
+    const { needsFullReindex } = await bootstrapState(config, NO_SEED);
+
+    expect(needsFullReindex).toBe(false);
+    expect(existsSync(join(stateDir, 'graph.db'))).toBe(true);
   });
 });

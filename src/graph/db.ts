@@ -46,6 +46,12 @@ interface EdgesTable {
   readonly from_id: number;
   readonly to_id: number;
   readonly edge_type: string;
+  /** Resolution rule for POTENTIAL_CALL edges (§10.3.1); null for others. */
+  readonly resolution: string | null;
+  /** 1-indexed source line of the call site; null for non-call edges. */
+  readonly call_line: number | null;
+  /** Trimmed source text of the call-site line; null for non-call edges. */
+  readonly context: string | null;
 }
 
 /** File-level re-export: `export * from '...'` */
@@ -158,9 +164,12 @@ CREATE TABLE IF NOT EXISTS symbols (
 );
 
 CREATE TABLE IF NOT EXISTS edges (
-  from_id   INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
-  to_id     INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
-  edge_type TEXT NOT NULL,
+  from_id    INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
+  to_id      INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
+  edge_type  TEXT NOT NULL,
+  resolution TEXT,
+  call_line  INTEGER,
+  context    TEXT,
   PRIMARY KEY (from_id, to_id, edge_type)
 );
 
@@ -249,6 +258,21 @@ export function openDatabase(stateDir: string): Db {
 
   // Apply schema DDL synchronously — safe at startup, idempotent.
   sqlite.exec(SCHEMA_DDL);
+
+  // Backward-compatible column additions for the edges table. `CREATE TABLE IF
+  // NOT EXISTS` will not add columns to a pre-existing table, so migrate them
+  // in explicitly. ADD COLUMN is cheap (no table rewrite) and idempotent here
+  // because it is guarded by the current column set.
+  const edgeColumns = new Set(
+    sqlite.prepare('PRAGMA table_info(edges)').all().map((c) => (c as { name: string }).name),
+  );
+  for (const [name, ddl] of [
+    ['resolution', 'ALTER TABLE edges ADD COLUMN resolution TEXT'],
+    ['call_line', 'ALTER TABLE edges ADD COLUMN call_line INTEGER'],
+    ['context', 'ALTER TABLE edges ADD COLUMN context TEXT'],
+  ] as const) {
+    if (!edgeColumns.has(name)) sqlite.exec(ddl);
+  }
 
   return new Kysely<MastDatabase>({
     dialect: new SqliteDialect({ database: sqlite }),

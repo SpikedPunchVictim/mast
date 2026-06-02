@@ -29,8 +29,12 @@ export async function queryVerifiedCallers(
   symbolId: number,
   transitive: boolean,
 ): Promise<VerifiedCallerRow[]> {
-  const emptyContext = sql<string>`''`;
-  const resolutionImport = sql<string>`'import'`;
+  // `line` is the call-site line where available, falling back to the caller
+  // symbol's declaration line. `resolution` defaults to 'same_file' only for
+  // legacy rows written before the resolution column existed.
+  const lineExpr = sql<number>`COALESCE(e.call_line, s.line)`.as('line');
+  const contextExpr = sql<string>`COALESCE(e.context, '')`.as('context');
+  const resolutionExpr = sql<string>`COALESCE(e.resolution, 'same_file')`.as('resolution');
 
   // Direct callers: no CTE needed — simple edge join.
   if (!transitive) {
@@ -40,23 +44,25 @@ export async function queryVerifiedCallers(
       .innerJoin('files as f', 'f.id', 's.file_id')
       .select([
         'f.path as file_path',
-        's.line',
+        lineExpr,
         's.name as caller_symbol',
-        emptyContext.as('context'),
-        resolutionImport.as('resolution'),
+        contextExpr,
+        resolutionExpr,
       ])
       .where('e.to_id', '=', symbolId)
       .where('e.edge_type', '=', EdgeType.POTENTIAL_CALL)
       .execute();
   }
 
-  // Transitive callers: recursive CTE walking POTENTIAL_CALL edges.
+  // Transitive callers: recursive CTE walking POTENTIAL_CALL edges. Each hop
+  // carries its own call-site metadata so intermediate callers report the line
+  // and context of the call they make.
   return db
     .withRecursive('callers', (qb) =>
       // Anchor: direct callers of `symbolId`.
       qb
         .selectFrom('edges')
-        .select('from_id as id')
+        .select(['from_id as id', 'call_line', 'context', 'resolution'])
         .where('to_id', '=', symbolId)
         .where('edge_type', '=', EdgeType.POTENTIAL_CALL)
         .union(
@@ -64,19 +70,19 @@ export async function queryVerifiedCallers(
           qb
             .selectFrom('edges as e')
             .innerJoin('callers', 'callers.id', 'e.to_id')
-            .select('e.from_id as id')
+            .select(['e.from_id as id', 'e.call_line', 'e.context', 'e.resolution'])
             .where('e.edge_type', '=', EdgeType.POTENTIAL_CALL),
         ),
     )
     .selectFrom('symbols as s')
     .innerJoin('files as f', 'f.id', 's.file_id')
-    .innerJoin('callers', 's.id', 'callers.id')
+    .innerJoin('callers as c', 's.id', 'c.id')
     .select([
       'f.path as file_path',
-      's.line',
+      sql<number>`COALESCE(c.call_line, s.line)`.as('line'),
       's.name as caller_symbol',
-      emptyContext.as('context'),
-      resolutionImport.as('resolution'),
+      sql<string>`COALESCE(c.context, '')`.as('context'),
+      sql<string>`COALESCE(c.resolution, 'same_file')`.as('resolution'),
     ])
     .execute();
 }

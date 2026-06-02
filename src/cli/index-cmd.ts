@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
-import { runIndex } from '../indexer/index.js';
+import { runIndex, runEmbed } from '../indexer/index.js';
 
 export function registerIndexCommand(program: Command): void {
   program
@@ -42,11 +42,26 @@ export function registerIndexCommand(program: Command): void {
         '\n',
       );
 
-      // Phase 2 embedding is omitted when --phase1-only; otherwise the
-      // background embedder would normally run here via the CLI path.
-      // Stage 9 implementation: wire up Phase 2 for the CLI.
+      // Phase 2 embedding. Run in-process here (unlike `mast serve`, which
+      // forks for isolation) — `mast index` is a one-shot process, so there is
+      // no long-lived MCP server to protect from an embedder crash. This is the
+      // path the Docker seed build (§13.8) uses to ship a fully-embedded index.
       if (!opts.phase1Only) {
-        process.stdout.write('Note: Phase 2 (embedding) not yet wired for CLI — use `mast serve` for full indexing.\n');
+        const embed = await runEmbed(config, {
+          onProgress: opts.showProgress
+            ? (embedded: number, total: number) => {
+                if (total === 0) return;
+                const pct = Math.round((embedded / total) * 100);
+                const line = `  embedding ${embedded}/${total} chunks (${pct}%)`;
+                process.stderr.write(process.stderr.isTTY ? `\r${line}` : `${line}\n`);
+                if (embedded === total && process.stderr.isTTY) process.stderr.write('\n');
+              }
+            : undefined,
+        });
+        process.stdout.write(
+          `embedded: ${embed.chunksEmbedded} chunks, ${embed.chunksSkipped} skipped` +
+          `  duration: ${embed.durationMs}ms\n`,
+        );
       }
     });
 }

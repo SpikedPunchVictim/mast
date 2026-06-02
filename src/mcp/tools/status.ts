@@ -19,7 +19,7 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
         indexed_files:  meta?.file_count ?? 0,
         chunk_count:    meta?.chunk_count ?? 0,
         stale_files,
-        parse_errors:   0,
+        parse_errors:   meta?.parse_errors ?? 0,
         index_fresh:    meta !== null && stale_files === 0,
         model:          ctx.config.embedding_model,
         seed_commit:    meta?.seed_commit,

@@ -61,6 +61,21 @@ export async function runIndex(
     await removeDeletedFiles(db, deleted);
     await lance.deleteChunksForFiles(deleted);
 
+    // Full reindex: also purge DB entries for files no longer in the current
+    // walk (e.g. dist/ files left over from a previous indexing configuration
+    // that predates the current exclude_patterns). These are invisible to the
+    // manifest-diff above because they were never written to file_manifest.json
+    // under the current config.
+    if (!options.incremental) {
+      const currentPaths = new Set(currentFiles.map((e) => e.relativePath));
+      const dbRows = await db.selectFrom('files').select('path').execute();
+      const orphans = dbRows.map((r) => r.path).filter((p) => !currentPaths.has(p));
+      if (orphans.length > 0) {
+        await removeDeletedFiles(db, orphans);
+        await lance.deleteChunksForFiles(orphans);
+      }
+    }
+
     const toIndex = options.incremental ? [...stale, ...added] : currentFiles;
 
     let filesIndexed = 0;
@@ -138,6 +153,7 @@ export async function runIndex(
       file_count: currentFiles.length,
       chunk_count: chunkCount,
       model: config.embedding_model,
+      parse_errors: parseErrors > 0 ? parseErrors : undefined,
     };
     writeFileSync(
       join(config.resolved_state_dir, 'index.json'),

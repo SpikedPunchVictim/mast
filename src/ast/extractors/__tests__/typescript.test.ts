@@ -4,18 +4,18 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { TypeScriptExtractor, chunkId, sha256, expandContent } from '../typescript.js';
 import { parseSource } from '../../parser.js';
+import type { Tree } from '../../parser.js';
 import type { Chunk } from '../../types.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(__dirname, 'fixtures');
 
-function loadFixture(name: string): { src: string; tree: unknown; mtime: number } {
+function loadFixture(name: string): { src: string; tree: Tree; mtime: number } {
   const filePath = join(FIXTURES, name);
   const src = readFileSync(filePath, 'utf-8');
   const mtime = statSync(filePath).mtimeMs / 1_000;
   const ext = name.slice(name.lastIndexOf('.'));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tree: any = parseSource(src, ext);
+  const tree = parseSource(src, ext);
   return { src, tree, mtime };
 }
 
@@ -174,9 +174,9 @@ describe('TypeScriptExtractor – two-pass exports', () => {
 describe('declaration_hash / body_hash stability', () => {
   it('declaration_hash is stable across identical source', () => {
     const { src, tree } = loadFixture('basic.ts');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const greetNode = (tree as any).rootNode.children.find(
-      (n: any) => n.type === 'export_statement',
+
+    const greetNode = tree.rootNode.children.find(
+      (n) => n.type === 'export_statement',
     )?.namedChildren?.[0];
     if (greetNode === undefined) return; // skip if tree structure differs
     const h1 = extractor.declarationHash(greetNode, src);
@@ -198,8 +198,7 @@ describe('sub-chunking for large declarations', () => {
       '}',
     ].join('\n');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tree: any = parseSource(src, '.ts');
+    const tree = parseSource(src, '.ts');
     const smallThreshold = 50;
     const result = extractor.extractChunks(tree, src, 'big.ts', 0, 0, smallThreshold);
 

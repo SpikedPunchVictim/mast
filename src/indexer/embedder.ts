@@ -47,7 +47,7 @@ export class Embedder {
     // Detect the model's actual embedding dimension by probing with an empty string.
     // This allows swapping models without hardcoding the dimension per model.
     const probe = await this.pipeline('', { pooling: 'mean', normalize: true });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const probeData = (probe as any).data as Float32Array;
     this._dimension = probeData.length;
   }
@@ -73,7 +73,7 @@ export class Embedder {
 
       const output = await this.pipeline(chunk.content, { pooling: 'mean', normalize: true });
       // Transformers.js returns a Tensor; extract the float32 data array.
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       const embedding: number[] = Array.from((output as any).data as Float32Array);
 
       this.writeCache(contentHash, embedding);

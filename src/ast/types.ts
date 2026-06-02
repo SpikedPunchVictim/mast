@@ -80,6 +80,12 @@ export interface EdgeRecord {
   readonly fromName: string;
   readonly toName: string;
   readonly edgeType: string;
+  /** How a POTENTIAL_CALL receiver was statically linked (§10.3.1). */
+  readonly resolution?: CallerResolution;
+  /** 1-indexed source line of the call site (POTENTIAL_CALL only). */
+  readonly callLine?: number;
+  /** Trimmed source text of the call-site line (POTENTIAL_CALL only). */
+  readonly context?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -111,6 +117,7 @@ export interface IndexMeta {
   file_count: number;
   chunk_count: number;
   model: string;
+  parse_errors?: number;         // files skipped in the last index run due to parse failures
   seed_commit?: string;          // git rev baked into Docker seed layer
 }
 

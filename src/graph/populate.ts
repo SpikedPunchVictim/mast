@@ -156,7 +156,14 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
     const from_id = fromMap.get(edge.fromName);
     const to_id   = toMap.get(edge.toName);
     if (from_id === undefined || to_id === undefined) return [];
-    return [{ from_id, to_id, edge_type: edge.edgeType }];
+    return [{
+      from_id,
+      to_id,
+      edge_type: edge.edgeType,
+      resolution: edge.resolution ?? null,
+      call_line: edge.callLine ?? null,
+      context: edge.context ?? null,
+    }];
   });
 
   if (edgeValues.length === 0) return;

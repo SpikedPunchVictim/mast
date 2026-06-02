@@ -22,6 +22,13 @@ export interface AppContext {
   readonly getEmbedder: () => Embedder | null;
   /** Returns 'hybrid' once vectors are ready; 'lexical' during cold start. */
   readonly searchMode: () => SearchMode;
+  /**
+   * Embed any chunks that have no vector yet (e.g. those just written by the
+   * agent and re-parsed via `mast_reindex`), reusing the background embedder.
+   * Best-effort and serialised; resolves when embedding settles. A no-op when
+   * nothing is pending. Called by `mast_reindex` after Phase 1.
+   */
+  readonly embedPending: () => Promise<void>;
   /** Stable identifier for this MCP server session (used in metrics). */
   readonly sessionId: string;
 }

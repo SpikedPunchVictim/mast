@@ -82,7 +82,7 @@ export class LanceStore {
       .query()
       .where(`file_path = '${escapeString(filePath)}'`)
       .toArray();
-    return rows as unknown as ChunkRecord[];
+    return rows as ChunkRecord[];
   }
 
   async chunkCount(): Promise<number> {
@@ -128,7 +128,7 @@ export class LanceStore {
       .distanceType('cosine')
       .limit(limit)
       .toArray();
-    return rows as unknown as VectorSearchRow[];
+    return rows as VectorSearchRow[];
   }
 
   async getEmbeddedChunkIds(): Promise<Set<string>> {
@@ -151,7 +151,7 @@ export class LanceStore {
     if (!names.includes(CHUNK_TABLE)) return [];
     const table = await this.db.openTable(CHUNK_TABLE);
     const rows = await table.query().toArray();
-    return rows as unknown as ChunkRecord[];
+    return rows as ChunkRecord[];
   }
 
   /** Return chunk rows matching the given IDs. Unrecognised IDs are silently skipped. */
@@ -162,7 +162,7 @@ export class LanceStore {
     const table = await this.db.openTable(CHUNK_TABLE);
     const escaped = ids.map((id) => `'${escapeString(id)}'`).join(', ');
     const rows = await table.query().where(`chunk_id IN (${escaped})`).toArray();
-    return rows as unknown as ChunkRecord[];
+    return rows as ChunkRecord[];
   }
 }
 

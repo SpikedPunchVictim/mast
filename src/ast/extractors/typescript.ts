@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { extname, posix } from 'node:path';
-import type { LanguageExtractor } from '../parser.js';
-import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord } from '../types.js';
+import type { LanguageExtractor, Tree, SyntaxNode } from '../parser.js';
+import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../types.js';
+import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
 
 // ---------------------------------------------------------------------------
 // TypeScriptExtractor
@@ -19,8 +20,7 @@ export class TypeScriptExtractor implements LanguageExtractor {
   readonly extensions = ['.ts', '.tsx', '.js', '.jsx'] as const;
 
   extractChunks(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    parsedTree: any,
+    parsedTree: Tree,
     src: string,
     filePath: string,
     fileMtime: number,
@@ -29,9 +29,7 @@ export class TypeScriptExtractor implements LanguageExtractor {
   ): Chunk[] {
     const lines = src.split('\n');
     const lang = languageFromExt(extname(filePath));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const rootNode: unknown = parsedTree.rootNode;
-    const topLevel = nodeChildren(rootNode);
+    const topLevel = nodeChildren(parsedTree.rootNode);
 
     // -------------------------------------------------------------------------
     // Pass 1: build symbol-name → exported flag map.
@@ -70,8 +68,7 @@ export class TypeScriptExtractor implements LanguageExtractor {
 
       for (const child of nodeNamedChildren(exportClause)) {
         if (nodeType(child) !== 'export_specifier') continue;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        const localName: string | undefined = (child as any).childForFieldName?.('name')?.text;
+        const localName = child.childForFieldName('name')?.text;
         if (localName !== undefined && knownDeclNames.has(localName)) {
           exportedNames.add(localName);
         }
@@ -87,7 +84,7 @@ export class TypeScriptExtractor implements LanguageExtractor {
       const t = nodeType(node);
       if (t === 'comment' || t === 'import_statement') continue;
 
-      let declNode: unknown = node;
+      let declNode: SyntaxNode = node;
       let isExported = false;
 
       if (t === 'export_statement') {
@@ -117,18 +114,14 @@ export class TypeScriptExtractor implements LanguageExtractor {
     return chunks;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  declarationHash(node: any, src: string): string {
+  declarationHash(node: SyntaxNode, src: string): string {
     return sha256(extractSignatureText(node, src));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bodyHash(node: any, src: string): string {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const bodyNode = (node as any).childForFieldName?.('body') ?? findChildByType(node, 'statement_block');
+  bodyHash(node: SyntaxNode, src: string): string {
+    const bodyNode = node.childForFieldName('body') ?? findChildByType(node, 'statement_block');
     if (bodyNode === null) return sha256('');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return sha256(src.slice((bodyNode as any).startIndex as number, (bodyNode as any).endIndex as number));
+    return sha256(src.slice(bodyNode.startIndex, bodyNode.endIndex));
   }
 }
 
@@ -137,7 +130,7 @@ export class TypeScriptExtractor implements LanguageExtractor {
 // ---------------------------------------------------------------------------
 
 function emitChunksForNode(
-  node: unknown,
+  node: SyntaxNode,
   isExported: boolean,
   chunks: Chunk[],
   lines: readonly string[],
@@ -155,8 +148,7 @@ function emitChunksForNode(
   switch (t) {
     case 'function_declaration':
     case 'generator_function_declaration': {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const name: string | null = (node as any).childForFieldName?.('name')?.text ?? null;
+      const name = node.childForFieldName('name')?.text ?? null;
       pushChunks(chunks, {
         chunkType: 'function',
         symbolName: name,
@@ -178,15 +170,13 @@ function emitChunksForNode(
     case 'variable_declaration': {
       const declarator = findChildByType(node, 'variable_declarator');
       if (declarator === null) break;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const valNode: unknown = (declarator as any).childForFieldName?.('value') ?? null;
+      const valNode = declarator.childForFieldName('value');
       const isFunc =
         valNode !== null &&
         (nodeType(valNode) === 'arrow_function' ||
           nodeType(valNode) === 'function' ||
           nodeType(valNode) === 'generator_function');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const name: string | null = (declarator as any).childForFieldName?.('name')?.text ?? null;
+      const name = declarator.childForFieldName('name')?.text ?? null;
       pushChunks(chunks, {
         chunkType: isFunc ? 'function' : 'block',
         symbolName: name,
@@ -206,11 +196,8 @@ function emitChunksForNode(
 
     case 'class_declaration':
     case 'abstract_class_declaration': {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const className: string | null = (node as any).childForFieldName?.('name')?.text ?? null;
-      const bodyNode: unknown =
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        (node as any).childForFieldName?.('body') ?? findChildByType(node, 'class_body');
+      const className = node.childForFieldName('name')?.text ?? null;
+      const bodyNode = node.childForFieldName('body') ?? findChildByType(node, 'class_body');
 
       // Synthesized class_shell chunk
       const shellContent = synthesiseClassShell(node, bodyNode, src);
@@ -233,8 +220,7 @@ function emitChunksForNode(
         for (const member of nodeNamedChildren(bodyNode)) {
           const mt = nodeType(member);
           if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          const methodName: string | null = (member as any).childForFieldName?.('name')?.text ?? null;
+          const methodName = member.childForFieldName('name')?.text ?? null;
           if (methodName === null) continue;
 
           const isPrivate = hasPrivateModifier(member);
@@ -262,8 +248,7 @@ function emitChunksForNode(
     }
 
     case 'interface_declaration': {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const name: string | null = (node as any).childForFieldName?.('name')?.text ?? null;
+      const name = node.childForFieldName('name')?.text ?? null;
       pushChunks(chunks, {
         chunkType: 'interface',
         symbolName: name,
@@ -282,8 +267,7 @@ function emitChunksForNode(
     }
 
     case 'type_alias_declaration': {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      const name: string | null = (node as any).childForFieldName?.('name')?.text ?? null;
+      const name = node.childForFieldName('name')?.text ?? null;
       pushChunks(chunks, {
         chunkType: 'type',
         symbolName: name,
@@ -406,22 +390,15 @@ function pushChunks(chunks: Chunk[], opts: PushChunksOpts): void {
  * signatures (TSDoc + signature line, no bodies) + closing brace.
  */
 export function synthesiseClassShell(
-  classNode: unknown,
-  bodyNode: unknown,
+  classNode: SyntaxNode,
+  bodyNode: SyntaxNode | null,
   src: string,
 ): string {
   // Header: class declaration up to (not including) the opening `{`
-  let header: string;
-  if (bodyNode !== null) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const classStart = (classNode as any).startIndex as number;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const bodyStart = (bodyNode as any).startIndex as number;
-    header = src.slice(classStart, bodyStart).trimEnd();
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    header = src.slice((classNode as any).startIndex as number, (classNode as any).endIndex as number);
-  }
+  const header =
+    bodyNode !== null
+      ? src.slice(classNode.startIndex, bodyNode.startIndex).trimEnd()
+      : src.slice(classNode.startIndex, classNode.endIndex);
 
   if (bodyNode === null) return header;
 
@@ -456,77 +433,65 @@ export function synthesiseClassShell(
  * Extract declaration text up to (not including) the body block.
  * For interfaces and type aliases the full node is the signature.
  */
-export function extractSignatureText(node: unknown, src: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const bodyNode: unknown = (node as any).childForFieldName?.('body') ?? findChildByType(node, 'statement_block');
+export function extractSignatureText(node: SyntaxNode, src: string): string {
+  const bodyNode = node.childForFieldName('body') ?? findChildByType(node, 'statement_block');
 
   if (bodyNode === null) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return src.slice((node as any).startIndex as number, (node as any).endIndex as number);
+    return src.slice(node.startIndex, node.endIndex);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return src.slice((node as any).startIndex as number, (bodyNode as any).startIndex as number).trimEnd();
+  return src.slice(node.startIndex, bodyNode.startIndex).trimEnd();
 }
 
 /**
  * Find the immediately preceding TSDoc or line comment for a node.
  * Returns the comment text, or null if none found.
  */
-function getLeadingComment(node: unknown, parentNode: unknown, src: string): string | null {
+function getLeadingComment(node: SyntaxNode, parentNode: SyntaxNode, src: string): string | null {
   const siblings = nodeChildren(parentNode);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const nodeStart = (node as any).startIndex as number;
+  const nodeStart = node.startIndex;
 
   // Walk backwards from the node's position to find an adjacent comment.
-  let precedingComment: unknown | null = null;
+  let precedingComment: SyntaxNode | null = null;
   for (const sibling of siblings) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const sibEnd = (sibling as any).endIndex as number;
-    if (sibEnd > nodeStart) break;
+    if (sibling.endIndex > nodeStart) break;
     if (nodeType(sibling) === 'comment') {
       precedingComment = sibling;
-    } else if (nodeType(sibling) !== 'comment') {
-      // Reset if a non-comment, non-whitespace node appears between the comment and our node.
+    } else {
+      // Reset if a non-comment node appears between the comment and our node.
       precedingComment = null;
     }
   }
 
   if (precedingComment === null) return null;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return src.slice((precedingComment as any).startIndex as number, (precedingComment as any).endIndex as number);
+  return src.slice(precedingComment.startIndex, precedingComment.endIndex);
 }
 
 // ---------------------------------------------------------------------------
-// Node helpers (all typed as unknown → any casts inside, never leaked)
+// Node helpers
 // ---------------------------------------------------------------------------
 
-function nodeType(node: unknown): string {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return (node as any).type as string;
+function nodeType(node: SyntaxNode): string {
+  return node.type;
 }
 
-function nodeStartLine(node: unknown): number {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return ((node as any).startPosition.row as number) + 1;
+function nodeStartLine(node: SyntaxNode): number {
+  return node.startPosition.row + 1;
 }
 
-function nodeEndLine(node: unknown): number {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return ((node as any).endPosition.row as number) + 1;
+function nodeEndLine(node: SyntaxNode): number {
+  return node.endPosition.row + 1;
 }
 
-function nodeChildren(node: unknown): unknown[] {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return ((node as any).children as unknown[] | undefined) ?? [];
+function nodeChildren(node: SyntaxNode): SyntaxNode[] {
+  return node.children;
 }
 
-function nodeNamedChildren(node: unknown): unknown[] {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return ((node as any).namedChildren as unknown[] | undefined) ?? [];
+function nodeNamedChildren(node: SyntaxNode): SyntaxNode[] {
+  return node.namedChildren;
 }
 
-function findChildByType(node: unknown, type: string): unknown | null {
+function findChildByType(node: SyntaxNode, type: string): SyntaxNode | null {
   for (const child of nodeChildren(node)) {
     if (nodeType(child) === type) return child;
   }
@@ -537,9 +502,8 @@ function findChildByType(node: unknown, type: string): unknown | null {
  * Return the wrapped declaration node for `export function foo(){}` style.
  * Returns null for `export { foo }` and `export * from '...'` forms.
  */
-function getWrappedDeclaration(exportStmtNode: unknown): unknown | null {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-  const fieldDecl: unknown = (exportStmtNode as any).childForFieldName?.('declaration') ?? null;
+function getWrappedDeclaration(exportStmtNode: SyntaxNode): SyntaxNode | null {
+  const fieldDecl = exportStmtNode.childForFieldName('declaration');
   if (fieldDecl !== null) return fieldDecl;
 
   // Fallback: look for a named child that is a declaration-type node
@@ -565,7 +529,7 @@ function getWrappedDeclaration(exportStmtNode: unknown): unknown | null {
 /**
  * Return true if the export_statement has a `from` clause (re-exporting from another module).
  */
-function hasFromClause(node: unknown): boolean {
+function hasFromClause(node: SyntaxNode): boolean {
   for (const child of nodeChildren(node)) {
     if (nodeType(child) === 'string') return true; // `from './module'` has a string child
   }
@@ -575,7 +539,7 @@ function hasFromClause(node: unknown): boolean {
 /**
  * Get the primary declared name from a declaration node, or null.
  */
-function getDeclName(node: unknown): string | null {
+function getDeclName(node: SyntaxNode): string | null {
   const t = nodeType(node);
 
   if (
@@ -587,15 +551,13 @@ function getDeclName(node: unknown): string | null {
     t === 'type_alias_declaration' ||
     t === 'enum_declaration'
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    return (node as any).childForFieldName?.('name')?.text ?? null;
+    return node.childForFieldName('name')?.text ?? null;
   }
 
   if (t === 'lexical_declaration' || t === 'variable_declaration') {
     const declarator = findChildByType(node, 'variable_declarator');
     if (declarator === null) return null;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    return (declarator as any).childForFieldName?.('name')?.text ?? null;
+    return declarator.childForFieldName('name')?.text ?? null;
   }
 
   return null;
@@ -604,12 +566,11 @@ function getDeclName(node: unknown): string | null {
 /**
  * Return true if the class member has a `private` accessibility modifier.
  */
-function hasPrivateModifier(memberNode: unknown): boolean {
+function hasPrivateModifier(memberNode: SyntaxNode): boolean {
   for (const child of nodeChildren(memberNode)) {
     const t = nodeType(child);
     if (t === 'accessibility_modifier') {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return ((child as any).text as string) === 'private';
+      return child.text === 'private';
     }
     // TypeScript grammar uses '#' for private fields (ESNext private syntax)
     if (t === 'private_field_definition') return true;
@@ -684,9 +645,8 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
  * `filePath` is the relative path of the file being indexed (used for
  * resolving relative module specifiers to monorepo paths).
  */
-export function extractImports(parsedTree: unknown, filePath: string): ImportRecord[] {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const topLevel = nodeChildren((parsedTree as any).rootNode);
+export function extractImports(parsedTree: Tree, filePath: string): ImportRecord[] {
+  const topLevel = nodeChildren(parsedTree.rootNode);
   const imports: ImportRecord[] = [];
 
   for (const node of topLevel) {
@@ -695,10 +655,8 @@ export function extractImports(parsedTree: unknown, filePath: string): ImportRec
     // Module specifier: find the string child (quoted module path).
     const moduleNode = findChildByType(node, 'string');
     if (moduleNode === null) continue;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const rawText = (moduleNode as any).text as string;
     // Strip surrounding quotes (' or ").
-    const module = rawText.slice(1, -1);
+    const module = moduleNode.text.slice(1, -1);
 
     const isExternal = !module.startsWith('.') && !module.startsWith('/');
 
@@ -717,8 +675,7 @@ export function extractImports(parsedTree: unknown, filePath: string): ImportRec
       if (namedImports !== null) {
         for (const specifier of nodeNamedChildren(namedImports)) {
           if (nodeType(specifier) !== 'import_specifier') continue;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          const name: string | undefined = (specifier as any).childForFieldName?.('name')?.text;
+          const name = specifier.childForFieldName('name')?.text;
           if (name !== undefined) symbols.push(name);
         }
       }
@@ -731,72 +688,329 @@ export function extractImports(parsedTree: unknown, filePath: string): ImportRec
 }
 
 /**
- * Extract IMPLEMENTS edge records from a parsed tree.
+ * Extract graph edge records from a parsed tree:
+ *   - IMPLEMENTS  — class → interface (`implements` clause)
+ *   - EXTENDS     — class/interface → its base (`extends` clause)
+ *   - PARENT_OF   — class → its method symbols
+ *   - POTENTIAL_CALL — caller symbol → statically-resolved callee (§10.3.1)
  *
- * Walks top-level class declarations and emits one EdgeRecord per entry in
- * each class's `implements` clause.  Edge records use symbol names (not IDs)
- * — `insertEdges` resolves them against the symbols table after all files have
- * been inserted (two-pass requirement).
+ * Edge records use symbol *names*; `insertEdges` resolves them to ids after all
+ * files' symbols are inserted (two-pass requirement). A POTENTIAL_CALL whose
+ * callee name is not a known indexed symbol is dropped there — that is how the
+ * "only a known symbol becomes a verified edge" rule from §10.3 is enforced.
+ *
+ * `src` is the raw source, used to attach the call-site line + context.
  */
-export function extractEdges(parsedTree: unknown, _filePath: string): EdgeRecord[] {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const topLevel = nodeChildren((parsedTree as any).rootNode);
+export function extractEdges(parsedTree: Tree, _filePath: string, src: string): EdgeRecord[] {
+  const lines = src.split('\n');
+  const topLevel = nodeChildren(parsedTree.rootNode);
   const edges: EdgeRecord[] = [];
 
+  // File-scoped callables: named imports + same-file top-level symbol names.
+  const importedNames: string[] = [];
+  const sameFileNames: string[] = [];
   for (const node of topLevel) {
-    let declNode = node;
-    if (nodeType(node) === 'export_statement') {
-      const decl = getWrappedDeclaration(node);
-      if (decl === null) continue;
-      declNode = decl;
-    }
-
-    const t = nodeType(declNode);
-    if (t !== 'class_declaration' && t !== 'abstract_class_declaration') continue;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const className: string | null = (declNode as any).childForFieldName?.('name')?.text ?? null;
-    if (className === null) continue;
-
-    // tree-sitter-typescript wraps extends/implements in a `class_heritage` node.
-    // Fall back to scanning named children if the grammar version doesn't use it.
-    const heritage = findChildByType(declNode, 'class_heritage');
-    const implClause = heritage !== null
-      ? findChildByType(heritage, 'implements_clause')
-      : findChildByType(declNode, 'implements_clause');
-
-    if (implClause !== null) {
-      for (const typeRef of nodeNamedChildren(implClause)) {
-        let ifaceName: string | null = null;
-        if (nodeType(typeRef) === 'type_identifier') {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          ifaceName = (typeRef as any).text as string;
-        } else if (nodeType(typeRef) === 'generic_type') {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          ifaceName = (typeRef as any).childForFieldName?.('name')?.text ?? null;
-        }
-        if (ifaceName !== null) {
-          edges.push({ fromName: className, toName: ifaceName, edgeType: 'IMPLEMENTS' });
+    if (nodeType(node) === 'import_statement') {
+      const importClause = findChildByType(node, 'import_clause');
+      const namedImports = importClause !== null ? findChildByType(importClause, 'named_imports') : null;
+      if (namedImports !== null) {
+        for (const spec of nodeNamedChildren(namedImports)) {
+          if (nodeType(spec) !== 'import_specifier') continue;
+          const name = spec.childForFieldName('name')?.text;
+          if (name !== undefined) importedNames.push(name);
         }
       }
+      continue;
     }
+    const decl = nodeType(node) === 'export_statement' ? getWrappedDeclaration(node) : node;
+    if (decl === null) continue;
+    const name = getDeclName(decl);
+    if (name !== null) sameFileNames.push(name);
+  }
 
-    // PARENT_OF edges: class → method symbols (method symbol names are `ClassName.methodName`).
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    const bodyNode: unknown = (declNode as any).childForFieldName?.('body') ?? findChildByType(declNode, 'class_body');
-    if (bodyNode !== null) {
-      for (const member of nodeNamedChildren(bodyNode)) {
-        const mt = nodeType(member);
-        if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        const methodName: string | null = (member as any).childForFieldName?.('name')?.text ?? null;
-        if (methodName === null) continue;
-        edges.push({ fromName: className, toName: `${className}.${methodName}`, edgeType: 'PARENT_OF' });
+  const seedFileScope = (env: LocalTypeEnvironment): void => {
+    for (const n of importedNames) env.recordImport(n);
+    for (const n of sameFileNames) env.recordSameFileSymbol(n);
+  };
+
+  for (const node of topLevel) {
+    const declNode = nodeType(node) === 'export_statement' ? getWrappedDeclaration(node) : node;
+    if (declNode === null) continue;
+    const t = nodeType(declNode);
+
+    if (t === 'class_declaration' || t === 'abstract_class_declaration') {
+      emitClassEdges(declNode, edges, seedFileScope, lines);
+    } else if (t === 'interface_declaration') {
+      emitInterfaceExtends(declNode, edges);
+    } else if (t === 'function_declaration' || t === 'generator_function_declaration') {
+      const name = declNode.childForFieldName('name')?.text ?? null;
+      const body = declNode.childForFieldName('body');
+      if (name !== null && body !== null) {
+        emitCallEdges(name, declNode.childForFieldName('parameters'), body, edges, seedFileScope, lines);
+      }
+    } else if (t === 'lexical_declaration' || t === 'variable_declaration') {
+      const declarator = findChildByType(declNode, 'variable_declarator');
+      const value = declarator?.childForFieldName('value') ?? null;
+      const name = declarator?.childForFieldName('name')?.text ?? null;
+      if (name !== null && value !== null && nodeType(value) === 'arrow_function') {
+        const body = value.childForFieldName('body');
+        if (body !== null) {
+          emitCallEdges(name, value.childForFieldName('parameters'), body, edges, seedFileScope, lines);
+        }
       }
     }
   }
 
   return edges;
+}
+
+/** IMPLEMENTS + EXTENDS + PARENT_OF + per-method POTENTIAL_CALL for one class. */
+function emitClassEdges(
+  classNode: SyntaxNode,
+  edges: EdgeRecord[],
+  seedFileScope: (env: LocalTypeEnvironment) => void,
+  lines: readonly string[],
+): void {
+  const className = classNode.childForFieldName('name')?.text ?? null;
+  if (className === null) return;
+
+  // tree-sitter-typescript wraps extends/implements in a `class_heritage` node.
+  const heritage = findChildByType(classNode, 'class_heritage');
+  const implClause = heritage !== null
+    ? findChildByType(heritage, 'implements_clause')
+    : findChildByType(classNode, 'implements_clause');
+  if (implClause !== null) {
+    for (const typeRef of nodeNamedChildren(implClause)) {
+      const ifaceName = typeRefName(typeRef);
+      if (ifaceName !== null) edges.push({ fromName: className, toName: ifaceName, edgeType: 'IMPLEMENTS' });
+    }
+  }
+
+  // EXTENDS: the `extends` clause names the base class.
+  const extendsClause = heritage !== null
+    ? findChildByType(heritage, 'extends_clause')
+    : findChildByType(classNode, 'extends_clause');
+  if (extendsClause !== null) {
+    for (const typeRef of nodeNamedChildren(extendsClause)) {
+      const baseName = typeRefName(typeRef);
+      if (baseName !== null) {
+        edges.push({ fromName: className, toName: baseName, edgeType: 'EXTENDS' });
+        break; // a class extends at most one base
+      }
+    }
+  }
+
+  const bodyNode = classNode.childForFieldName('body') ?? findChildByType(classNode, 'class_body');
+  if (bodyNode === null) return;
+
+  // Class-wide receiver bindings: constructor parameter properties + fields.
+  const fieldBindings = collectClassFieldBindings(bodyNode);
+
+  for (const member of nodeNamedChildren(bodyNode)) {
+    const mt = nodeType(member);
+    if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
+    const methodName = member.childForFieldName('name')?.text ?? null;
+    if (methodName === null) continue;
+
+    edges.push({ fromName: className, toName: `${className}.${methodName}`, edgeType: 'PARENT_OF' });
+
+    const body = member.childForFieldName('body');
+    if (body === null) continue; // abstract / no body
+    emitCallEdges(
+      `${className}.${methodName}`,
+      member.childForFieldName('parameters'),
+      body,
+      edges,
+      seedFileScope,
+      lines,
+      fieldBindings,
+    );
+  }
+}
+
+/** interface extends interface(s). */
+function emitInterfaceExtends(ifaceNode: SyntaxNode, edges: EdgeRecord[]): void {
+  const name = ifaceNode.childForFieldName('name')?.text ?? null;
+  if (name === null) return;
+  const extendsClause = findChildByType(ifaceNode, 'extends_type_clause')
+    ?? findChildByType(ifaceNode, 'extends_clause');
+  if (extendsClause === null) return;
+  for (const typeRef of nodeNamedChildren(extendsClause)) {
+    const baseName = typeRefName(typeRef);
+    if (baseName !== null) edges.push({ fromName: name, toName: baseName, edgeType: 'EXTENDS' });
+  }
+}
+
+/**
+ * Build the local type environment for a function/method scope and emit one
+ * POTENTIAL_CALL edge per statically-resolvable call site in its body.
+ */
+function emitCallEdges(
+  fromName: string,
+  paramsNode: SyntaxNode | null,
+  bodyNode: SyntaxNode,
+  edges: EdgeRecord[],
+  seedFileScope: (env: LocalTypeEnvironment) => void,
+  lines: readonly string[],
+  classFieldBindings: readonly ReceiverBinding[] = [],
+): void {
+  const env = new LocalTypeEnvironment();
+  seedFileScope(env);
+  for (const b of classFieldBindings) env.recordReceiverType(b.receiver, b.type, b.resolution);
+  if (paramsNode !== null) {
+    for (const b of collectParamBindings(paramsNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
+  }
+  for (const b of collectNewBindings(bodyNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
+
+  for (const call of collectCalls(bodyNode)) {
+    const parsed = parseCallee(call);
+    if (parsed === null) continue;
+    const resolved = env.resolveCall(parsed.receiver, parsed.method);
+    if (resolved === null) continue;
+    const line = call.startPosition.row + 1;
+    edges.push({
+      fromName,
+      toName: resolved.callee,
+      edgeType: 'POTENTIAL_CALL',
+      resolution: resolved.resolution,
+      callLine: line,
+      context: (lines[line - 1] ?? '').trim(),
+    });
+  }
+}
+
+interface ReceiverBinding {
+  readonly receiver: string;
+  readonly type: string;
+  readonly resolution: CallerResolution;
+}
+
+/** Constructor parameter properties + plain field declarations → `this.x` bindings. */
+function collectClassFieldBindings(classBody: SyntaxNode): ReceiverBinding[] {
+  const bindings: ReceiverBinding[] = [];
+  for (const member of nodeNamedChildren(classBody)) {
+    const mt = nodeType(member);
+    if (mt === 'public_field_definition' || mt === 'property_signature') {
+      const name = member.childForFieldName('name')?.text ?? null;
+      const type = annotationTypeName(member);
+      if (name !== null && type !== null) bindings.push({ receiver: `this.${name}`, type, resolution: 'field_type' });
+    } else if (mt === 'method_definition' && member.childForFieldName('name')?.text === 'constructor') {
+      const params = member.childForFieldName('parameters');
+      if (params !== null) {
+        for (const param of nodeNamedChildren(params)) {
+          // A constructor parameter property carries an accessibility modifier.
+          if (findChildByType(param, 'accessibility_modifier') === null) continue;
+          const name = findChildByType(param, 'identifier')?.text ?? null;
+          const type = annotationTypeName(param);
+          if (name !== null && type !== null) bindings.push({ receiver: `this.${name}`, type, resolution: 'field_type' });
+        }
+      }
+    }
+  }
+  return bindings;
+}
+
+/** Annotated (non-property) parameters → bare-name receiver bindings. */
+function collectParamBindings(paramsNode: SyntaxNode): ReceiverBinding[] {
+  const bindings: ReceiverBinding[] = [];
+  for (const param of nodeNamedChildren(paramsNode)) {
+    const pt = nodeType(param);
+    if (pt !== 'required_parameter' && pt !== 'optional_parameter') continue;
+    if (findChildByType(param, 'accessibility_modifier') !== null) continue; // handled as a field
+    const name = findChildByType(param, 'identifier')?.text ?? null;
+    const type = annotationTypeName(param);
+    if (name !== null && type !== null) bindings.push({ receiver: name, type, resolution: 'parameter_type' });
+  }
+  return bindings;
+}
+
+/** `const x = new Foo()` → `x` resolves to type `Foo`. */
+function collectNewBindings(bodyNode: SyntaxNode): ReceiverBinding[] {
+  const bindings: ReceiverBinding[] = [];
+  const visit = (node: SyntaxNode): void => {
+    if (nodeType(node) === 'variable_declarator') {
+      const value = node.childForFieldName('value');
+      const name = node.childForFieldName('name')?.text ?? null;
+      if (name !== null && value !== null && nodeType(value) === 'new_expression') {
+        const ctor = value.childForFieldName('constructor') ?? value.namedChildren[0] ?? null;
+        const type = ctor !== null && nodeType(ctor) === 'identifier' ? ctor.text : null;
+        if (type !== null) bindings.push({ receiver: name, type, resolution: 'new_expression' });
+      }
+    }
+    for (const child of nodeNamedChildren(node)) visit(child);
+  };
+  visit(bodyNode);
+  return bindings;
+}
+
+/** Collect call_expression nodes within a body, not descending into nested
+ *  named functions/methods/classes (their calls belong to their own scope). */
+function collectCalls(bodyNode: SyntaxNode): SyntaxNode[] {
+  const calls: SyntaxNode[] = [];
+  const visit = (node: SyntaxNode): void => {
+    for (const child of nodeNamedChildren(node)) {
+      const t = nodeType(child);
+      if (t === 'function_declaration' || t === 'method_definition' ||
+          t === 'class_declaration' || t === 'abstract_class_declaration') {
+        continue;
+      }
+      if (t === 'call_expression') calls.push(child);
+      visit(child);
+    }
+  };
+  visit(bodyNode);
+  return calls;
+}
+
+/** Extract `{ receiver, method }` from a call expression, or null if unhandled. */
+function parseCallee(call: SyntaxNode): { receiver: string | null; method: string } | null {
+  const fn = call.childForFieldName('function') ?? call.namedChildren[0] ?? null;
+  if (fn === null) return null;
+
+  if (nodeType(fn) === 'identifier') {
+    return { receiver: null, method: fn.text };
+  }
+  if (nodeType(fn) === 'member_expression') {
+    const method = fn.childForFieldName('property')?.text ?? null;
+    const objectNode = fn.childForFieldName('object');
+    if (method === null || objectNode === null) return null;
+    const receiver = receiverString(objectNode);
+    if (receiver === null) return null;
+    return { receiver, method };
+  }
+  return null;
+}
+
+/** Stringify a member-expression receiver for the conservative resolver. */
+function receiverString(objectNode: SyntaxNode): string | null {
+  const t = nodeType(objectNode);
+  if (t === 'identifier') return objectNode.text;
+  if (t === 'member_expression') {
+    const inner = objectNode.childForFieldName('object');
+    const prop = objectNode.childForFieldName('property')?.text ?? null;
+    if (inner !== null && prop !== null && nodeType(inner) === 'this') return `this.${prop}`;
+  }
+  return null;
+}
+
+/** Name of a type reference node in a heritage clause. */
+function typeRefName(typeRef: SyntaxNode): string | null {
+  const t = nodeType(typeRef);
+  if (t === 'type_identifier' || t === 'identifier') return typeRef.text;
+  if (t === 'generic_type') return typeRef.childForFieldName('name')?.text ?? null;
+  return null;
+}
+
+/** Resolve the named type from a node's `type_annotation` child, if simple. */
+function annotationTypeName(node: SyntaxNode): string | null {
+  const annotation = findChildByType(node, 'type_annotation');
+  if (annotation === null) return null;
+  for (const child of nodeNamedChildren(annotation)) {
+    const t = nodeType(child);
+    if (t === 'type_identifier') return child.text;
+    if (t === 'generic_type') return child.childForFieldName('name')?.text ?? null;
+  }
+  return null;
 }
 
 /**
@@ -810,7 +1024,7 @@ export function extractIdentifiers(content: string): string {
   const seen = new Set<string>();
   let m: RegExpExecArray | null;
   while ((m = re.exec(content)) !== null) {
-    seen.add(m[0] as string);
+    seen.add(m[0]);
   }
   return [...seen].join(' ');
 }

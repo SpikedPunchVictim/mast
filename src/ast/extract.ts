@@ -72,7 +72,7 @@ export function extractFile(
 
   const symbols = symbolsFromChunks(chunks);
   const imports = extractImports(tree, relativePath);
-  const edges = extractEdges(tree, relativePath);
+  const edges = extractEdges(tree, relativePath, src);
 
   return { chunks, language, symbols, imports, edges };
 }

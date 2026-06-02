@@ -400,11 +400,6 @@ describe('deleted file cleanup', () => {
     try {
       const rows = await searchFts(db, 'Config', { limit: 10 });
       // Config was defined in types.ts — should no longer appear in FTS.
-      const fromTypesTs = rows.filter((r) => {
-        // We can't directly filter by file_path here (FTS row has chunk_id only),
-        // but Config only existed in types.ts, so zero matches is the right signal.
-        return true;
-      });
       // After deletion the only surviving FTS rows are from utils.ts.
       // 'Config' is not in utils.ts — so FTS should return 0 hits.
       expect(rows).toHaveLength(0);

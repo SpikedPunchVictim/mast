@@ -38,7 +38,7 @@ export function registerStatusCommand(program: Command): void {
         indexed_files: meta?.file_count ?? 0,
         chunk_count:   meta?.chunk_count ?? 0,
         stale_files:   staleCount,
-        parse_errors:  0,   // Stage 8: persist from index run
+        parse_errors:  meta?.parse_errors ?? 0,
         index_fresh:   staleCount === 0 && meta !== null,
         model:         meta?.model ?? config.embedding_model,
         seed_commit:   meta?.seed_commit,

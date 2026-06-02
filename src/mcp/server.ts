@@ -1,16 +1,19 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { cp } from 'node:fs/promises';
 import type { ResolvedConfig } from '../store/config.js';
-import { CURRENT_SCHEMA_VERSION, writeStateConfig } from '../store/config.js';
-import { initLockMarkers } from '../store/lock.js';
 import { openDatabase } from '../graph/db.js';
 import { LanceStore } from '../store/lance.js';
 import { Embedder } from '../indexer/embedder.js';
-import { loadIndexMeta, writeIndexMeta, runIndex } from '../indexer/index.js';
-import { startBackgroundEmbedder } from '../indexer/background-embedder.js';
+import { runIndex } from '../indexer/index.js';
+import { bootstrapState } from './startup.js';
+import {
+  warmEmbeddings,
+  embedChunks,
+  pendingChunkIds,
+  forkEmbedderChild,
+  type EmbedderChildHandle,
+} from '../indexer/background-embedder.js';
 import type { SearchMode } from '../ast/types.js';
 import type { AppContext } from './context.js';
 import { registerSearchTool }           from './tools/search.js';
@@ -46,32 +49,11 @@ export interface ServeOptions {
 export async function serve(options: ServeOptions): Promise<void> {
   const { config } = options;
 
-  // ── Step 1: bootstrap state directory ────────────────────────────────────
+  // ── Steps 1–2: bootstrap state dir + schema-version guard ─────────────────
+  // On a schema-version change this wipes all derived state (lance/, graph.db,
+  // file_manifest.json, embed_cache/) before any of it is opened. See §7.4.
 
-  const seedPath = '/opt/mast-seed';
-  if (!existsSync(config.resolved_state_dir) && existsSync(seedPath)) {
-    await cp(seedPath, config.resolved_state_dir, { recursive: true });
-  }
-  initLockMarkers(config.resolved_state_dir);
-  writeStateConfig(config.resolved_state_dir, config);
-
-  // ── Step 2: schema version check + open DB ────────────────────────────────
-
-  let meta = loadIndexMeta(config.resolved_state_dir);
-  let needsFullReindex = false;
-
-  if (meta !== null && meta.schema_version !== CURRENT_SCHEMA_VERSION) {
-    // Schema changed — wipe index-derived state; keep config.
-    needsFullReindex = true;
-    meta = null;
-    writeIndexMeta(config.resolved_state_dir, {
-      schema_version: CURRENT_SCHEMA_VERSION,
-      last_indexed: null,
-      file_count: 0,
-      chunk_count: 0,
-      model: config.embedding_model,
-    });
-  }
+  const { needsFullReindex } = await bootstrapState(config);
 
   const db = openDatabase(config.resolved_state_dir);
   const lance = await LanceStore.open(config.resolved_state_dir);
@@ -82,12 +64,49 @@ export async function serve(options: ServeOptions): Promise<void> {
   let currentMode: SearchMode = 'lexical';
   let currentEmbedder: Embedder | null = null;
 
+  // Single long-lived embedder child, shared by startup warm-up and every
+  // mast_reindex. Embed requests are serialised through `embedChain`, which is
+  // gated on `warmupSettled` so a mid-task reindex never spawns a second child
+  // while startup warm-up is still choosing/creating one.
+  let embedChild: EmbedderChildHandle | null = null;
+  let resolveWarmup!: () => void;
+  const warmupSettled = new Promise<void>((resolve) => { resolveWarmup = resolve; });
+  let embedChain: Promise<void> = warmupSettled;
+  process.on('exit', () => { embedChild?.kill(); });
+
+  // Make subsequent searches use vectors. Setting an embedder with no vectors
+  // present is harmless — hybridSearch self-corrects to lexical per query.
+  const ensureHybrid = (): void => {
+    currentEmbedder ??= new Embedder(
+      config.embedding_model,
+      '/opt/transformers-cache',
+      config.resolved_state_dir,
+    );
+    currentMode = 'hybrid';
+  };
+
+  const embedPending = (): Promise<void> => {
+    embedChain = embedChain
+      .then(async () => {
+        const ids = await pendingChunkIds(lance);
+        if (ids.length === 0) return;
+        embedChild ??= forkEmbedderChild(config.embedding_model, config.resolved_state_dir);
+        await embedChunks(embedChild, ids);
+        ensureHybrid();
+      })
+      .catch((err: unknown) => {
+        process.stderr.write(`[mast] mid-task embedding failed: ${String(err)}\n`);
+      });
+    return embedChain;
+  };
+
   const ctx: AppContext = {
     db,
     lance,
     config,
     getEmbedder: () => currentEmbedder,
     searchMode: () => currentMode,
+    embedPending,
     sessionId: randomUUID(),
   };
 
@@ -109,33 +128,32 @@ export async function serve(options: ServeOptions): Promise<void> {
 
   // ── Step 4: background reindex + embedding ───────────────────────────────
 
-  if (options.noStartupReindex) return;
+  if (options.noStartupReindex) {
+    // No startup work — let any reindex-driven embedding proceed immediately.
+    resolveWarmup();
+    return;
+  }
 
   void (async () => {
     try {
       await runIndex(config, { incremental: !needsFullReindex });
 
-      // Fork embedding child process; flip mode to 'hybrid' on completion.
-      const child = startBackgroundEmbedder({
+      // Drive the forked embedder to embed all pending chunks and adopt its
+      // child as the shared one reused by later mast_reindex calls. Resolves
+      // immediately when nothing is pending (e.g. a fully-embedded seed), in
+      // which case we still flip to hybrid because vectors already exist. §7.4.
+      const { child } = await warmEmbeddings({
         modelId: config.embedding_model,
         stateDir: config.resolved_state_dir,
-        onComplete: () => {
-          currentEmbedder = new Embedder(
-            config.embedding_model,
-            '/opt/transformers-cache',
-            config.resolved_state_dir,
-          );
-          currentMode = 'hybrid';
-        },
-        onError: (err) => {
-          process.stderr.write(`[mast] embedder error: ${err.message}\n`);
-        },
+        lance,
       });
-
-      // Keep reference alive; child process runs until server exits.
-      process.on('exit', () => { child.kill(); });
+      embedChild = child;
+      ensureHybrid();
     } catch (err) {
-      process.stderr.write(`[mast] startup reindex failed: ${String(err)}\n`);
+      process.stderr.write(`[mast] startup embedding failed: ${String(err)}\n`);
+    } finally {
+      // Unblock mast_reindex embedding regardless of warm-up outcome.
+      resolveWarmup();
     }
   })();
 }

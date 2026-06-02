@@ -164,7 +164,6 @@ describe('searchFts', () => {
 // ---------------------------------------------------------------------------
 
 describe('hybridSearch — lexical mode', () => {
-  const config = () => resolveConfig({ projectRoot: tmpDir });
   const hybridConfig = { rrf_k: 60, similarity_threshold: 0.0 };
 
   it('returns mode: lexical when embedder is null', async () => {

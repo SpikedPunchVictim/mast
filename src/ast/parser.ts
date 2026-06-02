@@ -1,24 +1,20 @@
 import { createRequire } from 'node:module';
+import type { Tree, SyntaxNode } from 'tree-sitter';
 import type { Chunk } from './types.js';
 
-// tree-sitter v0.21 ships a CJS-only native addon.
-// createRequire is required to load it from an ESM module context.
+// tree-sitter ships a CJS-only native addon; createRequire loads it from ESM.
 const require = createRequire(import.meta.url);
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const Parser = require('tree-sitter');
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const { typescript: tsGrammar, tsx: tsxGrammar } = require('tree-sitter-typescript');
+// `tree-sitter` ships its own TypeScript declarations (Tree, SyntaxNode, …), so
+// the Parser class is fully typed. The grammar package `tree-sitter-typescript`
+// ships no declarations — its grammar objects are opaque, hence `unknown`.
+const Parser = require('tree-sitter') as typeof import('tree-sitter');
+const { typescript: tsGrammar, tsx: tsxGrammar } = require('tree-sitter-typescript') as {
+  typescript: unknown;
+  tsx: unknown;
+};
 
 export type { Tree, SyntaxNode } from 'tree-sitter';
-
-// Re-export the raw Parser class for extractors that need direct access.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-export const TreeSitterParser: any = Parser;
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-export const TypeScriptGrammar: any = tsGrammar;
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-export const TsxGrammar: any = tsxGrammar;
 
 /**
  * Contract every language extractor must satisfy.
@@ -42,8 +38,7 @@ export interface LanguageExtractor {
    * @param chunkSplitThreshold - Line count above which a declaration is split into overlapping sub-chunks.
    */
   extractChunks(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    parsedTree: any,
+    parsedTree: Tree,
     src: string,
     filePath: string,
     fileMtime: number,
@@ -51,25 +46,15 @@ export interface LanguageExtractor {
     chunkSplitThreshold: number,
   ): Chunk[];
   /** sha256 of the declaration's signature text (body excluded). */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  declarationHash(node: any, src: string): string;
+  declarationHash(node: SyntaxNode, src: string): string;
   /** sha256 of the declaration's body text (signature excluded). */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bodyHash(node: any, src: string): string;
+  bodyHash(node: SyntaxNode, src: string): string;
 }
 
-/**
- * Parse a source file with tree-sitter.
- * Returns the raw tree object (typed as `any` because tree-sitter v0.21
- * ships no TypeScript declarations for its return types).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseSource(src: string, extension: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+/** Parse a source file with tree-sitter, returning the syntax tree. */
+export function parseSource(src: string, extension: string): Tree {
   const parser = new Parser();
-  const grammar = extension === '.tsx' ? TsxGrammar : TypeScriptGrammar;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  parser.setLanguage(grammar);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  // setLanguage accepts an opaque native grammar object (typed `any` upstream).
+  parser.setLanguage(extension === '.tsx' ? tsxGrammar : tsGrammar);
   return parser.parse(src);
 }
