@@ -238,7 +238,7 @@ then force a full reindex.
 
 ## Medium
 
-### [ ] M1 — Import resolution is naive; `resolved_path` rarely matches an indexed file
+### [x] M1 — Import resolution is naive; `resolved_path` rarely matches an indexed file
 **Spec:** §13.7 (tsconfig `paths`, pnpm workspace names, `realpathSync`).
 **Evidence:** `typescript.ts:703-710` resolves intra-repo imports with
 `posix.normalize(posix.join(dir, module))` only — no extension/`index.ts`
@@ -252,6 +252,29 @@ workspace pkgs / `index.ts` dirs, and risks prefix-collision false matches.
 **Fix direction:** build the §13.7 resolver (tsconfig-paths + workspace map +
 `realpathSync`), feed it into `extractImports`/populate.
 **Confidence:** high.
+
+**Done:**
+- New `indexer/import-resolver.ts` (`getImportResolver(projectRoot)`, cached &
+  synchronous so no signature ripple). Resolves a specifier to a
+  project-relative path that matches an indexed `files.path`: (1) relative
+  imports probed on disk across `.ts/.tsx/.js/.jsx` + `/index.*`; (2) tsconfig
+  `paths` aliases via `tsconfig-paths`; (3) pnpm workspace packages (bare +
+  subpath) via a map built from `pnpm-workspace.yaml` globs (found by walking up
+  from the root) + each package's `name`; (4) everything else external.
+- `extract.ts` now applies the resolver to each import (authoritative
+  `isExternal` + `resolvedPath`); `extractImports` no longer does the naive
+  `posix.join` (which produced extension-less, alias-blind paths).
+- `realpathSync` is applied to BOTH the resolved file and the project root, so a
+  symlinked root (and pnpm package symlinks) cancel in the relative path — the
+  result matches the walker's `files.path`. (A test on macOS `/tmp`→`/private/tmp`
+  caught the one-sided version.)
+- Tests: `indexer/__tests__/import-resolver.test.ts` — relative→file (+ index
+  dir), tsconfig alias, workspace bare + subpath, external (node:fs/unknown),
+  intra-repo-miss → null-not-external, and an `extractFile` integration check.
+- Verified: `tsc` clean, `pnpm lint` clean, full suite 173/173.
+
+> Note: the resolver is cached per project root for the life of the process; a
+> workspace/tsconfig change mid-session needs a restart to be picked up.
 
 ---
 

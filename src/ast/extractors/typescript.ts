@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { extname, posix } from 'node:path';
+import { extname } from 'node:path';
 import type { LanguageExtractor, Tree, SyntaxNode } from '../parser.js';
 import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../types.js';
 import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
@@ -699,10 +699,11 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
  * (`import './side-effect'`), default imports, and namespace imports are
  * recorded with an empty `symbols` array.
  *
- * `filePath` is the relative path of the file being indexed (used for
- * resolving relative module specifiers to monorepo paths).
+ * Specifier-to-file resolution (relative probing, tsconfig aliases, workspace
+ * packages) is NOT done here — it needs project context and is applied by
+ * `extract.ts` via the import resolver (§13.7).
  */
-export function extractImports(parsedTree: Tree, filePath: string): ImportRecord[] {
+export function extractImports(parsedTree: Tree, _filePath: string): ImportRecord[] {
   const topLevel = nodeChildren(parsedTree.rootNode);
   const imports: ImportRecord[] = [];
 
@@ -715,14 +716,11 @@ export function extractImports(parsedTree: Tree, filePath: string): ImportRecord
     // Strip surrounding quotes (' or ").
     const module = moduleNode.text.slice(1, -1);
 
+    // Placeholder classification; extract.ts re-resolves authoritatively via
+    // the import resolver (§13.7 — tsconfig aliases, workspace packages,
+    // extension probing, symlink realpath). `resolvedPath` is filled there.
     const isExternal = !module.startsWith('.') && !module.startsWith('/');
-
-    // Resolve relative path for intra-monorepo imports.
-    let resolvedPath: string | null = null;
-    if (!isExternal) {
-      const dir = posix.dirname(filePath);
-      resolvedPath = posix.normalize(posix.join(dir, module));
-    }
+    const resolvedPath: string | null = null;
 
     // Extract named imports from the import_clause.
     const symbols: string[] = [];

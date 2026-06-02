@@ -3,6 +3,7 @@ import { readFileSync, statSync } from 'node:fs';
 import type { LanguageExtractor } from './parser.js';
 import { parseSource } from './parser.js';
 import { TypeScriptExtractor, symbolsFromChunks, extractImports, extractEdges } from './extractors/typescript.js';
+import { getImportResolver } from '../indexer/import-resolver.js';
 import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -71,7 +72,13 @@ export function extractFile(
     : rawChunks.map((c) => ({ ...c, language }));
 
   const symbols = symbolsFromChunks(chunks);
-  const imports = extractImports(tree, relativePath);
+  // Resolve each import specifier to a real indexed file (§13.7): relative
+  // probing, tsconfig aliases, workspace packages, symlink realpath.
+  const resolver = getImportResolver(projectRoot);
+  const imports = extractImports(tree, relativePath).map((imp) => {
+    const r = resolver.resolve(imp.module, relativePath);
+    return { module: imp.module, symbols: imp.symbols, isExternal: r.isExternal, resolvedPath: r.resolvedPath };
+  });
   const edges = extractEdges(tree, relativePath, src);
 
   return { chunks, language, symbols, imports, edges };
