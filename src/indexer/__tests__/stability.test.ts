@@ -50,6 +50,14 @@ describe('declaration_hash / body_hash are AST-derived, not text-split', () => {
     expect(bodyEdit.bodyHash).toBe(base.bodyHash);   // member signatures unchanged
     expect(renamed.bodyHash).not.toBe(base.bodyHash); // member renamed
   });
+
+  it('class_shell counts field declarations as members (L3)', () => {
+    // Fields (public_field_definition) are part of the shared member set, so a
+    // field signature change moves the class_shell body_hash.
+    const a = symbolsOf('export class S { x: number; m(): void { return; } }').get('S')!;
+    const b = symbolsOf('export class S { x: string; m(): void { return; } }').get('S')!;
+    expect(a.bodyHash).not.toBe(b.bodyHash);
+  });
 });
 
 // ---------------------------------------------------------------------------

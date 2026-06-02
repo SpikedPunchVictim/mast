@@ -421,13 +421,7 @@ export function synthesiseClassShell(
   const memberLines: string[] = [header + ' {'];
 
   for (const member of nodeNamedChildren(bodyNode)) {
-    const mt = nodeType(member);
-    if (
-      mt !== 'method_definition' &&
-      mt !== 'abstract_method_signature' &&
-      mt !== 'public_field_definition' &&
-      mt !== 'readonly_type'
-    ) continue;
+    if (!isClassShellMember(nodeType(member))) continue;
 
     // Leading TSDoc/comment
     const doc = getLeadingComment(member, bodyNode, src);
@@ -635,16 +629,26 @@ function bodyHashOf(node: SyntaxNode, src: string): string {
  * re-embed when a method is renamed/added/removed but stay stable when only a
  * method body changes — that change is captured by the method chunk's own hash.
  */
+/**
+ * Class-body members whose signatures make up the `class_shell` outline (§10.1).
+ * Shared by `synthesiseClassShell` (the outline text) and `classShellBodyHashOf`
+ * (its body hash) so the two cannot disagree on what counts as a member.
+ * `property_signature` covers ambient/`declare` class fields; `readonly_type`
+ * (a type-level node, not a member) is intentionally excluded.
+ */
+function isClassShellMember(memberType: string): boolean {
+  return (
+    memberType === 'method_definition' ||
+    memberType === 'abstract_method_signature' ||
+    memberType === 'public_field_definition' ||
+    memberType === 'property_signature'
+  );
+}
+
 function classShellBodyHashOf(bodyNode: SyntaxNode, src: string): string {
   const sigs: string[] = [];
   for (const member of nodeNamedChildren(bodyNode)) {
-    const mt = nodeType(member);
-    if (
-      mt !== 'method_definition' &&
-      mt !== 'abstract_method_signature' &&
-      mt !== 'public_field_definition' &&
-      mt !== 'property_signature'
-    ) continue;
+    if (!isClassShellMember(nodeType(member))) continue;
     const doc = getLeadingComment(member, bodyNode, src) ?? '';
     sigs.push((doc + '\n' + extractSignatureText(member, src)).trim());
   }

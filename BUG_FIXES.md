@@ -402,10 +402,19 @@ interpreted as FTS5 syntax; returns null (→ `[]`) when nothing is usable.
 resolve instead of throwing and still match; sub-trigram queries return `[]`.
 `tsc`/lint clean, suite 183/183.
 
-### [ ] L3 — Dead member-type branch in shell synthesis
+### [x] L3 — Dead member-type branch in shell synthesis
 `synthesiseClassShell` (`typescript.ts:432-437`) filters for `readonly_type`,
 which is not a class-member node — a no-op branch (likely meant to be a
 property/signature node). Verify property/getter/setter/constructor coverage.
+
+**Done:** extracted a shared `isClassShellMember` predicate
+(`method_definition`, `abstract_method_signature`, `public_field_definition`,
+`property_signature`) used by BOTH `synthesiseClassShell` and
+`classShellBodyHashOf`, so the outline text and its body-hash can't disagree on
+membership (they previously diverged: one listed `readonly_type`, the other
+`property_signature`). Dropped the bogus `readonly_type`. Test in
+`stability.test.ts`: a field signature change moves the class_shell body_hash
+(fields are members). `tsc`/lint clean, suite 184/184.
 
 ### [ ] L4 — `export { foo as bar }` doesn't record `bar`
 Pass-2 (`typescript.ts:71-78`) only marks the local name exported; the aliased
