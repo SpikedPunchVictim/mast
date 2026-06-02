@@ -351,13 +351,24 @@ H1-overlapping gain.
 
 ---
 
-### [ ] M4 — `chunks_removed` always 0
+### [x] M4 — `chunks_removed` always 0
 **Spec:** §9 `mast_reindex` (`ReindexResult.chunks_removed`).
 **Evidence:** `indexer/index.ts:84` declares `chunksRemoved = 0`, never updated;
 returned at `:169`.
 **Fix direction:** count chunks deleted in `replaceChunksForFile` /
 `deleteChunksForFiles` and thread the total back.
 **Confidence:** certain.
+
+**Done:**
+- `LanceStore.replaceChunksForFile` and `deleteChunksForFiles` now return the
+  number of rows removed (counted via `table.countRows(predicate)` before the
+  delete). `runIndex` accumulates them across deleted files, full-reindex
+  orphans, and per-file replacements into `chunksRemoved` (previously declared
+  and returned as a constant 0).
+- Tests (`indexer/__tests__/chunks-removed.test.ts`): 0 on a fresh index;
+  equals the prior chunk count when a file's chunks are fully replaced; equals
+  the deleted file's chunk count on an incremental run that removes one file.
+- Verified: `tsc` clean, `pnpm lint` clean, full suite 178/178.
 
 ---
 

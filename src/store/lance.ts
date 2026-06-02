@@ -61,21 +61,30 @@ export class LanceStore {
     return this.db.createEmptyTable(CHUNK_TABLE, buildChunkSchema());
   }
 
-  /** Replace all chunks for `filePath` atomically. */
-  async replaceChunksForFile(filePath: string, chunks: readonly Chunk[]): Promise<void> {
+  /** Replace all chunks for `filePath` atomically. Returns the number of old
+   *  chunks removed (so callers can report `chunks_removed`). */
+  async replaceChunksForFile(filePath: string, chunks: readonly Chunk[]): Promise<number> {
     const table = await this.db.openTable(CHUNK_TABLE);
-    await table.delete(`file_path = '${escapeString(filePath)}'`);
+    const predicate = `file_path = '${escapeString(filePath)}'`;
+    const removed = await table.countRows(predicate);
+    await table.delete(predicate);
     if (chunks.length > 0) {
       await table.add(chunks.map(chunkToRecord));
     }
+    return removed;
   }
 
-  async deleteChunksForFiles(filePaths: readonly string[]): Promise<void> {
-    if (filePaths.length === 0) return;
+  /** Delete all chunks for the given files. Returns the total rows removed. */
+  async deleteChunksForFiles(filePaths: readonly string[]): Promise<number> {
+    if (filePaths.length === 0) return 0;
     const table = await this.db.openTable(CHUNK_TABLE);
+    let removed = 0;
     for (const fp of filePaths) {
-      await table.delete(`file_path = '${escapeString(fp)}'`);
+      const predicate = `file_path = '${escapeString(fp)}'`;
+      removed += await table.countRows(predicate);
+      await table.delete(predicate);
     }
+    return removed;
   }
 
   async getChunksByFilePath(filePath: string): Promise<ChunkRecord[]> {

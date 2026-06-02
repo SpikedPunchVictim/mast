@@ -57,9 +57,11 @@ export async function runIndex(
     const currentFiles = await walkProject(config);
     const { stale, added, deleted } = diffManifest(currentFiles, prevManifest);
 
+    let chunksRemoved = 0;
+
     // Deleted file cleanup — cascade removes symbols/edges/imports from graph.
     await removeDeletedFiles(db, deleted);
-    await lance.deleteChunksForFiles(deleted);
+    chunksRemoved += await lance.deleteChunksForFiles(deleted);
 
     // Full reindex: also purge DB entries for files no longer in the current
     // walk (e.g. dist/ files left over from a previous indexing configuration
@@ -72,7 +74,7 @@ export async function runIndex(
       const orphans = dbRows.map((r) => r.path).filter((p) => !currentPaths.has(p));
       if (orphans.length > 0) {
         await removeDeletedFiles(db, orphans);
-        await lance.deleteChunksForFiles(orphans);
+        chunksRemoved += await lance.deleteChunksForFiles(orphans);
       }
     }
 
@@ -81,7 +83,6 @@ export async function runIndex(
     let filesIndexed = 0;
     let parseErrors = 0;
     let chunksAdded = 0;
-    let chunksRemoved = 0;
     let filesStable = 0;
 
     // Pass 1: parse → lance (concurrent) → SQLite, processed in batches so
@@ -119,17 +120,20 @@ export async function runIndex(
 
       // Lance writes — all concurrent within the batch.
       const lanceOk = new Set<string>();
-      await Promise.all(
+      const removedCounts = await Promise.all(
         parsed.map(async ({ entry, result }) => {
           try {
-            await lance.replaceChunksForFile(entry.relativePath, result.chunks);
+            const removed = await lance.replaceChunksForFile(entry.relativePath, result.chunks);
             lanceOk.add(entry.relativePath);
+            return removed;
           } catch (err) {
             process.stderr.write(`[mast] WARN: lance write error in ${entry.path}: ${String(err)}\n`);
             parseErrors++;
+            return 0;
           }
         }),
       );
+      chunksRemoved += removedCounts.reduce((sum, n) => sum + n, 0);
 
       // SQLite writes — sequential.
       for (const { entry, result } of parsed) {
