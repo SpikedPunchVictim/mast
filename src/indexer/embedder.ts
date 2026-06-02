@@ -134,6 +134,48 @@ function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex');
 }
 
+/** sha256 of chunk content — the freshness key stored alongside each vector. */
+export function vectorContentHash(content: string): string {
+  return sha256(content);
+}
+
+/**
+ * Identity of a chunk's vector for freshness comparison: its id plus a hash of
+ * the content it was embedded from. A chunk is "already embedded" only when a
+ * stored vector matches BOTH — so an in-place edit (same id, new content)
+ * counts as pending.
+ */
+export function vectorKey(chunkId: string, content: string): string {
+  return joinVectorKey(chunkId, vectorContentHash(content));
+}
+
+/**
+ * Join a chunk id and content hash into one freshness key. Shared by the
+ * producer (`vectorKey`) and the stored-key reader
+ * (`LanceStore.getEmbeddedVectorKeys`) so the format cannot drift. `:` never
+ * appears in either sha256-hex component.
+ */
+export function joinVectorKey(chunkId: string, contentHash: string): string {
+  return `${chunkId}:${contentHash}`;
+}
+
+/**
+ * Stamp each vector with the content hash of the chunk it was embedded from.
+ * The model doesn't produce this; the embed orchestration adds it before
+ * storing so vector freshness can be checked on the next reindex (H1). Matched
+ * by `chunk_id`, which is unique within an embed batch.
+ */
+export function stampVectorHashes(
+  vectors: readonly VectorEntry[],
+  chunks: readonly Chunk[],
+): VectorEntry[] {
+  const hashByChunkId = new Map(chunks.map((c) => [c.chunk_id, vectorContentHash(c.content)]));
+  return vectors.map((v) => {
+    const hash = hashByChunkId.get(v.chunk_id);
+    return hash === undefined ? v : { ...v, content_hash: hash };
+  });
+}
+
 /** Minimal type for the feature-extraction pipeline return. */
 interface EmbedderPipeline {
   (text: string, options: { pooling: string; normalize: boolean }): Promise<unknown>;

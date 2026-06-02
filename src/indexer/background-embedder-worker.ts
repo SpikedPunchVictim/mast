@@ -5,7 +5,7 @@
  * It reads process.env exactly once (at the bottom), validates the values,
  * then delegates everything to EmbedWorker, which never touches process.env.
  */
-import { createEmbedder } from './embedder.js';
+import { createEmbedder, stampVectorHashes } from './embedder.js';
 import { LanceStore, chunkRecordToChunk } from '../store/lance.js';
 import type { ChildMessage, EmbedRequest } from './background-embedder.js';
 import { WorkerEnvSchema } from '../env.js';
@@ -61,7 +61,9 @@ export class EmbedWorker {
       for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
         const batch = chunks.slice(i, i + BATCH_SIZE).map(chunkRecordToChunk);
         const vectors = await this.embedder.embed(batch);
-        await lance.insertVectors(vectors);
+        // Stamp the content hash and upsert so re-embeds overwrite stale
+        // vectors instead of duplicating them (H1).
+        await lance.upsertVectors(stampVectorHashes(vectors, batch));
         embedded += batch.length;
         this.send({ type: 'progress', embeddedCount: embedded, totalCount: total });
       }

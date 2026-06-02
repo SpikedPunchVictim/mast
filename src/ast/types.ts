@@ -50,6 +50,14 @@ export interface VectorEntry {
   readonly chunk_id: string;
   readonly embedding: readonly number[];
   readonly model_version: string;
+  /**
+   * sha256 of the chunk content this vector was computed from. Set by the embed
+   * orchestration (not the model) so freshness can be checked on reindex: a
+   * chunk whose content changed has a new hash and is re-embedded even though
+   * its `chunk_id` (file_path:start_line) is unchanged. Optional on the wire;
+   * always populated before insert.
+   */
+  readonly content_hash?: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { fork } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import type { LanceStore } from '../store/lance.js';
+import { vectorKey } from './embedder.js';
 
 // ---------------------------------------------------------------------------
 // IPC message types (parent ↔ child)
@@ -48,16 +49,19 @@ export interface EmbedderChildHandle {
 }
 
 /**
- * Chunk ids that have no vector yet (chunks present in `chunks.lance` but absent
- * from `vectors.lance`). This is the work set for both startup warm-up and
- * mid-task `mast_reindex` embedding.
+ * Chunk ids whose current content is not yet embedded — either no vector exists
+ * for the id, or the stored vector was computed from different content (an
+ * in-place edit, same chunk_id, new content hash; H1). This is the work set for
+ * both startup warm-up and mid-task `mast_reindex` embedding.
  */
 export async function pendingChunkIds(
-  lance: Pick<LanceStore, 'getAllChunks' | 'getEmbeddedChunkIds'>,
+  lance: Pick<LanceStore, 'getAllChunks' | 'getEmbeddedVectorKeys'>,
 ): Promise<string[]> {
   const allChunks = await lance.getAllChunks();
-  const embeddedIds = await lance.getEmbeddedChunkIds();
-  return allChunks.map((c) => c.chunk_id).filter((id) => !embeddedIds.has(id));
+  const keys = await lance.getEmbeddedVectorKeys();
+  return allChunks
+    .filter((c) => !keys.has(vectorKey(c.chunk_id, c.content)))
+    .map((c) => c.chunk_id);
 }
 
 /**
@@ -91,7 +95,7 @@ export interface WarmEmbeddingsOptions {
   readonly modelId: string;
   readonly stateDir: string;
   /** Store used to compute which chunks still need embedding. */
-  readonly lance: Pick<LanceStore, 'getAllChunks' | 'getEmbeddedChunkIds'>;
+  readonly lance: Pick<LanceStore, 'getAllChunks' | 'getEmbeddedVectorKeys'>;
   /** Child-process factory; defaults to {@link forkEmbedderChild}. Injected in tests. */
   readonly spawn?: SpawnEmbedderChild;
   /** Per-batch progress reporting from the child. */

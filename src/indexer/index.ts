@@ -8,7 +8,7 @@ import { openDatabase } from '../graph/db.js';
 import { populateFile, insertEdges, removeDeletedFiles } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
-import { createEmbedder, type EmbedderLike } from './embedder.js';
+import { createEmbedder, vectorKey, stampVectorHashes, type EmbedderLike } from './embedder.js';
 import type { IndexMeta } from '../ast/types.js';
 
 export interface IndexResult {
@@ -218,6 +218,7 @@ export async function runEmbed(
 
       const allChunks = await lance.getAllChunks();
       const embeddedIds = await lance.getEmbeddedChunkIds();
+      const vectorKeys = await lance.getEmbeddedVectorKeys();
 
       // Remove vectors whose corresponding chunk no longer exists.
       const allChunkIds = new Set(allChunks.map((c) => c.chunk_id));
@@ -226,7 +227,10 @@ export async function runEmbed(
         await lance.deleteVectorsForChunks(orphanIds);
       }
 
-      const pending = allChunks.filter((c) => !embeddedIds.has(c.chunk_id));
+      // Pending = chunks whose CURRENT content is not embedded. A content edit
+      // keeps the chunk_id but changes the content hash, so it is re-embedded
+      // even though the id is unchanged (H1).
+      const pending = allChunks.filter((c) => !vectorKeys.has(vectorKey(c.chunk_id, c.content)));
       if (pending.length === 0) {
         return {
           chunksEmbedded: 0,
@@ -246,7 +250,9 @@ export async function runEmbed(
       for (let i = 0; i < pending.length; i += batchSize) {
         const batch = pending.slice(i, i + batchSize).map(chunkRecordToChunk);
         const vectors = await embedder.embed(batch);
-        await lance.insertVectors(vectors);
+        // Stamp each vector with its content hash (the embedder doesn't), then
+        // upsert so a re-embed overwrites the stale vector instead of dup'ing it.
+        await lance.upsertVectors(stampVectorHashes(vectors, batch));
         chunksEmbedded += batch.length;
         options.onProgress?.(chunksEmbedded, pending.length);
       }

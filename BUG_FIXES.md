@@ -128,7 +128,7 @@ line and resolution kind.
 
 ## High
 
-### [ ] H1 — In-place edits never re-embed; re-embedding duplicates vectors
+### [x] H1 — In-place edits never re-embed; re-embedding duplicates vectors
 **Spec:** §6.1 (`chunk_id`), §7.1 step 7 (stability hashes).
 **Evidence:**
 - `chunk_id = sha256(filePath + ":" + startLine)` (`typescript.ts:628-630`).
@@ -146,6 +146,31 @@ chunk_id presence; delete vectors for a file's chunk_ids before re-inserting.
 Depends on C1 being wired first.
 
 **Confidence:** high (masked by C1 today).
+
+**Done:**
+- `vectors.lance` gained a `content_hash` column (sha256 of the chunk content
+  the vector came from). Freshness is now keyed on `vectorKey(chunk_id,
+  content)` = `chunk_id:contentHash` (shared `joinVectorKey` so producer and
+  reader can't drift). `pendingChunkIds` and `runEmbed` select chunks whose
+  CURRENT content hash isn't stored — so an in-place edit (same chunk_id, new
+  content) is re-embedded, while genuinely-unchanged chunks are still skipped.
+- New `LanceStore.upsertVectors` deletes existing rows for the chunk_ids before
+  inserting, so a re-embed overwrites the stale vector instead of appending a
+  duplicate (LanceDB has no chunk_id uniqueness). Both embed paths (`runEmbed`
+  and the forked worker) now stamp content hashes via `stampVectorHashes` and
+  upsert.
+- Bumped `CURRENT_SCHEMA_VERSION` 1.0.0 → 1.1.0 (vectors table shape changed);
+  H3's wipe rebuilds an old vectors table rather than reading the wrong shape.
+- Tests: `indexer/__tests__/reembed.test.ts` — an in-place body edit re-embeds
+  only the changed chunk and leaves no duplicate vector (`vectorCount ===
+  chunkCount`); an unchanged re-index re-embeds nothing. Also updated a brittle
+  `cli.test.ts` assertion that hard-coded `'1.0.0'` to use the constant (the
+  bump caught it — exactly what the guard is for).
+- Verified: `tsc` clean, `pnpm lint` clean, full suite 161/161.
+
+> Note: this adds a *vector* content hash for embedding freshness. It does NOT
+> fix M3 (the symbols-table `declaration_hash`/`body_hash` still computed by a
+> brittle first-`{` split and consulted by nothing) — M3 remains open.
 
 ---
 

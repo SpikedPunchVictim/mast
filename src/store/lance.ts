@@ -3,6 +3,7 @@ import type { VectorQuery } from '@lancedb/lancedb';
 import * as arrow from 'apache-arrow';
 import { join } from 'node:path';
 import type { Chunk, VectorEntry } from '../ast/types.js';
+import { joinVectorKey } from '../indexer/embedder.js';
 
 const CHUNK_TABLE = 'chunks';
 const VECTOR_TABLE = 'vectors';
@@ -35,6 +36,8 @@ function buildVectorSchema(embeddingDim: number): arrow.Schema {
       false,
     ),
     new arrow.Field('model_version', new arrow.Utf8(), false),
+    // sha256 of the chunk content this vector came from — the freshness key (H1).
+    new arrow.Field('content_hash', new arrow.Utf8(), false),
   ]);
 }
 
@@ -108,6 +111,20 @@ export class LanceStore {
     await table.add(entries.map(vectorToRecord));
   }
 
+  /**
+   * Insert vectors, first deleting any existing rows for the same chunk ids.
+   * Used by the embed paths so re-embedding a chunk (e.g. after an in-place
+   * edit, same chunk_id) overwrites its stale vector instead of appending a
+   * duplicate — LanceDB enforces no uniqueness on chunk_id (H1).
+   */
+  async upsertVectors(entries: readonly VectorEntry[]): Promise<void> {
+    if (entries.length === 0) return;
+    const table = await this.db.openTable(VECTOR_TABLE);
+    const ids = entries.map((e) => `'${escapeString(e.chunk_id)}'`).join(', ');
+    await table.delete(`chunk_id IN (${ids})`);
+    await table.add(entries.map(vectorToRecord));
+  }
+
   async deleteVectorsForChunks(chunkIds: readonly string[]): Promise<void> {
     if (chunkIds.length === 0) return;
     const table = await this.db.openTable(VECTOR_TABLE);
@@ -139,6 +156,30 @@ export class LanceStore {
     return new Set(
       (rows as unknown as { chunk_id: string }[]).map((r) => r.chunk_id),
     );
+  }
+
+  /**
+   * Freshness keys (chunk id + content hash) for every stored vector. A chunk
+   * is up to date only when `vectorKey(chunk_id, content)` is in this set — so a
+   * chunk whose content changed (same id, new hash) is treated as pending (H1).
+   */
+  async getEmbeddedVectorKeys(): Promise<Set<string>> {
+    const names = await this.db.tableNames();
+    if (!names.includes(VECTOR_TABLE)) return new Set();
+    const table = await this.db.openTable(VECTOR_TABLE);
+    const rows = await table.query().select(['chunk_id', 'content_hash']).toArray();
+    return new Set(
+      (rows as unknown as { chunk_id: string; content_hash: string }[])
+        .map((r) => joinVectorKey(r.chunk_id, r.content_hash ?? '')),
+    );
+  }
+
+  /** Total number of stored vectors (rows, not deduped) — used to assert no duplicates. */
+  async vectorCount(): Promise<number> {
+    const names = await this.db.tableNames();
+    if (!names.includes(VECTOR_TABLE)) return 0;
+    const table = await this.db.openTable(VECTOR_TABLE);
+    return table.countRows();
   }
 
   // ---------------------------------------------------------------------------
@@ -213,6 +254,7 @@ function vectorToRecord(v: VectorEntry): Record<string, unknown> {
     chunk_id:      v.chunk_id,
     embedding:     Array.from(v.embedding),
     model_version: v.model_version,
+    content_hash:  v.content_hash ?? '',
   };
 }
 

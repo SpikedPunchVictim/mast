@@ -12,7 +12,7 @@ import { mkdtempSync, writeFileSync, rmSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { resolveConfig } from '../../store/config.js';
+import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { initLockMarkers, acquireLock, withLock } from '../../store/lock.js';
 import { runIndex, loadIndexMeta } from '../../indexer/index.js';
 import { walkProject, diffManifest } from '../../indexer/walker.js';
@@ -94,7 +94,7 @@ describe('full index', () => {
     expect(meta).not.toBeNull();
     expect(meta?.file_count).toBe(2);
     expect(meta?.last_indexed).toBeTruthy();
-    expect(meta?.schema_version).toBe('1.0.0');
+    expect(meta?.schema_version).toBe(CURRENT_SCHEMA_VERSION);
   });
 
   it('populates the graph database with symbols', async () => {

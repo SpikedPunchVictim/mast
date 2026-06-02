@@ -3,7 +3,10 @@ import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
 
-export const CURRENT_SCHEMA_VERSION = '1.0.0';
+// 1.1.0: vectors.lance gained a `content_hash` column so re-embedding is keyed
+// on chunk content, not just chunk_id (H1). A bump forces the §7.4 Step 2 wipe
+// so an old vectors table (without the column) is rebuilt rather than read.
+export const CURRENT_SCHEMA_VERSION = '1.1.0';
 
 const DEFAULTS: MastConfig = {
   state_dir: '.mast',
