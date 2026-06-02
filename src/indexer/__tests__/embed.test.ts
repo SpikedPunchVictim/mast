@@ -191,6 +191,21 @@ describe('vector search after embedding', () => {
     expect(hits[0]).toMatchObject({ chunkId: expect.any(String), score: expect.any(Number) });
   });
 
+  it('reports true cosine similarity (identical → 1, orthogonal → 0)', async () => {
+    // The fake embedder assigns each chunk a distinct unit basis vector, so a
+    // query equal to one chunk's vector is identical to it (cosine 1) and
+    // orthogonal to the others (cosine 0 — not 0.5, which the old `1 - d/2`
+    // rescale produced).
+    const config = resolveConfig({ projectRoot: tmpDir });
+    const lance = await LanceStore.open(config.resolved_state_dir);
+    const queryVector = Array.from({ length: JINA_V2_DIM }, (_, i) => (i === 0 ? 1 : 0));
+
+    const hits = await searchVectors(lance, queryVector, 10);
+
+    expect(Math.max(...hits.map((h) => h.score))).toBeCloseTo(1, 5);
+    expect(Math.min(...hits.map((h) => h.score))).toBeCloseTo(0, 5);
+  });
+
   it('returns empty array when vectors table has no rows', async () => {
     // Fresh store with no Phase 2 run.
     const freshDir = mkdtempSync(join(tmpdir(), 'mast-no-vectors-'));

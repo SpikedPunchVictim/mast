@@ -8,9 +8,11 @@ export interface VectorHit {
   /** chunk_id from the vectors table. */
   readonly chunkId: string;
   /**
-   * Cosine similarity ∈ [0, 1]; higher is better.
+   * Cosine similarity ∈ [-1, 1]; higher is better, 1 = identical direction.
    *
-   * LanceDB returns cosine distance ∈ [0, 2]; we convert via `1 - d/2`.
+   * LanceDB's cosine distance is `1 - cosine_similarity` (range [0, 2]), so the
+   * similarity is `1 - distance`. This is the real cosine value the
+   * `similarity_threshold` config and the reported `similarity_score` mean.
    */
   readonly score: number;
 }
@@ -29,6 +31,6 @@ export async function searchVectors(
   const rows = await lance.searchVectors(queryVector, limit);
   return rows.map((r) => ({
     chunkId: r.chunk_id,
-    score: 1 - r._distance / 2,
+    score: 1 - r._distance,
   }));
 }

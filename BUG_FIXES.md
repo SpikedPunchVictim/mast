@@ -374,11 +374,19 @@ returned at `:169`.
 
 ## Low / correctness nits
 
-### [ ] L1 — Cosine "score" is a rescale, not cosine similarity
+### [x] L1 — Cosine "score" is a rescale, not cosine similarity
 `search/vector.ts:32` computes `1 - distance/2` (orthogonal → 0.5, not 0). So
 `similarity_threshold: 0.70` and reported `similarity_score` don't mean cosine.
 Pre-RRF hard-filtering on this (`hybrid.ts:78`) also isn't in the spec's RRF
 recipe. (Latent behind C1.)
+
+**Done:** `searchVectors` now returns `1 - distance` — the real cosine
+similarity LanceDB's distance encodes — so `similarity_score` and the
+`similarity_threshold` floor are genuine cosine values. Test in `embed.test.ts`:
+an identical vector scores ~1 and an orthogonal one ~0 (the old rescale reported
+0.5). Left the pre-RRF threshold filter in place — it now applies a correct
+cosine floor at the configured 0.70; revisiting that value is tuning, not this
+fix. `tsc`/lint clean, suite 179/179.
 
 ### [ ] L2 — Raw user query into FTS5 `MATCH`
 `search/fts.ts:79` passes the query unescaped; runs *outside* the try/catch in
