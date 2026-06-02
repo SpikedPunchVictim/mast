@@ -130,7 +130,7 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 `index.json` example:
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "last_indexed": "2026-05-13T14:22:00Z",
   "file_count": 142,
   "chunk_count": 1840,
@@ -177,6 +177,7 @@ class body source is *not* stored as a single chunk; it is decomposed into N
 | `chunk_id` | `str` | FK → `chunks.chunk_id` |
 | `embedding` | `list[float]` | Dense vector from embedding model |
 | `model_version` | `str` | Identifies the embedding model used |
+| `content_hash` | `str` | `sha256` of the chunk content this vector was computed from. Set by the embed orchestration (not the model). A chunk is "already embedded" only when a stored vector matches BOTH its `chunk_id` AND its current `content_hash` — so an in-place edit (same `chunk_id`, new content) is re-embedded. See §7.1. |
 
 ### 6.3 Knowledge Graph (SQLite — `graph.db`)
 
@@ -212,9 +213,13 @@ CREATE TABLE IF NOT EXISTS symbols (
 );
 
 CREATE TABLE IF NOT EXISTS edges (
-  from_id   INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
-  to_id     INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
-  edge_type TEXT NOT NULL,
+  from_id    INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
+  to_id      INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
+  edge_type  TEXT NOT NULL,
+  resolution TEXT,    -- POTENTIAL_CALL only: which §10.3.1 rule matched
+                      -- (import | field_type | parameter_type | new_expression | same_file)
+  call_line  INTEGER, -- POTENTIAL_CALL only: 1-indexed source line of the call site
+  context    TEXT,    -- POTENTIAL_CALL only: trimmed source text of the call-site line
   -- POTENTIAL_CALL | IMPLEMENTS | EXTENDS | RE_EXPORTS | PARENT_OF
   -- POTENTIAL_CALL: name-resolved reference. The local heuristic resolver (see §10.3)
   --                 produces these edges when it can statically link the receiver of a
@@ -363,13 +368,25 @@ LIMIT 1;
    transaction per file (delete-and-replace). Record `RE_EXPORTS` edges from
    `export { x }` clauses and `re_export_files` rows from `export * from '...'`
    clauses.
-7. **Stability hash optimisation (incremental only):** compare both `declaration_hash`
-   (signature) and `body_hash` against the stored values for each symbol:
-   - `declaration_hash` unchanged → skip KG edge rebuild (imports, exports, calls
-     have not changed).
-   - `declaration_hash` AND `body_hash` both unchanged → skip KG rebuild AND skip
-     Phase 2 re-embedding for this chunk. The semantic meaning is identical.
-   - Either hash changed → re-insert KG edges and re-embed the chunk.
+7. **Stability hash optimisation (incremental only):** the `declaration_hash`
+   (signature) and `body_hash` are computed from the AST (signature node vs body
+   node), not by splitting chunk text.
+
+   **Implementation note (deviates from the original per-symbol design):** the
+   skip is applied at *file* granularity, and re-embedding is keyed on a separate
+   vector content hash rather than `body_hash`:
+   - **Re-embedding** is keyed on `vectors.content_hash` = `sha256(chunk content)`
+     (see §6.2). A chunk is re-embedded iff its current content hash is not already
+     stored — this captures any signature *or* body change and is strictly more
+     correct for embeddings (which cover the whole chunk, not just the body). This
+     supersedes the `body_hash`-driven re-embed skip described above.
+   - **File-level skip:** a file whose mtime changed but whose chunked content is
+     byte-identical (same chunk-id set AND same per-symbol `declaration_hash`/
+     `body_hash` signature, and no `block` chunks) is not re-written at all. A
+     true *per-symbol* KG-rebuild skip was rejected: under the per-file
+     delete-and-replace model (step 6), symbols are re-inserted with new ids, so
+     edges must be rebuilt — preserving them per-symbol would be invasive surgery
+     on the hot path for marginal gain.
 
    **Class shells use a member-signature hash, not a body hash.** A `class_shell`
    chunk's content is the synthesized outline (declaration + member signatures + TSDoc;
@@ -511,11 +528,16 @@ Node process, not a worker thread or the main process. Rationale:
 - IPC is well-defined: parent sends `embed(chunk_ids[])` requests; child responds
   with completion + per-chunk vector references. No shared memory complexity.
 
-`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (e.g. `"1.0.0"`). A version
+`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.1.0"` —
+bumped from `1.0.0` when `vectors.lance` gained `content_hash`; see §6.2/§7.1). A version
 bump is required any time the SQLite schema, LanceDB table shape, or `index.json`
 fields change. Incrementing without a state wipe causes a corrupt or partial index;
 wiping without incrementing loses the protection. Both are bugs — treat the version
-as a migration guard, not a display string. On schema bump the seed index in
+as a migration guard, not a display string.
+
+(Backward-compatible additions that do not break reading an old table — e.g. the
+`edges.resolution`/`call_line`/`context` columns added via `ALTER TABLE … ADD
+COLUMN` — do NOT require a bump, since `openDatabase` migrates them in place.) On schema bump the seed index in
 `/opt/mast-seed` is also invalidated and a full reindex runs in the background; the
 discovery layer will be in `mode: "lexical"` until it completes.
 
@@ -1335,6 +1357,15 @@ simple.
 declaration site resolved through the `RE_EXPORTS` edge / `re_export_files` chain
 (see §6.3). `mast_signature { symbol: "bar" }` walks the chain back to `foo`'s
 real declaration.
+
+**Implementation note — local aliases.** For a *local* alias
+(`export { foo as bar }`, no `from`), the chunker does not use the
+`RE_EXPORTS`-edge path above. It instead emits an extra chunk for `bar` that
+mirrors `foo`'s declaration (own `chunk_id`, marked exported), and
+`extractSignatures` emits a matching `bar` signature entry. This makes `bar`
+discoverable (`mast_exports`/`mast_search`) and resolvable (`mast_signature`)
+without a chain walk — same observable result, simpler mechanism. The aliased
+local name (`foo`) is NOT itself marked exported, since the export name is `bar`.
 
 **Two-pass walk for `is_exported`:**
 
