@@ -416,9 +416,17 @@ membership (they previously diverged: one listed `readonly_type`, the other
 `stability.test.ts`: a field signature change moves the class_shell body_hash
 (fields are members). `tsc`/lint clean, suite 184/184.
 
-### [ ] L4 — `export { foo as bar }` doesn't record `bar`
+### [x] L4 — `export { foo as bar }` doesn't record `bar`
 Pass-2 (`typescript.ts:71-78`) only marks the local name exported; the aliased
 export symbol `bar` (spec §10.1) is never created.
+
+**Done:** a shared `localExportAliases` walk feeds two new passes — the chunker
+emits a chunk for `bar` mirroring `foo`'s declaration (distinct chunk_id, marked
+exported), and `extractSignatures` emits `bar`'s signature from `foo`'s — so the
+alias is discoverable via mast_exports/search and resolvable via mast_signature.
+Pass-2 also stops marking the *local* name exported when it's aliased
+(`export { foo as bar }` exposes `bar`, not `foo`). Test in
+`export-alias.test.ts`. `tsc`/lint clean, suite 189/189.
 
 ### [ ] L5 — `withLock` SIGTERM cleanup races with two locks held
 `store/lock.ts:92` — the first handler's `process.exit(1)` can pre-empt the

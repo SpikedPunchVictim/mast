@@ -69,6 +69,11 @@ export class TypeScriptExtractor implements LanguageExtractor {
       for (const child of nodeNamedChildren(exportClause)) {
         if (nodeType(child) !== 'export_specifier') continue;
         const localName = child.childForFieldName('name')?.text;
+        const alias = child.childForFieldName('alias')?.text;
+        // `export { foo as bar }` exports `foo` UNDER `bar`, not as `foo` — the
+        // alias is emitted as its own exported chunk in pass 3, so the local
+        // name is not marked exported here.
+        if (alias !== undefined && alias !== localName) continue;
         if (localName !== undefined && knownDeclNames.has(localName)) {
           exportedNames.add(localName);
         }
@@ -109,6 +114,22 @@ export class TypeScriptExtractor implements LanguageExtractor {
         chunkSplitThreshold,
         lang,
       );
+    }
+
+    // -------------------------------------------------------------------------
+    // Pass 3: local re-export aliases — `export { foo as bar }` exposes foo's
+    // declaration under the name `bar`. Emit a chunk for `bar` mirroring foo's
+    // so it is discoverable (mast_exports / mast_search / mast_signature).
+    // -------------------------------------------------------------------------
+    for (const { local, alias, line } of localExportAliases(topLevel)) {
+      const target = chunks.find((c) => c.symbol_name === local && c.chunk_type !== 'method');
+      if (target === undefined) continue;
+      chunks.push({
+        ...target,
+        chunk_id: sha256(`${filePath}:${line}:${alias}`),
+        symbol_name: alias,
+        is_exported: true,
+      });
     }
 
     return chunks;
@@ -544,6 +565,14 @@ export function extractSignatures(tree: Tree, src: string): ExtractedSignature[]
         break;
     }
   }
+
+  // Local re-export aliases (`export { foo as bar }`) expose foo's signature
+  // under `bar`, so mast_signature/mast_exports can look it up by export name.
+  for (const { local, alias } of localExportAliases(nodeChildren(root))) {
+    const base = out.find((s) => s.name === local);
+    if (base !== undefined) out.push({ ...base, name: alias });
+  }
+
   return out;
 }
 
@@ -737,6 +766,33 @@ function getWrappedDeclaration(exportStmtNode: SyntaxNode): SyntaxNode | null {
     }
   }
   return null;
+}
+
+/**
+ * Local re-export aliases: `export { foo as bar }` (no `from` clause) pairs
+ * each local name with the exported alias. Used to expose the aliased
+ * declaration under its export name in both chunks and signatures.
+ */
+function localExportAliases(
+  topLevel: readonly SyntaxNode[],
+): { local: string; alias: string; line: number }[] {
+  const aliases: { local: string; alias: string; line: number }[] = [];
+  for (const node of topLevel) {
+    if (nodeType(node) !== 'export_statement') continue;
+    if (hasFromClause(node)) continue;
+    if (getWrappedDeclaration(node) !== null) continue;
+    const clause = findChildByType(node, 'export_clause');
+    if (clause === null) continue;
+    for (const spec of nodeNamedChildren(clause)) {
+      if (nodeType(spec) !== 'export_specifier') continue;
+      const local = spec.childForFieldName('name')?.text;
+      const alias = spec.childForFieldName('alias')?.text;
+      if (local !== undefined && alias !== undefined && alias !== local) {
+        aliases.push({ local, alias, line: nodeStartLine(spec) });
+      }
+    }
+  }
+  return aliases;
 }
 
 /**
