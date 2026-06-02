@@ -115,13 +115,11 @@ export class TypeScriptExtractor implements LanguageExtractor {
   }
 
   declarationHash(node: SyntaxNode, src: string): string {
-    return sha256(extractSignatureText(node, src));
+    return declHashOf(node, src);
   }
 
   bodyHash(node: SyntaxNode, src: string): string {
-    const bodyNode = node.childForFieldName('body') ?? findChildByType(node, 'statement_block');
-    if (bodyNode === null) return sha256('');
-    return sha256(src.slice(bodyNode.startIndex, bodyNode.endIndex));
+    return bodyHashOf(node, src);
   }
 }
 
@@ -162,6 +160,8 @@ function emitChunksForNode(
         contextLines,
         chunkSplitThreshold,
         language,
+        declarationHash: declHashOf(node, src),
+        bodyHash: bodyHashOf(node, src),
       });
       break;
     }
@@ -190,6 +190,8 @@ function emitChunksForNode(
         contextLines,
         chunkSplitThreshold,
         language,
+        declarationHash: declHashOf(node, src),
+        bodyHash: bodyHashOf(node, src),
       });
       break;
     }
@@ -213,6 +215,8 @@ function emitChunksForNode(
         is_exported: isExported,
         language,
         file_mtime: fileMtime,
+        declaration_hash: declHashOf(node, src),
+        body_hash: bodyNode !== null ? classShellBodyHashOf(bodyNode, src) : sha256(''),
       });
 
       // Method chunks
@@ -241,6 +245,8 @@ function emitChunksForNode(
             is_exported: methodExported,
             language,
             file_mtime: fileMtime,
+            declaration_hash: declHashOf(member, src),
+            body_hash: bodyHashOf(member, src),
           });
         }
       }
@@ -262,6 +268,8 @@ function emitChunksForNode(
         contextLines,
         chunkSplitThreshold,
         language,
+        declarationHash: declHashOf(node, src),
+        bodyHash: bodyHashOf(node, src),
       });
       break;
     }
@@ -281,6 +289,8 @@ function emitChunksForNode(
         contextLines,
         chunkSplitThreshold,
         language,
+        declarationHash: declHashOf(node, src),
+        bodyHash: bodyHashOf(node, src),
       });
       break;
     }
@@ -324,6 +334,8 @@ interface PushChunksOpts {
   contextLines: number;
   chunkSplitThreshold: number;
   language: Language;
+  declarationHash?: string;
+  bodyHash?: string;
 }
 
 /**
@@ -348,6 +360,8 @@ function pushChunks(chunks: Chunk[], opts: PushChunksOpts): void {
       is_exported: opts.isExported,
       language,
       file_mtime: fileMtime,
+      declaration_hash: opts.declarationHash,
+      body_hash: opts.bodyHash,
     });
     return;
   }
@@ -373,6 +387,8 @@ function pushChunks(chunks: Chunk[], opts: PushChunksOpts): void {
       is_exported: opts.isExported,
       language,
       file_mtime: fileMtime,
+      declaration_hash: opts.declarationHash,
+      body_hash: opts.bodyHash,
     });
 
     if (subEnd >= endLine) break;
@@ -441,6 +457,45 @@ export function extractSignatureText(node: SyntaxNode, src: string): string {
   }
 
   return src.slice(node.startIndex, bodyNode.startIndex).trimEnd();
+}
+
+// ---------------------------------------------------------------------------
+// Stability hashes (§7.1) — computed from the AST, never from raw chunk text
+// ---------------------------------------------------------------------------
+
+/** sha256 of a declaration's signature (everything up to, not including, its body). */
+function declHashOf(node: SyntaxNode, src: string): string {
+  return sha256(extractSignatureText(node, src));
+}
+
+/** sha256 of a declaration's body block; empty-body hash when there is none. */
+function bodyHashOf(node: SyntaxNode, src: string): string {
+  const bodyNode = node.childForFieldName('body') ?? findChildByType(node, 'statement_block');
+  if (bodyNode === null) return sha256('');
+  return sha256(src.slice(bodyNode.startIndex, bodyNode.endIndex));
+}
+
+/**
+ * Body hash for a `class_shell`: sha256 of the sorted member signatures (each
+ * with its leading doc), with NO method bodies (§10.1). This makes the shell
+ * re-embed when a method is renamed/added/removed but stay stable when only a
+ * method body changes — that change is captured by the method chunk's own hash.
+ */
+function classShellBodyHashOf(bodyNode: SyntaxNode, src: string): string {
+  const sigs: string[] = [];
+  for (const member of nodeNamedChildren(bodyNode)) {
+    const mt = nodeType(member);
+    if (
+      mt !== 'method_definition' &&
+      mt !== 'abstract_method_signature' &&
+      mt !== 'public_field_definition' &&
+      mt !== 'property_signature'
+    ) continue;
+    const doc = getLeadingComment(member, bodyNode, src) ?? '';
+    sigs.push((doc + '\n' + extractSignatureText(member, src)).trim());
+  }
+  sigs.sort();
+  return sha256(sigs.join('\n'));
 }
 
 /**
@@ -628,8 +683,10 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
       kind: chunkTypeToKind(c.chunk_type),
       line: c.start_line,
       isExported: c.is_exported,
-      declarationHash: declarationHashFromContent(c.content),
-      bodyHash: bodyHashFromContent(c.content),
+      // AST-derived hashes attached during extraction (§7.1). Null only if a
+      // symbol chunk somehow lacked them (defensive; should not happen).
+      declarationHash: c.declaration_hash ?? null,
+      bodyHash: c.body_hash ?? null,
     });
   }
   return records;
@@ -1042,16 +1099,4 @@ function chunkTypeToKind(t: ChunkType): string {
     case 'type': return 'type';
     default: return 'const';
   }
-}
-
-/** sha256 of the content up to (not including) the first `{`. */
-function declarationHashFromContent(content: string): string {
-  const idx = content.indexOf('{');
-  return sha256(idx >= 0 ? content.slice(0, idx) : content);
-}
-
-/** sha256 of the content from the first `{` to the end (the body). */
-function bodyHashFromContent(content: string): string {
-  const idx = content.indexOf('{');
-  return sha256(idx >= 0 ? content.slice(idx) : '');
 }

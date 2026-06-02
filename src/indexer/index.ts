@@ -82,6 +82,7 @@ export async function runIndex(
     let parseErrors = 0;
     let chunksAdded = 0;
     let chunksRemoved = 0;
+    let filesStable = 0;
 
     // Pass 1: parse → lance (concurrent) → SQLite, processed in batches so
     // lance IO overlaps across files without holding all results in memory.
@@ -98,14 +99,22 @@ export async function runIndex(
       for (const entry of batch) {
         try {
           const result = extractFile(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold);
-          parsed.push({ entry, result });
-          chunksAdded += result.chunks.length;
-          filesIndexed++;
+          // §7.1 stability skip: a file whose mtime changed but whose chunked
+          // content is identical (e.g. `git checkout` rewriting the same bytes)
+          // is re-parsed but need not be re-written. Incremental only; the
+          // check is conservative and bails to a full rewrite on any doubt.
+          if (options.incremental && await isFileUnchanged(db, lance, entry.relativePath, result)) {
+            filesStable++;
+          } else {
+            parsed.push({ entry, result });
+            chunksAdded += result.chunks.length;
+            filesIndexed++;
+          }
         } catch (err) {
           process.stderr.write(`[mast] WARN: parse error in ${entry.path}: ${String(err)}\n`);
           parseErrors++;
         }
-        options.onProgress?.(filesIndexed + parseErrors, toIndex.length);
+        options.onProgress?.(filesIndexed + filesStable + parseErrors, toIndex.length);
       }
 
       // Lance writes — all concurrent within the batch.
@@ -163,14 +172,67 @@ export async function runIndex(
     await db.destroy();
 
     return {
+      // Files skipped = never-parsed (mtime unchanged) + parsed-but-stable.
       filesIndexed,
-      filesSkipped: currentFiles.length - toIndex.length,
+      filesSkipped: currentFiles.length - toIndex.length + filesStable,
       chunksAdded,
       chunksRemoved,
       parseErrors,
       durationMs: Date.now() - startMs,
     };
   });
+}
+
+/**
+ * True when `result` is byte-for-byte equivalent to what is already stored for
+ * `filePath`, so re-writing it would be redundant (§7.1). Conservative:
+ *
+ *  - bails (returns false) if the file has any `block` chunk, whose content is
+ *    not captured by a symbol hash and so cannot be verified here;
+ *  - requires the exact same set of chunk ids (catches additions, removals, and
+ *    declarations that moved to a different line);
+ *  - requires every symbol's declaration_hash AND body_hash to match the stored
+ *    symbol of the same name+line.
+ *
+ * Any mismatch — or any uncertainty — falls through to a full rewrite.
+ */
+async function isFileUnchanged(
+  db: ReturnType<typeof openDatabase>,
+  lance: LanceStore,
+  filePath: string,
+  result: ReturnType<typeof extractFile>,
+): Promise<boolean> {
+  if (result.chunks.some((c) => c.chunk_type === 'block')) return false;
+
+  // Structure: identical set of chunk ids.
+  const storedChunks = await lance.getChunksByFilePath(filePath);
+  if (storedChunks.length !== result.chunks.length) return false;
+  const storedIds = new Set(storedChunks.map((c) => c.chunk_id));
+  if (!result.chunks.every((c) => storedIds.has(c.chunk_id))) return false;
+
+  // Content: identical symbol hash signature.
+  const storedSymbols = await db
+    .selectFrom('symbols as s')
+    .innerJoin('files as f', 'f.id', 's.file_id')
+    .select(['s.name', 's.line', 's.declaration_hash', 's.body_hash'])
+    .where('f.path', '=', filePath)
+    .execute();
+
+  return symbolSignature(result.symbols) === symbolSignature(storedSymbols);
+}
+
+/** Order-independent signature of a symbol set's identity + stability hashes. */
+function symbolSignature(
+  symbols: readonly { name: string; line: number; declarationHash?: string | null; declaration_hash?: string | null; bodyHash?: string | null; body_hash?: string | null }[],
+): string {
+  return symbols
+    .map((s) => {
+      const decl = s.declarationHash ?? s.declaration_hash ?? '';
+      const body = s.bodyHash ?? s.body_hash ?? '';
+      return `${s.name}|${s.line}|${decl}|${body}`;
+    })
+    .sort()
+    .join('\n');
 }
 
 // ---------------------------------------------------------------------------

@@ -270,7 +270,7 @@ signature only.
 
 ---
 
-### [ ] M3 — Stability hashes computed brittly and drive nothing
+### [x] M3 — Stability hashes computed brittly and drive nothing
 **Spec:** §7.1 step 7, §10.1 (class_shell `body_hash` over sorted member sigs).
 **Evidence:** `symbolsFromChunks` (`typescript.ts:661-675`) ignores the
 node-based `declarationHash`/`bodyHash` and splits `content` on the first `{`
@@ -280,6 +280,31 @@ incremental optimization is effectively unimplemented.
 **Fix direction:** compute hashes from AST nodes (signature vs body) per spec;
 once H1 is wired, use them to drive skip/re-embed.
 **Confidence:** high.
+
+**Scope (decided with user):** "fix + safe file-skip". The full per-symbol KG
+skip was rejected as unsafe under the delete-replace/FK-ID model (skipping edge
+rebuild needs symbol IDs preserved → invasive hot-path surgery) for marginal,
+H1-overlapping gain.
+
+**Done:**
+- Hashes are now AST-derived, not text-split. New `declHashOf`/`bodyHashOf`
+  (signature vs body block) and `classShellBodyHashOf` (sorted member
+  signatures + docs, no method bodies, per §10.1). Computed during extraction
+  and carried on transient `Chunk.declaration_hash`/`body_hash` (not persisted
+  to chunks.lance); `symbolsFromChunks` reads them. Deleted the brittle
+  `declarationHashFromContent`/`bodyHashFromContent` (first-`{` split, which
+  misattributed signature changes to the body when a param type contained `{`).
+- Safe consumer: `runIndex` (incremental only) skips re-writing a file whose
+  mtime changed but whose chunked content is identical (`isFileUnchanged`) —
+  same chunk-id set AND same symbol declaration/body hash signature, and bails
+  if any `block` chunk is present (unverifiable). Reported via `filesSkipped`.
+- Tests: `indexer/__tests__/stability.test.ts` — a param-type (signature) change
+  moves declaration_hash not body_hash even with `{` in the param (the
+  discriminating case the old split got wrong); a body change moves only
+  body_hash; class_shell body_hash is stable to method-body edits but moves on
+  rename; and runIndex skips a touched-identical file while re-writing a
+  genuinely changed one.
+- Verified: `tsc` clean, `pnpm lint` clean, full suite 166/166.
 
 ---
 

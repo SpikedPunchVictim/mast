@@ -35,6 +35,18 @@ export interface Chunk {
   readonly is_exported: boolean;
   readonly language: Language;
   readonly file_mtime: number;     // unix seconds at index time
+  /**
+   * sha256 of the symbol's signature (declaration up to, not including, the
+   * body). Transient: computed from the AST during extraction and consumed by
+   * `symbolsFromChunks`; NOT persisted to chunks.lance. Undefined on
+   * `block` chunks and on chunks reconstructed from the store.
+   */
+  readonly declaration_hash?: string;
+  /**
+   * sha256 of the symbol's body. For `class_shell`, the sorted member
+   * signatures (no method bodies), per §10.1. Transient — see `declaration_hash`.
+   */
+  readonly body_hash?: string;
 }
 
 /** Stability hashes stored per chunk for incremental reindex optimisation. */
