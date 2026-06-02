@@ -428,10 +428,18 @@ Pass-2 also stops marking the *local* name exported when it's aliased
 (`export { foo as bar }` exposes `bar`, not `foo`). Test in
 `export-alias.test.ts`. `tsc`/lint clean, suite 189/189.
 
-### [ ] L5 — `withLock` SIGTERM cleanup races with two locks held
+### [x] L5 — `withLock` SIGTERM cleanup races with two locks held
 `store/lock.ts:92` — the first handler's `process.exit(1)` can pre-empt the
 second lock's cleanup. Stale-PID recovery covers it, but it leaks on graceful
 kill.
+
+**Done:** replaced the per-`withLock` signal handler with a process-wide
+registry of held lock dirs and a single SIGTERM/SIGINT handler that removes ALL
+of them before exiting — so holding structure + vectors no longer leaks the
+second lock on interrupt (and signal listeners no longer pile up). Test in
+`store/__tests__/lock.test.ts` covers acquire/release, two types held
+concurrently, and release-on-throw; the signal path itself is shutdown-only
+(process.exit) and verified by construction. `tsc`/lint clean, suite 189/189.
 
 ---
 

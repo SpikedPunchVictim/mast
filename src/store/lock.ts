@@ -67,12 +67,35 @@ export async function acquireLock(
   );
 }
 
+// Lock directories currently held by this process. A single signal handler
+// removes ALL of them on shutdown — a per-`withLock` handler would race when
+// two locks are held (structure + vectors), because the first handler's
+// `process.exit` pre-empts the others, leaking the second lock until its stale
+// timeout. One registry + one handler also avoids piling up signal listeners.
+const heldLockDirs = new Set<string>();
+let signalHandlerInstalled = false;
+
+function installSignalHandlerOnce(): void {
+  if (signalHandlerInstalled) return;
+  signalHandlerInstalled = true;
+  const onSignal = (): never => {
+    // release() is async and can't be awaited in a signal handler, so remove
+    // every held lock directory synchronously as a best-effort fallback.
+    for (const dir of heldLockDirs) {
+      try { rmSync(dir, { recursive: true, force: true }); } catch { /* already gone */ }
+    }
+    process.exit(1);
+  };
+  process.once('SIGTERM', onSignal);
+  process.once('SIGINT', onSignal);
+}
+
 /**
  * Run `fn` while holding the given lock.
  *
- * Registers SIGTERM and SIGINT handlers for the duration so that the lock
- * directory is removed on graceful shutdown. Without these, a Ctrl-C or
- * `kill` leaves `<type>.lock` on disk until the stale timeout clears it.
+ * The lock's directory is tracked in a process-wide registry that a single
+ * SIGTERM/SIGINT handler cleans up on shutdown, so an interrupted process does
+ * not leave `<type>.lock` behind for every lock it held.
  */
 export async function withLock<T>(
   stateDir: string,
@@ -82,24 +105,14 @@ export async function withLock<T>(
 ): Promise<T> {
   const release = await acquireLock(stateDir, type, options);
 
-  const cleanup = (): never => {
-    // proper-lockfile's release() is async and cannot be awaited in a signal
-    // handler, so we remove the lock directory synchronously as a best-effort
-    // fallback before exiting.
-    try {
-      rmSync(markerPath(stateDir, type) + '.lock', { recursive: true, force: true });
-    } catch { /* best-effort: directory may already be gone */ }
-    process.exit(1);
-  };
-
-  process.once('SIGTERM', cleanup);
-  process.once('SIGINT', cleanup);
+  const lockDir = markerPath(stateDir, type) + '.lock';
+  heldLockDirs.add(lockDir);
+  installSignalHandlerOnce();
 
   try {
     return await fn();
   } finally {
-    process.off('SIGTERM', cleanup);
-    process.off('SIGINT', cleanup);
+    heldLockDirs.delete(lockDir);
     await release();
   }
 }
