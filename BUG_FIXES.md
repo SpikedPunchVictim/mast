@@ -388,11 +388,19 @@ an identical vector scores ~1 and an orthogonal one ~0 (the old rescale reported
 cosine floor at the configured 0.70; revisiting that value is tuning, not this
 fix. `tsc`/lint clean, suite 179/179.
 
-### [ ] L2 — Raw user query into FTS5 `MATCH`
+### [x] L2 — Raw user query into FTS5 `MATCH`
 `search/fts.ts:79` passes the query unescaped; runs *outside* the try/catch in
 `hybrid.ts:56`, so a query with FTS5 syntax (`(`, `:`, `"` — e.g.
 `handleLogin(req`) throws and fails the whole search instead of degrading.
 **Fix direction:** sanitize/quote the query for FTS5, or catch and fall back.
+
+**Done:** `toFtsMatch` reduces the query to identifier tokens (≥3 chars, the
+trigram minimum), quotes each as a phrase, and ANDs them — so no character is
+interpreted as FTS5 syntax; returns null (→ `[]`) when nothing is usable.
+`searchIdentifiers` now quotes its term too (handles `Class.method`). Tests in
+`search/__tests__/fts-query.test.ts`: punctuated/quoted/operator-looking queries
+resolve instead of throwing and still match; sub-trigram queries return `[]`.
+`tsc`/lint clean, suite 183/183.
 
 ### [ ] L3 — Dead member-type branch in shell synthesis
 `synthesiseClassShell` (`typescript.ts:432-437`) filters for `readonly_type`,

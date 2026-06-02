@@ -35,7 +35,12 @@ export async function searchFts(
   query: string,
   options: FtsSearchOptions,
 ): Promise<FtsSearchRow[]> {
-  if (!query.trim()) return [];
+  // Sanitise the user query into a safe FTS5 expression. Passing the raw string
+  // to MATCH lets FTS5 interpret `(`, `:`, `"`, `OR`, etc. as query syntax — a
+  // query like `handleLogin(req` would throw "fts5: syntax error" and (because
+  // this runs outside hybridSearch's try/catch) fail the whole search.
+  const matchExpr = toFtsMatch(query);
+  if (matchExpr === null) return [];
 
   // SQLite FTS5 UNINDEXED columns support IN with a literal list reliably,
   // but LIKE and subquery IN may not be applied by the FTS5 query planner.
@@ -76,7 +81,7 @@ export async function searchFts(
       sql<number>`bm25(chunk_fts)`.as('bm25_score'),
       sql<string>`snippet(chunk_fts, 0, '**', '**', '...', 12)`.as('match_snippet'),
     ])
-    .where(sql<SqlBool>`chunk_fts MATCH ${query}`);
+    .where(sql<SqlBool>`chunk_fts MATCH ${matchExpr}`);
 
   if (allowedPaths !== null) {
     q = q.where('file_path', 'in', allowedPaths);
@@ -108,10 +113,15 @@ export async function searchIdentifiers(
   symbolName: string,
   limit = 50,
 ): Promise<IdentifierFtsRow[]> {
+  const term = symbolName.trim();
+  if (term === '') return [];
+  // Quote as a phrase so any separator chars (e.g. `Class.method`) are matched
+  // literally rather than parsed as FTS5 query operators.
+  const matchExpr = `"${term.replace(/"/g, '""')}"`;
   return db
     .selectFrom('identifier_fts')
     .select('chunk_id')
-    .where(sql<SqlBool>`identifier_fts MATCH ${symbolName}`)
+    .where(sql<SqlBool>`identifier_fts MATCH ${matchExpr}`)
     .limit(limit)
     .execute();
 }
@@ -123,4 +133,18 @@ export async function searchIdentifiers(
 /** Convert a glob pattern to a SQL LIKE pattern (`*` → `%`, `?` → `_`). */
 function globToLike(pattern: string): string {
   return pattern.replace(/\*/g, '%').replace(/\?/g, '_');
+}
+
+/**
+ * Turn a free-form query into a safe FTS5 MATCH expression for the trigram
+ * `chunk_fts`: identifier-ish tokens (length ≥ 3, the trigram minimum), each
+ * quoted as a phrase so no character is treated as query syntax, joined by
+ * spaces (FTS5 ANDs bare phrases). Returns null when no usable token remains,
+ * so the caller can short-circuit to an empty result instead of running an
+ * invalid query.
+ */
+function toFtsMatch(query: string): string | null {
+  const tokens = (query.match(/[A-Za-z0-9_]+/g) ?? []).filter((t) => t.length >= 3);
+  if (tokens.length === 0) return null;
+  return tokens.map((t) => `"${t}"`).join(' ');
 }
