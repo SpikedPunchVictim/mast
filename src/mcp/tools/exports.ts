@@ -2,8 +2,10 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { ExportEntry, ExportsResponse } from '../../ast/types.js';
+import { join } from 'node:path';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens } from '../../telemetry/tokenizer.js';
+import { extractFileSignatures } from '../../ast/extract.js';
 import { extractDoc, jitRefreshFile } from './_helpers.js';
 
 export function registerExportsTool(server: McpServer, ctx: AppContext): void {
@@ -20,18 +22,26 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
 
       const chunks = await ctx.lance.getChunksByFilePath(args.file_path);
 
+      // Body-free signatures (params/return stripped of bodies, §10.2), keyed
+      // by symbol name. Falls back to chunk content if a symbol isn't found.
+      const sigs = extractFileSignatures(join(ctx.config.resolved_project_root, args.file_path));
+      const sigByName = new Map(sigs.map((s) => [s.name, s]));
+
       // Methods surface through their class_shell — omit them here.
       const topLevel = chunks.filter(
         (c) => c.is_exported && c.chunk_type !== 'method',
       );
 
-      const exports: ExportEntry[] = topLevel.map((c) => ({
-        name: c.symbol_name ?? '',
-        kind: c.chunk_type === 'class_shell' ? 'class' : c.chunk_type,
-        signature: c.content,
-        line: c.start_line,
-        doc: extractDoc(c.content),
-      }));
+      const exports: ExportEntry[] = topLevel.map((c) => {
+        const sig = c.symbol_name !== null ? sigByName.get(c.symbol_name) : undefined;
+        return {
+          name: c.symbol_name ?? '',
+          kind: c.chunk_type === 'class_shell' ? 'class' : c.chunk_type,
+          signature: sig?.signature ?? c.content,
+          line: c.start_line,
+          doc: sig?.doc ?? extractDoc(c.content),
+        };
+      });
 
       const text = JSON.stringify(exports);
       const tokens = countTokens(text);

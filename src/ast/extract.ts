@@ -2,8 +2,10 @@ import { extname } from 'node:path';
 import { readFileSync, statSync } from 'node:fs';
 import type { LanguageExtractor } from './parser.js';
 import { parseSource } from './parser.js';
-import { TypeScriptExtractor, symbolsFromChunks, extractImports, extractEdges } from './extractors/typescript.js';
+import { TypeScriptExtractor, symbolsFromChunks, extractImports, extractEdges, extractSignatures, type ExtractedSignature } from './extractors/typescript.js';
 import { getImportResolver } from '../indexer/import-resolver.js';
+
+export type { ExtractedSignature } from './extractors/typescript.js';
 import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -82,4 +84,22 @@ export function extractFile(
   const edges = extractEdges(tree, relativePath, src);
 
   return { chunks, language, symbols, imports, edges };
+}
+
+/**
+ * Extract body-free signatures (with params + return type) for every symbol in
+ * a file. Used by `mast_signature` and `mast_exports` at query time so they
+ * report declarations, not function bodies (§10.2). Returns `[]` for
+ * unsupported extensions or on parse failure.
+ */
+export function extractFileSignatures(absPath: string): readonly ExtractedSignature[] {
+  const extension = extname(absPath);
+  if (!EXT_TO_EXTRACTOR.has(extension)) return [];
+  try {
+    const src = readFileSync(absPath, 'utf-8');
+    const tree = parseSource(src, extension);
+    return extractSignatures(tree, src);
+  } catch {
+    return [];
+  }
 }

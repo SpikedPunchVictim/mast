@@ -244,6 +244,13 @@ describe('mast_exports', () => {
     const res = await call('mast_exports', { file_path: 'models.ts' }) as { exports: Array<{ name: string | null; kind: string }> };
     expect(res.exports.some((e) => e.kind === 'method')).toBe(false);
   });
+
+  it('signatures exclude function bodies (M2)', async () => {
+    const res = await call('mast_exports', { file_path: 'math.ts' }) as { exports: Array<{ name: string; signature: string }> };
+    const add = res.exports.find((e) => e.name === 'add')!;
+    expect(add.signature).toContain('add(a: number, b: number): number');
+    expect(add.signature).not.toContain('return a + b');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -273,6 +280,25 @@ describe('mast_signature', () => {
   it('_stats is present', async () => {
     const res = await call('mast_signature', { symbol: 'Circle' }) as { _stats: { tool: string } };
     expect(res._stats.tool).toBe('mast_signature');
+  });
+
+  it('returns a body-free signature with structured params and return type (M2)', async () => {
+    const res = await call('mast_signature', { symbol: 'add', file_path: 'math.ts' }) as {
+      results: Array<{ signature: string; params: Array<{ name: string; type: string }>; return_type: string | null }>;
+    };
+    const r = res.results[0]!;
+    expect(r.signature).toContain('add(a: number, b: number): number');
+    expect(r.signature).not.toContain('return');           // body excluded
+    expect(r.params).toEqual([{ name: 'a', type: 'number' }, { name: 'b', type: 'number' }]);
+    expect(r.return_type).toBe('number');
+  });
+
+  it('a class signature is the declaration header, no member outline (M2)', async () => {
+    const res = await call('mast_signature', { symbol: 'Circle', file_path: 'models.ts' }) as {
+      results: Array<{ signature: string }>;
+    };
+    expect(res.results[0]!.signature).toContain('class Circle implements Shape');
+    expect(res.results[0]!.signature).not.toContain('area(');
   });
 });
 

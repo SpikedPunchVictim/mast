@@ -278,7 +278,7 @@ workspace pkgs / `index.ts` dirs, and risks prefix-collision false matches.
 
 ---
 
-### [ ] M2 — `mast_signature` returns empty `params`/`return_type`; "signature" is the full body
+### [x] M2 — `mast_signature` returns empty `params`/`return_type`; "signature" is the full body
 **Spec:** §9 `mast_signature`, §10.2.
 **Evidence:** `mcp/tools/signature.ts:77-78` hardcodes `params: []`,
 `return_type: null`. `signature` is set to raw chunk `content` (`:66`) — for a
@@ -290,6 +290,26 @@ ignores. `extractTypeNames` (`:68`) then scans the whole body, polluting
 `params`/`return_type` from the signature node; run `extractTypeNames` over the
 signature only.
 **Confidence:** certain.
+
+**Done:**
+- New `extractSignatures(tree, src)` in the TS extractor + `extractFileSignatures(absPath)`
+  wrapper in `extract.ts`: AST-accurate, body-free signature for every symbol,
+  with structured `params` (name + full type text, incl. generics/object types
+  via `type_annotation`) and `return_type` (from the `return_type` node).
+  Handles functions, arrow consts, classes (header only), methods, interfaces,
+  type aliases. Query-time parse (few files per call); no schema change.
+- `mast_signature` now returns the real `signature` (declaration only),
+  populated `params`/`return_type`, and resolves `type_context` from the
+  parameter/return TYPES only — no longer scanning the function body for
+  PascalCase identifiers. Parses each referenced file at most once per call.
+- `mast_exports` had the same body-as-signature bug ("No function bodies" was a
+  lie); it now uses the body-free signature too (class entries show just the
+  declaration header, per the §9 example).
+- Tests (in `tools.test.ts`): `mast_signature add` → `signature` excludes the
+  body, `params` = `[{a,number},{b,number}]`, `return_type` = `number`; class
+  signature is the header without the member outline; `mast_exports` signatures
+  exclude bodies. Existing assertions unchanged.
+- Verified: `tsc` clean, `pnpm lint` clean, full suite 176/176.
 
 ---
 

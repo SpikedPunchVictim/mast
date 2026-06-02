@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
 import type { LanguageExtractor, Tree, SyntaxNode } from '../parser.js';
-import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../types.js';
+import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution, ParamEntry } from '../types.js';
 import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
 
 // ---------------------------------------------------------------------------
@@ -457,6 +457,160 @@ export function extractSignatureText(node: SyntaxNode, src: string): string {
   }
 
   return src.slice(node.startIndex, bodyNode.startIndex).trimEnd();
+}
+
+// ---------------------------------------------------------------------------
+// Signature extraction (§10.2) — body-free declaration, params, return type
+// ---------------------------------------------------------------------------
+
+/** A symbol's declaration as the AST sees it: no body, structured params. */
+export interface ExtractedSignature {
+  /** Qualified `Class.method` for methods; bare name otherwise. */
+  readonly name: string;
+  readonly line: number;            // 1-indexed declaration start
+  readonly signature: string;       // declaration text, body stripped
+  readonly params: readonly ParamEntry[];
+  readonly returnType: string | null;
+  readonly doc: string | null;      // leading TSDoc/line comment, if any
+}
+
+/**
+ * Extract a body-free signature (plus structured params and return type) for
+ * every top-level symbol and class method in `tree`. Used by `mast_signature`
+ * and `mast_exports` so they report the declaration, not the function body.
+ */
+export function extractSignatures(tree: Tree, src: string): ExtractedSignature[] {
+  const out: ExtractedSignature[] = [];
+  const root = tree.rootNode;
+
+  for (const node of nodeChildren(root)) {
+    const isExport = nodeType(node) === 'export_statement';
+    const decl = isExport ? getWrappedDeclaration(node) : node;
+    if (decl === null) continue;
+    // Doc precedes the export wrapper when there is one.
+    const docHost = isExport ? node : decl;
+    const t = nodeType(decl);
+
+    switch (t) {
+      case 'function_declaration':
+      case 'generator_function_declaration': {
+        const name = decl.childForFieldName('name')?.text;
+        if (name !== undefined) out.push(signatureFor(name, decl, decl, root, src));
+        break;
+      }
+      case 'lexical_declaration':
+      case 'variable_declaration': {
+        const declarator = findChildByType(decl, 'variable_declarator');
+        const value = declarator?.childForFieldName('value') ?? null;
+        const name = declarator?.childForFieldName('name')?.text ?? null;
+        if (name !== null && value !== null && nodeType(value) === 'arrow_function') {
+          out.push(arrowSignatureFor(name, decl, value, docHost, root, src));
+        }
+        break;
+      }
+      case 'interface_declaration':
+      case 'type_alias_declaration': {
+        const name = decl.childForFieldName('name')?.text;
+        if (name !== undefined) {
+          out.push({
+            name,
+            line: nodeStartLine(decl),
+            signature: extractSignatureText(decl, src),
+            params: [],
+            returnType: null,
+            doc: getLeadingComment(docHost, root, src),
+          });
+        }
+        break;
+      }
+      case 'class_declaration':
+      case 'abstract_class_declaration': {
+        const className = decl.childForFieldName('name')?.text;
+        if (className === undefined) break;
+        out.push({
+          name: className,
+          line: nodeStartLine(decl),
+          signature: extractSignatureText(decl, src),
+          params: [],
+          returnType: null,
+          doc: getLeadingComment(docHost, root, src),
+        });
+        const body = decl.childForFieldName('body') ?? findChildByType(decl, 'class_body');
+        if (body !== null) {
+          for (const member of nodeNamedChildren(body)) {
+            const mt = nodeType(member);
+            if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
+            const mName = member.childForFieldName('name')?.text;
+            if (mName !== undefined) out.push(signatureFor(`${className}.${mName}`, member, member, body, src));
+          }
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return out;
+}
+
+/** Signature info for a function/method node. */
+function signatureFor(name: string, node: SyntaxNode, docHost: SyntaxNode, docParent: SyntaxNode, src: string): ExtractedSignature {
+  return {
+    name,
+    line: nodeStartLine(node),
+    signature: extractSignatureText(node, src),
+    params: paramsOf(node, src),
+    returnType: returnTypeOf(node, src),
+    doc: getLeadingComment(docHost, docParent, src),
+  };
+}
+
+/** Signature info for an arrow-function const (`export const f = (...) => ...`). */
+function arrowSignatureFor(name: string, declNode: SyntaxNode, arrow: SyntaxNode, docHost: SyntaxNode, docParent: SyntaxNode, src: string): ExtractedSignature {
+  const body = arrow.childForFieldName('body');
+  // Declaration text up to the arrow body, with a trailing `=>` trimmed.
+  const raw = body !== null
+    ? src.slice(declNode.startIndex, body.startIndex).trimEnd()
+    : src.slice(declNode.startIndex, declNode.endIndex);
+  return {
+    name,
+    line: nodeStartLine(declNode),
+    signature: raw.replace(/=>\s*$/, '').trimEnd(),
+    params: paramsOf(arrow, src),
+    returnType: returnTypeOf(arrow, src),
+    doc: getLeadingComment(docHost, docParent, src),
+  };
+}
+
+/** Structured parameters from a node's `formal_parameters`. */
+function paramsOf(node: SyntaxNode, src: string): ParamEntry[] {
+  const fp = node.childForFieldName('parameters') ?? findChildByType(node, 'formal_parameters');
+  if (fp === null) return [];
+  const params: ParamEntry[] = [];
+  for (const p of nodeNamedChildren(fp)) {
+    const pt = nodeType(p);
+    if (pt !== 'required_parameter' && pt !== 'optional_parameter') continue;
+    const nameNode = p.childForFieldName('pattern') ?? findChildByType(p, 'identifier');
+    const name = nameNode !== null ? src.slice(nameNode.startIndex, nameNode.endIndex) : '';
+    params.push({ name, type: typeAnnotationText(p, src) ?? '' });
+  }
+  return params;
+}
+
+/** Return-type text from a node's `return_type` annotation, or null. */
+function returnTypeOf(node: SyntaxNode, src: string): string | null {
+  const rt = node.childForFieldName('return_type');
+  if (rt === null) return null;
+  const typeNode = nodeNamedChildren(rt)[0];
+  return typeNode !== undefined ? src.slice(typeNode.startIndex, typeNode.endIndex) : null;
+}
+
+/** Full type text from a node's `type_annotation` child (e.g. `Promise<void>`). */
+function typeAnnotationText(node: SyntaxNode, src: string): string | null {
+  const ann = findChildByType(node, 'type_annotation');
+  if (ann === null) return null;
+  const typeNode = nodeNamedChildren(ann)[0];
+  return typeNode !== undefined ? src.slice(typeNode.startIndex, typeNode.endIndex) : null;
 }
 
 // ---------------------------------------------------------------------------
