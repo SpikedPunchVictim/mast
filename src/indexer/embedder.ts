@@ -182,13 +182,9 @@ interface EmbedderPipeline {
 }
 
 /**
- * Create a default `Embedder` instance wired to the standard state directory
- * layout expected by the SDD pipeline.
+ * Create an `Embedder` instance. `transformersCacheDir` is resolved by the
+ * caller (via `resolveTransformersCacheDir`) so this function stays pure.
  */
-export function createEmbedder(modelId: string, stateDir: string): Embedder {
-  return new Embedder(
-    modelId,
-    '/opt/transformers-cache',  // Docker pre-warmed path; see §13.8.1
-    stateDir,
-  );
+export function createEmbedder(modelId: string, stateDir: string, transformersCacheDir: string): Embedder {
+  return new Embedder(modelId, transformersCacheDir, stateDir);
 }

@@ -118,6 +118,12 @@ export interface MastConfig {
   readonly file_extensions: readonly string[];
   readonly exclude_patterns: readonly string[];
   readonly embedding_model: string;
+  /**
+   * Directory where Transformers.js caches ONNX model weights.
+   * When omitted, resolved at runtime: `/opt/transformers-cache` if writable
+   * (Docker pre-warmed), otherwise `~/.cache/mast/transformers`.
+   */
+  readonly transformers_cache_dir?: string;
   readonly similarity_threshold: number;
   /** Reciprocal Rank Fusion constant k (default 60). */
   readonly rrf_k: number;

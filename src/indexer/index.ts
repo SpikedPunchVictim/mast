@@ -308,7 +308,7 @@ export async function runEmbed(
       // Load the embedder first so we can detect the model's actual dimension,
       // then create the vectors table with the correct size.
       const embedder =
-        options.embedder ?? createEmbedder(config.embedding_model, config.resolved_state_dir);
+        options.embedder ?? createEmbedder(config.embedding_model, config.resolved_state_dir, config.resolved_transformers_cache_dir);
       await embedder.load();
       await lance.ensureVectorsTable(embedder.dimension);
 

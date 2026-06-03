@@ -198,6 +198,7 @@ describe('wipeDerivedState', () => {
       mkdirSync(join(stateDir, 'embed_cache'));
       writeFileSync(join(stateDir, 'graph.db'), 'x');
       writeFileSync(join(stateDir, 'graph.db-wal'), 'x');
+      writeFileSync(join(stateDir, 'graph.db-shm'), 'x');
       writeFileSync(join(stateDir, 'file_manifest.json'), '{}');
       // Preserved state.
       writeFileSync(join(stateDir, 'config.json'), '{}');
@@ -210,6 +211,7 @@ describe('wipeDerivedState', () => {
       expect(existsSync(join(stateDir, 'embed_cache'))).toBe(false);
       expect(existsSync(join(stateDir, 'graph.db'))).toBe(false);
       expect(existsSync(join(stateDir, 'graph.db-wal'))).toBe(false);
+      expect(existsSync(join(stateDir, 'graph.db-shm'))).toBe(false);
       expect(existsSync(join(stateDir, 'file_manifest.json'))).toBe(false);
 
       expect(existsSync(join(stateDir, 'config.json'))).toBe(true);

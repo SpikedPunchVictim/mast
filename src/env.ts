@@ -23,6 +23,8 @@ export const WorkerEnvSchema = z.object({
   MAST_STATE_DIR: z.string().min(1, 'MAST_STATE_DIR must be a non-empty path'),
   /** HuggingFace model ID to use for embedding. */
   MAST_MODEL_ID: z.string().min(1).default('jinaai/jina-embeddings-v2-base-code'),
+  /** Absolute path for the Transformers.js model weight cache. Required in the worker. */
+  MAST_TRANSFORMERS_CACHE: z.string().min(1, 'MAST_TRANSFORMERS_CACHE must be a non-empty path'),
 });
 
 export type WorkerEnv = z.infer<typeof WorkerEnvSchema>;

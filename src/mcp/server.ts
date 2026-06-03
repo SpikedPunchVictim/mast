@@ -79,7 +79,7 @@ export async function serve(options: ServeOptions): Promise<void> {
   const ensureHybrid = (): void => {
     currentEmbedder ??= new Embedder(
       config.embedding_model,
-      '/opt/transformers-cache',
+      config.resolved_transformers_cache_dir,
       config.resolved_state_dir,
     );
     currentMode = 'hybrid';
@@ -90,7 +90,7 @@ export async function serve(options: ServeOptions): Promise<void> {
       .then(async () => {
         const ids = await pendingChunkIds(lance);
         if (ids.length === 0) return;
-        embedChild ??= forkEmbedderChild(config.embedding_model, config.resolved_state_dir);
+        embedChild ??= forkEmbedderChild(config.embedding_model, config.resolved_state_dir, config.resolved_transformers_cache_dir);
         await embedChunks(embedChild, ids);
         ensureHybrid();
       })
@@ -145,6 +145,7 @@ export async function serve(options: ServeOptions): Promise<void> {
       const { child } = await warmEmbeddings({
         modelId: config.embedding_model,
         stateDir: config.resolved_state_dir,
+        transformersCacheDir: config.resolved_transformers_cache_dir,
         lance,
       });
       embedChild = child;

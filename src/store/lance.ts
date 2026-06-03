@@ -1,6 +1,7 @@
 import * as lancedb from '@lancedb/lancedb';
 import type { VectorQuery } from '@lancedb/lancedb';
 import * as arrow from 'apache-arrow';
+import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Chunk, VectorEntry } from '../ast/types.js';
 import { joinVectorKey } from '../indexer/embedder.js';
@@ -45,7 +46,38 @@ export class LanceStore {
   private constructor(private readonly db: lancedb.Connection) {}
 
   static async open(stateDir: string): Promise<LanceStore> {
-    const db = await lancedb.connect(join(stateDir, 'lance'));
+    const lancePath = join(stateDir, 'lance');
+    let db = await lancedb.connect(lancePath);
+
+    // Probe for data-fragment corruption: the chunks table manifest may reference
+    // .lance fragment files that no longer exist on disk (e.g. the data/ directory
+    // was externally wiped while _versions/ survived). Without early detection,
+    // every write in the subsequent reindex fails with "Not found" and the error
+    // cascades silently through the entire run. Wipe the lance directory and
+    // reconnect so ensureChunksTable() starts with a clean slate.
+    const tableNames = await db.tableNames();
+    if (tableNames.includes(CHUNK_TABLE)) {
+      try {
+        const table = await db.openTable(CHUNK_TABLE);
+        // countRows() with no predicate reads only the manifest metadata and
+        // succeeds even when data fragment files are missing. A limit-1 scan
+        // forces LanceDB to open an actual fragment file, surfacing "Not found"
+        // when the data/ directory has been externally wiped.
+        await table.query().limit(1).toArray();
+      } catch (err) {
+        if (isFragmentMissingError(err)) {
+          process.stderr.write(
+            '[mast] WARN: chunks.lance has missing data fragments — ' +
+            'wiping lance directory; a full reindex will rebuild it\n',
+          );
+          rmSync(lancePath, { recursive: true, force: true });
+          db = await lancedb.connect(lancePath);
+        } else {
+          throw err;
+        }
+      }
+    }
+
     return new LanceStore(db);
   }
 
@@ -265,6 +297,20 @@ function vectorToRecord(v: VectorEntry): Record<string, unknown> {
     model_version: v.model_version,
     content_hash:  v.content_hash ?? '',
   };
+}
+
+/** True when the error is LanceDB reporting a missing data fragment on disk. */
+function isFragmentMissingError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message;
+  // LanceDB surfaces missing fragments in two forms depending on access path:
+  //   Direct read: "lance error: Not found: <path>.lance, ..."
+  //   Streaming scan: "... Object at location <path>.lance not found: No such file ..."
+  // Both contain a .lance path and a "not found" / "No such file" substring.
+  return (
+    msg.includes('.lance') &&
+    (msg.includes('Not found') || msg.includes('not found') || msg.includes('No such file'))
+  );
 }
 
 function escapeString(s: string): string {

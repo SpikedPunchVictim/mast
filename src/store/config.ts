@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
@@ -32,6 +33,28 @@ export interface ResolvedConfig extends MastConfig {
   readonly resolved_state_dir: string;
   /** Absolute path to the project root. */
   readonly resolved_project_root: string;
+  /** Resolved absolute path for the Transformers.js model weight cache. */
+  readonly resolved_transformers_cache_dir: string;
+}
+
+/**
+ * Resolve the Transformers.js model weight cache directory.
+ *
+ * Priority:
+ * 1. Explicit `transformers_cache_dir` from config.
+ * 2. `/opt/transformers-cache` if it exists and is writable (Docker pre-warmed).
+ * 3. `~/.cache/mast/transformers` as the local-dev fallback.
+ */
+export function resolveTransformersCacheDir(configured?: string): string {
+  if (configured) return resolve(configured);
+  const dockerPath = '/opt/transformers-cache';
+  try {
+    accessSync(dockerPath, constants.W_OK);
+    return dockerPath;
+  } catch {
+    // Not writable — fall through to local path.
+  }
+  return join(homedir(), '.cache', 'mast', 'transformers');
 }
 
 export interface ResolveConfigOptions {
@@ -74,6 +97,7 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
     project_root: resolvedProjectRoot,
     resolved_state_dir: resolve(resolvedProjectRoot, stateDir),
     resolved_project_root: resolvedProjectRoot,
+    resolved_transformers_cache_dir: resolveTransformersCacheDir(merged.transformers_cache_dir),
   };
 }
 

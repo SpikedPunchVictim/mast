@@ -7,11 +7,14 @@ const require = createRequire(import.meta.url);
 
 // `tree-sitter` ships its own TypeScript declarations (Tree, SyntaxNode, …), so
 // the Parser class is fully typed. The grammar package `tree-sitter-typescript`
-// ships no declarations — its grammar objects are opaque, hence `unknown`.
+// ships no declarations. Derive the Language type from setLanguage's own
+// parameter rather than importing Parser.Language directly — ESM + `export =`
+// does not allow that namespace member import.
 const Parser = require('tree-sitter') as typeof import('tree-sitter');
+type Language = NonNullable<Parameters<InstanceType<typeof Parser>['setLanguage']>[0]>;
 const { typescript: tsGrammar, tsx: tsxGrammar } = require('tree-sitter-typescript') as {
-  typescript: unknown;
-  tsx: unknown;
+  typescript: Language;
+  tsx: Language;
 };
 
 export type { Tree, SyntaxNode } from 'tree-sitter';

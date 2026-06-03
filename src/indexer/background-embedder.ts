@@ -89,11 +89,12 @@ export function embedChunks(
 }
 
 /** Factory for an embedder child. Defaults to the real forked worker. */
-export type SpawnEmbedderChild = (modelId: string, stateDir: string) => EmbedderChildHandle;
+export type SpawnEmbedderChild = (modelId: string, stateDir: string, transformersCacheDir: string) => EmbedderChildHandle;
 
 export interface WarmEmbeddingsOptions {
   readonly modelId: string;
   readonly stateDir: string;
+  readonly transformersCacheDir: string;
   /** Store used to compute which chunks still need embedding. */
   readonly lance: Pick<LanceStore, 'getAllChunks' | 'getEmbeddedVectorKeys'>;
   /** Child-process factory; defaults to {@link forkEmbedderChild}. Injected in tests. */
@@ -131,7 +132,7 @@ export async function warmEmbeddings(options: WarmEmbeddingsOptions): Promise<Wa
   }
 
   const spawn = options.spawn ?? forkEmbedderChild;
-  const child = spawn(options.modelId, options.stateDir);
+  const child = spawn(options.modelId, options.stateDir, options.transformersCacheDir);
   const embedded = await embedChunks(child, pendingIds, options.onProgress);
   return { embedded, child };
 }
@@ -143,7 +144,7 @@ export async function warmEmbeddings(options: WarmEmbeddingsOptions): Promise<Wa
  * in the embedder cannot kill the MCP server, and the main process keeps a
  * small footprint (no model weights loaded in-process).
  */
-export function forkEmbedderChild(modelId: string, stateDir: string): EmbedderChildHandle {
+export function forkEmbedderChild(modelId: string, stateDir: string, transformersCacheDir: string): EmbedderChildHandle {
   const workerPath = fileURLToPath(
     new URL('./background-embedder-worker.js', import.meta.url),
   );
@@ -153,6 +154,7 @@ export function forkEmbedderChild(modelId: string, stateDir: string): EmbedderCh
       ...process.env,
       MAST_MODEL_ID: modelId,
       MAST_STATE_DIR: stateDir,
+      MAST_TRANSFORMERS_CACHE: transformersCacheDir,
     },
     stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
   });

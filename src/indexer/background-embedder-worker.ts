@@ -23,8 +23,9 @@ export class EmbedWorker {
   constructor(
     modelId: string,
     private readonly stateDir: string,
+    transformersCacheDir: string,
   ) {
-    this.embedder = createEmbedder(modelId, stateDir);
+    this.embedder = createEmbedder(modelId, stateDir, transformersCacheDir);
   }
 
   /**
@@ -89,6 +90,6 @@ if (!envResult.success) {
   process.exit(1);
 }
 
-const { MAST_STATE_DIR: stateDir, MAST_MODEL_ID: modelId } = envResult.data;
+const { MAST_STATE_DIR: stateDir, MAST_MODEL_ID: modelId, MAST_TRANSFORMERS_CACHE: transformersCacheDir } = envResult.data;
 
-await new EmbedWorker(modelId, stateDir).run();
+await new EmbedWorker(modelId, stateDir, transformersCacheDir).run();
