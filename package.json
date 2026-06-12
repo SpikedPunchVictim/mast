@@ -11,6 +11,10 @@
     ".": {
       "import": "./dist/cli/index.js",
       "types": "./dist/cli/index.d.ts"
+    },
+    "./graph": {
+      "import": "./dist/graph/index.js",
+      "types": "./dist/graph/index.d.ts"
     }
   },
   "files": [
