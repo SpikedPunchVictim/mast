@@ -7,8 +7,9 @@ import { runIndex } from '../../indexer/index.js';
 import { runEmbed } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
 import { LanceStore } from '../../store/lance.js';
-import { searchFts } from '../fts.js';
+import { searchFts, splitIdentifierTerms } from '../fts.js';
 import { hybridSearch, rrfScore } from '../hybrid.js';
+import { trigramSimilarity } from '../../graph/queries.js';
 import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
 import type { Chunk, VectorEntry } from '../../ast/types.js';
 
@@ -294,5 +295,113 @@ describe('hybridSearch — hybrid mode', () => {
     );
     expect(mode).toBe('lexical');
     expect(results.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// splitIdentifierTerms — camelCase / snake_case tokenisation
+// ---------------------------------------------------------------------------
+
+describe('splitIdentifierTerms', () => {
+  it('splits camelCase into lowercased sub-terms', () => {
+    expect(splitIdentifierTerms('getUserProfile')).toEqual(['get', 'user', 'profile']);
+  });
+
+  it('splits snake_case into lowercased sub-terms', () => {
+    expect(splitIdentifierTerms('get_user_profile')).toEqual(['get', 'user', 'profile']);
+  });
+
+  it('splits acronym boundaries', () => {
+    expect(splitIdentifierTerms('HTTPServer')).toEqual(['http', 'server']);
+  });
+
+  it('drops sub-terms shorter than the trigram minimum and de-dupes', () => {
+    // "by" and "id" are below the 3-char trigram floor; "user" appears once.
+    expect(splitIdentifierTerms('userUserById')).toEqual(['user']);
+  });
+
+  it('returns an empty array for a query with no usable terms', () => {
+    expect(splitIdentifierTerms('')).toEqual([]);
+    expect(splitIdentifierTerms('a-b')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trigramSimilarity — Dice coefficient over character trigrams
+// ---------------------------------------------------------------------------
+
+describe('trigramSimilarity', () => {
+  it('is 1 for identical strings', () => {
+    expect(trigramSimilarity('circle', 'circle')).toBe(1);
+  });
+
+  it('is 0 when there is no shared trigram', () => {
+    expect(trigramSimilarity('circle', 'zzzzzz')).toBe(0);
+  });
+
+  it('is 0 when either string is shorter than a trigram', () => {
+    expect(trigramSimilarity('ab', 'abc')).toBe(0);
+  });
+
+  it('scores a near-miss between 0 and 1', () => {
+    const score = trigramSimilarity('adddd', 'add');
+    expect(score).toBeGreaterThan(0);
+    expect(score).toBeLessThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hybridSearch — zero-result assist (suggestions)
+// ---------------------------------------------------------------------------
+
+describe('hybridSearch — zero-result assist', () => {
+  // Threshold high enough that the fake embedder's vector hits never survive,
+  // and embedder null, so a no-FTS-hit query genuinely returns zero results.
+  const lexicalConfig = { rrf_k: 60, similarity_threshold: 0.0 };
+
+  it('attaches suggestions when the query matches no chunk', async () => {
+    const { results, suggestions } = await hybridSearch(
+      db, lance, null,
+      { query: 'adddd' },
+      lexicalConfig,
+    );
+    expect(results).toHaveLength(0);
+    expect(suggestions).toBeDefined();
+    // The trigram pass should surface the real `add` symbol as a candidate.
+    expect(suggestions!.some((s) => s.symbol === 'add')).toBe(true);
+  });
+
+  it('each suggestion carries symbol, file_path and reason', async () => {
+    const { suggestions } = await hybridSearch(
+      db, lance, null,
+      { query: 'adddd' },
+      lexicalConfig,
+    );
+    expect(suggestions!.length).toBeGreaterThan(0);
+    for (const s of suggestions!) {
+      expect(typeof s.symbol).toBe('string');
+      expect(typeof s.file_path).toBe('string');
+      expect(typeof s.reason).toBe('string');
+    }
+  });
+
+  it('never substitutes suggestions for results (results stay empty)', async () => {
+    const { results, suggestions } = await hybridSearch(
+      db, lance, null,
+      { query: 'adddd' },
+      lexicalConfig,
+    );
+    expect(results).toHaveLength(0);
+    expect(suggestions).toBeDefined();
+  });
+
+  it('omits suggestions when the query returns results', async () => {
+    const { results, suggestions } = await hybridSearch(
+      db, lance, null,
+      { query: 'add' },
+      lexicalConfig,
+    );
+    expect(results.length).toBeGreaterThan(0);
+    expect(suggestions).toBeUndefined();
   });
 });

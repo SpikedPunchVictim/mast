@@ -133,6 +133,75 @@ export async function querySymbolByName(
 }
 
 // ---------------------------------------------------------------------------
+// Trigram symbol-name similarity ("did you mean" candidates)
+// ---------------------------------------------------------------------------
+
+/** Character trigrams of a lowercased string. */
+function trigrams(value: string): Set<string> {
+  const set = new Set<string>();
+  const lower = value.toLowerCase();
+  for (let i = 0; i + 3 <= lower.length; i++) {
+    set.add(lower.slice(i, i + 3));
+  }
+  return set;
+}
+
+/**
+ * Dice-coefficient trigram similarity in [0, 1], mirroring Postgres `pg_trgm`.
+ *
+ * Returns 0 when either string is shorter than a trigram (no shared basis to
+ * compare). This is a pure helper because SQLite ships no `pg_trgm` /
+ * `spellfix` — the ranking is computed in JS over the fetched symbol set.
+ */
+export function trigramSimilarity(a: string, b: string): number {
+  const ta = trigrams(a);
+  const tb = trigrams(b);
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let shared = 0;
+  for (const g of ta) if (tb.has(g)) shared++;
+  return (2 * shared) / (ta.size + tb.size);
+}
+
+export interface SymbolSuggestionRow {
+  readonly name: string;
+  readonly file_path: string;
+  readonly line: number;
+  readonly score: number;
+}
+
+/**
+ * Return symbols whose name is trigram-similar to `query`, best first.
+ *
+ * Only invoked on the zero-result assist path (§9 mast_search), so scanning the
+ * full symbol set and scoring in JS is acceptable — this is not a hot path.
+ * `minScore` filters out coincidental low-overlap matches so the suggestions
+ * stay high-signal.
+ */
+export async function querySymbolsBySimilarity(
+  db: Db,
+  query: string,
+  limit: number,
+  minScore = 0.3,
+): Promise<SymbolSuggestionRow[]> {
+  const rows = await db
+    .selectFrom('symbols as s')
+    .innerJoin('files as f', 'f.id', 's.file_id')
+    .select(['s.name', 'f.path as file_path', 's.line'])
+    .where('s.kind', '!=', 'method') // methods surface via their class shell
+    .execute();
+
+  const scored: SymbolSuggestionRow[] = [];
+  for (const r of rows) {
+    const score = trigramSimilarity(query, r.name);
+    if (score >= minScore) {
+      scored.push({ name: r.name, file_path: r.file_path, line: r.line, score });
+    }
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
 // Dependencies (imports table)
 // ---------------------------------------------------------------------------
 

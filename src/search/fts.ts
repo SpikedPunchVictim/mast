@@ -126,9 +126,62 @@ export async function searchIdentifiers(
     .execute();
 }
 
+/**
+ * Near-miss identifier search over `identifier_fts`.
+ *
+ * Unlike {@link searchIdentifiers} (which requires an exact phrase match on the
+ * full symbol), this ORs each term so a chunk matching *any* sub-term is
+ * returned. Used by the zero-result assist path to gather candidate chunks
+ * whose identifiers partially overlap a query that otherwise found nothing.
+ *
+ * Terms are quoted as phrases so separator chars never leak into FTS5 query
+ * syntax. Returns an empty array when no usable term remains.
+ */
+export async function searchIdentifierNearMiss(
+  db: Db,
+  terms: readonly string[],
+  limit = 20,
+): Promise<IdentifierFtsRow[]> {
+  const cleaned = terms.map((t) => t.trim()).filter((t) => t.length > 0);
+  if (cleaned.length === 0) return [];
+  const matchExpr = cleaned.map((t) => `"${t.replace(/"/g, '""')}"`).join(' OR ');
+  return db
+    .selectFrom('identifier_fts')
+    .select('chunk_id')
+    .where(sql<SqlBool>`identifier_fts MATCH ${matchExpr}`)
+    .limit(limit)
+    .execute();
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Split an identifier-shaped query into its constituent sub-terms.
+ *
+ * Handles camelCase (`getUser` → `get`, `user`), acronym boundaries
+ * (`HTTPServer` → `http`, `server`), and snake/kebab separators. Sub-terms are
+ * lowercased (FTS5 trigram matching is case-insensitive), de-duplicated, and
+ * filtered below the 3-char trigram floor — a sub-term shorter than a trigram
+ * cannot match `chunk_fts` anyway. Returns an empty array when nothing usable
+ * remains, so callers can short-circuit the assist.
+ */
+export function splitIdentifierTerms(query: string): string[] {
+  const spaced = query
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')     // camelCase: fooBar -> foo Bar
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); // acronym: HTTPServer -> HTTP Server
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of spaced.split(/[^A-Za-z0-9]+/)) {
+    const term = part.toLowerCase();
+    if (term.length < 3) continue;
+    if (seen.has(term)) continue;
+    seen.add(term);
+    out.push(term);
+  }
+  return out;
+}
 
 /** Convert a glob pattern to a SQL LIKE pattern (`*` → `%`, `?` → `_`). */
 function globToLike(pattern: string): string {

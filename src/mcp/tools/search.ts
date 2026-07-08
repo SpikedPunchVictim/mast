@@ -20,7 +20,7 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
     },
     async (args) => {
       const start = Date.now();
-      const { mode, results } = await hybridSearch(
+      const { mode, results, suggestions } = await hybridSearch(
         ctx.db,
         ctx.lance,
         ctx.getEmbedder(),
@@ -28,12 +28,16 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
         { rrf_k: ctx.config.rrf_k, similarity_threshold: ctx.config.similarity_threshold },
       );
       const filesReferenced = [...new Set(results.map((r) => r.file_path))];
-      const text = JSON.stringify({ mode, results });
+      // `suggestions` is present (possibly empty) only on the zero-result assist
+      // path; conditional spread keeps it out of the payload otherwise.
+      const suggestionsField = suggestions !== undefined ? { suggestions } : {};
+      const text = JSON.stringify({ mode, results, ...suggestionsField });
       const tokens = countTokens(text);
       const durationMs = Date.now() - start;
       const response: SearchResponse = {
         mode,
         results,
+        ...suggestionsField,
         _stats: buildToolStats('mast_search', tokens, 0, filesReferenced, durationMs, mode),
       };
       void recordToolCall(ctx.db, {

@@ -835,6 +835,41 @@ not on a shared scale. Consumers that care about uniform ranking should use the
 `parent_symbol` is populated only on `method` chunks (carries the enclosing
 class name); `null` for all other chunk types.
 
+**Zero-result assist (`suggestions`).** When a search returns no results — no
+FTS/vector hit, or every hit fell below `similarity_threshold`, or the
+`chunk_type` / `only_exported` filters emptied the set — the tool does not
+return a bare dead end. It runs a relaxation pass and attaches a `suggestions`
+array of `{ symbol, file_path, reason }` "did you mean" candidates:
+
+```json
+{
+  "mode": "lexical",
+  "results": [],
+  "suggestions": [
+    { "symbol": "handleLogin", "file_path": "api/services/auth/src/handler.ts", "reason": "similar symbol name" },
+    { "symbol": "handleLogout", "file_path": "api/services/auth/src/handler.ts", "reason": "matched split query terms" }
+  ]
+}
+```
+
+Candidates are gathered from three complementary passes, de-duplicated by
+`(symbol, file_path)` and capped at `limit`:
+
+- **Trigram symbol-name similarity** against the `symbols` table (Dice
+  coefficient over character trigrams; SQLite ships no `pg_trgm`, so the ranking
+  is computed in-process). `reason: "similar symbol name"`.
+- **FTS retry over split query terms** — the query is split on camelCase,
+  acronym, and snake/kebab boundaries (`getUserById` → `get`, `user`), then
+  re-run against `chunk_fts`. `reason: "matched split query terms"`.
+- **`identifier_fts` near-miss** — the same split terms are OR-matched against
+  the identifier index. `reason: "identifier near-miss"`.
+
+**Trigger and contract.** `suggestions` is present (possibly empty) **only when
+`results` is empty**, and is omitted from the response entirely when results
+were found. Suggestions are advisory: they are **never** promoted into
+`results`, so `results` stays `[]` on the assist path. The agent should treat
+them as vocabulary hints to re-query with, not as answers.
+
 **When used:** primary code discovery — replaces `Grep`, `Glob`, and exploratory `Read`.
 
 ---

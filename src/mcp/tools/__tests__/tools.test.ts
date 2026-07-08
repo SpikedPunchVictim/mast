@@ -181,6 +181,26 @@ describe('mast_search', () => {
     const res = await call('mast_search', { query: 'a', limit: 2 }) as { results: unknown[] };
     expect(res.results.length).toBeLessThanOrEqual(2);
   });
+
+  it('returns advisory suggestions on a zero-result query', async () => {
+    const res = await call('mast_search', { query: 'adddd' }) as {
+      results: unknown[];
+      suggestions?: Array<{ symbol: string; file_path: string; reason: string }>;
+    };
+    expect(res.results).toHaveLength(0);
+    expect(res.suggestions).toBeDefined();
+    expect(res.suggestions!.length).toBeGreaterThan(0);
+    expect(res.suggestions![0]).toMatchObject({
+      symbol: expect.any(String),
+      file_path: expect.any(String),
+      reason: expect.any(String),
+    });
+  });
+
+  it('omits the suggestions field when results are present', async () => {
+    const res = await call('mast_search', { query: 'add' }) as { suggestions?: unknown };
+    expect(res.suggestions).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

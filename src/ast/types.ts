@@ -196,9 +196,28 @@ export interface SearchResult {
   readonly file_busy_returning_stale_cache?: true;
 }
 
+/**
+ * A "did you mean" candidate surfaced when a search returns no results.
+ * Advisory only — suggestions are never counted as results (§9 mast_search).
+ */
+export interface SearchSuggestion {
+  readonly symbol: string;
+  readonly file_path: string;
+  /**
+   * Why this symbol is a candidate — e.g. "similar symbol name",
+   * "matched split query terms", "identifier near-miss".
+   */
+  readonly reason: string;
+}
+
 export interface SearchResponse {
   readonly mode: SearchMode;
   readonly results: readonly SearchResult[];
+  /**
+   * Present (possibly empty) only when `results` is empty — the zero-result
+   * assist path ran. Omitted entirely when results were found.
+   */
+  readonly suggestions?: readonly SearchSuggestion[];
   readonly _stats: ToolStats;
 }
 
