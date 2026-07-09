@@ -17,10 +17,24 @@ export interface IdentifierRow {
 }
 
 /**
+ * File-level `export * from './x'` (star barrel re-export). Named re-exports
+ * need no dedicated record — they ride the existing symbols + edges pipeline
+ * (a marker symbol of kind `export` plus a RE_EXPORTS edge, §10.1). Stars
+ * have no per-symbol identity, so they persist as `re_export_files` rows.
+ */
+export interface StarReExportRecord {
+  readonly module: string;
+  /** Resolved relative path for intra-monorepo targets; null for external. */
+  readonly resolvedPath: string | null;
+  /** 1-indexed source line of the `export *` statement. */
+  readonly line: number;
+}
+
+/**
  * Everything the indexing pipeline needs from one source file. Each extractor
  * owns the full story for its language: languages without a symbol graph
- * (markdown) return empty `symbols` / `imports` / `edges` / `identifierRows`
- * and the pipeline needs no per-language branches.
+ * (markdown) return empty `symbols` / `edges` / … and the pipeline needs no
+ * per-language branches.
  */
 export interface FileExtraction {
   /** Concrete language of THIS file — may differ from the extractor's primary
@@ -31,6 +45,7 @@ export interface FileExtraction {
   readonly imports: readonly ImportRecord[];
   readonly edges: readonly EdgeRecord[];
   readonly identifierRows: readonly IdentifierRow[];
+  readonly starReExports: readonly StarReExportRecord[];
 }
 
 /** Per-run knobs passed to every extractor; each reads what applies to it. */

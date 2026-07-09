@@ -361,6 +361,52 @@ export interface CallersResponse {
   readonly _stats: ToolStats;
 }
 
+// --- mast_rename_impact ---
+
+export interface RenameImpactInput {
+  readonly symbol: string;
+  readonly file_path?: string | null;
+}
+
+export interface DeclarationSite {
+  readonly file_path: string;
+  readonly line: number;
+  readonly kind: string;
+  readonly is_exported: boolean;
+}
+
+export interface BarrelExportSite {
+  readonly file_path: string;
+  /** Line of the re-export specifier; null for star barrels (file-level). */
+  readonly line: number | null;
+  /** Name the barrel exposes — differs from the symbol name when aliased. */
+  readonly exported_as: string;
+  readonly via: 'named' | 'star';
+}
+
+/**
+ * Composed refactor checklist for renaming a symbol (§9 mast_rename_impact).
+ * Every section reuses an existing query capability — declarations from the
+ * symbols table, callers from POTENTIAL_CALL edges, review sites from
+ * identifier_fts, barrels from RE_EXPORTS + re_export_files.
+ */
+export interface RenameImpactResponse {
+  readonly symbol: string;
+  readonly declaration_sites: readonly DeclarationSite[];
+  readonly verified_callers: readonly VerifiedCaller[];
+  readonly potential_matches: readonly PotentialMatch[];
+  readonly barrel_exports: readonly BarrelExportSite[];
+  readonly summary: {
+    readonly declaration_count: number;
+    readonly verified_count: number;
+    readonly potential_count: number;
+    readonly barrel_count: number;
+    /** Human-readable framing: "N verified…, M review-required…, K barrel…". */
+    readonly checklist: string;
+  };
+  readonly _stats: ToolStats;
+}
+
 // --- mast_dependencies ---
 
 export interface DependenciesInput {

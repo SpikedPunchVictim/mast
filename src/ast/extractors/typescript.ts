@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
 import { parseSource, type Tree, type SyntaxNode } from '../parser.js';
-import type { LanguageExtractor, FileExtraction, ExtractorOptions, IdentifierRow } from '../extractor.js';
+import type { LanguageExtractor, FileExtraction, ExtractorOptions, IdentifierRow, StarReExportRecord } from '../extractor.js';
 import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution, ParamEntry } from '../types.js';
 import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
 import { getImportResolver } from '../../indexer/import-resolver.js';
@@ -33,7 +33,6 @@ export class TypeScriptExtractor implements LanguageExtractor {
     const language = languageFromExt(extension);
     const chunks = rawChunks;
 
-    const symbols = symbolsFromChunks(chunks);
     // Resolve each import specifier to a real indexed file (§13.7): relative
     // probing, tsconfig aliases, workspace packages, symlink realpath.
     const resolver = getImportResolver(options.projectRoot);
@@ -41,14 +40,39 @@ export class TypeScriptExtractor implements LanguageExtractor {
       const r = resolver.resolve(imp.module, filePath);
       return { module: imp.module, symbols: imp.symbols, isExternal: r.isExternal, resolvedPath: r.resolvedPath };
     });
-    const edges = extractEdges(tree, filePath, src);
+
+    // Re-exports (§10.1): named ones become exported marker symbols (kind
+    // 'export') plus RE_EXPORTS edges so rename impact can find barrels; star
+    // ones become file-level re_export_files records (no per-symbol identity).
+    const reExports = extractReExports(tree);
+    const markerSymbols: SymbolRecord[] = reExports.named.map((r) => ({
+      name: r.exportedName,
+      kind: 'export',
+      line: r.line,
+      isExported: true,
+      declarationHash: null,
+      bodyHash: null,
+    }));
+    const reExportEdges: EdgeRecord[] = reExports.named.map((r) => ({
+      fromName: r.exportedName,
+      toName: r.sourceName,
+      edgeType: 'RE_EXPORTS',
+    }));
+    const starReExports: StarReExportRecord[] = reExports.stars.map((s) => ({
+      module: s.module,
+      resolvedPath: resolver.resolve(s.module, filePath).resolvedPath,
+      line: s.line,
+    }));
+
+    const symbols = [...symbolsFromChunks(chunks), ...markerSymbols];
+    const edges = [...extractEdges(tree, filePath, src), ...reExportEdges];
 
     const identifierRows: IdentifierRow[] = chunks.flatMap((chunk) => {
       const identifiers = extractIdentifiers(chunk.content);
       return identifiers.length > 0 ? [{ chunk_id: chunk.chunk_id, identifiers }] : [];
     });
 
-    return { language, chunks, symbols, imports, edges, identifierRows };
+    return { language, chunks, symbols, imports, edges, identifierRows, starReExports };
   }
 
   extractChunks(
@@ -835,6 +859,65 @@ function hasFromClause(node: SyntaxNode): boolean {
     if (nodeType(child) === 'string') return true; // `from './module'` has a string child
   }
   return false;
+}
+
+export interface NamedReExport {
+  /** Name the barrel exposes (`bar` in `export { foo as bar } from './x'`). */
+  readonly exportedName: string;
+  /** Name in the source module (`foo` above); equals exportedName when unaliased. */
+  readonly sourceName: string;
+  readonly line: number;
+}
+
+export interface StarReExport {
+  readonly module: string;
+  readonly line: number;
+}
+
+/**
+ * Extract `from`-clause re-exports from a file's top level (§10.1).
+ *
+ * - `export { Foo, Bar as Baz } from './x'` → named records (one per specifier).
+ * - `export * from './x'` (incl. `export * as ns from`) → star record; stars
+ *   carry no per-symbol names, so they map to `re_export_files` rows rather
+ *   than symbols/edges.
+ *
+ * Local aliases without `from` are NOT re-exports — they are handled by
+ * `localExportAliases`.
+ */
+export function extractReExports(parsedTree: Tree): { named: NamedReExport[]; stars: StarReExport[] } {
+  const named: NamedReExport[] = [];
+  const stars: StarReExport[] = [];
+
+  for (const node of nodeChildren(parsedTree.rootNode)) {
+    if (nodeType(node) !== 'export_statement') continue;
+    if (!hasFromClause(node)) continue;
+
+    const moduleNode = findChildByType(node, 'string');
+    if (moduleNode === null) continue;
+    const module = moduleNode.text.slice(1, -1);
+
+    const clause = findChildByType(node, 'export_clause');
+    if (clause === null) {
+      // No specifier list + a from clause = `export * from` / `export * as ns from`.
+      stars.push({ module, line: nodeStartLine(node) });
+      continue;
+    }
+
+    for (const spec of nodeNamedChildren(clause)) {
+      if (nodeType(spec) !== 'export_specifier') continue;
+      const sourceName = spec.childForFieldName('name')?.text;
+      if (sourceName === undefined) continue;
+      const alias = spec.childForFieldName('alias')?.text;
+      named.push({
+        exportedName: alias ?? sourceName,
+        sourceName,
+        line: nodeStartLine(spec),
+      });
+    }
+  }
+
+  return { named, stars };
 }
 
 /**

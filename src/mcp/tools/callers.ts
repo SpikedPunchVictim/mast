@@ -10,8 +10,7 @@ import type {
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
-import { searchIdentifiers } from '../../search/fts.js';
-import { jitRefreshFile } from './_helpers.js';
+import { jitRefreshFile, collectPotentialMatches } from './_helpers.js';
 
 export function registerCallersTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -61,23 +60,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
 
       let potential_matches: PotentialMatch[] = [];
       if (args.include_potential !== false) {
-        const identRows = await searchIdentifiers(ctx.db, args.symbol, 50);
-        const chunkIds = identRows.map((r) => r.chunk_id);
-        const chunks = await ctx.lance.getChunksByIds(chunkIds);
-
-        // Exclude chunk IDs already covered by the verified set.
-        const verifiedKeys = new Set(
-          verified_callers.map((c) => `${c.file_path}:${c.line}`),
-        );
-        for (const chunk of chunks) {
-          if (verifiedKeys.has(`${chunk.file_path}:${chunk.start_line}`)) continue;
-          potential_matches.push({
-            file_path: chunk.file_path,
-            line: chunk.start_line,
-            context: chunk.symbol_name ?? '',
-            reason: 'identifier_match_no_resolved_edge',
-          });
-        }
+        potential_matches = await collectPotentialMatches(ctx.db, ctx.lance, args.symbol, verified_callers);
       }
 
       const filesReferenced = [

@@ -5,7 +5,7 @@ import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
 import { LanceStore, chunkRecordToChunk, type ChunkRecord } from '../store/lance.js';
 import { openDatabase } from '../graph/db.js';
-import { populateFile, insertEdges, removeDeletedFiles } from '../graph/populate.js';
+import { populateFile, insertEdges, insertReExportFiles, removeDeletedFiles } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
 import { createEmbedder, vectorKey, stampVectorHashes, type EmbedderLike } from './embedder.js';
@@ -151,9 +151,11 @@ export async function runIndex(
       }
     }
 
-    // Pass 2: insert edges now that all symbols are in the graph.
+    // Pass 2: insert edges and star re-export rows now that all files' symbols
+    // and file rows exist (both may reference files indexed later in pass 1).
     for (const [filePath, data] of edgeDataByFile) {
       await insertEdges(db, filePath, data.edges);
+      await insertReExportFiles(db, filePath, data.starReExports);
     }
 
     // Update manifest and index.json.

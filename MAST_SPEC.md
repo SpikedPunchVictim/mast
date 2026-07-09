@@ -503,7 +503,7 @@ startup
   ├─ STEP 3 (sync, < 1s): open MCP transport — DISCOVERY LAYER READY
   │    ├─ register all read tools (mast_search, mast_signature, mast_exports,
   │    │  mast_project_skeleton, mast_callers, mast_dependencies,
-  │    │  mast_implementors, mast_status, mast_efficiency)
+  │    │  mast_implementors, mast_rename_impact, mast_status, mast_efficiency)
   │    ├─ register write tools (mast_reindex)
   │    ├─ initial mode = "lexical" (mast_search returns mode: "lexical" until
   │    │  vectors are ready — see §9 mast_search)
@@ -735,8 +735,9 @@ All tools are exposed on the `mast` MCP server. Tool names follow the convention
 ### 9.0 Staleness Handling (All Read Tools)
 
 Every read tool (`mast_search`, `mast_signature`, `mast_exports`,
-`mast_project_skeleton`, `mast_callers`, `mast_dependencies`, `mast_implementors`)
-performs a **mandatory server-side staleness check** before returning. This is
+`mast_project_skeleton`, `mast_callers`, `mast_dependencies`, `mast_implementors`,
+`mast_rename_impact`) performs a **mandatory server-side staleness check**
+before returning. This is
 not optional and is not controlled by the caller — the index is responsible for
 its own consistency, not the agent.
 
@@ -1250,6 +1251,80 @@ Sourced from `graph.db` `edges` where `edge_type = 'IMPLEMENTS'`.
 
 ---
 
+### `mast_rename_impact`
+
+Composed refactor checklist for renaming a symbol. One call packages what an
+agent would otherwise stitch together from `mast_callers` + manual barrel-file
+inspection: every section reuses an existing query capability — no new
+resolution logic.
+
+**Input:**
+```json
+{
+  "symbol": "createPolicyGroup",
+  "file_path": "api/services/policy/src/service.ts | null"
+}
+```
+
+`file_path` disambiguates duplicate names, with the same semantics as
+`mast_signature`. Methods are addressed by qualified name
+(`ClassName.methodName`), exactly as `mast_callers` accepts them.
+
+**Output:** `RenameImpactResponse`
+```json
+{
+  "symbol": "createPolicyGroup",
+  "declaration_sites": [
+    { "file_path": "api/services/policy/src/service.ts", "line": 42, "kind": "function", "is_exported": true }
+  ],
+  "verified_callers": [
+    { "file_path": "api/routes/policy.ts", "line": 18, "caller_symbol": "registerPolicyRoutes", "context": "const group = await createPolicyGroup(input);", "resolution": "import" }
+  ],
+  "potential_matches": [
+    { "file_path": "api/services/policy/src/service.ts", "line": 42, "context": "createPolicyGroup", "reason": "identifier_match_no_resolved_edge" }
+  ],
+  "barrel_exports": [
+    { "file_path": "api/services/policy/index.ts", "line": 1, "exported_as": "createPolicyGroup", "via": "named" },
+    { "file_path": "api/index.ts", "line": null, "exported_as": "createPolicyGroup", "via": "star" }
+  ],
+  "summary": {
+    "declaration_count": 1,
+    "verified_count": 1,
+    "potential_count": 1,
+    "barrel_count": 2,
+    "checklist": "1 verified call site(s) to update, 1 review-required identifier match(es), 2 barrel export(s) to update."
+  }
+}
+```
+
+Section sources and semantics:
+
+- `declaration_sites` — the `symbols` table (multiple entries when the name is
+  ambiguous and no `file_path` was given). Impact below is computed against the
+  first match, same convention as `mast_callers`; the full list keeps an
+  ambiguous rename visible.
+- `verified_callers` — direct `POTENTIAL_CALL` edges, identical to
+  `mast_callers`' verified set. **Direct callers only** — a rename edits call
+  sites, and every call site is a direct caller; there is no `transitive`
+  option (deliberate v1 scope).
+- `potential_matches` — `identifier_fts` hits not covered by a verified edge,
+  identical to `mast_callers`' potential set (shared implementation). These are
+  **mandatory review sites**: the graph could not prove them, so the agent must
+  check each before declaring the rename complete. The declaration chunk itself
+  typically appears here — correctly, since it must be edited.
+- `barrel_exports` — files that re-export the symbol: `via: "named"` rows come
+  from `RE_EXPORTS` edges (the export statement names the symbol —
+  `exported_as` carries the alias — and must be edited); `via: "star"` rows
+  come from a recursive walk of `re_export_files` (`export *` statements need
+  no edit, but every downstream consumer reaches the symbol through them, so
+  they are surfaced for awareness; `line` is null — star rows are file-level).
+
+**When used:** before renaming any exported symbol — replaces the
+callers-then-grep-then-barrel-hunt sequence with one call, and again after the
+rename (the checklist should come back empty for the old name).
+
+---
+
 ### `mast_reindex`
 
 Synchronous incremental reindex. Does not return until the index reflects the current
@@ -1467,11 +1542,16 @@ already (no bodies to split), so the interface or type alias remains a single ch
 on the filename. A future v2 may resolve the alias from importers, but v1 keeps it
 simple.
 
-**Re-export aliases** (`export { foo as bar } from './x'`): the chunker records
-`bar` as an exported symbol in the local file's `symbols` row, with the
-declaration site resolved through the `RE_EXPORTS` edge / `re_export_files` chain
-(see §6.3). `mast_signature { symbol: "bar" }` walks the chain back to `foo`'s
-real declaration.
+**Re-export aliases** (`export { foo as bar } from './x'`): the extractor
+records `bar` as an exported **marker symbol** (kind `export`, no hashes) in
+the barrel's `symbols` rows plus a `RE_EXPORTS` edge from the marker to `foo`'s
+declaration; `export * from './x'` becomes a `re_export_files` row instead
+(file-level — stars name no symbols). Marker rows exist to anchor the edge for
+`mast_rename_impact`'s barrel checklist and are **excluded from symbol lookups**
+(`querySymbolByName` filters kind `export`), so `mast_signature`/`mast_callers`
+keep resolving to the real declaration rather than the barrel. Import
+specifiers are resolved with the same §13.7 resolver used for `import`
+statements.
 
 **Implementation note — local aliases.** For a *local* alias
 (`export { foo as bar }`, no `from`), the chunker does not use the
@@ -1913,6 +1993,29 @@ is sufficient and keeps the build simple.
 
 Monorepo imports use two alias systems that both need resolving to physical file paths
 for the knowledge graph edges and `type_context` lookups to work:
+
+**0. NodeNext `.js` specifier substitution** (e.g. `./repo.js` → `./repo.ts`)
+
+TypeScript ESM/NodeNext code writes the *compiled* extension in relative specifiers
+(`import { Repo } from './repo.js'`) even though the on-disk source is `./repo.ts`.
+When a relative specifier carries a JS-family extension, the resolver looks up the
+TypeScript source first and only falls back to the literal file, matching tsc's
+"file extension substitution" lookup order:
+
+| Specifier ext | Lookup order                        |
+| ------------- | ----------------------------------- |
+| `.js`         | `.ts`, then `.tsx`, then `.js`      |
+| `.jsx`        | `.tsx`, then `.jsx`                 |
+| `.mjs`        | `.mts`, then `.mjs`                 |
+| `.cjs`        | `.cts`, then `.cjs`                 |
+
+The source-first precedence means that when both `x.ts` and a real `x.js` exist,
+`./x.js` resolves to `x.ts` (the `.js` names the *output*). A genuine `.js` file with
+no TypeScript source still resolves to itself. Declaration files (`.d.ts`) are out of
+scope — MAST indexes implementation files. Without this rule, ESM `.js` specifiers left
+`resolved_path` NULL and star re-export barrels written with `.js` produced no
+`re_export_files` rows. See the TypeScript Modules Reference, "File extension
+substitution".
 
 **1. tsconfig `paths` aliases** (e.g. `@api/types` → `./src/types/index.ts`)
 

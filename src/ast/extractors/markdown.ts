@@ -56,7 +56,7 @@ export class MarkdownExtractor implements LanguageExtractor {
 
   extract(src: string, filePath: string, fileMtime: number, options: ExtractorOptions): FileExtraction {
     const chunks = this.extractChunks(src, filePath, fileMtime, options.chunkSplitThreshold, options.markdownHeadingDepth);
-    return { language: 'markdown', chunks, symbols: [], imports: [], edges: [], identifierRows: [] };
+    return { language: 'markdown', chunks, symbols: [], imports: [], edges: [], identifierRows: [], starReExports: [] };
   }
 
   extractChunks(

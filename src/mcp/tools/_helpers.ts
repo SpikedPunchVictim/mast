@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import type { Db } from '../../graph/db.js';
 import type { LanceStore } from '../../store/lance.js';
 import type { ResolvedConfig } from '../../store/config.js';
+import type { VerifiedCaller, PotentialMatch } from '../../ast/types.js';
+import { searchIdentifiers } from '../../search/fts.js';
 import { checkAndRefreshIfStale, type StalenessCheckResult } from '../staleness.js';
 
 /** Extract the first JSDoc comment block from chunk content, if present. */
@@ -33,6 +35,37 @@ export async function jitRefreshFile(
     .executeTakeFirst();
   if (row === undefined) return { busy: false, refreshed: false };
   return checkAndRefreshIfStale(db, lance, config, filePath, row.mtime);
+}
+
+/**
+ * Identifier-FTS hits for `symbolName` that are NOT already covered by a
+ * verified caller — the "review required" set. Shared by `mast_callers` and
+ * `mast_rename_impact` so the two tools can never disagree about what counts
+ * as a potential match.
+ */
+export async function collectPotentialMatches(
+  db: Db,
+  lance: LanceStore,
+  symbolName: string,
+  verified: readonly VerifiedCaller[],
+  limit = 50,
+): Promise<PotentialMatch[]> {
+  const identRows = await searchIdentifiers(db, symbolName, limit);
+  const chunks = await lance.getChunksByIds(identRows.map((r) => r.chunk_id));
+
+  // Exclude chunk IDs already covered by the verified set.
+  const verifiedKeys = new Set(verified.map((c) => `${c.file_path}:${c.line}`));
+  const matches: PotentialMatch[] = [];
+  for (const chunk of chunks) {
+    if (verifiedKeys.has(`${chunk.file_path}:${chunk.start_line}`)) continue;
+    matches.push({
+      file_path: chunk.file_path,
+      line: chunk.start_line,
+      context: chunk.symbol_name ?? '',
+      reason: 'identifier_match_no_resolved_edge',
+    });
+  }
+  return matches;
 }
 
 /**

@@ -27,6 +27,7 @@ import { registerImplementorsTool }     from './tools/implementors.js';
 import { registerReindexTool }          from './tools/reindex.js';
 import { registerStatusTool }           from './tools/status.js';
 import { registerEfficiencyTool }       from './tools/efficiency.js';
+import { registerRenameImpactTool }     from './tools/rename-impact.js';
 
 // ---------------------------------------------------------------------------
 // Startup ladder (§7.4)
@@ -129,6 +130,7 @@ export async function serve(options: ServeOptions): Promise<void> {
   registerReindexTool(server, ctx);
   registerStatusTool(server, ctx);
   registerEfficiencyTool(server, ctx);
+  registerRenameImpactTool(server, ctx);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

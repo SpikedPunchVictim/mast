@@ -15,6 +15,21 @@ import { loadConfig, createMatchPath, type MatchPath } from 'tsconfig-paths';
 
 const CANDIDATE_EXTS = ['.ts', '.tsx', '.js', '.jsx'] as const;
 
+// NodeNext/ESM TypeScript writes the *output* extension in relative specifiers
+// (`import { x } from './x.js'`) while the on-disk source is `./x.ts`. tsc resolves
+// such a specifier against the TypeScript source first, and only falls back to the
+// literal file — e.g. `./mod.js` looks up `mod.ts`, then `mod.tsx`, then `mod.js`.
+// We mirror that source-first precedence here (declaration files are out of scope
+// since MAST indexes implementation files, not `.d.ts`). See the TypeScript Modules
+// Reference, "File extension substitution":
+// https://www.typescriptlang.org/docs/handbook/modules/reference.html
+const JS_TO_TS_EXTS: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ['.js', ['.ts', '.tsx']],
+  ['.jsx', ['.tsx']],
+  ['.mjs', ['.mts']],
+  ['.cjs', ['.cts']],
+];
+
 export interface ResolvedImport {
   /** Project-relative path (with extension) of the resolved file, or null. */
   readonly resolvedPath: string | null;
@@ -60,6 +75,18 @@ function buildResolver(projectRoot: string): ImportResolver {
 
   /** Resolve a base path (possibly without extension) to a real indexed file. */
   const probe = (base: string): string | null => {
+    // NodeNext source-first precedence: when the specifier carries a compiled
+    // JS extension (`./x.js`), prefer the TypeScript source (`x.ts`) that would
+    // emit it, ahead of any literal `x.js` on disk (see JS_TO_TS_EXTS).
+    for (const [jsExt, tsExts] of JS_TO_TS_EXTS) {
+      if (base.endsWith(jsExt)) {
+        const stem = base.slice(0, -jsExt.length);
+        for (const tsExt of tsExts) {
+          if (isFile(stem + tsExt)) return toRel(stem + tsExt);
+        }
+        break; // a base ends in at most one of these extensions
+      }
+    }
     if (isFile(base)) return toRel(base);
     for (const ext of CANDIDATE_EXTS) {
       if (isFile(base + ext)) return toRel(base + ext);

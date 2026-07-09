@@ -19,6 +19,7 @@ import { registerDependenciesTool } from '../dependencies.js';
 import { registerImplementorsTool } from '../implementors.js';
 import { registerStatusTool }    from '../status.js';
 import { registerEfficiencyTool } from '../efficiency.js';
+import { registerRenameImpactTool } from '../rename-impact.js';
 import { TOKENIZER_LABEL } from '../../../telemetry/tokenizer.js';
 
 // ---------------------------------------------------------------------------
@@ -34,6 +35,14 @@ export function multiply(a: number, b: number): number {
 }
 
 function internalHelper(): void {}
+`;
+
+// Verified caller of `add` — gives mast_rename_impact a POTENTIAL_CALL edge.
+const CALC_SRC = `import { add } from './math';
+
+export function double(n: number): number {
+  return add(n, n);
+}
 `;
 
 const MODELS_SRC = `export interface Shape {
@@ -114,6 +123,10 @@ beforeAll(async () => {
 
   writeFileSync(join(tmpDir, 'math.ts'), MATH_SRC);
   writeFileSync(join(tmpDir, 'models.ts'), MODELS_SRC);
+  // Rename-impact fixtures: a verified caller of `add` plus two barrels.
+  writeFileSync(join(tmpDir, 'calc.ts'), CALC_SRC);
+  writeFileSync(join(tmpDir, 'barrel.ts'), `export { Circle as Round } from './models';\n`);
+  writeFileSync(join(tmpDir, 'star.ts'), `export * from './models';\n`);
 
   const config = resolveConfig({ projectRoot: tmpDir });
   await runIndex(config, { incremental: false });
@@ -142,6 +155,7 @@ beforeAll(async () => {
   registerImplementorsTool(mock.server, ctx);
   registerStatusTool(mock.server, ctx);
   registerEfficiencyTool(mock.server, ctx);
+  registerRenameImpactTool(mock.server, ctx);
 
   call = mock.call;
 });
@@ -400,6 +414,86 @@ describe('mast_implementors', () => {
       results: unknown[];
     };
     expect(res.results).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mast_rename_impact
+// ---------------------------------------------------------------------------
+
+interface RenameImpactResult {
+  symbol: string;
+  declaration_sites: Array<{ file_path: string; line: number; kind: string }>;
+  verified_callers: Array<{ file_path: string; caller_symbol: string }>;
+  potential_matches: Array<{ file_path: string; line: number }>;
+  barrel_exports: Array<{ file_path: string; exported_as: string; via: string }>;
+  summary: {
+    declaration_count: number;
+    verified_count: number;
+    potential_count: number;
+    barrel_count: number;
+    checklist: string;
+  };
+  _stats: { tool: string };
+}
+
+describe('mast_rename_impact', () => {
+  it('lists the declaration site of the symbol', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'add' }) as RenameImpactResult;
+    expect(res.symbol).toBe('add');
+    expect(res.declaration_sites.some((d) => d.file_path === 'math.ts')).toBe(true);
+  });
+
+  it('reports verified callers from the graph', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'add' }) as RenameImpactResult;
+    expect(res.verified_callers.some(
+      (c) => c.file_path === 'calc.ts' && c.caller_symbol === 'double',
+    )).toBe(true);
+    expect(res.summary.verified_count).toBe(res.verified_callers.length);
+  });
+
+  it('reports identifier near-misses as review-required potential matches', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'add' }) as RenameImpactResult;
+    // The declaration chunk itself mentions `add` without a resolved edge —
+    // on a rename it genuinely needs editing, so it belongs in the checklist.
+    expect(res.potential_matches.length).toBeGreaterThan(0);
+    expect(res.summary.potential_count).toBe(res.potential_matches.length);
+  });
+
+  it('reports named and star barrel exports needing updates', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'Circle' }) as RenameImpactResult;
+
+    const named = res.barrel_exports.find((b) => b.file_path === 'barrel.ts');
+    expect(named).toMatchObject({ exported_as: 'Round', via: 'named' });
+
+    const star = res.barrel_exports.find((b) => b.file_path === 'star.ts');
+    expect(star).toMatchObject({ via: 'star' });
+    expect(res.summary.barrel_count).toBe(res.barrel_exports.length);
+  });
+
+  it('summary carries a human-readable checklist string', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'add' }) as RenameImpactResult;
+    expect(res.summary.checklist).toContain('verified');
+    expect(res.summary.checklist).toContain('review');
+    expect(res.summary.checklist).toContain('barrel');
+  });
+
+  it('returns empty sections for an unknown symbol', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'neverDefined' }) as RenameImpactResult;
+    expect(res.declaration_sites).toHaveLength(0);
+    expect(res.verified_callers).toHaveLength(0);
+    expect(res.potential_matches).toHaveLength(0);
+    expect(res.barrel_exports).toHaveLength(0);
+  });
+
+  it('supports qualified method names like mast_callers does', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'Circle.area' }) as RenameImpactResult;
+    expect(res.declaration_sites.some((d) => d.file_path === 'models.ts')).toBe(true);
+  });
+
+  it('attaches _stats like every read tool', async () => {
+    const res = await call('mast_rename_impact', { symbol: 'add' }) as RenameImpactResult;
+    expect(res._stats.tool).toBe('mast_rename_impact');
   });
 });
 

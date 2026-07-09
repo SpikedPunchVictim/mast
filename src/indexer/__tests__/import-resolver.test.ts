@@ -65,6 +65,44 @@ describe('import resolver (§13.7)', () => {
     expect(resolver.resolve('lodash', 'src/a.ts')).toEqual({ resolvedPath: null, isExternal: true });
   });
 
+  // NodeNext / ESM writes `import { x } from './x.js'` even though the on-disk
+  // source is `./x.ts`. tsc resolves such a specifier against the TypeScript
+  // source ahead of a literal `.js` (Modules Reference, "File extension
+  // substitution": lookup order is x.ts, x.tsx, ... then x.js).
+  it('resolves a NodeNext ./x.js specifier to its TypeScript source (x.ts)', () => {
+    write(root, 'src/a.ts', `import { b } from './b.js';`);
+    write(root, 'src/b.ts', 'export const b = 1;');
+    const r = getImportResolver(root).resolve('./b.js', 'src/a.ts');
+    expect(r).toEqual({ resolvedPath: 'src/b.ts', isExternal: false });
+  });
+
+  it('resolves a ./x.js specifier to x.tsx when that is the source', () => {
+    write(root, 'src/comp.tsx', 'export const C = 1;');
+    const r = getImportResolver(root).resolve('./comp.js', 'src/a.ts');
+    expect(r.resolvedPath).toBe('src/comp.tsx');
+  });
+
+  it('resolves ./x.mjs to x.mts and ./x.cjs to x.cts', () => {
+    write(root, 'src/m.mts', 'export const m = 1;');
+    write(root, 'src/c.cts', 'export const c = 1;');
+    const resolver = getImportResolver(root);
+    expect(resolver.resolve('./m.mjs', 'src/a.ts').resolvedPath).toBe('src/m.mts');
+    expect(resolver.resolve('./c.cjs', 'src/a.ts').resolvedPath).toBe('src/c.cts');
+  });
+
+  it('resolves ./x.js to a real x.js when no TypeScript source exists (tsc fallback)', () => {
+    write(root, 'src/legacy.js', 'export const l = 1;');
+    const r = getImportResolver(root).resolve('./legacy.js', 'src/a.ts');
+    expect(r.resolvedPath).toBe('src/legacy.js');
+  });
+
+  it('prefers the TypeScript source over a real x.js when both exist (NodeNext precedence)', () => {
+    write(root, 'src/dual.ts', 'export const d = 1;');
+    write(root, 'src/dual.js', 'export const d = 2;');
+    const r = getImportResolver(root).resolve('./dual.js', 'src/a.ts');
+    expect(r.resolvedPath).toBe('src/dual.ts');
+  });
+
   it('returns null (not external) for an intra-repo import with no file on disk', () => {
     write(root, 'src/a.ts', '');
     const r = getImportResolver(root).resolve('./missing', 'src/a.ts');

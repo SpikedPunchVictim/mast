@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord } from '../ast/types.js';
-import type { IdentifierRow } from '../ast/extractor.js';
+import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -146,11 +146,15 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
     .where('f.path', '=', filePath)
     .execute();
 
-  // Batch-resolve "to" IDs — any file; first match per name preserves prior behaviour.
+  // Batch-resolve "to" IDs — any file; first match per name preserves prior
+  // behaviour. Re-export marker rows (kind 'export') are excluded as targets:
+  // edges must land on the real declaration, and without the filter a barrel's
+  // own marker (same name) could win the first-match race and self-link.
   const toRows = await db
     .selectFrom('symbols')
     .select(['id', 'name'])
     .where('name', 'in', toNames)
+    .where('kind', '!=', 'export')
     .execute();
 
   const fromMap = new Map(fromRows.map((r) => [r.name, r.id]));
@@ -181,6 +185,46 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
     .values(edgeValues)
     .onConflict((oc) => oc.doNothing())
     .execute();
+}
+
+/**
+ * Second-pass star re-export insertion (`export * from './x'` → one
+ * `re_export_files` row per resolved target). Runs after all files' rows
+ * exist, like `insertEdges`, because the target file may be indexed later in
+ * the same run. Unresolved or unindexed targets are silently skipped.
+ */
+export async function insertReExportFiles(
+  db: Db,
+  filePath: string,
+  stars: readonly StarReExportRecord[],
+): Promise<void> {
+  if (stars.length === 0) return;
+
+  const fromFile = await db
+    .selectFrom('files')
+    .select('id')
+    .where('path', '=', filePath)
+    .executeTakeFirst();
+  if (fromFile === undefined) return;
+
+  for (const star of stars) {
+    if (star.resolvedPath === null) continue;
+    // resolved_path may lack an extension — LIKE prefix matches `x.ts`,
+    // `x/index.ts`, etc. (same convention as resolveTypeContext, §13.7).
+    const target = await db
+      .selectFrom('files')
+      .select('id')
+      .where('path', 'like', `${star.resolvedPath}%`)
+      .orderBy('path', 'asc')
+      .executeTakeFirst();
+    if (target === undefined || target.id === fromFile.id) continue;
+
+    await db
+      .insertInto('re_export_files')
+      .values({ from_file_id: fromFile.id, to_file_id: target.id })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+  }
 }
 
 /**

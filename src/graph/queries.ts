@@ -123,13 +123,92 @@ export async function querySymbolByName(
       's.body_hash',
       'f.path as file_path',
     ])
-    .where('s.name', '=', name);
+    .where('s.name', '=', name)
+    // Re-export marker rows (kind 'export', §10.1) exist only to anchor
+    // RE_EXPORTS edges. Excluding them keeps signature/caller lookups
+    // resolving to the real declaration — a barrel marker has no source body.
+    .where('s.kind', '!=', 'export');
 
   if (filePath !== undefined) {
     q = q.where('f.path', '=', filePath);
   }
 
   return q.orderBy('s.is_exported', 'desc').orderBy('f.path', 'asc').execute();
+}
+
+// ---------------------------------------------------------------------------
+// Barrel exports (RE_EXPORTS edges + re_export_files star chain)
+// ---------------------------------------------------------------------------
+
+export interface BarrelExportRow {
+  readonly file_path: string;
+  /** Line of the re-export specifier; null for star barrels (file-level rows). */
+  readonly line: number | null;
+  /** Name the barrel exposes (differs from the symbol name when aliased). */
+  readonly exported_as: string;
+  readonly via: 'named' | 'star';
+}
+
+/**
+ * Files that re-export `symbolId` and therefore need attention when it is
+ * renamed (§9 mast_rename_impact):
+ *
+ * - **named** — RE_EXPORTS edges into the symbol; the barrel's export
+ *   statement names the symbol and must be edited.
+ * - **star** — a recursive walk of `re_export_files` from the declaring file;
+ *   `export *` statements need no edit but every downstream consumer imports
+ *   the symbol through them, so they are surfaced for awareness.
+ */
+export async function queryBarrelExports(
+  db: Db,
+  symbolId: number,
+  symbolName: string,
+  declaringFileId: number,
+): Promise<BarrelExportRow[]> {
+  const named = await db
+    .selectFrom('edges as e')
+    .innerJoin('symbols as s', 's.id', 'e.from_id')
+    .innerJoin('files as f', 'f.id', 's.file_id')
+    .select(['f.path as file_path', 's.line', 's.name'])
+    .where('e.to_id', '=', symbolId)
+    .where('e.edge_type', '=', EdgeType.RE_EXPORTS)
+    .execute();
+
+  const rows: BarrelExportRow[] = named.map((r) => ({
+    file_path: r.file_path,
+    line: r.line,
+    exported_as: r.name,
+    via: 'named' as const,
+  }));
+
+  // Star chain: every file that (transitively) `export *`s the declaring file.
+  const starRows = await db
+    .withRecursive('star_chain', (qb) =>
+      qb
+        .selectFrom('re_export_files')
+        .select('from_file_id as id')
+        .where('to_file_id', '=', declaringFileId)
+        .union(
+          qb
+            .selectFrom('re_export_files as rf')
+            .innerJoin('star_chain', 'star_chain.id', 'rf.to_file_id')
+            .select('rf.from_file_id as id'),
+        ),
+    )
+    .selectFrom('files as f')
+    .innerJoin('star_chain as c', 'c.id', 'f.id')
+    .select('f.path as file_path')
+    .execute();
+
+  const seen = new Set(rows.map((r) => r.file_path));
+  for (const r of starRows) {
+    // Named rows win when a file both names the symbol and stars the module.
+    if (seen.has(r.file_path)) continue;
+    seen.add(r.file_path);
+    rows.push({ file_path: r.file_path, line: null, exported_as: symbolName, via: 'star' });
+  }
+
+  return rows;
 }
 
 // ---------------------------------------------------------------------------
