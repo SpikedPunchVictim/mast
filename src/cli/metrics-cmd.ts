@@ -6,6 +6,7 @@ import {
   rollupMetrics,
   vacuumMetrics,
 } from '../telemetry/metrics.js';
+import { TOKENIZER_LABEL } from '../telemetry/tokenizer.js';
 
 // ---------------------------------------------------------------------------
 // Duration string parser  ("7d", "24h", "30m")
@@ -110,6 +111,11 @@ export function registerMetricsCommand(program: Command): void {
           const sinceMs = Date.now() - parseSince(opts.since);
           const rows = await queryMetricsSummary(db, sinceMs);
           printTable(rows);
+          if (rows.length > 0) {
+            // Honesty footer (§14.5): counts are approximate for current
+            // models; the savings ratio is robust to the per-count error.
+            process.stdout.write(`\nTokenizer: ${TOKENIZER_LABEL}\n`);
+          }
         }
       } finally {
         await db.destroy();

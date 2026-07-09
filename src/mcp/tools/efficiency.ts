@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { EfficiencyResult } from '../../ast/types.js';
 import { queryMetricsSummary, querySessionSummary } from '../../telemetry/metrics.js';
+import { TOKENIZER_LABEL } from '../../telemetry/tokenizer.js';
 
 export function registerEfficiencyTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -45,7 +46,7 @@ export function registerEfficiencyTool(server: McpServer, ctx: AppContext): void
         efficiency_ratio:             efficiencyRatio,
         calls_total:                  callsTotal,
         calls_by_tool:                callsByTool,
-        tokenizer:                    'anthropic/cl100k',
+        tokenizer:                    TOKENIZER_LABEL,
         counterfactual:
           tokensFullFile > 0
             ? `Would have cost ~${tokensFullFile} tokens with naive full-file reads; saved ~${saved} tokens (${(efficiencyRatio * 100).toFixed(1)}%).`

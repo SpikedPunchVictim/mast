@@ -1361,10 +1361,14 @@ falling back to full-file `Read` instead of `mast_search`).
     "mast_callers": 5,
     "mast_project_skeleton": 3
   },
-  "tokenizer": "@anthropic-ai/tokenizer",
+  "tokenizer": "@anthropic-ai/tokenizer (claude-2 era, approximate for current models)",
   "counterfactual": "Saved vs. full file Read (upper bound — overstates savings against a smart agent that would have used Grep)"
 }
 ```
+
+The `tokenizer` field carries the honest label from §14.5 verbatim — token
+counts are approximate for current models, and consumers should treat the
+savings *ratio*, not the absolute counts, as the robust number.
 
 `efficiency_ratio` is `1 - (tokens_returned / tokens_full_file_upper_bound)`. Higher
 is better; 0.871 means 87.1% fewer tokens than the "naive `Read` every result file"
@@ -2134,20 +2138,39 @@ metrics rows per day. The table needs rotation to keep `SUM()` queries fast.
 
 ### 14.5 Tokenizer Choice
 
-`@anthropic-ai/tokenizer` is the ground truth for the agent that consumes MAST output.
-Use it directly when counting `tokens_returned` and `tokens_full_file_upper_bound`.
+`@anthropic-ai/tokenizer` (`^0.0.4`) counts `tokens_returned` and
+`tokens_full_file_upper_bound` — but it is **approximate, not ground truth**.
+The package implements the Claude 2-era tokenizer, and Anthropic never
+published the Claude 3+ vocabularies, so absolute counts drift for every model
+that actually consumes MAST output today.
 
 ```typescript
 import { countTokens } from "@anthropic-ai/tokenizer";
 const n = countTokens(responseBodyAsString);
 ```
 
-If `@anthropic-ai/tokenizer` is unavailable in a given environment (e.g., distribution
-to non-Claude consumers via `npm install -g`), fall back to `tiktoken` with the
-`cl100k_base` encoding, which approximates Claude tokenization within ±5–10% on
-code. The active tokenizer is reported in `mast_efficiency`'s output (`tokenizer`
-field) and in `mast metrics`'s footer, so consumers can interpret the numbers
-correctly.
+**Why this is still the right mechanism.** §14.2's headline number is the
+savings *ratio*, and both its numerator and denominator are counted with the
+same tokenizer — the per-count error mostly cancels, so the ratio is robust
+even though the absolute counts are not. The same honesty rule that governs
+the upper-bound counterfactual (§14.2) applies here: report the limitation,
+don't paper over it.
+
+**The label.** The active tokenizer is reported verbatim in `mast_efficiency`'s
+`tokenizer` field and in `mast metrics`'s footer as:
+
+```
+@anthropic-ai/tokenizer (claude-2 era, approximate for current models)
+```
+
+The string has one definition (`TOKENIZER_LABEL` in `src/telemetry/tokenizer.ts`)
+that every consumer reads, so the wording cannot drift between surfaces.
+
+**Future seams (not implemented).** An exact mode via the Anthropic API's
+`count_tokens` endpoint (opt-in, requires an API key) and a `tiktoken
+cl100k_base` fallback for non-Claude consumers are both documented options;
+neither ships today, and if either is added the reported label must change to
+match the active counter.
 
 ### 14.6 CLI: `mast metrics`
 
@@ -2168,7 +2191,7 @@ Sample output (`mast metrics --since 7d --by-tool`):
 
 ```
 MAST efficiency report — 7 days ending 2026-05-13T14:22:00Z
-Tokenizer: @anthropic-ai/tokenizer
+Tokenizer: @anthropic-ai/tokenizer (claude-2 era, approximate for current models)
 
 Tool                    Calls   Returned    Counterfactual   Efficiency
 ─────────────────────────────────────────────────────────────────────────

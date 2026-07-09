@@ -19,6 +19,7 @@ import { registerDependenciesTool } from '../dependencies.js';
 import { registerImplementorsTool } from '../implementors.js';
 import { registerStatusTool }    from '../status.js';
 import { registerEfficiencyTool } from '../efficiency.js';
+import { TOKENIZER_LABEL } from '../../../telemetry/tokenizer.js';
 
 // ---------------------------------------------------------------------------
 // Fixture sources
@@ -472,7 +473,8 @@ describe('mast_efficiency', () => {
     expect(typeof res.calls_total).toBe('number');
     expect(typeof res.tokens_returned).toBe('number');
     expect(typeof res.efficiency_ratio).toBe('number');
-    expect(res.tokenizer).toBe('anthropic/cl100k');
+    // Single source of truth: the tool must report exactly the shared label.
+    expect(res.tokenizer).toBe(TOKENIZER_LABEL);
     expect(typeof res.counterfactual).toBe('string');
   });
 

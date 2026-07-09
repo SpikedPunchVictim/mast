@@ -12,6 +12,21 @@ import {
   vacuumMetrics,
   buildToolStats,
 } from '../metrics.js';
+import { TOKENIZER_LABEL } from '../tokenizer.js';
+
+// ---------------------------------------------------------------------------
+// Tokenizer label — honest approximate framing (§14.5)
+// ---------------------------------------------------------------------------
+
+describe('TOKENIZER_LABEL', () => {
+  it('names the package and discloses the approximate, claude-2-era vocabulary', () => {
+    // The label is the honesty contract: consumers of mast_efficiency and the
+    // `mast metrics` footer must be told counts are not exact for current models.
+    expect(TOKENIZER_LABEL).toContain('@anthropic-ai/tokenizer');
+    expect(TOKENIZER_LABEL).toContain('claude-2 era');
+    expect(TOKENIZER_LABEL).toContain('approximate');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
