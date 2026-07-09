@@ -55,7 +55,7 @@ Config is resolved in this priority order:
 {
   "state_dir": ".kluster/.mast",
   "project_root": ".",
-  "file_extensions": [".ts", ".tsx", ".js", ".jsx"],
+  "file_extensions": [".ts", ".tsx", ".js", ".jsx", ".md"],
   "exclude_patterns": [
     "node_modules/**",
     "dist/**",
@@ -68,7 +68,8 @@ Config is resolved in this priority order:
   "similarity_threshold": 0.70,
   "rrf_k": 60,
   "chunk_split_threshold": 100,
-  "context_lines": 3
+  "context_lines": 3,
+  "markdown_heading_depth": 2
 }
 ```
 
@@ -87,6 +88,14 @@ This gives agents surrounding context (e.g., the `const` binding before a functi
 expression, or the closing brace of an enclosing block) without requiring a full file
 read. The `start_line` and `end_line` fields in the chunk record always reflect the
 AST declaration boundaries, not the expanded content boundaries.
+
+`markdown_heading_depth` is the maximum ATX heading level that starts a new `doc`
+chunk when indexing markdown files (§10.1). Headings deeper than this fold into
+their enclosing section. The default of 2 means one chunk per `##` section.
+
+Vendored markdown noise (dependency READMEs and the like) is handled by the
+existing `exclude_patterns` — `node_modules/**` is authoritative; there is no
+markdown-specific exclusion logic.
 
 ### 4.2 SDD Pipeline Configuration
 
@@ -151,11 +160,11 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 | `start_line` | `int` | 1-indexed |
 | `end_line` | `int` | 1-indexed, inclusive |
 | `content` | `str` | Raw source text of the chunk |
-| `chunk_type` | `str` | `function` \| `method` \| `class_shell` \| `interface` \| `type` \| `export` \| `block` |
-| `symbol_name` | `str \| None` | Top-level symbol name if applicable. For `method` chunks, qualified as `ClassName.methodName`. |
+| `chunk_type` | `str` | `function` \| `method` \| `class_shell` \| `interface` \| `type` \| `export` \| `block` \| `doc` |
+| `symbol_name` | `str \| None` | Top-level symbol name if applicable. For `method` chunks, qualified as `ClassName.methodName`. For `doc` chunks, the heading path (§10.1). |
 | `parent_symbol` | `str \| None` | For `method` chunks, the enclosing class name (unqualified). `None` for all other chunk types. Enables fast "find all methods of class X" queries against `chunks.lance` without joining the graph. |
 | `is_exported` | `bool` | True if the declaration carries an `export` modifier. For `method` chunks, inherited from the enclosing `class_shell`'s `is_exported` *and* the method's accessibility (anything not `private` is treated as exported when the class is exported). |
-| `language` | `str` | `typescript` \| `javascript` |
+| `language` | `str` | `typescript` \| `javascript` \| `markdown` |
 | `file_mtime` | `float` | File mtime at index time — used for staleness detection |
 
 `is_exported` enables `mast_search` to filter results to public API surface only,
@@ -778,9 +787,9 @@ Hybrid semantic + BM25 search via RRF. Returns chunks, not full files.
 {
   "query": "string",
   "limit": 10,
-  "language": "typescript | javascript | null",
+  "language": "typescript | javascript | markdown | null",
   "file_pattern": "glob pattern | null",
-  "chunk_type": "function | method | class_shell | interface | type | null",
+  "chunk_type": "function | method | class_shell | interface | type | doc | null",
   "only_exported": false
 }
 ```
@@ -1432,6 +1441,39 @@ For the `jina-embeddings-v2-base-code` model with its 8k context window, most
 functions will not trigger this split. The threshold exists for edge cases (large
 generated files, data-heavy switch statements).
 
+**Markdown documents (`chunk_type: "doc"`).** `.md` files are chunked by ATX
+heading, not by AST — one chunk per heading of level ≤ `markdown_heading_depth`
+(default 2: one chunk per `##` section). Doc chunks get embeddings and
+`chunk_fts` rows like any other chunk, but **no graph presence**: no `symbols`
+rows, no `imports`, no `edges`, and no `identifier_fts` rows (that index feeds
+`mast_callers` potential_matches, where a doc that merely *mentions* a symbol
+name is noise, not a call site).
+
+Rules:
+
+- `symbol_name` is the heading path — the file name, every ancestor heading,
+  and the section's own heading joined with `" > "`, e.g.
+  `MAST_SPEC.md > Technical Specification > 7. Index Lifecycle`. Skipped
+  heading levels are omitted from the path.
+- Headings deeper than `markdown_heading_depth` fold into their enclosing
+  section's content.
+- Content before the first boundary heading becomes a preamble chunk whose
+  `symbol_name` is the file name alone. A file with no headings is one
+  preamble chunk.
+- `#` lines inside fenced code blocks (``` or ~~~) are not headings. Setext
+  headings (`===`/`---` underlines) are not recognised — this repo's docs use
+  ATX exclusively.
+- `is_exported` is always `false` — `only_exported: true` searches exclude
+  docs by construction. `parent_symbol` is always `null`; `language` is
+  `markdown`.
+- The split rule above applies to oversized sections (same window, overlap,
+  and sub-chunk ID scheme as declarations).
+- No `context_lines` expansion: sections are self-delimiting, and expansion
+  would duplicate neighbouring sections' text into every chunk.
+- Doc chunks carry no stability hashes, so the incremental "unchanged file"
+  fast path conservatively rewrites a markdown file whose mtime changed
+  (same treatment as files containing `block` chunks).
+
 ### 10.2 Signature Extraction
 
 For `mast_signature` and the signature field in `mast_exports`:
@@ -1706,9 +1748,11 @@ packages/mast/
 │   │   └── local-type-env.ts        # POTENTIAL_CALL resolver heuristics (§10.3.1)
 │   ├── ast/
 │   │   ├── parser.ts                # tree-sitter setup, parse file → AST
-│   │   ├── extract.ts               # language dispatch → per-language extractor
+│   │   ├── extractor.ts             # LanguageExtractor contract + FileExtraction types
+│   │   ├── extract.ts               # extension dispatch → per-language extractor
 │   │   ├── extractors/
-│   │   │   └── typescript.ts       # TS/JS: class-shell synth, method walk, hashes
+│   │   │   ├── typescript.ts       # TS/JS: class-shell synth, method walk, hashes
+│   │   │   └── markdown.ts         # heading-based doc chunking (§10.1)
 │   │   └── types.ts                 # Chunk, Export, SignatureResult shared types
 │   ├── store/
 │   │   ├── lance.ts                 # LanceDB connection, chunks + vectors table ops
@@ -1725,22 +1769,42 @@ packages/mast/
 └── tsconfig.json
 ```
 
-**Language extensibility pattern:** `extract.ts` dispatches by file extension to a per-language extractor module in `ast/extractors/`. Each extractor implements the `LanguageExtractor` interface:
+**Language extensibility pattern:** `extract.ts` dispatches by file extension to a
+per-language extractor module in `ast/extractors/`. Each extractor implements the
+`LanguageExtractor` contract (defined in `ast/extractor.ts`) and owns its **full**
+extraction story — parsing strategy included:
 
 ```typescript
 interface LanguageExtractor {
-  language: string;                            // "typescript" | "javascript" | ...
+  language: Language;                          // "typescript" | "markdown" | ...
   extensions: readonly string[];               // [".ts", ".tsx"]
-  extractChunks(tree: Tree, src: string, filePath: string): Chunk[];
-  declarationHash(node: SyntaxNode, src: string): string;  // sha256 of signature text
-  bodyHash(node: SyntaxNode, src: string): string;         // sha256 of body text
+  extract(src: string, filePath: string, fileMtime: number,
+          options: ExtractorOptions): FileExtraction;
+}
+
+interface FileExtraction {
+  language: Language;                          // concrete language of THIS file
+  chunks: readonly Chunk[];
+  symbols: readonly SymbolRecord[];            // empty for graph-less languages
+  imports: readonly ImportRecord[];
+  edges: readonly EdgeRecord[];
+  identifierRows: readonly IdentifierRow[];    // identifier_fts rows per chunk
 }
 ```
 
-V1 ships one extractor: `typescript.ts` handles `.ts`, `.tsx`, `.js`, `.jsx`. Adding
-Go or Python in v2 means adding a new extractor module and a `tree-sitter-<lang>`
-package — no changes to core indexer logic. Do not use tree-sitter `.scm` query files
-in v1; the extractor function approach is sufficient and keeps the build simple.
+The contract is deliberately parser-agnostic: the TypeScript extractor parses with
+tree-sitter internally (and keeps `declarationHash`/`bodyHash` as its own methods),
+while the markdown extractor line-scans — the pipeline never sees a `Tree` and
+never branches on language. `identifierRows` are produced by the extractor rather
+than the graph layer because what counts as an "identifier" is a language-level
+judgment: markdown contributes none, since `identifier_fts` feeds `mast_callers`
+potential_matches and prose mentions are not call sites.
+
+Two extractors ship today: `typescript.ts` (`.ts`, `.tsx`, `.js`, `.jsx`) and
+`markdown.ts` (`.md`, §10.1 doc chunking). Adding Go or Python means adding a new
+extractor module and a `tree-sitter-<lang>` package — no changes to core indexer
+logic. Do not use tree-sitter `.scm` query files; the extractor function approach
+is sufficient and keeps the build simple.
 
 ### 13.7 Path Resolution
 

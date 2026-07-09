@@ -1,18 +1,20 @@
 import { extname } from 'node:path';
 import { readFileSync, statSync } from 'node:fs';
-import type { LanguageExtractor } from './parser.js';
 import { parseSource } from './parser.js';
-import { TypeScriptExtractor, symbolsFromChunks, extractImports, extractEdges, extractSignatures, type ExtractedSignature } from './extractors/typescript.js';
-import { getImportResolver } from '../indexer/import-resolver.js';
+import type { LanguageExtractor, FileExtraction } from './extractor.js';
+import { TypeScriptExtractor, extractSignatures, type ExtractedSignature } from './extractors/typescript.js';
+import { MarkdownExtractor } from './extractors/markdown.js';
 
 export type { ExtractedSignature } from './extractors/typescript.js';
-import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord } from './types.js';
 
 // ---------------------------------------------------------------------------
 // Extractor registry
 // ---------------------------------------------------------------------------
 
-const EXTRACTORS: readonly LanguageExtractor[] = [new TypeScriptExtractor()];
+// Adding a language = adding one entry here. Each extractor owns its full
+// extraction story (parsing included) behind the LanguageExtractor contract,
+// so the pipeline never branches on language.
+const EXTRACTORS: readonly LanguageExtractor[] = [new TypeScriptExtractor(), new MarkdownExtractor()];
 
 const EXT_TO_EXTRACTOR = new Map<string, LanguageExtractor>();
 for (const ext of EXTRACTORS) {
@@ -29,25 +31,21 @@ export function supportsExtension(extension: string): boolean {
 // Entry point
 // ---------------------------------------------------------------------------
 
-export interface ExtractResult {
-  readonly chunks: readonly Chunk[];
-  readonly language: string;
-  readonly symbols: readonly SymbolRecord[];
-  readonly imports: readonly ImportRecord[];
-  readonly edges: readonly EdgeRecord[];
-}
+export type ExtractResult = FileExtraction;
 
 /**
- * Parse and extract chunks, symbols, and imports from a single file.
+ * Extract chunks, symbols, imports, edges, and identifier rows from a single
+ * file, dispatching to the registered extractor for its extension.
  *
- * Throws if the file cannot be read. On tree-sitter parse errors the caller
- * should catch and log at `warn` level per §7.1 (never abort the full run).
+ * Throws if the file cannot be read. On parse errors the caller should catch
+ * and log at `warn` level per §7.1 (never abort the full run).
  */
 export function extractFile(
   filePath: string,
   projectRoot: string,
   contextLines: number,
   chunkSplitThreshold: number,
+  markdownHeadingDepth = 2,
 ): ExtractResult {
   const extension = extname(filePath);
   const extractor = EXT_TO_EXTRACTOR.get(extension);
@@ -63,27 +61,12 @@ export function extractFile(
     ? filePath.slice(projectRoot.length).replace(/^\//, '')
     : filePath;
 
-  const tree = parseSource(src, extension);
-  const rawChunks = extractor.extractChunks(tree, src, relativePath, mtime, contextLines, chunkSplitThreshold);
-
-  // TypeScriptExtractor handles both TS and JS but always reports 'typescript'.
-  // Derive the correct language from the file extension so that language filters work.
-  const language: Language = (extension === '.js' || extension === '.jsx') ? 'javascript' : 'typescript';
-  const chunks: readonly Chunk[] = language === extractor.language
-    ? rawChunks
-    : rawChunks.map((c) => ({ ...c, language }));
-
-  const symbols = symbolsFromChunks(chunks);
-  // Resolve each import specifier to a real indexed file (§13.7): relative
-  // probing, tsconfig aliases, workspace packages, symlink realpath.
-  const resolver = getImportResolver(projectRoot);
-  const imports = extractImports(tree, relativePath).map((imp) => {
-    const r = resolver.resolve(imp.module, relativePath);
-    return { module: imp.module, symbols: imp.symbols, isExternal: r.isExternal, resolvedPath: r.resolvedPath };
+  return extractor.extract(src, relativePath, mtime, {
+    projectRoot,
+    contextLines,
+    chunkSplitThreshold,
+    markdownHeadingDepth,
   });
-  const edges = extractEdges(tree, relativePath, src);
-
-  return { chunks, language, symbols, imports, edges };
 }
 
 /**
@@ -91,10 +74,13 @@ export function extractFile(
  * a file. Used by `mast_signature` and `mast_exports` at query time so they
  * report declarations, not function bodies (§10.2). Returns `[]` for
  * unsupported extensions or on parse failure.
+ *
+ * Deliberately TypeScript-only: signatures are a code concept, and doc chunks
+ * have none — a non-TS extension takes the same `[]` path as an unsupported one.
  */
 export function extractFileSignatures(absPath: string): readonly ExtractedSignature[] {
   const extension = extname(absPath);
-  if (!EXT_TO_EXTRACTOR.has(extension)) return [];
+  if (!(EXT_TO_EXTRACTOR.get(extension) instanceof TypeScriptExtractor)) return [];
   try {
     const src = readFileSync(absPath, 'utf-8');
     const tree = parseSource(src, extension);

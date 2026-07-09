@@ -99,7 +99,7 @@ export async function runIndex(
       const parsed: ParsedItem[] = [];
       for (const entry of batch) {
         try {
-          const result = extractFile(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold);
+          const result = extractFile(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth);
           // §7.1 stability skip: a file whose mtime changed but whose chunked
           // content is identical (e.g. `git checkout` rewriting the same bytes)
           // is re-parsed but need not be re-written. Incremental only; the
@@ -140,11 +140,12 @@ export async function runIndex(
         if (!lanceOk.has(entry.relativePath)) continue;
         await populateFile(db, {
           filePath: entry.relativePath,
-          language: result.language as 'typescript' | 'javascript',
+          language: result.language,
           mtime: entry.mtime,
           chunks: result.chunks,
           imports: result.imports,
           symbols: result.symbols,
+          identifierRows: result.identifierRows,
         });
         edgeDataByFile.set(entry.relativePath, result);
       }
@@ -206,7 +207,9 @@ async function isFileUnchanged(
   filePath: string,
   result: ReturnType<typeof extractFile>,
 ): Promise<boolean> {
-  if (result.chunks.some((c) => c.chunk_type === 'block')) return false;
+  // `block` chunks carry no symbol hash, and `doc` chunks carry no symbols at
+  // all — neither can be content-verified here, so both bail to a full rewrite.
+  if (result.chunks.some((c) => c.chunk_type === 'block' || c.chunk_type === 'doc')) return false;
 
   // Structure: identical set of chunk ids.
   const storedChunks = await lance.getChunksByFilePath(filePath);

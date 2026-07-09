@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
-import type { LanguageExtractor, Tree, SyntaxNode } from '../parser.js';
+import { parseSource, type Tree, type SyntaxNode } from '../parser.js';
+import type { LanguageExtractor, FileExtraction, ExtractorOptions, IdentifierRow } from '../extractor.js';
 import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution, ParamEntry } from '../types.js';
 import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
+import { getImportResolver } from '../../indexer/import-resolver.js';
 
 // ---------------------------------------------------------------------------
 // TypeScriptExtractor
@@ -13,11 +15,41 @@ import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
  *
  * Implements §10.1 chunking strategy and §10.2 signature extraction.
  * Handles class decomposition (shell + method chunks) and the two-pass
- * walk for `is_exported` detection.
+ * walk for `is_exported` detection. tree-sitter parsing is internal —
+ * callers only see the `LanguageExtractor` contract.
  */
 export class TypeScriptExtractor implements LanguageExtractor {
   readonly language = 'typescript';
   readonly extensions = ['.ts', '.tsx', '.js', '.jsx'] as const;
+
+  extract(src: string, filePath: string, fileMtime: number, options: ExtractorOptions): FileExtraction {
+    const extension = extname(filePath);
+    const tree = parseSource(src, extension);
+    const rawChunks = this.extractChunks(tree, src, filePath, fileMtime, options.contextLines, options.chunkSplitThreshold);
+
+    // extractChunks stamps the extension-derived language on each chunk, but
+    // the extractor's own `language` is always 'typescript' — derive the
+    // file-level value from the extension so `.js`/`.jsx` filters work.
+    const language = languageFromExt(extension);
+    const chunks = rawChunks;
+
+    const symbols = symbolsFromChunks(chunks);
+    // Resolve each import specifier to a real indexed file (§13.7): relative
+    // probing, tsconfig aliases, workspace packages, symlink realpath.
+    const resolver = getImportResolver(options.projectRoot);
+    const imports = extractImports(tree, filePath).map((imp) => {
+      const r = resolver.resolve(imp.module, filePath);
+      return { module: imp.module, symbols: imp.symbols, isExternal: r.isExternal, resolvedPath: r.resolvedPath };
+    });
+    const edges = extractEdges(tree, filePath, src);
+
+    const identifierRows: IdentifierRow[] = chunks.flatMap((chunk) => {
+      const identifiers = extractIdentifiers(chunk.content);
+      return identifiers.length > 0 ? [{ chunk_id: chunk.chunk_id, identifiers }] : [];
+    });
+
+    return { language, chunks, symbols, imports, edges, identifierRows };
+  }
 
   extractChunks(
     parsedTree: Tree,

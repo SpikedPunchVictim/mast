@@ -11,9 +11,11 @@ export type ChunkType =
   | 'interface'
   | 'type'
   | 'export'
-  | 'block';
+  | 'block'
+  /** Markdown document section (heading-based chunking, §10.1). */
+  | 'doc';
 
-export type Language = 'typescript' | 'javascript';
+export type Language = 'typescript' | 'javascript' | 'markdown';
 
 /**
  * A single indexed code chunk — maps to one AST declaration (or a sub-chunk
@@ -131,6 +133,12 @@ export interface MastConfig {
   readonly chunk_split_threshold: number;
   /** Source lines before/after AST boundaries included in stored content. */
   readonly context_lines: number;
+  /**
+   * Maximum ATX heading level that starts a new markdown doc chunk (§10.1).
+   * Headings deeper than this fold into their enclosing section. Default 2 —
+   * "one chunk per `##` section".
+   */
+  readonly markdown_heading_depth: number;
 }
 
 // ---------------------------------------------------------------------------

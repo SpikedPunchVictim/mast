@@ -12,7 +12,10 @@ export const CURRENT_SCHEMA_VERSION = '1.1.0';
 const DEFAULTS: MastConfig = {
   state_dir: '.mast',
   project_root: '.',
-  file_extensions: ['.ts', '.tsx', '.js', '.jsx'],
+  // `.md` rides the existing exclude_patterns for vendored noise — dependency
+  // READMEs live under node_modules/** which is already excluded; no
+  // markdown-specific exclusion logic is applied.
+  file_extensions: ['.ts', '.tsx', '.js', '.jsx', '.md'],
   exclude_patterns: [
     '**/node_modules/**',
     '**/dist/**',
@@ -26,6 +29,7 @@ const DEFAULTS: MastConfig = {
   rrf_k: 60,
   chunk_split_threshold: 100,
   context_lines: 3,
+  markdown_heading_depth: 2,
 };
 
 export interface ResolvedConfig extends MastConfig {

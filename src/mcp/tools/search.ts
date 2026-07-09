@@ -13,9 +13,9 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
     {
       query: z.string().describe('Natural language or identifier-based search query'),
       limit: z.number().int().min(1).max(50).optional().describe('Max results to return (default: 10)'),
-      language: z.enum(['typescript', 'javascript']).nullable().optional(),
+      language: z.enum(['typescript', 'javascript', 'markdown']).nullable().optional(),
       file_pattern: z.string().nullable().optional().describe('Glob pattern to restrict results to matching files'),
-      chunk_type: z.enum(['function', 'method', 'class_shell', 'interface', 'type', 'export', 'block']).nullable().optional(),
+      chunk_type: z.enum(['function', 'method', 'class_shell', 'interface', 'type', 'export', 'block', 'doc']).nullable().optional(),
       only_exported: z.boolean().optional().describe('Restrict to exported symbols only'),
     },
     async (args) => {

@@ -1,6 +1,6 @@
 import type { Db } from './db.js';
 import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord } from '../ast/types.js';
-import { extractIdentifiers } from '../ast/extractors/typescript.js';
+import type { IdentifierRow } from '../ast/extractor.js';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -17,6 +17,12 @@ export interface FileIndexData {
   readonly chunks: readonly Chunk[];
   readonly imports: readonly ImportRecord[];
   readonly symbols: readonly SymbolRecord[];
+  /**
+   * Pre-extracted identifier tokens per chunk, produced by the language
+   * extractor — what counts as an "identifier" is a language-level judgment
+   * (markdown contributes none). This layer only persists them.
+   */
+  readonly identifierRows: readonly IdentifierRow[];
   /** Populated on the second pass after all symbols are inserted. */
   readonly edges: readonly EdgeRecord[];
 }
@@ -101,16 +107,17 @@ export async function populateFile(
           file_path: data.filePath,
         })))
         .execute();
+    }
 
-      const identifierRows = data.chunks.flatMap((chunk) => {
-        const identifiers = extractIdentifiers(chunk.content);
-        return identifiers.length > 0
-          ? [{ identifiers, chunk_id: chunk.chunk_id, file_path: data.filePath }]
-          : [];
-      });
-      if (identifierRows.length > 0) {
-        await trx.insertInto('identifier_fts').values(identifierRows).execute();
-      }
+    if (data.identifierRows.length > 0) {
+      await trx
+        .insertInto('identifier_fts')
+        .values(data.identifierRows.map((row) => ({
+          identifiers: row.identifiers,
+          chunk_id: row.chunk_id,
+          file_path: data.filePath,
+        })))
+        .execute();
     }
 
     return fileId;

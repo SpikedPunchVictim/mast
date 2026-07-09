@@ -65,12 +65,12 @@ export async function checkAndRefreshIfStale(
   try {
     let result;
     try {
-      result = extractFile(absPath, config.resolved_project_root, config.context_lines, config.chunk_split_threshold);
+      result = extractFile(absPath, config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth);
     } catch {
       // TOCTOU: file mid-write, first parse attempt failed.
       await new Promise<void>((res) => setTimeout(res, 50));
       try {
-        result = extractFile(absPath, config.resolved_project_root, config.context_lines, config.chunk_split_threshold);
+        result = extractFile(absPath, config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth);
       } catch {
         // Second attempt also failed — signal busy to caller.
         return { refreshed: false, busy: true };
@@ -81,11 +81,12 @@ export async function checkAndRefreshIfStale(
     // populateFile handles FTS5 updates within the same SQLite transaction.
     await populateFile(db, {
       filePath,
-      language: result.language as 'typescript' | 'javascript',
+      language: result.language,
       mtime: diskMtime,
       chunks: result.chunks,
       imports: result.imports,
       symbols: result.symbols,
+      identifierRows: result.identifierRows,
     });
 
     return { refreshed: true, busy: false };

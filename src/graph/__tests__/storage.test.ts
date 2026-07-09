@@ -157,6 +157,7 @@ describe('populateFile — graph population', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       const file = await db
@@ -183,6 +184,7 @@ describe('populateFile — graph population', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       const classSymbol = await db
@@ -221,6 +223,7 @@ describe('populateFile — graph population', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       const sym = await db
@@ -249,6 +252,7 @@ describe('populateFile — graph population', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       const imports = await db
@@ -298,6 +302,7 @@ describe('delete-and-replace consistency', () => {
         chunks: r1.chunks,
         imports: r1.imports,
         symbols: r1.symbols,
+        identifierRows: r1.identifierRows,
       });
 
       const before = await db
@@ -319,6 +324,7 @@ describe('delete-and-replace consistency', () => {
         chunks: r2.chunks,
         imports: r2.imports,
         symbols: r2.symbols,
+        identifierRows: r2.identifierRows,
       });
 
       const after = await db
@@ -349,6 +355,7 @@ describe('delete-and-replace consistency', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       await removeDeletedFiles(db, ['reader.ts']);
@@ -395,6 +402,7 @@ describe('FTS5 population — chunk_fts and identifier_fts', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
     } finally {
       await db.destroy();
@@ -448,6 +456,7 @@ describe('FTS5 population — chunk_fts and identifier_fts', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       const rows = await searchFts(db, 'FileReader', { limit: 100 });
@@ -562,6 +571,7 @@ describe('insertEdges — second-pass graph edges', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       await insertEdges(db, 'reader.ts', [
@@ -595,6 +605,7 @@ describe('insertEdges — second-pass graph edges', () => {
         chunks: result.chunks,
         imports: result.imports,
         symbols: result.symbols,
+        identifierRows: result.identifierRows,
       });
 
       // Neither symbol exists in the DB.
