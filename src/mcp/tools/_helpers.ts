@@ -11,21 +11,9 @@ export function extractDoc(content: string): string | null {
   return match != null ? match[0].trim() : null;
 }
 
-/**
- * Convert a glob pattern to a RegExp.
- * `*`  — matches any sequence not containing `/`
- * `**` — matches any sequence including `/`
- * `?`  — matches a single non-`/` character
- */
-export function globToRegex(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-  const rx = escaped
-    .replace(/\*\*\//g, '(.+/)?')
-    .replace(/\*\*/g, '.*')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\?/g, '[^/]');
-  return new RegExp(`^${rx}$`);
-}
+// globToRegex moved to indexer/walker.ts (file-discovery domain) so watch mode
+// can use it without an indexer → mcp dependency; re-exported for existing users.
+export { globToRegex } from '../../indexer/walker.js';
 
 /**
  * Look up the stored mtime for `filePath` from the `files` table and run a JIT

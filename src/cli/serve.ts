@@ -8,14 +8,17 @@ export function registerServeCommand(program: Command): void {
     .description('Start the MCP server over stdio')
     .option('--state-dir <dir>', 'State directory')
     .option('--no-startup-reindex', 'Skip the startup staleness check (not recommended)')
+    .option('--watch', 'Watch source files and incrementally reindex on change (interactive use)')
     .action(async (opts: {
       stateDir?: string;
       startupReindex: boolean;  // commander --no-startup-reindex sets to false
+      watch?: boolean;
     }) => {
       const config = resolveConfig({ stateDirOverride: opts.stateDir });
       await serve({
         config,
         noStartupReindex: !opts.startupReindex,
+        watch: opts.watch === true,
       });
     });
 }

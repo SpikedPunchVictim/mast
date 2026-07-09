@@ -6,6 +6,7 @@ import { openDatabase } from '../graph/db.js';
 import { LanceStore } from '../store/lance.js';
 import { Embedder } from '../indexer/embedder.js';
 import { runIndex } from '../indexer/index.js';
+import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
 import { bootstrapState } from './startup.js';
 import {
   warmEmbeddings,
@@ -35,6 +36,12 @@ export interface ServeOptions {
   readonly config: ResolvedConfig;
   /** Skip the startup incremental reindex (not recommended). */
   readonly noStartupReindex?: boolean;
+  /**
+   * Watch source files and incrementally reindex on change (§11.4). Opt-in,
+   * for interactive (non-container) use — the SDD container relies on the
+   * startup ladder instead.
+   */
+  readonly watch?: boolean;
 }
 
 /**
@@ -126,11 +133,51 @@ export async function serve(options: ServeOptions): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
+  // ── Optional --watch mode (§11.4) ──────────────────────────────────────────
+  // Started after the transport so a watcher failure can never block serving.
+  // Each batch = one incremental Phase 1 (same structure.lock path as
+  // mast_reindex) followed by the shared serialised embedder (vectors.lock).
+  // JIT staleness handling (§9.0) already guarantees read correctness; watch
+  // mode only keeps semantic ranking fresh between reads.
+
+  const startWatchIfRequested = (): void => {
+    if (options.watch !== true) return;
+    let watchHandle: WatchHandle | null = null;
+    try {
+      watchHandle = startWatchMode({
+        config,
+        runBatch: async (paths) => {
+          process.stderr.write(`[mast] watch: reindexing after ${paths.length} change(s)\n`);
+          await runIndex(config, { incremental: true });
+          await embedPending();
+        },
+        onWarn: (message) => process.stderr.write(`${message}\n`),
+      });
+    } catch (err) {
+      // Degrade gracefully (EMFILE, permissions, …) — serve without watch.
+      process.stderr.write(`[mast] watch: failed to start watcher, continuing without --watch: ${String(err)}\n`);
+      return;
+    }
+
+    // Clean shutdown: chokidar's persistent watcher would otherwise keep the
+    // process alive after the MCP client disconnects (stdin close) or on
+    // SIGTERM/SIGINT.
+    const closeWatcher = (): void => {
+      const handle = watchHandle;
+      watchHandle = null;
+      if (handle !== null) void handle.close().catch(() => {});
+    };
+    process.stdin.on('close', closeWatcher);
+    process.once('SIGTERM', closeWatcher);
+    process.once('SIGINT', closeWatcher);
+  };
+
   // ── Step 4: background reindex + embedding ───────────────────────────────
 
   if (options.noStartupReindex) {
     // No startup work — let any reindex-driven embedding proceed immediately.
     resolveWarmup();
+    startWatchIfRequested();
     return;
   }
 
@@ -157,4 +204,6 @@ export async function serve(options: ServeOptions): Promise<void> {
       resolveWarmup();
     }
   })();
+
+  startWatchIfRequested();
 }

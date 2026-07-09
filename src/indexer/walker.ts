@@ -12,6 +12,25 @@ export interface FileEntry {
 }
 
 /**
+ * Convert a glob pattern to a RegExp.
+ * `*`  — matches any sequence not containing `/`
+ * `**` — matches any sequence including `/`
+ * `?`  — matches a single non-`/` character
+ *
+ * Lives in the walker (file-discovery domain) because both watch mode and the
+ * MCP tools' `file_pattern` filters need the same glob semantics.
+ */
+export function globToRegex(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  const rx = escaped
+    .replace(/\*\*\//g, '(.+/)?')
+    .replace(/\*\*/g, '.*')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\?/g, '[^/]');
+  return new RegExp(`^${rx}$`);
+}
+
+/**
  * Walk the project and return all indexable files.
  *
  * Applies `file_extensions` allowlist and `exclude_patterns` denylist from

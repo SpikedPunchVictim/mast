@@ -35,7 +35,11 @@ so each new container inherits the index built by previous tasks.
 - Code generation or explanation.
 - PR review, wiki generation, story generation.
 - A persistent background daemon — freshness is handled by the startup check and
-  `mast_reindex`.
+  `mast_reindex`. *Narrow carve-out:* `mast serve --watch` (§11.4) is an opt-in
+  file watcher for **interactive, non-container** use only. It is scoped to the
+  serve process lifetime (not a daemon), the SDD pipeline never uses it, and it
+  is a semantic-ranking-freshness optimization — JIT staleness handling (§9.0)
+  already guarantees read correctness without it.
 - Support for non-TypeScript/JavaScript projects in v1 (AST layer is extensible but
   v1 targets the SDD stack).
 
@@ -663,11 +667,18 @@ Start the MCP server over stdio.
 Options:
   --state-dir <dir>       State directory
   --no-startup-reindex    Skip the startup staleness check (not recommended)
+  --watch                 Watch source files and incrementally reindex on change
+                          (interactive use — see §11.4)
 ```
 
 The server runs until the parent process (Claude CLI) closes stdin. The embedding
 model is loaded once at startup and reused for all `mast_search` calls within the
 session.
+
+`--watch` is opt-in and intended for interactive local development; the SDD
+container does not use it (§3, §11.4). The watcher is closed on stdin close,
+SIGTERM, and SIGINT; a watcher startup failure logs a warning and the server
+continues without watch.
 
 ---
 
@@ -1678,6 +1689,38 @@ mast index "$(git rev-parse --show-toplevel)" --incremental
 
 Not required for the automated SDD pipeline — the startup hook covers the same
 scenario (files changed since last index).
+
+### 11.4 Optional Interactive Hook — `mast serve --watch`
+
+Local interactive development has no equivalent of the container's startup
+ladder: git hooks are opt-in and fire only on commit/checkout, so a long-lived
+interactive session accumulates Phase 2 backlog (embeddings lag the working
+tree) even though JIT re-parse (§9.0) keeps every read correct. `--watch`
+closes that gap as an **opt-in** flag — it is a semantic-ranking-freshness
+optimization, never a correctness mechanism, and it does not reopen the §3
+no-daemon non-goal (it lives and dies with the serve process).
+
+Behaviour:
+
+- A chokidar watcher covers `file_extensions` under the project root,
+  respecting `exclude_patterns` **and the state directory itself** — watching
+  the state dir would self-trigger on every index write.
+- Events are debounced (~500ms) and coalesced: rapid saves of one file collapse
+  to a single entry; distinct files within the window share one batch.
+- Each batch runs the existing **incremental Phase 1** (acquiring
+  `structure.lock` exactly as `mast_reindex` does — deleted files are cleaned
+  up by the manifest diff) and then hands pending chunks to the shared
+  serialised background embedder (`vectors.lock`).
+- **Single-flight:** events arriving during an in-flight run queue a follow-up
+  run; runs never overlap.
+- **Lock contention:** a failed run (e.g. `structure.lock` held by
+  `mast_reindex`) is logged and the batch requeued for the next debounce tick;
+  after 3 consecutive failures the batch is dropped **with a warning** (JIT
+  keeps reads correct, so a drop only delays ranking freshness).
+- **Degradation:** watcher construction failure (EMFILE, permissions) or
+  runtime watcher errors log a warning and the server keeps serving without
+  watch. `--watch` can never take down MCP serving.
+- Shutdown: the watcher closes on stdin close, SIGTERM, and SIGINT.
 
 ---
 
