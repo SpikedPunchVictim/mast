@@ -8,9 +8,10 @@ import { runEmbed } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
 import { LanceStore } from '../../store/lance.js';
 import { searchFts, splitIdentifierTerms } from '../fts.js';
-import { hybridSearch, rrfScore } from '../hybrid.js';
+import { hybridSearch, rrfScore, dedupShellMethodCollisions } from '../hybrid.js';
 import { trigramSimilarity } from '../../graph/queries.js';
 import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
+import type { ChunkRecord } from '../../store/lance.js';
 import type { Chunk, VectorEntry } from '../../ast/types.js';
 
 // ---------------------------------------------------------------------------
@@ -347,6 +348,146 @@ describe('trigramSimilarity', () => {
     const score = trigramSimilarity('adddd', 'add');
     expect(score).toBeGreaterThan(0);
     expect(score).toBeLessThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dedupShellMethodCollisions — post-RRF shell/method dedup (presentation only)
+// ---------------------------------------------------------------------------
+
+/** Synthetic ChunkRecord with sensible defaults; candidates are in rank order. */
+function fakeRec(partial: Partial<ChunkRecord> & Pick<ChunkRecord, 'chunk_id'>): ChunkRecord {
+  return {
+    file_path: 'a.ts',
+    start_line: 1,
+    end_line: 5,
+    content: 'x',
+    chunk_type: 'function',
+    symbol_name: null,
+    parent_symbol: null,
+    is_exported: true,
+    language: 'typescript',
+    file_mtime: 0,
+    ...partial,
+  };
+}
+
+const circleShell = () => fakeRec({
+  chunk_id: 'shell', chunk_type: 'class_shell', symbol_name: 'Circle', file_path: 'models.ts',
+});
+const circleMethod = (name: string) => fakeRec({
+  chunk_id: `m-${name}`, chunk_type: 'method', symbol_name: `Circle.${name}`,
+  parent_symbol: 'Circle', file_path: 'models.ts',
+});
+
+describe('dedupShellMethodCollisions', () => {
+  it('suppresses the shell when a method of the same class ranks higher', () => {
+    const kept = dedupShellMethodCollisions(
+      [circleMethod('area'), circleShell(), fakeRec({ chunk_id: 'other' })],
+      10,
+    );
+
+    const ids = kept.map((k) => k.chunk.chunk_id);
+    expect(ids).toEqual(['m-area', 'other']);
+    expect(kept[0]!.related).toEqual({ parent_symbol: 'Circle' });
+    expect(kept[1]!.related).toBeUndefined();
+  });
+
+  it('suppresses methods when the shell ranks higher and lists them in methods_matched', () => {
+    const kept = dedupShellMethodCollisions(
+      [circleShell(), circleMethod('area'), circleMethod('perimeter')],
+      10,
+    );
+
+    const ids = kept.map((k) => k.chunk.chunk_id);
+    expect(ids).toEqual(['shell']);
+    expect(kept[0]!.related).toEqual({ methods_matched: ['Circle.area', 'Circle.perimeter'] });
+  });
+
+  it('attaches the shell-suppression hint to the highest-ranked method only', () => {
+    const kept = dedupShellMethodCollisions(
+      [circleMethod('area'), circleMethod('perimeter'), circleShell()],
+      10,
+    );
+
+    const ids = kept.map((k) => k.chunk.chunk_id);
+    expect(ids).toEqual(['m-area', 'm-perimeter']);
+    expect(kept[0]!.related).toEqual({ parent_symbol: 'Circle' });
+    expect(kept[1]!.related).toBeUndefined();
+  });
+
+  it('does not collapse same-named classes in different files', () => {
+    const otherFileShell = fakeRec({
+      chunk_id: 'shell-b', chunk_type: 'class_shell', symbol_name: 'Circle', file_path: 'other.ts',
+    });
+    const kept = dedupShellMethodCollisions([circleMethod('area'), otherFileShell], 10);
+
+    expect(kept.map((k) => k.chunk.chunk_id)).toEqual(['m-area', 'shell-b']);
+    expect(kept.every((k) => k.related === undefined)).toBe(true);
+  });
+
+  it('backfills from the tail so limit results are still returned', () => {
+    const kept = dedupShellMethodCollisions(
+      [
+        circleMethod('area'),
+        circleShell(),                 // suppressed
+        fakeRec({ chunk_id: 'b' }),
+        fakeRec({ chunk_id: 'c' }),    // backfill into the freed slot
+        fakeRec({ chunk_id: 'd' }),    // beyond limit
+      ],
+      3,
+    );
+
+    expect(kept.map((k) => k.chunk.chunk_id)).toEqual(['m-area', 'b', 'c']);
+  });
+
+  it('methods of the same class never suppress each other', () => {
+    const kept = dedupShellMethodCollisions(
+      [circleMethod('area'), circleMethod('perimeter')],
+      10,
+    );
+
+    expect(kept.map((k) => k.chunk.chunk_id)).toEqual(['m-area', 'm-perimeter']);
+    expect(kept.every((k) => k.related === undefined)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hybridSearch — shell/method dedup end to end
+// ---------------------------------------------------------------------------
+
+describe('hybridSearch — shell/method dedup', () => {
+  const hybridConfig = { rrf_k: 60, similarity_threshold: 0.0 };
+
+  it('never returns both a class shell and one of its methods', async () => {
+    // 'perimeter' matches the Circle shell (member signature), the
+    // Circle.perimeter method chunk, and the Shape interface.
+    const { results } = await hybridSearch(db, lance, null, { query: 'perimeter' }, hybridConfig);
+
+    const shell = results.find((r) => r.chunk_type === 'class_shell' && r.symbol_name === 'Circle');
+    const method = results.find((r) => r.chunk_type === 'method' && r.parent_symbol === 'Circle');
+
+    expect(shell !== undefined && method !== undefined).toBe(false);
+    // The survivor carries the hint pointing at what was suppressed.
+    if (shell !== undefined) {
+      expect(shell.related).toMatchObject({ methods_matched: expect.arrayContaining(['Circle.perimeter']) });
+    } else {
+      expect(method).toBeDefined();
+      expect(method!.related).toEqual({ parent_symbol: 'Circle' });
+    }
+  });
+
+  it('ranks stay contiguous from 1 after dedup', async () => {
+    const { results } = await hybridSearch(db, lance, null, { query: 'perimeter' }, hybridConfig);
+    results.forEach((r, i) => expect(r.rank).toBe(i + 1));
+  });
+
+  it('non-colliding results carry no related field', async () => {
+    const { results } = await hybridSearch(db, lance, null, { query: 'add' }, hybridConfig);
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.related).toBeUndefined();
+    }
   });
 });
 

@@ -188,6 +188,18 @@ export interface SearchInput {
   readonly only_exported?: boolean;
 }
 
+/**
+ * Presentation hint attached by the post-RRF shell/method dedup pass
+ * (§9 mast_search). Exactly one shape:
+ * - a surviving `method` whose class shell was suppressed carries
+ *   `{ parent_symbol }` — "the class outline also matched";
+ * - a surviving `class_shell` whose methods were suppressed carries
+ *   `{ methods_matched }` — the qualified method names that also matched.
+ */
+export type RelatedHint =
+  | { readonly parent_symbol: string }
+  | { readonly methods_matched: readonly string[] };
+
 export interface SearchResult {
   readonly file_path: string;
   readonly start_line: number;
@@ -201,6 +213,8 @@ export interface SearchResult {
   readonly match_score: number | null;       // BM25 score (negative); null when no FTS hit
   readonly rank: number;
   readonly match_snippet: string | null;
+  /** Present only when the shell/method dedup pass suppressed a counterpart. */
+  readonly related?: RelatedHint;
   readonly file_busy_returning_stale_cache?: true;
 }
 

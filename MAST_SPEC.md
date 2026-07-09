@@ -887,6 +887,27 @@ were found. Suggestions are advisory: they are **never** promoted into
 `results`, so `results` stays `[]` on the assist path. The agent should treat
 them as vocabulary hints to re-query with, not as answers.
 
+**Shell/method dedup (`related`).** Class decomposition (§10.1) means one query
+can match both a `method` chunk and its parent `class_shell`, whose synthesized
+outline repeats the same signature — returning both charges the agent twice for
+one fact. A post-RRF presentation pass therefore keeps only the higher-ranked
+half of every shell↔method pair and attaches a `related` hint to the survivor:
+
+- surviving `method` (shell suppressed): `"related": { "parent_symbol": "AuthService" }`
+  — the class outline also matched; query the class name for the full picture.
+  When several methods of the class survive, the hint lands on the
+  highest-ranked one only.
+- surviving `class_shell` (methods suppressed): `"related": { "methods_matched":
+  ["AuthService.validateSession", "AuthService.refresh"] }` — these specific
+  members also matched; read them next instead of re-searching.
+
+Rules: shell and method are paired by `parent_symbol` + the same `file_path`
+(same-named classes in different files never collapse); methods never suppress
+each other; ranking math is untouched — suppression frees slots that are
+backfilled from the RRF candidate tail, so the response still returns up to
+`limit` distinct results, and `rank` values are re-assigned after dedup so they
+remain contiguous from 1. `related` is absent when no collision occurred.
+
 **When used:** primary code discovery — replaces `Grep`, `Glob`, and exploratory `Read`.
 
 ---
