@@ -401,14 +401,26 @@ export interface ReindexResult {
 
 // --- mast_status ---
 
+/**
+ * Why the index is not fully fresh (null when it is). Distinguishes Phase 1
+ * staleness (chunk line coordinates lag disk — corrected by JIT on read) from
+ * a Phase 2 backlog (parsing current, embeddings lagging — semantic ranking
+ * degraded until the background embedder catches up).
+ */
+export type FreshnessCause = 'phase1_stale' | 'embedding_backlog' | 'both' | null;
+
 export interface StatusResult {
   readonly state_dir: string;
   readonly last_indexed: string | null;
   readonly indexed_files: number;
   readonly chunk_count: number;
   readonly stale_files: number;
+  /** Chunks whose current content has no stored vector (§6.2 freshness rule). */
+  readonly pending_embeddings: number;
   readonly parse_errors: number;
+  /** Phase 1 freshness only — an embedding backlog does not flip this. */
   readonly index_fresh: boolean;
+  readonly freshness_cause: FreshnessCause;
   readonly model: string;
   readonly seed_commit?: string;
   readonly embedding_mode: SearchMode;

@@ -1,7 +1,8 @@
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
-import { loadIndexMeta } from '../indexer/index.js';
+import { loadIndexMeta, countPendingEmbeddings, freshnessCause } from '../indexer/index.js';
 import { walkProject, diffManifest } from '../indexer/walker.js';
+import { LanceStore } from '../store/lance.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -32,14 +33,22 @@ export function registerStatusCommand(program: Command): void {
       const { stale, added, deleted } = diffManifest(currentFiles, prevManifest);
       const staleCount = stale.length + added.length + deleted.length;
 
+      // Guard on the state dir: LanceStore.open would create it as a side
+      // effect, and `mast status` on a never-indexed project must not write.
+      const pendingEmbeddings = existsSync(config.resolved_state_dir)
+        ? await countPendingEmbeddings(await LanceStore.open(config.resolved_state_dir))
+        : 0;
+
       const status = {
         state_dir:     config.resolved_state_dir,
         last_indexed:  meta?.last_indexed ?? null,
         indexed_files: meta?.file_count ?? 0,
         chunk_count:   meta?.chunk_count ?? 0,
         stale_files:   staleCount,
+        pending_embeddings: pendingEmbeddings,
         parse_errors:  meta?.parse_errors ?? 0,
         index_fresh:   staleCount === 0 && meta !== null,
+        freshness_cause: freshnessCause(staleCount, pendingEmbeddings),
         model:         meta?.model ?? config.embedding_model,
         seed_commit:   meta?.seed_commit,
       };
@@ -59,8 +68,10 @@ export function registerStatusCommand(program: Command): void {
         `indexed_files:  ${status.indexed_files}`,
         `chunk_count:    ${status.chunk_count}`,
         `stale_files:    ${status.stale_files}`,
+        `pending_embeddings: ${status.pending_embeddings}`,
         `parse_errors:   ${status.parse_errors}`,
         `index_fresh:    ${String(status.index_fresh)}`,
+        `freshness_cause: ${status.freshness_cause ?? 'none'}`,
         `model:          ${status.model}`,
         ...(status.seed_commit != null ? [`seed_commit:    ${status.seed_commit}`] : []),
       ].join('\n') + '\n');

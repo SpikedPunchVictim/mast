@@ -688,10 +688,18 @@ last_indexed:   2026-05-13T14:22:00Z (3 minutes ago)
 indexed_files:  142
 chunk_count:    1840
 stale_files:    0
+pending_embeddings: 0
 parse_errors:   0
 index_fresh:    true
+freshness_cause: none
 model:          jinaai/jina-embeddings-v2-base-code
 ```
+
+`pending_embeddings` and `freshness_cause` carry the same semantics as the
+`mast_status` MCP tool (§9) — `freshness_cause` prints `none` in human output
+when the JSON value would be `null`. Both fields are included in `--json`
+output. On a never-indexed project the state directory is not created as a
+side effect of running `status`; `pending_embeddings` reports 0.
 
 ---
 
@@ -1257,16 +1265,43 @@ Index health snapshot.
   "indexed_files": 142,
   "chunk_count": 1840,
   "stale_files": 0,
+  "pending_embeddings": 0,
   "parse_errors": 0,
   "index_fresh": true,
+  "freshness_cause": null,
   "model": "jinaai/jina-embeddings-v2-base-code"
 }
 ```
 
 `parse_errors` is the count of files skipped during the last index run due to tree-sitter parse failures. Non-zero here indicates files the agent should investigate.
 
-**When used:** diagnostic — agent checks this when search returns unexpected results
-and staleness is suspected.
+**Freshness diagnostics.** `stale_files` and `index_fresh` alone conflate two
+very different states, so the snapshot separates them:
+
+- `pending_embeddings` — chunks in `chunks.lance` whose **current** content has
+  no stored vector, using §6.2's freshness rule (a chunk counts as embedded
+  only when a stored vector matches BOTH its `chunk_id` AND its current
+  `content_hash`). This is the same selection `runEmbed` uses to pick work, so
+  the count and the embedder can never disagree. `doc` chunks (§10.1) are
+  counted like any other chunk.
+- `freshness_cause` — `"phase1_stale" | "embedding_backlog" | "both" | null`:
+  - `"phase1_stale"` — `stale_files > 0`: chunk line coordinates lag disk;
+    corrected by JIT re-parse on read (§9.0), or run `mast_reindex`.
+  - `"embedding_backlog"` — `pending_embeddings > 0`: parsing is current but
+    embeddings lag (the §11.1 cold-start window), so semantic ranking is
+    degraded and `mast_search` may run in `lexical` mode until the background
+    embedder catches up.
+  - `"both"` — both conditions hold.
+  - `null` — fully fresh.
+
+`index_fresh` keeps its Phase 1-only meaning (no stale files, index exists);
+an embedding backlog does **not** flip it — `freshness_cause` is additive
+context.
+
+**When used:** diagnostic — agent checks this when search returns unexpected
+results. `freshness_cause` answers "why does search feel off?" directly:
+`phase1_stale` → reindex; `embedding_backlog` → expect lexical-quality
+ranking until Phase 2 completes.
 
 ---
 

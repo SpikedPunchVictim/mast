@@ -421,6 +421,36 @@ describe('mast_status', () => {
     expect(res.index_fresh).toBe(true);
     expect(res.embedding_mode).toBe('lexical');
   });
+
+  it('reports no pending embeddings and a null freshness_cause when fully fresh', async () => {
+    const res = await call('mast_status') as {
+      pending_embeddings: number;
+      freshness_cause: string | null;
+    };
+    expect(res.pending_embeddings).toBe(0);
+    expect(res.freshness_cause).toBeNull();
+  });
+
+  it('reports an embedding backlog after a Phase-1-only index of a new file', async () => {
+    // Runs last in this describe: it grows the corpus (Phase 1 only, no
+    // embed), which is exactly the cold-start state §11.1 describes.
+    writeFileSync(join(tmpDir, 'extra.ts'), 'export function extra(): number { return 42; }\n');
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: true });
+
+    const res = await call('mast_status') as {
+      stale_files: number;
+      pending_embeddings: number;
+      freshness_cause: string | null;
+      index_fresh: boolean;
+    };
+
+    expect(res.stale_files).toBe(0);
+    expect(res.pending_embeddings).toBeGreaterThan(0);
+    expect(res.freshness_cause).toBe('embedding_backlog');
+    // index_fresh keeps its Phase 1 meaning — the backlog does not flip it.
+    expect(res.index_fresh).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -3,13 +3,13 @@ import { join } from 'node:path';
 import type { ResolvedConfig } from '../store/config.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
-import { LanceStore, chunkRecordToChunk } from '../store/lance.js';
+import { LanceStore, chunkRecordToChunk, type ChunkRecord } from '../store/lance.js';
 import { openDatabase } from '../graph/db.js';
 import { populateFile, insertEdges, removeDeletedFiles } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
 import { createEmbedder, vectorKey, stampVectorHashes, type EmbedderLike } from './embedder.js';
-import type { IndexMeta } from '../ast/types.js';
+import type { IndexMeta, FreshnessCause } from '../ast/types.js';
 
 export interface IndexResult {
   readonly filesIndexed: number;
@@ -296,10 +296,7 @@ export async function runEmbed(
         await lance.deleteVectorsForChunks(orphanIds);
       }
 
-      // Pending = chunks whose CURRENT content is not embedded. A content edit
-      // keeps the chunk_id but changes the content hash, so it is re-embedded
-      // even though the id is unchanged (H1).
-      const pending = allChunks.filter((c) => !vectorKeys.has(vectorKey(c.chunk_id, c.content)));
+      const pending = selectPendingChunks(allChunks, vectorKeys);
       if (pending.length === 0) {
         return {
           chunksEmbedded: 0,
@@ -333,6 +330,43 @@ export async function runEmbed(
       };
     },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Freshness diagnostics (shared by runEmbed, mast_status, and `mast status`)
+// ---------------------------------------------------------------------------
+
+/**
+ * Chunks whose CURRENT content has no stored vector. A content edit keeps the
+ * chunk_id but changes the content hash, so it counts as pending even though
+ * the id is unchanged (H1, §6.2). This is THE definition of "needs embedding" —
+ * runEmbed's work selection and the status tools' `pending_embeddings` count
+ * both call it so the two can never disagree.
+ */
+export function selectPendingChunks(
+  allChunks: readonly ChunkRecord[],
+  vectorKeys: ReadonlySet<string>,
+): ChunkRecord[] {
+  return allChunks.filter((c) => !vectorKeys.has(vectorKey(c.chunk_id, c.content)));
+}
+
+/** Count of chunks awaiting (re-)embedding, per `selectPendingChunks`. */
+export async function countPendingEmbeddings(lance: LanceStore): Promise<number> {
+  const allChunks = await lance.getAllChunks();
+  const vectorKeys = await lance.getEmbeddedVectorKeys();
+  return selectPendingChunks(allChunks, vectorKeys).length;
+}
+
+/**
+ * Collapse the two staleness signals into the `freshness_cause` discriminator
+ * (§9 mast_status). Purely derived — `index_fresh` keeps its Phase 1-only
+ * meaning and is not affected by an embedding backlog.
+ */
+export function freshnessCause(staleFiles: number, pendingEmbeddings: number): FreshnessCause {
+  if (staleFiles > 0 && pendingEmbeddings > 0) return 'both';
+  if (staleFiles > 0) return 'phase1_stale';
+  if (pendingEmbeddings > 0) return 'embedding_backlog';
+  return null;
 }
 
 /** Load `index.json` from the state directory, or return null if absent. */
