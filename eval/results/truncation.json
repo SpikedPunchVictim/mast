@@ -1,0 +1,164 @@
+{
+  "ctxCap": 2048,
+  "tokenizer": "onnx-community/embeddinggemma-300m-ONNX",
+  "goldTargets": {
+    "count": 44,
+    "overCap": 1,
+    "maxTokens": 3012,
+    "medianTokens": 174
+  },
+  "perQuery": [
+    {
+      "id": "q01",
+      "maxGoldTargetTokens": 82,
+      "truncates": false
+    },
+    {
+      "id": "q02",
+      "maxGoldTargetTokens": 173,
+      "truncates": false
+    },
+    {
+      "id": "q03",
+      "maxGoldTargetTokens": 162,
+      "truncates": false
+    },
+    {
+      "id": "q04",
+      "maxGoldTargetTokens": 105,
+      "truncates": false
+    },
+    {
+      "id": "q05",
+      "maxGoldTargetTokens": 191,
+      "truncates": false
+    },
+    {
+      "id": "q06",
+      "maxGoldTargetTokens": 128,
+      "truncates": false
+    },
+    {
+      "id": "q07",
+      "maxGoldTargetTokens": 174,
+      "truncates": false
+    },
+    {
+      "id": "q08",
+      "maxGoldTargetTokens": 619,
+      "truncates": false
+    },
+    {
+      "id": "q09",
+      "maxGoldTargetTokens": 91,
+      "truncates": false
+    },
+    {
+      "id": "q10",
+      "maxGoldTargetTokens": 262,
+      "truncates": false
+    },
+    {
+      "id": "q11",
+      "maxGoldTargetTokens": 437,
+      "truncates": false
+    },
+    {
+      "id": "q12",
+      "maxGoldTargetTokens": 83,
+      "truncates": false
+    },
+    {
+      "id": "q13",
+      "maxGoldTargetTokens": 261,
+      "truncates": false
+    },
+    {
+      "id": "q14",
+      "maxGoldTargetTokens": 244,
+      "truncates": false
+    },
+    {
+      "id": "q15",
+      "maxGoldTargetTokens": 58,
+      "truncates": false
+    },
+    {
+      "id": "q16",
+      "maxGoldTargetTokens": 615,
+      "truncates": false
+    },
+    {
+      "id": "q17",
+      "maxGoldTargetTokens": 213,
+      "truncates": false
+    },
+    {
+      "id": "q18",
+      "maxGoldTargetTokens": 329,
+      "truncates": false
+    },
+    {
+      "id": "q19",
+      "maxGoldTargetTokens": 3012,
+      "truncates": true
+    },
+    {
+      "id": "q20",
+      "maxGoldTargetTokens": 192,
+      "truncates": false
+    },
+    {
+      "id": "q21",
+      "maxGoldTargetTokens": 380,
+      "truncates": false
+    },
+    {
+      "id": "q22",
+      "maxGoldTargetTokens": 136,
+      "truncates": false
+    },
+    {
+      "id": "q23",
+      "maxGoldTargetTokens": 164,
+      "truncates": false
+    },
+    {
+      "id": "q24",
+      "maxGoldTargetTokens": 779,
+      "truncates": false
+    },
+    {
+      "id": "q25",
+      "maxGoldTargetTokens": 1337,
+      "truncates": false
+    },
+    {
+      "id": "q26",
+      "maxGoldTargetTokens": 159,
+      "truncates": false
+    },
+    {
+      "id": "q27",
+      "maxGoldTargetTokens": 619,
+      "truncates": false
+    },
+    {
+      "id": "q28",
+      "maxGoldTargetTokens": 174,
+      "truncates": false
+    }
+  ],
+  "subset": {
+    "total": 3006,
+    "overCap": 16,
+    "pctOver": 0.53,
+    "maxTokens": 4592
+  },
+  "corpusSampled": {
+    "total": 3214,
+    "overCap": 13,
+    "pctOver": 0.4,
+    "maxTokens": 15941
+  }
+}

@@ -1,0 +1,656 @@
+{
+  "modelId": "Alibaba-NLP/gte-modernbert-base",
+  "label": "gte-modernbert-base",
+  "role": "finalist",
+  "dtype": "fp32",
+  "license": "Apache-2.0",
+  "paramsM": 149,
+  "codeSpecialized": false,
+  "gate": "passed",
+  "error": null,
+  "dims": 768,
+  "loadMs": 571,
+  "queryLatencyMedianMs": 13,
+  "queryLatencyP90Ms": 16,
+  "latencySource": "measured by the original run (resume carries it over)",
+  "chunksEmbedded": 3006,
+  "subsetSize": 3000,
+  "embedWallMs": 804711,
+  "embedBatchSize": 32,
+  "throughputChunksPerSec": 5.8,
+  "throughputSource": "measured by the original (killed) run; resume re-embed was cache-hits only",
+  "downloadBytes": 599997594,
+  "downloadBytesAbs": 599997594,
+  "vectorsLanceBytes": 26214400,
+  "rssAfterLoadBytes": 1118814208,
+  "rssPeakBytes": 898613248,
+  "projectedVectorPayloadBytes": 39484416,
+  "scores": {
+    "pure_vector": {
+      "ndcgSum": 5.77732910213518,
+      "recallSum": 7,
+      "mrrSum": 6.4,
+      "n": 28,
+      "ndcg": 0.2063,
+      "recall": 0.25,
+      "mrr": 0.2286
+    },
+    "hybrid_shipped": {
+      "ndcgSum": 0,
+      "recallSum": 0,
+      "mrrSum": 0,
+      "n": 28,
+      "ndcg": 0,
+      "recall": 0,
+      "mrr": 0
+    },
+    "hybrid_thresh0": {
+      "ndcgSum": 5.3059500551222145,
+      "recallSum": 7,
+      "mrrSum": 5.4,
+      "n": 28,
+      "ndcg": 0.1895,
+      "recall": 0.25,
+      "mrr": 0.1929
+    }
+  },
+  "perQuery": {
+    "pure_vector": [
+      {
+        "id": "q01",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q02",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q03",
+        "ndcg": 0.237,
+        "recall": 0.5,
+        "rr": 0.2,
+        "firstRel": 5
+      },
+      {
+        "id": "q04",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q05",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q06",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q07",
+        "ndcg": 0.818,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q08",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q09",
+        "ndcg": 0.818,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q10",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q11",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q12",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q13",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q14",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q15",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q16",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q17",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q18",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q19",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q20",
+        "ndcg": 0.442,
+        "recall": 1,
+        "rr": 0.2,
+        "firstRel": 5
+      },
+      {
+        "id": "q21",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q22",
+        "ndcg": 0.85,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q23",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q24",
+        "ndcg": 0.613,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q25",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q26",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q27",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q28",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      }
+    ],
+    "hybrid_shipped": [
+      {
+        "id": "q01",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q02",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q03",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q04",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q05",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q06",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q07",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q08",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q09",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q10",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q11",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q12",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q13",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q14",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q15",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q16",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q17",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q18",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q19",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q20",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q21",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q22",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q23",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q24",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q25",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q26",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q27",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q28",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      }
+    ],
+    "hybrid_thresh0": [
+      {
+        "id": "q01",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q02",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q03",
+        "ndcg": 0.237,
+        "recall": 0.5,
+        "rr": 0.2,
+        "firstRel": 5
+      },
+      {
+        "id": "q04",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q05",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q06",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q07",
+        "ndcg": 0.818,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q08",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q09",
+        "ndcg": 0.818,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q10",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q11",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q12",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q13",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q14",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q15",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q16",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q17",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q18",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q19",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q20",
+        "ndcg": 0.442,
+        "recall": 1,
+        "rr": 0.2,
+        "firstRel": 5
+      },
+      {
+        "id": "q21",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q22",
+        "ndcg": 0.605,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q23",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q24",
+        "ndcg": 0.387,
+        "recall": 0.5,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q25",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q26",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q27",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q28",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      }
+    ]
+  },
+  "vectorAboveThresholdQueries": 0,
+  "goldQueryCount": 28,
+  "vectorsLanceNote": "du -sm of lance/vectors.lance after subset embed (3006 vectors); resume upserts may inflate fragments \u2014 projectedVectorPayloadBytes is the clean dims comparison"
+}

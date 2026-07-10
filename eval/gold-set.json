@@ -1,0 +1,260 @@
+{
+  "version": "1.0.0",
+  "created": "2026-07-09",
+  "corpus": {
+    "project_root": "/Users/spikedpunchvictim/projects/kluster",
+    "chunks": 12853,
+    "files": 1678,
+    "extensions": [".ts", ".tsx", ".js", ".jsx", ".md"],
+    "note": "Frozen before any model was scored. Every `relevant` target below was verified to exist in this corpus by verify-gold.mjs."
+  },
+  "provenance_note": "No production query log exists for MAST yet, so these 28 pairs are HAND-CONSTRUCTED to reproduce the Task-1 zero-result / near-miss class the rubric prioritizes: conceptual queries phrased in synonyms the target chunk does NOT contain (so trigram FTS ranks the true chunk low and the vector model must carry it), qualified method-name lookups, and cross-file concepts. Each query was written against a KNOWN real target chunk, then deliberately worded to minimize lexical overlap. This is a stated limitation (see README): a real miss-log would be higher-signal. Relevance is matched by file_path + symbol_name (code) or file_path + line-containment (doc/block).",
+  "match_rule": "A returned chunk is relevant iff some target has the same file_path AND (target.symbol == chunk.symbol_name, OR target.line falls within [chunk.start_line, chunk.end_line]).",
+  "queries": [
+    {
+      "id": "q01",
+      "query": "combine two ranked result lists into a single blended score",
+      "hard_class": "conceptual",
+      "why_hard": "Target is MAST's reciprocal-rank-fusion helper; query uses 'blended score' / 'combine ranked lists', none of which appear in the chunk (which says 'RRF', 'fusion constant').",
+      "relevant": [{ "file_path": "packages/mast/src/search/hybrid.ts", "symbol": "rrfScore" }]
+    },
+    {
+      "id": "q02",
+      "query": "stop two processes from writing the index directory at the same time",
+      "hard_class": "conceptual",
+      "why_hard": "Target is the mutual-exclusion wrapper; query never says 'lock' or 'mutex'.",
+      "relevant": [{ "file_path": "packages/mast/src/store/lock.ts", "symbol": "withLock" }]
+    },
+    {
+      "id": "q03",
+      "query": "suggest a close symbol name when the user misspelled it",
+      "hard_class": "near-miss",
+      "why_hard": "Target computes trigram similarity for did-you-mean; query talks about misspelling, target about 'trigram overlap'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/graph/queries.ts", "symbol": "trigramSimilarity" },
+        { "file_path": "packages/mast/src/graph/queries.ts", "symbol": "trigrams" }
+      ]
+    },
+    {
+      "id": "q04",
+      "query": "how long the file watcher waits after edits before it reindexes",
+      "hard_class": "qualified-method",
+      "why_hard": "Debounce timer arming inside WatchScheduler; 'waits after edits' vs code's 'armTimer/debounce'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/indexer/watcher.ts", "symbol": "WatchScheduler.armTimer" },
+        { "file_path": "packages/mast/src/indexer/watcher.ts", "symbol": "WatchScheduler.notify" }
+      ]
+    },
+    {
+      "id": "q05",
+      "query": "measure how alike two embedding vectors are",
+      "hard_class": "cross-file",
+      "why_hard": "Cosine similarity is implemented in several packages; query avoids the word 'cosine'.",
+      "relevant": [
+        { "file_path": "packages/workbench/fold/embeddings/src/index.ts", "symbol": "cosineSimilarity" },
+        { "file_path": "packages/workbench/fold/ledger/src/matchers.ts", "symbol": "cosine" },
+        { "file_path": "packages/mast/src/search/vector.ts", "symbol": "searchVectors" }
+      ]
+    },
+    {
+      "id": "q06",
+      "query": "remove stored embeddings whose source code chunk was deleted",
+      "hard_class": "conceptual",
+      "why_hard": "Orphan-vector cleanup; query says 'source code chunk was deleted' vs code 'orphaned vectors'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/store/lance.ts", "symbol": "LanceStore.deleteVectorsForChunks" }
+      ]
+    },
+    {
+      "id": "q07",
+      "query": "tag each vector with a fingerprint so edits force a re-embed",
+      "hard_class": "conceptual",
+      "why_hard": "Content-hash stamping for freshness; 'fingerprint' vs 'content_hash / sha256'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/indexer/embedder.ts", "symbol": "stampVectorHashes" },
+        { "file_path": "packages/mast/src/indexer/embedder.ts", "symbol": "vectorKey" }
+      ]
+    },
+    {
+      "id": "q08",
+      "query": "avoid returning both a class outline and one of its methods for the same match",
+      "hard_class": "conceptual",
+      "why_hard": "Shell/method dedup; long conceptual phrasing vs 'dedupShellMethodCollisions'.",
+      "relevant": [{ "file_path": "packages/mast/src/search/hybrid.ts", "symbol": "dedupShellMethodCollisions" }]
+    },
+    {
+      "id": "q09",
+      "query": "warn that the token count is only a rough estimate for newer models",
+      "hard_class": "conceptual",
+      "why_hard": "Tokenizer honesty label; 'rough estimate' vs 'approximate / claude-2 era'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/telemetry/tokenizer.ts", "symbol": "TOKENIZER_LABEL" },
+        { "file_path": "packages/mast/src/telemetry/tokenizer.ts", "symbol": "countTokens" }
+      ]
+    },
+    {
+      "id": "q10",
+      "query": "break a camelCase identifier into its separate words",
+      "hard_class": "near-miss",
+      "why_hard": "splitIdentifierTerms; query is close but avoids the function name.",
+      "relevant": [{ "file_path": "packages/mast/src/search/fts.ts", "symbol": "splitIdentifierTerms" }]
+    },
+    {
+      "id": "q11",
+      "query": "recover when the vector database files vanish from disk underneath us",
+      "hard_class": "conceptual",
+      "why_hard": "Fragment-missing recovery; 'vanish from disk' vs 'missing data fragments'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/store/lance.ts", "symbol": "isFragmentMissingError" },
+        { "file_path": "packages/mast/src/store/lance.ts", "symbol": "LanceStore.open" }
+      ]
+    },
+    {
+      "id": "q12",
+      "query": "translate a wildcard file pattern into a SQL LIKE expression",
+      "hard_class": "near-miss",
+      "why_hard": "globToLike; 'wildcard file pattern' vs 'glob'.",
+      "relevant": [{ "file_path": "packages/mast/src/search/fts.ts", "symbol": "globToLike" }]
+    },
+    {
+      "id": "q13",
+      "query": "figure out which files changed since the last indexing run",
+      "hard_class": "conceptual",
+      "why_hard": "Manifest diff; 'changed since last run' vs 'diffManifest / stale/added/deleted'.",
+      "relevant": [{ "file_path": "packages/mast/src/indexer/walker.ts", "symbol": "diffManifest" }]
+    },
+    {
+      "id": "q14",
+      "query": "shared scratch memory that behavior tree nodes read and write between steps",
+      "hard_class": "cross-file",
+      "why_hard": "Blackboard concept spread across kluster-bt; 'shared scratch memory' vs 'Blackboard'.",
+      "relevant": [
+        { "file_path": "packages/kluster-bt/core/src/blackboard.ts", "symbol": "Blackboard" },
+        { "file_path": "packages/kluster-bt/core/src/blackboard.ts", "symbol": "BlackboardAdapter" }
+      ]
+    },
+    {
+      "id": "q15",
+      "query": "escape single quotes before putting a value into a SQL string literal",
+      "hard_class": "conceptual",
+      "why_hard": "escapeString util; concept vs tiny helper name.",
+      "relevant": [{ "file_path": "packages/mast/src/store/lance.ts", "symbol": "escapeString" }]
+    },
+    {
+      "id": "q16",
+      "query": "list every barrel file that forwards a renamed export onward",
+      "hard_class": "qualified-method",
+      "why_hard": "queryBarrelExports for rename-impact; 'barrel forwards export' vs 're_export / RE_EXPORTS'.",
+      "relevant": [{ "file_path": "packages/mast/src/graph/queries.ts", "symbol": "queryBarrelExports" }]
+    },
+    {
+      "id": "q17",
+      "query": "find code that contains an identifier the resolver could not statically link",
+      "hard_class": "conceptual",
+      "why_hard": "identifier near-miss / potential matches path.",
+      "relevant": [
+        { "file_path": "packages/mast/src/search/fts.ts", "symbol": "searchIdentifierNearMiss" },
+        { "file_path": "packages/mast/src/search/fts.ts", "symbol": "searchIdentifiers" }
+      ]
+    },
+    {
+      "id": "q18",
+      "query": "give back the same answer instantly instead of recomputing an embedding twice",
+      "hard_class": "conceptual",
+      "why_hard": "Embed cache read; 'give back instantly' vs 'readCache / content-hash cache'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/indexer/embedder.ts", "symbol": "Embedder.embed" }
+      ]
+    },
+    {
+      "id": "q19",
+      "query": "retry policy with escalation and quarantine when a build stage keeps failing",
+      "hard_class": "cross-file",
+      "why_hard": "Resilience design lives in plan docs; matches on doc chunks about retry budgets.",
+      "relevant": [
+        { "file_path": "packages/workbench/fold/IMPLEMENTATION_PLAN.md", "line": 1800 },
+        { "file_path": "packages/IMPLEMENTATION_PLAN.md", "line": 1620 }
+      ]
+    },
+    {
+      "id": "q20",
+      "query": "nearest neighbour lookup over stored vectors using cosine distance",
+      "hard_class": "qualified-method",
+      "why_hard": "Direct-ish but target is the LanceStore method vs the free searchVectors fn; tests method disambiguation.",
+      "relevant": [
+        { "file_path": "packages/mast/src/store/lance.ts", "symbol": "LanceStore.searchVectors" },
+        { "file_path": "packages/mast/src/search/vector.ts", "symbol": "searchVectors" }
+      ]
+    },
+    {
+      "id": "q21",
+      "query": "decide whether a re-parsed file is byte-identical so we can skip rewriting it",
+      "hard_class": "conceptual",
+      "why_hard": "Stability skip; 'byte-identical skip rewrite' vs 'isFileUnchanged / symbolSignature'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/indexer/index.ts", "symbol": "isFileUnchanged" },
+        { "file_path": "packages/mast/src/indexer/index.ts", "symbol": "symbolSignature" }
+      ]
+    },
+    {
+      "id": "q22",
+      "query": "which chunks still need embeddings computed for them",
+      "hard_class": "conceptual",
+      "why_hard": "Pending-chunk selection; 'still need embeddings' vs 'selectPendingChunks / vectorKey not in set'.",
+      "relevant": [
+        { "file_path": "packages/mast/src/indexer/index.ts", "symbol": "selectPendingChunks" },
+        { "file_path": "packages/mast/src/indexer/index.ts", "symbol": "countPendingEmbeddings" }
+      ]
+    },
+    {
+      "id": "q23",
+      "query": "explain why the index looks out of date to the agent",
+      "hard_class": "conceptual",
+      "why_hard": "freshnessCause discriminator; 'out of date' vs 'phase1_stale / embedding_backlog'.",
+      "relevant": [{ "file_path": "packages/mast/src/indexer/index.ts", "symbol": "freshnessCause" }]
+    },
+    {
+      "id": "q24",
+      "query": "resolve a .js import specifier back to its TypeScript source file",
+      "hard_class": "conceptual",
+      "why_hard": "NodeNext extension substitution in the resolver.",
+      "relevant": [
+        { "file_path": "packages/mast/src/indexer/import-resolver.ts", "symbol": "buildResolver" },
+        { "file_path": "packages/mast/src/indexer/import-resolver.ts", "symbol": "JS_TO_TS_EXTS" }
+      ]
+    },
+    {
+      "id": "q25",
+      "query": "collect close candidate names when a search comes back empty",
+      "hard_class": "conceptual",
+      "why_hard": "Zero-result assist orchestration.",
+      "relevant": [
+        { "file_path": "packages/mast/src/search/hybrid.ts", "symbol": "gatherSuggestions" },
+        { "file_path": "packages/mast/src/search/hybrid.ts", "symbol": "hybridSearch" }
+      ]
+    },
+    {
+      "id": "q26",
+      "query": "turn a shell glob like double-star slash into a regular expression",
+      "hard_class": "near-miss",
+      "why_hard": "globToRegex in the walker; near-miss vs the SQL globToLike sibling (disambiguation).",
+      "relevant": [{ "file_path": "packages/mast/src/indexer/walker.ts", "symbol": "globToRegex" }]
+    },
+    {
+      "id": "q27",
+      "query": "keep the highest ranked hit and note the class it belongs to",
+      "hard_class": "conceptual",
+      "why_hard": "The related-hint attach inside dedup; overlaps with q08 target but different phrasing to test stability.",
+      "relevant": [{ "file_path": "packages/mast/src/search/hybrid.ts", "symbol": "dedupShellMethodCollisions" }]
+    },
+    {
+      "id": "q28",
+      "query": "how the runner pre-warms model weights so the container does not download them at request time",
+      "hard_class": "cross-file",
+      "why_hard": "Pre-warm concept (§13.8) spanning config resolution + Dockerfile prose.",
+      "relevant": [
+        { "file_path": "packages/mast/src/store/config.ts", "symbol": "resolveTransformersCacheDir" }
+      ]
+    }
+  ]
+}

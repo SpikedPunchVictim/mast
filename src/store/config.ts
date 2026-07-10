@@ -25,7 +25,6 @@ const DEFAULTS: MastConfig = {
     '**/*.spec.ts',
   ],
   embedding_model: 'jinaai/jina-embeddings-v2-base-code',
-  similarity_threshold: 0.70,
   rrf_k: 60,
   chunk_split_threshold: 100,
   context_lines: 3,

@@ -11,8 +11,9 @@ export interface VectorHit {
    * Cosine similarity ∈ [-1, 1]; higher is better, 1 = identical direction.
    *
    * LanceDB's cosine distance is `1 - cosine_similarity` (range [0, 2]), so the
-   * similarity is `1 - distance`. This is the real cosine value the
-   * `similarity_threshold` config and the reported `similarity_score` mean.
+   * similarity is `1 - distance`. This is the real cosine value the reported
+   * `similarity_score` means. It is advisory only — ranking uses rank-based
+   * RRF inclusion, never an absolute cosine gate (§7.3, Task 9).
    */
   readonly score: number;
 }

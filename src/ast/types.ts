@@ -126,7 +126,11 @@ export interface MastConfig {
    * (Docker pre-warmed), otherwise `~/.cache/mast/transformers`.
    */
   readonly transformers_cache_dir?: string;
-  readonly similarity_threshold: number;
+  // similarity_threshold was removed (Task 9): the absolute cosine gate was
+  // miscalibrated for the shipped model (0/28 gold conceptual queries cleared
+  // 0.70) and cosine scales are model-specific. Vector candidates now enter
+  // RRF by rank (§7.3); no knob replaced it because no honest cross-model
+  // default exists.
   /** Reciprocal Rank Fusion constant k (default 60). */
   readonly rrf_k: number;
   /** Lines above which a declaration is split into overlapping sub-chunks. */

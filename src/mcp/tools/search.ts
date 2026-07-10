@@ -25,7 +25,7 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
         ctx.lance,
         ctx.getEmbedder(),
         args,
-        { rrf_k: ctx.config.rrf_k, similarity_threshold: ctx.config.similarity_threshold },
+        { rrf_k: ctx.config.rrf_k },
       );
       const filesReferenced = [...new Set(results.map((r) => r.file_path))];
       // `suggestions` is present (possibly empty) only on the zero-result assist

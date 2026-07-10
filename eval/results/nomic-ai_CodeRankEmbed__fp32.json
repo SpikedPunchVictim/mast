@@ -1,0 +1,12 @@
+{
+  "modelId": "nomic-ai/CodeRankEmbed",
+  "label": "CodeRankEmbed",
+  "role": "finalist",
+  "dtype": "fp32",
+  "license": "MIT",
+  "paramsM": 137,
+  "codeSpecialized": true,
+  "gate": "failed",
+  "error": "Error: Could not locate file: \"https://huggingface.co/nomic-ai/CodeRankEmbed/resolve/main/onnx/model.onnx\".",
+  "gateNote": "3-attempts record: (1) official repo has no ONNX weights (error above); (2) community ONNX mirrors exist but are unofficial third-party conversions — running untrusted converted weights denied/out of scope; (3) in-house conversion requires a Python/optimum toolchain not present. INCOMPATIBLE, DROPPED."
+}

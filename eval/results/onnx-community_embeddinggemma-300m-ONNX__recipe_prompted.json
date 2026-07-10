@@ -1,0 +1,184 @@
+{
+  "modelId": "onnx-community/embeddinggemma-300m-ONNX",
+  "label": "embeddinggemma-300m",
+  "recipeTag": "prompted",
+  "pooling": "mean",
+  "queryPrefix": "task: search result | query: ",
+  "docPrefix": "title: none | text: ",
+  "dims": 768,
+  "pure_vector": {
+    "ndcg": 0.6229,
+    "recall": 0.7262,
+    "mrr": 0.6433
+  },
+  "perQuery": [
+    {
+      "id": "q01",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q02",
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0
+    },
+    {
+      "id": "q03",
+      "ndcg": 0.218,
+      "recall": 0.5,
+      "rr": 0.167
+    },
+    {
+      "id": "q04",
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0
+    },
+    {
+      "id": "q05",
+      "ndcg": 0.469,
+      "recall": 0.333,
+      "rr": 1
+    },
+    {
+      "id": "q06",
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0
+    },
+    {
+      "id": "q07",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q08",
+      "ndcg": 0.631,
+      "recall": 1,
+      "rr": 0.5
+    },
+    {
+      "id": "q09",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q10",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q11",
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0
+    },
+    {
+      "id": "q12",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q13",
+      "ndcg": 0.631,
+      "recall": 1,
+      "rr": 0.5
+    },
+    {
+      "id": "q14",
+      "ndcg": 0.237,
+      "recall": 0.5,
+      "rr": 0.2
+    },
+    {
+      "id": "q15",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q16",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q17",
+      "ndcg": 0.613,
+      "recall": 0.5,
+      "rr": 1
+    },
+    {
+      "id": "q18",
+      "ndcg": 0.387,
+      "recall": 1,
+      "rr": 0.2
+    },
+    {
+      "id": "q19",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q20",
+      "ndcg": 0.544,
+      "recall": 1,
+      "rr": 0.333
+    },
+    {
+      "id": "q21",
+      "ndcg": 0.613,
+      "recall": 0.5,
+      "rr": 1
+    },
+    {
+      "id": "q22",
+      "ndcg": 0.92,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q23",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q24",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q25",
+      "ndcg": 0.877,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q26",
+      "ndcg": 1,
+      "recall": 1,
+      "rr": 1
+    },
+    {
+      "id": "q27",
+      "ndcg": 0.301,
+      "recall": 1,
+      "rr": 0.111
+    },
+    {
+      "id": "q28",
+      "ndcg": 0,
+      "recall": 0,
+      "rr": 0
+    }
+  ]
+}

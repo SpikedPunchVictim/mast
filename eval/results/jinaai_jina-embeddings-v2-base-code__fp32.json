@@ -1,0 +1,656 @@
+{
+  "modelId": "jinaai/jina-embeddings-v2-base-code",
+  "label": "jina-v2-base-code (incumbent)",
+  "role": "incumbent",
+  "dtype": "fp32",
+  "license": "Apache-2.0",
+  "paramsM": 161,
+  "codeSpecialized": true,
+  "gate": "passed",
+  "error": null,
+  "dims": 768,
+  "loadMs": 2332,
+  "queryLatencyMedianMs": 12,
+  "queryLatencyP90Ms": 17,
+  "latencySource": "measured by the original run (resume carries it over)",
+  "chunksEmbedded": 3006,
+  "subsetSize": 3000,
+  "embedWallMs": 772356,
+  "embedBatchSize": 32,
+  "throughputChunksPerSec": 5.88,
+  "throughputSource": "measured by the original (killed) run; resume re-embed was cache-hits only",
+  "downloadBytes": 644080491,
+  "downloadBytesAbs": 644080491,
+  "vectorsLanceBytes": 26214400,
+  "rssAfterLoadBytes": 565149696,
+  "rssPeakBytes": 936673280,
+  "projectedVectorPayloadBytes": 39484416,
+  "scores": {
+    "pure_vector": {
+      "ndcgSum": 16.6641858553579,
+      "recallSum": 19.833333333333336,
+      "mrrSum": 16.944444444444443,
+      "n": 28,
+      "ndcg": 0.5951,
+      "recall": 0.7083,
+      "mrr": 0.6052
+    },
+    "hybrid_shipped": {
+      "ndcgSum": 0,
+      "recallSum": 0,
+      "mrrSum": 0,
+      "n": 28,
+      "ndcg": 0,
+      "recall": 0,
+      "mrr": 0
+    },
+    "hybrid_thresh0": {
+      "ndcgSum": 16.22694062560047,
+      "recallSum": 19.833333333333336,
+      "mrrSum": 16.27777777777778,
+      "n": 28,
+      "ndcg": 0.5795,
+      "recall": 0.7083,
+      "mrr": 0.5813
+    }
+  },
+  "perQuery": {
+    "pure_vector": [
+      {
+        "id": "q01",
+        "ndcg": 0.431,
+        "recall": 1,
+        "rr": 0.25,
+        "firstRel": 4
+      },
+      {
+        "id": "q02",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q03",
+        "ndcg": 0.264,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4
+      },
+      {
+        "id": "q04",
+        "ndcg": 0.218,
+        "recall": 0.5,
+        "rr": 0.167,
+        "firstRel": 6
+      },
+      {
+        "id": "q05",
+        "ndcg": 0.469,
+        "recall": 0.333,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q06",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q07",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q08",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q09",
+        "ndcg": 0.693,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q10",
+        "ndcg": 0.301,
+        "recall": 1,
+        "rr": 0.111,
+        "firstRel": 9
+      },
+      {
+        "id": "q11",
+        "ndcg": 0.307,
+        "recall": 0.5,
+        "rr": 0.333,
+        "firstRel": 3
+      },
+      {
+        "id": "q12",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q13",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q14",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q15",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q16",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q17",
+        "ndcg": 0.613,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q18",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q19",
+        "ndcg": 0.651,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q20",
+        "ndcg": 0.571,
+        "recall": 1,
+        "rr": 0.333,
+        "firstRel": 3
+      },
+      {
+        "id": "q21",
+        "ndcg": 0.613,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q22",
+        "ndcg": 0.693,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q23",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q24",
+        "ndcg": 0.92,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q25",
+        "ndcg": 0.92,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q26",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q27",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q28",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      }
+    ],
+    "hybrid_shipped": [
+      {
+        "id": "q01",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q02",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q03",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q04",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q05",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q06",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q07",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q08",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q09",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q10",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q11",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q12",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q13",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q14",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q15",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q16",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q17",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q18",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q19",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q20",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q21",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q22",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q23",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q24",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q25",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q26",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q27",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q28",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      }
+    ],
+    "hybrid_thresh0": [
+      {
+        "id": "q01",
+        "ndcg": 0.431,
+        "recall": 1,
+        "rr": 0.25,
+        "firstRel": 4
+      },
+      {
+        "id": "q02",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q03",
+        "ndcg": 0.264,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4
+      },
+      {
+        "id": "q04",
+        "ndcg": 0.218,
+        "recall": 0.5,
+        "rr": 0.167,
+        "firstRel": 6
+      },
+      {
+        "id": "q05",
+        "ndcg": 0.469,
+        "recall": 0.333,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q06",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q07",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q08",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q09",
+        "ndcg": 0.693,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q10",
+        "ndcg": 0.301,
+        "recall": 1,
+        "rr": 0.111,
+        "firstRel": 9
+      },
+      {
+        "id": "q11",
+        "ndcg": 0.307,
+        "recall": 0.5,
+        "rr": 0.333,
+        "firstRel": 3
+      },
+      {
+        "id": "q12",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q13",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q14",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q15",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q16",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q17",
+        "ndcg": 0.613,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q18",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q19",
+        "ndcg": 0.651,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q20",
+        "ndcg": 0.571,
+        "recall": 1,
+        "rr": 0.333,
+        "firstRel": 3
+      },
+      {
+        "id": "q21",
+        "ndcg": 0.613,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q22",
+        "ndcg": 0.571,
+        "recall": 1,
+        "rr": 0.333,
+        "firstRel": 3
+      },
+      {
+        "id": "q23",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q24",
+        "ndcg": 0.605,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2
+      },
+      {
+        "id": "q25",
+        "ndcg": 0.92,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q26",
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1
+      },
+      {
+        "id": "q27",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      },
+      {
+        "id": "q28",
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0
+      }
+    ]
+  },
+  "vectorAboveThresholdQueries": 0,
+  "goldQueryCount": 28,
+  "vectorsLanceNote": "du -sm of lance/vectors.lance after subset embed (3006 vectors); resume upserts may inflate fragments \u2014 projectedVectorPayloadBytes is the clean dims comparison"
+}

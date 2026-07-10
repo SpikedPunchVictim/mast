@@ -166,7 +166,7 @@ describe('searchFts', () => {
 // ---------------------------------------------------------------------------
 
 describe('hybridSearch — lexical mode', () => {
-  const hybridConfig = { rrf_k: 60, similarity_threshold: 0.0 };
+  const hybridConfig = { rrf_k: 60 };
 
   it('returns mode: lexical when embedder is null', async () => {
     const { mode, results } = await hybridSearch(db, lance, null, { query: 'add' }, hybridConfig);
@@ -242,7 +242,7 @@ describe('hybridSearch — lexical mode', () => {
 // ---------------------------------------------------------------------------
 
 describe('hybridSearch — hybrid mode', () => {
-  const hybridConfig = { rrf_k: 60, similarity_threshold: 0.0 };
+  const hybridConfig = { rrf_k: 60 };
 
   it('returns mode: hybrid when vectors are available', async () => {
     const { mode } = await hybridSearch(
@@ -296,6 +296,57 @@ describe('hybridSearch — hybrid mode', () => {
     );
     expect(mode).toBe('lexical');
     expect(results.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hybridSearch — rank-based vector inclusion (Task 9: no absolute cosine gate)
+// ---------------------------------------------------------------------------
+
+describe('hybridSearch — rank-based vector inclusion', () => {
+  const hybridConfig = { rrf_k: 60 };
+
+  it('a query with no FTS hits still returns vector-ranked hybrid results', async () => {
+    // 'zzzzqqqq' matches nothing lexically; the vector leg alone must carry
+    // the response. Under the old absolute 0.70 gate, most of these neighbors
+    // would have been silently discarded.
+    const { mode, results } = await hybridSearch(
+      db, lance, makeFakeEmbedder(),
+      { query: 'zzzzqqqq' },
+      hybridConfig,
+    );
+
+    expect(mode).toBe('hybrid');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((r) => r.match_score === null)).toBe(true);
+    expect(results.every((r) => r.similarity_score !== null)).toBe(true);
+  });
+
+  it('vector candidates enter RRF by rank, regardless of absolute cosine', async () => {
+    // The fake embedder gives orthogonal unit vectors: one chunk at cosine ~1,
+    // the rest at ~0. Rank-based inclusion must return the ~0-cosine neighbors
+    // too — exactly the results an absolute gate at any level would drop.
+    const { results } = await hybridSearch(
+      db, lance, makeFakeEmbedder(),
+      { query: 'zzzzqqqq' },
+      hybridConfig,
+    );
+
+    expect(results.some((r) => (r.similarity_score ?? 1) < 0.70)).toBe(true);
+  });
+
+  it('suggestions do not fire in hybrid mode when vector neighbors exist', async () => {
+    // Task 1 interaction: the zero-result assist triggers on empty results.
+    // With rank-based inclusion the vector leg fills results for near-miss
+    // queries, so the assist naturally scopes to lexical mode / empty indexes.
+    const { results, suggestions } = await hybridSearch(
+      db, lance, makeFakeEmbedder(),
+      { query: 'adddd' },
+      hybridConfig,
+    );
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(suggestions).toBeUndefined();
   });
 });
 
@@ -457,7 +508,7 @@ describe('dedupShellMethodCollisions', () => {
 // ---------------------------------------------------------------------------
 
 describe('hybridSearch — shell/method dedup', () => {
-  const hybridConfig = { rrf_k: 60, similarity_threshold: 0.0 };
+  const hybridConfig = { rrf_k: 60 };
 
   it('never returns both a class shell and one of its methods', async () => {
     // 'perimeter' matches the Circle shell (member signature), the
@@ -498,7 +549,7 @@ describe('hybridSearch — shell/method dedup', () => {
 describe('hybridSearch — zero-result assist', () => {
   // Threshold high enough that the fake embedder's vector hits never survive,
   // and embedder null, so a no-FTS-hit query genuinely returns zero results.
-  const lexicalConfig = { rrf_k: 60, similarity_threshold: 0.0 };
+  const lexicalConfig = { rrf_k: 60 };
 
   it('attaches suggestions when the query matches no chunk', async () => {
     const { results, suggestions } = await hybridSearch(

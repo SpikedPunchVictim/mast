@@ -23,7 +23,6 @@ export function rrfScore(rank: number, k: number): number {
 
 export interface HybridSearchConfig {
   readonly rrf_k: number;
-  readonly similarity_threshold: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,11 +74,21 @@ export async function hybridSearch(
       await embedder.load();
       const [queryVec] = await embedder.embed([queryAsChunk(input.query)]);
       if (queryVec !== undefined) {
+        // Rank-based inclusion (Task 9): every top-candidateLimit vector hit
+        // feeds RRF, regardless of absolute cosine. The old absolute gate
+        // (similarity_threshold: 0.70) was miscalibrated — 0/28 gold-set
+        // conceptual queries produced a jina cosine ≥ 0.70, so shipped hybrid
+        // silently collapsed to lexical on exactly the query class vectors
+        // exist for. No floor replaces it: measured gold top-1 cosines
+        // (0.40–0.66) interleave with junk-query top-1 cosines (0.41–0.54),
+        // so no absolute cutoff separates relevant from junk on this model —
+        // and cosine scales are model-specific anyway. RRF's rank fusion is
+        // the relevance arbiter (§7.3); `similarity_score` is reported so
+        // consumers can judge confidence themselves.
         const hits = await searchVectors(lance, queryVec.embedding, candidateLimit);
-        const aboveThreshold = hits.filter((h) => h.score >= config.similarity_threshold);
-        if (aboveThreshold.length > 0) {
+        if (hits.length > 0) {
           mode = 'hybrid';
-          aboveThreshold.forEach((h, i) => {
+          hits.forEach((h, i) => {
             vecMap.set(h.chunkId, { rank: i + 1, score: h.score });
           });
         }

@@ -69,7 +69,6 @@ Config is resolved in this priority order:
     "**/*.spec.ts"
   ],
   "embedding_model": "jinaai/jina-embeddings-v2-base-code",
-  "similarity_threshold": 0.70,
   "rrf_k": 60,
   "chunk_split_threshold": 100,
   "context_lines": 3,
@@ -79,6 +78,13 @@ Config is resolved in this priority order:
 
 `rrf_k` is the constant in the Reciprocal Rank Fusion formula (see §7.3). The default
 of 60 is standard. Higher values reduce the influence of rank differences.
+
+There is deliberately **no `similarity_threshold` key**. An earlier revision
+gated vector results by absolute cosine (0.70) before RRF; the N1 bake-off
+showed that gate discarded the entire vector side on conceptual queries (0/28
+gold queries cleared 0.70 with the shipped model) and that absolute cosine
+scales are model-specific. Vector candidates now enter RRF by rank (§7.3), and
+no replacement knob exists because no honest cross-model default does.
 
 `chunk_split_threshold` is the line count above which a single declaration is split
 into overlapping sub-chunks. Below this threshold, a declaration is always one chunk
@@ -464,9 +470,28 @@ scores are on incomparable scales. A document ranked #1 in BM25 (exact symbol ma
 and #40 in vector search still scores well under RRF — which is the correct behaviour
 for code queries that mix exact identifiers with conceptual descriptions.
 
-Implementation: run vector search (top 50) and FTS5 BM25 search (top 50)
-independently, then apply RRF to produce a unified ranked list. Return the top
-`limit` results.
+Implementation: run vector search and FTS5 BM25 search independently over a
+candidate pool of **4× `limit` per ranker** (40 for the default `limit: 10`),
+then apply RRF to produce a unified ranked list. Return the top `limit` results.
+
+**Rank-based vector inclusion — no absolute cosine gate.** Every top-pool
+vector candidate feeds RRF by rank, regardless of its absolute cosine value.
+An earlier revision filtered vector hits by `similarity_threshold: 0.70`
+before fusion; the N1 bake-off (FABLE_FEEDBAK, run 2026-07-10) showed this was
+wrong twice over:
+
+1. **Miscalibrated:** 0/28 gold-set conceptual queries produced a jina cosine
+   ≥ 0.70, so shipped hybrid silently discarded the entire vector side and
+   collapsed to lexical — on exactly the query class embeddings exist to serve
+   (hybrid NDCG@10 on the gold set: 0.000 gated vs 0.580 ungated).
+2. **Unfloorable:** measured top-1 cosines for relevant (gold) queries span
+   0.40–0.66 and *interleave* with top-1 cosines for nonsense junk queries
+   (0.41–0.54), so no absolute floor separates relevant from junk on this
+   model — and cosine scales shift per model, so any fixed gate breaks
+   differently under a future swap.
+
+Rank position is all RRF uses; `similarity_score` is still reported per result
+so consumers can judge confidence, but it never gates inclusion.
 
 **FTS5 sign convention:** SQLite's `bm25(chunk_fts)` returns negative scores — more
 negative means a better match. When sorting the FTS5 result set, sort ascending
@@ -850,25 +875,32 @@ so the agent can see immediately why the result was returned without reading the
 background embedder may not have finished populating `vectors.lance`. `mast_search`
 adapts:
 
-- `mode: "hybrid"` — both vector search and FTS5 BM25 ran; results are RRF-fused.
-  `similarity_score` is populated (cosine similarity for the top vector hit),
+- `mode: "hybrid"` — both vector search and FTS5 BM25 ran; results are RRF-fused
+  with rank-based vector inclusion (§7.3 — no absolute cosine gate).
+  `similarity_score` is populated (cosine similarity of the vector hit),
   `match_score` carries the BM25 score (negative — see §7.3).
 - `mode: "lexical"` — vector store is not yet ready or has been intentionally
   disabled (`--no-embeddings` install flag, §13.11). Results are FTS5-only.
   `similarity_score` is `null`; `match_score` carries the ranking signal.
 
 The agent SHOULD NOT compare `similarity_score` values across modes — they are
-not on a shared scale. Consumers that care about uniform ranking should use the
-`rank` field, which is always present and starts at 1.
+not on a shared scale. `similarity_score` is advisory (absolute cosine values
+are model-specific and never gate inclusion, §7.3); consumers that care about
+uniform ranking should use the `rank` field, which is always present and
+starts at 1.
 
 `parent_symbol` is populated only on `method` chunks (carries the enclosing
 class name); `null` for all other chunk types.
 
 **Zero-result assist (`suggestions`).** When a search returns no results — no
-FTS/vector hit, or every hit fell below `similarity_threshold`, or the
-`chunk_type` / `only_exported` filters emptied the set — the tool does not
-return a bare dead end. It runs a relaxation pass and attaches a `suggestions`
-array of `{ symbol, file_path, reason }` "did you mean" candidates:
+FTS or vector hit at all, or the `chunk_type` / `only_exported` filters emptied
+the set — the tool does not return a bare dead end. It runs a relaxation pass
+and attaches a `suggestions` array of `{ symbol, file_path, reason }` "did you
+mean" candidates. (With rank-based vector inclusion, §7.3, a warm hybrid index
+almost always returns *something* for any query — so in practice the assist
+fires in `lexical` mode, on cold/empty indexes, and when post-filters empty the
+set; that is by design, since the vector neighbors themselves are the hybrid
+answer to a near-miss query.)
 
 ```json
 {
