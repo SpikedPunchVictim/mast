@@ -1,0 +1,385 @@
+{
+  "ranAt": "2026-07-15T19:06:34.179Z",
+  "variant": "pagerank d=0.85, same edge set (POTENTIAL_CALL, IMPLEMENTS)",
+  "iterations": 76,
+  "aggregate": {
+    "before": {
+      "ndcg": 0.4884,
+      "recall": 0.619,
+      "mrr": 0.4921
+    },
+    "pagerank": {
+      "ndcg": 0.4196,
+      "recall": 0.6012,
+      "mrr": 0.4387
+    },
+    "ndcgDelta": -0.0688
+  },
+  "worstPerQueryTierDelta": 3,
+  "perQuery": [
+    {
+      "id": "q01",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.3562,
+        "recall": 1,
+        "rr": 0.1667,
+        "firstRel": 6,
+        "tier": 2
+      },
+      "ndcgDeltaVsBefore": -0.0745,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q02",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.3155,
+        "recall": 1,
+        "rr": 0.125,
+        "firstRel": 8,
+        "tier": 3
+      },
+      "ndcgDeltaVsBefore": 0.3155,
+      "tierDeltaVsBefore": -1
+    },
+    {
+      "id": "q03",
+      "hard_class": "near-miss",
+      "pagerank": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": 0.349,
+      "tierDeltaVsBefore": -2
+    },
+    {
+      "id": "q04",
+      "hard_class": "qualified-method",
+      "pagerank": {
+        "ndcg": 0.2641,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "ndcgDeltaVsBefore": 0.0457,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q05",
+      "hard_class": "cross-file",
+      "pagerank": {
+        "ndcg": 0.148,
+        "recall": 0.3333,
+        "rr": 0.125,
+        "firstRel": 8,
+        "tier": 3
+      },
+      "ndcgDeltaVsBefore": -0.3213,
+      "tierDeltaVsBefore": 3
+    },
+    {
+      "id": "q06",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q07",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q08",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q09",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": -0.0803,
+      "tierDeltaVsBefore": -1
+    },
+    {
+      "id": "q10",
+      "hard_class": "near-miss",
+      "pagerank": {
+        "ndcg": 0.4307,
+        "recall": 1,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "ndcgDeltaVsBefore": 0.1297,
+      "tierDeltaVsBefore": -1
+    },
+    {
+      "id": "q11",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.3869,
+        "recall": 0.5,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDeltaVsBefore": 0.0803,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q12",
+      "hard_class": "near-miss",
+      "pagerank": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q13",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.6309,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDeltaVsBefore": -0.3691,
+      "tierDeltaVsBefore": 1
+    },
+    {
+      "id": "q14",
+      "hard_class": "cross-file",
+      "pagerank": {
+        "ndcg": 0.2641,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "ndcgDeltaVsBefore": 0.2641,
+      "tierDeltaVsBefore": -2
+    },
+    {
+      "id": "q15",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q16",
+      "hard_class": "qualified-method",
+      "pagerank": {
+        "ndcg": 0.5,
+        "recall": 1,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "ndcgDeltaVsBefore": -0.5,
+      "tierDeltaVsBefore": 1
+    },
+    {
+      "id": "q17",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q18",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.6309,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDeltaVsBefore": -0.3691,
+      "tierDeltaVsBefore": 1
+    },
+    {
+      "id": "q19",
+      "hard_class": "cross-file",
+      "pagerank": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDeltaVsBefore": -0.6509,
+      "tierDeltaVsBefore": 3
+    },
+    {
+      "id": "q20",
+      "hard_class": "qualified-method",
+      "pagerank": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": 0.3065,
+      "tierDeltaVsBefore": -1
+    },
+    {
+      "id": "q21",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.2641,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "ndcgDeltaVsBefore": -0.349,
+      "tierDeltaVsBefore": 2
+    },
+    {
+      "id": "q22",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.6053,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDeltaVsBefore": 0.0347,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q23",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.3869,
+        "recall": 1,
+        "rr": 0.2,
+        "firstRel": 5,
+        "tier": 2
+      },
+      "ndcgDeltaVsBefore": -0.244,
+      "tierDeltaVsBefore": 1
+    },
+    {
+      "id": "q24",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDeltaVsBefore": 0.0078,
+      "tierDeltaVsBefore": -1
+    },
+    {
+      "id": "q25",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q26",
+      "hard_class": "near-miss",
+      "pagerank": {
+        "ndcg": 0.5,
+        "recall": 1,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "ndcgDeltaVsBefore": -0.5,
+      "tierDeltaVsBefore": 1
+    },
+    {
+      "id": "q27",
+      "hard_class": "conceptual",
+      "pagerank": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    },
+    {
+      "id": "q28",
+      "hard_class": "cross-file",
+      "pagerank": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDeltaVsBefore": 0,
+      "tierDeltaVsBefore": 0
+    }
+  ]
+}

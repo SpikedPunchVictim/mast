@@ -1761,6 +1761,22 @@ file references resolve correctly.
 the enclosing class's `foo` method via the qualified `symbols` row. `super.foo()`
 resolves to the parent class via the `EXTENDS` edge.
 
+**Name resolution is file-scoped, not name-only.** When two files export a
+same-named symbol, `insertEdges`' name→id resolution (§10.3) uses the
+resolution rule's own file evidence to pick the target: `same_file` is scoped
+to the calling file itself; `import` is scoped to the import's own
+`resolved_path` (following the `re_export_files`/`RE_EXPORTS` chain into a
+barrel when the resolved file doesn't declare the symbol directly, per §6.3);
+`field_type`/`parameter_type`/`new_expression` are scoped the same way via
+the receiver's type name, when that type name is itself traceable to an
+import or a same-file declaration. Only when a rule has no such evidence
+(e.g. a default/namespace import, which is not tracked as a named import) does
+resolution fall back to a global name match — a known, narrow coverage gap,
+not the general case. Prior to 2026-07-15 every rule fell back to the global
+match unconditionally, so a same-named symbol in an earlier-indexed file could
+silently win a `verified_callers` edge that belonged to a different file
+(IMPLEMENTATION_PLAN_VEXP.md §P, "Shipped-resolver finding").
+
 ---
 
 ## 11. Hook Architecture
@@ -2263,6 +2279,14 @@ Reporting the upper bound is defensible because the methodology is documented an
 the label is honest. Reporting "X% savings" with no upper-bound qualifier would not
 survive scrutiny.
 
+**Implementation status.** `tokens_full_file_upper_bound` is computed — for each
+unique file in `files_referenced`, `estimateFullFileBound` (`telemetry/tokenizer.ts`)
+reads the file's full contents from the project root and sums `countTokens` over
+them, with an mtime-keyed cache so repeated calls against an unchanged file don't
+re-tokenize. It previously shipped as an unimplemented stub that always returned 0,
+which made `efficiency_ratio` a constant 0 across every recorded row (see the
+Promotion Log, 2026-07-15) — that regression is what this fixes.
+
 ### 14.3 The `metrics` Table
 
 Telemetry persists in `graph.db` (same SQLite database as the knowledge graph; one
@@ -2278,7 +2302,9 @@ CREATE TABLE IF NOT EXISTS metrics (
   duration_ms                     INTEGER NOT NULL,
   mode                            TEXT,                    -- "hybrid" | "lexical" | NULL
   session_id                      TEXT NOT NULL,           -- uuid set at mast serve startup
-  status                          TEXT NOT NULL            -- "ok" | "stale_returned" | "error"
+  status                          TEXT NOT NULL,           -- "ok" | "stale_returned" | "error"
+  args_json                       TEXT,                    -- salient tool arguments, capped at 1,000 chars
+  results_json                    TEXT                     -- {file_path, symbol_name} identity pairs, capped at 20 entries
 );
 
 CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(call_timestamp);
@@ -2301,6 +2327,22 @@ CREATE TABLE IF NOT EXISTS metrics_daily (
 (flushed every 1s or every 100 rows, whichever comes first) so the metrics path
 never blocks a tool response. Worst-case data loss on abrupt container exit is one
 flush window's worth of rows; acceptable for a savings metric.
+
+**Argument/result identity columns (`args_json`, `results_json`).** Added additively
+(`ALTER TABLE metrics ADD COLUMN`, same precedent as `edges.resolution`/`call_line`/
+`context` — no `CURRENT_SCHEMA_VERSION` bump) to make the "linked chain" measurable:
+did a later `mast_signature`/`mast_exports`/`mast_callers` call target a symbol or
+file that an earlier `mast_search` returned in the same session? This was the missing
+instrumentation the `mast_capsule` v2 hold identified (Promotion Log, 2026-07-15) —
+without it, a capsule chain-rate measurement can only be an argument-blind upper
+bound. `args_json` carries the salient tool arguments (query + filters for search;
+symbol and/or file_path for signature/exports/callers), capped at 1,000 characters;
+`results_json` carries the tool's returned `{file_path, symbol_name}` identity pairs
+in rank order, capped at 20 entries. Both caps are stated honestly in the payload
+when hit (`_truncated`) rather than silently cut. Wired for `mast_search`,
+`mast_signature`, `mast_exports`, and `mast_callers` — the chain-analysis tools the
+capsule decision depends on; both columns are `NULL` for every other tool and for
+rows recorded before this migration.
 
 ### 14.4 Rotation Policy
 

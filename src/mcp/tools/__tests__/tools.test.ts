@@ -45,6 +45,16 @@ export function double(n: number): number {
 }
 `;
 
+// A single large file whose full-file token count genuinely dominates a
+// single-chunk tool response — math.ts/models.ts are small enough that a
+// verbose per-result JSON shape (rank, scores, snippet, etc.) can outweigh
+// the whole file, which would make efficiency_ratio assertions about "chunks
+// beat full files" meaningless on those fixtures.
+const LARGE_SRC = Array.from(
+  { length: 60 },
+  (_, i) => `export function helper${i}(x: number): number {\n  return x + ${i};\n}\n`,
+).join('\n');
+
 const MODELS_SRC = `export interface Shape {
   area(): number;
   perimeter(): number;
@@ -127,6 +137,7 @@ beforeAll(async () => {
   writeFileSync(join(tmpDir, 'calc.ts'), CALC_SRC);
   writeFileSync(join(tmpDir, 'barrel.ts'), `export { Circle as Round } from './models';\n`);
   writeFileSync(join(tmpDir, 'star.ts'), `export * from './models';\n`);
+  writeFileSync(join(tmpDir, 'large.ts'), LARGE_SRC);
 
   const config = resolveConfig({ projectRoot: tmpDir });
   await runIndex(config, { incremental: false });
@@ -164,6 +175,17 @@ afterAll(async () => {
   await db.destroy();
   rmSync(tmpDir, { recursive: true, force: true });
 });
+
+/**
+ * `recordToolCall` is fire-and-forget from a tool handler's perspective
+ * (§14.3 "writes are non-blocking"). The underlying better-sqlite3 driver is
+ * synchronous, so its write completes within a handful of microtasks; a
+ * macrotask boundary is guaranteed to run after all of them, giving a
+ * deterministic (not timing-dependent) way to observe the row it wrote.
+ */
+async function flushPendingMetricsWrite(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 // ---------------------------------------------------------------------------
 // mast_search
@@ -215,6 +237,45 @@ describe('mast_search', () => {
   it('omits the suggestions field when results are present', async () => {
     const res = await call('mast_search', { query: 'add' }) as { suggestions?: unknown };
     expect(res.suggestions).toBeUndefined();
+  });
+
+  it('computes a real, nonzero full-file token bound and a bounded efficiency ratio', async () => {
+    // Regression test for the telemetry finding recorded in
+    // IMPLEMENTATION_PLAN_VEXP.md §P (2026-07-15): estimateFullFileBound was
+    // an unimplemented stub returning 0 for every recorded row, which made
+    // efficiency_ratio a constant 0 and killed the mast_efficiency signal.
+    // Targets large.ts (60 functions) specifically: on the tiny math.ts/
+    // models.ts fixtures a single verbose result's JSON overhead can exceed
+    // the whole file, which would make the "chunks beat full files" ratio
+    // assertion below meaningless.
+    const res = await call('mast_search', { query: 'helper42', file_pattern: 'large.ts' }) as {
+      _stats: { tokens_full_file_upper_bound: number; efficiency_ratio: number };
+    };
+    expect(res._stats.tokens_full_file_upper_bound).toBeGreaterThan(0);
+    expect(res._stats.efficiency_ratio).toBeGreaterThan(0);
+    expect(res._stats.efficiency_ratio).toBeLessThanOrEqual(1);
+  });
+
+  it('records the query in args_json and the returned identity pairs in results_json', async () => {
+    await call('mast_search', { query: 'add', limit: 3 });
+    await flushPendingMetricsWrite();
+
+    const row = await db
+      .selectFrom('metrics')
+      .selectAll()
+      .where('tool_name', '=', 'mast_search')
+      .where('session_id', '=', 'test-session')
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
+    expect(row).toBeDefined();
+    const parsedArgs = JSON.parse(row!.args_json!) as { query: string; limit: number };
+    expect(parsedArgs).toMatchObject({ query: 'add', limit: 3 });
+
+    const parsedResults = JSON.parse(row!.results_json!) as Array<{ file_path: string; symbol_name: string | null }>;
+    expect(parsedResults.length).toBeGreaterThan(0);
+    expect(parsedResults[0]).toHaveProperty('file_path');
+    expect(parsedResults[0]).toHaveProperty('symbol_name');
   });
 });
 
@@ -334,6 +395,37 @@ describe('mast_signature', () => {
     };
     expect(res.results[0]!.signature).toContain('class Circle implements Shape');
     expect(res.results[0]!.signature).not.toContain('area(');
+  });
+
+  it('computes a real, nonzero full-file token bound and a bounded efficiency ratio', async () => {
+    // Targets large.ts for the same reason as the mast_search variant above —
+    // a single signature's response is small relative to a 60-function file.
+    const res = await call('mast_signature', { symbol: 'helper42', file_path: 'large.ts' }) as {
+      _stats: { tokens_full_file_upper_bound: number; efficiency_ratio: number };
+    };
+    expect(res._stats.tokens_full_file_upper_bound).toBeGreaterThan(0);
+    expect(res._stats.efficiency_ratio).toBeGreaterThan(0);
+    expect(res._stats.efficiency_ratio).toBeLessThanOrEqual(1);
+  });
+
+  it('records the symbol/file_path in args_json and the returned identity pairs in results_json', async () => {
+    await call('mast_signature', { symbol: 'add', file_path: 'math.ts' });
+    await flushPendingMetricsWrite();
+
+    const row = await db
+      .selectFrom('metrics')
+      .selectAll()
+      .where('tool_name', '=', 'mast_signature')
+      .where('session_id', '=', 'test-session')
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
+    expect(row).toBeDefined();
+    const parsedArgs = JSON.parse(row!.args_json!) as { symbol: string; file_path: string };
+    expect(parsedArgs).toMatchObject({ symbol: 'add', file_path: 'math.ts' });
+
+    const parsedResults = JSON.parse(row!.results_json!) as Array<{ file_path: string; symbol_name: string | null }>;
+    expect(parsedResults).toEqual([{ file_path: 'math.ts', symbol_name: 'add' }]);
   });
 });
 

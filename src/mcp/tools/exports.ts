@@ -3,8 +3,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { ExportEntry, ExportsResponse } from '../../ast/types.js';
 import { join } from 'node:path';
-import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
-import { countTokens } from '../../telemetry/tokenizer.js';
+import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
+import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { extractFileSignatures } from '../../ast/extract.js';
 import { extractDoc, jitRefreshFile } from './_helpers.js';
 
@@ -45,16 +45,20 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
 
       const text = JSON.stringify(exports);
       const tokens = countTokens(text);
+      const tokensFullFileBound = estimateFullFileBound([args.file_path], ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
       const response: ExportsResponse = {
         file_path: args.file_path,
         exports,
-        _stats: buildToolStats('mast_exports', tokens, 0, [args.file_path], durationMs),
+        _stats: buildToolStats('mast_exports', tokens, tokensFullFileBound, [args.file_path], durationMs),
       };
+      const resultIdentities = exports.map((e) => ({ file_path: args.file_path, symbol_name: e.name }));
       void recordToolCall(ctx.db, {
-        toolName: 'mast_exports', tokensReturned: tokens, tokensFullFileBound: 0,
+        toolName: 'mast_exports', tokensReturned: tokens, tokensFullFileBound,
         durationMs, sessionId: ctx.sessionId, status: 'ok',
+        argsJson: buildArgsJson(args),
+        resultsJson: buildResultsJson(resultIdentities),
       }).catch(() => {});
       return { content: [{ type: 'text' as const, text: JSON.stringify(response) }] };
     },

@@ -80,6 +80,20 @@ interface MetricsTable {
   readonly mode: string | null;     // 'hybrid' | 'lexical' | null
   readonly session_id: string;
   readonly status: string;          // 'ok' | 'stale_returned' | 'error'
+  /**
+   * JSON of the salient tool arguments (query + filters for search; symbol
+   * and/or file_path for signature/exports/callers/etc.), capped at 1,000
+   * chars — the linked-chain measurability the capsule instrumentation
+   * decision needs (IMPLEMENTATION_PLAN_VEXP.md §P, 2026-07-15). Null for
+   * tools that do not yet record argument identity and for pre-migration rows.
+   */
+  readonly args_json: string | null;
+  /**
+   * JSON array of `{file_path, symbol_name}` identity pairs the tool
+   * returned, in rank order, capped at 20 entries. Null for tools that do
+   * not yet record result identity and for pre-migration rows.
+   */
+  readonly results_json: string | null;
 }
 
 interface MetricsDailyTable {
@@ -218,7 +232,9 @@ CREATE TABLE IF NOT EXISTS metrics (
   duration_ms                  INTEGER NOT NULL,
   mode                         TEXT,
   session_id                   TEXT NOT NULL,
-  status                       TEXT NOT NULL
+  status                       TEXT NOT NULL,
+  args_json                    TEXT,
+  results_json                 TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(call_timestamp);
@@ -272,6 +288,19 @@ export function openDatabase(stateDir: string): Db {
     ['context', 'ALTER TABLE edges ADD COLUMN context TEXT'],
   ] as const) {
     if (!edgeColumns.has(name)) sqlite.exec(ddl);
+  }
+
+  // Same additive-migration precedent for the metrics table's argument/result
+  // identity columns (§14.3) — added after some databases already had a
+  // `metrics` table, so `CREATE TABLE IF NOT EXISTS` alone would not add them.
+  const metricsColumns = new Set(
+    sqlite.prepare('PRAGMA table_info(metrics)').all().map((c) => (c as { name: string }).name),
+  );
+  for (const [name, ddl] of [
+    ['args_json', 'ALTER TABLE metrics ADD COLUMN args_json TEXT'],
+    ['results_json', 'ALTER TABLE metrics ADD COLUMN results_json TEXT'],
+  ] as const) {
+    if (!metricsColumns.has(name)) sqlite.exec(ddl);
   }
 
   return new Kysely<MastDatabase>({

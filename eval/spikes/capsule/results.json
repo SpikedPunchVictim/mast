@@ -1,0 +1,4756 @@
+{
+  "generatedAt": "2026-07-15T21:11:21.311Z",
+  "tokenizerLabel": "@anthropic-ai/tokenizer (claude-2 era, approximate for current models)",
+  "schemaCapability": {
+    "columnsPersisted": [
+      "id",
+      "tool_name",
+      "call_timestamp",
+      "tokens_returned",
+      "tokens_full_file_upper_bound",
+      "duration_ms",
+      "mode",
+      "session_id",
+      "status"
+    ],
+    "canEstablish": [
+      "which tools were called, in what order, within a session (via session_id + call_timestamp)",
+      "token counts returned per call (approximate, see tokenizer label)",
+      "call duration and status"
+    ],
+    "cannotEstablish": [
+      "tool arguments (query text, symbol name, file path passed to the call)",
+      "result identity (which files/symbols a mast_search response actually returned)",
+      "whether a later mast_signature/mast_exports call targeted a symbol the prior mast_search returned"
+    ],
+    "consequence": "The chain can only be measured as a LOOSE sequential upper bound (mast_search followed by mast_signature/mast_exports later in the same session_id, regardless of argument overlap). The tightened \"on a symbol/file the search returned\" version is not derivable from any currently-persisted column."
+  },
+  "pools": [
+    {
+      "pool": "A (kluster repo)",
+      "kind": "mixed interactive + SDD per-task ephemeral",
+      "inventory": [
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/.mast",
+          "rowCount": 24,
+          "metricsDailyRowCount": 13,
+          "sessionCount": 10,
+          "toolCounts": {
+            "mast_search": 18,
+            "mast_implementors": 1,
+            "mast_project_skeleton": 4,
+            "mast_exports": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-02T22:08:55.151Z",
+          "maxDate": "2026-07-11T22:43:52.843Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/kluser-kinetic-01/.kluster/.mast",
+          "rowCount": 58,
+          "metricsDailyRowCount": 5,
+          "sessionCount": 14,
+          "toolCounts": {
+            "mast_search": 51,
+            "mast_signature": 3,
+            "mast_project_skeleton": 2,
+            "mast_exports": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-05-14T22:13:23.933Z",
+          "maxDate": "2026-05-15T07:32:21.766Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301039812/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T08:04:08.770Z",
+          "maxDate": "2026-06-01T08:04:21.347Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301130084/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T08:05:42.350Z",
+          "maxDate": "2026-06-01T08:05:45.881Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-682c55ac-67d4-4b34-85be-d25604c0d681/llm/implementer-1780285770874/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_project_skeleton": 1,
+            "mast_search": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T03:49:40.425Z",
+          "maxDate": "2026-06-01T03:49:48.317Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299467335/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T07:37:52.886Z",
+          "maxDate": "2026-06-01T07:37:53.053Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299243928/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T07:34:10.063Z",
+          "maxDate": "2026-06-01T07:34:12.340Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299172039/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T07:33:02.162Z",
+          "maxDate": "2026-06-01T07:33:02.333Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299413182/.kluster/.mast",
+          "rowCount": 1,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T07:36:59.718Z",
+          "maxDate": "2026-06-01T07:36:59.718Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299574263/.kluster/.mast",
+          "rowCount": 1,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T07:39:40.070Z",
+          "maxDate": "2026-06-01T07:39:40.070Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299342873/.kluster/.mast",
+          "rowCount": 1,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T07:35:51.272Z",
+          "maxDate": "2026-06-01T07:35:51.272Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280303208/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T02:18:30.495Z",
+          "maxDate": "2026-06-01T02:18:30.609Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280163043/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T02:16:16.316Z",
+          "maxDate": "2026-06-01T02:16:16.724Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280448674/.kluster/.mast",
+          "rowCount": 1,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T02:20:57.284Z",
+          "maxDate": "2026-06-01T02:20:57.284Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-dc46ac09-395a-4e18-a164-f44b0f64c280/llm/architect-1780276500641/.kluster/.mast",
+          "rowCount": 1,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-01T01:15:13.943Z",
+          "maxDate": "2026-06-01T01:15:13.943Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478163697/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T09:18:25.645Z",
+          "maxDate": "2026-06-03T09:18:25.962Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478937193/.kluster/.mast",
+          "rowCount": 3,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T09:31:24.997Z",
+          "maxDate": "2026-06-03T09:31:29.357Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478449746/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T09:23:13.424Z",
+          "maxDate": "2026-06-03T09:23:13.674Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780479417269/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T09:39:14.346Z",
+          "maxDate": "2026-06-03T09:39:14.597Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478664831/.kluster/.mast",
+          "rowCount": 3,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T09:26:38.403Z",
+          "maxDate": "2026-06-03T09:26:42.143Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514879685/.kluster/.mast",
+          "rowCount": 4,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 3,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T19:30:52.162Z",
+          "maxDate": "2026-06-03T19:30:55.412Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514085365/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T19:18:09.108Z",
+          "maxDate": "2026-06-03T19:18:09.654Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514635925/.kluster/.mast",
+          "rowCount": 2,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T19:26:45.813Z",
+          "maxDate": "2026-06-03T19:26:45.996Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514429893/.kluster/.mast",
+          "rowCount": 3,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_search": 2,
+            "mast_project_skeleton": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-03T19:22:39.931Z",
+          "maxDate": "2026-06-03T19:22:42.342Z"
+        }
+      ],
+      "aggregate": {
+        "storesWithData": 24,
+        "totalRows": 126,
+        "totalSessions": 46,
+        "toolCounts": {
+          "mast_search": 104,
+          "mast_implementors": 1,
+          "mast_project_skeleton": 15,
+          "mast_exports": 3,
+          "mast_signature": 3
+        },
+        "mastCallersCalls": 0,
+        "mastDependenciesCalls": 0,
+        "mastSignatureCalls": 3,
+        "mastExportsCalls": 3,
+        "rowsWithNonzeroFullFileBound": 0
+      },
+      "question1": {
+        "definition": "loose upper bound: mast_search followed later in same session by mast_signature or mast_exports",
+        "sessionsWithChain": 3,
+        "totalSessions": 46,
+        "chainSessionRatePct": 6.52,
+        "eligibleSessions": 38,
+        "chainRateAmongEligiblePct": 7.89,
+        "chainsPerSessionDistribution": {
+          "min": 0,
+          "median": 0,
+          "max": 11
+        },
+        "totalChainsFound": 18,
+        "chainTokenCost": {
+          "medianTokens": 2438,
+          "p90Tokens": 5441,
+          "note": "sum of tokens_returned for the search call + the follow-on call; approximate tokenizer counts, ratios are the robust number (§14.5)"
+        },
+        "chainDetails": [
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 5,
+            "gapSeconds": 4.401,
+            "searchTokens": 9,
+            "followTokens": 504,
+            "totalTokens": 513
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 4.288,
+            "searchTokens": 9,
+            "followTokens": 504,
+            "totalTokens": 513
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 4.144,
+            "searchTokens": 3261,
+            "followTokens": 504,
+            "totalTokens": 3765
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 0.259,
+            "searchTokens": 9,
+            "followTokens": 504,
+            "totalTokens": 513
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.14,
+            "searchTokens": 9,
+            "followTokens": 504,
+            "totalTokens": 513
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 6,
+            "gapSeconds": 68.385,
+            "searchTokens": 2154,
+            "followTokens": 3287,
+            "totalTokens": 5441
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 5,
+            "gapSeconds": 68.257,
+            "searchTokens": 2967,
+            "followTokens": 3287,
+            "totalTokens": 6254
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 68.155,
+            "searchTokens": 721,
+            "followTokens": 3287,
+            "totalTokens": 4008
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 57.364,
+            "searchTokens": 9,
+            "followTokens": 3287,
+            "totalTokens": 3296
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 45.141,
+            "searchTokens": 9,
+            "followTokens": 3287,
+            "totalTokens": 3296
+          },
+          {
+            "session": "0d792a57-388f-4473-a38d-be144d558cec",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.185,
+            "searchTokens": 1030,
+            "followTokens": 3287,
+            "totalTokens": 4317
+          },
+          {
+            "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+            "followTool": "mast_signature",
+            "gapCalls": 6,
+            "gapSeconds": 10.124,
+            "searchTokens": 1622,
+            "followTokens": 1,
+            "totalTokens": 1623
+          },
+          {
+            "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+            "followTool": "mast_signature",
+            "gapCalls": 5,
+            "gapSeconds": 9.907,
+            "searchTokens": 9,
+            "followTokens": 1,
+            "totalTokens": 10
+          },
+          {
+            "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 9.811,
+            "searchTokens": 9,
+            "followTokens": 1,
+            "totalTokens": 10
+          },
+          {
+            "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 4.441,
+            "searchTokens": 611,
+            "followTokens": 1,
+            "totalTokens": 612
+          },
+          {
+            "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 4.106,
+            "searchTokens": 3252,
+            "followTokens": 1,
+            "totalTokens": 3253
+          },
+          {
+            "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 4.002,
+            "searchTokens": 9,
+            "followTokens": 1,
+            "totalTokens": 10
+          },
+          {
+            "session": "d2b5ed6f-e0a6-4a19-9844-93679df6b591",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.656,
+            "searchTokens": 9,
+            "followTokens": 4272,
+            "totalTokens": 4281
+          }
+        ],
+        "perStoreBreakdown": [
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/.mast",
+            "sessionCount": 10,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/kluser-kinetic-01/.kluster/.mast",
+            "sessionCount": 14,
+            "sessionsWithChain": 3,
+            "ratePct": 21.43
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301039812/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301130084/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-682c55ac-67d4-4b34-85be-d25604c0d681/llm/implementer-1780285770874/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299467335/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299243928/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299172039/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299413182/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299574263/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299342873/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280303208/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280163043/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280448674/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-dc46ac09-395a-4e18-a164-f44b0f64c280/llm/architect-1780276500641/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478163697/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478937193/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478449746/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780479417269/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478664831/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514879685/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514085365/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514635925/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514429893/.kluster/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          }
+        ],
+        "mechanicalGate": "DEMOTE (<10% of sessions)"
+      },
+      "question2": {
+        "applicable": true,
+        "reconstructionPossible": false,
+        "reconstructionBlockedBy": "metrics table has no query text and no result file/symbol identity — cannot verify whether the two calls in a chain returned overlapping content, which is the mechanism a capsule saves tokens through",
+        "boundedEstimateAssumption": "capsuleTokens = min(token_budget, chainTotalTokens) — an upper bound per plan §Stage 2.1 fallback, not a measurement of real savings",
+        "budget2000": {
+          "budget": 2000,
+          "chainsConsidered": 18,
+          "chainsRequiringTruncation": 9,
+          "medianSavingPct": 19.3,
+          "note": "Saving % is meaningful ONLY for chains where chainTotal <= budget (0% — no truncation). Where chainTotal > budget, the reported saving is an artifact of the budget cutting off content, not genuine deduplication."
+        },
+        "budget4000": {
+          "budget": 4000,
+          "chainsConsidered": 18,
+          "chainsRequiringTruncation": 5,
+          "medianSavingPct": 0,
+          "note": "Saving % is meaningful ONLY for chains where chainTotal <= budget (0% — no truncation). Where chainTotal > budget, the reported saving is an artifact of the budget cutting off content, not genuine deduplication."
+        }
+      }
+    },
+    {
+      "pool": "B (kluster-workbench builds)",
+      "kind": "automated SDD/fold build pipeline sessions",
+      "inventory": [
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-kimik27-01/.fold/.mast",
+          "rowCount": 61,
+          "metricsDailyRowCount": 7,
+          "sessionCount": 14,
+          "toolCounts": {
+            "mast_signature": 31,
+            "mast_exports": 10,
+            "mast_project_skeleton": 15,
+            "mast_search": 5
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-11T18:43:17.409Z",
+          "maxDate": "2026-07-12T00:05:34.976Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/echo-kimi-01/.fold/.mast",
+          "rowCount": 58,
+          "metricsDailyRowCount": 7,
+          "sessionCount": 13,
+          "toolCounts": {
+            "mast_signature": 21,
+            "mast_search": 22,
+            "mast_exports": 13,
+            "mast_project_skeleton": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-09T22:51:27.979Z",
+          "maxDate": "2026-07-10T00:14:49.197Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-sonnet-01/.fold/.mast",
+          "rowCount": 89,
+          "metricsDailyRowCount": 4,
+          "sessionCount": 14,
+          "toolCounts": {
+            "mast_exports": 20,
+            "mast_signature": 49,
+            "mast_search": 14,
+            "mast_project_skeleton": 6
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-09T00:26:43.822Z",
+          "maxDate": "2026-07-09T06:37:25.102Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/ecommerce-W1/.fold/.mast",
+          "rowCount": 10,
+          "metricsDailyRowCount": 2,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_project_skeleton": 2,
+            "mast_exports": 8
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-25T06:25:44.515Z",
+          "maxDate": "2026-06-25T06:33:18.180Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-01/.fold/.mast",
+          "rowCount": 560,
+          "metricsDailyRowCount": 6,
+          "sessionCount": 78,
+          "toolCounts": {
+            "mast_signature": 223,
+            "mast_exports": 132,
+            "mast_search": 117,
+            "mast_project_skeleton": 81,
+            "mast_dependencies": 6,
+            "mast_callers": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-12T01:31:02.834Z",
+          "maxDate": "2026-07-12T08:10:05.043Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/study-intake-02/.fold/.mast",
+          "rowCount": 1,
+          "metricsDailyRowCount": 1,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_exports": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-19T07:57:02.907Z",
+          "maxDate": "2026-06-19T07:57:02.907Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-minimax3-01/.fold/.mast",
+          "rowCount": 323,
+          "metricsDailyRowCount": 8,
+          "sessionCount": 48,
+          "toolCounts": {
+            "mast_signature": 142,
+            "mast_project_skeleton": 41,
+            "mast_search": 80,
+            "mast_exports": 60
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-10T23:15:23.021Z",
+          "maxDate": "2026-07-11T05:06:23.385Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/file-vault-W1/.fold/.mast",
+          "rowCount": 5,
+          "metricsDailyRowCount": 3,
+          "sessionCount": 1,
+          "toolCounts": {
+            "mast_project_skeleton": 1,
+            "mast_exports": 3,
+            "mast_search": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-06-24T22:48:34.907Z",
+          "maxDate": "2026-06-24T22:49:34.593Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-03/.fold/.mast",
+          "rowCount": 291,
+          "metricsDailyRowCount": 6,
+          "sessionCount": 58,
+          "toolCounts": {
+            "mast_project_skeleton": 69,
+            "mast_search": 77,
+            "mast_exports": 42,
+            "mast_signature": 92,
+            "mast_dependencies": 9,
+            "mast_callers": 2
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-15T16:36:10.242Z",
+          "maxDate": "2026-07-15T21:03:32.200Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-deepseekv4flash-01/.fold/.mast",
+          "rowCount": 91,
+          "metricsDailyRowCount": 4,
+          "sessionCount": 24,
+          "toolCounts": {
+            "mast_project_skeleton": 15,
+            "mast_search": 29,
+            "mast_signature": 43,
+            "mast_exports": 4
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-11T06:54:59.207Z",
+          "maxDate": "2026-07-11T08:37:38.075Z"
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/.fold/.mast",
+          "rowCount": 501,
+          "metricsDailyRowCount": 6,
+          "sessionCount": 85,
+          "toolCounts": {
+            "mast_search": 94,
+            "mast_project_skeleton": 80,
+            "mast_signature": 242,
+            "mast_exports": 80,
+            "mast_dependencies": 4,
+            "mast_callers": 1
+          },
+          "nonzeroFullFileBoundRows": 0,
+          "minDate": "2026-07-14T07:33:31.309Z",
+          "maxDate": "2026-07-14T15:45:03.152Z"
+        }
+      ],
+      "aggregate": {
+        "storesWithData": 11,
+        "totalRows": 1990,
+        "totalSessions": 337,
+        "toolCounts": {
+          "mast_signature": 843,
+          "mast_exports": 373,
+          "mast_project_skeleton": 312,
+          "mast_search": 439,
+          "mast_dependencies": 19,
+          "mast_callers": 4
+        },
+        "mastCallersCalls": 4,
+        "mastDependenciesCalls": 19,
+        "mastSignatureCalls": 843,
+        "mastExportsCalls": 373,
+        "rowsWithNonzeroFullFileBound": 0
+      },
+      "question1": {
+        "definition": "loose upper bound: mast_search followed later in same session by mast_signature or mast_exports",
+        "sessionsWithChain": 72,
+        "totalSessions": 337,
+        "chainSessionRatePct": 21.36,
+        "eligibleSessions": 296,
+        "chainRateAmongEligiblePct": 24.32,
+        "chainsPerSessionDistribution": {
+          "min": 0,
+          "median": 0,
+          "max": 11
+        },
+        "totalChainsFound": 158,
+        "chainTokenCost": {
+          "medianTokens": 2100.5,
+          "p90Tokens": 4295,
+          "note": "sum of tokens_returned for the search call + the follow-on call; approximate tokenizer counts, ratios are the robust number (§14.5)"
+        },
+        "chainDetails": [
+          {
+            "session": "a1196089-958e-477c-a7f0-3f3232050a07",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.176,
+            "searchTokens": 894,
+            "followTokens": 189,
+            "totalTokens": 1083
+          },
+          {
+            "session": "1c087aa2-8aa1-4a42-81c8-2c7c880a26a4",
+            "followTool": "mast_exports",
+            "gapCalls": 3,
+            "gapSeconds": 4.859,
+            "searchTokens": 242,
+            "followTokens": 132,
+            "totalTokens": 374
+          },
+          {
+            "session": "1c087aa2-8aa1-4a42-81c8-2c7c880a26a4",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 3.867,
+            "searchTokens": 157,
+            "followTokens": 132,
+            "totalTokens": 289
+          },
+          {
+            "session": "1c087aa2-8aa1-4a42-81c8-2c7c880a26a4",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.527,
+            "searchTokens": 342,
+            "followTokens": 132,
+            "totalTokens": 474
+          },
+          {
+            "session": "401cccae-a38d-430a-9385-f27adae03023",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.455,
+            "searchTokens": 551,
+            "followTokens": 74,
+            "totalTokens": 625
+          },
+          {
+            "session": "b2e2673c-9aa3-4207-a9f0-47a1a35e2329",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 7.139,
+            "searchTokens": 333,
+            "followTokens": 78,
+            "totalTokens": 411
+          },
+          {
+            "session": "b2e2673c-9aa3-4207-a9f0-47a1a35e2329",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 6.995,
+            "searchTokens": 321,
+            "followTokens": 78,
+            "totalTokens": 399
+          },
+          {
+            "session": "de7ad925-bc76-4067-b9af-c1d1d2826998",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 2.18,
+            "searchTokens": 343,
+            "followTokens": 371,
+            "totalTokens": 714
+          },
+          {
+            "session": "de7ad925-bc76-4067-b9af-c1d1d2826998",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 1.674,
+            "searchTokens": 164,
+            "followTokens": 371,
+            "totalTokens": 535
+          },
+          {
+            "session": "de7ad925-bc76-4067-b9af-c1d1d2826998",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 67.928,
+            "searchTokens": 381,
+            "followTokens": 98,
+            "totalTokens": 479
+          },
+          {
+            "session": "ee0de161-94f8-4892-9105-d7d76a4f2bd7",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 3.079,
+            "searchTokens": 140,
+            "followTokens": 78,
+            "totalTokens": 218
+          },
+          {
+            "session": "fe0917ad-80da-4434-9078-6dfa83532541",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 1.87,
+            "searchTokens": 2392,
+            "followTokens": 155,
+            "totalTokens": 2547
+          },
+          {
+            "session": "40baa329-8afa-4bcb-a415-526de5f13e33",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 4.886,
+            "searchTokens": 283,
+            "followTokens": 52,
+            "totalTokens": 335
+          },
+          {
+            "session": "4e5ceb49-8d43-4dcb-90ed-fa4d3a09abb7",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 5.545,
+            "searchTokens": 297,
+            "followTokens": 73,
+            "totalTokens": 370
+          },
+          {
+            "session": "4e5ceb49-8d43-4dcb-90ed-fa4d3a09abb7",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 5.43,
+            "searchTokens": 177,
+            "followTokens": 73,
+            "totalTokens": 250
+          },
+          {
+            "session": "4e5ceb49-8d43-4dcb-90ed-fa4d3a09abb7",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.041,
+            "searchTokens": 147,
+            "followTokens": 120,
+            "totalTokens": 267
+          },
+          {
+            "session": "5e9c05a5-ee1e-47cf-9383-25f6ad200f15",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 5.518,
+            "searchTokens": 342,
+            "followTokens": 70,
+            "totalTokens": 412
+          },
+          {
+            "session": "5e9c05a5-ee1e-47cf-9383-25f6ad200f15",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 5.086,
+            "searchTokens": 238,
+            "followTokens": 70,
+            "totalTokens": 308
+          },
+          {
+            "session": "93a15823-ee67-4fcf-96ad-580b07305739",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 5.682,
+            "searchTokens": 273,
+            "followTokens": 52,
+            "totalTokens": 325
+          },
+          {
+            "session": "02d409c5-7ec5-4c17-9a11-506eed32b26a",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 6.314,
+            "searchTokens": 2120,
+            "followTokens": 249,
+            "totalTokens": 2369
+          },
+          {
+            "session": "02d409c5-7ec5-4c17-9a11-506eed32b26a",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 6.165,
+            "searchTokens": 2185,
+            "followTokens": 249,
+            "totalTokens": 2434
+          },
+          {
+            "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+            "followTool": "mast_signature",
+            "gapCalls": 5,
+            "gapSeconds": 6.534,
+            "searchTokens": 2909,
+            "followTokens": 66,
+            "totalTokens": 2975
+          },
+          {
+            "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 4.976,
+            "searchTokens": 1883,
+            "followTokens": 66,
+            "totalTokens": 1949
+          },
+          {
+            "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 4.834,
+            "searchTokens": 2957,
+            "followTokens": 66,
+            "totalTokens": 3023
+          },
+          {
+            "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 1.561,
+            "searchTokens": 3862,
+            "followTokens": 66,
+            "totalTokens": 3928
+          },
+          {
+            "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 1.452,
+            "searchTokens": 2380,
+            "followTokens": 66,
+            "totalTokens": 2446
+          },
+          {
+            "session": "10e6e3d6-c64b-4b66-9ade-b43a89c1ae24",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 1.846,
+            "searchTokens": 2196,
+            "followTokens": 54,
+            "totalTokens": 2250
+          },
+          {
+            "session": "10e6e3d6-c64b-4b66-9ade-b43a89c1ae24",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 1.729,
+            "searchTokens": 1710,
+            "followTokens": 54,
+            "totalTokens": 1764
+          },
+          {
+            "session": "12cfe3fb-f4c6-46df-a062-930c9f132509",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 5.621,
+            "searchTokens": 321,
+            "followTokens": 1034,
+            "totalTokens": 1355
+          },
+          {
+            "session": "28968b04-e6ea-43ec-8f08-7f61ed5caa30",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 11.936,
+            "searchTokens": 2295,
+            "followTokens": 1,
+            "totalTokens": 2296
+          },
+          {
+            "session": "28968b04-e6ea-43ec-8f08-7f61ed5caa30",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 11.761,
+            "searchTokens": 2433,
+            "followTokens": 1,
+            "totalTokens": 2434
+          },
+          {
+            "session": "28968b04-e6ea-43ec-8f08-7f61ed5caa30",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.034,
+            "searchTokens": 2370,
+            "followTokens": 1,
+            "totalTokens": 2371
+          },
+          {
+            "session": "47d2213e-5f2c-4b2d-8e0f-ceffcf7d455d",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.088,
+            "searchTokens": 2767,
+            "followTokens": 1,
+            "totalTokens": 2768
+          },
+          {
+            "session": "50b1ae9c-9668-4ce1-aa72-ef5dad8a8999",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 4.945,
+            "searchTokens": 1903,
+            "followTokens": 62,
+            "totalTokens": 1965
+          },
+          {
+            "session": "50b1ae9c-9668-4ce1-aa72-ef5dad8a8999",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 4.843,
+            "searchTokens": 1924,
+            "followTokens": 62,
+            "totalTokens": 1986
+          },
+          {
+            "session": "50b1ae9c-9668-4ce1-aa72-ef5dad8a8999",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 4.757,
+            "searchTokens": 2061,
+            "followTokens": 62,
+            "totalTokens": 2123
+          },
+          {
+            "session": "57eaf22a-0b3f-472a-862f-9b30f98abf30",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 12.614,
+            "searchTokens": 4759,
+            "followTokens": 1,
+            "totalTokens": 4760
+          },
+          {
+            "session": "57eaf22a-0b3f-472a-862f-9b30f98abf30",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 10.211,
+            "searchTokens": 4586,
+            "followTokens": 1,
+            "totalTokens": 4587
+          },
+          {
+            "session": "6bf56af4-6772-46d6-a8a7-0ada7267d545",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.279,
+            "searchTokens": 4874,
+            "followTokens": 105,
+            "totalTokens": 4979
+          },
+          {
+            "session": "6fe2d5c3-4c11-4853-aedc-a069a26f52f5",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 1.667,
+            "searchTokens": 5178,
+            "followTokens": 113,
+            "totalTokens": 5291
+          },
+          {
+            "session": "7d27860f-4107-4e32-9ec7-541481c14508",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 1.753,
+            "searchTokens": 742,
+            "followTokens": 1,
+            "totalTokens": 743
+          },
+          {
+            "session": "8267ba14-bd11-4625-aead-48f05e1bc2db",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 3.338,
+            "searchTokens": 2354,
+            "followTokens": 76,
+            "totalTokens": 2430
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 2.81,
+            "searchTokens": 3679,
+            "followTokens": 98,
+            "totalTokens": 3777
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 2.556,
+            "searchTokens": 2770,
+            "followTokens": 98,
+            "totalTokens": 2868
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 2.387,
+            "searchTokens": 2116,
+            "followTokens": 98,
+            "totalTokens": 2214
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 2.252,
+            "searchTokens": 3899,
+            "followTokens": 98,
+            "totalTokens": 3997
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 12.739,
+            "searchTokens": 5957,
+            "followTokens": 311,
+            "totalTokens": 6268
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 9.14,
+            "searchTokens": 10642,
+            "followTokens": 311,
+            "totalTokens": 10953
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 7.73,
+            "searchTokens": 3711,
+            "followTokens": 1,
+            "totalTokens": 3712
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 3.818,
+            "searchTokens": 6150,
+            "followTokens": 1,
+            "totalTokens": 6151
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 35.453,
+            "searchTokens": 2210,
+            "followTokens": 63,
+            "totalTokens": 2273
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 34.019,
+            "searchTokens": 2192,
+            "followTokens": 63,
+            "totalTokens": 2255
+          },
+          {
+            "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 12.547,
+            "searchTokens": 4927,
+            "followTokens": 63,
+            "totalTokens": 4990
+          },
+          {
+            "session": "e2bd9d92-3e9c-42b8-8ac3-3b87c02bc9bd",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 6.3,
+            "searchTokens": 4216,
+            "followTokens": 65,
+            "totalTokens": 4281
+          },
+          {
+            "session": "ef4933fe-5c2c-4274-8f36-e0679b59f914",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 0.109,
+            "searchTokens": 2597,
+            "followTokens": 249,
+            "totalTokens": 2846
+          },
+          {
+            "session": "00175c79-fa6d-4478-8387-da5ce1cfb4c8",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 5.82,
+            "searchTokens": 1390,
+            "followTokens": 85,
+            "totalTokens": 1475
+          },
+          {
+            "session": "00175c79-fa6d-4478-8387-da5ce1cfb4c8",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.185,
+            "searchTokens": 1381,
+            "followTokens": 85,
+            "totalTokens": 1466
+          },
+          {
+            "session": "04de2db3-c641-4a25-a490-de4d8c691be6",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.075,
+            "searchTokens": 1738,
+            "followTokens": 157,
+            "totalTokens": 1895
+          },
+          {
+            "session": "04de2db3-c641-4a25-a490-de4d8c691be6",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.067,
+            "searchTokens": 466,
+            "followTokens": 1,
+            "totalTokens": 467
+          },
+          {
+            "session": "133d2e74-8c06-4cb5-a2b7-3ea4abac3d5f",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 90.068,
+            "searchTokens": 2216,
+            "followTokens": 1,
+            "totalTokens": 2217
+          },
+          {
+            "session": "20b41e20-0770-4b7e-8a72-bb2f10db041b",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 3.995,
+            "searchTokens": 868,
+            "followTokens": 157,
+            "totalTokens": 1025
+          },
+          {
+            "session": "324a4ca9-a0c4-475a-bbb0-978d53f0ef85",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.468,
+            "searchTokens": 1412,
+            "followTokens": 107,
+            "totalTokens": 1519
+          },
+          {
+            "session": "366e1be2-b6d7-4e62-8e85-df6e6fb63199",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 2.78,
+            "searchTokens": 182,
+            "followTokens": 312,
+            "totalTokens": 494
+          },
+          {
+            "session": "366e1be2-b6d7-4e62-8e85-df6e6fb63199",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 2.716,
+            "searchTokens": 156,
+            "followTokens": 312,
+            "totalTokens": 468
+          },
+          {
+            "session": "366e1be2-b6d7-4e62-8e85-df6e6fb63199",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.045,
+            "searchTokens": 155,
+            "followTokens": 255,
+            "totalTokens": 410
+          },
+          {
+            "session": "4ba494e3-e8dc-47c6-8089-bff898d61860",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 4.682,
+            "searchTokens": 1504,
+            "followTokens": 255,
+            "totalTokens": 1759
+          },
+          {
+            "session": "4bcfe373-519f-4f77-8244-a70590b4f152",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 4.63,
+            "searchTokens": 171,
+            "followTokens": 140,
+            "totalTokens": 311
+          },
+          {
+            "session": "4bcfe373-519f-4f77-8244-a70590b4f152",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 2.236,
+            "searchTokens": 370,
+            "followTokens": 140,
+            "totalTokens": 510
+          },
+          {
+            "session": "57b92377-c7d7-479e-8c9a-69ecaaccf1b1",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 2.452,
+            "searchTokens": 1759,
+            "followTokens": 1,
+            "totalTokens": 1760
+          },
+          {
+            "session": "7ffa847f-4786-4f0f-a329-c88e27fa97f0",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.239,
+            "searchTokens": 1667,
+            "followTokens": 61,
+            "totalTokens": 1728
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 2.945,
+            "searchTokens": 805,
+            "followTokens": 1,
+            "totalTokens": 806
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 2.815,
+            "searchTokens": 1320,
+            "followTokens": 1,
+            "totalTokens": 1321
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 2.717,
+            "searchTokens": 1467,
+            "followTokens": 1,
+            "totalTokens": 1468
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 6,
+            "gapSeconds": 7.491,
+            "searchTokens": 813,
+            "followTokens": 1,
+            "totalTokens": 814
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 5,
+            "gapSeconds": 7.407,
+            "searchTokens": 810,
+            "followTokens": 1,
+            "totalTokens": 811
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 3.787,
+            "searchTokens": 746,
+            "followTokens": 1,
+            "totalTokens": 747
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 3.693,
+            "searchTokens": 542,
+            "followTokens": 1,
+            "totalTokens": 543
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 3.613,
+            "searchTokens": 1050,
+            "followTokens": 1,
+            "totalTokens": 1051
+          },
+          {
+            "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.035,
+            "searchTokens": 503,
+            "followTokens": 1,
+            "totalTokens": 504
+          },
+          {
+            "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.06,
+            "searchTokens": 1053,
+            "followTokens": 214,
+            "totalTokens": 1267
+          },
+          {
+            "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 0.041,
+            "searchTokens": 642,
+            "followTokens": 216,
+            "totalTokens": 858
+          },
+          {
+            "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 0.052,
+            "searchTokens": 771,
+            "followTokens": 231,
+            "totalTokens": 1002
+          },
+          {
+            "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.77,
+            "searchTokens": 2525,
+            "followTokens": 1,
+            "totalTokens": 2526
+          },
+          {
+            "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.03,
+            "searchTokens": 1128,
+            "followTokens": 1,
+            "totalTokens": 1129
+          },
+          {
+            "session": "aa0f5506-5f95-4770-b070-caf2f83c47d6",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.043,
+            "searchTokens": 146,
+            "followTokens": 157,
+            "totalTokens": 303
+          },
+          {
+            "session": "b1c94637-c6c7-4065-ab81-87f3fd8f350d",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 17.207,
+            "searchTokens": 462,
+            "followTokens": 1,
+            "totalTokens": 463
+          },
+          {
+            "session": "c5a03a57-1866-465d-bfba-f1fec92c1199",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 4.268,
+            "searchTokens": 701,
+            "followTokens": 1,
+            "totalTokens": 702
+          },
+          {
+            "session": "c5a03a57-1866-465d-bfba-f1fec92c1199",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 4.124,
+            "searchTokens": 770,
+            "followTokens": 1,
+            "totalTokens": 771
+          },
+          {
+            "session": "c5a03a57-1866-465d-bfba-f1fec92c1199",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.046,
+            "searchTokens": 79,
+            "followTokens": 108,
+            "totalTokens": 187
+          },
+          {
+            "session": "cb2dc841-d60f-473c-a917-ca5977c58751",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 14.698,
+            "searchTokens": 868,
+            "followTokens": 189,
+            "totalTokens": 1057
+          },
+          {
+            "session": "cbc3297c-73cf-42b0-90a9-b853ee68b3be",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 0.169,
+            "searchTokens": 699,
+            "followTokens": 99,
+            "totalTokens": 798
+          },
+          {
+            "session": "e051fc9c-96af-4177-8f20-b31ba0eb8d1c",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 2.558,
+            "searchTokens": 893,
+            "followTokens": 1,
+            "totalTokens": 894
+          },
+          {
+            "session": "f0bf7073-7389-4133-9773-f99bfe2dad74",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 5.004,
+            "searchTokens": 952,
+            "followTokens": 1,
+            "totalTokens": 953
+          },
+          {
+            "session": "f0bf7073-7389-4133-9773-f99bfe2dad74",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 5.698,
+            "searchTokens": 531,
+            "followTokens": 313,
+            "totalTokens": 844
+          },
+          {
+            "session": "0416b356-238a-4c33-95ca-0830ba4dff05",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.49,
+            "searchTokens": 3982,
+            "followTokens": 1,
+            "totalTokens": 3983
+          },
+          {
+            "session": "1cd9b604-0a83-41d2-b8f1-9fd35b269cf3",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.082,
+            "searchTokens": 3490,
+            "followTokens": 1,
+            "totalTokens": 3491
+          },
+          {
+            "session": "3fa2eca1-ad60-49cd-bee3-76fc696a98f9",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 3.3,
+            "searchTokens": 3928,
+            "followTokens": 1,
+            "totalTokens": 3929
+          },
+          {
+            "session": "63d629d3-04de-4c23-8061-0ffd98ef4153",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 2.369,
+            "searchTokens": 1955,
+            "followTokens": 1,
+            "totalTokens": 1956
+          },
+          {
+            "session": "63d629d3-04de-4c23-8061-0ffd98ef4153",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 2.2,
+            "searchTokens": 1966,
+            "followTokens": 1,
+            "totalTokens": 1967
+          },
+          {
+            "session": "69feb1d0-5998-4f14-8eb0-bd47bedeb0ab",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 0.264,
+            "searchTokens": 1820,
+            "followTokens": 250,
+            "totalTokens": 2070
+          },
+          {
+            "session": "69feb1d0-5998-4f14-8eb0-bd47bedeb0ab",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.062,
+            "searchTokens": 2156,
+            "followTokens": 250,
+            "totalTokens": 2406
+          },
+          {
+            "session": "81894342-1199-44f3-9545-71ebc132abee",
+            "followTool": "mast_exports",
+            "gapCalls": 3,
+            "gapSeconds": 7.483,
+            "searchTokens": 2001,
+            "followTokens": 826,
+            "totalTokens": 2827
+          },
+          {
+            "session": "81894342-1199-44f3-9545-71ebc132abee",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 3.494,
+            "searchTokens": 1769,
+            "followTokens": 826,
+            "totalTokens": 2595
+          },
+          {
+            "session": "81894342-1199-44f3-9545-71ebc132abee",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.308,
+            "searchTokens": 1709,
+            "followTokens": 826,
+            "totalTokens": 2535
+          },
+          {
+            "session": "81c66653-927d-475d-82c1-e819f7d701a1",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 137.206,
+            "searchTokens": 3585,
+            "followTokens": 926,
+            "totalTokens": 4511
+          },
+          {
+            "session": "81c66653-927d-475d-82c1-e819f7d701a1",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 137.096,
+            "searchTokens": 3525,
+            "followTokens": 926,
+            "totalTokens": 4451
+          },
+          {
+            "session": "897cc63e-f78e-4bb7-b9d8-c3576b8b4805",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.199,
+            "searchTokens": 2512,
+            "followTokens": 1554,
+            "totalTokens": 4066
+          },
+          {
+            "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 7.235,
+            "searchTokens": 2622,
+            "followTokens": 1,
+            "totalTokens": 2623
+          },
+          {
+            "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 7.106,
+            "searchTokens": 2613,
+            "followTokens": 1,
+            "totalTokens": 2614
+          },
+          {
+            "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.136,
+            "searchTokens": 2625,
+            "followTokens": 1,
+            "totalTokens": 2626
+          },
+          {
+            "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 27.279,
+            "searchTokens": 1691,
+            "followTokens": 1,
+            "totalTokens": 1692
+          },
+          {
+            "session": "b7e9f1e6-40eb-4032-8e8b-9287d0226ae2",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 2.714,
+            "searchTokens": 3761,
+            "followTokens": 91,
+            "totalTokens": 3852
+          },
+          {
+            "session": "be42fce4-b14a-48c9-8f71-5823b1876485",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 5.698,
+            "searchTokens": 1810,
+            "followTokens": 941,
+            "totalTokens": 2751
+          },
+          {
+            "session": "f026d4b7-f439-4384-b487-60684f349b83",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 1.497,
+            "searchTokens": 4258,
+            "followTokens": 644,
+            "totalTokens": 4902
+          },
+          {
+            "session": "f026d4b7-f439-4384-b487-60684f349b83",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 15.559,
+            "searchTokens": 3831,
+            "followTokens": 364,
+            "totalTokens": 4195
+          },
+          {
+            "session": "f026d4b7-f439-4384-b487-60684f349b83",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 15.349,
+            "searchTokens": 3786,
+            "followTokens": 364,
+            "totalTokens": 4150
+          },
+          {
+            "session": "0ebaefb9-8465-4067-9d98-9a0ed25e2c8b",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 0.073,
+            "searchTokens": 1849,
+            "followTokens": 1,
+            "totalTokens": 1850
+          },
+          {
+            "session": "0ebaefb9-8465-4067-9d98-9a0ed25e2c8b",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 0.043,
+            "searchTokens": 1810,
+            "followTokens": 67,
+            "totalTokens": 1877
+          },
+          {
+            "session": "20cffae1-b1c5-4847-b98f-cdecd34083fe",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.078,
+            "searchTokens": 2372,
+            "followTokens": 299,
+            "totalTokens": 2671
+          },
+          {
+            "session": "20cffae1-b1c5-4847-b98f-cdecd34083fe",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 0.19,
+            "searchTokens": 4641,
+            "followTokens": 479,
+            "totalTokens": 5120
+          },
+          {
+            "session": "20cffae1-b1c5-4847-b98f-cdecd34083fe",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 0.051,
+            "searchTokens": 4671,
+            "followTokens": 479,
+            "totalTokens": 5150
+          },
+          {
+            "session": "4233ca97-68db-4c80-9437-5562893db76e",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 8.133,
+            "searchTokens": 6028,
+            "followTokens": 229,
+            "totalTokens": 6257
+          },
+          {
+            "session": "4233ca97-68db-4c80-9437-5562893db76e",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 343.643,
+            "searchTokens": 2034,
+            "followTokens": 302,
+            "totalTokens": 2336
+          },
+          {
+            "session": "428f555b-375b-4617-911a-17d6d5d875cc",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 3.459,
+            "searchTokens": 2532,
+            "followTokens": 889,
+            "totalTokens": 3421
+          },
+          {
+            "session": "605be1c5-7ce3-4e9a-b338-a58c9ca7593f",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 55.003,
+            "searchTokens": 2512,
+            "followTokens": 299,
+            "totalTokens": 2811
+          },
+          {
+            "session": "605be1c5-7ce3-4e9a-b338-a58c9ca7593f",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 49.089,
+            "searchTokens": 1787,
+            "followTokens": 299,
+            "totalTokens": 2086
+          },
+          {
+            "session": "63c46498-a791-408b-a41a-198f639e54c7",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 9.946,
+            "searchTokens": 4294,
+            "followTokens": 1,
+            "totalTokens": 4295
+          },
+          {
+            "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+            "followTool": "mast_exports",
+            "gapCalls": 7,
+            "gapSeconds": 68.575,
+            "searchTokens": 1162,
+            "followTokens": 101,
+            "totalTokens": 1263
+          },
+          {
+            "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+            "followTool": "mast_exports",
+            "gapCalls": 6,
+            "gapSeconds": 68.525,
+            "searchTokens": 346,
+            "followTokens": 101,
+            "totalTokens": 447
+          },
+          {
+            "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+            "followTool": "mast_exports",
+            "gapCalls": 5,
+            "gapSeconds": 68.465,
+            "searchTokens": 279,
+            "followTokens": 101,
+            "totalTokens": 380
+          },
+          {
+            "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+            "followTool": "mast_exports",
+            "gapCalls": 4,
+            "gapSeconds": 68.411,
+            "searchTokens": 2779,
+            "followTokens": 101,
+            "totalTokens": 2880
+          },
+          {
+            "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+            "followTool": "mast_exports",
+            "gapCalls": 3,
+            "gapSeconds": 9.384,
+            "searchTokens": 575,
+            "followTokens": 101,
+            "totalTokens": 676
+          },
+          {
+            "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 9.301,
+            "searchTokens": 723,
+            "followTokens": 101,
+            "totalTokens": 824
+          },
+          {
+            "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 9.251,
+            "searchTokens": 723,
+            "followTokens": 101,
+            "totalTokens": 824
+          },
+          {
+            "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+            "followTool": "mast_exports",
+            "gapCalls": 6,
+            "gapSeconds": 108.842,
+            "searchTokens": 1800,
+            "followTokens": 521,
+            "totalTokens": 2321
+          },
+          {
+            "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+            "followTool": "mast_exports",
+            "gapCalls": 5,
+            "gapSeconds": 108.686,
+            "searchTokens": 2806,
+            "followTokens": 521,
+            "totalTokens": 3327
+          },
+          {
+            "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+            "followTool": "mast_exports",
+            "gapCalls": 3,
+            "gapSeconds": 82.095,
+            "searchTokens": 2278,
+            "followTokens": 521,
+            "totalTokens": 2799
+          },
+          {
+            "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 81.993,
+            "searchTokens": 1934,
+            "followTokens": 521,
+            "totalTokens": 2455
+          },
+          {
+            "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+            "followTool": "mast_exports",
+            "gapCalls": 1,
+            "gapSeconds": 81.85,
+            "searchTokens": 1621,
+            "followTokens": 521,
+            "totalTokens": 2142
+          },
+          {
+            "session": "af8d477b-c25f-477a-9eec-a4a499f38112",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 0.146,
+            "searchTokens": 1979,
+            "followTokens": 1,
+            "totalTokens": 1980
+          },
+          {
+            "session": "b5f4ddd7-c997-49ee-bf6a-54bca23d73ee",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 44.485,
+            "searchTokens": 2886,
+            "followTokens": 64,
+            "totalTokens": 2950
+          },
+          {
+            "session": "b5f4ddd7-c997-49ee-bf6a-54bca23d73ee",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 44.318,
+            "searchTokens": 1636,
+            "followTokens": 64,
+            "totalTokens": 1700
+          },
+          {
+            "session": "b5f4ddd7-c997-49ee-bf6a-54bca23d73ee",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 44.123,
+            "searchTokens": 2778,
+            "followTokens": 64,
+            "totalTokens": 2842
+          },
+          {
+            "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+            "followTool": "mast_signature",
+            "gapCalls": 5,
+            "gapSeconds": 130.178,
+            "searchTokens": 1952,
+            "followTokens": 841,
+            "totalTokens": 2793
+          },
+          {
+            "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 130.015,
+            "searchTokens": 2991,
+            "followTokens": 841,
+            "totalTokens": 3832
+          },
+          {
+            "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+            "followTool": "mast_signature",
+            "gapCalls": 3,
+            "gapSeconds": 129.876,
+            "searchTokens": 3157,
+            "followTokens": 841,
+            "totalTokens": 3998
+          },
+          {
+            "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 129.76,
+            "searchTokens": 2588,
+            "followTokens": 841,
+            "totalTokens": 3429
+          },
+          {
+            "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 129.664,
+            "searchTokens": 2910,
+            "followTokens": 841,
+            "totalTokens": 3751
+          },
+          {
+            "session": "d4231651-df30-4b83-9cc7-108ef19fbf1a",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 27.539,
+            "searchTokens": 2478,
+            "followTokens": 1,
+            "totalTokens": 2479
+          },
+          {
+            "session": "d4231651-df30-4b83-9cc7-108ef19fbf1a",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 18.691,
+            "searchTokens": 4103,
+            "followTokens": 1,
+            "totalTokens": 4104
+          },
+          {
+            "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+            "followTool": "mast_signature",
+            "gapCalls": 5,
+            "gapSeconds": 42.355,
+            "searchTokens": 2847,
+            "followTokens": 163,
+            "totalTokens": 3010
+          },
+          {
+            "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+            "followTool": "mast_signature",
+            "gapCalls": 4,
+            "gapSeconds": 42.038,
+            "searchTokens": 1937,
+            "followTokens": 163,
+            "totalTokens": 2100
+          },
+          {
+            "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 32.584,
+            "searchTokens": 4268,
+            "followTokens": 163,
+            "totalTokens": 4431
+          },
+          {
+            "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+            "followTool": "mast_signature",
+            "gapCalls": 1,
+            "gapSeconds": 3.127,
+            "searchTokens": 3019,
+            "followTokens": 163,
+            "totalTokens": 3182
+          },
+          {
+            "session": "ddf90ad0-1078-46dc-b8ad-5d596ccb7e10",
+            "followTool": "mast_signature",
+            "gapCalls": 2,
+            "gapSeconds": 0.111,
+            "searchTokens": 1734,
+            "followTokens": 1,
+            "totalTokens": 1735
+          },
+          {
+            "session": "fd95420a-f1c2-49e4-ba21-c8c60f0589e3",
+            "followTool": "mast_exports",
+            "gapCalls": 4,
+            "gapSeconds": 14.595,
+            "searchTokens": 1436,
+            "followTokens": 665,
+            "totalTokens": 2101
+          },
+          {
+            "session": "fd95420a-f1c2-49e4-ba21-c8c60f0589e3",
+            "followTool": "mast_exports",
+            "gapCalls": 3,
+            "gapSeconds": 14.402,
+            "searchTokens": 1705,
+            "followTokens": 665,
+            "totalTokens": 2370
+          },
+          {
+            "session": "fd95420a-f1c2-49e4-ba21-c8c60f0589e3",
+            "followTool": "mast_exports",
+            "gapCalls": 2,
+            "gapSeconds": 2.78,
+            "searchTokens": 1015,
+            "followTokens": 665,
+            "totalTokens": 1680
+          }
+        ],
+        "perStoreBreakdown": [
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-kimik27-01/.fold/.mast",
+            "sessionCount": 14,
+            "sessionsWithChain": 1,
+            "ratePct": 7.14
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/echo-kimi-01/.fold/.mast",
+            "sessionCount": 13,
+            "sessionsWithChain": 6,
+            "ratePct": 46.15
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-sonnet-01/.fold/.mast",
+            "sessionCount": 14,
+            "sessionsWithChain": 4,
+            "ratePct": 28.57
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/ecommerce-W1/.fold/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-01/.fold/.mast",
+            "sessionCount": 78,
+            "sessionsWithChain": 15,
+            "ratePct": 19.23
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/study-intake-02/.fold/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-minimax3-01/.fold/.mast",
+            "sessionCount": 48,
+            "sessionsWithChain": 19,
+            "ratePct": 39.58
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/file-vault-W1/.fold/.mast",
+            "sessionCount": 1,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-03/.fold/.mast",
+            "sessionCount": 58,
+            "sessionsWithChain": 12,
+            "ratePct": 20.69
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-deepseekv4flash-01/.fold/.mast",
+            "sessionCount": 24,
+            "sessionsWithChain": 0,
+            "ratePct": 0
+          },
+          {
+            "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/.fold/.mast",
+            "sessionCount": 85,
+            "sessionsWithChain": 15,
+            "ratePct": 17.65
+          }
+        ],
+        "mechanicalGate": "gate passes on the LOOSE upper bound only; tight (result-linked) rate not derivable from this schema — INDETERMINATE for promotion; missing instrumentation: tool arguments / result file-or-symbol identifiers on the metrics row"
+      },
+      "question2": {
+        "applicable": true,
+        "reconstructionPossible": false,
+        "reconstructionBlockedBy": "metrics table has no query text and no result file/symbol identity — cannot verify whether the two calls in a chain returned overlapping content, which is the mechanism a capsule saves tokens through",
+        "boundedEstimateAssumption": "capsuleTokens = min(token_budget, chainTotalTokens) — an upper bound per plan §Stage 2.1 fallback, not a measurement of real savings",
+        "budget2000": {
+          "budget": 2000,
+          "chainsConsidered": 158,
+          "chainsRequiringTruncation": 82,
+          "medianSavingPct": 4.8,
+          "note": "Saving % is meaningful ONLY for chains where chainTotal <= budget (0% — no truncation). Where chainTotal > budget, the reported saving is an artifact of the budget cutting off content, not genuine deduplication."
+        },
+        "budget4000": {
+          "budget": 4000,
+          "chainsConsidered": 158,
+          "chainsRequiringTruncation": 21,
+          "medianSavingPct": 0,
+          "note": "Saving % is meaningful ONLY for chains where chainTotal <= budget (0% — no truncation). Where chainTotal > budget, the reported saving is an artifact of the budget cutting off content, not genuine deduplication."
+        }
+      }
+    }
+  ],
+  "combined": {
+    "inventory": [
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/.mast",
+        "rowCount": 24,
+        "metricsDailyRowCount": 13,
+        "sessionCount": 10,
+        "toolCounts": {
+          "mast_search": 18,
+          "mast_implementors": 1,
+          "mast_project_skeleton": 4,
+          "mast_exports": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-02T22:08:55.151Z",
+        "maxDate": "2026-07-11T22:43:52.843Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/kluser-kinetic-01/.kluster/.mast",
+        "rowCount": 58,
+        "metricsDailyRowCount": 5,
+        "sessionCount": 14,
+        "toolCounts": {
+          "mast_search": 51,
+          "mast_signature": 3,
+          "mast_project_skeleton": 2,
+          "mast_exports": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-05-14T22:13:23.933Z",
+        "maxDate": "2026-05-15T07:32:21.766Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301039812/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T08:04:08.770Z",
+        "maxDate": "2026-06-01T08:04:21.347Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301130084/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T08:05:42.350Z",
+        "maxDate": "2026-06-01T08:05:45.881Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-682c55ac-67d4-4b34-85be-d25604c0d681/llm/implementer-1780285770874/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_project_skeleton": 1,
+          "mast_search": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T03:49:40.425Z",
+        "maxDate": "2026-06-01T03:49:48.317Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299467335/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T07:37:52.886Z",
+        "maxDate": "2026-06-01T07:37:53.053Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299243928/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T07:34:10.063Z",
+        "maxDate": "2026-06-01T07:34:12.340Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299172039/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T07:33:02.162Z",
+        "maxDate": "2026-06-01T07:33:02.333Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299413182/.kluster/.mast",
+        "rowCount": 1,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T07:36:59.718Z",
+        "maxDate": "2026-06-01T07:36:59.718Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299574263/.kluster/.mast",
+        "rowCount": 1,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T07:39:40.070Z",
+        "maxDate": "2026-06-01T07:39:40.070Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299342873/.kluster/.mast",
+        "rowCount": 1,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T07:35:51.272Z",
+        "maxDate": "2026-06-01T07:35:51.272Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280303208/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T02:18:30.495Z",
+        "maxDate": "2026-06-01T02:18:30.609Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280163043/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T02:16:16.316Z",
+        "maxDate": "2026-06-01T02:16:16.724Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280448674/.kluster/.mast",
+        "rowCount": 1,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T02:20:57.284Z",
+        "maxDate": "2026-06-01T02:20:57.284Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-dc46ac09-395a-4e18-a164-f44b0f64c280/llm/architect-1780276500641/.kluster/.mast",
+        "rowCount": 1,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-01T01:15:13.943Z",
+        "maxDate": "2026-06-01T01:15:13.943Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478163697/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T09:18:25.645Z",
+        "maxDate": "2026-06-03T09:18:25.962Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478937193/.kluster/.mast",
+        "rowCount": 3,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T09:31:24.997Z",
+        "maxDate": "2026-06-03T09:31:29.357Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478449746/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T09:23:13.424Z",
+        "maxDate": "2026-06-03T09:23:13.674Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780479417269/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T09:39:14.346Z",
+        "maxDate": "2026-06-03T09:39:14.597Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478664831/.kluster/.mast",
+        "rowCount": 3,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T09:26:38.403Z",
+        "maxDate": "2026-06-03T09:26:42.143Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514879685/.kluster/.mast",
+        "rowCount": 4,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 3,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T19:30:52.162Z",
+        "maxDate": "2026-06-03T19:30:55.412Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514085365/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T19:18:09.108Z",
+        "maxDate": "2026-06-03T19:18:09.654Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514635925/.kluster/.mast",
+        "rowCount": 2,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T19:26:45.813Z",
+        "maxDate": "2026-06-03T19:26:45.996Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514429893/.kluster/.mast",
+        "rowCount": 3,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_search": 2,
+          "mast_project_skeleton": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-03T19:22:39.931Z",
+        "maxDate": "2026-06-03T19:22:42.342Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-kimik27-01/.fold/.mast",
+        "rowCount": 61,
+        "metricsDailyRowCount": 7,
+        "sessionCount": 14,
+        "toolCounts": {
+          "mast_signature": 31,
+          "mast_exports": 10,
+          "mast_project_skeleton": 15,
+          "mast_search": 5
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-11T18:43:17.409Z",
+        "maxDate": "2026-07-12T00:05:34.976Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/echo-kimi-01/.fold/.mast",
+        "rowCount": 58,
+        "metricsDailyRowCount": 7,
+        "sessionCount": 13,
+        "toolCounts": {
+          "mast_signature": 21,
+          "mast_search": 22,
+          "mast_exports": 13,
+          "mast_project_skeleton": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-09T22:51:27.979Z",
+        "maxDate": "2026-07-10T00:14:49.197Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-sonnet-01/.fold/.mast",
+        "rowCount": 89,
+        "metricsDailyRowCount": 4,
+        "sessionCount": 14,
+        "toolCounts": {
+          "mast_exports": 20,
+          "mast_signature": 49,
+          "mast_search": 14,
+          "mast_project_skeleton": 6
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-09T00:26:43.822Z",
+        "maxDate": "2026-07-09T06:37:25.102Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/ecommerce-W1/.fold/.mast",
+        "rowCount": 10,
+        "metricsDailyRowCount": 2,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_project_skeleton": 2,
+          "mast_exports": 8
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-25T06:25:44.515Z",
+        "maxDate": "2026-06-25T06:33:18.180Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-01/.fold/.mast",
+        "rowCount": 560,
+        "metricsDailyRowCount": 6,
+        "sessionCount": 78,
+        "toolCounts": {
+          "mast_signature": 223,
+          "mast_exports": 132,
+          "mast_search": 117,
+          "mast_project_skeleton": 81,
+          "mast_dependencies": 6,
+          "mast_callers": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-12T01:31:02.834Z",
+        "maxDate": "2026-07-12T08:10:05.043Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/study-intake-02/.fold/.mast",
+        "rowCount": 1,
+        "metricsDailyRowCount": 1,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_exports": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-19T07:57:02.907Z",
+        "maxDate": "2026-06-19T07:57:02.907Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-minimax3-01/.fold/.mast",
+        "rowCount": 323,
+        "metricsDailyRowCount": 8,
+        "sessionCount": 48,
+        "toolCounts": {
+          "mast_signature": 142,
+          "mast_project_skeleton": 41,
+          "mast_search": 80,
+          "mast_exports": 60
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-10T23:15:23.021Z",
+        "maxDate": "2026-07-11T05:06:23.385Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/file-vault-W1/.fold/.mast",
+        "rowCount": 5,
+        "metricsDailyRowCount": 3,
+        "sessionCount": 1,
+        "toolCounts": {
+          "mast_project_skeleton": 1,
+          "mast_exports": 3,
+          "mast_search": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-06-24T22:48:34.907Z",
+        "maxDate": "2026-06-24T22:49:34.593Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-03/.fold/.mast",
+        "rowCount": 291,
+        "metricsDailyRowCount": 6,
+        "sessionCount": 58,
+        "toolCounts": {
+          "mast_project_skeleton": 69,
+          "mast_search": 77,
+          "mast_exports": 42,
+          "mast_signature": 92,
+          "mast_dependencies": 9,
+          "mast_callers": 2
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-15T16:36:10.242Z",
+        "maxDate": "2026-07-15T21:03:32.200Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-deepseekv4flash-01/.fold/.mast",
+        "rowCount": 91,
+        "metricsDailyRowCount": 4,
+        "sessionCount": 24,
+        "toolCounts": {
+          "mast_project_skeleton": 15,
+          "mast_search": 29,
+          "mast_signature": 43,
+          "mast_exports": 4
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-11T06:54:59.207Z",
+        "maxDate": "2026-07-11T08:37:38.075Z"
+      },
+      {
+        "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/.fold/.mast",
+        "rowCount": 501,
+        "metricsDailyRowCount": 6,
+        "sessionCount": 85,
+        "toolCounts": {
+          "mast_search": 94,
+          "mast_project_skeleton": 80,
+          "mast_signature": 242,
+          "mast_exports": 80,
+          "mast_dependencies": 4,
+          "mast_callers": 1
+        },
+        "nonzeroFullFileBoundRows": 0,
+        "minDate": "2026-07-14T07:33:31.309Z",
+        "maxDate": "2026-07-14T15:45:03.152Z"
+      }
+    ],
+    "aggregate": {
+      "storesWithData": 35,
+      "totalRows": 2116,
+      "totalSessions": 383,
+      "toolCounts": {
+        "mast_search": 543,
+        "mast_implementors": 1,
+        "mast_project_skeleton": 327,
+        "mast_exports": 376,
+        "mast_signature": 846,
+        "mast_dependencies": 19,
+        "mast_callers": 4
+      },
+      "mastCallersCalls": 4,
+      "mastDependenciesCalls": 19,
+      "mastSignatureCalls": 846,
+      "mastExportsCalls": 376,
+      "rowsWithNonzeroFullFileBound": 0
+    },
+    "question1": {
+      "definition": "loose upper bound: mast_search followed later in same session by mast_signature or mast_exports",
+      "sessionsWithChain": 75,
+      "totalSessions": 383,
+      "chainSessionRatePct": 19.58,
+      "eligibleSessions": 334,
+      "chainRateAmongEligiblePct": 22.46,
+      "chainsPerSessionDistribution": {
+        "min": 0,
+        "median": 0,
+        "max": 11
+      },
+      "totalChainsFound": 176,
+      "chainTokenCost": {
+        "medianTokens": 2100.5,
+        "p90Tokens": 4317,
+        "note": "sum of tokens_returned for the search call + the follow-on call; approximate tokenizer counts, ratios are the robust number (§14.5)"
+      },
+      "chainDetails": [
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 5,
+          "gapSeconds": 4.401,
+          "searchTokens": 9,
+          "followTokens": 504,
+          "totalTokens": 513
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 4.288,
+          "searchTokens": 9,
+          "followTokens": 504,
+          "totalTokens": 513
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 4.144,
+          "searchTokens": 3261,
+          "followTokens": 504,
+          "totalTokens": 3765
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 0.259,
+          "searchTokens": 9,
+          "followTokens": 504,
+          "totalTokens": 513
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.14,
+          "searchTokens": 9,
+          "followTokens": 504,
+          "totalTokens": 513
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 6,
+          "gapSeconds": 68.385,
+          "searchTokens": 2154,
+          "followTokens": 3287,
+          "totalTokens": 5441
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 5,
+          "gapSeconds": 68.257,
+          "searchTokens": 2967,
+          "followTokens": 3287,
+          "totalTokens": 6254
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 68.155,
+          "searchTokens": 721,
+          "followTokens": 3287,
+          "totalTokens": 4008
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 57.364,
+          "searchTokens": 9,
+          "followTokens": 3287,
+          "totalTokens": 3296
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 45.141,
+          "searchTokens": 9,
+          "followTokens": 3287,
+          "totalTokens": 3296
+        },
+        {
+          "session": "0d792a57-388f-4473-a38d-be144d558cec",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.185,
+          "searchTokens": 1030,
+          "followTokens": 3287,
+          "totalTokens": 4317
+        },
+        {
+          "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+          "followTool": "mast_signature",
+          "gapCalls": 6,
+          "gapSeconds": 10.124,
+          "searchTokens": 1622,
+          "followTokens": 1,
+          "totalTokens": 1623
+        },
+        {
+          "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+          "followTool": "mast_signature",
+          "gapCalls": 5,
+          "gapSeconds": 9.907,
+          "searchTokens": 9,
+          "followTokens": 1,
+          "totalTokens": 10
+        },
+        {
+          "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 9.811,
+          "searchTokens": 9,
+          "followTokens": 1,
+          "totalTokens": 10
+        },
+        {
+          "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 4.441,
+          "searchTokens": 611,
+          "followTokens": 1,
+          "totalTokens": 612
+        },
+        {
+          "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 4.106,
+          "searchTokens": 3252,
+          "followTokens": 1,
+          "totalTokens": 3253
+        },
+        {
+          "session": "8ad23c8a-31b6-40fd-b44f-368994b109f3",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 4.002,
+          "searchTokens": 9,
+          "followTokens": 1,
+          "totalTokens": 10
+        },
+        {
+          "session": "d2b5ed6f-e0a6-4a19-9844-93679df6b591",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.656,
+          "searchTokens": 9,
+          "followTokens": 4272,
+          "totalTokens": 4281
+        },
+        {
+          "session": "a1196089-958e-477c-a7f0-3f3232050a07",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.176,
+          "searchTokens": 894,
+          "followTokens": 189,
+          "totalTokens": 1083
+        },
+        {
+          "session": "1c087aa2-8aa1-4a42-81c8-2c7c880a26a4",
+          "followTool": "mast_exports",
+          "gapCalls": 3,
+          "gapSeconds": 4.859,
+          "searchTokens": 242,
+          "followTokens": 132,
+          "totalTokens": 374
+        },
+        {
+          "session": "1c087aa2-8aa1-4a42-81c8-2c7c880a26a4",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 3.867,
+          "searchTokens": 157,
+          "followTokens": 132,
+          "totalTokens": 289
+        },
+        {
+          "session": "1c087aa2-8aa1-4a42-81c8-2c7c880a26a4",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.527,
+          "searchTokens": 342,
+          "followTokens": 132,
+          "totalTokens": 474
+        },
+        {
+          "session": "401cccae-a38d-430a-9385-f27adae03023",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.455,
+          "searchTokens": 551,
+          "followTokens": 74,
+          "totalTokens": 625
+        },
+        {
+          "session": "b2e2673c-9aa3-4207-a9f0-47a1a35e2329",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 7.139,
+          "searchTokens": 333,
+          "followTokens": 78,
+          "totalTokens": 411
+        },
+        {
+          "session": "b2e2673c-9aa3-4207-a9f0-47a1a35e2329",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 6.995,
+          "searchTokens": 321,
+          "followTokens": 78,
+          "totalTokens": 399
+        },
+        {
+          "session": "de7ad925-bc76-4067-b9af-c1d1d2826998",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 2.18,
+          "searchTokens": 343,
+          "followTokens": 371,
+          "totalTokens": 714
+        },
+        {
+          "session": "de7ad925-bc76-4067-b9af-c1d1d2826998",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 1.674,
+          "searchTokens": 164,
+          "followTokens": 371,
+          "totalTokens": 535
+        },
+        {
+          "session": "de7ad925-bc76-4067-b9af-c1d1d2826998",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 67.928,
+          "searchTokens": 381,
+          "followTokens": 98,
+          "totalTokens": 479
+        },
+        {
+          "session": "ee0de161-94f8-4892-9105-d7d76a4f2bd7",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 3.079,
+          "searchTokens": 140,
+          "followTokens": 78,
+          "totalTokens": 218
+        },
+        {
+          "session": "fe0917ad-80da-4434-9078-6dfa83532541",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 1.87,
+          "searchTokens": 2392,
+          "followTokens": 155,
+          "totalTokens": 2547
+        },
+        {
+          "session": "40baa329-8afa-4bcb-a415-526de5f13e33",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 4.886,
+          "searchTokens": 283,
+          "followTokens": 52,
+          "totalTokens": 335
+        },
+        {
+          "session": "4e5ceb49-8d43-4dcb-90ed-fa4d3a09abb7",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 5.545,
+          "searchTokens": 297,
+          "followTokens": 73,
+          "totalTokens": 370
+        },
+        {
+          "session": "4e5ceb49-8d43-4dcb-90ed-fa4d3a09abb7",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 5.43,
+          "searchTokens": 177,
+          "followTokens": 73,
+          "totalTokens": 250
+        },
+        {
+          "session": "4e5ceb49-8d43-4dcb-90ed-fa4d3a09abb7",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.041,
+          "searchTokens": 147,
+          "followTokens": 120,
+          "totalTokens": 267
+        },
+        {
+          "session": "5e9c05a5-ee1e-47cf-9383-25f6ad200f15",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 5.518,
+          "searchTokens": 342,
+          "followTokens": 70,
+          "totalTokens": 412
+        },
+        {
+          "session": "5e9c05a5-ee1e-47cf-9383-25f6ad200f15",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 5.086,
+          "searchTokens": 238,
+          "followTokens": 70,
+          "totalTokens": 308
+        },
+        {
+          "session": "93a15823-ee67-4fcf-96ad-580b07305739",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 5.682,
+          "searchTokens": 273,
+          "followTokens": 52,
+          "totalTokens": 325
+        },
+        {
+          "session": "02d409c5-7ec5-4c17-9a11-506eed32b26a",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 6.314,
+          "searchTokens": 2120,
+          "followTokens": 249,
+          "totalTokens": 2369
+        },
+        {
+          "session": "02d409c5-7ec5-4c17-9a11-506eed32b26a",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 6.165,
+          "searchTokens": 2185,
+          "followTokens": 249,
+          "totalTokens": 2434
+        },
+        {
+          "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+          "followTool": "mast_signature",
+          "gapCalls": 5,
+          "gapSeconds": 6.534,
+          "searchTokens": 2909,
+          "followTokens": 66,
+          "totalTokens": 2975
+        },
+        {
+          "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 4.976,
+          "searchTokens": 1883,
+          "followTokens": 66,
+          "totalTokens": 1949
+        },
+        {
+          "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 4.834,
+          "searchTokens": 2957,
+          "followTokens": 66,
+          "totalTokens": 3023
+        },
+        {
+          "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 1.561,
+          "searchTokens": 3862,
+          "followTokens": 66,
+          "totalTokens": 3928
+        },
+        {
+          "session": "05187fb0-6f72-4261-ae60-3393c693ba62",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 1.452,
+          "searchTokens": 2380,
+          "followTokens": 66,
+          "totalTokens": 2446
+        },
+        {
+          "session": "10e6e3d6-c64b-4b66-9ade-b43a89c1ae24",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 1.846,
+          "searchTokens": 2196,
+          "followTokens": 54,
+          "totalTokens": 2250
+        },
+        {
+          "session": "10e6e3d6-c64b-4b66-9ade-b43a89c1ae24",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 1.729,
+          "searchTokens": 1710,
+          "followTokens": 54,
+          "totalTokens": 1764
+        },
+        {
+          "session": "12cfe3fb-f4c6-46df-a062-930c9f132509",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 5.621,
+          "searchTokens": 321,
+          "followTokens": 1034,
+          "totalTokens": 1355
+        },
+        {
+          "session": "28968b04-e6ea-43ec-8f08-7f61ed5caa30",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 11.936,
+          "searchTokens": 2295,
+          "followTokens": 1,
+          "totalTokens": 2296
+        },
+        {
+          "session": "28968b04-e6ea-43ec-8f08-7f61ed5caa30",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 11.761,
+          "searchTokens": 2433,
+          "followTokens": 1,
+          "totalTokens": 2434
+        },
+        {
+          "session": "28968b04-e6ea-43ec-8f08-7f61ed5caa30",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.034,
+          "searchTokens": 2370,
+          "followTokens": 1,
+          "totalTokens": 2371
+        },
+        {
+          "session": "47d2213e-5f2c-4b2d-8e0f-ceffcf7d455d",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.088,
+          "searchTokens": 2767,
+          "followTokens": 1,
+          "totalTokens": 2768
+        },
+        {
+          "session": "50b1ae9c-9668-4ce1-aa72-ef5dad8a8999",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 4.945,
+          "searchTokens": 1903,
+          "followTokens": 62,
+          "totalTokens": 1965
+        },
+        {
+          "session": "50b1ae9c-9668-4ce1-aa72-ef5dad8a8999",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 4.843,
+          "searchTokens": 1924,
+          "followTokens": 62,
+          "totalTokens": 1986
+        },
+        {
+          "session": "50b1ae9c-9668-4ce1-aa72-ef5dad8a8999",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 4.757,
+          "searchTokens": 2061,
+          "followTokens": 62,
+          "totalTokens": 2123
+        },
+        {
+          "session": "57eaf22a-0b3f-472a-862f-9b30f98abf30",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 12.614,
+          "searchTokens": 4759,
+          "followTokens": 1,
+          "totalTokens": 4760
+        },
+        {
+          "session": "57eaf22a-0b3f-472a-862f-9b30f98abf30",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 10.211,
+          "searchTokens": 4586,
+          "followTokens": 1,
+          "totalTokens": 4587
+        },
+        {
+          "session": "6bf56af4-6772-46d6-a8a7-0ada7267d545",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.279,
+          "searchTokens": 4874,
+          "followTokens": 105,
+          "totalTokens": 4979
+        },
+        {
+          "session": "6fe2d5c3-4c11-4853-aedc-a069a26f52f5",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 1.667,
+          "searchTokens": 5178,
+          "followTokens": 113,
+          "totalTokens": 5291
+        },
+        {
+          "session": "7d27860f-4107-4e32-9ec7-541481c14508",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 1.753,
+          "searchTokens": 742,
+          "followTokens": 1,
+          "totalTokens": 743
+        },
+        {
+          "session": "8267ba14-bd11-4625-aead-48f05e1bc2db",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 3.338,
+          "searchTokens": 2354,
+          "followTokens": 76,
+          "totalTokens": 2430
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 2.81,
+          "searchTokens": 3679,
+          "followTokens": 98,
+          "totalTokens": 3777
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 2.556,
+          "searchTokens": 2770,
+          "followTokens": 98,
+          "totalTokens": 2868
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 2.387,
+          "searchTokens": 2116,
+          "followTokens": 98,
+          "totalTokens": 2214
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 2.252,
+          "searchTokens": 3899,
+          "followTokens": 98,
+          "totalTokens": 3997
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 12.739,
+          "searchTokens": 5957,
+          "followTokens": 311,
+          "totalTokens": 6268
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 9.14,
+          "searchTokens": 10642,
+          "followTokens": 311,
+          "totalTokens": 10953
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 7.73,
+          "searchTokens": 3711,
+          "followTokens": 1,
+          "totalTokens": 3712
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 3.818,
+          "searchTokens": 6150,
+          "followTokens": 1,
+          "totalTokens": 6151
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 35.453,
+          "searchTokens": 2210,
+          "followTokens": 63,
+          "totalTokens": 2273
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 34.019,
+          "searchTokens": 2192,
+          "followTokens": 63,
+          "totalTokens": 2255
+        },
+        {
+          "session": "84889bb5-a3e5-4f02-9b04-016412416179",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 12.547,
+          "searchTokens": 4927,
+          "followTokens": 63,
+          "totalTokens": 4990
+        },
+        {
+          "session": "e2bd9d92-3e9c-42b8-8ac3-3b87c02bc9bd",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 6.3,
+          "searchTokens": 4216,
+          "followTokens": 65,
+          "totalTokens": 4281
+        },
+        {
+          "session": "ef4933fe-5c2c-4274-8f36-e0679b59f914",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 0.109,
+          "searchTokens": 2597,
+          "followTokens": 249,
+          "totalTokens": 2846
+        },
+        {
+          "session": "00175c79-fa6d-4478-8387-da5ce1cfb4c8",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 5.82,
+          "searchTokens": 1390,
+          "followTokens": 85,
+          "totalTokens": 1475
+        },
+        {
+          "session": "00175c79-fa6d-4478-8387-da5ce1cfb4c8",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.185,
+          "searchTokens": 1381,
+          "followTokens": 85,
+          "totalTokens": 1466
+        },
+        {
+          "session": "04de2db3-c641-4a25-a490-de4d8c691be6",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.075,
+          "searchTokens": 1738,
+          "followTokens": 157,
+          "totalTokens": 1895
+        },
+        {
+          "session": "04de2db3-c641-4a25-a490-de4d8c691be6",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.067,
+          "searchTokens": 466,
+          "followTokens": 1,
+          "totalTokens": 467
+        },
+        {
+          "session": "133d2e74-8c06-4cb5-a2b7-3ea4abac3d5f",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 90.068,
+          "searchTokens": 2216,
+          "followTokens": 1,
+          "totalTokens": 2217
+        },
+        {
+          "session": "20b41e20-0770-4b7e-8a72-bb2f10db041b",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 3.995,
+          "searchTokens": 868,
+          "followTokens": 157,
+          "totalTokens": 1025
+        },
+        {
+          "session": "324a4ca9-a0c4-475a-bbb0-978d53f0ef85",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.468,
+          "searchTokens": 1412,
+          "followTokens": 107,
+          "totalTokens": 1519
+        },
+        {
+          "session": "366e1be2-b6d7-4e62-8e85-df6e6fb63199",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 2.78,
+          "searchTokens": 182,
+          "followTokens": 312,
+          "totalTokens": 494
+        },
+        {
+          "session": "366e1be2-b6d7-4e62-8e85-df6e6fb63199",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 2.716,
+          "searchTokens": 156,
+          "followTokens": 312,
+          "totalTokens": 468
+        },
+        {
+          "session": "366e1be2-b6d7-4e62-8e85-df6e6fb63199",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.045,
+          "searchTokens": 155,
+          "followTokens": 255,
+          "totalTokens": 410
+        },
+        {
+          "session": "4ba494e3-e8dc-47c6-8089-bff898d61860",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 4.682,
+          "searchTokens": 1504,
+          "followTokens": 255,
+          "totalTokens": 1759
+        },
+        {
+          "session": "4bcfe373-519f-4f77-8244-a70590b4f152",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 4.63,
+          "searchTokens": 171,
+          "followTokens": 140,
+          "totalTokens": 311
+        },
+        {
+          "session": "4bcfe373-519f-4f77-8244-a70590b4f152",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 2.236,
+          "searchTokens": 370,
+          "followTokens": 140,
+          "totalTokens": 510
+        },
+        {
+          "session": "57b92377-c7d7-479e-8c9a-69ecaaccf1b1",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 2.452,
+          "searchTokens": 1759,
+          "followTokens": 1,
+          "totalTokens": 1760
+        },
+        {
+          "session": "7ffa847f-4786-4f0f-a329-c88e27fa97f0",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.239,
+          "searchTokens": 1667,
+          "followTokens": 61,
+          "totalTokens": 1728
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 2.945,
+          "searchTokens": 805,
+          "followTokens": 1,
+          "totalTokens": 806
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 2.815,
+          "searchTokens": 1320,
+          "followTokens": 1,
+          "totalTokens": 1321
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 2.717,
+          "searchTokens": 1467,
+          "followTokens": 1,
+          "totalTokens": 1468
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 6,
+          "gapSeconds": 7.491,
+          "searchTokens": 813,
+          "followTokens": 1,
+          "totalTokens": 814
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 5,
+          "gapSeconds": 7.407,
+          "searchTokens": 810,
+          "followTokens": 1,
+          "totalTokens": 811
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 3.787,
+          "searchTokens": 746,
+          "followTokens": 1,
+          "totalTokens": 747
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 3.693,
+          "searchTokens": 542,
+          "followTokens": 1,
+          "totalTokens": 543
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 3.613,
+          "searchTokens": 1050,
+          "followTokens": 1,
+          "totalTokens": 1051
+        },
+        {
+          "session": "8c36ff0b-e309-4306-a402-2f24c24df75b",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.035,
+          "searchTokens": 503,
+          "followTokens": 1,
+          "totalTokens": 504
+        },
+        {
+          "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.06,
+          "searchTokens": 1053,
+          "followTokens": 214,
+          "totalTokens": 1267
+        },
+        {
+          "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 0.041,
+          "searchTokens": 642,
+          "followTokens": 216,
+          "totalTokens": 858
+        },
+        {
+          "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 0.052,
+          "searchTokens": 771,
+          "followTokens": 231,
+          "totalTokens": 1002
+        },
+        {
+          "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.77,
+          "searchTokens": 2525,
+          "followTokens": 1,
+          "totalTokens": 2526
+        },
+        {
+          "session": "a579eb78-2ddc-4a40-9780-18dc139d33cc",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.03,
+          "searchTokens": 1128,
+          "followTokens": 1,
+          "totalTokens": 1129
+        },
+        {
+          "session": "aa0f5506-5f95-4770-b070-caf2f83c47d6",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.043,
+          "searchTokens": 146,
+          "followTokens": 157,
+          "totalTokens": 303
+        },
+        {
+          "session": "b1c94637-c6c7-4065-ab81-87f3fd8f350d",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 17.207,
+          "searchTokens": 462,
+          "followTokens": 1,
+          "totalTokens": 463
+        },
+        {
+          "session": "c5a03a57-1866-465d-bfba-f1fec92c1199",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 4.268,
+          "searchTokens": 701,
+          "followTokens": 1,
+          "totalTokens": 702
+        },
+        {
+          "session": "c5a03a57-1866-465d-bfba-f1fec92c1199",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 4.124,
+          "searchTokens": 770,
+          "followTokens": 1,
+          "totalTokens": 771
+        },
+        {
+          "session": "c5a03a57-1866-465d-bfba-f1fec92c1199",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.046,
+          "searchTokens": 79,
+          "followTokens": 108,
+          "totalTokens": 187
+        },
+        {
+          "session": "cb2dc841-d60f-473c-a917-ca5977c58751",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 14.698,
+          "searchTokens": 868,
+          "followTokens": 189,
+          "totalTokens": 1057
+        },
+        {
+          "session": "cbc3297c-73cf-42b0-90a9-b853ee68b3be",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 0.169,
+          "searchTokens": 699,
+          "followTokens": 99,
+          "totalTokens": 798
+        },
+        {
+          "session": "e051fc9c-96af-4177-8f20-b31ba0eb8d1c",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 2.558,
+          "searchTokens": 893,
+          "followTokens": 1,
+          "totalTokens": 894
+        },
+        {
+          "session": "f0bf7073-7389-4133-9773-f99bfe2dad74",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 5.004,
+          "searchTokens": 952,
+          "followTokens": 1,
+          "totalTokens": 953
+        },
+        {
+          "session": "f0bf7073-7389-4133-9773-f99bfe2dad74",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 5.698,
+          "searchTokens": 531,
+          "followTokens": 313,
+          "totalTokens": 844
+        },
+        {
+          "session": "0416b356-238a-4c33-95ca-0830ba4dff05",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.49,
+          "searchTokens": 3982,
+          "followTokens": 1,
+          "totalTokens": 3983
+        },
+        {
+          "session": "1cd9b604-0a83-41d2-b8f1-9fd35b269cf3",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.082,
+          "searchTokens": 3490,
+          "followTokens": 1,
+          "totalTokens": 3491
+        },
+        {
+          "session": "3fa2eca1-ad60-49cd-bee3-76fc696a98f9",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 3.3,
+          "searchTokens": 3928,
+          "followTokens": 1,
+          "totalTokens": 3929
+        },
+        {
+          "session": "63d629d3-04de-4c23-8061-0ffd98ef4153",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 2.369,
+          "searchTokens": 1955,
+          "followTokens": 1,
+          "totalTokens": 1956
+        },
+        {
+          "session": "63d629d3-04de-4c23-8061-0ffd98ef4153",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 2.2,
+          "searchTokens": 1966,
+          "followTokens": 1,
+          "totalTokens": 1967
+        },
+        {
+          "session": "69feb1d0-5998-4f14-8eb0-bd47bedeb0ab",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 0.264,
+          "searchTokens": 1820,
+          "followTokens": 250,
+          "totalTokens": 2070
+        },
+        {
+          "session": "69feb1d0-5998-4f14-8eb0-bd47bedeb0ab",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.062,
+          "searchTokens": 2156,
+          "followTokens": 250,
+          "totalTokens": 2406
+        },
+        {
+          "session": "81894342-1199-44f3-9545-71ebc132abee",
+          "followTool": "mast_exports",
+          "gapCalls": 3,
+          "gapSeconds": 7.483,
+          "searchTokens": 2001,
+          "followTokens": 826,
+          "totalTokens": 2827
+        },
+        {
+          "session": "81894342-1199-44f3-9545-71ebc132abee",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 3.494,
+          "searchTokens": 1769,
+          "followTokens": 826,
+          "totalTokens": 2595
+        },
+        {
+          "session": "81894342-1199-44f3-9545-71ebc132abee",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.308,
+          "searchTokens": 1709,
+          "followTokens": 826,
+          "totalTokens": 2535
+        },
+        {
+          "session": "81c66653-927d-475d-82c1-e819f7d701a1",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 137.206,
+          "searchTokens": 3585,
+          "followTokens": 926,
+          "totalTokens": 4511
+        },
+        {
+          "session": "81c66653-927d-475d-82c1-e819f7d701a1",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 137.096,
+          "searchTokens": 3525,
+          "followTokens": 926,
+          "totalTokens": 4451
+        },
+        {
+          "session": "897cc63e-f78e-4bb7-b9d8-c3576b8b4805",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.199,
+          "searchTokens": 2512,
+          "followTokens": 1554,
+          "totalTokens": 4066
+        },
+        {
+          "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 7.235,
+          "searchTokens": 2622,
+          "followTokens": 1,
+          "totalTokens": 2623
+        },
+        {
+          "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 7.106,
+          "searchTokens": 2613,
+          "followTokens": 1,
+          "totalTokens": 2614
+        },
+        {
+          "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.136,
+          "searchTokens": 2625,
+          "followTokens": 1,
+          "totalTokens": 2626
+        },
+        {
+          "session": "9f57a282-ffa1-498d-8c07-a252587dea22",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 27.279,
+          "searchTokens": 1691,
+          "followTokens": 1,
+          "totalTokens": 1692
+        },
+        {
+          "session": "b7e9f1e6-40eb-4032-8e8b-9287d0226ae2",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 2.714,
+          "searchTokens": 3761,
+          "followTokens": 91,
+          "totalTokens": 3852
+        },
+        {
+          "session": "be42fce4-b14a-48c9-8f71-5823b1876485",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 5.698,
+          "searchTokens": 1810,
+          "followTokens": 941,
+          "totalTokens": 2751
+        },
+        {
+          "session": "f026d4b7-f439-4384-b487-60684f349b83",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 1.497,
+          "searchTokens": 4258,
+          "followTokens": 644,
+          "totalTokens": 4902
+        },
+        {
+          "session": "f026d4b7-f439-4384-b487-60684f349b83",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 15.559,
+          "searchTokens": 3831,
+          "followTokens": 364,
+          "totalTokens": 4195
+        },
+        {
+          "session": "f026d4b7-f439-4384-b487-60684f349b83",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 15.349,
+          "searchTokens": 3786,
+          "followTokens": 364,
+          "totalTokens": 4150
+        },
+        {
+          "session": "0ebaefb9-8465-4067-9d98-9a0ed25e2c8b",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 0.073,
+          "searchTokens": 1849,
+          "followTokens": 1,
+          "totalTokens": 1850
+        },
+        {
+          "session": "0ebaefb9-8465-4067-9d98-9a0ed25e2c8b",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 0.043,
+          "searchTokens": 1810,
+          "followTokens": 67,
+          "totalTokens": 1877
+        },
+        {
+          "session": "20cffae1-b1c5-4847-b98f-cdecd34083fe",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.078,
+          "searchTokens": 2372,
+          "followTokens": 299,
+          "totalTokens": 2671
+        },
+        {
+          "session": "20cffae1-b1c5-4847-b98f-cdecd34083fe",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 0.19,
+          "searchTokens": 4641,
+          "followTokens": 479,
+          "totalTokens": 5120
+        },
+        {
+          "session": "20cffae1-b1c5-4847-b98f-cdecd34083fe",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 0.051,
+          "searchTokens": 4671,
+          "followTokens": 479,
+          "totalTokens": 5150
+        },
+        {
+          "session": "4233ca97-68db-4c80-9437-5562893db76e",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 8.133,
+          "searchTokens": 6028,
+          "followTokens": 229,
+          "totalTokens": 6257
+        },
+        {
+          "session": "4233ca97-68db-4c80-9437-5562893db76e",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 343.643,
+          "searchTokens": 2034,
+          "followTokens": 302,
+          "totalTokens": 2336
+        },
+        {
+          "session": "428f555b-375b-4617-911a-17d6d5d875cc",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 3.459,
+          "searchTokens": 2532,
+          "followTokens": 889,
+          "totalTokens": 3421
+        },
+        {
+          "session": "605be1c5-7ce3-4e9a-b338-a58c9ca7593f",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 55.003,
+          "searchTokens": 2512,
+          "followTokens": 299,
+          "totalTokens": 2811
+        },
+        {
+          "session": "605be1c5-7ce3-4e9a-b338-a58c9ca7593f",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 49.089,
+          "searchTokens": 1787,
+          "followTokens": 299,
+          "totalTokens": 2086
+        },
+        {
+          "session": "63c46498-a791-408b-a41a-198f639e54c7",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 9.946,
+          "searchTokens": 4294,
+          "followTokens": 1,
+          "totalTokens": 4295
+        },
+        {
+          "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+          "followTool": "mast_exports",
+          "gapCalls": 7,
+          "gapSeconds": 68.575,
+          "searchTokens": 1162,
+          "followTokens": 101,
+          "totalTokens": 1263
+        },
+        {
+          "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+          "followTool": "mast_exports",
+          "gapCalls": 6,
+          "gapSeconds": 68.525,
+          "searchTokens": 346,
+          "followTokens": 101,
+          "totalTokens": 447
+        },
+        {
+          "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+          "followTool": "mast_exports",
+          "gapCalls": 5,
+          "gapSeconds": 68.465,
+          "searchTokens": 279,
+          "followTokens": 101,
+          "totalTokens": 380
+        },
+        {
+          "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+          "followTool": "mast_exports",
+          "gapCalls": 4,
+          "gapSeconds": 68.411,
+          "searchTokens": 2779,
+          "followTokens": 101,
+          "totalTokens": 2880
+        },
+        {
+          "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+          "followTool": "mast_exports",
+          "gapCalls": 3,
+          "gapSeconds": 9.384,
+          "searchTokens": 575,
+          "followTokens": 101,
+          "totalTokens": 676
+        },
+        {
+          "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 9.301,
+          "searchTokens": 723,
+          "followTokens": 101,
+          "totalTokens": 824
+        },
+        {
+          "session": "87f7cb5e-6010-4d4f-8339-686d1515a70e",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 9.251,
+          "searchTokens": 723,
+          "followTokens": 101,
+          "totalTokens": 824
+        },
+        {
+          "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+          "followTool": "mast_exports",
+          "gapCalls": 6,
+          "gapSeconds": 108.842,
+          "searchTokens": 1800,
+          "followTokens": 521,
+          "totalTokens": 2321
+        },
+        {
+          "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+          "followTool": "mast_exports",
+          "gapCalls": 5,
+          "gapSeconds": 108.686,
+          "searchTokens": 2806,
+          "followTokens": 521,
+          "totalTokens": 3327
+        },
+        {
+          "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+          "followTool": "mast_exports",
+          "gapCalls": 3,
+          "gapSeconds": 82.095,
+          "searchTokens": 2278,
+          "followTokens": 521,
+          "totalTokens": 2799
+        },
+        {
+          "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 81.993,
+          "searchTokens": 1934,
+          "followTokens": 521,
+          "totalTokens": 2455
+        },
+        {
+          "session": "a9752f55-12f7-46cb-b990-0c14bae1e79c",
+          "followTool": "mast_exports",
+          "gapCalls": 1,
+          "gapSeconds": 81.85,
+          "searchTokens": 1621,
+          "followTokens": 521,
+          "totalTokens": 2142
+        },
+        {
+          "session": "af8d477b-c25f-477a-9eec-a4a499f38112",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 0.146,
+          "searchTokens": 1979,
+          "followTokens": 1,
+          "totalTokens": 1980
+        },
+        {
+          "session": "b5f4ddd7-c997-49ee-bf6a-54bca23d73ee",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 44.485,
+          "searchTokens": 2886,
+          "followTokens": 64,
+          "totalTokens": 2950
+        },
+        {
+          "session": "b5f4ddd7-c997-49ee-bf6a-54bca23d73ee",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 44.318,
+          "searchTokens": 1636,
+          "followTokens": 64,
+          "totalTokens": 1700
+        },
+        {
+          "session": "b5f4ddd7-c997-49ee-bf6a-54bca23d73ee",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 44.123,
+          "searchTokens": 2778,
+          "followTokens": 64,
+          "totalTokens": 2842
+        },
+        {
+          "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+          "followTool": "mast_signature",
+          "gapCalls": 5,
+          "gapSeconds": 130.178,
+          "searchTokens": 1952,
+          "followTokens": 841,
+          "totalTokens": 2793
+        },
+        {
+          "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 130.015,
+          "searchTokens": 2991,
+          "followTokens": 841,
+          "totalTokens": 3832
+        },
+        {
+          "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+          "followTool": "mast_signature",
+          "gapCalls": 3,
+          "gapSeconds": 129.876,
+          "searchTokens": 3157,
+          "followTokens": 841,
+          "totalTokens": 3998
+        },
+        {
+          "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 129.76,
+          "searchTokens": 2588,
+          "followTokens": 841,
+          "totalTokens": 3429
+        },
+        {
+          "session": "bb66b16b-7ba4-4319-9a0e-932dd0ceb5d3",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 129.664,
+          "searchTokens": 2910,
+          "followTokens": 841,
+          "totalTokens": 3751
+        },
+        {
+          "session": "d4231651-df30-4b83-9cc7-108ef19fbf1a",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 27.539,
+          "searchTokens": 2478,
+          "followTokens": 1,
+          "totalTokens": 2479
+        },
+        {
+          "session": "d4231651-df30-4b83-9cc7-108ef19fbf1a",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 18.691,
+          "searchTokens": 4103,
+          "followTokens": 1,
+          "totalTokens": 4104
+        },
+        {
+          "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+          "followTool": "mast_signature",
+          "gapCalls": 5,
+          "gapSeconds": 42.355,
+          "searchTokens": 2847,
+          "followTokens": 163,
+          "totalTokens": 3010
+        },
+        {
+          "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+          "followTool": "mast_signature",
+          "gapCalls": 4,
+          "gapSeconds": 42.038,
+          "searchTokens": 1937,
+          "followTokens": 163,
+          "totalTokens": 2100
+        },
+        {
+          "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 32.584,
+          "searchTokens": 4268,
+          "followTokens": 163,
+          "totalTokens": 4431
+        },
+        {
+          "session": "da7a959e-fd22-4549-a9b7-6b20456692e8",
+          "followTool": "mast_signature",
+          "gapCalls": 1,
+          "gapSeconds": 3.127,
+          "searchTokens": 3019,
+          "followTokens": 163,
+          "totalTokens": 3182
+        },
+        {
+          "session": "ddf90ad0-1078-46dc-b8ad-5d596ccb7e10",
+          "followTool": "mast_signature",
+          "gapCalls": 2,
+          "gapSeconds": 0.111,
+          "searchTokens": 1734,
+          "followTokens": 1,
+          "totalTokens": 1735
+        },
+        {
+          "session": "fd95420a-f1c2-49e4-ba21-c8c60f0589e3",
+          "followTool": "mast_exports",
+          "gapCalls": 4,
+          "gapSeconds": 14.595,
+          "searchTokens": 1436,
+          "followTokens": 665,
+          "totalTokens": 2101
+        },
+        {
+          "session": "fd95420a-f1c2-49e4-ba21-c8c60f0589e3",
+          "followTool": "mast_exports",
+          "gapCalls": 3,
+          "gapSeconds": 14.402,
+          "searchTokens": 1705,
+          "followTokens": 665,
+          "totalTokens": 2370
+        },
+        {
+          "session": "fd95420a-f1c2-49e4-ba21-c8c60f0589e3",
+          "followTool": "mast_exports",
+          "gapCalls": 2,
+          "gapSeconds": 2.78,
+          "searchTokens": 1015,
+          "followTokens": 665,
+          "totalTokens": 1680
+        }
+      ],
+      "perStoreBreakdown": [
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/.mast",
+          "sessionCount": 10,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/kluser-kinetic-01/.kluster/.mast",
+          "sessionCount": 14,
+          "sessionsWithChain": 3,
+          "ratePct": 21.43
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301039812/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-768e702a-668b-4fa6-b68c-6e7f2e28cdb0/llm/implementer-1780301130084/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-682c55ac-67d4-4b34-85be-d25604c0d681/llm/implementer-1780285770874/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299467335/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299243928/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299172039/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299413182/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299574263/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-b159344d-bf26-4bff-a48b-b52873536e82/llm/implementer-1780299342873/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280303208/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280163043/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-9541bcb5-7f1b-4e94-876e-cc0d6cf4b847/llm/implementer-1780280448674/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test/.build/build-dc46ac09-395a-4e18-a164-f44b0f64c280/llm/architect-1780276500641/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478163697/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478937193/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478449746/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780479417269/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-22c8c0b5-37e6-4f48-a73a-c422a7199cb2/llm/implementer-1780478664831/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514879685/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514085365/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514635925/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster/packages/workbench/sdd/apps/fold-echo-test-2/.build/build-11b18477-07b2-4b57-bd54-48d1df163389/llm/implementer-1780514429893/.kluster/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-kimik27-01/.fold/.mast",
+          "sessionCount": 14,
+          "sessionsWithChain": 1,
+          "ratePct": 7.14
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/echo-kimi-01/.fold/.mast",
+          "sessionCount": 13,
+          "sessionsWithChain": 6,
+          "ratePct": 46.15
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-sonnet-01/.fold/.mast",
+          "sessionCount": 14,
+          "sessionsWithChain": 4,
+          "ratePct": 28.57
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/ecommerce-W1/.fold/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-01/.fold/.mast",
+          "sessionCount": 78,
+          "sessionsWithChain": 15,
+          "ratePct": 19.23
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/study-intake-02/.fold/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-minimax3-01/.fold/.mast",
+          "sessionCount": 48,
+          "sessionsWithChain": 19,
+          "ratePct": 39.58
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/file-vault-W1/.fold/.mast",
+          "sessionCount": 1,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-03/.fold/.mast",
+          "sessionCount": 58,
+          "sessionsWithChain": 12,
+          "ratePct": 20.69
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/a0-deepseekv4flash-01/.fold/.mast",
+          "sessionCount": 24,
+          "sessionsWithChain": 0,
+          "ratePct": 0
+        },
+        {
+          "dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/.fold/.mast",
+          "sessionCount": 85,
+          "sessionsWithChain": 15,
+          "ratePct": 17.65
+        }
+      ],
+      "mechanicalGate": "gate passes on the LOOSE upper bound only; tight (result-linked) rate not derivable from this schema — INDETERMINATE for promotion; missing instrumentation: tool arguments / result file-or-symbol identifiers on the metrics row"
+    },
+    "question2": {
+      "applicable": true,
+      "reconstructionPossible": false,
+      "reconstructionBlockedBy": "metrics table has no query text and no result file/symbol identity — cannot verify whether the two calls in a chain returned overlapping content, which is the mechanism a capsule saves tokens through",
+      "boundedEstimateAssumption": "capsuleTokens = min(token_budget, chainTotalTokens) — an upper bound per plan §Stage 2.1 fallback, not a measurement of real savings",
+      "budget2000": {
+        "budget": 2000,
+        "chainsConsidered": 176,
+        "chainsRequiringTruncation": 91,
+        "medianSavingPct": 4.8,
+        "note": "Saving % is meaningful ONLY for chains where chainTotal <= budget (0% — no truncation). Where chainTotal > budget, the reported saving is an artifact of the budget cutting off content, not genuine deduplication."
+      },
+      "budget4000": {
+        "budget": 4000,
+        "chainsConsidered": 176,
+        "chainsRequiringTruncation": 26,
+        "medianSavingPct": 0,
+        "note": "Saving % is meaningful ONLY for chains where chainTotal <= budget (0% — no truncation). Where chainTotal > budget, the reported saving is an artifact of the budget cutting off content, not genuine deduplication."
+      }
+    }
+  }
+}

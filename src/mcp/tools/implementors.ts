@@ -3,7 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { ImplementorsResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
-import { countTokens } from '../../telemetry/tokenizer.js';
+import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { queryImplementors } from '../../graph/queries.js';
 
 export function registerImplementorsTool(server: McpServer, ctx: AppContext): void {
@@ -21,14 +21,15 @@ export function registerImplementorsTool(server: McpServer, ctx: AppContext): vo
       const filesReferenced = [...new Set(results.map((r) => r.file_path))];
       const text = JSON.stringify(results);
       const tokens = countTokens(text);
+      const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
       const response: ImplementorsResponse = {
         results,
-        _stats: buildToolStats('mast_implementors', tokens, 0, filesReferenced, durationMs),
+        _stats: buildToolStats('mast_implementors', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       void recordToolCall(ctx.db, {
-        toolName: 'mast_implementors', tokensReturned: tokens, tokensFullFileBound: 0,
+        toolName: 'mast_implementors', tokensReturned: tokens, tokensFullFileBound,
         durationMs, sessionId: ctx.sessionId, status: 'ok',
       }).catch(() => {});
       return { content: [{ type: 'text' as const, text: JSON.stringify(response) }] };

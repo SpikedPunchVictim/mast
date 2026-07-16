@@ -14,6 +14,10 @@ export interface RecordToolCallOptions {
   readonly mode?: SearchMode;
   readonly sessionId: string;
   readonly status: 'ok' | 'stale_returned' | 'error';
+  /** Pre-serialised via {@link buildArgsJson}. Omitted for tools that don't yet record argument identity. */
+  readonly argsJson?: string;
+  /** Pre-serialised via {@link buildResultsJson}. Omitted for tools that don't yet record result identity. */
+  readonly resultsJson?: string;
 }
 
 /**
@@ -41,6 +45,8 @@ export async function recordToolCall(
       mode:                         options.mode ?? null,
       session_id:                   options.sessionId,
       status:                       options.status,
+      args_json:                    options.argsJson ?? null,
+      results_json:                 options.resultsJson ?? null,
     })
     .execute();
 
@@ -224,4 +230,80 @@ export function buildToolStats(
     duration_ms: durationMs,
     mode,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Capsule instrumentation — argument/result identity (§14.3, §P 2026-07-15)
+//
+// Makes the "linked chain" measurable: did a later mast_signature/mast_exports
+// call target a symbol/file that an earlier mast_search returned in the same
+// session? Neither helper throws — a malformed identity payload must never
+// break a tool response, same discipline as the rest of the metrics path.
+// ---------------------------------------------------------------------------
+
+/** A single `{file_path, symbol_name}` identity pair returned by a read tool, in rank order. */
+export interface ResultIdentity {
+  readonly file_path: string;
+  readonly symbol_name: string | null;
+}
+
+const ARGS_JSON_CHAR_CAP = 1_000;
+const RESULTS_JSON_ENTRY_CAP = 20;
+
+/**
+ * Serialise the salient tool arguments for `metrics.args_json`, capped at
+ * {@link ARGS_JSON_CHAR_CAP} characters.
+ *
+ * `JSON.stringify` already drops `undefined`-valued properties, so passing
+ * the tool's raw zod-parsed input captures "query + filters" (or
+ * "symbol/file_path") without extra bookkeeping at each call site.
+ *
+ * When the serialised form exceeds the cap, the truncation is stated
+ * honestly in the payload itself (`_truncated`, `original_length`) rather
+ * than silently cutting the string — an un-labelled truncated JSON string
+ * would also risk being invalid JSON.
+ */
+export function buildArgsJson(args: Record<string, unknown>, capChars = ARGS_JSON_CHAR_CAP): string {
+  const full = JSON.stringify(args);
+  if (full.length <= capChars) return full;
+
+  const wrap = (previewLen: number): string =>
+    JSON.stringify({
+      _truncated: true,
+      original_length: full.length,
+      preview: full.slice(0, previewLen),
+    });
+
+  // `preview` is a slice of an already-JSON-encoded string, so it can contain
+  // quote/backslash characters that need escaping once re-embedded as a JSON
+  // string value — a fixed-length guess can overshoot the cap. Shrink
+  // iteratively by the observed overflow instead; the max() clamp guarantees
+  // termination even if a shrink step's escaping happens to net zero.
+  let previewLen = Math.max(0, capChars - wrap(0).length);
+  let wrapped = wrap(previewLen);
+  while (wrapped.length > capChars && previewLen > 0) {
+    previewLen = Math.max(0, previewLen - (wrapped.length - capChars));
+    wrapped = wrap(previewLen);
+  }
+  return wrapped;
+}
+
+/**
+ * Serialise result identity pairs for `metrics.results_json`, capped at
+ * {@link RESULTS_JSON_ENTRY_CAP} entries.
+ *
+ * Rank order is preserved. When the list exceeds the cap, a final
+ * `{"_truncated": N}` element (N = the number of dropped entries) is
+ * appended rather than silently dropping them — mirrors {@link buildArgsJson}'s
+ * honesty rule.
+ */
+export function buildResultsJson(
+  identities: readonly ResultIdentity[],
+  cap = RESULTS_JSON_ENTRY_CAP,
+): string {
+  if (identities.length <= cap) return JSON.stringify(identities);
+
+  const kept = identities.slice(0, cap);
+  const droppedCount = identities.length - cap;
+  return JSON.stringify([...kept, { _truncated: droppedCount }]);
 }

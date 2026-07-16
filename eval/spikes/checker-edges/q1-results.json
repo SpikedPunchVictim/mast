@@ -1,0 +1,424 @@
+{
+  "methodology": {
+    "a": "SELECT resolution, COUNT(*) FROM edges WHERE edge_type='POTENTIAL_CALL' GROUP BY resolution",
+    "b": "Top 50 exported symbols by incoming POTENTIAL_CALL count (kind!=export). Ties: name asc, then file_path asc, then id asc (deterministic). Per symbol: verified_count = incoming POTENTIAL_CALL edges (direct, non-transitive, same as mast_callers default). potential_count = shipped collectPotentialMatches semantics (src/mcp/tools/_helpers.ts): identifier_fts exact-phrase match on the symbol name (limit 50), chunks fetched from chunks.lance, minus chunks whose (file_path,start_line) equals a verified caller (file_path,line) for this symbol.",
+    "ratio": "aggregate verified:potential = sum(verified_count) : sum(potential_count) across the 50"
+  },
+  "state_dir": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-kluster/c4f25db4-b26f-4eb7-94d3-6a2eef5c6b2c/scratchpad/base-state",
+  "a_edges_by_resolution": {
+    "field_type": 42,
+    "import": 1321,
+    "new_expression": 110,
+    "parameter_type": 49,
+    "same_file": 1789
+  },
+  "a_total_potential_call_edges": 3311,
+  "b_top50_symbols": [
+    {
+      "symbol_id": 2076,
+      "name": "cx",
+      "file_path": "application/ui/src/util/cx.ts",
+      "line": 4,
+      "verified_count": 91,
+      "potential_count": 50
+    },
+    {
+      "symbol_id": 8569,
+      "name": "createProblemDetail",
+      "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/error-handler.ts",
+      "line": 80,
+      "verified_count": 80,
+      "potential_count": 50
+    },
+    {
+      "symbol_id": 9520,
+      "name": "spawn",
+      "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/execution/src/spawn.ts",
+      "line": 102,
+      "verified_count": 34,
+      "potential_count": 50
+    },
+    {
+      "symbol_id": 8620,
+      "name": "createValidationProblemDetail",
+      "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/validate.ts",
+      "line": 207,
+      "verified_count": 31,
+      "potential_count": 32
+    },
+    {
+      "symbol_id": 6055,
+      "name": "resolvePathWithTemplates",
+      "file_path": "packages/kluster-bt/core/src/utils/path-resolver.ts",
+      "line": 86,
+      "verified_count": 30,
+      "potential_count": 50
+    },
+    {
+      "symbol_id": 8616,
+      "name": "buildRouteSchema",
+      "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/validate.ts",
+      "line": 156,
+      "verified_count": 24,
+      "potential_count": 29
+    },
+    {
+      "symbol_id": 2706,
+      "name": "rowToDomain",
+      "file_path": "application/api/src/domain/deployment-targets/deployment-target-repository.ts",
+      "line": 262,
+      "verified_count": 20,
+      "potential_count": 41
+    },
+    {
+      "symbol_id": 101,
+      "name": "asOrgId",
+      "file_path": "application/api/src/db/tenant-db-router.ts",
+      "line": 66,
+      "verified_count": 18,
+      "potential_count": 32
+    },
+    {
+      "symbol_id": 1766,
+      "name": "useApiClient",
+      "file_path": "application/ui/src/context/api-client-context.tsx",
+      "line": 74,
+      "verified_count": 15,
+      "potential_count": 25
+    },
+    {
+      "symbol_id": 7247,
+      "name": "createServer",
+      "file_path": "packages/workbench/sdd/apps/echo-anatomy/src/server.ts",
+      "line": 43,
+      "verified_count": 14,
+      "potential_count": 34
+    },
+    {
+      "symbol_id": 9997,
+      "name": "createPolicyService",
+      "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/policies/src/service.ts",
+      "line": 154,
+      "verified_count": 12,
+      "potential_count": 13
+    },
+    {
+      "symbol_id": 5875,
+      "name": "emitNodeFailure",
+      "file_path": "packages/kluster-bt/core/src/events/event-utils.ts",
+      "line": 8,
+      "verified_count": 12,
+      "potential_count": 36
+    },
+    {
+      "symbol_id": 5762,
+      "name": "findAllFailures",
+      "file_path": "packages/kluster-bt/core/src/debug/query-helpers.ts",
+      "line": 97,
+      "verified_count": 11,
+      "potential_count": 12
+    },
+    {
+      "symbol_id": 7287,
+      "name": "getConfig",
+      "file_path": "packages/workbench/sdd/apps/echo-anatomy-2/src/config.ts",
+      "line": 33,
+      "verified_count": 11,
+      "potential_count": 25
+    },
+    {
+      "symbol_id": 4595,
+      "name": "cap",
+      "file_path": "packages/workbench/foldv2/gates/src/spawn.ts",
+      "line": 32,
+      "verified_count": 10,
+      "potential_count": 50
+    },
+    {
+      "symbol_id": 4549,
+      "name": "err",
+      "file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+      "line": 5,
+      "verified_count": 10,
+      "potential_count": 50
+    },
+    {
+      "symbol_id": 6664,
+      "name": "readFoldIndex",
+      "file_path": "packages/workbench/fold/foldctl/src/loader/registryLoader.ts",
+      "line": 186,
+      "verified_count": 10,
+      "potential_count": 21
+    },
+    {
+      "symbol_id": 82,
+      "name": "createKysely",
+      "file_path": "application/api/src/db/kysely-factory.ts",
+      "line": 68,
+      "verified_count": 9,
+      "potential_count": 13
+    },
+    {
+      "symbol_id": 28,
+      "name": "loadConfig",
+      "file_path": "application/api/src/config.ts",
+      "line": 382,
+      "verified_count": 9,
+      "potential_count": 35
+    },
+    {
+      "symbol_id": 4548,
+      "name": "ok",
+      "file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+      "line": 4,
+      "verified_count": 9,
+      "potential_count": 50
+    },
+    {
+      "symbol_id": 6056,
+      "name": "resolveNumber",
+      "file_path": "packages/kluster-bt/core/src/utils/resolve-number.ts",
+      "line": 16,
+      "verified_count": 9,
+      "potential_count": 18
+    },
+    {
+      "symbol_id": 5928,
+      "name": "NodeRegistry.registerNode",
+      "file_path": "packages/kluster-bt/core/src/registry/registry.ts",
+      "line": 53,
+      "verified_count": 8,
+      "potential_count": 0
+    },
+    {
+      "symbol_id": 1046,
+      "name": "buildToolStats",
+      "file_path": "packages/mast/src/telemetry/metrics.ts",
+      "line": 205,
+      "verified_count": 8,
+      "potential_count": 9
+    },
+    {
+      "symbol_id": 1047,
+      "name": "countTokens",
+      "file_path": "packages/mast/src/telemetry/tokenizer.ts",
+      "line": 30,
+      "verified_count": 8,
+      "potential_count": 9
+    },
+    {
+      "symbol_id": 6028,
+      "name": "fetchWithTimeout",
+      "file_path": "packages/kluster-bt/core/src/utils/fetch-with-timeout.ts",
+      "line": 45,
+      "verified_count": 8,
+      "potential_count": 14
+    },
+    {
+      "symbol_id": 1122,
+      "name": "generateEventId",
+      "file_path": "packages/kluster-bt/core/src/events.ts",
+      "line": 179,
+      "verified_count": 8,
+      "potential_count": 13
+    },
+    {
+      "symbol_id": 9392,
+      "name": "getQueueService",
+      "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/db/src/queue.ts",
+      "line": 599,
+      "verified_count": 8,
+      "potential_count": 9
+    },
+    {
+      "symbol_id": 5607,
+      "name": "parseCondition",
+      "file_path": "packages/kluster-bt/core/src/conditions/condition-factory.ts",
+      "line": 31,
+      "verified_count": 8,
+      "potential_count": 15
+    },
+    {
+      "symbol_id": 1040,
+      "name": "recordToolCall",
+      "file_path": "packages/mast/src/telemetry/metrics.ts",
+      "line": 26,
+      "verified_count": 8,
+      "potential_count": 9
+    },
+    {
+      "symbol_id": 536,
+      "name": "asProjectId",
+      "file_path": "application/api/src/types/domain-ids.ts",
+      "line": 56,
+      "verified_count": 7,
+      "potential_count": 11
+    },
+    {
+      "symbol_id": 520,
+      "name": "endSseStream",
+      "file_path": "application/api/src/sse/sse-writer.ts",
+      "line": 178,
+      "verified_count": 7,
+      "potential_count": 11
+    },
+    {
+      "symbol_id": 6048,
+      "name": "getJsonPath",
+      "file_path": "packages/kluster-bt/core/src/utils/json-path.ts",
+      "line": 19,
+      "verified_count": 7,
+      "potential_count": 13
+    },
+    {
+      "symbol_id": 7663,
+      "name": "registerEchoRoutes",
+      "file_path": "packages/workbench/sdd/apps/echo-anatomy/src/routes/echo.ts",
+      "line": 38,
+      "verified_count": 7,
+      "potential_count": 17
+    },
+    {
+      "symbol_id": 517,
+      "name": "setupSseHeaders",
+      "file_path": "application/api/src/sse/sse-writer.ts",
+      "line": 59,
+      "verified_count": 7,
+      "potential_count": 12
+    },
+    {
+      "symbol_id": 518,
+      "name": "writeSseEvent",
+      "file_path": "application/api/src/sse/sse-writer.ts",
+      "line": 100,
+      "verified_count": 7,
+      "potential_count": 13
+    },
+    {
+      "symbol_id": 519,
+      "name": "writeSseHeartbeat",
+      "file_path": "application/api/src/sse/sse-writer.ts",
+      "line": 158,
+      "verified_count": 7,
+      "potential_count": 10
+    },
+    {
+      "symbol_id": 1398,
+      "name": "TreeParser.parse",
+      "file_path": "packages/kluster-bt/core/src/tree-parser.ts",
+      "line": 14,
+      "verified_count": 6,
+      "potential_count": 0
+    },
+    {
+      "symbol_id": 2941,
+      "name": "asPolicyId",
+      "file_path": "application/api/src/domain/policies/policy-types.ts",
+      "line": 251,
+      "verified_count": 6,
+      "potential_count": 20
+    },
+    {
+      "symbol_id": 3152,
+      "name": "createSpecService",
+      "file_path": "application/api/src/domain/spec/spec-service.ts",
+      "line": 216,
+      "verified_count": 6,
+      "potential_count": 10
+    },
+    {
+      "symbol_id": 5224,
+      "name": "normalizeCapabilityName",
+      "file_path": "packages/workbench/fold/ledger/src/reconcile.ts",
+      "line": 70,
+      "verified_count": 6,
+      "potential_count": 8
+    },
+    {
+      "symbol_id": 7665,
+      "name": "registerHealthRoutes",
+      "file_path": "packages/workbench/sdd/apps/echo-anatomy/src/routes/health.ts",
+      "line": 21,
+      "verified_count": 6,
+      "potential_count": 14
+    },
+    {
+      "symbol_id": 5668,
+      "name": "resolveNumericValue",
+      "file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+      "line": 39,
+      "verified_count": 6,
+      "potential_count": 13
+    },
+    {
+      "symbol_id": 5667,
+      "name": "resolveValue",
+      "file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+      "line": 23,
+      "verified_count": 6,
+      "potential_count": 11
+    },
+    {
+      "symbol_id": 7516,
+      "name": "runGuard",
+      "file_path": "packages/kluster-bt/core/src/decorators/policy/injection-guard-substrate.ts",
+      "line": 412,
+      "verified_count": 6,
+      "potential_count": 20
+    },
+    {
+      "symbol_id": 1992,
+      "name": "useDemoMode",
+      "file_path": "application/ui/src/hooks/use-demo-mode.ts",
+      "line": 110,
+      "verified_count": 6,
+      "potential_count": 15
+    },
+    {
+      "symbol_id": 5899,
+      "name": "Executor.execute",
+      "file_path": "packages/kluster-bt/core/src/executor/executor.ts",
+      "line": 193,
+      "verified_count": 5,
+      "potential_count": 1
+    },
+    {
+      "symbol_id": 538,
+      "name": "asBuildId",
+      "file_path": "application/api/src/types/domain-ids.ts",
+      "line": 68,
+      "verified_count": 5,
+      "potential_count": 8
+    },
+    {
+      "symbol_id": 2608,
+      "name": "createAuditWriter",
+      "file_path": "application/api/src/domain/audit/outbox-writer.ts",
+      "line": 166,
+      "verified_count": 5,
+      "potential_count": 6
+    },
+    {
+      "symbol_id": 1394,
+      "name": "createTemplateResolver",
+      "file_path": "packages/kluster-bt/core/src/template-resolver.ts",
+      "line": 116,
+      "verified_count": 5,
+      "potential_count": 8
+    },
+    {
+      "symbol_id": 4302,
+      "name": "extractSignatureText",
+      "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+      "line": 523,
+      "verified_count": 5,
+      "potential_count": 6
+    }
+  ],
+  "b_aggregate": {
+    "verified_sum": 661,
+    "potential_sum": 1021,
+    "ratio_verified_per_potential": 0.6474,
+    "ratio_string": "661:1021"
+  }
+}

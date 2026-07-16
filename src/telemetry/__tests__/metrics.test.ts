@@ -11,6 +11,8 @@ import {
   rollupMetrics,
   vacuumMetrics,
   buildToolStats,
+  buildArgsJson,
+  buildResultsJson,
 } from '../metrics.js';
 import { TOKENIZER_LABEL } from '../tokenizer.js';
 
@@ -115,6 +117,38 @@ describe('recordToolCall', () => {
     expect(daily[0]!.tool_name).toBe('mast_exports');
     expect(daily[0]!.calls).toBe(2);
     expect(daily[0]!.tokens_returned_total).toBe(500);
+  });
+
+  it('stores args_json and results_json when provided', async () => {
+    await recordToolCall(db, {
+      toolName: 'mast_search',
+      tokensReturned: 10,
+      tokensFullFileBound: 0,
+      durationMs: 5,
+      sessionId: 's1',
+      status: 'ok',
+      argsJson: '{"query":"add"}',
+      resultsJson: '[{"file_path":"math.ts","symbol_name":"add"}]',
+    });
+
+    const row = await db.selectFrom('metrics').selectAll().executeTakeFirst();
+    expect(row!.args_json).toBe('{"query":"add"}');
+    expect(row!.results_json).toBe('[{"file_path":"math.ts","symbol_name":"add"}]');
+  });
+
+  it('stores NULL for args_json/results_json when omitted', async () => {
+    await recordToolCall(db, {
+      toolName: 'mast_implementors',
+      tokensReturned: 10,
+      tokensFullFileBound: 0,
+      durationMs: 5,
+      sessionId: 's1',
+      status: 'ok',
+    });
+
+    const row = await db.selectFrom('metrics').selectAll().executeTakeFirst();
+    expect(row!.args_json).toBeNull();
+    expect(row!.results_json).toBeNull();
   });
 
   it('creates separate daily rows for different tools', async () => {
@@ -292,5 +326,93 @@ describe('buildToolStats', () => {
   it('includes mode when provided', () => {
     const stats = buildToolStats('mast_search', 50, 0, [], 5, 'hybrid');
     expect(stats.mode).toBe('hybrid');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildArgsJson — capsule instrumentation: salient tool arguments (§14.3)
+// ---------------------------------------------------------------------------
+
+describe('buildArgsJson', () => {
+  it('serialises the given arguments as-is when under the cap', () => {
+    const json = buildArgsJson({ query: 'add', limit: 10 });
+    expect(JSON.parse(json)).toEqual({ query: 'add', limit: 10 });
+  });
+
+  it('drops properties whose value is undefined (JSON.stringify semantics)', () => {
+    const json = buildArgsJson({ query: 'add', file_pattern: undefined });
+    expect(JSON.parse(json)).toEqual({ query: 'add' });
+  });
+
+  it('caps oversized argument payloads and states the cap honestly', () => {
+    const hugeQuery = 'x'.repeat(5_000);
+    const full = JSON.stringify({ query: hugeQuery });
+    const json = buildArgsJson({ query: hugeQuery });
+
+    expect(json.length).toBeLessThanOrEqual(1_000);
+    const parsed = JSON.parse(json) as { _truncated: true; original_length: number; preview: string };
+    expect(parsed._truncated).toBe(true);
+    expect(parsed.original_length).toBe(full.length);
+    // `preview` is a genuine prefix of the untruncated serialisation, not a
+    // fabricated summary — an auditor can line it up against `full`.
+    expect(full.startsWith(parsed.preview)).toBe(true);
+    expect(parsed.preview.length).toBeGreaterThan(0);
+  });
+
+  it('never throws on cyclic-looking but JSON-serialisable inputs', () => {
+    expect(() => buildArgsJson({ file_path: null, transitive: false })).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildResultsJson — capsule instrumentation: returned identity pairs (§14.3)
+// ---------------------------------------------------------------------------
+
+describe('buildResultsJson', () => {
+  it('serialises identity pairs as-is when under the cap', () => {
+    const json = buildResultsJson([
+      { file_path: 'math.ts', symbol_name: 'add' },
+      { file_path: 'math.ts', symbol_name: 'multiply' },
+    ]);
+    expect(JSON.parse(json)).toEqual([
+      { file_path: 'math.ts', symbol_name: 'add' },
+      { file_path: 'math.ts', symbol_name: 'multiply' },
+    ]);
+  });
+
+  it('preserves rank order', () => {
+    const identities = [
+      { file_path: 'a.ts', symbol_name: 'a' },
+      { file_path: 'b.ts', symbol_name: 'b' },
+      { file_path: 'c.ts', symbol_name: 'c' },
+    ];
+    const json = buildResultsJson(identities);
+    expect(JSON.parse(json)).toEqual(identities);
+  });
+
+  it('caps at 20 entries and appends an honest truncation marker', () => {
+    const identities = Array.from({ length: 25 }, (_, i) => ({
+      file_path: `f${i}.ts`,
+      symbol_name: `sym${i}`,
+    }));
+
+    const parsed = JSON.parse(buildResultsJson(identities)) as unknown[];
+
+    expect(parsed).toHaveLength(21); // 20 kept + 1 truncation marker
+    expect(parsed.slice(0, 20)).toEqual(identities.slice(0, 20));
+    expect(parsed[20]).toEqual({ _truncated: 5 });
+  });
+
+  it('does not append a truncation marker when exactly at the cap', () => {
+    const identities = Array.from({ length: 20 }, (_, i) => ({
+      file_path: `f${i}.ts`,
+      symbol_name: null,
+    }));
+    const parsed = JSON.parse(buildResultsJson(identities)) as unknown[];
+    expect(parsed).toHaveLength(20);
+  });
+
+  it('handles an empty identity list', () => {
+    expect(JSON.parse(buildResultsJson([]))).toEqual([]);
   });
 });

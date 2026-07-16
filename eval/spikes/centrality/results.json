@@ -1,0 +1,661 @@
+{
+  "ranAt": "2026-07-15T19:03:12.759Z",
+  "provenance": {
+    "corpusPath": "rebuilt (2026-07-15) — frozen 2026-07-10 base-state graph.db was absent (only chunks.lance survived; see REPORT.md)",
+    "model": "jinaai/jina-embeddings-v2-base-code",
+    "dtype": "fp32",
+    "rrf_k": 60,
+    "limit": 10,
+    "candidatePoolSize": 40,
+    "corpusChunks": 12983,
+    "subsetEmbedded": 2952,
+    "subsetNote": "frozen corpus-subset.json (3000 ids, seed 20260709) resolved 2952/3000 against the rebuilt corpus; 48 ids drifted (repo changed 2026-07-10..15). 4 chunk_ids are duplicated in the corpus itself (10 rows for 4 ids, all irrelevant distractors in generated code)."
+  },
+  "centrality": {
+    "method": "in-degree, edge_type IN (POTENTIAL_CALL, IMPLEMENTS)",
+    "symbolCount": 10733,
+    "edgeCount": 3575,
+    "coverage": {
+      "total": 12983,
+      "nonzero": 1990,
+      "coveragePct": 15.327736270507588
+    }
+  },
+  "baselineValidation": {
+    "recordedBaselineNdcg": 0.58,
+    "measuredBeforeNdcg": 0.4884,
+    "delta": -0.0916,
+    "tolerance": 0.02,
+    "ok": false,
+    "driftDiagnosis": {
+      "conclusion": "Mechanical validation failed (-0.0916 vs recorded 0.580) but the harness reproduction is proven exact: the before arm calls the shipped hybridSearch and matches the independent run-model.mjs scoring of the same rebuilt corpus to 4 decimals (0.4884 == 0.4884). The delta is corpus/subset drift, not harness error.",
+      "evidence": {
+        "lostVectorCoverageQueries": [
+          "q05",
+          "q08",
+          "q20",
+          "q25",
+          "q27",
+          "q28"
+        ],
+        "note": "6 queries have gold targets whose current chunk_ids are not in the frozen 2026-07-09 subset, so those targets have no vector representation on the rebuilt corpus.",
+        "ndcgSumDeltaVsJul10_onLostCoverageQueries": -2.184,
+        "ndcgSumDeltaVsJul10_onAllOtherQueries": -0.369,
+        "totalNdcgSumDeltaVsJul10": -2.551,
+        "percentExplainedByLostCoverage": 85.6
+      },
+      "abValidity": "Both arms share the identical rebuilt corpus, frozen subset intersection, and embedder — the marginal effect of the third ranker is measured cleanly. Gate applied on that basis."
+    }
+  },
+  "aggregate": {
+    "before": {
+      "ndcg": 0.4884,
+      "recall": 0.619,
+      "mrr": 0.4921
+    },
+    "after": {
+      "ndcg": 0.4071,
+      "recall": 0.6012,
+      "mrr": 0.3971
+    },
+    "ndcgDelta": -0.0813
+  },
+  "gate": {
+    "promoteThreshold": 0.05,
+    "ndcgDelta": -0.0813,
+    "worstPerQueryTierDelta": 3,
+    "anyQueryDegradedMoreThanOneTier": true,
+    "verdict": "REJECT",
+    "verdictNote": "Mechanical verdict field was INVALID pending baseline diagnosis; diagnosis (above) proved the harness faithful and the baseline delta drift-explainable, so the pre-decided gate applies: NDCG delta -0.0813 is decisively negative -> REJECT. PageRank probe (results-pagerank.json) also negative (-0.0688) -> REJECT stands for both variants."
+  },
+  "perQuery": [
+    {
+      "id": "q01",
+      "query": "combine two ranked result lists into a single blended score",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.4307,
+        "recall": 1,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "after": {
+        "ndcg": 0.5,
+        "recall": 1,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "ndcgDelta": 0.0693,
+      "tierDelta": -1
+    },
+    {
+      "id": "q02",
+      "query": "stop two processes from writing the index directory at the same time",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "after": {
+        "ndcg": 0.3869,
+        "recall": 1,
+        "rr": 0.2,
+        "firstRel": 5,
+        "tier": 2
+      },
+      "ndcgDelta": 0.3869,
+      "tierDelta": -2
+    },
+    {
+      "id": "q03",
+      "query": "suggest a close symbol name when the user misspelled it",
+      "hard_class": "near-miss",
+      "before": {
+        "ndcg": 0.2641,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "after": {
+        "ndcg": 0.3869,
+        "recall": 0.5,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDelta": 0.1228,
+      "tierDelta": -1
+    },
+    {
+      "id": "q04",
+      "query": "how long the file watcher waits after edits before it reindexes",
+      "hard_class": "qualified-method",
+      "before": {
+        "ndcg": 0.2184,
+        "recall": 0.5,
+        "rr": 0.1667,
+        "firstRel": 6,
+        "tier": 2
+      },
+      "after": {
+        "ndcg": 0.2044,
+        "recall": 0.5,
+        "rr": 0.1429,
+        "firstRel": 7,
+        "tier": 3
+      },
+      "ndcgDelta": -0.014,
+      "tierDelta": 1
+    },
+    {
+      "id": "q05",
+      "query": "measure how alike two embedding vectors are",
+      "hard_class": "cross-file",
+      "before": {
+        "ndcg": 0.4693,
+        "recall": 0.3333,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 0.148,
+        "recall": 0.3333,
+        "rr": 0.125,
+        "firstRel": 8,
+        "tier": 3
+      },
+      "ndcgDelta": -0.3212,
+      "tierDelta": 3
+    },
+    {
+      "id": "q06",
+      "query": "remove stored embeddings whose source code chunk was deleted",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "after": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q07",
+      "query": "tag each vector with a fingerprint so edits force a re-embed",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q08",
+      "query": "avoid returning both a class outline and one of its methods for the same match",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "after": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q09",
+      "query": "warn that the token count is only a rough estimate for newer models",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.6934,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "after": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDelta": -0.0803,
+      "tierDelta": -1
+    },
+    {
+      "id": "q10",
+      "query": "break a camelCase identifier into its separate words",
+      "hard_class": "near-miss",
+      "before": {
+        "ndcg": 0.301,
+        "recall": 1,
+        "rr": 0.1111,
+        "firstRel": 9,
+        "tier": 3
+      },
+      "after": {
+        "ndcg": 0.6309,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDelta": 0.3299,
+      "tierDelta": -2
+    },
+    {
+      "id": "q11",
+      "query": "recover when the vector database files vanish from disk underneath us",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.3066,
+        "recall": 0.5,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "after": {
+        "ndcg": 0.3066,
+        "recall": 0.5,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q12",
+      "query": "translate a wildcard file pattern into a SQL LIKE expression",
+      "hard_class": "near-miss",
+      "before": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 0.3869,
+        "recall": 1,
+        "rr": 0.2,
+        "firstRel": 5,
+        "tier": 2
+      },
+      "ndcgDelta": -0.6131,
+      "tierDelta": 2
+    },
+    {
+      "id": "q13",
+      "query": "figure out which files changed since the last indexing run",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q14",
+      "query": "shared scratch memory that behavior tree nodes read and write between steps",
+      "hard_class": "cross-file",
+      "before": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "after": {
+        "ndcg": 0.2641,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "ndcgDelta": 0.2641,
+      "tierDelta": -2
+    },
+    {
+      "id": "q15",
+      "query": "escape single quotes before putting a value into a SQL string literal",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q16",
+      "query": "list every barrel file that forwards a renamed export onward",
+      "hard_class": "qualified-method",
+      "before": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 0.3869,
+        "recall": 1,
+        "rr": 0.2,
+        "firstRel": 5,
+        "tier": 2
+      },
+      "ndcgDelta": -0.6131,
+      "tierDelta": 2
+    },
+    {
+      "id": "q17",
+      "query": "find code that contains an identifier the resolver could not statically link",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q18",
+      "query": "give back the same answer instantly instead of recomputing an embedding twice",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 0.6309,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDelta": -0.3691,
+      "tierDelta": 1
+    },
+    {
+      "id": "q19",
+      "query": "retry policy with escalation and quarantine when a build stage keeps failing",
+      "hard_class": "cross-file",
+      "before": {
+        "ndcg": 0.6509,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "after": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDelta": -0.6509,
+      "tierDelta": 3
+    },
+    {
+      "id": "q20",
+      "query": "nearest neighbour lookup over stored vectors using cosine distance",
+      "hard_class": "qualified-method",
+      "before": {
+        "ndcg": 0.3066,
+        "recall": 0.5,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "after": {
+        "ndcg": 0.2641,
+        "recall": 0.5,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "ndcgDelta": -0.0425,
+      "tierDelta": 1
+    },
+    {
+      "id": "q21",
+      "query": "decide whether a re-parsed file is byte-identical so we can skip rewriting it",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.6131,
+        "recall": 0.5,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 0.3066,
+        "recall": 0.5,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "ndcgDelta": -0.3066,
+      "tierDelta": 1
+    },
+    {
+      "id": "q22",
+      "query": "which chunks still need embeddings computed for them",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.5706,
+        "recall": 1,
+        "rr": 0.3333,
+        "firstRel": 3,
+        "tier": 1
+      },
+      "after": {
+        "ndcg": 0.9197,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "ndcgDelta": 0.3491,
+      "tierDelta": -1
+    },
+    {
+      "id": "q23",
+      "query": "explain why the index looks out of date to the agent",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.6309,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "after": {
+        "ndcg": 0.6309,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q24",
+      "query": "resolve a .js import specifier back to its TypeScript source file",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0.6053,
+        "recall": 1,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "after": {
+        "ndcg": 0.3869,
+        "recall": 0.5,
+        "rr": 0.5,
+        "firstRel": 2,
+        "tier": 1
+      },
+      "ndcgDelta": -0.2184,
+      "tierDelta": 0
+    },
+    {
+      "id": "q25",
+      "query": "collect close candidate names when a search comes back empty",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "after": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q26",
+      "query": "turn a shell glob like double-star slash into a regular expression",
+      "hard_class": "near-miss",
+      "before": {
+        "ndcg": 1,
+        "recall": 1,
+        "rr": 1,
+        "firstRel": 1,
+        "tier": 0
+      },
+      "after": {
+        "ndcg": 0.4307,
+        "recall": 1,
+        "rr": 0.25,
+        "firstRel": 4,
+        "tier": 2
+      },
+      "ndcgDelta": -0.5693,
+      "tierDelta": 2
+    },
+    {
+      "id": "q27",
+      "query": "keep the highest ranked hit and note the class it belongs to",
+      "hard_class": "conceptual",
+      "before": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "after": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    },
+    {
+      "id": "q28",
+      "query": "how the runner pre-warms model weights so the container does not download them at request time",
+      "hard_class": "cross-file",
+      "before": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "after": {
+        "ndcg": 0,
+        "recall": 0,
+        "rr": 0,
+        "firstRel": 0,
+        "tier": 4
+      },
+      "ndcgDelta": 0,
+      "tierDelta": 0
+    }
+  ]
+}

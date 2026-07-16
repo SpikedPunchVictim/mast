@@ -1,0 +1,347 @@
+{
+  "provenance": {
+    "app_root": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02",
+    "state_dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/.fold/.mast",
+    "scoped_project_root": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/packages/core",
+    "build_log_status": "exit: 2 at 2026-07-14T15:48:56Z (build finished; exit 2 = gate failures, not a crash)",
+    "staleness_check": "23/23 files table rows: recorded mtime == on-disk mtime exactly (0 mismatches) — index is fresh, no re-index needed",
+    "index_json": {
+      "last_indexed": "2026-07-14T15:45:59.574Z",
+      "file_count": 25,
+      "chunk_count": 209
+    },
+    "this_read_found": {
+      "files_rows": 23,
+      "symbols_rows": 205,
+      "edges_rows": 172
+    }
+  },
+  "pool_size": 65,
+  "sample_size_requested": 25,
+  "sample_size_actual": 25,
+  "seed": 20260715,
+  "counts": {
+    "resolves_to_queried": 14,
+    "resolves_to_different": 0,
+    "cannot_resolve": 0,
+    "non_call_site": 11
+  },
+  "definite_edge_rate": 0.56,
+  "non_call_site_share": 0.44,
+  "sample_records": [
+    {
+      "queried_symbol_name": "findNode",
+      "queried_symbol_file_path": "src/domain/graph/model.ts",
+      "queried_symbol_line": 57,
+      "call_site_file_path": "src/domain/graph/classifier.ts",
+      "call_site_line_range": [
+        78,
+        123
+      ],
+      "resolved_file_path": "src/domain/graph/model.ts",
+      "resolved_line": 57,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "acceptBaseline",
+      "queried_symbol_file_path": "src/services/baseline-manager.ts",
+      "queried_symbol_line": 44,
+      "call_site_file_path": "src/services/baseline-manager.ts",
+      "call_site_line_range": [
+        187,
+        212
+      ],
+      "resolved_file_path": "src/services/baseline-manager.ts",
+      "resolved_line": 44,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "reconcileMoves",
+      "queried_symbol_file_path": "src/services/baseline-manager.ts",
+      "queried_symbol_line": 113,
+      "call_site_file_path": "src/services/baseline-manager.ts",
+      "call_site_line_range": [
+        198,
+        203
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "sha256Base64",
+      "queried_symbol_file_path": "src/infrastructure/hash.ts",
+      "queried_symbol_line": 58,
+      "call_site_file_path": "src/infrastructure/hash.ts",
+      "call_site_line_range": [
+        80,
+        92
+      ],
+      "resolved_file_path": "src/infrastructure/hash.ts",
+      "resolved_line": 58,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "classifyEdge",
+      "queried_symbol_file_path": "src/domain/graph/classifier.ts",
+      "queried_symbol_line": 78,
+      "call_site_file_path": "src/domain/graph/classifier.ts",
+      "call_site_line_range": [
+        78,
+        123
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "pruneBaseline",
+      "queried_symbol_file_path": "src/services/baseline-manager.ts",
+      "queried_symbol_line": 86,
+      "call_site_file_path": "src/services/baseline-manager.ts",
+      "call_site_line_range": [
+        86,
+        104
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "resolveNodes",
+      "queried_symbol_file_path": "src/services/graph-resolver.ts",
+      "queried_symbol_line": 22,
+      "call_site_file_path": "src/services/graph-resolver.ts",
+      "call_site_line_range": [
+        22,
+        27
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "acceptBaseline",
+      "queried_symbol_file_path": "src/services/baseline-manager.ts",
+      "queried_symbol_line": 44,
+      "call_site_file_path": "src/services/baseline-manager.ts",
+      "call_site_line_range": [
+        189,
+        195
+      ],
+      "resolved_file_path": "src/services/baseline-manager.ts",
+      "resolved_line": 44,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "compileVerbatimBlocks",
+      "queried_symbol_file_path": "src/services/rule-provenance.ts",
+      "queried_symbol_line": 106,
+      "call_site_file_path": "src/services/rule-provenance.ts",
+      "call_site_line_range": [
+        184,
+        226
+      ],
+      "resolved_file_path": "src/services/rule-provenance.ts",
+      "resolved_line": 106,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "sha256Base64",
+      "queried_symbol_file_path": "src/infrastructure/hash.ts",
+      "queried_symbol_line": 58,
+      "call_site_file_path": "src/services/rule-provenance.ts",
+      "call_site_line_range": [
+        251,
+        261
+      ],
+      "resolved_file_path": "src/infrastructure/hash.ts",
+      "resolved_line": 58,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "serializeRulesetIR",
+      "queried_symbol_file_path": "src/services/ir-serializer.ts",
+      "queried_symbol_line": 69,
+      "call_site_file_path": "src/services/ir-serializer.ts",
+      "call_site_line_range": [
+        69,
+        80
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "serializeRulesetIR",
+      "queried_symbol_file_path": "src/services/ir-serializer.ts",
+      "queried_symbol_line": 69,
+      "call_site_file_path": "src/services/ir-serializer.ts",
+      "call_site_line_range": [
+        171,
+        173
+      ],
+      "resolved_file_path": "src/services/ir-serializer.ts",
+      "resolved_line": 69,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "reconcileMoves",
+      "queried_symbol_file_path": "src/services/baseline-manager.ts",
+      "queried_symbol_line": 113,
+      "call_site_file_path": "src/services/baseline-manager.ts",
+      "call_site_line_range": [
+        187,
+        212
+      ],
+      "resolved_file_path": "src/services/baseline-manager.ts",
+      "resolved_line": 113,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "resolveNodes",
+      "queried_symbol_file_path": "src/services/graph-resolver.ts",
+      "queried_symbol_line": 22,
+      "call_site_file_path": "src/services/doctor.ts",
+      "call_site_line_range": [
+        18,
+        18
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "outgoingEdges",
+      "queried_symbol_file_path": "src/domain/graph/model.ts",
+      "queried_symbol_line": 83,
+      "call_site_file_path": "src/services/rule-engine.ts",
+      "call_site_line_range": [
+        345,
+        426
+      ],
+      "resolved_file_path": "src/domain/graph/model.ts",
+      "resolved_line": 83,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "sha256Base64",
+      "queried_symbol_file_path": "src/infrastructure/hash.ts",
+      "queried_symbol_line": 58,
+      "call_site_file_path": "src/services/rule-provenance.ts",
+      "call_site_line_range": [
+        263,
+        358
+      ],
+      "resolved_file_path": "src/infrastructure/hash.ts",
+      "resolved_line": 58,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "isUserError",
+      "queried_symbol_file_path": "src/domain/errors.ts",
+      "queried_symbol_line": 62,
+      "call_site_file_path": "src/domain/errors.ts",
+      "call_site_line_range": [
+        62,
+        66
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "compileVerbatimBlocks",
+      "queried_symbol_file_path": "src/services/rule-provenance.ts",
+      "queried_symbol_line": 106,
+      "call_site_file_path": "src/services/rule-provenance.ts",
+      "call_site_line_range": [
+        106,
+        149
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "sha256Base64",
+      "queried_symbol_file_path": "src/infrastructure/hash.ts",
+      "queried_symbol_line": 58,
+      "call_site_file_path": "src/infrastructure/hash.ts",
+      "call_site_line_range": [
+        68,
+        73
+      ],
+      "resolved_file_path": "src/infrastructure/hash.ts",
+      "resolved_line": 58,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "findNodeByPath",
+      "queried_symbol_file_path": "src/domain/graph/model.ts",
+      "queried_symbol_line": 71,
+      "call_site_file_path": "src/services/baseline-manager.ts",
+      "call_site_line_range": [
+        113,
+        155
+      ],
+      "resolved_file_path": "src/domain/graph/model.ts",
+      "resolved_line": 71,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "findNode",
+      "queried_symbol_file_path": "src/domain/graph/model.ts",
+      "queried_symbol_line": 57,
+      "call_site_file_path": "src/services/doctor.ts",
+      "call_site_line_range": [
+        129,
+        145
+      ],
+      "resolved_file_path": "src/domain/graph/model.ts",
+      "resolved_line": 57,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "classifyEdge",
+      "queried_symbol_file_path": "src/domain/graph/classifier.ts",
+      "queried_symbol_line": 78,
+      "call_site_file_path": "src/services/rule-engine.ts",
+      "call_site_line_range": [
+        26,
+        26
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "mapFileToComponent",
+      "queried_symbol_file_path": "src/services/graph-resolver.ts",
+      "queried_symbol_line": 60,
+      "call_site_file_path": "src/services/rule-engine.ts",
+      "call_site_line_range": [
+        26,
+        26
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    },
+    {
+      "queried_symbol_name": "sha256Base64",
+      "queried_symbol_file_path": "src/infrastructure/hash.ts",
+      "queried_symbol_line": 58,
+      "call_site_file_path": "src/domain/rule/rule-id.ts",
+      "call_site_line_range": [
+        24,
+        34
+      ],
+      "resolved_file_path": "src/infrastructure/hash.ts",
+      "resolved_line": 58,
+      "classification": "resolves_to_queried"
+    },
+    {
+      "queried_symbol_name": "serializeRulesetIR",
+      "queried_symbol_file_path": "src/services/ir-serializer.ts",
+      "queried_symbol_line": 69,
+      "call_site_file_path": "src/services/ir-serializer.ts",
+      "call_site_line_range": [
+        34,
+        50
+      ],
+      "classification": "non_call_site",
+      "subtype": "type_or_reference_position"
+    }
+  ]
+}

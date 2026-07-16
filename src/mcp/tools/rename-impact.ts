@@ -10,7 +10,7 @@ import type {
   CallerResolution,
 } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
-import { countTokens } from '../../telemetry/tokenizer.js';
+import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers, queryBarrelExports } from '../../graph/queries.js';
 import { jitRefreshFile, collectPotentialMatches } from './_helpers.js';
 
@@ -96,6 +96,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       ];
       const body = { declaration_sites, verified_callers, potential_matches, barrel_exports };
       const tokens = countTokens(JSON.stringify(body));
+      const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
       const response: RenameImpactResponse = {
@@ -111,10 +112,10 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
               ? `Symbol "${args.symbol}" not found in the index — nothing to rename.`
               : buildChecklist(verified_callers.length, potential_matches.length, barrel_exports.length),
         },
-        _stats: buildToolStats('mast_rename_impact', tokens, 0, filesReferenced, durationMs),
+        _stats: buildToolStats('mast_rename_impact', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       void recordToolCall(ctx.db, {
-        toolName: 'mast_rename_impact', tokensReturned: tokens, tokensFullFileBound: 0,
+        toolName: 'mast_rename_impact', tokensReturned: tokens, tokensFullFileBound,
         durationMs, sessionId: ctx.sessionId, status: 'ok',
       }).catch(() => {});
       return { content: [{ type: 'text' as const, text: JSON.stringify(response) }] };

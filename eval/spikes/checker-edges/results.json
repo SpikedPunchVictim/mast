@@ -1,0 +1,1945 @@
+{
+  "spike": "IMPLEMENTATION_PLAN_VEXP.md Feature 1 / Stage 1.1 — checker-verified call edges",
+  "ran_at": "2026-07-15T21:20:17.238Z",
+  "provenance": {
+    "typescript_version": "5.9.3",
+    "typescript_resolved_from": "root workspace hoist: node_modules/.pnpm/typescript@5.9.3 (packages/mast has no separate pinned version; single install across the workspace per pnpm hoisting)",
+    "monorepo_state_dir": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-kluster/c4f25db4-b26f-4eb7-94d3-6a2eef5c6b2c/scratchpad/base-state",
+    "monorepo_state_dir_note": "Reused from the centrality spike (Stage 3.1), built 2026-07-15, another Claude session's scratchpad — opened READ-ONLY, never written to.",
+    "monorepo_project_root": "/Users/spikedpunchvictim/projects/kluster",
+    "dist_rebuilt_before_run": true,
+    "tsconfig_project_scope": [
+      "packages/mast",
+      "packages/kluster-bt/cli",
+      "packages/kluster-bt/core",
+      "packages/kluster-bt/llm-anthropic",
+      "packages/kluster-bt/llm-ollama",
+      "packages/kluster-bt/llm-openai",
+      "packages/kluster-bt/llm-types",
+      "packages/kluster-bt/nodes-fs",
+      "packages/kluster-bt/nodes-git",
+      "packages/kluster-bt/nodes-http",
+      "packages/kluster-bt/nodes-llm",
+      "packages/kluster-bt/workflows",
+      "packages/workbench/foldv2/archetypes",
+      "packages/workbench/foldv2/cli",
+      "packages/workbench/foldv2/contracts",
+      "packages/workbench/foldv2/gates",
+      "packages/workbench/foldv2/library-vetting",
+      "packages/workbench/foldv2/mast-bridge",
+      "packages/workbench/foldv2/orchestrator",
+      "packages/workbench/foldv2/phases",
+      "packages/workbench/foldv2/reconcile",
+      "packages/workbench/foldv2/runner-bridge",
+      "packages/workbench/foldv2/schemas",
+      "application/api",
+      "application/ui"
+    ],
+    "tsconfig_project_scope_count": 25
+  },
+  "q1_baseline_verified_potential_ratio": {
+    "methodology": {
+      "a": "SELECT resolution, COUNT(*) FROM edges WHERE edge_type='POTENTIAL_CALL' GROUP BY resolution",
+      "b": "Top 50 exported symbols by incoming POTENTIAL_CALL count (kind!=export). Ties: name asc, then file_path asc, then id asc (deterministic). Per symbol: verified_count = incoming POTENTIAL_CALL edges (direct, non-transitive, same as mast_callers default). potential_count = shipped collectPotentialMatches semantics (src/mcp/tools/_helpers.ts): identifier_fts exact-phrase match on the symbol name (limit 50), chunks fetched from chunks.lance, minus chunks whose (file_path,start_line) equals a verified caller (file_path,line) for this symbol.",
+      "ratio": "aggregate verified:potential = sum(verified_count) : sum(potential_count) across the 50"
+    },
+    "state_dir": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-kluster/c4f25db4-b26f-4eb7-94d3-6a2eef5c6b2c/scratchpad/base-state",
+    "a_edges_by_resolution": {
+      "field_type": 42,
+      "import": 1321,
+      "new_expression": 110,
+      "parameter_type": 49,
+      "same_file": 1789
+    },
+    "a_total_potential_call_edges": 3311,
+    "b_top50_symbols": [
+      {
+        "symbol_id": 2076,
+        "name": "cx",
+        "file_path": "application/ui/src/util/cx.ts",
+        "line": 4,
+        "verified_count": 91,
+        "potential_count": 50
+      },
+      {
+        "symbol_id": 8569,
+        "name": "createProblemDetail",
+        "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/error-handler.ts",
+        "line": 80,
+        "verified_count": 80,
+        "potential_count": 50
+      },
+      {
+        "symbol_id": 9520,
+        "name": "spawn",
+        "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/execution/src/spawn.ts",
+        "line": 102,
+        "verified_count": 34,
+        "potential_count": 50
+      },
+      {
+        "symbol_id": 8620,
+        "name": "createValidationProblemDetail",
+        "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/validate.ts",
+        "line": 207,
+        "verified_count": 31,
+        "potential_count": 32
+      },
+      {
+        "symbol_id": 6055,
+        "name": "resolvePathWithTemplates",
+        "file_path": "packages/kluster-bt/core/src/utils/path-resolver.ts",
+        "line": 86,
+        "verified_count": 30,
+        "potential_count": 50
+      },
+      {
+        "symbol_id": 8616,
+        "name": "buildRouteSchema",
+        "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/validate.ts",
+        "line": 156,
+        "verified_count": 24,
+        "potential_count": 29
+      },
+      {
+        "symbol_id": 2706,
+        "name": "rowToDomain",
+        "file_path": "application/api/src/domain/deployment-targets/deployment-target-repository.ts",
+        "line": 262,
+        "verified_count": 20,
+        "potential_count": 41
+      },
+      {
+        "symbol_id": 101,
+        "name": "asOrgId",
+        "file_path": "application/api/src/db/tenant-db-router.ts",
+        "line": 66,
+        "verified_count": 18,
+        "potential_count": 32
+      },
+      {
+        "symbol_id": 1766,
+        "name": "useApiClient",
+        "file_path": "application/ui/src/context/api-client-context.tsx",
+        "line": 74,
+        "verified_count": 15,
+        "potential_count": 25
+      },
+      {
+        "symbol_id": 7247,
+        "name": "createServer",
+        "file_path": "packages/workbench/sdd/apps/echo-anatomy/src/server.ts",
+        "line": 43,
+        "verified_count": 14,
+        "potential_count": 34
+      },
+      {
+        "symbol_id": 9997,
+        "name": "createPolicyService",
+        "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/policies/src/service.ts",
+        "line": 154,
+        "verified_count": 12,
+        "potential_count": 13
+      },
+      {
+        "symbol_id": 5875,
+        "name": "emitNodeFailure",
+        "file_path": "packages/kluster-bt/core/src/events/event-utils.ts",
+        "line": 8,
+        "verified_count": 12,
+        "potential_count": 36
+      },
+      {
+        "symbol_id": 5762,
+        "name": "findAllFailures",
+        "file_path": "packages/kluster-bt/core/src/debug/query-helpers.ts",
+        "line": 97,
+        "verified_count": 11,
+        "potential_count": 12
+      },
+      {
+        "symbol_id": 7287,
+        "name": "getConfig",
+        "file_path": "packages/workbench/sdd/apps/echo-anatomy-2/src/config.ts",
+        "line": 33,
+        "verified_count": 11,
+        "potential_count": 25
+      },
+      {
+        "symbol_id": 4595,
+        "name": "cap",
+        "file_path": "packages/workbench/foldv2/gates/src/spawn.ts",
+        "line": 32,
+        "verified_count": 10,
+        "potential_count": 50
+      },
+      {
+        "symbol_id": 4549,
+        "name": "err",
+        "file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+        "line": 5,
+        "verified_count": 10,
+        "potential_count": 50
+      },
+      {
+        "symbol_id": 6664,
+        "name": "readFoldIndex",
+        "file_path": "packages/workbench/fold/foldctl/src/loader/registryLoader.ts",
+        "line": 186,
+        "verified_count": 10,
+        "potential_count": 21
+      },
+      {
+        "symbol_id": 82,
+        "name": "createKysely",
+        "file_path": "application/api/src/db/kysely-factory.ts",
+        "line": 68,
+        "verified_count": 9,
+        "potential_count": 13
+      },
+      {
+        "symbol_id": 28,
+        "name": "loadConfig",
+        "file_path": "application/api/src/config.ts",
+        "line": 382,
+        "verified_count": 9,
+        "potential_count": 35
+      },
+      {
+        "symbol_id": 4548,
+        "name": "ok",
+        "file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+        "line": 4,
+        "verified_count": 9,
+        "potential_count": 50
+      },
+      {
+        "symbol_id": 6056,
+        "name": "resolveNumber",
+        "file_path": "packages/kluster-bt/core/src/utils/resolve-number.ts",
+        "line": 16,
+        "verified_count": 9,
+        "potential_count": 18
+      },
+      {
+        "symbol_id": 5928,
+        "name": "NodeRegistry.registerNode",
+        "file_path": "packages/kluster-bt/core/src/registry/registry.ts",
+        "line": 53,
+        "verified_count": 8,
+        "potential_count": 0
+      },
+      {
+        "symbol_id": 1046,
+        "name": "buildToolStats",
+        "file_path": "packages/mast/src/telemetry/metrics.ts",
+        "line": 205,
+        "verified_count": 8,
+        "potential_count": 9
+      },
+      {
+        "symbol_id": 1047,
+        "name": "countTokens",
+        "file_path": "packages/mast/src/telemetry/tokenizer.ts",
+        "line": 30,
+        "verified_count": 8,
+        "potential_count": 9
+      },
+      {
+        "symbol_id": 6028,
+        "name": "fetchWithTimeout",
+        "file_path": "packages/kluster-bt/core/src/utils/fetch-with-timeout.ts",
+        "line": 45,
+        "verified_count": 8,
+        "potential_count": 14
+      },
+      {
+        "symbol_id": 1122,
+        "name": "generateEventId",
+        "file_path": "packages/kluster-bt/core/src/events.ts",
+        "line": 179,
+        "verified_count": 8,
+        "potential_count": 13
+      },
+      {
+        "symbol_id": 9392,
+        "name": "getQueueService",
+        "file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/db/src/queue.ts",
+        "line": 599,
+        "verified_count": 8,
+        "potential_count": 9
+      },
+      {
+        "symbol_id": 5607,
+        "name": "parseCondition",
+        "file_path": "packages/kluster-bt/core/src/conditions/condition-factory.ts",
+        "line": 31,
+        "verified_count": 8,
+        "potential_count": 15
+      },
+      {
+        "symbol_id": 1040,
+        "name": "recordToolCall",
+        "file_path": "packages/mast/src/telemetry/metrics.ts",
+        "line": 26,
+        "verified_count": 8,
+        "potential_count": 9
+      },
+      {
+        "symbol_id": 536,
+        "name": "asProjectId",
+        "file_path": "application/api/src/types/domain-ids.ts",
+        "line": 56,
+        "verified_count": 7,
+        "potential_count": 11
+      },
+      {
+        "symbol_id": 520,
+        "name": "endSseStream",
+        "file_path": "application/api/src/sse/sse-writer.ts",
+        "line": 178,
+        "verified_count": 7,
+        "potential_count": 11
+      },
+      {
+        "symbol_id": 6048,
+        "name": "getJsonPath",
+        "file_path": "packages/kluster-bt/core/src/utils/json-path.ts",
+        "line": 19,
+        "verified_count": 7,
+        "potential_count": 13
+      },
+      {
+        "symbol_id": 7663,
+        "name": "registerEchoRoutes",
+        "file_path": "packages/workbench/sdd/apps/echo-anatomy/src/routes/echo.ts",
+        "line": 38,
+        "verified_count": 7,
+        "potential_count": 17
+      },
+      {
+        "symbol_id": 517,
+        "name": "setupSseHeaders",
+        "file_path": "application/api/src/sse/sse-writer.ts",
+        "line": 59,
+        "verified_count": 7,
+        "potential_count": 12
+      },
+      {
+        "symbol_id": 518,
+        "name": "writeSseEvent",
+        "file_path": "application/api/src/sse/sse-writer.ts",
+        "line": 100,
+        "verified_count": 7,
+        "potential_count": 13
+      },
+      {
+        "symbol_id": 519,
+        "name": "writeSseHeartbeat",
+        "file_path": "application/api/src/sse/sse-writer.ts",
+        "line": 158,
+        "verified_count": 7,
+        "potential_count": 10
+      },
+      {
+        "symbol_id": 1398,
+        "name": "TreeParser.parse",
+        "file_path": "packages/kluster-bt/core/src/tree-parser.ts",
+        "line": 14,
+        "verified_count": 6,
+        "potential_count": 0
+      },
+      {
+        "symbol_id": 2941,
+        "name": "asPolicyId",
+        "file_path": "application/api/src/domain/policies/policy-types.ts",
+        "line": 251,
+        "verified_count": 6,
+        "potential_count": 20
+      },
+      {
+        "symbol_id": 3152,
+        "name": "createSpecService",
+        "file_path": "application/api/src/domain/spec/spec-service.ts",
+        "line": 216,
+        "verified_count": 6,
+        "potential_count": 10
+      },
+      {
+        "symbol_id": 5224,
+        "name": "normalizeCapabilityName",
+        "file_path": "packages/workbench/fold/ledger/src/reconcile.ts",
+        "line": 70,
+        "verified_count": 6,
+        "potential_count": 8
+      },
+      {
+        "symbol_id": 7665,
+        "name": "registerHealthRoutes",
+        "file_path": "packages/workbench/sdd/apps/echo-anatomy/src/routes/health.ts",
+        "line": 21,
+        "verified_count": 6,
+        "potential_count": 14
+      },
+      {
+        "symbol_id": 5668,
+        "name": "resolveNumericValue",
+        "file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "line": 39,
+        "verified_count": 6,
+        "potential_count": 13
+      },
+      {
+        "symbol_id": 5667,
+        "name": "resolveValue",
+        "file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "line": 23,
+        "verified_count": 6,
+        "potential_count": 11
+      },
+      {
+        "symbol_id": 7516,
+        "name": "runGuard",
+        "file_path": "packages/kluster-bt/core/src/decorators/policy/injection-guard-substrate.ts",
+        "line": 412,
+        "verified_count": 6,
+        "potential_count": 20
+      },
+      {
+        "symbol_id": 1992,
+        "name": "useDemoMode",
+        "file_path": "application/ui/src/hooks/use-demo-mode.ts",
+        "line": 110,
+        "verified_count": 6,
+        "potential_count": 15
+      },
+      {
+        "symbol_id": 5899,
+        "name": "Executor.execute",
+        "file_path": "packages/kluster-bt/core/src/executor/executor.ts",
+        "line": 193,
+        "verified_count": 5,
+        "potential_count": 1
+      },
+      {
+        "symbol_id": 538,
+        "name": "asBuildId",
+        "file_path": "application/api/src/types/domain-ids.ts",
+        "line": 68,
+        "verified_count": 5,
+        "potential_count": 8
+      },
+      {
+        "symbol_id": 2608,
+        "name": "createAuditWriter",
+        "file_path": "application/api/src/domain/audit/outbox-writer.ts",
+        "line": 166,
+        "verified_count": 5,
+        "potential_count": 6
+      },
+      {
+        "symbol_id": 1394,
+        "name": "createTemplateResolver",
+        "file_path": "packages/kluster-bt/core/src/template-resolver.ts",
+        "line": 116,
+        "verified_count": 5,
+        "potential_count": 8
+      },
+      {
+        "symbol_id": 4302,
+        "name": "extractSignatureText",
+        "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+        "line": 523,
+        "verified_count": 5,
+        "potential_count": 6
+      }
+    ],
+    "b_aggregate": {
+      "verified_sum": 661,
+      "potential_sum": 1021,
+      "ratio_verified_per_potential": 0.6474,
+      "ratio_string": "661:1021"
+    }
+  },
+  "q2_compiler_cost": {
+    "methodology": "Child process spawned via node:child_process.spawn; RSS sampled every 300ms via `ps -o rss= -p <pid>` (Darwin has no /proc) from the parent driver, external to the measured process. Wall-clock measured by the driver around the child's full lifetime (process spawn + exit), independent of the worker's internal performance.now() timings.",
+    "process_measurement": "external ps polling of the actual spawned child PID (not self-reported, not estimated)",
+    "rss_sample_count": 216,
+    "peak_rss_kb": 2572288,
+    "peak_rss_mb": 2512,
+    "peak_rss_bytes": 2634022912,
+    "wall_clock_ms_driver_measured": 65252.6,
+    "worker_self_reported_rss_at_end_bytes": 2330083328,
+    "threshold": {
+      "cold_minutes": 0.36,
+      "threshold_minutes": 5,
+      "peak_rss_gb": 2.453,
+      "threshold_rss_gb": 2,
+      "exceeded": true,
+      "verdict": "THRESHOLD EXCEEDED -> always-on background design is dead; opt-in `mast index --checker` pass"
+    },
+    "worker_result": {
+      "typescript_version": "5.9.3",
+      "project_count": 25,
+      "total_files_across_projects": 805,
+      "cold_total_ms": 21770.4,
+      "warm_total_ms": 42589.6,
+      "per_project": [
+        {
+          "relDir": "packages/mast",
+          "fileCount": 50,
+          "cold_create_ms": 998.9,
+          "cold_check_ms": 1306.2,
+          "cold_total_ms": 2305.1,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 562.3,
+          "warm_check_ms": 609,
+          "warm_total_ms": 1171.3,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/cli",
+          "fileCount": 7,
+          "cold_create_ms": 385.3,
+          "cold_check_ms": 217.8,
+          "cold_total_ms": 603.1,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 350.3,
+          "warm_check_ms": 194.7,
+          "warm_total_ms": 545,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/core",
+          "fileCount": 111,
+          "cold_create_ms": 221.1,
+          "cold_check_ms": 291.3,
+          "cold_total_ms": 512.4,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 175.2,
+          "warm_check_ms": 286.5,
+          "warm_total_ms": 461.7,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/llm-anthropic",
+          "fileCount": 1,
+          "cold_create_ms": 128.5,
+          "cold_check_ms": 83,
+          "cold_total_ms": 211.5,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 144.7,
+          "warm_check_ms": 61,
+          "warm_total_ms": 205.7,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/llm-ollama",
+          "fileCount": 1,
+          "cold_create_ms": 145.9,
+          "cold_check_ms": 50.2,
+          "cold_total_ms": 196.1,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 175.3,
+          "warm_check_ms": 61.5,
+          "warm_total_ms": 236.8,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/llm-openai",
+          "fileCount": 1,
+          "cold_create_ms": 136.6,
+          "cold_check_ms": 56.2,
+          "cold_total_ms": 192.8,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 4040.9,
+          "warm_check_ms": 629.1,
+          "warm_total_ms": 4670,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/llm-types",
+          "fileCount": 3,
+          "cold_create_ms": 155.6,
+          "cold_check_ms": 42.4,
+          "cold_total_ms": 198,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 1767.6,
+          "warm_check_ms": 142.9,
+          "warm_total_ms": 1910.5,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/nodes-fs",
+          "fileCount": 20,
+          "cold_create_ms": 185.6,
+          "cold_check_ms": 90.6,
+          "cold_total_ms": 276.2,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 257.8,
+          "warm_check_ms": 116.7,
+          "warm_total_ms": 374.5,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/nodes-git",
+          "fileCount": 13,
+          "cold_create_ms": 205.1,
+          "cold_check_ms": 94.4,
+          "cold_total_ms": 299.4,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 232.8,
+          "warm_check_ms": 127.5,
+          "warm_total_ms": 360.3,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/nodes-http",
+          "fileCount": 6,
+          "cold_create_ms": 186.6,
+          "cold_check_ms": 68.8,
+          "cold_total_ms": 255.4,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 232.3,
+          "warm_check_ms": 94.9,
+          "warm_total_ms": 327.2,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/nodes-llm",
+          "fileCount": 10,
+          "cold_create_ms": 487.2,
+          "cold_check_ms": 106.9,
+          "cold_total_ms": 594.2,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 267.9,
+          "warm_check_ms": 90.8,
+          "warm_total_ms": 358.7,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/kluster-bt/workflows",
+          "fileCount": 13,
+          "cold_create_ms": 229.9,
+          "cold_check_ms": 178,
+          "cold_total_ms": 407.9,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 315,
+          "warm_check_ms": 253.3,
+          "warm_total_ms": 568.3,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/archetypes",
+          "fileCount": 5,
+          "cold_create_ms": 190.4,
+          "cold_check_ms": 108.6,
+          "cold_total_ms": 299,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 309.9,
+          "warm_check_ms": 88.4,
+          "warm_total_ms": 398.2,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/cli",
+          "fileCount": 18,
+          "cold_create_ms": 324.6,
+          "cold_check_ms": 636.5,
+          "cold_total_ms": 961.1,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 986.4,
+          "warm_check_ms": 2568.2,
+          "warm_total_ms": 3554.6,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/contracts",
+          "fileCount": 5,
+          "cold_create_ms": 137.8,
+          "cold_check_ms": 58.8,
+          "cold_total_ms": 196.6,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 1368,
+          "warm_check_ms": 144.3,
+          "warm_total_ms": 1512.4,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/gates",
+          "fileCount": 14,
+          "cold_create_ms": 215.2,
+          "cold_check_ms": 135.6,
+          "cold_total_ms": 350.8,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 323.5,
+          "warm_check_ms": 145.4,
+          "warm_total_ms": 468.9,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/library-vetting",
+          "fileCount": 6,
+          "cold_create_ms": 174.4,
+          "cold_check_ms": 92.2,
+          "cold_total_ms": 266.7,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 157,
+          "warm_check_ms": 76.5,
+          "warm_total_ms": 233.4,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/mast-bridge",
+          "fileCount": 2,
+          "cold_create_ms": 269.8,
+          "cold_check_ms": 73.8,
+          "cold_total_ms": 343.5,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 232.4,
+          "warm_check_ms": 73.5,
+          "warm_total_ms": 305.8,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/orchestrator",
+          "fileCount": 6,
+          "cold_create_ms": 173.8,
+          "cold_check_ms": 58.3,
+          "cold_total_ms": 232,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 146.1,
+          "warm_check_ms": 65.8,
+          "warm_total_ms": 211.8,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/phases",
+          "fileCount": 25,
+          "cold_create_ms": 170.7,
+          "cold_check_ms": 452.6,
+          "cold_total_ms": 623.3,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 155,
+          "warm_check_ms": 414.2,
+          "warm_total_ms": 569.2,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/reconcile",
+          "fileCount": 7,
+          "cold_create_ms": 166,
+          "cold_check_ms": 98.9,
+          "cold_total_ms": 265,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 143.4,
+          "warm_check_ms": 85.3,
+          "warm_total_ms": 228.7,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/runner-bridge",
+          "fileCount": 11,
+          "cold_create_ms": 167.7,
+          "cold_check_ms": 83,
+          "cold_total_ms": 250.7,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 178.5,
+          "warm_check_ms": 2658.8,
+          "warm_total_ms": 2837.4,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "packages/workbench/foldv2/schemas",
+          "fileCount": 17,
+          "cold_create_ms": 171.1,
+          "cold_check_ms": 103.2,
+          "cold_total_ms": 274.3,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 2288.5,
+          "warm_check_ms": 192.6,
+          "warm_total_ms": 2481.1,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "application/api",
+          "fileCount": 320,
+          "cold_create_ms": 1838.1,
+          "cold_check_ms": 5228.3,
+          "cold_total_ms": 7066.4,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 1343.1,
+          "warm_check_ms": 9670.4,
+          "warm_total_ms": 11013.5,
+          "warm_semantic_diagnostic_count": 0
+        },
+        {
+          "relDir": "application/ui",
+          "fileCount": 133,
+          "cold_create_ms": 1872.8,
+          "cold_check_ms": 2711.1,
+          "cold_total_ms": 4583.9,
+          "semantic_diagnostic_count": 0,
+          "diag_error": null,
+          "warm_create_ms": 591.5,
+          "warm_check_ms": 6987.9,
+          "warm_total_ms": 7579.4,
+          "warm_semantic_diagnostic_count": 0
+        }
+      ],
+      "self_reported_rss_at_end_bytes": 2330083328
+    }
+  },
+  "q3_payoff_monorepo": {
+    "methodology": {
+      "seed": 20260715,
+      "sample_size": 50,
+      "sampling": "seededSample (Fisher-Yates, mulberry32(seed)) over Q1(b)'s potential-match pool (q1-potential-pool.json, 1021 items), without replacement.",
+      "call_site_location": "within the identifier_fts chunk's [start_line - 5, end_line + 5] padded window (chunk.content is context_lines-expanded [default 3] beyond the strict AST boundary, so the pad exceeds that default with margin), nearest occurrence to the original [start_line, end_line] range preferred, first call-shaped AST occurrence (CallExpression/NewExpression callee, direct or via PropertyAccessExpression) of the queried symbol's bare (post-dot) name.",
+      "resolution": "ts.TypeChecker.getSymbolAtLocation on the callee identifier -> first declaration -> (file_path, line) compared to the queried symbol's recorded (file_path, line), +/-3 line tolerance for decorator/JSDoc/overload offsets.",
+      "non_call_site_definition": "chunk contains the identifier as text but the sampled call-site range has no call-shaped AST occurrence of it (type position, plain reference, comment, or string)."
+    },
+    "counts": {
+      "resolves_to_queried": 19,
+      "resolves_to_different": 5,
+      "cannot_resolve": 11,
+      "non_call_site": 15
+    },
+    "n": 50,
+    "definite_edge_rate": 0.38,
+    "non_call_site_share": 0.3,
+    "cannot_resolve_reasons": {
+      "file_outside_ts_project_scope": 11
+    },
+    "non_call_site_subtypes": {
+      "comment_or_string": 6,
+      "type_or_reference_position": 7,
+      "identifier_fts_mismatch_no_textual_occurrence": 2
+    },
+    "threshold": {
+      "threshold_fraction": 0.2,
+      "exceeded_meaning_promote": true,
+      "verdict": "AT/ABOVE THRESHOLD -> payoff gate does not block promotion"
+    },
+    "sample_records": [
+      {
+        "queried_symbol_name": "resolvePathWithTemplates",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/utils/path-resolver.ts",
+        "queried_symbol_line": 86,
+        "call_site_file_path": "packages/kluster-bt/nodes-git/src/git-init.ts",
+        "call_site_line_range": [
+          21,
+          90
+        ],
+        "bare_name_searched": "resolvePathWithTemplates",
+        "owning_project": "packages/kluster-bt/nodes-git",
+        "resolved_file_path": "packages/kluster-bt/core/dist/utils/path-resolver.d.ts",
+        "resolved_line": 49,
+        "classification": "resolves_to_different"
+      },
+      {
+        "queried_symbol_name": "cap",
+        "queried_symbol_file_path": "packages/workbench/foldv2/gates/src/spawn.ts",
+        "queried_symbol_line": 32,
+        "call_site_file_path": "application/api/src/db/approval-event-listener-pool.ts",
+        "call_site_line_range": [
+          508,
+          607
+        ],
+        "bare_name_searched": "cap",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "comment_or_string"
+      },
+      {
+        "queried_symbol_name": "recordToolCall",
+        "queried_symbol_file_path": "packages/mast/src/telemetry/metrics.ts",
+        "queried_symbol_line": 26,
+        "call_site_file_path": "packages/mast/src/mcp/tools/search.ts",
+        "call_site_line_range": [
+          9,
+          50
+        ],
+        "bare_name_searched": "recordToolCall",
+        "owning_project": "packages/mast",
+        "resolved_file_path": "packages/mast/src/telemetry/metrics.ts",
+        "resolved_line": 26,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "cx",
+        "queried_symbol_file_path": "application/ui/src/util/cx.ts",
+        "queried_symbol_line": 4,
+        "call_site_file_path": "application/ui/src/components/icons.tsx",
+        "call_site_line_range": [
+          225,
+          266
+        ],
+        "bare_name_searched": "cx",
+        "owning_project": "application/ui",
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "cap",
+        "queried_symbol_file_path": "packages/workbench/foldv2/gates/src/spawn.ts",
+        "queried_symbol_line": 32,
+        "call_site_file_path": "application/api/src/routes/builds.ts",
+        "call_site_line_range": [
+          739,
+          838
+        ],
+        "bare_name_searched": "cap",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "comment_or_string"
+      },
+      {
+        "queried_symbol_name": "ok",
+        "queried_symbol_file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+        "queried_symbol_line": 4,
+        "call_site_file_path": "application/api/src/routes/notifications.ts",
+        "call_site_line_range": [
+          176,
+          255
+        ],
+        "bare_name_searched": "ok",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "identifier_fts_mismatch_no_textual_occurrence"
+      },
+      {
+        "queried_symbol_name": "endSseStream",
+        "queried_symbol_file_path": "application/api/src/sse/sse-writer.ts",
+        "queried_symbol_line": 178,
+        "call_site_file_path": "application/api/src/routes/spec.ts",
+        "call_site_line_range": [
+          1201,
+          1300
+        ],
+        "bare_name_searched": "endSseStream",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/sse/sse-writer.ts",
+        "resolved_line": 178,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "getConfig",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/echo-anatomy-2/src/config.ts",
+        "queried_symbol_line": 33,
+        "call_site_file_path": "packages/workbench/sdd/apps/echo-anatomy-2/src/index.ts",
+        "call_site_line_range": [
+          77,
+          123
+        ],
+        "bare_name_searched": "getConfig",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "cap",
+        "queried_symbol_file_path": "packages/workbench/foldv2/gates/src/spawn.ts",
+        "queried_symbol_line": 32,
+        "call_site_file_path": "application/api/src/services/cascade/cascade-service.ts",
+        "call_site_line_range": [
+          370,
+          653
+        ],
+        "bare_name_searched": "cap",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "comment_or_string"
+      },
+      {
+        "queried_symbol_name": "cx",
+        "queried_symbol_file_path": "application/ui/src/util/cx.ts",
+        "queried_symbol_line": 4,
+        "call_site_file_path": "application/ui/src/components/audit-detail-drawer.tsx",
+        "call_site_line_range": [
+          166,
+          265
+        ],
+        "bare_name_searched": "cx",
+        "owning_project": "application/ui",
+        "resolved_file_path": "application/ui/src/util/cx.ts",
+        "resolved_line": 4,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "registerHealthRoutes",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/echo-anatomy/src/routes/health.ts",
+        "queried_symbol_line": 21,
+        "call_site_file_path": "packages/workbench/sdd/apps/echo-metrics-004/src/routes/health.ts",
+        "call_site_line_range": [
+          33,
+          44
+        ],
+        "bare_name_searched": "registerHealthRoutes",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "resolveValue",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "queried_symbol_line": 23,
+        "call_site_file_path": "packages/kluster-bt/core/src/conditions/bool-eq.ts",
+        "call_site_line_range": [
+          29,
+          51
+        ],
+        "bare_name_searched": "resolveValue",
+        "owning_project": "packages/kluster-bt/core",
+        "resolved_file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "resolved_line": 23,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "fetchWithTimeout",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/utils/fetch-with-timeout.ts",
+        "queried_symbol_line": 45,
+        "call_site_file_path": "packages/kluster-bt/nodes-http/src/http-get.ts",
+        "call_site_line_range": [
+          6,
+          10
+        ],
+        "bare_name_searched": "fetchWithTimeout",
+        "owning_project": "packages/kluster-bt/nodes-http",
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "asProjectId",
+        "queried_symbol_file_path": "application/api/src/types/domain-ids.ts",
+        "queried_symbol_line": 56,
+        "call_site_file_path": "application/api/src/types/domain-ids.ts",
+        "call_site_line_range": [
+          53,
+          53
+        ],
+        "bare_name_searched": "asProjectId",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "err",
+        "queried_symbol_file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+        "queried_symbol_line": 5,
+        "call_site_file_path": "application/api/src/plugins/spec.ts",
+        "call_site_line_range": [
+          957,
+          1024
+        ],
+        "bare_name_searched": "err",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "createServer",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/echo-anatomy/src/server.ts",
+        "queried_symbol_line": 43,
+        "call_site_file_path": "packages/workbench/sdd/apps/echo-code-context/src/index.ts",
+        "call_site_line_range": [
+          15,
+          26
+        ],
+        "bare_name_searched": "createServer",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "cap",
+        "queried_symbol_file_path": "packages/workbench/foldv2/gates/src/spawn.ts",
+        "queried_symbol_line": 32,
+        "call_site_file_path": "application/api/src/services/cascade/rebuild-semaphore.ts",
+        "call_site_line_range": [
+          45,
+          45
+        ],
+        "bare_name_searched": "cap",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "comment_or_string"
+      },
+      {
+        "queried_symbol_name": "emitNodeFailure",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/events/event-utils.ts",
+        "queried_symbol_line": 8,
+        "call_site_file_path": "packages/kluster-bt/nodes-fs/src/actions/append-file.ts",
+        "call_site_line_range": [
+          36,
+          110
+        ],
+        "bare_name_searched": "emitNodeFailure",
+        "owning_project": "packages/kluster-bt/nodes-fs",
+        "resolved_file_path": "packages/kluster-bt/core/dist/events/error-reporter.d.ts",
+        "resolved_line": 180,
+        "classification": "resolves_to_different"
+      },
+      {
+        "queried_symbol_name": "asOrgId",
+        "queried_symbol_file_path": "application/api/src/db/tenant-db-router.ts",
+        "queried_symbol_line": 66,
+        "call_site_file_path": "application/api/src/plugins/execution.ts",
+        "call_site_line_range": [
+          173,
+          272
+        ],
+        "bare_name_searched": "asOrgId",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/db/tenant-db-router.ts",
+        "resolved_line": 66,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "createProblemDetail",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/error-handler.ts",
+        "queried_symbol_line": 80,
+        "call_site_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/specs/src/routes.ts",
+        "call_site_line_range": [
+          303,
+          362
+        ],
+        "bare_name_searched": "createProblemDetail",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "rowToDomain",
+        "queried_symbol_file_path": "application/api/src/domain/deployment-targets/deployment-target-repository.ts",
+        "queried_symbol_line": 262,
+        "call_site_file_path": "application/api/src/infrastructure/chat/pg-chat-session-repository.ts",
+        "call_site_line_range": [
+          62,
+          91
+        ],
+        "bare_name_searched": "rowToDomain",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/infrastructure/chat/pg-chat-session-repository.ts",
+        "resolved_line": 36,
+        "classification": "resolves_to_different"
+      },
+      {
+        "queried_symbol_name": "useApiClient",
+        "queried_symbol_file_path": "application/ui/src/context/api-client-context.tsx",
+        "queried_symbol_line": 74,
+        "call_site_file_path": "application/ui/src/router.tsx",
+        "call_site_line_range": [
+          179,
+          183
+        ],
+        "bare_name_searched": "useApiClient",
+        "owning_project": "application/ui",
+        "resolved_file_path": "application/ui/src/context/api-client-context.tsx",
+        "resolved_line": 74,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "createProblemDetail",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/error-handler.ts",
+        "queried_symbol_line": 80,
+        "call_site_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/github/src/routes.ts",
+        "call_site_line_range": [
+          321,
+          401
+        ],
+        "bare_name_searched": "createProblemDetail",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "resolveNumericValue",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "queried_symbol_line": 39,
+        "call_site_file_path": "packages/kluster-bt/core/src/conditions/gte.ts",
+        "call_site_line_range": [
+          16,
+          26
+        ],
+        "bare_name_searched": "resolveNumericValue",
+        "owning_project": "packages/kluster-bt/core",
+        "resolved_file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "resolved_line": 39,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "asPolicyId",
+        "queried_symbol_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "queried_symbol_line": 251,
+        "call_site_file_path": "application/api/src/routes/policies.ts",
+        "call_site_line_range": [
+          1703,
+          1802
+        ],
+        "bare_name_searched": "asPolicyId",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "resolved_line": 251,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "setupSseHeaders",
+        "queried_symbol_file_path": "application/api/src/sse/sse-writer.ts",
+        "queried_symbol_line": 59,
+        "call_site_file_path": "application/api/src/routes/approvals.ts",
+        "call_site_line_range": [
+          1661,
+          1760
+        ],
+        "bare_name_searched": "setupSseHeaders",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "comment_or_string"
+      },
+      {
+        "queried_symbol_name": "asPolicyId",
+        "queried_symbol_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "queried_symbol_line": 251,
+        "call_site_file_path": "application/api/src/routes/policies.ts",
+        "call_site_line_range": [
+          1163,
+          1262
+        ],
+        "bare_name_searched": "asPolicyId",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "resolved_line": 251,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "useDemoMode",
+        "queried_symbol_file_path": "application/ui/src/hooks/use-demo-mode.ts",
+        "queried_symbol_line": 110,
+        "call_site_file_path": "application/ui/test/hooks/use-demo-mode.test.tsx",
+        "call_site_line_range": [
+          98,
+          137
+        ],
+        "bare_name_searched": "useDemoMode",
+        "owning_project": "application/ui",
+        "resolved_file_path": "application/ui/src/hooks/use-demo-mode.ts",
+        "resolved_line": 110,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "err",
+        "queried_symbol_file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+        "queried_symbol_line": 5,
+        "call_site_file_path": "application/api/src/plugins/execution.ts",
+        "call_site_line_range": [
+          353,
+          452
+        ],
+        "bare_name_searched": "err",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "createServer",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/echo-anatomy/src/server.ts",
+        "queried_symbol_line": 43,
+        "call_site_file_path": "packages/workbench/sdd/apps/echo-codemogger/src/index.ts",
+        "call_site_line_range": [
+          14,
+          46
+        ],
+        "bare_name_searched": "createServer",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "resolveNumericValue",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "queried_symbol_line": 39,
+        "call_site_file_path": "packages/kluster-bt/core/src/conditions/lt.ts",
+        "call_site_line_range": [
+          11,
+          14
+        ],
+        "bare_name_searched": "resolveNumericValue",
+        "owning_project": "packages/kluster-bt/core",
+        "resolved_file_path": "packages/kluster-bt/core/src/conditions/resolve-value.ts",
+        "resolved_line": 39,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "createServer",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/echo-anatomy/src/server.ts",
+        "queried_symbol_line": 43,
+        "call_site_file_path": "packages/workbench/sdd/apps/echo-metrics-004/src/index.ts",
+        "call_site_line_range": [
+          14,
+          39
+        ],
+        "bare_name_searched": "createServer",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "useApiClient",
+        "queried_symbol_file_path": "application/ui/src/context/api-client-context.tsx",
+        "queried_symbol_line": 74,
+        "call_site_file_path": "application/ui/src/router.tsx",
+        "call_site_line_range": [
+          212,
+          223
+        ],
+        "bare_name_searched": "useApiClient",
+        "owning_project": "application/ui",
+        "resolved_file_path": "application/ui/src/context/api-client-context.tsx",
+        "resolved_line": 74,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "asOrgId",
+        "queried_symbol_file_path": "application/api/src/db/tenant-db-router.ts",
+        "queried_symbol_line": 66,
+        "call_site_file_path": "application/api/src/plugins/spec.ts",
+        "call_site_line_range": [
+          233,
+          332
+        ],
+        "bare_name_searched": "asOrgId",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/db/tenant-db-router.ts",
+        "resolved_line": 66,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "createProblemDetail",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/error-handler.ts",
+        "queried_symbol_line": 80,
+        "call_site_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/execution/src/routes.ts",
+        "call_site_line_range": [
+          384,
+          417
+        ],
+        "bare_name_searched": "createProblemDetail",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "asPolicyId",
+        "queried_symbol_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "queried_symbol_line": 251,
+        "call_site_file_path": "application/api/src/services/chat/tools/list-policies.ts",
+        "call_site_line_range": [
+          191,
+          264
+        ],
+        "bare_name_searched": "asPolicyId",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "resolved_line": 251,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "endSseStream",
+        "queried_symbol_file_path": "application/api/src/sse/sse-writer.ts",
+        "queried_symbol_line": 178,
+        "call_site_file_path": "application/api/src/routes/project-status-stream.ts",
+        "call_site_line_range": [
+          271,
+          313
+        ],
+        "bare_name_searched": "endSseStream",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/sse/sse-writer.ts",
+        "resolved_line": 178,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "cap",
+        "queried_symbol_file_path": "packages/workbench/foldv2/gates/src/spawn.ts",
+        "queried_symbol_line": 32,
+        "call_site_file_path": "application/api/src/db/approval-event-listener-pool.ts",
+        "call_site_line_range": [
+          67,
+          67
+        ],
+        "bare_name_searched": "cap",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "identifier_fts_mismatch_no_textual_occurrence"
+      },
+      {
+        "queried_symbol_name": "findAllFailures",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/debug/query-helpers.ts",
+        "queried_symbol_line": 97,
+        "call_site_file_path": "packages/kluster-bt/core/src/debug/query-helpers.ts",
+        "call_site_line_range": [
+          347,
+          354
+        ],
+        "bare_name_searched": "findAllFailures",
+        "owning_project": "packages/kluster-bt/core",
+        "resolved_file_path": "packages/kluster-bt/core/src/debug/query-helpers.ts",
+        "resolved_line": 97,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "createValidationProblemDetail",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/validate.ts",
+        "queried_symbol_line": 207,
+        "call_site_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/builds/src/routes.ts",
+        "call_site_line_range": [
+          143,
+          214
+        ],
+        "bare_name_searched": "createValidationProblemDetail",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "runGuard",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/decorators/policy/injection-guard-substrate.ts",
+        "queried_symbol_line": 412,
+        "call_site_file_path": "packages/kluster-bt/core/src/decorators/policy/injection-guard-substrate.ts",
+        "call_site_line_range": [
+          324,
+          327
+        ],
+        "bare_name_searched": "runGuard",
+        "owning_project": "packages/kluster-bt/core",
+        "classification": "non_call_site",
+        "subtype": "comment_or_string"
+      },
+      {
+        "queried_symbol_name": "asPolicyId",
+        "queried_symbol_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "queried_symbol_line": 251,
+        "call_site_file_path": "application/api/src/routes/policies.ts",
+        "call_site_line_range": [
+          1613,
+          1712
+        ],
+        "bare_name_searched": "asPolicyId",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/domain/policies/policy-types.ts",
+        "resolved_line": 251,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "createServer",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/echo-anatomy/src/server.ts",
+        "queried_symbol_line": 43,
+        "call_site_file_path": "packages/workbench/sdd/apps/url-shorten-kinetic/api/server/src/server.ts",
+        "call_site_line_range": [
+          33,
+          49
+        ],
+        "bare_name_searched": "createServer",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "rowToDomain",
+        "queried_symbol_file_path": "application/api/src/domain/deployment-targets/deployment-target-repository.ts",
+        "queried_symbol_line": 262,
+        "call_site_file_path": "application/api/src/services/cascade/notification-writer.ts",
+        "call_site_line_range": [
+          358,
+          400
+        ],
+        "bare_name_searched": "rowToDomain",
+        "owning_project": "application/api",
+        "resolved_file_path": "application/api/src/services/cascade/notification-writer.ts",
+        "resolved_line": 250,
+        "classification": "resolves_to_different"
+      },
+      {
+        "queried_symbol_name": "resolvePathWithTemplates",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/utils/path-resolver.ts",
+        "queried_symbol_line": 86,
+        "call_site_file_path": "packages/kluster-bt/nodes-git/src/git-tag.ts",
+        "call_site_line_range": [
+          21,
+          84
+        ],
+        "bare_name_searched": "resolvePathWithTemplates",
+        "owning_project": "packages/kluster-bt/nodes-git",
+        "resolved_file_path": "packages/kluster-bt/core/dist/utils/path-resolver.d.ts",
+        "resolved_line": 49,
+        "classification": "resolves_to_different"
+      },
+      {
+        "queried_symbol_name": "createValidationProblemDetail",
+        "queried_symbol_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/server/src/validate.ts",
+        "queried_symbol_line": 207,
+        "call_site_file_path": "packages/workbench/sdd/apps/kluser-kinetic-01/apps/kluser-kinetic-01/api/services/policies/src/routes/bindings.ts",
+        "call_site_line_range": [
+          103,
+          174
+        ],
+        "bare_name_searched": "createValidationProblemDetail",
+        "classification": "cannot_resolve",
+        "reason": "file_outside_ts_project_scope"
+      },
+      {
+        "queried_symbol_name": "useApiClient",
+        "queried_symbol_file_path": "application/ui/src/context/api-client-context.tsx",
+        "queried_symbol_line": 74,
+        "call_site_file_path": "application/ui/src/router.tsx",
+        "call_site_line_range": [
+          290,
+          295
+        ],
+        "bare_name_searched": "useApiClient",
+        "owning_project": "application/ui",
+        "resolved_file_path": "application/ui/src/context/api-client-context.tsx",
+        "resolved_line": 74,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "countTokens",
+        "queried_symbol_file_path": "packages/mast/src/telemetry/tokenizer.ts",
+        "queried_symbol_line": 30,
+        "call_site_file_path": "packages/mast/src/mcp/tools/callers.ts",
+        "call_site_line_range": [
+          15,
+          93
+        ],
+        "bare_name_searched": "countTokens",
+        "owning_project": "packages/mast",
+        "resolved_file_path": "packages/mast/src/telemetry/tokenizer.ts",
+        "resolved_line": 30,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "err",
+        "queried_symbol_file_path": "packages/workbench/foldv2/contracts/src/result.ts",
+        "queried_symbol_line": 5,
+        "call_site_file_path": "application/api/src/db/build-event-listener-pool.ts",
+        "call_site_line_range": [
+          527,
+          572
+        ],
+        "bare_name_searched": "err",
+        "owning_project": "application/api",
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "createTemplateResolver",
+        "queried_symbol_file_path": "packages/kluster-bt/core/src/template-resolver.ts",
+        "queried_symbol_line": 116,
+        "call_site_file_path": "packages/kluster-bt/core/src/executor/executor.ts",
+        "call_site_line_range": [
+          9,
+          16
+        ],
+        "bare_name_searched": "createTemplateResolver",
+        "owning_project": "packages/kluster-bt/core",
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      }
+    ]
+  },
+  "q4_checker_vs_heuristic_agreement": {
+    "scope_note": "verified-callers.test.ts contains exactly ONE scenario (cross-file import resolution). No field_type/parameter_type/new_expression/same_file fixtures exist in that test file to recreate — see REPORT.md limitations.",
+    "heuristic_edge_found": true,
+    "heuristic_edge": {
+      "file_path": "routes.ts",
+      "line": 3,
+      "caller_symbol": "registerRoutes",
+      "context": "handleLogin();",
+      "resolution": "import"
+    },
+    "checker_resolution": {
+      "resolved_file": "handler.ts",
+      "resolved_line": 1,
+      "points_at_handler_ts": true
+    },
+    "contradictions": [],
+    "contradiction_count": 0,
+    "verdict": "Zero contradictions on the one available scenario."
+  },
+  "q4b_bonus_adversarial_false_green_hunt": {
+    "scenario": "Two files export a same-named function; the caller imports explicitly from moduleB (confirmed via the imports table's resolved_path AND independently via the TypeScript checker). insertEdges (src/graph/populate.ts) resolves the edge's target purely by symbol name, with no filter on the importing file's resolved_path.",
+    "imports_table_resolved_path": "moduleB/handler.ts",
+    "checker_independently_resolves_to": "moduleB/handler.ts",
+    "heuristic_edge_into_moduleA_handleLogin": {
+      "file_path": "routes.ts",
+      "line": 3,
+      "caller_symbol": "registerRoutes",
+      "context": "handleLogin();",
+      "resolution": "import"
+    },
+    "heuristic_edge_into_moduleB_handleLogin": null,
+    "false_green_confirmed": true,
+    "verdict": "SEVERITY-ZERO FALSE-GREEN CONFIRMED: import resolved_path AND the TypeScript checker both say moduleB/handler.ts, but the heuristic verified an edge into moduleA/handler.ts instead — a wrong \"verified\" edge. Root cause: src/graph/populate.ts insertEdges resolves POTENTIAL_CALL edge targets by bare symbol name across the ENTIRE graph.db (`toRows`, no resolved_path/file filter), ignoring the imports table it already has resolved_path for. Reproducible: importing from the FIRST-inserted same-named file \"works\" by insertion-order coincidence, not by correct resolution — importing from the SECOND (or later) fails, as shown here. This bug is PRE-EXISTING in the shipped resolver and is INDEPENDENT of the checker-edges feature under evaluation; it affects the current `verified_callers` contract today whenever two files export a same-named symbol."
+  },
+  "q5_addendum_foreign_corpus_generalization_check": {
+    "provenance": {
+      "app_root": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02",
+      "state_dir": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/.fold/.mast",
+      "scoped_project_root": "/Users/spikedpunchvictim/projects/kluster-workbench/apps/align-kimik27-02/packages/core",
+      "build_log_status": "exit: 2 at 2026-07-14T15:48:56Z (build finished; exit 2 = gate failures, not a crash)",
+      "staleness_check": "23/23 files table rows: recorded mtime == on-disk mtime exactly (0 mismatches) — index is fresh, no re-index needed",
+      "index_json": {
+        "last_indexed": "2026-07-14T15:45:59.574Z",
+        "file_count": 25,
+        "chunk_count": 209
+      },
+      "this_read_found": {
+        "files_rows": 23,
+        "symbols_rows": 205,
+        "edges_rows": 172
+      }
+    },
+    "pool_size": 65,
+    "sample_size_requested": 25,
+    "sample_size_actual": 25,
+    "seed": 20260715,
+    "counts": {
+      "resolves_to_queried": 14,
+      "resolves_to_different": 0,
+      "cannot_resolve": 0,
+      "non_call_site": 11
+    },
+    "definite_edge_rate": 0.56,
+    "non_call_site_share": 0.44,
+    "sample_records": [
+      {
+        "queried_symbol_name": "findNode",
+        "queried_symbol_file_path": "src/domain/graph/model.ts",
+        "queried_symbol_line": 57,
+        "call_site_file_path": "src/domain/graph/classifier.ts",
+        "call_site_line_range": [
+          78,
+          123
+        ],
+        "resolved_file_path": "src/domain/graph/model.ts",
+        "resolved_line": 57,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "acceptBaseline",
+        "queried_symbol_file_path": "src/services/baseline-manager.ts",
+        "queried_symbol_line": 44,
+        "call_site_file_path": "src/services/baseline-manager.ts",
+        "call_site_line_range": [
+          187,
+          212
+        ],
+        "resolved_file_path": "src/services/baseline-manager.ts",
+        "resolved_line": 44,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "reconcileMoves",
+        "queried_symbol_file_path": "src/services/baseline-manager.ts",
+        "queried_symbol_line": 113,
+        "call_site_file_path": "src/services/baseline-manager.ts",
+        "call_site_line_range": [
+          198,
+          203
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "sha256Base64",
+        "queried_symbol_file_path": "src/infrastructure/hash.ts",
+        "queried_symbol_line": 58,
+        "call_site_file_path": "src/infrastructure/hash.ts",
+        "call_site_line_range": [
+          80,
+          92
+        ],
+        "resolved_file_path": "src/infrastructure/hash.ts",
+        "resolved_line": 58,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "classifyEdge",
+        "queried_symbol_file_path": "src/domain/graph/classifier.ts",
+        "queried_symbol_line": 78,
+        "call_site_file_path": "src/domain/graph/classifier.ts",
+        "call_site_line_range": [
+          78,
+          123
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "pruneBaseline",
+        "queried_symbol_file_path": "src/services/baseline-manager.ts",
+        "queried_symbol_line": 86,
+        "call_site_file_path": "src/services/baseline-manager.ts",
+        "call_site_line_range": [
+          86,
+          104
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "resolveNodes",
+        "queried_symbol_file_path": "src/services/graph-resolver.ts",
+        "queried_symbol_line": 22,
+        "call_site_file_path": "src/services/graph-resolver.ts",
+        "call_site_line_range": [
+          22,
+          27
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "acceptBaseline",
+        "queried_symbol_file_path": "src/services/baseline-manager.ts",
+        "queried_symbol_line": 44,
+        "call_site_file_path": "src/services/baseline-manager.ts",
+        "call_site_line_range": [
+          189,
+          195
+        ],
+        "resolved_file_path": "src/services/baseline-manager.ts",
+        "resolved_line": 44,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "compileVerbatimBlocks",
+        "queried_symbol_file_path": "src/services/rule-provenance.ts",
+        "queried_symbol_line": 106,
+        "call_site_file_path": "src/services/rule-provenance.ts",
+        "call_site_line_range": [
+          184,
+          226
+        ],
+        "resolved_file_path": "src/services/rule-provenance.ts",
+        "resolved_line": 106,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "sha256Base64",
+        "queried_symbol_file_path": "src/infrastructure/hash.ts",
+        "queried_symbol_line": 58,
+        "call_site_file_path": "src/services/rule-provenance.ts",
+        "call_site_line_range": [
+          251,
+          261
+        ],
+        "resolved_file_path": "src/infrastructure/hash.ts",
+        "resolved_line": 58,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "serializeRulesetIR",
+        "queried_symbol_file_path": "src/services/ir-serializer.ts",
+        "queried_symbol_line": 69,
+        "call_site_file_path": "src/services/ir-serializer.ts",
+        "call_site_line_range": [
+          69,
+          80
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "serializeRulesetIR",
+        "queried_symbol_file_path": "src/services/ir-serializer.ts",
+        "queried_symbol_line": 69,
+        "call_site_file_path": "src/services/ir-serializer.ts",
+        "call_site_line_range": [
+          171,
+          173
+        ],
+        "resolved_file_path": "src/services/ir-serializer.ts",
+        "resolved_line": 69,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "reconcileMoves",
+        "queried_symbol_file_path": "src/services/baseline-manager.ts",
+        "queried_symbol_line": 113,
+        "call_site_file_path": "src/services/baseline-manager.ts",
+        "call_site_line_range": [
+          187,
+          212
+        ],
+        "resolved_file_path": "src/services/baseline-manager.ts",
+        "resolved_line": 113,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "resolveNodes",
+        "queried_symbol_file_path": "src/services/graph-resolver.ts",
+        "queried_symbol_line": 22,
+        "call_site_file_path": "src/services/doctor.ts",
+        "call_site_line_range": [
+          18,
+          18
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "outgoingEdges",
+        "queried_symbol_file_path": "src/domain/graph/model.ts",
+        "queried_symbol_line": 83,
+        "call_site_file_path": "src/services/rule-engine.ts",
+        "call_site_line_range": [
+          345,
+          426
+        ],
+        "resolved_file_path": "src/domain/graph/model.ts",
+        "resolved_line": 83,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "sha256Base64",
+        "queried_symbol_file_path": "src/infrastructure/hash.ts",
+        "queried_symbol_line": 58,
+        "call_site_file_path": "src/services/rule-provenance.ts",
+        "call_site_line_range": [
+          263,
+          358
+        ],
+        "resolved_file_path": "src/infrastructure/hash.ts",
+        "resolved_line": 58,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "isUserError",
+        "queried_symbol_file_path": "src/domain/errors.ts",
+        "queried_symbol_line": 62,
+        "call_site_file_path": "src/domain/errors.ts",
+        "call_site_line_range": [
+          62,
+          66
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "compileVerbatimBlocks",
+        "queried_symbol_file_path": "src/services/rule-provenance.ts",
+        "queried_symbol_line": 106,
+        "call_site_file_path": "src/services/rule-provenance.ts",
+        "call_site_line_range": [
+          106,
+          149
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "sha256Base64",
+        "queried_symbol_file_path": "src/infrastructure/hash.ts",
+        "queried_symbol_line": 58,
+        "call_site_file_path": "src/infrastructure/hash.ts",
+        "call_site_line_range": [
+          68,
+          73
+        ],
+        "resolved_file_path": "src/infrastructure/hash.ts",
+        "resolved_line": 58,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "findNodeByPath",
+        "queried_symbol_file_path": "src/domain/graph/model.ts",
+        "queried_symbol_line": 71,
+        "call_site_file_path": "src/services/baseline-manager.ts",
+        "call_site_line_range": [
+          113,
+          155
+        ],
+        "resolved_file_path": "src/domain/graph/model.ts",
+        "resolved_line": 71,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "findNode",
+        "queried_symbol_file_path": "src/domain/graph/model.ts",
+        "queried_symbol_line": 57,
+        "call_site_file_path": "src/services/doctor.ts",
+        "call_site_line_range": [
+          129,
+          145
+        ],
+        "resolved_file_path": "src/domain/graph/model.ts",
+        "resolved_line": 57,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "classifyEdge",
+        "queried_symbol_file_path": "src/domain/graph/classifier.ts",
+        "queried_symbol_line": 78,
+        "call_site_file_path": "src/services/rule-engine.ts",
+        "call_site_line_range": [
+          26,
+          26
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "mapFileToComponent",
+        "queried_symbol_file_path": "src/services/graph-resolver.ts",
+        "queried_symbol_line": 60,
+        "call_site_file_path": "src/services/rule-engine.ts",
+        "call_site_line_range": [
+          26,
+          26
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      },
+      {
+        "queried_symbol_name": "sha256Base64",
+        "queried_symbol_file_path": "src/infrastructure/hash.ts",
+        "queried_symbol_line": 58,
+        "call_site_file_path": "src/domain/rule/rule-id.ts",
+        "call_site_line_range": [
+          24,
+          34
+        ],
+        "resolved_file_path": "src/infrastructure/hash.ts",
+        "resolved_line": 58,
+        "classification": "resolves_to_queried"
+      },
+      {
+        "queried_symbol_name": "serializeRulesetIR",
+        "queried_symbol_file_path": "src/services/ir-serializer.ts",
+        "queried_symbol_line": 69,
+        "call_site_file_path": "src/services/ir-serializer.ts",
+        "call_site_line_range": [
+          34,
+          50
+        ],
+        "classification": "non_call_site",
+        "subtype": "type_or_reference_position"
+      }
+    ]
+  }
+}

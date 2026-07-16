@@ -3,7 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { DependenciesResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
-import { countTokens } from '../../telemetry/tokenizer.js';
+import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { queryDependencies } from '../../graph/queries.js';
 import { jitRefreshFile } from './_helpers.js';
 
@@ -23,15 +23,16 @@ export function registerDependenciesTool(server: McpServer, ctx: AppContext): vo
 
       const text = JSON.stringify(imports);
       const tokens = countTokens(text);
+      const tokensFullFileBound = estimateFullFileBound([args.file_path], ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
       const response: DependenciesResponse = {
         file_path: args.file_path,
         imports,
-        _stats: buildToolStats('mast_dependencies', tokens, 0, [args.file_path], durationMs),
+        _stats: buildToolStats('mast_dependencies', tokens, tokensFullFileBound, [args.file_path], durationMs),
       };
       void recordToolCall(ctx.db, {
-        toolName: 'mast_dependencies', tokensReturned: tokens, tokensFullFileBound: 0,
+        toolName: 'mast_dependencies', tokensReturned: tokens, tokensFullFileBound,
         durationMs, sessionId: ctx.sessionId, status: 'ok',
       }).catch(() => {});
       return { content: [{ type: 'text' as const, text: JSON.stringify(response) }] };

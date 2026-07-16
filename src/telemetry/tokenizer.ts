@@ -1,3 +1,5 @@
+import { readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { countTokens as anthropicCountTokens } from '@anthropic-ai/tokenizer';
 
 // ---------------------------------------------------------------------------
@@ -32,15 +34,101 @@ export function countTokens(text: string): number {
 }
 
 /**
- * Estimate the full-file token upper bound for a set of file paths.
- *
- * Reads each file's content (from `chunks.lance`) and sums token counts.
- * This is the "what would it have cost to read the whole file?" baseline
- * used to compute `efficiency_ratio`.
- *
- * Stage 6 implementation — returns 0 until lance reads are wired up.
+ * Filesystem access needed by {@link estimateFullFileBound}, injected so
+ * tests can observe cache-hit / cache-miss behaviour deterministically
+ * (§4.4 — depend on an interface, not a `node:fs` module mock).
  */
-export function estimateFullFileBound(_filePaths: readonly string[]): number {
-  // Stage 6 implementation.
-  return 0;
+export interface FullFileReader {
+  /** Reads a file's full UTF-8 contents. Callers catch failures. */
+  readonly readFile: (absolutePath: string) => string;
+  /**
+   * Returns the file's mtime in unix epoch seconds — matching the `files`
+   * table convention (see `staleness.ts`). Callers catch failures.
+   */
+  readonly statMtime: (absolutePath: string) => number;
+}
+
+const defaultFullFileReader: FullFileReader = {
+  readFile: (absolutePath) => readFileSync(absolutePath, 'utf8'),
+  statMtime: (absolutePath) => statSync(absolutePath).mtimeMs / 1_000,
+};
+
+interface FullFileCacheEntry {
+  readonly mtime: number;
+  readonly tokens: number;
+}
+
+/**
+ * Upper bound on the full-file token cache. Tokenizing whole files is the
+ * expensive part of every read-tool call (§14.2), so repeated hits on the
+ * same unchanged file must not re-tokenize — but an unbounded cache would
+ * grow without limit across a long-running `mast serve` process. A few
+ * hundred entries comfortably covers one working session's file set.
+ */
+export const FULL_FILE_BOUND_CACHE_LIMIT = 200;
+
+// Module-level so the cache survives across tool calls within one `mast
+// serve` process. Map iteration order is insertion order, so the first key
+// is always the least-recently-used one — cheap LRU-ish eviction with no
+// extra dependency (re-inserting a key on cache hit moves it to the tail).
+const fullFileCache = new Map<string, FullFileCacheEntry>();
+
+function cacheTouch(absolutePath: string, entry: FullFileCacheEntry): void {
+  fullFileCache.delete(absolutePath);
+  fullFileCache.set(absolutePath, entry);
+  if (fullFileCache.size > FULL_FILE_BOUND_CACHE_LIMIT) {
+    const oldestKey = fullFileCache.keys().next().value;
+    if (oldestKey !== undefined) fullFileCache.delete(oldestKey);
+  }
+}
+
+/**
+ * Estimate the full-file token upper bound for a set of file paths (§14.2).
+ *
+ * For each unique path, reads the full file under `projectRoot` and sums
+ * `countTokens` over its contents — the "what would a naive Read of every
+ * result file have cost?" counterfactual used to compute `efficiency_ratio`.
+ *
+ * Missing or unreadable files contribute 0 and never throw: the metrics path
+ * must never break a tool response over a stale or deleted file reference.
+ * Repeated calls referencing the same file at the same mtime reuse the
+ * cached token count instead of re-reading and re-tokenizing.
+ */
+export function estimateFullFileBound(
+  filePaths: readonly string[],
+  projectRoot: string,
+  reader: FullFileReader = defaultFullFileReader,
+): number {
+  const uniquePaths = new Set(filePaths);
+  let total = 0;
+
+  for (const relPath of uniquePaths) {
+    const absPath = join(projectRoot, relPath);
+
+    let mtime: number;
+    try {
+      mtime = reader.statMtime(absPath);
+    } catch {
+      continue; // file missing/unreadable — contributes 0
+    }
+
+    const cached = fullFileCache.get(absPath);
+    if (cached !== undefined && cached.mtime === mtime) {
+      total += cached.tokens;
+      // Refresh recency even on a hit so a hot file survives eviction.
+      cacheTouch(absPath, cached);
+      continue;
+    }
+
+    try {
+      const content = reader.readFile(absPath);
+      const tokens = countTokens(content);
+      cacheTouch(absPath, { mtime, tokens });
+      total += tokens;
+    } catch {
+      continue; // unreadable despite a successful stat — contributes 0
+    }
+  }
+
+  return total;
 }

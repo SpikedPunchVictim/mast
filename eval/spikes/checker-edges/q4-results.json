@@ -1,0 +1,19 @@
+{
+  "scope_note": "verified-callers.test.ts contains exactly ONE scenario (cross-file import resolution). No field_type/parameter_type/new_expression/same_file fixtures exist in that test file to recreate — see REPORT.md limitations.",
+  "heuristic_edge_found": true,
+  "heuristic_edge": {
+    "file_path": "routes.ts",
+    "line": 3,
+    "caller_symbol": "registerRoutes",
+    "context": "handleLogin();",
+    "resolution": "import"
+  },
+  "checker_resolution": {
+    "resolved_file": "handler.ts",
+    "resolved_line": 1,
+    "points_at_handler_ts": true
+  },
+  "contradictions": [],
+  "contradiction_count": 0,
+  "verdict": "Zero contradictions on the one available scenario."
+}

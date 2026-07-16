@@ -1,0 +1,15 @@
+{
+  "scenario": "Two files export a same-named function; the caller imports explicitly from moduleB (confirmed via the imports table's resolved_path AND independently via the TypeScript checker). insertEdges (src/graph/populate.ts) resolves the edge's target purely by symbol name, with no filter on the importing file's resolved_path.",
+  "imports_table_resolved_path": "moduleB/handler.ts",
+  "checker_independently_resolves_to": "moduleB/handler.ts",
+  "heuristic_edge_into_moduleA_handleLogin": {
+    "file_path": "routes.ts",
+    "line": 3,
+    "caller_symbol": "registerRoutes",
+    "context": "handleLogin();",
+    "resolution": "import"
+  },
+  "heuristic_edge_into_moduleB_handleLogin": null,
+  "false_green_confirmed": true,
+  "verdict": "SEVERITY-ZERO FALSE-GREEN CONFIRMED: import resolved_path AND the TypeScript checker both say moduleB/handler.ts, but the heuristic verified an edge into moduleA/handler.ts instead — a wrong \"verified\" edge. Root cause: src/graph/populate.ts insertEdges resolves POTENTIAL_CALL edge targets by bare symbol name across the ENTIRE graph.db (`toRows`, no resolved_path/file filter), ignoring the imports table it already has resolved_path for. Reproducible: importing from the FIRST-inserted same-named file \"works\" by insertion-order coincidence, not by correct resolution — importing from the SECOND (or later) fails, as shown here. This bug is PRE-EXISTING in the shipped resolver and is INDEPENDENT of the checker-edges feature under evaluation; it affects the current `verified_callers` contract today whenever two files export a same-named symbol."
+}

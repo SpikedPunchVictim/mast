@@ -126,6 +126,88 @@ describe('SQLite schema initialisation', () => {
       raw.close();
     }
   });
+
+  it('creates the metrics table with args_json/results_json columns on a fresh database', () => {
+    const raw = new Sqlite(join(tmpDir, 'graph.db'));
+    try {
+      const columns = raw
+        .prepare('PRAGMA table_info(metrics)')
+        .all() as { name: string }[];
+      const names = new Set(columns.map((c) => c.name));
+      expect(names.has('args_json')).toBe(true);
+      expect(names.has('results_json')).toBe(true);
+    } finally {
+      raw.close();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// metrics table — additive column migration (§7.4 backward-compatible
+// ALTER TABLE ADD COLUMN precedent, same pattern as edges.resolution/
+// call_line/context). A database created before args_json/results_json
+// existed must gain the columns on next `openDatabase` without a schema
+// version bump and without losing existing rows.
+// ---------------------------------------------------------------------------
+
+describe('metrics table — additive column migration', () => {
+  let migrationTmpDir: string;
+
+  beforeAll(() => {
+    migrationTmpDir = mkdtempSync(join(tmpdir(), 'mast-migration-test-'));
+  });
+
+  afterAll(() => {
+    rmSync(migrationTmpDir, { recursive: true, force: true });
+  });
+
+  it('adds args_json/results_json to a pre-existing metrics table and preserves old rows as NULL', () => {
+    // Simulate a database created before this migration existed: the OLD
+    // metrics table shape, with one row written under the old schema.
+    const dbPath = join(migrationTmpDir, 'graph.db');
+    const oldSchemaDb = new Sqlite(dbPath);
+    oldSchemaDb.exec(`
+      CREATE TABLE metrics (
+        id                           INTEGER PRIMARY KEY,
+        tool_name                    TEXT NOT NULL,
+        call_timestamp               REAL NOT NULL,
+        tokens_returned              INTEGER NOT NULL,
+        tokens_full_file_upper_bound INTEGER NOT NULL,
+        duration_ms                  INTEGER NOT NULL,
+        mode                         TEXT,
+        session_id                   TEXT NOT NULL,
+        status                       TEXT NOT NULL
+      );
+    `);
+    oldSchemaDb.prepare(`
+      INSERT INTO metrics
+        (tool_name, call_timestamp, tokens_returned, tokens_full_file_upper_bound, duration_ms, mode, session_id, status)
+      VALUES ('mast_search', 1700000000, 42, 0, 5, NULL, 'old-session', 'ok')
+    `).run();
+    oldSchemaDb.close();
+
+    // Opening via the real code path must migrate the table in place.
+    const db = openDatabase(migrationTmpDir);
+    const raw = new Sqlite(dbPath);
+    try {
+      const columns = raw.prepare('PRAGMA table_info(metrics)').all() as { name: string }[];
+      const names = new Set(columns.map((c) => c.name));
+      expect(names.has('args_json')).toBe(true);
+      expect(names.has('results_json')).toBe(true);
+
+      const row = raw.prepare('SELECT * FROM metrics WHERE session_id = ?').get('old-session') as {
+        tool_name: string;
+        args_json: string | null;
+        results_json: string | null;
+      };
+      expect(row.tool_name).toBe('mast_search');
+      expect(row.args_json).toBeNull();
+      expect(row.results_json).toBeNull();
+    } finally {
+      raw.close();
+      void db.destroy();
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

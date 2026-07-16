@@ -7,8 +7,8 @@ import type {
   PotentialMatch,
   CallerResolution,
 } from '../../ast/types.js';
-import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
-import { countTokens } from '../../telemetry/tokenizer.js';
+import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
+import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
 import { jitRefreshFile, collectPotentialMatches } from './_helpers.js';
 
@@ -33,13 +33,15 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       const symbols = await querySymbolByName(ctx.db, args.symbol, filePath ?? undefined);
 
       if (symbols.length === 0) {
+        const noSymbolFiles = filePath != null ? [filePath] : [];
         const response: CallersResponse = {
           verified_callers: [],
           potential_matches: [],
           summary: { verified_count: 0, potential_count: 0, transitive: args.transitive ?? false },
           _stats: buildToolStats(
-            'mast_callers', 0, 0,
-            filePath != null ? [filePath] : [],
+            'mast_callers', 0,
+            estimateFullFileBound(noSymbolFiles, ctx.config.resolved_project_root),
+            noSymbolFiles,
             Date.now() - start,
           ),
         };
@@ -71,6 +73,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       ];
       const text = JSON.stringify({ verified_callers, potential_matches });
       const tokens = countTokens(text);
+      const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
       const response: CallersResponse = {
@@ -81,11 +84,17 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
           potential_count: potential_matches.length,
           transitive: args.transitive ?? false,
         },
-        _stats: buildToolStats('mast_callers', tokens, 0, filesReferenced, durationMs),
+        _stats: buildToolStats('mast_callers', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
+      const resultIdentities = [
+        ...verified_callers.map((c) => ({ file_path: c.file_path, symbol_name: c.caller_symbol })),
+        ...potential_matches.map((m) => ({ file_path: m.file_path, symbol_name: m.context || null })),
+      ];
       void recordToolCall(ctx.db, {
-        toolName: 'mast_callers', tokensReturned: tokens, tokensFullFileBound: 0,
+        toolName: 'mast_callers', tokensReturned: tokens, tokensFullFileBound,
         durationMs, sessionId: ctx.sessionId, status: 'ok',
+        argsJson: buildArgsJson(args),
+        resultsJson: buildResultsJson(resultIdentities),
       }).catch(() => {});
       return { content: [{ type: 'text' as const, text: JSON.stringify(response) }] };
     },

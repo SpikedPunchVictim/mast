@@ -2,8 +2,8 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { SearchResponse } from '../../ast/types.js';
-import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
-import { countTokens } from '../../telemetry/tokenizer.js';
+import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
+import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { hybridSearch } from '../../search/hybrid.js';
 
 export function registerSearchTool(server: McpServer, ctx: AppContext): void {
@@ -33,16 +33,23 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       const suggestionsField = suggestions !== undefined ? { suggestions } : {};
       const text = JSON.stringify({ mode, results, ...suggestionsField });
       const tokens = countTokens(text);
+      const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
       const response: SearchResponse = {
         mode,
         results,
         ...suggestionsField,
-        _stats: buildToolStats('mast_search', tokens, 0, filesReferenced, durationMs, mode),
+        _stats: buildToolStats('mast_search', tokens, tokensFullFileBound, filesReferenced, durationMs, mode),
       };
+      // Identity pairs in rank order — the "did a later chain-analysis call
+      // target something this search returned?" evidence for the capsule
+      // instrumentation decision (IMPLEMENTATION_PLAN_VEXP.md §P, 2026-07-15).
+      const resultIdentities = results.map((r) => ({ file_path: r.file_path, symbol_name: r.symbol_name }));
       void recordToolCall(ctx.db, {
-        toolName: 'mast_search', tokensReturned: tokens, tokensFullFileBound: 0,
+        toolName: 'mast_search', tokensReturned: tokens, tokensFullFileBound,
         durationMs, mode, sessionId: ctx.sessionId, status: 'ok',
+        argsJson: buildArgsJson(args),
+        resultsJson: buildResultsJson(resultIdentities),
       }).catch(() => {});
       return { content: [{ type: 'text' as const, text: JSON.stringify(response) }] };
     },
