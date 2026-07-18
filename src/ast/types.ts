@@ -108,6 +108,17 @@ export interface EdgeRecord {
   readonly callLine?: number;
   /** Trimmed source text of the call-site line (POTENTIAL_CALL only). */
   readonly context?: string;
+  /**
+   * RE_EXPORTS only: the re-export's own module specifier resolved to a real
+   * indexed file (null for an external/unresolvable module). This is the file
+   * evidence `insertEdges` must use to pick the target when two files export a
+   * same-named symbol — without it, resolution falls back to a bare-name match
+   * across the whole graph, which races on insertion order (the RE_EXPORTS
+   * sibling of the POTENTIAL_CALL false-green fixed in `populate.ts`;
+   * IMPLEMENTATION_PLAN_VEXP.md §P, "Sibling false-green"). Undefined for
+   * every other edge type.
+   */
+  readonly toResolvedPath?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -336,7 +347,15 @@ export type CallerResolution =
   | 'field_type'
   | 'parameter_type'
   | 'new_expression'
-  | 'same_file';
+  | 'same_file'
+  /**
+   * Additive (Stage 1.2, `mast index --checker`): the tree-sitter heuristic
+   * left this call site as a `potential_match` (no static resolution rule
+   * applied), and an opt-in TypeScript-checker pass resolved it to the
+   * queried declaration via `ts.TypeChecker.getSymbolAtLocation` (following
+   * alias chains). See MAST_SPEC §10.3.2.
+   */
+  | 'checker';
 
 export interface VerifiedCaller {
   readonly file_path: string;
@@ -361,6 +380,18 @@ export interface CallersResponse {
     readonly verified_count: number;
     readonly potential_count: number;
     readonly transitive: boolean;
+    /**
+     * Candidates the checker pass classified as NOT a call site (comment,
+     * string, or type position) and dropped out of `potential_matches` —
+     * additive, always 0 when `mast index --checker` has never run.
+     */
+    readonly checker_classified_non_call_site: number;
+    /**
+     * Candidates the checker pass resolved to a DIFFERENT declaration (a
+     * same-name collision) and dropped out of `potential_matches` — additive,
+     * always 0 when `mast index --checker` has never run.
+     */
+    readonly checker_classified_different_declaration: number;
   };
   readonly _stats: ToolStats;
 }
@@ -407,6 +438,10 @@ export interface RenameImpactResponse {
     readonly barrel_count: number;
     /** Human-readable framing: "N verified…, M review-required…, K barrel…". */
     readonly checklist: string;
+    /** See {@link CallersResponse.summary.checker_classified_non_call_site}. */
+    readonly checker_classified_non_call_site: number;
+    /** See {@link CallersResponse.summary.checker_classified_different_declaration}. */
+    readonly checker_classified_different_declaration: number;
   };
   readonly _stats: ToolStats;
 }

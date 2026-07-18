@@ -96,6 +96,39 @@ interface MetricsTable {
   readonly results_json: string | null;
 }
 
+/**
+ * Checker-pass classifications (`mast index --checker`, Stage 1.2). Additive —
+ * a brand-new table needs no `CURRENT_SCHEMA_VERSION` bump, per the
+ * `openDatabase` additive-migration precedent (§7.4).
+ *
+ * A verdict is keyed to the exact potential-match candidate it was computed
+ * for: `queried_symbol_id` (the symbol collectPotentialMatchCandidates was
+ * searching for) + `call_site_file_id`/`call_site_line` (the SAME chunk
+ * identity `collectPotentialMatches` dedupes on, §9 mast_callers). This is
+ * what lets a future call filter the exact same candidate out without
+ * recomputing anything.
+ *
+ * Staleness: `call_site_file_id REFERENCES files(id) ON DELETE CASCADE` ties a
+ * verdict's lifetime to the file row it was computed against — `populateFile`
+ * deletes-and-replaces a file's `files` row on every content change (Phase 1
+ * and JIT re-parse both go through it), which cascades away every verdict for
+ * that file automatically, exactly like `symbols`/`edges`/`imports` already
+ * do. `call_site_mtime` is a second, explicit guard checked at read time
+ * (`queryCheckerVerdicts`) — defense in depth against any future write path
+ * that touches `files.mtime` without a full delete/cascade. A stale verdict
+ * silently suppressing a real new call site is this feature's severity-zero
+ * failure mode (IMPLEMENTATION_PLAN_VEXP.md Stage 1.2 brief); the CASCADE and
+ * the mtime check are two independent ways to close it.
+ */
+interface CheckerVerdictsTable {
+  readonly queried_symbol_id: number;
+  readonly call_site_file_id: number;
+  readonly call_site_line: number;
+  /** 'resolves_to_queried' | 'resolves_to_different' | 'non_call_site' — 'unresolved' is never persisted (leaves the candidate as a genuine potential match, no state to track). */
+  readonly verdict: string;
+  readonly call_site_mtime: number;
+}
+
 interface MetricsDailyTable {
   readonly day: string;             // ISO date e.g. '2026-05-13'
   readonly tool_name: string;
@@ -144,6 +177,7 @@ export interface MastDatabase {
   readonly imports: ImportsTable;
   readonly metrics: MetricsTable;
   readonly metrics_daily: MetricsDailyTable;
+  readonly checker_verdicts: CheckerVerdictsTable;
   readonly chunk_fts: ChunkFtsTable;
   readonly identifier_fts: IdentifierFtsTable;
 }
@@ -250,6 +284,17 @@ CREATE TABLE IF NOT EXISTS metrics_daily (
   avg_duration_ms            REAL NOT NULL,
   PRIMARY KEY (day, tool_name)
 );
+
+CREATE TABLE IF NOT EXISTS checker_verdicts (
+  queried_symbol_id INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
+  call_site_file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+  call_site_line    INTEGER NOT NULL,
+  verdict           TEXT NOT NULL,
+  call_site_mtime   REAL NOT NULL,
+  PRIMARY KEY (queried_symbol_id, call_site_file_id, call_site_line)
+);
+
+CREATE INDEX IF NOT EXISTS idx_checker_verdicts_file ON checker_verdicts(call_site_file_id);
 `;
 
 // ---------------------------------------------------------------------------

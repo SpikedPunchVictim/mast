@@ -30,7 +30,7 @@ function buildChecklist(verified: number, potential: number, barrels: number): s
 export function registerRenameImpactTool(server: McpServer, ctx: AppContext): void {
   server.tool(
     'mast_rename_impact',
-    'Refactor checklist for renaming a symbol: declaration sites, verified call sites (graph), review-required identifier matches (FTS), and barrel re-exports. Composes mast_callers + graph re-export data in one call.',
+    'Refactor checklist for renaming a symbol: declaration sites, verified call sites (graph), review-required identifier matches (FTS), and barrel re-exports. Composes mast_callers + graph re-export data in one call. Shares mast_callers\' potential-match semantics, including `mast index --checker` verdict filtering (summary.checker_classified_* report what was dropped).',
     {
       symbol: z.string().describe('Symbol to be renamed (methods qualified as ClassName.methodName)'),
       file_path: z.string().nullable().optional().describe('File that declares the symbol (disambiguates duplicate names)'),
@@ -60,8 +60,10 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       const target = symbols[0];
 
       let verified_callers: VerifiedCaller[] = [];
-      let potential_matches: PotentialMatch[] = [];
+      let potential_matches: readonly PotentialMatch[] = [];
       let barrel_exports: BarrelExportSite[] = [];
+      let checkerClassifiedNonCallSite = 0;
+      let checkerClassifiedDifferentDeclaration = 0;
 
       if (target !== undefined) {
         // Direct callers only — a rename edits call sites, and every call site
@@ -75,7 +77,10 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
           resolution: r.resolution as CallerResolution,
         }));
 
-        potential_matches = await collectPotentialMatches(ctx.db, ctx.lance, args.symbol, verified_callers);
+        const potentialResult = await collectPotentialMatches(ctx.db, ctx.lance, target.id, args.symbol, verified_callers);
+        potential_matches = potentialResult.matches;
+        checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
+        checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;
 
         const barrelRows = await queryBarrelExports(ctx.db, target.id, args.symbol, target.file_id);
         barrel_exports = barrelRows.map((b) => ({
@@ -111,6 +116,8 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
             target === undefined
               ? `Symbol "${args.symbol}" not found in the index — nothing to rename.`
               : buildChecklist(verified_callers.length, potential_matches.length, barrel_exports.length),
+          checker_classified_non_call_site: checkerClassifiedNonCallSite,
+          checker_classified_different_declaration: checkerClassifiedDifferentDeclaration,
         },
         _stats: buildToolStats('mast_rename_impact', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };

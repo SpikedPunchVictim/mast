@@ -146,11 +146,13 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
     .execute();
   const fromMap = new Map(fromRows.map((r) => [r.name, r.id]));
 
-  // Structural edges (IMPLEMENTS/EXTENDS/RE_EXPORTS/PARENT_OF) carry no
-  // `resolution` and therefore no file evidence to filter on — batch-resolve
-  // them exactly as before. POTENTIAL_CALL edges are resolved separately
-  // below, file-scoped per §10.3.1's resolution rules.
-  const structuralEdges = edges.filter((e) => e.edgeType !== 'POTENTIAL_CALL');
+  // Structural edges (IMPLEMENTS/EXTENDS/PARENT_OF) carry no file evidence at
+  // all — batch-resolve them exactly as before. POTENTIAL_CALL edges are
+  // resolved separately below, file-scoped per §10.3.1's resolution rules.
+  // RE_EXPORTS edges DO carry file evidence (`toResolvedPath`, Task 0) and are
+  // also resolved separately below — they must NOT fall into this bare-name
+  // batch, which is exactly the sibling false-green this fix closes.
+  const structuralEdges = edges.filter((e) => e.edgeType !== 'POTENTIAL_CALL' && e.edgeType !== 'RE_EXPORTS');
   const structuralToNames = [...new Set(structuralEdges.map((e) => e.toName))];
   const structuralToRows = structuralToNames.length > 0
     ? await db
@@ -192,12 +194,37 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
     }
   }
 
+  // RE_EXPORTS edges: resolve each unique (toName, toResolvedPath) pair once,
+  // file-scoped by the re-export's own module specifier (Task 0 fix — the
+  // named-re-export sibling of the POTENTIAL_CALL false-green above). Keyed by
+  // toResolvedPath as well as toName because one barrel file can re-export
+  // same-named symbols from two different modules
+  // (`export { x } from './a'; export { x as xB } from './b';`).
+  const reExportKey = (e: EdgeRecord): string => `${e.toName}::${e.toResolvedPath ?? ''}`;
+  const reExportEdgesByKey = new Map<string, EdgeRecord>();
+  for (const e of edges) {
+    if (e.edgeType === 'RE_EXPORTS' && !reExportEdgesByKey.has(reExportKey(e))) {
+      reExportEdgesByKey.set(reExportKey(e), e);
+    }
+  }
+  const reExportToMap = new Map<string, number>();
+  for (const [key, edge] of reExportEdgesByKey) {
+    // No resolved path (external module, or a relative specifier that didn't
+    // probe to a real file) — the honest result is no edge, not a name-only
+    // guess across the whole graph.
+    if (edge.toResolvedPath == null) continue;
+    const targetId = await resolveInFileOrReExportChain(db, edge.toResolvedPath, edge.toName);
+    if (targetId !== null) reExportToMap.set(key, targetId);
+  }
+
   const edgeValues = edges.flatMap((edge) => {
     const from_id = fromMap.get(edge.fromName);
     if (from_id === undefined) return [];
     const to_id = edge.edgeType === 'POTENTIAL_CALL'
       ? callToMap.get(edge.toName)
-      : structuralToMap.get(edge.toName);
+      : edge.edgeType === 'RE_EXPORTS'
+        ? reExportToMap.get(reExportKey(edge))
+        : structuralToMap.get(edge.toName);
     if (to_id === undefined) return [];
     return [{
       from_id,

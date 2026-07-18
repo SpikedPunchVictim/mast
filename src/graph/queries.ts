@@ -88,6 +88,40 @@ export async function queryVerifiedCallers(
 }
 
 // ---------------------------------------------------------------------------
+// Checker verdicts (Stage 1.2, `mast index --checker`, §10.3.2)
+// ---------------------------------------------------------------------------
+
+export interface CheckerVerdictRow {
+  readonly file_path: string;
+  readonly call_site_line: number;
+  readonly verdict: string;
+}
+
+/**
+ * Checker-pass classifications recorded against `symbolId`'s potential-match
+ * pool, restricted to rows whose stored mtime still matches the file's
+ * CURRENT mtime.
+ *
+ * That `whereRef` is a defense-in-depth staleness guard alongside the
+ * `checker_verdicts.call_site_file_id REFERENCES files(id) ON DELETE CASCADE`
+ * FK (`populateFile`'s delete-and-replace already wipes verdicts for any file
+ * whose content changed — this query protects against a hypothetical future
+ * write path that updates `files.mtime` without going through that cascade).
+ * A verdict outliving the file content it was computed for is this feature's
+ * severity-zero failure mode (IMPLEMENTATION_PLAN_VEXP.md Stage 1.2 brief):
+ * it would silently suppress a real new call site from `potential_matches`.
+ */
+export async function queryCheckerVerdicts(db: Db, symbolId: number): Promise<CheckerVerdictRow[]> {
+  return db
+    .selectFrom('checker_verdicts as cv')
+    .innerJoin('files as f', 'f.id', 'cv.call_site_file_id')
+    .select(['f.path as file_path', 'cv.call_site_line', 'cv.verdict'])
+    .where('cv.queried_symbol_id', '=', symbolId)
+    .whereRef('cv.call_site_mtime', '=', 'f.mtime')
+    .execute();
+}
+
+// ---------------------------------------------------------------------------
 // Symbol lookup
 // ---------------------------------------------------------------------------
 

@@ -237,6 +237,9 @@ CREATE TABLE IF NOT EXISTS edges (
   edge_type  TEXT NOT NULL,
   resolution TEXT,    -- POTENTIAL_CALL only: which §10.3.1 rule matched
                       -- (import | field_type | parameter_type | new_expression | same_file)
+                      -- or 'checker' (§10.3.2) — the opt-in `mast index --checker`
+                      -- pass upgraded a heuristic-unresolved potential match via
+                      -- the real TypeScript checker. Additive value, no schema change.
   call_line  INTEGER, -- POTENTIAL_CALL only: 1-indexed source line of the call site
   context    TEXT,    -- POTENTIAL_CALL only: trimmed source text of the call-site line
   -- POTENTIAL_CALL | IMPLEMENTS | EXTENDS | RE_EXPORTS | PARENT_OF
@@ -680,6 +683,12 @@ Options:
   --state-dir <dir>    State directory (resolved from config if omitted)
   --incremental        Only reindex files changed since last index run
   --phase1-only        Parse and chunk only, skip embedding
+  --checker            Opt-in TypeScript-checker enrichment pass (§10.3.2) —
+                        upgrades potential_matches into verified 'checker'
+                        edges or drops non-call-site/wrong-declaration noise.
+                        Independent of --phase1-only (needs no vectors). Holds
+                        one ts.Program at a time; can take tens of seconds on
+                        a large monorepo — not part of the default index path.
 ```
 
 ---
@@ -1181,7 +1190,9 @@ The split is fundamental to the tool's contract — see §10.3 for why.
   "summary": {
     "verified_count": 2,
     "potential_count": 1,
-    "transitive": false
+    "transitive": false,
+    "checker_classified_non_call_site": 0,
+    "checker_classified_different_declaration": 0
   }
 }
 ```
@@ -1189,19 +1200,30 @@ The split is fundamental to the tool's contract — see §10.3 for why.
 **The two sets have different meanings.** Tools and prompts must treat them
 differently:
 
-- **`verified_callers`** — the local heuristic resolver (§10.3) statically linked the
-  call site's receiver to the queried symbol. The `resolution` field names the rule
-  that matched: `import` (top-level named import), `field_type` (`this.x` where `x` is
-  a class field with a known type annotation), `parameter_type` (parameter property or
-  annotated parameter), `new_expression` (`new Foo()`-style construction), or `same_file`
-  (call site and definition in the same file). High confidence; safe to act on.
+- **`verified_callers`** — a call site the graph statically linked to the queried
+  symbol. The `resolution` field names how: five values come from the local heuristic
+  resolver (§10.3) — `import` (top-level named import), `field_type` (`this.x` where
+  `x` is a class field with a known type annotation), `parameter_type` (parameter
+  property or annotated parameter), `new_expression` (`new Foo()`-style construction),
+  `same_file` (call site and definition in the same file) — and one, `checker`, comes
+  from the opt-in `mast index --checker` pass (§10.3.2): a call site the heuristic left
+  as `potential` that `ts.TypeChecker.getSymbolAtLocation` resolved to the queried
+  declaration. All six are high confidence; safe to act on.
 
 - **`potential_matches`** — `identifier_fts` matched the symbol name exactly inside a
-  chunk, but the resolver could not statically link it. These are *candidates that
-  require human or agent review* before any refactor proceeds. Common causes: factory
-  patterns, DI container lookups, inferred types, dynamic dispatch, comments and
-  string literals containing the identifier. The `reason` field is informational; v1
-  always returns `identifier_match_no_resolved_edge`.
+  chunk, but neither the heuristic resolver nor (if it has run) the checker pass could
+  statically link it. These are *candidates that require human or agent review* before
+  any refactor proceeds. Common causes: factory patterns, DI container lookups,
+  inferred types, dynamic dispatch, comments and string literals containing the
+  identifier. The `reason` field is informational; v1 always returns
+  `identifier_match_no_resolved_edge`.
+
+**`summary.checker_classified_non_call_site` / `checker_classified_different_declaration`**
+count candidates the checker pass classified away — not a real call site (comment,
+string, type position) or a same-name collision resolving to a different declaration
+— that would otherwise still be sitting in `potential_matches` as unresolved review
+noise. Both are `0` when `mast index --checker` has never run against this index; a
+nonzero value is direct evidence the pass ran and is doing its job (§10.3.2).
 
 **Why partition rather than merge?** Mixing the two sets would force the agent to
 treat every result as low-confidence, defeating the value of the verified set. Mixing
@@ -1324,7 +1346,9 @@ resolution logic.
     "verified_count": 1,
     "potential_count": 1,
     "barrel_count": 2,
-    "checklist": "1 verified call site(s) to update, 1 review-required identifier match(es), 2 barrel export(s) to update."
+    "checklist": "1 verified call site(s) to update, 1 review-required identifier match(es), 2 barrel export(s) to update.",
+    "checker_classified_non_call_site": 0,
+    "checker_classified_different_declaration": 0
   }
 }
 ```
@@ -1340,10 +1364,13 @@ Section sources and semantics:
   sites, and every call site is a direct caller; there is no `transitive`
   option (deliberate v1 scope).
 - `potential_matches` — `identifier_fts` hits not covered by a verified edge,
-  identical to `mast_callers`' potential set (shared implementation). These are
-  **mandatory review sites**: the graph could not prove them, so the agent must
-  check each before declaring the rename complete. The declaration chunk itself
-  typically appears here — correctly, since it must be edited.
+  identical to `mast_callers`' potential set (shared implementation, including
+  checker-verdict filtering when `mast index --checker` has run, §10.3.2). These
+  are **mandatory review sites**: the graph could not prove them, so the agent
+  must check each before declaring the rename complete. The declaration chunk
+  itself typically appears here — correctly, since it must be edited.
+  `summary.checker_classified_non_call_site`/`checker_classified_different_declaration`
+  carry the same meaning as in `mast_callers`.
 - `barrel_exports` — files that re-export the symbol: `via: "named"` rows come
   from `RE_EXPORTS` edges (the export statement names the symbol —
   `exported_as` carries the alias — and must be edited); `via: "star"` rows
@@ -1776,6 +1803,104 @@ not the general case. Prior to 2026-07-15 every rule fell back to the global
 match unconditionally, so a same-named symbol in an earlier-indexed file could
 silently win a `verified_callers` edge that belonged to a different file
 (IMPLEMENTATION_PLAN_VEXP.md §P, "Shipped-resolver finding").
+
+The same file-scoping applies to `RE_EXPORTS` edges (`export { x } from './y'`,
+§6.3): the extractor resolves the re-export's own `from`-clause module
+specifier to a real file (`EdgeRecord.toResolvedPath`) at parse time, and
+`insertEdges` uses that path — not a bare name match across the whole graph —
+to pick the target when two files export a same-named symbol. An unresolved
+module (external, or a relative specifier that doesn't probe to a real file)
+produces no edge rather than a name-only guess. This closed the sibling of the
+same false-green class for `mast_rename_impact`'s `barrel_exports`
+(IMPLEMENTATION_PLAN_VEXP.md §P, "Sibling false-green").
+
+### 10.3.2 TypeScript-Checker Enrichment Pass (`mast index --checker`)
+
+An **opt-in** CLI pass (`src/graph/checker-resolver.ts`) that uses the real
+TypeScript compiler to upgrade `potential_matches` the §10.3.1 heuristic
+resolver could not statically link. Reshaped from an originally-planned
+always-on background worker by a spike measurement: holding every workspace
+project's `ts.Program` alive at once peaked at 2.45 GB RSS, over a 2 GB gate
+(IMPLEMENTATION_PLAN_VEXP.md Stage 1.1, `eval/spikes/checker-edges/REPORT.md`).
+The default `mast index` path is behaviourally untouched — this only runs with
+the `--checker` flag.
+
+**What it guarantees:**
+
+- Holds exactly **one** `ts.Program` at a time, disposed before the next
+  tsconfig project loads (the spike's cautionary tale: holding all programs
+  alive made a "warm" re-check *slower* than cold, via GC pressure).
+- Every candidate is one of the shipped `potential_matches` pool
+  (`collectPotentialMatchCandidates`, shared with `mast_callers` — never a
+  second definition of "what counts as a potential match").
+- `getAliasedSymbol` alias-chain following (bounded at 8 hops) on every
+  resolution — without it, resolution collapses from ~38% to ~2% (spike
+  finding; an import binding otherwise resolves to itself, not its target).
+- **False-green gate:** a checker edge is written ONLY when the resolved
+  declaration's `(file, line)` matches the queried symbol's own recorded
+  `(file, line)` (±3 lines, for decorator/JSDoc/overload offsets). A same-name
+  collision (two unrelated declarations sharing a method name, an
+  interface-typed receiver with multiple implementors, a shadowed import)
+  resolves to a DIFFERENT declaration and is classified `resolves_to_different`
+  — never written as a `checker` edge. A wrong "verified" edge is worse than no
+  edge (adversarial fixtures: `src/graph/__tests__/checker-resolver.test.ts`).
+
+**What it does to each candidate:**
+
+| Classification | Effect |
+|---|---|
+| Resolves to the queried declaration | A `POTENTIAL_CALL` edge is written with `resolution: 'checker'` — joins `verified_callers` exactly like a heuristic edge, and dedupes with one on the same `(from_id, to_id, edge_type)` triple. |
+| Resolves to a DIFFERENT declaration | Recorded in `checker_verdicts`; drops out of `potential_matches` and is counted in `summary.checker_classified_different_declaration`. |
+| Not a call site (comment, string, type position) | Recorded in `checker_verdicts`; drops out of `potential_matches` and is counted in `summary.checker_classified_non_call_site`. This residue was 30–44% of the sampled potential pool in the Stage 1.1 spike — classifying it away is itself a major token win, independent of edge upgrades. |
+| Unresolvable (dynamic dispatch, DI lookup, etc.) | No edge, no verdict — stays a genuine `potential_match`, exactly as before `--checker` ran. |
+
+**What stays potential — the checker pass does not close every gap:**
+
+- Files outside every discovered tsconfig project (roughly 22% of the
+  monorepo sample) are left completely untouched; the CLI summary reports the
+  count (`outside_ts_scope`), never a silent cap.
+  `discoverTsConfigProjects` finds every `tsconfig.json` under the project
+  root whose `parseJsonConfigFileContent` resolves at least one file — a base
+  config meant to be `extends`-ed (no own `"include"`) is skipped as
+  `no_include_base_config`, and an unparseable config is skipped with the
+  parser's own error text. Generic and project-shape-agnostic (unlike the
+  Stage 1.1 spike's hardcoded 25-project list for this monorepo specifically).
+- A call site with no enclosing declared symbol (e.g. top-level script code,
+  a `block` chunk) still gets classified — so it never re-surfaces as review
+  noise — but no `checker` edge is written, since there is no valid `from_id`
+  to attach one to.
+- Cross-package calls where the target resolves into another workspace
+  package's compiled `.d.ts` output (not the `.ts` source `mast` indexed) fail
+  the `(file, line)` match safely — classified `resolves_to_different`, not a
+  false positive, just a missed upgrade.
+
+**Verdict staleness — the severity-zero invariant.** A verdict must not
+outlive the file content it was computed against: a stale verdict silently
+suppressing a genuinely new call site is worse than never having run the pass.
+`checker_verdicts.call_site_file_id REFERENCES files(id) ON DELETE CASCADE`
+ties a verdict's lifetime to the file row it was computed against —
+`populateFile`'s delete-and-replace on ANY content change (both full
+`mast index` and the JIT re-parse triggered by staleness detection, §9.0)
+cascades away every verdict for that file automatically, exactly like
+`symbols`/`edges`/`imports` already do. `checker_verdicts.call_site_mtime` is
+checked again at read time (`queryCheckerVerdicts`) as a second, independent
+guard. Proven directly against the real Phase 1 pipeline (edit a fixture file,
+reindex, assert the verdict no longer applies) in
+`src/graph/__tests__/checker-resolver.test.ts`.
+
+**Persistence.** `checker_verdicts` is a brand-new, additive table (§7.4 — no
+`CURRENT_SCHEMA_VERSION` bump). Writes are flushed one tsconfig project at a
+time under `structure.lock` (§7.6), kept as a short batch strictly separate
+from the compiler-heavy classification loop (which holds no lock) so a JIT
+re-parse from a concurrent read tool is never starved behind a multi-second
+classification pass.
+
+**Consumption.** `mast_callers` and `mast_rename_impact` (via the shared
+`collectPotentialMatches`) filter `non_call_site`/`resolves_to_different`
+candidates out of `potential_matches` and report honest counts in
+`summary.checker_classified_non_call_site` /
+`summary.checker_classified_different_declaration` (§9) — both `0` until
+`--checker` has run.
 
 ---
 

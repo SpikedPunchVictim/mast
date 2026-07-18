@@ -5,7 +5,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { openDatabase, type Db } from '../db.js';
-import { querySymbolByName, queryVerifiedCallers } from '../queries.js';
+import { querySymbolByName, queryVerifiedCallers, queryBarrelExports } from '../queries.js';
 import { populateFile, insertEdges, insertReExportFiles } from '../populate.js';
 import { extractFile } from '../../ast/extract.js';
 
@@ -244,6 +244,64 @@ export function registerRoutes(): void {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Task 0 regression — named re-export sibling of the Q4b false-green class
+// (IMPLEMENTATION_PLAN_VEXP.md §P, "Sibling false-green"): `export { x } from
+// './y'` resolved its RE_EXPORTS edge target by bare symbol name across the
+// whole graph, with the same insertion-order coincidence Q4b exposed for
+// POTENTIAL_CALL edges. Same fixture shape as the Q4b test above, but for a
+// named re-export's `toResolvedPath` evidence instead of an import's.
+// ---------------------------------------------------------------------------
+
+describe('verified_callers — named re-export sibling (Task 0 false-green regression)', () => {
+  let tmpDir: string;
+  let db: Db;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-reexport-sibling-'));
+    mkdirSync(join(tmpDir, 'moduleA'));
+    mkdirSync(join(tmpDir, 'moduleB'));
+    writeFileSync(join(tmpDir, 'moduleA', 'thing.ts'), `export function thing(): string { return 'A'; }\n`);
+    writeFileSync(join(tmpDir, 'moduleB', 'thing.ts'), `export function thing(): string { return 'B'; }\n`);
+    // Named re-export explicitly naming moduleB — the module specifier is the
+    // only evidence of which same-named declaration this barrel means.
+    writeFileSync(join(tmpDir, 'barrel.ts'), `export { thing } from './moduleB/thing';\n`);
+
+    db = openDatabase(tmpDir);
+
+    // Insertion order matters, same coincidence as Q4b: moduleA's `thing`
+    // symbol is written to `symbols` BEFORE moduleB's — the barrel names
+    // moduleB (the SECOND-inserted file), the direction that reproduces the bug.
+    const moduleA = await populateFixture(db, tmpDir, 'moduleA/thing.ts');
+    const moduleB = await populateFixture(db, tmpDir, 'moduleB/thing.ts');
+    const barrel = await populateFixture(db, tmpDir, 'barrel.ts');
+
+    await insertEdges(db, 'moduleA/thing.ts', moduleA.edges);
+    await insertEdges(db, 'moduleB/thing.ts', moduleB.edges);
+    await insertEdges(db, 'barrel.ts', barrel.edges);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('links the RE_EXPORTS edge to the file the specifier actually names, not the first-inserted same-named symbol', async () => {
+    const [targetA] = await querySymbolByName(db, 'thing', 'moduleA/thing.ts');
+    const [targetB] = await querySymbolByName(db, 'thing', 'moduleB/thing.ts');
+    expect(targetA).toBeDefined();
+    expect(targetB).toBeDefined();
+
+    const barrelsOfA = await queryBarrelExports(db, targetA!.id, 'thing', targetA!.file_id);
+    const barrelsOfB = await queryBarrelExports(db, targetB!.id, 'thing', targetB!.file_id);
+
+    // The re-export's own module specifier ('./moduleB/thing') says moduleB —
+    // the edge must land there, not on the earlier-inserted decoy.
+    expect(barrelsOfB.some((b) => b.file_path === 'barrel.ts')).toBe(true);
+    expect(barrelsOfA.some((b) => b.file_path === 'barrel.ts')).toBe(false);
+  });
+});
+
 describe('verified_callers — ambiguity fallback (no file evidence)', () => {
   let tmpDir: string;
   let db: Db;
@@ -280,5 +338,109 @@ export function useExternal(): void {
 
     const callers = await queryVerifiedCallers(db, unrelatedTarget!.id, false);
     expect(callers.some((c) => c.caller_symbol === 'useExternal')).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Stage 1.2 — heuristic and checker ('checker' resolution) edges coexist on
+// the SAME queried symbol, and dedupe on the (from_id, to_id, edge_type)
+// composite PK exactly like two heuristic edges would (IMPLEMENTATION_PLAN_VEXP.md
+// Stage 1.2 test list). `runCheckerPass` itself is exercised end-to-end in
+// checker-resolver.test.ts; this test only proves the shared `edges` table
+// contract the two resolution sources write into.
+// ---------------------------------------------------------------------------
+
+describe('verified_callers — heuristic and checker edges coexist and dedupe', () => {
+  let tmpDir: string;
+  let db: Db;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-checker-coexist-'));
+    // `greet` has one heuristic-resolvable caller (import) and one call site
+    // the heuristic cannot statically link at all (no import, no same-file
+    // declaration) — the genuine "potential match" a checker pass upgrades.
+    writeFileSync(join(tmpDir, 'target.ts'), `export function greet(): string { return 'hi'; }\n`);
+    writeFileSync(
+      join(tmpDir, 'heuristic-caller.ts'),
+      `import { greet } from './target';\nexport function viaImport(): string { return greet(); }\n`,
+    );
+    writeFileSync(
+      join(tmpDir, 'checker-caller.ts'),
+      `export function viaChecker(): string {\n  return (globalThis as unknown as { greet: () => string }).greet();\n}\n`,
+    );
+
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    db = openDatabase(config.resolved_state_dir);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('queryVerifiedCallers returns both the heuristic and the checker-upgraded caller', async () => {
+    const [target] = await querySymbolByName(db, 'greet', 'target.ts');
+    expect(target).toBeDefined();
+    const [checkerCaller] = await querySymbolByName(db, 'viaChecker', 'checker-caller.ts');
+    expect(checkerCaller).toBeDefined();
+
+    // Simulate exactly what runCheckerPass writes for a resolves_to_queried
+    // classification: a POTENTIAL_CALL edge with resolution 'checker'.
+    await db
+      .insertInto('edges')
+      .values({
+        from_id: checkerCaller!.id,
+        to_id: target!.id,
+        edge_type: 'POTENTIAL_CALL',
+        resolution: 'checker',
+        call_line: 2,
+        context: 'greet();',
+      })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+
+    const callers = await queryVerifiedCallers(db, target!.id, false);
+    const heuristic = callers.find((c) => c.caller_symbol === 'viaImport');
+    const checker = callers.find((c) => c.caller_symbol === 'viaChecker');
+
+    expect(heuristic).toBeDefined();
+    expect(heuristic!.resolution).toBe('import');
+    expect(checker).toBeDefined();
+    expect(checker!.resolution).toBe('checker');
+  });
+
+  it('dedupes on (from_id, to_id, edge_type) — a repeat write for the same pair does not duplicate the row', async () => {
+    const [target] = await querySymbolByName(db, 'greet', 'target.ts');
+    const [checkerCaller] = await querySymbolByName(db, 'viaChecker', 'checker-caller.ts');
+
+    const countRows = async (): Promise<number> => {
+      const rows = await db
+        .selectFrom('edges')
+        .select((eb) => eb.fn.countAll().as('n'))
+        .where('from_id', '=', checkerCaller!.id)
+        .where('to_id', '=', target!.id)
+        .where('edge_type', '=', 'POTENTIAL_CALL')
+        .executeTakeFirstOrThrow();
+      return Number(rows.n);
+    };
+
+    // First write already happened in the previous test (same `db`); a second
+    // attempt for the identical (from_id, to_id, edge_type) triple — as a
+    // re-run of `mast index --checker` would produce — must not duplicate it.
+    await db
+      .insertInto('edges')
+      .values({
+        from_id: checkerCaller!.id,
+        to_id: target!.id,
+        edge_type: 'POTENTIAL_CALL',
+        resolution: 'checker',
+        call_line: 2,
+        context: 'greet();',
+      })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+
+    expect(await countRows()).toBe(1);
   });
 });

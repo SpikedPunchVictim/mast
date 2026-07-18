@@ -57,6 +57,10 @@ export class TypeScriptExtractor implements LanguageExtractor {
       fromName: r.exportedName,
       toName: r.sourceName,
       edgeType: 'RE_EXPORTS',
+      // Same resolver call already made for imports/starReExports above — the
+      // file evidence `insertEdges` needs to scope this edge to the module the
+      // re-export actually names (Task 0 fix, see EdgeRecord.toResolvedPath).
+      toResolvedPath: resolver.resolve(r.module, filePath).resolvedPath,
     }));
     const starReExports: StarReExportRecord[] = reExports.stars.map((s) => ({
       module: s.module,
@@ -867,6 +871,11 @@ export interface NamedReExport {
   /** Name in the source module (`foo` above); equals exportedName when unaliased. */
   readonly sourceName: string;
   readonly line: number;
+  /** The `from` clause's module specifier (`'./x'` above) — resolved to a real
+   *  file by the caller (`extract()`, which has the import resolver in scope),
+   *  since this pure function has no filesystem access. Carries the file
+   *  evidence a same-named RE_EXPORTS edge needs to resolve correctly. */
+  readonly module: string;
 }
 
 export interface StarReExport {
@@ -913,6 +922,7 @@ export function extractReExports(parsedTree: Tree): { named: NamedReExport[]; st
         exportedName: alias ?? sourceName,
         sourceName,
         line: nodeStartLine(spec),
+        module,
       });
     }
   }

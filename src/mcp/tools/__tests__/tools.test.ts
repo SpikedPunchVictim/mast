@@ -463,6 +463,80 @@ describe('mast_callers', () => {
 });
 
 // ---------------------------------------------------------------------------
+// mast_callers / mast_rename_impact — checker verdict filtering (Stage 1.2,
+// `mast index --checker` consumption). Seeds a `checker_verdicts` row
+// directly rather than running the real compiler — the classification logic
+// itself (real ts.Program, alias-following, adversarial fixtures) is covered
+// by src/graph/__tests__/checker-resolver.test.ts; this suite only proves the
+// two tools *consume* a verdict correctly once one exists.
+// ---------------------------------------------------------------------------
+
+describe('mast_callers / mast_rename_impact — checker verdict filtering', () => {
+  it('drops a checker-classified non_call_site candidate out of potential_matches and reports the count', async () => {
+    const before = await call('mast_callers', { symbol: 'multiply' }) as {
+      potential_matches: { file_path: string; line: number }[];
+      summary: {
+        potential_count: number;
+        checker_classified_non_call_site: number;
+        checker_classified_different_declaration: number;
+      };
+    };
+    // Nothing has run `--checker` yet — both counts start honest-zero.
+    expect(before.summary.checker_classified_non_call_site).toBe(0);
+    expect(before.summary.checker_classified_different_declaration).toBe(0);
+    expect(before.potential_matches.length).toBeGreaterThan(0);
+
+    const target = before.potential_matches[0]!;
+    const symbolRow = await db
+      .selectFrom('symbols')
+      .select('id')
+      .where('name', '=', 'multiply')
+      .where('kind', '!=', 'export')
+      .executeTakeFirstOrThrow();
+    const fileRow = await db
+      .selectFrom('files')
+      .select(['id', 'mtime'])
+      .where('path', '=', target.file_path)
+      .executeTakeFirstOrThrow();
+
+    // Simulate what `runCheckerPass` would have written for this exact candidate.
+    await db
+      .insertInto('checker_verdicts')
+      .values({
+        queried_symbol_id: symbolRow.id,
+        call_site_file_id: fileRow.id,
+        call_site_line: target.line,
+        verdict: 'non_call_site',
+        call_site_mtime: fileRow.mtime,
+      })
+      .execute();
+
+    const after = await call('mast_callers', { symbol: 'multiply' }) as {
+      potential_matches: { file_path: string; line: number }[];
+      summary: {
+        potential_count: number;
+        checker_classified_non_call_site: number;
+        checker_classified_different_declaration: number;
+      };
+    };
+
+    expect(after.potential_matches.some((m) => m.file_path === target.file_path && m.line === target.line)).toBe(false);
+    expect(after.summary.potential_count).toBe(before.summary.potential_count - 1);
+    expect(after.summary.checker_classified_non_call_site).toBe(1);
+    expect(after.summary.checker_classified_different_declaration).toBe(0);
+  });
+
+  it('mast_rename_impact reports the same checker-classified count for the same symbol', async () => {
+    // The verdict seeded in the previous test is still live in `db` — both
+    // tools share `collectPotentialMatches`, so they must agree.
+    const res = await call('mast_rename_impact', { symbol: 'multiply' }) as {
+      summary: { checker_classified_non_call_site: number };
+    };
+    expect(res.summary.checker_classified_non_call_site).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // mast_dependencies
 // ---------------------------------------------------------------------------
 

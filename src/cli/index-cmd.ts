@@ -1,6 +1,9 @@
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
 import { runIndex, runEmbed } from '../indexer/index.js';
+import { openDatabase } from '../graph/db.js';
+import { LanceStore } from '../store/lance.js';
+import { runCheckerPass } from '../graph/checker-resolver.js';
 
 export function registerIndexCommand(program: Command): void {
   program
@@ -10,11 +13,18 @@ export function registerIndexCommand(program: Command): void {
     .option('--incremental', 'Only reindex files changed since last index run')
     .option('--phase1-only', 'Parse and chunk only; skip embedding')
     .option('--show-progress', 'Print indexing progress to stderr')
+    .option(
+      '--checker',
+      'Opt-in TypeScript-checker pass (Stage 1.2): upgrade heuristic potential_matches into verified edges ' +
+      'or drop non-call-site/wrong-declaration noise. Holds one ts.Program at a time; can take tens of seconds ' +
+      'on a large monorepo — not part of the default index path (MAST_SPEC §10.3.2).',
+    )
     .action(async (projectPath: string | undefined, opts: {
       stateDir?: string;
       incremental?: boolean;
       phase1Only?: boolean;
       showProgress?: boolean;
+      checker?: boolean;
     }) => {
       const config = resolveConfig({
         projectRoot: projectPath,
@@ -62,6 +72,47 @@ export function registerIndexCommand(program: Command): void {
           `embedded: ${embed.chunksEmbedded} chunks, ${embed.chunksSkipped} skipped` +
           `  duration: ${embed.durationMs}ms\n`,
         );
+      }
+
+      // Opt-in Stage 1.2 checker pass. Independent of --phase1-only (it needs
+      // no vectors) — runs after Phase 1/2 so it classifies against the
+      // freshest graph.db this invocation just wrote. Opens its own db/lance
+      // handles and destroys them itself (runIndex/runEmbed already closed
+      // theirs), matching the one-shot-process pattern this command already
+      // uses for Phase 2.
+      if (opts.checker) {
+        const db = openDatabase(config.resolved_state_dir);
+        const lance = await LanceStore.open(config.resolved_state_dir);
+        try {
+          const checkerResult = await runCheckerPass(db, lance, config, {
+            onProject: opts.showProgress
+              ? (configDir: string, index: number, total: number) => {
+                  const line = `  checker ${index}/${total}: ${configDir}`;
+                  process.stderr.write(process.stderr.isTTY ? `\r${line}` : `${line}\n`);
+                }
+              : undefined,
+          });
+          if (opts.showProgress && process.stderr.isTTY) process.stderr.write('\n');
+
+          // No silent caps: every project the pass skipped is named, not just counted.
+          for (const skip of checkerResult.projectsSkipped) {
+            process.stderr.write(`[mast] checker: skipped ${skip.configDir} (${skip.reason})\n`);
+          }
+
+          process.stdout.write(
+            `checker: ${checkerResult.projectsChecked} project(s) checked, ${checkerResult.projectsSkipped.length} skipped` +
+            `  symbols_checked: ${checkerResult.symbolsChecked}` +
+            `  outside_ts_scope: ${checkerResult.potentialSitesOutsideScope}\n` +
+            `  edges_upgraded: ${checkerResult.edgesUpgraded}` +
+            `  non_call_site: ${checkerResult.classifiedNonCallSite}` +
+            `  different_declaration: ${checkerResult.classifiedDifferentDeclaration}` +
+            `  unresolved: ${checkerResult.unresolved}\n` +
+            `  duration: ${checkerResult.durationMs}ms` +
+            `  peak_rss_mb: ${Math.round(checkerResult.peakRssBytes / (1024 * 1024))}\n`,
+          );
+        } finally {
+          await db.destroy();
+        }
       }
     });
 }

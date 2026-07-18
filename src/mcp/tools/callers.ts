@@ -15,7 +15,7 @@ import { jitRefreshFile, collectPotentialMatches } from './_helpers.js';
 export function registerCallersTool(server: McpServer, ctx: AppContext): void {
   server.tool(
     'mast_callers',
-    'Call sites of a named symbol, partitioned into verified (graph-resolved) and potential (identifier-FTS) sets. Always check both sets — the graph only covers statically-linked call sites.',
+    'Call sites of a named symbol, partitioned into verified (graph-resolved) and potential (identifier-FTS) sets. Always check both sets — the graph only covers statically-linked call sites. Verified entries with resolution "checker" were proven by the opt-in `mast index --checker` TypeScript pass; the same pass drops non-call-site / wrong-declaration noise out of potential_matches (summary.checker_classified_* report how many).',
     {
       symbol: z.string().describe('Symbol name whose callers to find'),
       file_path: z.string().nullable().optional().describe('File that defines the symbol (disambiguates overloaded names)'),
@@ -37,7 +37,13 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
         const response: CallersResponse = {
           verified_callers: [],
           potential_matches: [],
-          summary: { verified_count: 0, potential_count: 0, transitive: args.transitive ?? false },
+          summary: {
+            verified_count: 0,
+            potential_count: 0,
+            transitive: args.transitive ?? false,
+            checker_classified_non_call_site: 0,
+            checker_classified_different_declaration: 0,
+          },
           _stats: buildToolStats(
             'mast_callers', 0,
             estimateFullFileBound(noSymbolFiles, ctx.config.resolved_project_root),
@@ -60,9 +66,14 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
         resolution: r.resolution as CallerResolution,
       }));
 
-      let potential_matches: PotentialMatch[] = [];
+      let potential_matches: readonly PotentialMatch[] = [];
+      let checkerClassifiedNonCallSite = 0;
+      let checkerClassifiedDifferentDeclaration = 0;
       if (args.include_potential !== false) {
-        potential_matches = await collectPotentialMatches(ctx.db, ctx.lance, args.symbol, verified_callers);
+        const potentialResult = await collectPotentialMatches(ctx.db, ctx.lance, target.id, args.symbol, verified_callers);
+        potential_matches = potentialResult.matches;
+        checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
+        checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;
       }
 
       const filesReferenced = [
@@ -83,6 +94,8 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
           verified_count: verified_callers.length,
           potential_count: potential_matches.length,
           transitive: args.transitive ?? false,
+          checker_classified_non_call_site: checkerClassifiedNonCallSite,
+          checker_classified_different_declaration: checkerClassifiedDifferentDeclaration,
         },
         _stats: buildToolStats('mast_callers', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
