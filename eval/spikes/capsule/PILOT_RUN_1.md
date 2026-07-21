@@ -474,3 +474,116 @@ First end-to-end data point with a usable n: instrumentation is fully working
 (upper-bound 94% nonzero, args/results 100%), tool mix is signature-dominated
 (100/159), and **linked chain rate = 7/40 = 0.18** vs loose 0.38. Single spec, single
 model, BUILD path — a real point, not the verdict.
+
+---
+
+# Run 5 — autopilot (`--auto-resolve`) validation under kimi; three fixes at n=2; died at refine on a session-429 after 86M tokens
+
+**Date:** 2026-07-20 → 07-21. Fresh workspace
+`…/ab-fixes-kimik27-url-shortener-fold-05`, log `…fold-05-build.log`, run id
+`dd93644e-b984-478e-be1f-8e7f013f55ba`, config `llm.config.kimik27.yaml`
+(kimi-k2.7-code via the local Ollama proxy). Launched with **`--auto-resolve`** (autopilot).
+
+Preflight caveat recorded: `--auto-resolve` verified present in the rebuilt host dist
+(commit 8d2e040) — the flag and its `autoResolutions` audit trail are host-side. The
+fold-runner **image was NOT freshly rebuilt** (still dated 2026-07-18 08:48, predating the
+Jul-20 mast commit cbac1b0 "typescript→dep"); proceeded anyway because that commit only
+affects the `--checker` pass, which the BUILD path never fires, and the telemetry
+instrumentation was already baked into the Jul-18 image.
+
+## Fix 1 — plan coverage (validated at n=2, second model)
+
+Spec-declared topology this run (4 packages: domain/persistence/application/api;
+the doc's own dependency graph was honored, not the kernel layout). Decompose produced
+**37 modules**; plan produced **21 tasks covering 37/37 — zero uncovered** (some tasks own
+multiple modules via `alsoImplements`). Contrast run-3 kimi's 7 tasks / 19 orphaned. The
+plan-coverage fix now holds for **both kimi and sonnet**.
+
+## Fix 2 — DeclarationGate (validated: NO false positive this run)
+
+DeclarationGate = **PASS, 0 violations** in both refine rounds — despite **3 `declare
+module '../config/db.js'` augmentations** in the shipped source
+(persistence url/schema.ts, telemetry/schema.ts, rate-limit/store.ts). It correctly did
+not flag them. This is the opposite of run 4, where the gate false-positived on a
+`declare module "fastify"` augmentation. Either the gate was refined between 8c6a35e and
+this build, or the `.ts`-vs-sibling-`.d.ts` placement mattered; either way run 5's result
+is clean. (Other passing gates: tsc, depcruise, structure, entry.)
+
+## Fix 3 — autopilot `--auto-resolve` (THE HEADLINE: fired and resolved)
+
+The re-vet loop fired on the AGPL escalation and resolved it without a human. Evidence
+is twofold:
+
+- **Artifacts:** `libraries.json` (original) proposed `ua-parser-js`; after rejection,
+  `libraries-revet-1.json` **dropped it and proposed `bowser`** — "MIT-licensed
+  user-agent parser… as an alternative to the rejected AGPL ua-parser-js." (Also added
+  `@electric-sql/pglite` for the test store — the real package, unlike run-4 sonnet's
+  hallucinated `@pglite/kysely`.)
+- **Audit trail** (`build-report.autoResolutions`, verbatim):
+  ```
+  kind: vetting-escalation · subject: ua-parser-js · strategy: auto-revet
+  outcome: RESOLVED · attempts: 1
+  detail:
+    - initially rejected: ua-parser-js (license AGPL-3.0-or-later not in allowlist)
+    - attempt 1: proposed [kysely, pg, @electric-sql/pglite, jose, bowser] — cleared vetting
+  ```
+
+The exact item that required a **human decision in runs 3 and 4** was **auto-resolved in 1
+attempt**, in the safe direction (allowlisted substitute, never approving the rejected
+package) — precisely the §T2.4 contract. Zero human decision items arose from vetting.
+
+## Terminal state — failed at refine on a SESSION 429 (not weekly, not a decision item)
+
+- Died at phase `refine` after 3 attempts, all **HTTP 429 "you (qof_4) have reached your
+  session usage limit"** (verbatim). This is a *session* cap, **not** the weekly cap the
+  coordinator flagged — kimi ran **85,996,950 input tokens** before hitting it, so the
+  weekly limit had reset with headroom. The build simply grew pathologically expensive.
+- Cost/scale: **86.0M in / 842,661 out / 0 cached** · 53,669 s (**~14.9 h**) ·
+  kimi-k2.7-code. Top tasks: **T21_api_app 23.2M** (the http composition-root task —
+  the same class that budget-quarantined in W1M; no `--task-budget` set here so it ran
+  unbounded), refine-1 14.2M, T14_persistence_telemetry_store 5.4M. 21/21 implement
+  tasks completed, 0 quarantined. Suppressed/tallied warnings: 14 pattern-fragment, 3
+  token-outlier, 0 commit-failed.
+- The failure is **quota/scale, not a fix regression and not an unresolved decision**:
+  autopilot had already cleared the only decision item. The last completed gate snapshot
+  (`verification-1`, refine round 1) was near-green — only `smoke` (1) and `ac-coverage`
+  (6) failing, everything else passing; the final `verification.json` is worse
+  (eslint/vitest regressed) because the 429 aborted refine round 2 mid-flight, leaving a
+  broken intermediate state. Neither is a shippable verdict.
+
+## Telemetry — largest sample of the pilot (pure kimi)
+
+Store: **326 rows · 43 sessions · all `status=ok`** · span 2026-07-20 18:54 → 07-21 08:29.
+
+Upper bound: **289/326 = 0.887 nonzero** (37 zeros are empty payloads: skeleton/0-result).
+By tool — signature 174 (157 ub>0), skeleton 64 (52), search 54 (46), exports 30 (30),
+callers 3 (3), dependencies 1 (1). **First appearance of `mast_callers` (3) and
+`mast_dependencies` (1)** in any pilot run. args/results **100%** on every parameterized
+tool (signature/search/exports/callers/dependencies); skeleton 0 (no args, as always).
+
+Efficiency ratio (returned/upper_bound, ub>0): signature avg 0.26, search 0.71, exports
+0.57, skeleton 0.06, callers 0.17. A few search ratios >1 (max 2.17) — same barrel/multi-
+file estimate note as run 4.
+
+**Chain rates (n = 54 searches — largest yet):**
+- Loose (argument-blind): **14/54 = 0.26**
+- Linked (strict symbol/file-exact, hand-verified): **7/54 = 0.13** — 1 symbol-name
+  chain + 6 file-path chains.
+
+## Two-model synthesis for the capsule decision
+
+| | n(search) | loose | linked | linked/loose |
+|---|---|---|---|---|
+| Run 4 · sonnet | 40 | 0.38 | **0.18** | 0.47 |
+| Run 5 · kimi | 54 | 0.26 | **0.13** | 0.50 |
+
+Both models, independently, land the **linked chain rate at ~0.13–0.18 — roughly half the
+argument-blind loose rate**. The convergence is the signal: the "loose" metric overstates
+chaining ~2× regardless of model, and genuine search→symbol/file chaining is low
+(~1 in 7) in the context-rich fold BUILD path. This is consistent, two-model evidence for
+the capsule analysis's skepticism that search-led chaining dominates. Standing caveat
+unchanged: BUILD injects rich IR context that suppresses search-led discovery; the
+update/reconcile path (where the `--checker` seam fires) is the population the capsule
+gate ultimately targets and remains unmeasured here. Instrumentation itself is proven
+across both models (upper-bound ~0.89–0.94 nonzero, args/results 100%, now exercising
+5 of the tool types incl. callers/dependencies).
