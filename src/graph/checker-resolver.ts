@@ -2,7 +2,7 @@ import { resolve, sep, dirname } from 'node:path';
 import ts from 'typescript';
 import fg from 'fast-glob';
 import type { Db } from './db.js';
-import type { LanceStore } from '../store/lance.js';
+import type { ChunkStore } from '../store/sqliteChunkStore.js';
 import type { ResolvedConfig } from '../store/config.js';
 import type { VerifiedCaller, CallerResolution } from '../ast/types.js';
 import { withLock } from '../store/lock.js';
@@ -399,7 +399,7 @@ type PendingWrite =
  */
 export async function runCheckerPass(
   db: Db,
-  lance: LanceStore,
+  chunkStore: Pick<ChunkStore, 'getAllChunks'>,
   config: ResolvedConfig,
   options: CheckerPassOptions = {},
 ): Promise<CheckerPassResult> {
@@ -435,11 +435,11 @@ export async function runCheckerPass(
     let potentialSitesOutsideScope = 0;
 
     // One full chunk scan up front, then Map lookups. Candidate collection
-    // runs once per indexed symbol below; fetching chunks from LanceDB per
-    // symbol instead was measured at 50+ CPU-minutes on this monorepo
-    // (10,733 symbols) without completing Phase A. Semantics are identical —
+    // runs once per indexed symbol below; fetching chunks one-by-one instead
+    // was measured at 50+ CPU-minutes on this monorepo (10,733 symbols)
+    // without completing Phase A. Semantics are identical —
     // `collectPotentialMatchCandidates` only needs "chunks by id".
-    const allChunks = await lance.getAllChunks();
+    const allChunks = await chunkStore.getAllChunks();
     const chunkById = new Map<string, CandidateChunkRecord>(allChunks.map((c) => [c.chunk_id, c]));
     const chunkSource: ChunkByIdSource = {
       getChunksByIds: (ids) =>
@@ -561,7 +561,7 @@ export async function runCheckerPass(
 
       // --- Flush this project's writes in one short lock-held batch (§7.6) ---
       if (pending.length > 0) {
-        await withLock(config.resolved_state_dir, 'structure', { maxRetries: 5, retryIntervalMs: 1_000 }, async () => {
+        await withLock(config.resolved_state_dir, 'structure', { maxRetries: 5, retryIntervalMs: 1_000, caller: 'checker-resolver' }, async () => {
           for (const w of pending) {
             if (w.kind === 'verdict') {
               await db

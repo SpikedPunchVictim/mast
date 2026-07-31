@@ -4,10 +4,18 @@ import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
 
+// 1.2.0: chunks moved from chunks.lance to a `chunks` table inside graph.db
+// (M1, eval/GITNEXUS_COMPARISON.md §15.1) — the on-disk shape changed (a new
+// SQLite table plus the retired Lance chunk table) so old state must not be
+// read by code expecting the new layout. Per the never-shipped constraint
+// (no customers, no migration data to preserve) the §7.4 Step 2 wipe-and-full-
+// reindex path is the correct and sufficient handling, verified by
+// mcp/__tests__/startup.test.ts's schema-mismatch coverage.
+//
 // 1.1.0: vectors.lance gained a `content_hash` column so re-embedding is keyed
 // on chunk content, not just chunk_id (H1). A bump forces the §7.4 Step 2 wipe
 // so an old vectors table (without the column) is rebuilt rather than read.
-export const CURRENT_SCHEMA_VERSION = '1.1.0';
+export const CURRENT_SCHEMA_VERSION = '1.2.0';
 
 const DEFAULTS: MastConfig = {
   state_dir: '.mast',

@@ -1,5 +1,6 @@
 import type { Db } from '../graph/db.js';
 import type { LanceStore } from '../store/lance.js';
+import type { ChunkStore } from '../store/sqliteChunkStore.js';
 import type { Embedder } from '../indexer/embedder.js';
 import type { ResolvedConfig } from '../store/config.js';
 import type { SearchMode } from '../ast/types.js';
@@ -17,6 +18,14 @@ import type { SearchMode } from '../ast/types.js';
 export interface AppContext {
   readonly db: Db;
   readonly lance: LanceStore;
+  /**
+   * Chunk read/write surface (M1, eval/GITNEXUS_COMPARISON.md §15.1) —
+   * separate from `lance` because chunks live in graph.db's `chunks` table
+   * while vector search stays on Lance (M2 decides otherwise). Backed by
+   * `SqliteChunkStore` wrapping the same `db` connection in production
+   * (mcp/server.ts); tests may inject a fake.
+   */
+  readonly chunkStore: ChunkStore;
   readonly config: ResolvedConfig;
   /** Returns the current embedder, or null while vectors are still warming. */
   readonly getEmbedder: () => Embedder | null;

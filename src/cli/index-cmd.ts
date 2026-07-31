@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
 import { runIndex, runEmbed } from '../indexer/index.js';
 import { openDatabase } from '../graph/db.js';
-import { LanceStore } from '../store/lance.js';
+import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
 import { runCheckerPass } from '../graph/checker-resolver.js';
 
 export function registerIndexCommand(program: Command): void {
@@ -49,8 +49,16 @@ export function registerIndexCommand(program: Command): void {
         `  chunks: +${result.chunksAdded} -${result.chunksRemoved}` +
         `  duration: ${result.durationMs}ms` +
         (result.parseErrors > 0 ? `  parse_errors: ${result.parseErrors}` : '') +
+        (result.writeErrors > 0 ? `  write_errors: ${result.writeErrors}` : '') +
         '\n',
       );
+
+      // Non-zero exit so CI/scripts catch a silently-amputated file — a
+      // chunk-store write failure must be impossible to miss, not just a
+      // console line a human happens to read (GITNEXUS_COMPARISON.md §16).
+      // `exitCode` (not `process.exit()`) lets stdout/stderr flush and any
+      // later steps in this action (Phase 2 embed, checker pass) still run.
+      if (result.writeErrors > 0) process.exitCode = 1;
 
       // Phase 2 embedding. Run in-process here (unlike `mast serve`, which
       // forks for isolation) — `mast index` is a one-shot process, so there is
@@ -76,15 +84,15 @@ export function registerIndexCommand(program: Command): void {
 
       // Opt-in Stage 1.2 checker pass. Independent of --phase1-only (it needs
       // no vectors) — runs after Phase 1/2 so it classifies against the
-      // freshest graph.db this invocation just wrote. Opens its own db/lance
-      // handles and destroys them itself (runIndex/runEmbed already closed
-      // theirs), matching the one-shot-process pattern this command already
-      // uses for Phase 2.
+      // freshest graph.db this invocation just wrote. Opens its own db handle
+      // (chunkStore wraps it, §15.1) and destroys it itself (runIndex/runEmbed
+      // already closed theirs), matching the one-shot-process pattern this
+      // command already uses for Phase 2.
       if (opts.checker) {
         const db = openDatabase(config.resolved_state_dir);
-        const lance = await LanceStore.open(config.resolved_state_dir);
+        const chunkStore = new SqliteChunkStore(db);
         try {
-          const checkerResult = await runCheckerPass(db, lance, config, {
+          const checkerResult = await runCheckerPass(db, chunkStore, config, {
             onProject: opts.showProgress
               ? (configDir: string, index: number, total: number) => {
                   const line = `  checker ${index}/${total}: ${configDir}`;

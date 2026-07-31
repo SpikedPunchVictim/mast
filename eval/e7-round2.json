@@ -1,0 +1,203 @@
+{
+  "_readme": [
+    "E7 ROUND 2 (IMPLEMENTATION_PLAN.md Stage 1, F11 sizing) — re-measures JIT lock",
+    "contention against the post-M1/post-F12 build to size the F11 lock redesign.",
+    "MEASUREMENT ONLY per the task brief — nothing under src/ was touched. Compares",
+    "against eval/e7-concurrency.json (round 1, pre-M1) using the SAME harness and",
+    "arm definitions (Arm A: no reindex, Arm B: concurrent reindex), plus three NEW",
+    "probes round 1 did not have: a JIT-hold decomposition (parse vs chunk-write vs",
+    "rest of populateFile), an event-loop-freeze probe, and an isolated",
+    "SQLITE_BUSY_SNAPSHOT reproduction.",
+    "",
+    "Pre-committed predictions, recorded before running anything (see the task brief):",
+    "  P1 — Arm A N=4 JIT failure rate drops below 35% (round 1: 70%).",
+    "  P2 — JIT hold p95 drops materially from round 1's ~284ms.",
+    "  P3 — WAL auto-checkpoint stalls (round 1: 1.7-3s at N=1) get WORSE or more",
+    "       frequent, because chunk content now lives in graph.db.",
+    "  RESULT: P1 CONFIRMED, P2 CONFIRMED, P3 REFUTED. See prediction_verdicts below.",
+    "",
+    "Harness (kept OUTSIDE this package, /Users/spikedpunchvictim/temp/mast-bench/,",
+    "per the task's measurement-only scope — nothing here is shipped):",
+    "  e7-client.mjs, e7-run-arm.mjs   REUSED VERBATIM from round 1 for Arm A/B",
+    "                                   orchestration (one separate `mast serve`",
+    "                                   process per simulated agent), with ONE",
+    "                                   parameter change to e7-run-arm.mjs: Arm B's",
+    "                                   reindex head-start is now an optional 10th",
+    "                                   CLI arg (default 3000ms, unchanged) rather",
+    "                                   than hardcoded, because M1 made the SAME",
+    "                                   corpus's full reindex ~60x faster (4.5-11s",
+    "                                   vs round 1's tens of seconds) — a fixed 3s",
+    "                                   head start would have consumed most of the",
+    "                                   window before any client started. Round 2",
+    "                                   Arm B runs pass 300ms.",
+    "  e7-analyze2.py, e7r2-lock-aggregate.py   REUSED (e7-analyze2.py verbatim) /",
+    "                                   NEW (e7r2-lock-aggregate.py) aggregation.",
+    "                                   The lock-aggregate script derives all JIT/",
+    "                                   index-run acquired/failed/waitMs/holdMs",
+    "                                   numbers directly from <stateDir>/",
+    "                                   lock-metrics.jsonl per the task brief's",
+    "                                   'not wall-clock guesses' requirement.",
+    "  e7r2-hold-decomp.mjs (NEW)      Calls extractFile then populateFile directly",
+    "                                   against a dedicated state dir (out-of-",
+    "                                   process from the real server), with a",
+    "                                   harness-side monkeypatch of better-sqlite3's",
+    "                                   Statement.run/all (NOT a src/ change — the",
+    "                                   patch targets the third-party library's",
+    "                                   prototype from outside the package) that",
+    "                                   buckets SQL execution time by the table its",
+    "                                   text names. Isolates parse cost from",
+    "                                   populateFile's internal chunks/chunk_fts/",
+    "                                   identifier_fts/symbols/imports/files writes.",
+    "  e7r2-eventloop-freeze.mjs (NEW) A real `mast serve` process is driven over",
+    "                                   stdio while a SECOND raw better-sqlite3",
+    "                                   connection (bypassing structure.lock",
+    "                                   entirely, to force the real server's write",
+    "                                   to hit the SQLite-level busy_timeout wait",
+    "                                   rather than fail fast at the app-level",
+    "                                   lock) holds `BEGIN IMMEDIATE` for a fixed",
+    "                                   duration. A concurrent read-only tool call",
+    "                                   is sent while the write is active, to",
+    "                                   measure whether better-sqlite3's synchronous",
+    "                                   busy-wait freezes the whole event loop.",
+    "  e7r2-busy-snapshot-repro.mjs (NEW)   Isolated, deliberately-lock-bypassing",
+    "                                   repro of Kysely's deferred-BEGIN +",
+    "                                   read-then-write hazard the F11 section of",
+    "                                   IMPLEMENTATION_PLAN.md flags (populateFile's",
+    "                                   F12 monotonic-guard SELECT, then a write).",
+    "                                   Confirms err.code === 'SQLITE_BUSY_SNAPSHOT'",
+    "                                   and that busy_timeout does not apply to it.",
+    "",
+    "To regenerate:",
+    "  1. pnpm -F mast build",
+    "  2. Fresh state dir, sibling of nest (NOT mast-state/baseline-state/f1-state/",
+    "     m1-*-sqlite/e7-state):",
+    "     mast init nest --state-dir <abs>/e7r2-state --no-index",
+    "     mast index nest --state-dir <abs>/e7r2-state --phase1-only   (~4.6s post-M1,",
+    "     vs round 1's ~260s — required so `files` rows exist for JIT to act on)",
+    "  3. Truncate <e7r2-state>/lock-metrics.jsonl so arm runs start clean.",
+    "  4. Arm A: for N in 1 2 4 8, 5 reps: node e7-run-arm.mjs A <N> 40 30 <e7r2-state>",
+    "     <abs nest> e7r2-out A-N<N>-rep<r>   (ABSOLUTE paths for stateDir/corpusDir —",
+    "     see methodology_notes.harness_bug_relative_paths below; relative paths",
+    "     silently created stray state dirs INSIDE the corpus in round 1 too).",
+    "  5. Arm B: for N in 1 2 4 8, 8 reps: node e7-run-arm.mjs B <N> 40 100",
+    "     <e7r2-state> <abs nest> e7r2-out B-N<N>-rep<r> 90000 300",
+    "  6. python3 e7r2-lock-aggregate.py e7r2-out A 1,2,4,8 1,2,3,4,5",
+    "     python3 e7r2-lock-aggregate.py e7r2-out B 1,2,4,8 1,2,3,4,5,6,7,8",
+    "     python3 e7-analyze2.py e7r2-out A 1,2,4,8 1,2,3,4,5",
+    "     python3 e7-analyze2.py e7r2-out B 1,2,4,8 1,2,3,4,5,6,7,8",
+    "  7. node e7r2-hold-decomp.mjs <fresh state dir, phase1-indexed> <abs nest> 40",
+    "  8. node e7r2-eventloop-freeze.mjs <e7r2-state> <abs nest> 6000   (x5+ reps)",
+    "  9. node e7r2-busy-snapshot-repro.mjs <any phase1-indexed state dir copy>",
+    "Full per-call JSON, lock-event slices, and reindex stderr logs are preserved at",
+    "/Users/spikedpunchvictim/temp/mast-bench/e7r2-out/ (not committed — regenerate",
+    "per the recipe above; this file is the distilled record)."
+  ],
+  "captured_at": "2026-07-28T18:00:00Z",
+  "mast_version": "0.1.0",
+  "baseline_being_measured": "post-M1 (eval/m1-migration.json) + post-F12 (IMPLEMENTATION_PLAN.md Stage 1) build — the SAME corpus and harness design as eval/e7-concurrency.json (round 1, pre-M1).",
+  "predictions_recorded_before_running": {
+    "P1": "Arm A (no reindex) N=4 JIT failure rate drops below 35% (round 1: 70%). If it does, M1 materially changed reader-vs-reader contention; if it stays >=70%, M1 was irrelevant and F11 must carry the whole fix.",
+    "P2": "JIT hold p95 drops materially from round 1's ~284ms (f1-lock-scope.json jit-probe-B), because the ~0.2ms/file SQLite chunk write replaced a Lance rewrite.",
+    "P3": "WAL auto-checkpoint stalls (1.7-3s at N=1 in round 1) get WORSE or more frequent, because chunk content now also lives in graph.db, increasing write volume per JIT refresh. The counter-current prediction — if it fires, Q6 must ship inside F11 rather than separately."
+  },
+  "corpus": {
+    "path": "/Users/spikedpunchvictim/temp/mast-bench/nest",
+    "description": "Same NestJS framework copy as round 1/M1. files_indexed: 1338.",
+    "hygiene_decision": "git checkout -- . run BEFORE any round-2 measurement, resetting the 15 tracked files round 1's own dummy `// e7-touch` edits (and M1's read-set-diff session) had accumulated. CHOICE: clean tree, not as-is. RATIONALE: round 1's own confound note already documents that its ~2,760 dummy edits self-drifted the corpus during its own run (BM25 stats, file sizes); M1 ran on top of that same drift (see m1-migration.json's corpus_drift_note, 14 modified files) without cleaning. Compounding a THIRD experiment's worth of synthetic edits on top of two prior rounds' drift would make round 2 neither comparable to round 1's OWN starting state nor internally clean, for no benefit — the JIT harness only cares about lock/timing behaviour, not file content, so a clean start removes an axis of uncertainty at zero cost. Left untouched: untracked debris (.claude/, AGENTS.md, CLAUDE.md, probe-lab/, packages/common/exceptions/exception-filters-host.ts) since removing it risks destroying fixtures unrelated to this experiment (e.g. probe-lab/lab3.ts is m1-migration.json's real chunk_id-collision test case) and isn't necessary for lock-contention correctness. By the end of round 2's own measurement, the corpus had re-accumulated 16 modified/added files from THIS round's dummy edits — expected and equivalent to round 1's self-drift, not cleaned up afterward per the same reasoning.",
+    "state_dir": "/Users/spikedpunchvictim/temp/mast-bench/e7r2-state (fresh sibling of nest, NOT reused from mast-state/baseline-state/f1-state/m1-*-sqlite/e7-state)"
+  },
+  "prediction_verdicts": {
+    "P1_arm_A_failure_rate": {
+      "status": "CONFIRMED",
+      "number": "Arm A N=4 fail rate 4.1% (round 1: 69.8%); N=8 fail rate 14.1% (round 1: 88.5%) — both dramatically below the 35% bar and below round 1's own N=2 number (35.0%). M1 materially changed reader-vs-reader contention, as predicted.",
+      "full_curve": { "N=1": "0.0% (round 1: 0.0%)", "N=2": "0.0% (round 1: 35.0%)", "N=4": "4.1% (round 1: 69.8%)", "N=8": "14.1% (round 1: 88.5%)" }
+    },
+    "P2_jit_hold_p95": {
+      "status": "CONFIRMED",
+      "number": "jit-staleness holdMs (from lock-metrics.jsonl, all successful releases): N=1 p95=15ms (round 1's comparable single-client hold, f1-lock-scope.json jit-probe-B, was ~284ms) — an ~19x reduction. N=8 p95=47ms, still a ~6x reduction despite 8x the contention. The hold-decomposition probe (below) explains why: the chunk table write itself now costs ~0.4ms mean, in line with the predicted ~0.2ms/file order of magnitude."
+    },
+    "P3_wal_checkpoint_stalls": {
+      "status": "REFUTED",
+      "number": "ZERO outliers >1500ms across all of Arm A (2,367 calls, N=1..8, 5 reps each) and all of Arm B (5,340 calls, N=1..8, 8 reps each) — versus round 1's clear periodic pattern (10% of calls at N=1 alone, 12/120). A dedicated 150-call sequential N=1 probe run AFTER the full Arm A sweep (i.e. against an already-6.3MB WAL, to rule out 'just hadn't grown big enough yet') also showed zero outliers, max latency 186ms. The counter-current prediction did not fire — WAL behaviour got BETTER, not worse, post-M1.",
+      "plausible_explanation_not_fully_isolated": "Round 1's WAL stalls likely correlated with the concurrent full-file Lance rewrite competing for disk I/O during the SAME JIT write (chunks.lance's single-file rewrite mechanism, since retired), not purely with graph.db's own checkpoint cost. Post-M1 there is no second store to contend with, and each JIT write's SQLite footprint is small enough that the WAL rarely needs a synchronous passive-checkpoint pass long enough to be visible at these latencies. Not independently instrumented (would need checkpoint-call-level timing, out of scope) — reported as the most likely explanation, not a verified mechanism."
+    }
+  },
+  "arm_A_no_reindex": {
+    "description": "N in {1,2,4,8} concurrent mast-serve PROCESSES, each editing its own real corpus file before every mast_signature call narrowed to that file, NO reindex running. 5 reps per N (up from round 1's 3 — M1's speed made more reps cheap), 40 calls/client/rep, 30ms pacing. Numbers below are derived from lock-metrics.jsonl (jit-staleness caller), not client-side wall clock.",
+    "per_N": {
+      "N=1": { "jit": { "acquired": 200, "failed": 0, "fail_rate_pct": 0.0 }, "jit_wait_ms_acquired": { "p50": 0, "p95": 1, "max": 2 }, "jit_hold_ms": { "p50": 4, "p95": 15, "max": 68 }, "tool_call_latency_ms_non_busy": { "n": 200, "p50": 56, "p90": 74, "p95": 91, "max": 178 } },
+      "N=2": { "jit": { "acquired": 400, "failed": 0, "fail_rate_pct": 0.0 }, "jit_wait_ms_acquired": { "p50": 1, "p95": 102, "max": 214 }, "jit_hold_ms": { "p50": 7, "p95": 18, "max": 214 }, "tool_call_latency_ms_non_busy": { "n": 400, "p50": 62, "p90": 158, "p95": 165, "max": 496 } },
+      "N=4": { "jit": { "acquired": 767, "failed": 33, "fail_rate_pct": 4.1 }, "jit_wait_ms_acquired": { "p50": 1, "p95": 204, "max": 312 }, "jit_wait_ms_failed": { "p50": 304, "p95": 307, "max": 308 }, "jit_hold_ms": { "p50": 11, "p95": 39, "max": 110 }, "tool_call_latency_ms_non_busy": { "n": 767, "p50": 80, "p90": 265, "p95": 306, "max": 449 }, "tool_call_latency_ms_busy": { "n": 33, "p50": 363, "p90": 377, "p95": 385, "max": 406 } },
+      "N=8": { "jit": { "acquired": 1374, "failed": 226, "fail_rate_pct": 14.1 }, "jit_wait_ms_acquired": { "p50": 1, "p95": 304, "max": 327 }, "jit_wait_ms_failed": { "p50": 305, "p95": 314, "max": 318 }, "jit_hold_ms": { "p50": 12, "p95": 47, "max": 227 }, "tool_call_latency_ms_non_busy": { "n": 1374, "p50": 100, "p90": 313, "p95": 378, "max": 581 }, "tool_call_latency_ms_busy": { "n": 226, "p50": 367, "p90": 454, "p95": 496, "max": 579 } }
+    },
+    "variance_note": "5 reps/N gave a consistent lockEvents count per N across reps (e.g. N=8: 595/596/596/595/592 — the sweep log records each rep's raw event count), i.e. the fail rate is a stable property of N at this corpus/machine, not a single noisy sample. wal_checkpoint_outliers_gt_1500ms: 0 at every N (see P3)."
+  },
+  "arm_B_concurrent_reindex": {
+    "description": "Same N/client design as Arm A, PLUS a real `mast index nest --phase1-only` reindex of the already-populated corpus running concurrently. 8 reps per N (up from round 1's 2, specifically to address round 1's own flagged high-variance problem — see arm_B variance_note), 40 calls/client/rep, 100ms pacing, reindex given a 300ms head start (recalibrated from round 1's 3000ms — see methodology_notes.arm_B_headstart_recalibration).",
+    "reindex_duration_this_round": "Arm B wall time (client-window-bounded, reindex SIGTERM'd at window close): n=32 reps, mean 13.1s, min 9.9s, max 18.2s — this is the CLIENT window, not the reindex's own natural completion time, which per m1-migration.json is ~4.6s standalone. The client window was deliberately sized close to the reindex's natural duration so most of each rep genuinely overlaps live reindex activity, per the recalibrated head start.",
+    "per_N": {
+      "N=1": { "jit": { "acquired": 292, "failed": 28, "fail_rate_pct": 8.8 }, "jit_wait_ms_acquired": { "p50": 1, "p95": 286, "max": 322 }, "jit_wait_ms_failed": { "p50": 306, "p95": 319, "max": 333 }, "jit_hold_ms": { "p50": 16, "p95": 69, "max": 272 }, "index_run": { "acquired": 337, "wait_ms": { "p50": 1, "p95": 1010, "max": 2009 }, "hold_ms": { "p50": 67, "p95": 241, "max": 506 } }, "tool_call_latency_ms_non_busy": { "n": 292, "p50": 113, "p90": 373, "p95": 436, "max": 893 }, "tool_call_latency_ms_busy": { "n": 28, "p50": 390, "p90": 594, "p95": 628, "max": 781 } },
+      "N=2": { "jit": { "acquired": 596, "failed": 44, "fail_rate_pct": 6.9 }, "jit_wait_ms_acquired": { "p50": 1, "p95": 211, "max": 502 }, "jit_wait_ms_failed": { "p50": 305, "p95": 342, "max": 454 }, "jit_hold_ms": { "p50": 17, "p95": 88, "max": 689 }, "index_run": { "acquired": 314, "wait_ms": { "p50": 1, "p95": 1017, "max": 2231 }, "hold_ms": { "p50": 60, "p95": 209, "max": 755 } }, "tool_call_latency_ms_non_busy": { "n": 596, "p50": 112, "p90": 362, "p95": 464, "max": 1435 }, "tool_call_latency_ms_busy": { "n": 44, "p50": 380, "p90": 463, "p95": 532, "max": 1168 } },
+      "N=4": { "jit": { "acquired": 1201, "failed": 79, "fail_rate_pct": 6.2 }, "jit_wait_ms_acquired": { "p50": 1, "p95": 210, "max": 385 }, "jit_wait_ms_failed": { "p50": 305, "p95": 321, "max": 396 }, "jit_hold_ms": { "p50": 23, "p95": 81, "max": 460 }, "index_run": { "acquired": 142, "wait_ms": { "p50": 1, "p95": 3035, "max": 5034 }, "hold_ms": { "p50": 65, "p95": 225, "max": 520 } }, "tool_call_latency_ms_non_busy": { "n": 1201, "p50": 111, "p90": 323, "p95": 396, "max": 1006 }, "tool_call_latency_ms_busy": { "n": 79, "p50": 432, "p90": 589, "p95": 695, "max": 999 }, "note": "index-run's OWN wait to re-acquire the lock jumps sharply here (p95 3035ms vs N=1/2's ~1010ms) — the writer starts losing races to the growing pool of concurrent JIT readers, a mirror image of X1 from round 1 but on the writer side." },
+      "N=8": { "jit": { "acquired": 2251, "failed": 309, "fail_rate_pct": 12.1 }, "jit_wait_ms_acquired": { "p50": 1, "p95": 304, "max": 339 }, "jit_wait_ms_failed": { "p50": 304, "p95": 314, "max": 341 }, "jit_hold_ms": { "p50": 17, "p95": 47, "max": 287 }, "index_run": { "acquired": 121, "wait_ms": { "p50": 3, "p95": 3016, "max": 5024 }, "hold_ms": { "p50": 56, "p95": 181, "max": 485 } }, "tool_call_latency_ms_non_busy": { "n": 2251, "p50": 109, "p90": 311, "p95": 384, "max": 718 }, "tool_call_latency_ms_busy": { "n": 309, "p50": 373, "p90": 432, "p95": 547, "max": 681 } }
+    },
+    "collision_probability_vs_round_1": "Round 1 (long ~10-60s+ pre-M1 reindex against a slow chunk store): 97.5% / 71.2% / 87.3% / 92.2% fail rate at N=1/2/4/8, with round 1 itself flagging N=2's 2-rep sample as unstable (27% vs 100% across its 2 reps). Round 2 (post-M1, ~4.6-11s reindex, 8 reps/N): 8.8% / 6.9% / 6.2% / 12.1% — roughly a 8-15x reduction at every N, and MUCH flatter across N than round 1 (no longer scales with client count the way Arm A does, because the dominant contention source is now index-run's OWN batch holds, which are the same regardless of N, not reader-vs-reader collisions). Both effects the task brief anticipated fired: (1) the reindex's own per-batch hold is far shorter (hold_ms p95 ~181-241ms here vs round 1's f1-lock-scope.json p95/max in the seconds), so any one collision window is much narrower; (2) the whole reindex finishes ~60x faster, so far fewer of a rep's 40 calls/client land inside a live-reindex window at all, even with the recalibrated 300ms head start.",
+    "variance_note": "8 reps/N (vs round 1's 2) directly addresses round 1's own flagged problem (its N=2 rate averaged two qualitatively different windows, 27% and 100%). This round's per-N rates are far more internally consistent — no single rep dominates the aggregate the way round 1's rep2 did."
+  },
+  "jit_hold_decomposition": {
+    "description": "Measurement #3: where does the post-M1 JIT hold actually go? extractFile (parse) and populateFile called directly, out-of-process, against a dedicated fresh state dir (40 calls across the same 8 target files as Arm A/B), with a harness-side monkeypatch of better-sqlite3's Statement.run/all bucketing SQL execution time by table name. NOT a src/ change — the patch targets the third-party better-sqlite3 module's prototype from the harness script.",
+    "parse_ms": { "n": 40, "p50": 8.9, "p95": 21.5, "max": 27.0, "mean": 11.1 },
+    "populateFile_total_ms": { "n": 40, "p50": 3.8, "p95": 21.0, "max": 27.3, "mean": 6.5 },
+    "populateFile_buckets_ms_mean": {
+      "chunk_fts": 1.88,
+      "identifier_fts": 1.69,
+      "other_incl_existing_mtime_select_and_files_delete": 1.56,
+      "chunks_table": 0.39,
+      "files_table": 0.15,
+      "symbols_table": 0.11
+    },
+    "finding": "Parse is now the LARGEST single component of the hold (~11.1ms mean, ~63% of the total ~17.6ms parse+populateFile hold), not chunk storage. Within populateFile itself, FTS index maintenance (chunk_fts + identifier_fts, ~3.6ms combined mean, ~55% of populateFile's own cost) dominates over the raw chunks-table write (~0.4ms mean) — confirming P2's ~0.2ms/file order-of-magnitude prediction for the chunk write specifically, while showing the OVERALL hold is no longer chunk-store-bound at all. This directly informs F11 sizing: a lock-free-JIT-read redesign (option d) would remove parse (the biggest single piece) from the critical section entirely, but even without that, the current TOTAL hold (mean ~17.6ms, matching the F1-era spec claim of 10-50ms) is already an order of magnitude below round 1's ~284ms — the marginal benefit of moving parse out of the lock is real (shrinks the critical section ~63% further) but is now a smaller, incremental gain rather than the dominant lever it would have been pre-M1."
+  },
+  "eventloop_freeze_probe": {
+    "description": "Measurement #5: a raw second better-sqlite3 connection (bypassing structure.lock entirely, to force the SQLite-level busy_timeout wait rather than the app-level fail-fast lock) holds `BEGIN IMMEDIATE` on graph.db for a fixed duration while a real `mast serve` process attempts a genuine write (edited file + mast_signature) and, staggered 1.5s into the hold, a concurrent read-only mast_signature call on an UNTOUCHED file (fast stat-only path, no lock needed) is sent to the SAME process and its round-trip latency measured.",
+    "runs": [
+      { "write_call_latency_ms": 5258, "write_outcome": "threw after exhausting busy_timeout (~5.26s, consistent with the 5000ms busy_timeout pragma)", "concurrent_read_latency_ms": 29, "baseline_read_latency_ms": null },
+      { "write_call_latency_ms": 17, "write_outcome": "threw near-instantly (SQLITE_BUSY_SNAPSHOT-class, see busy_snapshot_repro)", "concurrent_read_latency_ms": 36, "baseline_read_latency_ms": 158 },
+      { "write_call_latency_ms": 24, "write_outcome": "threw near-instantly", "concurrent_read_latency_ms": 39 },
+      { "write_call_latency_ms": 48, "write_outcome": "threw near-instantly", "concurrent_read_latency_ms": 90 },
+      { "write_call_latency_ms": 26, "write_outcome": "threw near-instantly", "concurrent_read_latency_ms": 91 },
+      { "write_call_latency_ms": 43, "write_outcome": "threw near-instantly", "concurrent_read_latency_ms": 46 }
+    ],
+    "verdict": "NOT FROZEN in every run, including the one run where the write itself genuinely blocked for the full ~5.26s busy_timeout window: the concurrent read-only call returned in 29ms while the write call was still pending (write resolved 5.2s later). This is the cleanest possible evidence against a full-event-loop freeze, since it directly contradicts 'nothing else can run while a synchronous busy-wait is in progress' — the read completed and its response was written back to stdout WHILE the write's blocking native call was still unresolved.",
+    "caveat": "5/6 runs show the write failing near-instantly (SQLITE_BUSY_SNAPSHOT-class, not a genuine multi-second busy-wait) rather than the ~5.26s pattern of run 1 — the mechanism is not fully deterministic across runs (see busy_snapshot_repro below for why: populateFile's read-then-write shape inside a deferred BEGIN transaction hits SQLITE_BUSY_SNAPSHOT, which busy_timeout cannot wait out, MOST of the time under this exact raw-lock-bypass setup — only occasionally does a genuine plain-SQLITE_BUSY/busy_timeout race occur instead). Because 5/6 runs never actually exercised a sustained multi-second busy-wait, the 'not frozen' verdict rests most directly on the single run that did (run 1) plus the uniformly-fast reads across all 6 runs regardless of the write's own outcome. This scenario (a raw connection bypassing structure.lock) is ALSO more severe than anything possible in the real system today, where every writer holds structure.lock first — see limitation note below.",
+    "limitation": "This probe deliberately bypasses structure.lock (a raw second connection) to force the SQLite-level busy_timeout path, since no two REAL mast callers can currently reach this state simultaneously (both always acquire structure.lock first, serializing them at the app level before either touches SQLite). The probe answers 'IF something forced a busy_timeout wait, would it freeze the server' (answer: no, not observably) — it does not by itself prove today's real callers can trigger a multi-second busy_timeout wait in practice, only that IF they did (e.g. via the SQLITE_BUSY_SNAPSHOT path below, which DOES fire under real concurrent load without any lock bypass), the server would not visibly freeze for unrelated reads."
+  },
+  "busy_snapshot_repro": {
+    "description": "Measurement #6. IMPLEMENTATION_PLAN.md's F11 section flags that Kysely issues a deferred BEGIN (sqlite-driver.js:32-34), so populateFile's F12 monotonic-guard read-then-write can hit SQLITE_BUSY_SNAPSHOT, which busy_timeout cannot wait out — and notes 'today all callers hold structure.lock, so this may be latent'. Isolated repro (e7r2-busy-snapshot-repro.mjs): two raw connections, A performs a SELECT (matching F12's guard shape) then, after B commits an unrelated write to the same table, attempts its own write within the SAME still-open transaction.",
+    "isolated_repro_result": "5/5 attempts threw with err.code === 'SQLITE_BUSY_SNAPSHOT', message 'database is locked', ALL near-instantly (no waiting) — confirming busy_timeout genuinely does not apply to this error class, exactly as the plan predicted.",
+    "NOT LATENT — observed firing under real concurrent load": "During the full Arm B sweep (32 reps, real `mast serve` + real `mast index`, both correctly holding structure.lock per lock-metrics.jsonl with no overlapping acquire windows), the reindex's own populateFile calls threw 'SqliteError: database is locked' (identical message to the isolated repro) 52 times across 23 of the 32 reps, logged via indexer/index.ts:347's 'chunk store write failed' ERROR path (writeErrors, not silent — those files are correctly counted as missing from the index and logged loudly). Separately, 22 of the SAME real Arm B runs show a JIT-side occurrence: a client's mast_signature response was the raw unparseable string 'database is locked' instead of a JSON tool result. This directly contradicts the plan's 'may be latent' framing — it is not latent, it fires regularly under ordinary concurrent JIT+reindex load even with structure.lock correctly held by both writers throughout. The exact mechanism by which this occurs despite non-overlapping lock-metrics acquire windows was not fully root-caused (would require instrumenting err.code inside src/, out of scope for a measurement-only pass) but the identical error text and the isolated repro's clean reproduction under the same read-then-write shape make SQLITE_BUSY_SNAPSHOT (or a closely related WAL-mode busy variant) the best-supported explanation.",
+    "NEW_DEFECT_found_not_fixed": "The 22 JIT-side occurrences reveal a gap in F2's safety net: `checkAndRefreshIfStale` (src/mcp/staleness.ts) wraps `extractFile`'s TOCTOU race in its own try/catch (falls back to `{busy:true}`), but the subsequent `await populateFile(db, ...)` call is NOT wrapped in any catch of its own — only the surrounding `try {} finally { release() }` exists, which does not catch, it only guarantees lock release. When populateFile throws (as it does under the SQLITE_BUSY_SNAPSHOT-class condition above), the exception propagates uncaught out of `checkAndRefreshIfStale`, out of `jitRefreshFile` (src/mcp/tools/_helpers.ts:37-49, which also has no catch around it), and surfaces to the calling agent as a raw, unstructured error string rather than the documented `{ file_busy_returning_stale_cache: true }` stale-cache fallback F2 was built to guarantee. An agent parsing the tool response as JSON gets a parse error, not a usable (even if stale) result. Verified in code (both files read directly), not just inferred from the log text. Reporting per the task brief's 'if you find a NEW defect, report it — do not fix it' instruction — no src/ changes made."
+  },
+  "hold_decomposition_and_freeze_findings_summary_for_F11": {
+    "residual_hold_composition": "Parse (~11ms mean, ~63%) now dominates the shrunk JIT hold, not chunk storage (~0.4ms mean, confirming P2). FTS maintenance (~3.6ms mean, ~21%) is the second-largest piece. A lock-free-read redesign would remove parse from the critical section — real but now a smaller, incremental gain (total hold already ~17.6ms mean, an order of magnitude below round 1's ~284ms) rather than the dominant lever it would have been pre-M1.",
+    "eventloop_freeze": "Not observed, even under a raw-lock-bypass stress scenario more severe than anything two REAL mast callers can currently trigger (both always take structure.lock first). De-risks the R5 review's 'freeze-everything-for-5s' concern as an argument for urgency, though the underlying busy_timeout-is-synchronous fact remains true and unverified beyond this probe's specific shape.",
+    "busy_snapshot": "NOT latent — fires under ordinary concurrent load (52 index-run write failures + 22 JIT-side raw-error responses across 32 Arm B reps) despite structure.lock being correctly held throughout by both writers per lock-metrics.jsonl. This is the single most actionable, most urgent finding of this round: it is a live correctness gap (F2's flag doesn't cover it) independent of whichever F11 mechanism is eventually chosen."
+  },
+  "methodology_notes": {
+    "harness_bug_relative_paths": "e7-run-arm.mjs / e7-client.mjs pass corpusDir/stateDir straight through to a `mast serve` child spawned with `cwd: corpusDir`. Round 1's own regeneration recipe used relative paths (e.g. plain `nest`), and this round's FIRST sanity run reproduced the same bug: a relative stateDir resolves against the CHILD's cwd (the corpus dir), not the orchestrator's cwd, silently creating a stray, empty, never-truncated state dir INSIDE the corpus (nest/e7r2-state) rather than using the intended fresh sibling dir — 0 lock events were recorded and JIT never actually fired (resultCount was always 0 against an empty index). This exact same bug pre-existed in round 1 too: `nest/f1-state` and `nest/mast-state` (both untracked, both empty-ish stray dirs matching this pattern) were found sitting inside the corpus during this round's git-status check, evidently left by an earlier F1/round-1 harness invocation that hit the identical relative-path issue. Fixed for round 2 by passing ABSOLUTE paths for stateDir and corpusDir in every subsequent invocation (all numbers in this file are from the absolute-path runs only). The stray nest/e7r2-state directory from this round's own first failed sanity attempt was left in place (untracked, harmless, `rm -rf` on it was denied by the sandbox's permission policy) alongside the pre-existing nest/f1-state and nest/mast-state — none of the three affect any measurement reported here, since all real runs used absolute paths against the correct e7r2-state.",
+    "arm_B_headstart_recalibration": "See _readme. Round 1's Arm B used a hardcoded 3000ms head start before launching clients, sized against its own multi-ten-second reindex. Applied unchanged post-M1 (4.6-11s full reindex), a 3s head start would consume 30-65% of the run before any client even started, silently shrinking the overlap Arm B exists to measure. Recalibrated proportionally to 300ms. This is a parameter change, not a change to the arm's definition or intent (still: N clients + one concurrent real reindex) — flagged explicitly since the task asked for harness reuse.",
+    "environment_fix_unrelated_to_task": "`pnpm -F mast test` initially failed 51/377 (24/33 files) with `ERR_DLOPEN_FAILED: NODE_MODULE_VERSION 137 vs 147` — better-sqlite3's native addon was compiled against a different Node.js version than the one currently active (v26.5.0). Fixed via `node-gyp rebuild` inside the pnpm store's better-sqlite3 package directory (a native-toolchain/environment issue, not a code change) before any measurement or the final green-suite verification; `pnpm rebuild better-sqlite3` alone did not trigger an actual recompile. Unrelated to F11/M1/F12; noted per the task's 'anything that contaminated the measurement' instruction since it could otherwise look like a code regression.",
+    "machine_load": "uptime load averages 2.58/2.60/2.81 (1/5/15m) at the end of the ~50-minute measurement session, 12 physical/12 logical cores — similar order of magnitude to round 1's 2.4/4.3/3.9, moderate but not idle background load. Arm A N=8 and Arm B N=8 both run 8 concurrent client node processes plus (Arm B) a reindex process on this same 12-core machine; some tail-latency growth at N=8 (e.g. jit_hold_ms max 227ms at Arm A N=8 vs p95 47ms) may partly reflect OS scheduling contention rather than lock contention alone, consistent with round 1's same caveat. Not separately isolated."
+  },
+  "f11_sizing_recommendation": {
+    "verdict": "SHIP THE SMALL FIX FIRST (SQLITE_BUSY_SNAPSHOT/write-failure handling gap in checkAndRefreshIfStale — wrap the populateFile call so a write failure degrades to `{busy:true}` like a lock-acquisition failure does, restoring F2's guarantee), THEN treat the full option (d) lock-free-read + write-behind redesign as a P2, not a P0 — the raw contention numbers that made it urgent in round 1 have themselves mostly resolved.",
+    "justification": [
+      "P1/P2 both CONFIRMED with large margins: Arm A's JIT failure rate at N=4/N=8 dropped from 69.8%/88.5% (round 1) to 4.1%/14.1% (round 2) — an 8-17x reduction — and jit hold p95 dropped ~6-19x (284ms -> 15-47ms). Arm B's fail rate dropped ~8-15x at every N. The specific numbers that drove round 1's 'MOVE TO A SINGLE-WRITER QUEUE, do not keep per-batch advisory locking as the sole mechanism' recommendation no longer describe this system — M1 fixed most of what F11 was sized against, as a side effect of removing the O(n^2) chunk store, not by design.",
+      "The design VERDICT from round 1 is unchanged and this round does not relitigate it (per the task brief): fail-fast on disjoint-file JIT refreshes is wrong-by-design regardless of rate — structure.lock is still one global lock per state dir with no fairness queue, and two agents editing unrelated files will still serialize on it. What round 2 changes is the URGENCY of fixing that design, not whether it should eventually be fixed.",
+      "The hold decomposition shows the lock-free-read half of option (d) would remove parse (~11ms mean, ~63% of the hold) from the critical section — a real, quantifiable win, but now an INCREMENTAL one against an already-small ~17.6ms mean hold, not the order-of-magnitude fix it would have been pre-M1 against a ~284ms hold.",
+      "The event-loop-freeze probe found no freeze even under a more severe scenario (raw lock bypass) than real callers can trigger today, which was the R5 review's strongest argument for urgency on option (d)'s 'never block the event loop' framing. That argument is weakened, not eliminated (see the probe's own caveats: 5/6 runs never sustained a genuine multi-second busy-wait, and this was tested against a single write/single read pair, not 8-way concurrency).",
+      "Conversely, the busy_snapshot findings are a genuinely NEW, more urgent signal round 1 did not have: SQLITE_BUSY_SNAPSHOT is NOT latent (it fires ~1.6/rep on average across real Arm B load) and it currently bypasses F2's stale-cache-with-flag guarantee entirely, returning a raw unparseable error instead. This is a correctness regression risk independent of F11's eventual shape and should not wait on a full redesign — it is a small, targeted fix (catch populateFile's failure in checkAndRefreshIfStale, treat it like a lock-acquisition failure) that restores the existing contract rather than building the new one.",
+      "Net: ship the small write-failure-handling fix now (restores F2's contract, unblocks nothing else, low risk). Defer the full write-behind/in-memory-overlay redesign (option d's 'honest costs': threading an overlay through 8 tools' result assembly, repeated-parse cost, match-vs-content skew) until there is evidence it is still needed — e.g. re-run this same harness against a much larger corpus (n8n, 12,641 files, already flagged in Stage 4/E1 as the scaling-ladder's largest rung) where per-batch hold and FTS cost may reintroduce the contention M1 incidentally fixed here at nest's ~1,338-file scale."
+    ]
+  }
+}

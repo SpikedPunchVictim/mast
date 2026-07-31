@@ -18,9 +18,9 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
     async (args) => {
       const start = Date.now();
 
-      await jitRefreshFile(ctx.db, ctx.lance, ctx.config, args.file_path);
+      const { busy } = await jitRefreshFile(ctx.db, ctx.config, args.file_path);
 
-      const chunks = await ctx.lance.getChunksByFilePath(args.file_path);
+      const chunks = await ctx.chunkStore.getChunksByFilePath(args.file_path);
 
       // Body-free signatures (params/return stripped of bodies, §10.2), keyed
       // by symbol name. Falls back to chunk content if a symbol isn't found.
@@ -51,6 +51,8 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
       const response: ExportsResponse = {
         file_path: args.file_path,
         exports,
+        // §9.0 TOCTOU policy: omitted when false, never present-and-false.
+        ...(busy ? { file_busy_returning_stale_cache: true as const } : {}),
         _stats: buildToolStats('mast_exports', tokens, tokensFullFileBound, [args.file_path], durationMs),
       };
       const resultIdentities = exports.map((e) => ({ file_path: args.file_path, symbol_name: e.name }));

@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
-import { LanceStore } from '../../store/lance.js';
+import { openDatabase } from '../../graph/db.js';
+import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 
 describe('chunks_removed accounting (M4)', () => {
   let dir: string;
@@ -19,9 +20,11 @@ describe('chunks_removed accounting (M4)', () => {
     const first = await runIndex(config, { incremental: false });
     expect(first.chunksRemoved).toBe(0);
 
-    const lance = await LanceStore.open(config.resolved_state_dir);
-    const before = await lance.chunkCount();
+    const db = openDatabase(config.resolved_state_dir);
+    const chunkStore = new SqliteChunkStore(db);
+    const before = await chunkStore.chunkCount();
     expect(before).toBeGreaterThan(0);
+    await db.destroy();
 
     // Change the body and fully reindex — every old chunk is replaced.
     writeFileSync(join(dir, 'a.ts'), 'export function f(): number { return 2; }\n');
@@ -35,9 +38,11 @@ describe('chunks_removed accounting (M4)', () => {
     const config = resolveConfig({ projectRoot: dir });
     await runIndex(config, { incremental: false });
 
-    const lance = await LanceStore.open(config.resolved_state_dir);
-    const bChunks = (await lance.getChunksByFilePath('b.ts')).length;
+    const db = openDatabase(config.resolved_state_dir);
+    const chunkStore = new SqliteChunkStore(db);
+    const bChunks = (await chunkStore.getChunksByFilePath('b.ts')).length;
     expect(bChunks).toBeGreaterThan(0);
+    await db.destroy();
 
     rmSync(join(dir, 'b.ts'));
     // a.ts is unchanged (same mtime), so only b.ts's chunks are removed.

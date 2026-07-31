@@ -1,0 +1,73 @@
+{
+  "_readme": [
+    "Step 0 baseline for GITNEXUS_COMPARISON.md §13.7 — instrumentation-only capture of MAST's lock",
+    "acquire/hold timing, produced BEFORE the F1 fix (whole-run withLock scope in indexer/index.ts:46).",
+    "This file exists to make MAST_SPEC.md:824 ('lock holding is per-file-parse (10-50 ms), not",
+    "per-tool-call') falsifiable, and to give F1 a before/after acceptance number.",
+    "",
+    "Source of the raw events: <stateDir>/lock-metrics.jsonl, written by the default sink in",
+    "src/store/lockMetrics.ts (see that file's header comment for why a JSONL file was chosen over",
+    "the telemetry/metrics.ts + graph.db `metrics` table). `raw_events` below is a verbatim copy of",
+    "that file for this run.",
+    "",
+    "To regenerate:",
+    "  1. pnpm -F mast build",
+    "  2. Fresh state dir: mkdir <state> && mast init <corpus> --state-dir <state> --no-index",
+    "  3. Whole-run hold: mast index <corpus> --state-dir <state> --phase1-only",
+    "     (single-process; the run's `structure.lock` acquire+release events land in",
+    "     <state>/lock-metrics.jsonl as caller 'index-run')",
+    "  4. JIT-path contention: touch/edit one corpus file, start a second full",
+    "     `mast index <corpus> --state-dir <state> --phase1-only` in the background, then within its",
+    "     hold window call a read tool referencing the edited file — e.g.",
+    "     node mcp-call.mjs <state> <corpus> mast_signature '{\"symbol\":\"<Class.method>\"}'",
+    "     (see /Users/spikedpunchvictim/temp/mast-bench/mcp-call.mjs). This exercises",
+    "     mcp/staleness.ts:56's direct `acquireLock` call, labeled caller 'jit-staleness'.",
+    "  5. Copy <state>/lock-metrics.jsonl's contents into `raw_events` below and recompute `summary`."
+  ],
+  "captured_at": "2026-07-26T00:56:00Z",
+  "mast_version": "0.1.0",
+  "corpus": {
+    "path": "/Users/spikedpunchvictim/temp/mast-bench/nest",
+    "description": "NestJS framework source, disposable benchmark copy",
+    "files_indexed": 1337,
+    "chunks_added": 5030
+  },
+  "state_dir": "/Users/spikedpunchvictim/temp/mast-bench/baseline-state (fresh, not the pre-existing mast-state)",
+  "runs": [
+    {
+      "label": "run-1: cold full index (mast init --no-index, then mast index --phase1-only)",
+      "command": "mast index . --state-dir baseline-state --phase1-only",
+      "cli_reported_duration_ms": 280784,
+      "wall_clock_total": "4:42.34 (includes ~1.5s process startup/teardown outside the lock window)"
+    },
+    {
+      "label": "run-2: second full index, started while corpus already indexed, to create a long hold window for the JIT-path capture. Killed (SIGTERM) once the JIT probe result was captured — not needed to run to completion.",
+      "command": "mast index . --state-dir baseline-state --phase1-only",
+      "note": "Immediately preceded by editing packages/core/injector/container.ts (appended a comment line) so its mtime/content diverged from the indexed record, then querying it via the JIT staleness path while this run held the lock."
+    },
+    {
+      "label": "jit-probe: mast_signature during run-2's hold window",
+      "command": "node mcp-call.mjs baseline-state nest mast_signature '{\"symbol\":\"NestContainer.getModules\"}'",
+      "tool_response_summary": "Returned the STALE cached result (line 222, no staleness/busy flag surfaced) in 401ms — the JIT re-parse could not acquire structure.lock (see raw_events, caller 'jit-staleness', kind 'failed') and fell through to the TOCTOU stale-cache policy. The absence of a visible flag on the response is the separately-tracked F2 defect (busy discarded, never wired to a response field); this capture is instrumentation-only and does not fix it."
+    }
+  ],
+  "raw_events": [
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785054215233 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 280782, "timestamp": 1785054496015 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785054555536 },
+    { "kind": "failed", "type": "structure", "caller": "jit-staleness", "waitMs": 305, "timestamp": 1785054567518 }
+  ],
+  "summary": {
+    "structure_hold_ms": {
+      "max": 280782,
+      "n": 1,
+      "note": "Single completed hold, run-1. MAST_SPEC.md:824 asserts 10-50ms per-file-parse holding; this is ~5,616x-28,078x that upper bound, for the entire run — confirms the whole-run withLock scope at indexer/index.ts:46 (the F1 defect this metric is the acceptance criterion for)."
+    },
+    "structure_acquire_wait_ms": {
+      "index_run_caller": { "max": 1, "n": 2, "note": "Uncontended acquisition (no other holder at the moment of the call) is effectively instant." },
+      "jit_staleness_caller": { "max": 305, "n": 1, "outcome": "failed", "note": "3 retries x 100ms (mcp/staleness.ts:56-59) plus overhead, exhausted while run-2 held structure.lock for its full-run duration; JIT re-parse never got a chance to run." }
+    },
+    "jit_failure_count": 1,
+    "jit_success_count": 0
+  }
+}

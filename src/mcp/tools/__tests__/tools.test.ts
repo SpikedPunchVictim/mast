@@ -1,12 +1,14 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resolveConfig } from '../../../store/config.js';
+import { resolveConfig, type ResolvedConfig } from '../../../store/config.js';
 import { runIndex, runEmbed } from '../../../indexer/index.js';
 import { openDatabase } from '../../../graph/db.js';
 import { LanceStore } from '../../../store/lance.js';
+import { SqliteChunkStore } from '../../../store/sqliteChunkStore.js';
+import { acquireLock } from '../../../store/lock.js';
 import { JINA_V2_DIM, type EmbedderLike } from '../../../indexer/embedder.js';
 import type { Chunk, VectorEntry } from '../../../ast/types.js';
 import type { AppContext } from '../../context.js';
@@ -149,6 +151,7 @@ beforeAll(async () => {
   ctx = {
     db,
     lance,
+    chunkStore: new SqliteChunkStore(db),
     config,
     getEmbedder: () => null,
     searchMode: () => 'lexical',
@@ -212,6 +215,32 @@ describe('mast_search', () => {
   it('only_exported hides internalHelper', async () => {
     const exported = await call('mast_search', { query: 'Helper', only_exported: true }) as { results: Array<{ symbol_name: string | null }> };
     expect(exported.results.some((r) => r.symbol_name === 'internalHelper')).toBe(false);
+  });
+
+  // M1 (eval/GITNEXUS_COMPARISON.md §15.1): `is_exported` is `boolean` on the
+  // `Chunk`/`ChunkRecord` domain type but SQLite's `chunks` table stores it as
+  // 0|1 (BoolCol convention, graph/db.ts). SqliteChunkStore.getChunksByIds
+  // converts back to `boolean` at the store boundary (store/sqliteChunkStore.ts)
+  // — this asserts that conversion actually survives the full round trip
+  // through hybridSearch, JSON.stringify in the tool handler, and JSON.parse
+  // on the way back, not just at the store's own unit-test layer
+  // (store/__tests__/sqliteChunkStore.test.ts covers that layer directly).
+  it('is_exported round-trips as a real boolean, not 0|1, through the tool response', async () => {
+    const exportedRes = await call('mast_search', { query: 'add' }) as {
+      results: Array<{ symbol_name: string | null; is_exported: unknown }>;
+    };
+    const addResult = exportedRes.results.find((r) => r.symbol_name === 'add');
+    expect(addResult).toBeDefined();
+    expect(addResult!.is_exported).toBe(true);
+    expect(typeof addResult!.is_exported).toBe('boolean');
+
+    const privateRes = await call('mast_search', { query: 'internalHelper' }) as {
+      results: Array<{ symbol_name: string | null; is_exported: unknown }>;
+    };
+    const helperResult = privateRes.results.find((r) => r.symbol_name === 'internalHelper');
+    expect(helperResult).toBeDefined();
+    expect(helperResult!.is_exported).toBe(false);
+    expect(typeof helperResult!.is_exported).toBe('boolean');
   });
 
   it('limit is respected', async () => {
@@ -761,5 +790,165 @@ describe('mast_efficiency', () => {
     // window_started_at should be within the last hour
     const windowTs = new Date(res.window_started_at).getTime();
     expect(windowTs).toBeGreaterThan(Date.now() - 61 * 60_000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F2 — file_busy_returning_stale_cache wiring (GITNEXUS_COMPARISON.md §13.7)
+//
+// checkAndRefreshIfStale's `busy` result must reach the agent: when a file is
+// stale AND structure.lock is genuinely held by someone else, the tool is
+// about to hand back stale line coordinates and must say so. This suite
+// forces the real condition — a genuinely stale file plus a genuinely held
+// lock (see src/store/__tests__/lock.test.ts's `maxRetries: 0` pattern) —
+// rather than stubbing checkAndRefreshIfStale, so it proves the wiring, not
+// a mock of it.
+//
+// Runs in its own isolated project/db/ctx (not the shared `tmpDir` fixture
+// above): forcing staleness mutates on-disk mtimes and DB rows, which would
+// leak into the other describe blocks' line-number assertions.
+// ---------------------------------------------------------------------------
+
+describe('F2 — file_busy_returning_stale_cache', () => {
+  let busyTmpDir: string;
+  let busyConfig: ResolvedConfig;
+  let busyDb: ReturnType<typeof openDatabase>;
+  let busyLance: LanceStore;
+  let busyCall: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+
+  const BUSY_SRC = `export function busyFn(a: number): number {\n  return a;\n}\n`;
+  const BUSY_CALLER_SRC = `import { busyFn } from './busy';\n\nexport function callBusy(n: number): number {\n  return busyFn(n);\n}\n`;
+  // Same symbol name declared in two different files — lets the per-result
+  // signature test prove ONE result carries the flag and the OTHER omits it,
+  // rather than a blanket true/false on the whole array (§14.6: assert
+  // values, not shape).
+  const TWIN_A_SRC = `export function twinFn(x: number): number {\n  return x;\n}\n`;
+  const TWIN_B_SRC = `export function twinFn(y: number): number {\n  return y;\n}\n`;
+
+  beforeAll(async () => {
+    busyTmpDir = mkdtempSync(join(tmpdir(), 'mast-busy-test-'));
+    writeFileSync(join(busyTmpDir, 'busy.ts'), BUSY_SRC);
+    writeFileSync(join(busyTmpDir, 'busy-caller.ts'), BUSY_CALLER_SRC);
+    writeFileSync(join(busyTmpDir, 'twin-a.ts'), TWIN_A_SRC);
+    writeFileSync(join(busyTmpDir, 'twin-b.ts'), TWIN_B_SRC);
+
+    busyConfig = resolveConfig({ projectRoot: busyTmpDir });
+    await runIndex(busyConfig, { incremental: false });
+    await runEmbed(busyConfig, { embedder: makeFakeEmbedder() });
+
+    busyDb = openDatabase(busyConfig.resolved_state_dir);
+    busyLance = await LanceStore.open(busyConfig.resolved_state_dir);
+
+    const busyCtx: AppContext = {
+      db: busyDb,
+      lance: busyLance,
+      chunkStore: new SqliteChunkStore(busyDb),
+      config: busyConfig,
+      getEmbedder: () => null,
+      searchMode: () => 'lexical',
+      embedPending: async () => {},
+      sessionId: 'busy-test-session',
+    };
+
+    const mock = createMockServer();
+    registerExportsTool(mock.server, busyCtx);
+    registerDependenciesTool(mock.server, busyCtx);
+    registerCallersTool(mock.server, busyCtx);
+    registerRenameImpactTool(mock.server, busyCtx);
+    registerSignatureTool(mock.server, busyCtx);
+    busyCall = mock.call;
+  });
+
+  afterAll(async () => {
+    await busyDb.destroy();
+    rmSync(busyTmpDir, { recursive: true, force: true });
+  });
+
+  /**
+   * Rewrite `relPath` and force its disk mtime strictly past the indexed
+   * mtime, so `checkAndRefreshIfStale` sees it as stale regardless of the
+   * filesystem's mtime resolution.
+   */
+  function makeStale(relPath: string, newContent: string): void {
+    writeFileSync(join(busyTmpDir, relPath), newContent);
+    const future = new Date(Date.now() + 10_000);
+    utimesSync(join(busyTmpDir, relPath), future, future);
+  }
+
+  /** Hold structure.lock so the JIT re-parse this test triggers cannot acquire it. */
+  async function holdStructureLock(): Promise<() => Promise<void>> {
+    return acquireLock(busyConfig.resolved_state_dir, 'structure', { maxRetries: 0 });
+  }
+
+  describe.each([
+    { tool: 'mast_exports', args: { file_path: 'busy.ts' } },
+    { tool: 'mast_dependencies', args: { file_path: 'busy.ts' } },
+    { tool: 'mast_callers', args: { symbol: 'busyFn', file_path: 'busy.ts' } },
+    { tool: 'mast_rename_impact', args: { symbol: 'busyFn', file_path: 'busy.ts' } },
+  ])('$tool — envelope-level flag', ({ tool, args }) => {
+    it('sets file_busy_returning_stale_cache: true when the file is stale and the lock is genuinely held', async () => {
+      makeStale('busy.ts', BUSY_SRC + '// touched\n');
+      const release = await holdStructureLock();
+      try {
+        const res = (await busyCall(tool, args)) as Record<string, unknown>;
+        expect(res.file_busy_returning_stale_cache).toBe(true);
+      } finally {
+        await release();
+      }
+    });
+
+    it('omits file_busy_returning_stale_cache entirely once the lock is free (not merely false)', async () => {
+      // The previous test left busy.ts stale but released the lock — this
+      // call's own JIT refresh succeeds, so the flag must be absent, not
+      // present-and-false.
+      const res = (await busyCall(tool, args)) as Record<string, unknown>;
+      expect(res).not.toHaveProperty('file_busy_returning_stale_cache');
+    });
+  });
+
+  describe('mast_signature — per-result flag', () => {
+    it('flags only the result whose file is stale+locked, leaving the other result untouched', async () => {
+      makeStale('twin-a.ts', TWIN_A_SRC + '// touched\n');
+      const release = await holdStructureLock();
+      let res: { results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }> };
+      try {
+        res = (await busyCall('mast_signature', { symbol: 'twinFn' })) as typeof res;
+      } finally {
+        await release();
+      }
+
+      const fromA = res.results.find((r) => r.file_path === 'twin-a.ts');
+      const fromB = res.results.find((r) => r.file_path === 'twin-b.ts');
+      expect(fromA).toBeDefined();
+      expect(fromB).toBeDefined();
+      expect(fromA!.file_busy_returning_stale_cache).toBe(true);
+      expect(fromB).not.toHaveProperty('file_busy_returning_stale_cache');
+    });
+
+    it('flags every result when file_path narrows to the stale+locked file', async () => {
+      makeStale('busy.ts', BUSY_SRC + '// touched again\n');
+      const release = await holdStructureLock();
+      let res: { results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }> };
+      try {
+        res = (await busyCall('mast_signature', { symbol: 'busyFn', file_path: 'busy.ts' })) as typeof res;
+      } finally {
+        await release();
+      }
+
+      expect(res.results.length).toBeGreaterThan(0);
+      for (const r of res.results) {
+        expect(r.file_busy_returning_stale_cache).toBe(true);
+      }
+    });
+
+    it('omits the field entirely on the happy path', async () => {
+      const res = (await busyCall('mast_signature', { symbol: 'twinFn' })) as {
+        results: Array<Record<string, unknown>>;
+      };
+      expect(res.results.length).toBeGreaterThan(0);
+      for (const r of res.results) {
+        expect(r).not.toHaveProperty('file_busy_returning_stale_cache');
+      }
+    });
   });
 });

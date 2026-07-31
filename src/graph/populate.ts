@@ -28,18 +28,103 @@ export interface FileIndexData {
 }
 
 /**
+ * Result of {@link populateFile}: the new `files` row id, plus how many
+ * previously-stored chunks were replaced (for `IndexResult.chunksRemoved`
+ * accounting — mirrors the removed-count `SqliteChunkStore.replaceChunksForFile`
+ * used to report directly before chunks moved into this transaction).
+ */
+export interface PopulateFileResult {
+  readonly fileId: number;
+  readonly chunksRemoved: number;
+  /**
+   * False when the monotonic write-guard (F12, see {@link populateFile}'s
+   * doc) refused this write because the stored row's mtime already exceeds
+   * `data.mtime` — this call lost a race against a fresher write. The row is
+   * left completely unchanged: `fileId` is the EXISTING row's id and
+   * `chunksRemoved` is 0. Callers must surface this (count it, log it) rather
+   * than treat it as an ordinary successful write — a skipped write must
+   * never be indistinguishable from a completed one (the `writeErrors`
+   * precedent this mirrors).
+   */
+  readonly written: boolean;
+}
+
+/**
+ * Test-only injection point (§4.4 DI): when provided, `populateFile` calls
+ * this instead of writing the `chunks` table inline. Lets write-failure tests
+ * (`indexer/__tests__/write-failures.test.ts`) inject a chunk-store failure
+ * with an in-memory fake — since the call happens INSIDE this function's own
+ * `db.transaction()`, a rejection here still rolls back everything else the
+ * transaction already wrote (symbols/imports/chunk_fts/identifier_fts),
+ * proving the same atomicity the production (no-override) path gets from
+ * writing straight to the shared `chunks` table. Structurally compatible with
+ * `ChunkStore.replaceChunksForFile` (store/sqliteChunkStore.js) without this
+ * module importing that type — graph/ stays independent of store/'s DI seam,
+ * only its method shape.
+ */
+export type ChunkWriter = (filePath: string, chunks: readonly Chunk[]) => Promise<number>;
+
+/**
  * Delete all rows for `filePath` from files, symbols, edges, imports,
- * re_export_files (cascaded via FK), and FTS5 tables, then re-insert
+ * re_export_files (cascaded via FK), chunks, and FTS5 tables, then re-insert
  * everything from `data` — all within a single SQLite transaction.
+ *
+ * M1 (`eval/GITNEXUS_COMPARISON.md` §15.1): chunk rows join this SAME
+ * transaction instead of being written by a separate chunk-store call before
+ * this function runs. That closes the consistency seam the spike deliberately
+ * left open — a chunk-store write succeeding while the graph write then fails
+ * (or vice versa) can no longer leave the two out of sync, because there is
+ * only one commit/rollback boundary for both.
  *
  * The two-pass structure (insert all symbols first, then insert all edges
  * via `insertEdges`) is required for cross-file POTENTIAL_CALL resolution.
+ *
+ * **Monotonic write-guard (F12, `GITNEXUS_COMPARISON.md` Stage 1)**: refuses
+ * to replace a row whose stored `mtime` already exceeds `data.mtime`. Two
+ * writers can legitimately race to write the same file — a reindex batch and
+ * a concurrent JIT refresh (`mcp/staleness.ts`) both call this function, and
+ * `structure.lock` only serializes the two writes, it does not order them by
+ * freshness. Without this guard, whichever writer happens to acquire the lock
+ * LAST wins even if it parsed OLDER content — silently regressing the row.
+ * With it, the write carrying the NEWER stamp always wins, independent of
+ * arrival order, which is what actually makes the ordering guarantee in
+ * `runIndex`'s WHY-comment (`indexer/index.ts`) hold. This is strictly
+ * subject to mtime-granularity blindness (see that WHY-comment) — two writes
+ * landing in the same tick compare equal, not ordered, and whichever call
+ * happens second wins; that is a known, documented limitation, not something
+ * this guard claims to solve.
  */
 export async function populateFile(
   db: Db,
   data: Omit<FileIndexData, 'edges'>,
-): Promise<number> {
+  chunkWriter?: ChunkWriter,
+): Promise<PopulateFileResult> {
   return db.transaction().execute(async (trx) => {
+    // Monotonic write-guard — see the F12 paragraph in this function's doc
+    // comment above. Reading the existing row's mtime and deciding whether to
+    // proceed inside the SAME transaction that performs the delete-and-replace
+    // keeps the check-then-act pair atomic relative to any other populateFile
+    // call, exactly as invariant 1's read-then-write pair is kept atomic
+    // relative to other `structure.lock` holders (indexer/index.ts).
+    const existing = await trx
+      .selectFrom('files')
+      .select(['id', 'mtime'])
+      .where('path', '=', data.filePath)
+      .executeTakeFirst();
+
+    if (existing !== undefined && existing.mtime > data.mtime) {
+      // Logged at WARN, not ERROR — this is a correctly-refused stale write,
+      // not a failure (contrast the write-failure ERROR log below). Still
+      // never silent: a caller that ignored this row's `written: false`
+      // would see a normal-looking `PopulateFileResult` and never learn its
+      // parse was discarded.
+      process.stderr.write(
+        `[mast] WARN: monotonic write-guard rejected a stale write for ${data.filePath} ` +
+        `(stored mtime ${existing.mtime} > incoming ${data.mtime}) — existing row left unchanged\n`,
+      );
+      return { fileId: existing.id, chunksRemoved: 0, written: false };
+    }
+
     // Delete-and-replace: FK cascades remove symbols, edges, imports.
     await trx.deleteFrom('files').where('path', '=', data.filePath).execute();
 
@@ -56,6 +141,14 @@ export async function populateFile(
     if (file === undefined) throw new Error(`Insert into files returned no id for ${data.filePath}`);
 
     const fileId = file.id;
+
+    // Chunks — same transaction as the rest of this file's derived state
+    // (§15.1). Default path writes the shared `chunks` table directly;
+    // `chunkWriter` (test-only) substitutes an injected implementation, see
+    // its docstring above for why that stays atomic too.
+    const chunksRemoved = chunkWriter !== undefined
+      ? await chunkWriter(data.filePath, data.chunks)
+      : await replaceChunksInline(trx, data.filePath, data.chunks);
 
     // Insert symbols.
     if (data.symbols.length > 0) {
@@ -120,8 +213,47 @@ export async function populateFile(
         .execute();
     }
 
-    return fileId;
+    return { fileId, chunksRemoved, written: true };
   });
+}
+
+/**
+ * Default (production) chunk write, inline in `trx` — delete-then-insert by
+ * `file_path`, same shape as the `chunk_fts` block above. Returns the count
+ * of rows removed (§ `IndexResult.chunksRemoved`).
+ */
+async function replaceChunksInline(
+  trx: Db,
+  filePath: string,
+  chunks: readonly Chunk[],
+): Promise<number> {
+  const row = await trx
+    .selectFrom('chunks')
+    .select((eb) => eb.fn.count<number>('chunk_id').as('count'))
+    .where('file_path', '=', filePath)
+    .executeTakeFirst();
+  const removed = row?.count ?? 0;
+
+  await trx.deleteFrom('chunks').where('file_path', '=', filePath).execute();
+  if (chunks.length > 0) {
+    await trx
+      .insertInto('chunks')
+      .values(chunks.map((c) => ({
+        chunk_id:      c.chunk_id,
+        file_path:     c.file_path,
+        start_line:    c.start_line,
+        end_line:      c.end_line,
+        content:       c.content,
+        chunk_type:    c.chunk_type,
+        symbol_name:   c.symbol_name,
+        parent_symbol: c.parent_symbol,
+        is_exported:   c.is_exported ? 1 : 0,
+        language:      c.language,
+        file_mtime:    c.file_mtime,
+      })))
+      .execute();
+  }
+  return removed;
 }
 
 /**
@@ -548,17 +680,33 @@ export async function insertReExportFiles(
 
 /**
  * Remove all data for files that were present in the previous manifest but
- * are absent from the current filesystem scan (deleted files).
+ * are absent from the current filesystem scan (deleted files). Returns the
+ * number of `chunks` rows removed (§ `IndexResult.chunksRemoved`).
  *
- * FTS5 virtual tables (chunk_fts, identifier_fts) do not participate in
- * SQLite FK cascades, so they must be cleaned up explicitly before the
- * files row is deleted.
+ * `chunks` (M1, §15.1) and the FTS5 virtual tables (chunk_fts, identifier_fts)
+ * do not participate in SQLite FK cascades, so all three must be cleaned up
+ * explicitly before the files row is deleted. Wrapped in one transaction so a
+ * deleted-file cleanup is atomic the same way `populateFile` is — a failure
+ * partway through cannot leave chunks/FTS rows orphaned from a `files` row
+ * that was (or wasn't) removed.
  */
-export async function removeDeletedFiles(db: Db, deletedPaths: readonly string[]): Promise<void> {
-  if (deletedPaths.length === 0) return;
-  for (const filePath of deletedPaths) {
-    await db.deleteFrom('chunk_fts').where('file_path', '=', filePath).execute();
-    await db.deleteFrom('identifier_fts').where('file_path', '=', filePath).execute();
-  }
-  await db.deleteFrom('files').where('path', 'in', deletedPaths).execute();
+export async function removeDeletedFiles(db: Db, deletedPaths: readonly string[]): Promise<number> {
+  if (deletedPaths.length === 0) return 0;
+  return db.transaction().execute(async (trx) => {
+    let chunksRemoved = 0;
+    for (const filePath of deletedPaths) {
+      const row = await trx
+        .selectFrom('chunks')
+        .select((eb) => eb.fn.count<number>('chunk_id').as('count'))
+        .where('file_path', '=', filePath)
+        .executeTakeFirst();
+      chunksRemoved += row?.count ?? 0;
+
+      await trx.deleteFrom('chunks').where('file_path', '=', filePath).execute();
+      await trx.deleteFrom('chunk_fts').where('file_path', '=', filePath).execute();
+      await trx.deleteFrom('identifier_fts').where('file_path', '=', filePath).execute();
+    }
+    await trx.deleteFrom('files').where('path', 'in', deletedPaths).execute();
+    return chunksRemoved;
+  });
 }

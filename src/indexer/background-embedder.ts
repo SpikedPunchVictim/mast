@@ -1,6 +1,7 @@
 import { fork } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import type { LanceStore } from '../store/lance.js';
+import type { ChunkStore } from '../store/sqliteChunkStore.js';
 import { vectorKey } from './embedder.js';
 
 // ---------------------------------------------------------------------------
@@ -53,11 +54,15 @@ export interface EmbedderChildHandle {
  * for the id, or the stored vector was computed from different content (an
  * in-place edit, same chunk_id, new content hash; H1). This is the work set for
  * both startup warm-up and mid-task `mast_reindex` embedding.
+ *
+ * Chunks come from `chunkStore` (graph.db's `chunks` table, §15.1); vector
+ * keys still come from `lance` (vectors stay in Lance — M2 decides otherwise).
  */
 export async function pendingChunkIds(
-  lance: Pick<LanceStore, 'getAllChunks' | 'getEmbeddedVectorKeys'>,
+  chunkStore: Pick<ChunkStore, 'getAllChunks'>,
+  lance: Pick<LanceStore, 'getEmbeddedVectorKeys'>,
 ): Promise<string[]> {
-  const allChunks = await lance.getAllChunks();
+  const allChunks = await chunkStore.getAllChunks();
   const keys = await lance.getEmbeddedVectorKeys();
   return allChunks
     .filter((c) => !keys.has(vectorKey(c.chunk_id, c.content)))
@@ -95,8 +100,10 @@ export interface WarmEmbeddingsOptions {
   readonly modelId: string;
   readonly stateDir: string;
   readonly transformersCacheDir: string;
-  /** Store used to compute which chunks still need embedding. */
-  readonly lance: Pick<LanceStore, 'getAllChunks' | 'getEmbeddedVectorKeys'>;
+  /** Store used to enumerate chunks needing embedding (graph.db, §15.1). */
+  readonly chunkStore: Pick<ChunkStore, 'getAllChunks'>;
+  /** Store used to look up which chunks already have a vector. */
+  readonly lance: Pick<LanceStore, 'getEmbeddedVectorKeys'>;
   /** Child-process factory; defaults to {@link forkEmbedderChild}. Injected in tests. */
   readonly spawn?: SpawnEmbedderChild;
   /** Per-batch progress reporting from the child. */
@@ -126,7 +133,7 @@ export interface WarmEmbeddingsResult {
  * reports an error.
  */
 export async function warmEmbeddings(options: WarmEmbeddingsOptions): Promise<WarmEmbeddingsResult> {
-  const pendingIds = await pendingChunkIds(options.lance);
+  const pendingIds = await pendingChunkIds(options.chunkStore, options.lance);
   if (pendingIds.length === 0) {
     return { embedded: 0, child: null };
   }

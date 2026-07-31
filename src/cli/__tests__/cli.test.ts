@@ -18,6 +18,7 @@ import { runIndex, runEmbed, loadIndexMeta, countPendingEmbeddings, freshnessCau
 import { walkProject, diffManifest } from '../../indexer/walker.js';
 import { openDatabase } from '../../graph/db.js';
 import { LanceStore } from '../../store/lance.js';
+import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { searchFts } from '../../search/fts.js';
 import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
 import type { Chunk, VectorEntry } from '../../ast/types.js';
@@ -118,12 +119,13 @@ describe('full index', () => {
     }
   });
 
-  it('populates LanceDB with chunks', async () => {
+  it('populates the chunk store (graph.db, M1)', async () => {
     const config = resolveConfig({ projectRoot: tmpDir });
     await runIndex(config, { incremental: false });
 
-    const lance = await LanceStore.open(config.resolved_state_dir);
-    const count = await lance.chunkCount();
+    const db = openDatabase(config.resolved_state_dir);
+    const count = await new SqliteChunkStore(db).chunkCount();
+    await db.destroy();
     expect(count).toBeGreaterThan(0);
   });
 
@@ -308,9 +310,11 @@ describe('status — embedding backlog', () => {
   it('counts every chunk as pending after Phase 1 only', async () => {
     const config = resolveConfig({ projectRoot: tmpDir });
     const lance = await LanceStore.open(config.resolved_state_dir);
+    const db = openDatabase(config.resolved_state_dir);
     const meta = loadIndexMeta(config.resolved_state_dir);
 
-    const pending = await countPendingEmbeddings(lance);
+    const pending = await countPendingEmbeddings(new SqliteChunkStore(db), lance);
+    await db.destroy();
 
     expect(pending).toBeGreaterThan(0);
     expect(pending).toBe(meta?.chunk_count);
@@ -320,8 +324,10 @@ describe('status — embedding backlog', () => {
     const config = resolveConfig({ projectRoot: tmpDir });
     await runEmbed(config, { embedder: makeFakeEmbedder() });
     const lance = await LanceStore.open(config.resolved_state_dir);
+    const db = openDatabase(config.resolved_state_dir);
 
-    const pending = await countPendingEmbeddings(lance);
+    const pending = await countPendingEmbeddings(new SqliteChunkStore(db), lance);
+    await db.destroy();
 
     expect(pending).toBe(0);
   });
@@ -425,15 +431,16 @@ describe('deleted file cleanup', () => {
     rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('removes deleted file chunks from LanceDB on next index run', async () => {
+  it('removes deleted file chunks from the chunk store on next index run', async () => {
     // Delete types.ts from disk.
     unlinkSync(join(tmpDir, 'types.ts'));
 
     const config = resolveConfig({ projectRoot: tmpDir });
     await runIndex(config, { incremental: true });
 
-    const lance = await LanceStore.open(config.resolved_state_dir);
-    const rows = await lance.getChunksByFilePath('types.ts');
+    const db = openDatabase(config.resolved_state_dir);
+    const rows = await new SqliteChunkStore(db).getChunksByFilePath('types.ts');
+    await db.destroy();
     expect(rows).toHaveLength(0);
   });
 

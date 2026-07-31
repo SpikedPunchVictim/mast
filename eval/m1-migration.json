@@ -1,0 +1,105 @@
+{
+  "_readme": [
+    "M1 (not the spike) — SQLite promoted to the default (only) chunk store; MAST_CHUNK_STORE",
+    "env gate and Lance chunk-table usage retired from every production write/read path. Compares",
+    "against eval/store-spike.json's numbers (same corpora, same methodology where possible) and",
+    "re-runs the read-set correctness diff now that the chunk_id collision fix (store-spike.json's",
+    "defects.chunk_id_collision) has landed.",
+    "",
+    "Design decision (see packages/mast/IMPLEMENTATION_PLAN.md Stage 2 'M1 result' for full",
+    "rationale): chunks live IN graph.db's `chunks` table, NOT a separate chunks.db as the spike",
+    "used. graph/populate.ts's populateFile writes chunks in the SAME per-file db.transaction() as",
+    "symbols/edges/imports/chunk_fts — proven by graph/__tests__/storage.test.ts's atomicity test",
+    "(a failing chunk writer rolls back the whole transaction, zero orphaned rows anywhere).",
+    "",
+    "Part A (write path) regenerated on FRESH state dirs (mast-bench/m1-{common,nest,directus}-",
+    "sqlite) — mast-state/, baseline-state/, f1-state/, audit2/ were NOT touched, per instructions.",
+    "Part B (read-set diff) could NOT reuse the 2-day-old mast-state Lance reference as originally",
+    "planned: `nest`'s live git checkout had uncommitted edits to 14 files (packages/core/injector/",
+    "*, etc.) from earlier E7 concurrency-test sessions, which shifts chunk_fts's corpus-wide BM25",
+    "statistics independent of the store migration (store-spike.json's own",
+    "part_b_read_path.score_drift_explanation documented this exact mechanism) — comparing against",
+    "a stale reference would have produced non-attributable diffs. Re-ran instead as a single-parse-",
+    "pass, dual-write comparison: one walkProject+extractFile pass over the CURRENT nest snapshot",
+    "feeds a Lance chunk table AND the SQLite chunks table from byte-identical Chunk[] input, then",
+    "hybridSearch/getChunksByFilePath/collectPotentialMatchCandidates are diffed with ONLY the",
+    "chunk-store backend swapped (same db, same FTS, same symbols/edges — see",
+    "/private/tmp/.../m1-same-build-diff.mjs, not checked in; script content summarized in the",
+    "'read_set_diff' section below). This isolates the comparison to the store's own read/write",
+    "behaviour and is immune to corpus drift.",
+    "",
+    "To regenerate part A: pnpm -F mast build; mast index <corpus> --phase1-only --state-dir",
+    "<fresh-dir> (no env var — SQLite is unconditional now)."
+  ],
+  "captured_at": "2026-07-28T18:57:00Z",
+  "mast_version": "0.1.0",
+  "schema_version": "1.2.0",
+  "part_a_write_path": {
+    "_note": "duration_ms is runIndex's own Date.now()-startMs (whole --phase1-only pipeline), matching store-spike.json's methodology. wall_s is process-external.",
+    "corpora": [
+      {
+        "label": "nest/packages/common",
+        "files": 189,
+        "chunk_count": 527,
+        "parse_errors": 0,
+        "write_errors": 0,
+        "duration_ms": 435,
+        "wall_s": 1,
+        "state_dir_bytes": 2696037,
+        "state_dir_human": "2.6M",
+        "spike_sqlite_duration_ms": 388,
+        "spike_sqlite_chunk_count": 527
+      },
+      {
+        "label": "nest (full)",
+        "files": 1338,
+        "chunk_count": 5030,
+        "parse_errors": 0,
+        "write_errors": 0,
+        "duration_ms": 4528,
+        "wall_s": 6,
+        "state_dir_bytes": 17421442,
+        "state_dir_human": "17M",
+        "spike_sqlite_duration_ms": 4184,
+        "spike_sqlite_chunk_count": 5022,
+        "spike_lance_duration_ms": 281480,
+        "spike_lance_state_dir_human": "194M",
+        "note": "chunk_count 5030 == the PRE-migration Lance build's count exactly (mast-state/index.json), and 0 parse_errors/write_errors — confirms the chunk_id-collision defect (store-spike.json defects.chunk_id_collision, real case: probe-lab/lab3.ts) is fixed; the spike's sqlite arm had chunk_count 5022 + 1 parse_error from that same defect, pre-fix."
+      },
+      {
+        "label": "directus (copy at mast-bench/directus, not indexed in place)",
+        "files": 2085,
+        "chunk_count": 7198,
+        "parse_errors": 0,
+        "write_errors": 0,
+        "duration_ms": 10732,
+        "wall_s": 11,
+        "state_dir_bytes": 34216801,
+        "state_dir_human": "33M",
+        "spike_sqlite_duration_ms": 8791,
+        "spike_sqlite_chunk_count": 7174,
+        "spike_lance_duration_ms": 640252,
+        "spike_lance_state_dir_human": "409M",
+        "note": "chunk_count 7198 vs spike's lance-arm 7214 / sqlite-arm 7174 — plausible minor corpus drift in the directus copy between spike capture and this run (0 parse_errors here rules out a chunk_id-collision recurrence); not investigated further, out of scope for M1."
+      }
+    ],
+    "verdict": {
+      "wall_ceiling_82s": "NOT FIRED on all three corpora (max 11s, well under)",
+      "duration_vs_spike_sqlite_arm": "within +8%..+22% of the spike's own sqlite-arm numbers on all three corpora — consistent with system load noise, not a regression. All three remain 60-70x faster than the pre-migration Lance arm.",
+      "state_bytes_vs_lance_baseline": "nest: 194-233MB (Lance, per IMPLEMENTATION_PLAN.md Stage 2 / mast-state) -> 17MB (13x-14x smaller); directus: 409MB -> 33MB (12x smaller) — matches store-spike.json's ~17MB nest prediction almost exactly."
+    }
+  },
+  "part_b_read_set_diff": {
+    "_note": "Single-parse-pass dual-write comparison (see _readme) over the CURRENT nest snapshot (1,338 files, 0 parse errors) — corpus-drift-free by construction. mast_exports/mast_callers compared via their actual chunk-store-dependent primitives (getChunksByFilePath / collectPotentialMatchCandidates); their store-INDEPENDENT fields (extractFileSignatures output, FTS ranking) are already identical by construction since both arms share one graph.db.",
+    "full_chunk_set": { "lance_rows": 5030, "sqlite_rows": 5030, "result": "IDENTICAL" },
+    "mast_search": { "queries": 20, "identical": 20, "differ": 0 },
+    "mast_exports": { "files": 5, "identical": 5, "differ": 0 },
+    "mast_callers": { "symbols": 5, "identical": 5, "differ": 0 },
+    "verdict": "0 content differences across all 4 comparison groups (5,030 + 20 + 5 + 5 = 5,060 individual comparisons). Per the task brief: the chunk_id collision fix removed the known cause of divergence, so any content diff now would be a NEW defect — none found."
+  },
+  "corpus_drift_note": {
+    "observed": "The live nest/ checkout at mast-bench/nest had uncommitted edits to 14 files (packages/core/injector/{compiler,container,injector,instance-links-host,instance-loader,instance-wrapper,internal-providers-storage,module,module-ref,modules-container,settlement-signal}.ts, packages/core/adapters/http-adapter.ts, packages/core/router/router-proxy.ts, packages/microservices/nest-microservice.ts, packages/websockets/web-sockets-controller.ts), most plausibly artifacts of an earlier E7 concurrency-test session (IMPLEMENTATION_PLAN.md Stage 4/F11: 'N separate mast serve processes... each editing its own file and re-querying it').",
+    "impact": "Caused the originally-planned mast-state (Lance, captured 2026-07-26) vs freshly-built SQLite arm comparison to show 27/30 non-identical results — traced to BM25 score/tie-order drift from the corpus-size delta (1337 vs 1338 files), the exact mechanism store-spike.json's part_b_read_path.score_drift_explanation already documented as benign. NOT a migration defect — reported per instructions ('do not mistake it for a migration defect, and say so if you see it') and NOT papered over: the single-parse-pass dual-write methodology above sidesteps the confound entirely and is the authoritative read-set result.",
+    "walkProject_nondeterminism": "Separately, IMPLEMENTATION_PLAN.md Stage 4/D1 documents ~+-4/3,940 edge nondeterminism from walkProject's unsorted output (fast-glob readdir order) — out of scope for M1 (D1 explicitly not done here), not observed to materially affect this diff since the dual-write script uses one walk for both arms."
+  }
+}

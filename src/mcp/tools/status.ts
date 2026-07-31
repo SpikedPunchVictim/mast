@@ -13,7 +13,7 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
     async (_args) => {
       const meta = loadIndexMeta(ctx.config.resolved_state_dir);
       const stale_files = await countStaleFiles(ctx.db, ctx.config.resolved_project_root);
-      const pending_embeddings = await countPendingEmbeddings(ctx.lance);
+      const pending_embeddings = await countPendingEmbeddings(ctx.chunkStore, ctx.lance);
       const result: StatusResult = {
         state_dir:      ctx.config.resolved_state_dir,
         last_indexed:   meta?.last_indexed ?? null,
@@ -22,6 +22,7 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
         stale_files,
         pending_embeddings,
         parse_errors:   meta?.parse_errors ?? 0,
+        write_errors:   meta?.write_errors ?? 0,
         index_fresh:    meta !== null && stale_files === 0,
         freshness_cause: freshnessCause(stale_files, pending_embeddings),
         model:          ctx.config.embedding_model,

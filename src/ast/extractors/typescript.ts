@@ -377,6 +377,20 @@ function emitChunksForNode(
     }
 
     default: {
+      // Skip zero-content nodes. `declare module 'x';` parses as an
+      // `ambient_declaration` (the real content) PLUS a sibling
+      // `empty_statement` for the trailing `;` — both fall into this default
+      // branch, and `expandContent` then makes the `;` chunk byte-identical
+      // to the real declaration's, colliding on chunk_id (GITNEXUS_COMPARISON.md
+      // §15.3; measured: directus/app/src/shims.d.ts, 40 chunks/24 unique ids).
+      // Filtering here kills the collision at its source — a disambiguator
+      // alone would instead legitimize junk `;`-only chunks. The broader
+      // whitespace-only check catches the same failure mode for any other
+      // node type tree-sitter might emit with no real source text.
+      if (t === 'empty_statement' || src.slice(node.startIndex, node.endIndex).trim() === '') {
+        break;
+      }
+
       // Everything else at top level → block (skip if we have no meaningful content)
       const name = getDeclName(node);
       pushChunks(chunks, {

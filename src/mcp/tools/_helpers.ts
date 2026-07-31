@@ -1,7 +1,6 @@
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db } from '../../graph/db.js';
-import type { LanceStore } from '../../store/lance.js';
 import type { ResolvedConfig } from '../../store/config.js';
 import { checkAndRefreshIfStale, type StalenessCheckResult } from '../staleness.js';
 
@@ -37,7 +36,6 @@ export { globToRegex } from '../../indexer/walker.js';
  */
 export async function jitRefreshFile(
   db: Db,
-  lance: LanceStore,
   config: ResolvedConfig,
   filePath: string,
 ): Promise<StalenessCheckResult> {
@@ -47,7 +45,7 @@ export async function jitRefreshFile(
     .where('path', '=', filePath)
     .executeTakeFirst();
   if (row === undefined) return { busy: false, refreshed: false };
-  return checkAndRefreshIfStale(db, lance, config, filePath, row.mtime);
+  return checkAndRefreshIfStale(db, config, filePath, row.mtime);
 }
 
 /**

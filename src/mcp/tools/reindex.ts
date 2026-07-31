@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { ReindexResult } from '../../ast/types.js';
-import { runIndex } from '../../indexer/index.js';
+import { runIndex, type IndexResult } from '../../indexer/index.js';
 
 export function registerReindexTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -20,15 +20,27 @@ export function registerReindexTool(server: McpServer, ctx: AppContext): void {
       // nothing is pending.
       await ctx.embedPending();
 
-      const reindexResult: ReindexResult = {
-        files_indexed:   result.filesIndexed,
-        files_skipped:   result.filesSkipped,
-        chunks_added:    result.chunksAdded,
-        chunks_removed:  result.chunksRemoved,
-        parse_errors:    result.parseErrors,
-        duration_ms:     result.durationMs,
-      };
+      const reindexResult = toReindexResult(result);
       return { content: [{ type: 'text' as const, text: JSON.stringify(reindexResult) }] };
     },
   );
+}
+
+/**
+ * Map the indexer's internal `IndexResult` to the wire `ReindexResult` DTO.
+ * Exported so the mapping's VALUES — not just the presence of `write_errors`
+ * on the type — are unit-tested directly (§14.6: shape-only assertions have
+ * hidden exactly this class of bug before), without needing to drive a real
+ * chunk-store failure through the MCP transport.
+ */
+export function toReindexResult(result: IndexResult): ReindexResult {
+  return {
+    files_indexed:   result.filesIndexed,
+    files_skipped:   result.filesSkipped,
+    chunks_added:    result.chunksAdded,
+    chunks_removed:  result.chunksRemoved,
+    parse_errors:    result.parseErrors,
+    write_errors:    result.writeErrors,
+    duration_ms:     result.durationMs,
+  };
 }

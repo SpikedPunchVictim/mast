@@ -45,8 +45,14 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
       const start = Date.now();
       const filePath = args.file_path ?? null;
 
+      // §9.0 TOCTOU policy. When `file_path` narrows the query, every result
+      // necessarily comes from that one file, so a single busy check up front
+      // covers all of them (`topLevelBusy` below). When omitted, results can
+      // span many files and each gets its own JIT call inside the loop.
+      let topLevelBusy = false;
       if (filePath != null) {
-        await jitRefreshFile(ctx.db, ctx.lance, ctx.config, filePath);
+        const r = await jitRefreshFile(ctx.db, ctx.config, filePath);
+        topLevelBusy = r.busy;
       }
 
       const symbols = await querySymbolByName(ctx.db, args.symbol, filePath ?? undefined);
@@ -64,8 +70,13 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
 
       const results: SignatureResult[] = [];
       for (const sym of symbols) {
+        // Per-result busy flag: when file_path is omitted, each symbol's own
+        // file is JIT-refreshed independently, so its busy status must not
+        // leak onto results from other (unaffected) files.
+        let resultBusy = topLevelBusy;
         if (filePath == null) {
-          await jitRefreshFile(ctx.db, ctx.lance, ctx.config, sym.file_path);
+          const r = await jitRefreshFile(ctx.db, ctx.config, sym.file_path);
+          resultBusy = r.busy;
         }
 
         const sigs = sigsFor(sym.file_path);
@@ -92,6 +103,8 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
           params,
           return_type: returnType,
           type_context: typeContext,
+          // §9.0 TOCTOU policy: omitted when false, never present-and-false.
+          ...(resultBusy ? { file_busy_returning_stale_cache: true as const } : {}),
         });
       }
 

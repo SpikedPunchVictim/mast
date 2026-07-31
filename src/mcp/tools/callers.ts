@@ -26,8 +26,13 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       const start = Date.now();
       const filePath = args.file_path ?? null;
 
+      // §9.0 TOCTOU policy. This JITs the file that DECLARES the symbol (not
+      // each caller's file — see CallersResponse.file_busy_returning_stale_cache
+      // for why that puts the flag at the envelope, not per-VerifiedCaller).
+      let fileBusy = false;
       if (filePath != null) {
-        await jitRefreshFile(ctx.db, ctx.lance, ctx.config, filePath);
+        const r = await jitRefreshFile(ctx.db, ctx.config, filePath);
+        fileBusy = r.busy;
       }
 
       const symbols = await querySymbolByName(ctx.db, args.symbol, filePath ?? undefined);
@@ -37,6 +42,8 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
         const response: CallersResponse = {
           verified_callers: [],
           potential_matches: [],
+          // §9.0 TOCTOU policy: omitted when false, never present-and-false.
+          ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
           summary: {
             verified_count: 0,
             potential_count: 0,
@@ -70,7 +77,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       let checkerClassifiedNonCallSite = 0;
       let checkerClassifiedDifferentDeclaration = 0;
       if (args.include_potential !== false) {
-        const potentialResult = await collectPotentialMatches(ctx.db, ctx.lance, target.id, args.symbol, verified_callers);
+        const potentialResult = await collectPotentialMatches(ctx.db, ctx.chunkStore, target.id, args.symbol, verified_callers);
         potential_matches = potentialResult.matches;
         checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
         checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;
@@ -90,6 +97,8 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       const response: CallersResponse = {
         verified_callers,
         potential_matches,
+        // §9.0 TOCTOU policy: omitted when false, never present-and-false.
+        ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
         summary: {
           verified_count: verified_callers.length,
           potential_count: potential_matches.length,

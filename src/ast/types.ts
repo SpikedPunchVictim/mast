@@ -167,6 +167,7 @@ export interface IndexMeta {
   chunk_count: number;
   model: string;
   parse_errors?: number;         // files skipped in the last index run due to parse failures
+  write_errors?: number;         // files skipped in the last index run due to chunk-store write failures — never conflated with parse_errors (GITNEXUS_COMPARISON.md §15.3 item 3)
   seed_commit?: string;          // git rev baked into Docker seed layer
 }
 
@@ -293,6 +294,14 @@ export interface ExportEntry {
 export interface ExportsResponse {
   readonly file_path: string;
   readonly exports: readonly ExportEntry[];
+  /**
+   * §9.0 TOCTOU policy. `mast_exports` describes exactly one file and JITs it
+   * with a single `checkAndRefreshIfStale` call, so staleness is a property
+   * of the whole response, not of any one `ExportEntry` — set here rather
+   * than per-entry. Present (`true`) only when the file was stale and the
+   * JIT re-parse could not acquire `structure.lock`; omitted otherwise.
+   */
+  readonly file_busy_returning_stale_cache?: true;
   readonly _stats: ToolStats;
 }
 
@@ -376,6 +385,18 @@ export interface PotentialMatch {
 export interface CallersResponse {
   readonly verified_callers: readonly VerifiedCaller[];
   readonly potential_matches: readonly PotentialMatch[];
+  /**
+   * §9.0 TOCTOU policy. `mast_callers` JITs only the FILE THAT DECLARES the
+   * queried symbol (when `file_path` disambiguates it) — not the files each
+   * caller lives in. Staleness there means the target-symbol resolution
+   * itself may be stale, which taints the whole response (which edges were
+   * even considered), not one caller's line number. That is a different
+   * file than `VerifiedCaller.file_path`, so `VerifiedCaller`'s own
+   * (currently unused) per-entry flag would misleadingly imply the CALLER's
+   * file is stale — set here at the envelope instead. Present (`true`) only
+   * when that JIT re-parse could not acquire `structure.lock`.
+   */
+  readonly file_busy_returning_stale_cache?: true;
   readonly summary: {
     readonly verified_count: number;
     readonly potential_count: number;
@@ -431,6 +452,8 @@ export interface RenameImpactResponse {
   readonly verified_callers: readonly VerifiedCaller[];
   readonly potential_matches: readonly PotentialMatch[];
   readonly barrel_exports: readonly BarrelExportSite[];
+  /** See {@link CallersResponse.file_busy_returning_stale_cache} — same envelope-vs-per-entry reasoning; `mast_rename_impact` shares `mast_callers`' JIT policy. */
+  readonly file_busy_returning_stale_cache?: true;
   readonly summary: {
     readonly declaration_count: number;
     readonly verified_count: number;
@@ -462,6 +485,8 @@ export interface DependencyEntry {
 export interface DependenciesResponse {
   readonly file_path: string;
   readonly imports: readonly DependencyEntry[];
+  /** See {@link ExportsResponse.file_busy_returning_stale_cache} — same single-file envelope reasoning. */
+  readonly file_busy_returning_stale_cache?: true;
   readonly _stats: ToolStats;
 }
 
@@ -495,6 +520,7 @@ export interface ReindexResult {
   readonly chunks_added: number;
   readonly chunks_removed: number;
   readonly parse_errors: number;
+  readonly write_errors: number;
   readonly duration_ms: number;
 }
 
@@ -517,6 +543,7 @@ export interface StatusResult {
   /** Chunks whose current content has no stored vector (§6.2 freshness rule). */
   readonly pending_embeddings: number;
   readonly parse_errors: number;
+  readonly write_errors: number;
   /** Phase 1 freshness only — an embedding backlog does not flip this. */
   readonly index_fresh: boolean;
   readonly freshness_cause: FreshnessCause;

@@ -17,7 +17,7 @@ export function registerDependenciesTool(server: McpServer, ctx: AppContext): vo
     async (args) => {
       const start = Date.now();
 
-      await jitRefreshFile(ctx.db, ctx.lance, ctx.config, args.file_path);
+      const { busy } = await jitRefreshFile(ctx.db, ctx.config, args.file_path);
 
       const imports = await queryDependencies(ctx.db, args.file_path);
 
@@ -29,6 +29,8 @@ export function registerDependenciesTool(server: McpServer, ctx: AppContext): vo
       const response: DependenciesResponse = {
         file_path: args.file_path,
         imports,
+        // §9.0 TOCTOU policy: omitted when false, never present-and-false.
+        ...(busy ? { file_busy_returning_stale_cache: true as const } : {}),
         _stats: buildToolStats('mast_dependencies', tokens, tokensFullFileBound, [args.file_path], durationMs),
       };
       void recordToolCall(ctx.db, {

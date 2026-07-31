@@ -1,0 +1,154 @@
+{
+  "_readme": [
+    "F1 acceptance capture — structure.lock scope narrowed whole-run -> per-batch",
+    "(src/indexer/index.ts). Compares directly against eval/baseline-locks.json,",
+    "which was captured BEFORE this fix and is the number this file must beat.",
+    "MAST_SPEC.md:822-826 asserts 'lock holding is per-file-parse (10-50ms), not",
+    "per-tool-call' — this file records how close F1 actually gets to that claim,",
+    "including where it still falls short (see summary.residual_limitation).",
+    "",
+    "Source of the raw events: <stateDir>/lock-metrics.jsonl (src/store/lockMetrics.ts),",
+    "same instrumentation baseline-locks.json used. `raw_events` below is a small",
+    "representative sample (first/last of run-1's 340 events, all of run-2/run-3's",
+    "events) — the full 403-line file is preserved at",
+    "/Users/spikedpunchvictim/temp/mast-bench/f1-state/lock-metrics.jsonl for anyone",
+    "who wants the complete run.",
+    "",
+    "To regenerate (same recipe as baseline-locks.json, run against the F1-fixed build):",
+    "  1. pnpm -F mast build",
+    "  2. Fresh state dir: mkdir <state> && mast init <corpus> --state-dir <state> --no-index",
+    "  3. Whole-run capture: mast index <corpus> --state-dir <state> --phase1-only",
+    "     (writes many 'index-run' acquired/released pairs to <state>/lock-metrics.jsonl",
+    "     instead of one — that IS the fix, see summary.structure_acquisitions_per_run)",
+    "  4. Full-reindex JIT contention: touch a corpus file, start a second",
+    "     `mast index <corpus> --state-dir <state> --phase1-only` (no --incremental) in",
+    "     the background, then probe staleness for that file (see f1-jit-probe.mjs in",
+    "     /Users/spikedpunchvictim/temp/mast-bench) while it runs.",
+    "  5. Realistic incremental JIT success: touch a handful of files, start",
+    "     `mast index <corpus> --state-dir <state> --incremental --phase1-only` in the",
+    "     background, probe staleness for one of the touched files while it runs.",
+    "  6. Copy the relevant lines of <state>/lock-metrics.jsonl into `raw_events` and",
+    "     recompute `summary`."
+  ],
+  "captured_at": "2026-07-28T00:01:00Z",
+  "mast_version": "0.1.0",
+  "corpus": {
+    "path": "/Users/spikedpunchvictim/temp/mast-bench/nest",
+    "description": "NestJS framework source, same disposable benchmark copy baseline-locks.json used",
+    "files_indexed": 1337,
+    "chunks_added": 5030
+  },
+  "state_dir": "/Users/spikedpunchvictim/temp/mast-bench/f1-state (fresh, sibling of nest — not mast-state/baseline-state)",
+  "runs": [
+    {
+      "label": "run-1: cold full index (mast init --no-index, then mast index --phase1-only), F1-fixed build",
+      "command": "mast index nest --state-dir f1-state --phase1-only",
+      "cli_reported_duration_ms": 259035,
+      "baseline_comparison_ms": 280784,
+      "note": "Total wall time is essentially unchanged (~8% faster, within run-to-run noise) — per-batch lock acquire/release churn did not materially slow the run, confirming the fix trades lock GRANULARITY, not throughput."
+    },
+    {
+      "label": "run-2: second full (non-incremental) index against the already-populated corpus, to create a long contention window for a full-reindex JIT probe. Killed (SIGTERM) once probe results were captured — not needed to run to completion, same precedent as baseline-locks.json's run-2.",
+      "command": "mast index nest --state-dir f1-state --phase1-only",
+      "note": "Immediately preceded by appending a comment line to packages/core/injector/container.ts so its mtime/content diverged from the indexed record. IMPORTANT, UNEXPECTED FINDING: because this run re-processes an ALREADY-full 5030-chunk index end to end (not growing from empty like run-1), its per-batch holds are uniformly 4.7-11.6s, not just 'the last few batches' as in run-1 — see summary.residual_limitation."
+    },
+    {
+      "label": "run-3: small incremental index (6 files touched) — the realistic production shape (mcp/server.ts:162 starts up with incremental:true), used to capture a clean JIT SUCCESS sample.",
+      "command": "mast index nest --state-dir f1-state --incremental --phase1-only",
+      "cli_reported_duration_ms": 2481,
+      "note": "Reported 'files: 1 indexed, 1337 skipped' — 5 of the 6 touched files were already correctly stored (run-2 had reached them, under its own per-batch lock, before being killed) and were caught by the isFileUnchanged stability skip (§7.1); only the genuinely-still-different file was rewritten. No data was lost or corrupted by killing run-2 mid-flight."
+    },
+    {
+      "label": "jit-probe-A (FAILURE, full-reindex contention): checkAndRefreshIfStale during run-2's hold window",
+      "command": "node f1-jit-probe.mjs packages/core/injector/container.ts  (direct call, mirrors mcp/tools/_helpers.ts's jitRefreshFile)",
+      "tool_response": "{\"refreshed\":false,\"busy\":true}",
+      "elapsed_ms": 306,
+      "note": "Landed inside one of run-2's uniformly-multi-second batch holds (see raw_events, two 'failed' jit-staleness events at waitMs:306, structurally identical shape to baseline's failure). This is the honest residual limitation — see summary.residual_limitation."
+    },
+    {
+      "label": "jit-probe-B (SUCCESS, realistic incremental contention): checkAndRefreshIfStale during run-3's hold window",
+      "command": "node f1-jit-probe2.mjs packages/websockets/web-sockets-controller.ts",
+      "tool_response": "{\"refreshed\":true,\"busy\":false}",
+      "elapsed_ms": 285,
+      "note": "This is the baseline's exact failure scenario (jit-staleness contending with an in-flight index run) now succeeding — waitMs:1 to acquire, holdMs:284 for the JIT's own single-file re-parse+write, well inside its 3x100ms retry budget."
+    }
+  ],
+  "raw_events": [
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785205681819 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 2, "timestamp": 1785205681821 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 0, "timestamp": 1785205681845 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 244, "timestamp": 1785205682090 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 0, "timestamp": 1785205682127 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 227, "timestamp": 1785205682354 },
+    "... (run-1: 340 acquired/released 'index-run' events total, 170 batches; see summary for percentiles) ...",
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 0, "timestamp": 1785205940712 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 4, "timestamp": 1785205940716 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 0, "timestamp": 1785205940717 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 0, "timestamp": 1785205940717 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 0, "timestamp": 1785205940717 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 21, "timestamp": 1785205940738 },
+    "... (run-2 starts: uniformly long holds against the already-full index) ...",
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 11573, "timestamp": 1785221969352 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 9, "timestamp": 1785221969634 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 8294, "timestamp": 1785221977928 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 0, "timestamp": 1785221977935 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 7953, "timestamp": 1785221985888 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 3, "timestamp": 1785221985958 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 6976, "timestamp": 1785221992934 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 2, "timestamp": 1785221992972 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 5306, "timestamp": 1785221998278 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785221998300 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 7301, "timestamp": 1785222005601 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785222005610 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 9088, "timestamp": 1785222014698 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 48, "timestamp": 1785222014839 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 11530, "timestamp": 1785222026370 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785222026395 },
+    { "kind": "failed", "type": "structure", "caller": "jit-staleness", "waitMs": 306, "timestamp": 1785222030221 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 5585, "timestamp": 1785222031980 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 3, "timestamp": 1785222032070 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 7989, "timestamp": 1785222040059 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 2, "timestamp": 1785222040089 },
+    { "kind": "failed", "type": "structure", "caller": "jit-staleness", "waitMs": 306, "timestamp": 1785222046258 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 8098, "timestamp": 1785222048187 },
+    "... (run-2 killed here, several more long holds) ...",
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 2, "timestamp": 1785222121045 },
+    "... (run-3 starts, ~46s later)",
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 75, "timestamp": 1785222167969 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 5, "timestamp": 1785222167975 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785222169589 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 301, "timestamp": 1785222169890 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785222169891 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 4, "timestamp": 1785222169895 },
+    { "kind": "acquired", "type": "structure", "caller": "index-run", "waitMs": 1, "timestamp": 1785222169896 },
+    { "kind": "released", "type": "structure", "caller": "index-run", "holdMs": 9, "timestamp": 1785222169905 },
+    { "kind": "acquired", "type": "structure", "caller": "jit-staleness", "waitMs": 1, "timestamp": 1785222179466 },
+    { "kind": "released", "type": "structure", "caller": "jit-staleness", "holdMs": 284, "timestamp": 1785222179750 }
+  ],
+  "summary": {
+    "structure_hold_ms": {
+      "before_max": 280782,
+      "before_n": 1,
+      "after_max": 11078,
+      "after_p50": 28,
+      "after_p90": 4408,
+      "after_p95": 5669,
+      "after_n": 170,
+      "note": "Headline: max single hold drops from 280,782ms to 11,078ms — a 25x reduction. Median hold (28ms) matches MAST_SPEC.md:824's 10-50ms per-file-parse claim closely, but the tail does not: as the FTS/graph index grows within a run, per-batch populateFile cost climbs superlinearly (GITNEXUS_COMPARISON.md §15.2, ~70% of pipeline time, out of scope for F1 — Stage 2/SQLite migration is the documented fix for the cost itself). F1's contribution is bounding the BLAST RADIUS of any one hold to a single 16-file batch instead of the whole 1,335-file run, not eliminating per-batch cost growth."
+    },
+    "structure_acquisitions_per_run": {
+      "value": 170,
+      "expected_naive": 84,
+      "note": "170, not the ~84 the task anticipated from LANCE_BATCH alone (1337/16=84 batches) — pass 1 (chunk-store+graph write) and pass 2 (edge insertion) are BOTH batched at LANCE_BATCH size and BOTH need their own lock (insertEdges/insertReExportFiles also mutate the graph db), giving ~84+84=168, plus 1 deleted-file-cleanup acquisition and 1 final manifest/index.json acquisition = 170. Documented in the runIndex WHY-comment (src/indexer/index.ts) and in the PR report — flagging the discrepancy from the task's estimate rather than silently reporting a number that doesn't match its own raw events."
+    },
+    "jit_staleness_full_reindex_contention": {
+      "outcome": "failed (2 samples, both waitMs:306, structurally identical to the baseline failure)",
+      "note": "residual_limitation (see below) — a full (non-incremental) reindex of an ALREADY-populated corpus has uniformly multi-second batch holds, which can still exceed the JIT path's 3x100ms retry budget for any single probe. This is a real, honest limitation of F1 alone; it directly matches IMPLEMENTATION_PLAN.md Stage 1's own note: 'F1 is still required — that's mitigation, not a fix' (Stage 2 shrinks it further)."
+    },
+    "jit_staleness_incremental_contention": {
+      "outcome": "acquired + refreshed:true (1 sample) — waitMs:1, holdMs:284",
+      "note": "This is the realistic production shape: mcp/server.ts:162 starts `mast serve` with incremental:true, so an in-flight background reindex is normally small (a handful of changed files, few/short batches). Here JIT succeeds cleanly, matching the automated test in src/indexer/__tests__/lock-scope.test.ts."
+    },
+    "residual_limitation": "F1 converts the worst case from 'JIT starved for the ENTIRE run duration' (up to 280s, unconditionally) to 'JIT starved for at most one batch's write phase' — but does not by itself guarantee that a batch's write phase always fits the JIT retry budget. For a full/non-incremental reindex of a corpus whose index is already large (chunks.lance / FTS5 tables already near full size for the whole run, not growing from empty), per-batch populateFile cost is high enough (~5-11s, GITNEXUS_COMPARISON.md §15.2) that a JIT probe landing inside that specific batch can still fail. This is the documented, in-scope-for-Stage-2 (not F1) part of the problem; IMPLEMENTATION_PLAN.md already anticipates it ('Stage 2 shrinks the stale window as a side effect... F1 is still required — that's mitigation, not a fix')."
+  }
+}

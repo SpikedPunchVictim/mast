@@ -355,6 +355,241 @@ describe('populateFile — graph population', () => {
 });
 
 // ---------------------------------------------------------------------------
+// M1 (eval/GITNEXUS_COMPARISON.md §15.1) — chunks join populateFile's own
+// transaction. These tests are the direct evidence for the migration's
+// central claim: a chunk-store write failure and a graph write failure now
+// share ONE commit/rollback boundary, closing the seam the pre-M1 spike left
+// open (a chunk-store write to a separate store/file could succeed while the
+// graph write then failed, or vice versa, leaving the two out of sync).
+// ---------------------------------------------------------------------------
+
+describe('populateFile — chunks join the graph write transaction (M1)', () => {
+  let tmpDir: string;
+  let fixtureFile: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-chunk-atomicity-'));
+    fixtureFile = join(tmpDir, 'reader.ts');
+    writeFileSync(fixtureFile, FIXTURE_SRC);
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('writes chunk rows to the shared chunks table in the default (no-override) path', async () => {
+    const db = openDatabase(tmpDir);
+    try {
+      const result = extractFile(fixtureFile, tmpDir, 0, 100);
+      await populateFile(db, {
+        filePath: 'reader.ts',
+        language: 'typescript',
+        mtime: 1_000,
+        chunks: result.chunks,
+        imports: result.imports,
+        symbols: result.symbols,
+        identifierRows: result.identifierRows,
+      });
+
+      const rows = await db
+        .selectFrom('chunks')
+        .select(['chunk_id', 'file_path', 'is_exported'])
+        .where('file_path', '=', 'reader.ts')
+        .execute();
+
+      expect(rows).toHaveLength(result.chunks.length);
+      expect(rows.map((r) => r.chunk_id).sort()).toEqual([...result.chunks.map((c) => c.chunk_id)].sort());
+      // is_exported is stored as SQLite's 0|1 (BoolCol convention) at the raw
+      // row level — the boolean conversion happens at the store boundary
+      // (SqliteChunkStore), asserted separately in tools.test.ts / this file's
+      // FTS-level checks. Here we assert the underlying value actually landed.
+      const readTextChunk = result.chunks.find((c) => c.symbol_name === 'readText');
+      const readTextRow = rows.find((r) => r.chunk_id === readTextChunk?.chunk_id);
+      expect(readTextRow?.is_exported).toBe(1);
+    } finally {
+      await db.destroy();
+    }
+  });
+
+  it('a chunk-write failure rolls back the WHOLE transaction — no orphaned symbols/files/FTS rows', async () => {
+    const db = openDatabase(tmpDir);
+    try {
+      const result = extractFile(fixtureFile, tmpDir, 0, 100);
+      const failingChunkWriter = async (): Promise<number> => {
+        throw new Error('simulated chunk write failure');
+      };
+
+      await expect(
+        populateFile(
+          db,
+          {
+            filePath: 'atomic-fail.ts',
+            language: 'typescript',
+            mtime: 1_000,
+            chunks: result.chunks,
+            imports: result.imports,
+            symbols: result.symbols,
+            identifierRows: result.identifierRows,
+          },
+          failingChunkWriter,
+        ),
+      ).rejects.toThrow('simulated chunk write failure');
+
+      // The seam this migration closes: before M1, a chunk-store write and the
+      // graph write were two separate operations, so a failure between them
+      // could leave one store populated and the other not. Now they are one
+      // transaction — NOTHING for this file should exist anywhere.
+      const file = await db.selectFrom('files').select('id').where('path', '=', 'atomic-fail.ts').executeTakeFirst();
+      expect(file).toBeUndefined();
+
+      const symbols = await db
+        .selectFrom('symbols as s')
+        .innerJoin('files as f', 'f.id', 's.file_id')
+        .select('s.name')
+        .where('f.path', '=', 'atomic-fail.ts')
+        .execute();
+      expect(symbols).toHaveLength(0);
+
+      const chunkRows = await db.selectFrom('chunks').select('chunk_id').where('file_path', '=', 'atomic-fail.ts').execute();
+      expect(chunkRows).toHaveLength(0);
+
+      const ftsRows = await db.selectFrom('chunk_fts').select('chunk_id').where('file_path', '=', 'atomic-fail.ts').execute();
+      expect(ftsRows).toHaveLength(0);
+    } finally {
+      await db.destroy();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Monotonic write-guard (F12, IMPLEMENTATION_PLAN.md / GITNEXUS_COMPARISON.md
+// Stage 1) — `populateFile` must refuse to replace a row whose stored mtime
+// already exceeds the incoming stamp. Two writers can legitimately race to
+// write the same file (a reindex batch and a concurrent JIT refresh,
+// mcp/staleness.ts, both call `populateFile`), and `structure.lock` only
+// serializes the two writes — it does not order them by freshness. Without
+// this guard, whichever writer reaches the lock LAST wins even if it parsed
+// OLDER content, silently regressing the row exactly the way F12's
+// stamp-ordering bug did.
+// ---------------------------------------------------------------------------
+
+describe('populateFile — monotonic write-guard (F12)', () => {
+  let tmpDir: string;
+  let fixtureFile: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-write-guard-'));
+    fixtureFile = join(tmpDir, 'guarded.ts');
+    writeFileSync(fixtureFile, FIXTURE_SRC);
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('an older-stamped write does not clobber a newer-stamped row', async () => {
+    const db = openDatabase(tmpDir);
+    try {
+      // Newer write lands first — e.g. a JIT refresh that raced ahead of a
+      // slower reindex batch.
+      const newer = extractFile(fixtureFile, tmpDir, 0, 100);
+      const newerResult = await populateFile(db, {
+        filePath: 'guarded.ts',
+        language: 'typescript',
+        mtime: 2_000,
+        chunks: newer.chunks,
+        imports: newer.imports,
+        symbols: newer.symbols,
+        identifierRows: newer.identifierRows,
+      });
+      expect(newerResult.written).toBe(true);
+
+      // Older-stamped write arrives second, carrying DIFFERENT (stale)
+      // content — the exact shape of the reindex-vs-JIT race the guard
+      // exists to close.
+      writeFileSync(fixtureFile, FIXTURE_V2_SRC);
+      const older = extractFile(fixtureFile, tmpDir, 0, 100);
+      const olderResult = await populateFile(db, {
+        filePath: 'guarded.ts',
+        language: 'typescript',
+        mtime: 1_000,
+        chunks: older.chunks,
+        imports: older.imports,
+        symbols: older.symbols,
+        identifierRows: older.identifierRows,
+      });
+
+      // The guard rejects it — never silently indistinguishable from a
+      // successful write (§ the writeErrors precedent).
+      expect(olderResult.written).toBe(false);
+
+      // The row is untouched: mtime and content still reflect the NEWER
+      // write, not the rejected older one.
+      const fileRow = await db
+        .selectFrom('files').select('mtime').where('path', '=', 'guarded.ts').executeTakeFirstOrThrow();
+      expect(fileRow.mtime).toBe(2_000);
+
+      const symbolNames = await db
+        .selectFrom('symbols as s')
+        .innerJoin('files as f', 'f.id', 's.file_id')
+        .select('s.name')
+        .where('f.path', '=', 'guarded.ts')
+        .execute();
+      const names = new Set(symbolNames.map((r) => r.name));
+      // FileReader only exists in FIXTURE_SRC (the newer write that won);
+      // FIXTURE_V2_SRC's writeText must NOT have landed.
+      expect(names.has('FileReader')).toBe(true);
+      expect(names.has('writeText')).toBe(false);
+    } finally {
+      await db.destroy();
+    }
+  });
+
+  it('a write with the same stamp as the stored row is still applied (not treated as a regression)', async () => {
+    const db = openDatabase(tmpDir);
+    try {
+      // A file of its OWN, distinct from `fixtureFile` — `chunk_id` is
+      // derived from the extracted `chunk.file_path` (ast/extract.ts, the
+      // real relative path on disk), not from the logical `filePath` string
+      // passed to `populateFile`. Reusing `fixtureFile` under a different
+      // logical name here would collide with the previous test's chunk rows.
+      const sameStampFile = join(tmpDir, 'same-stamp.ts');
+      writeFileSync(sameStampFile, FIXTURE_SRC);
+      const first = extractFile(sameStampFile, tmpDir, 0, 100);
+      await populateFile(db, {
+        filePath: 'same-stamp.ts',
+        language: 'typescript',
+        mtime: 5_000,
+        chunks: first.chunks,
+        imports: first.imports,
+        symbols: first.symbols,
+        identifierRows: first.identifierRows,
+      });
+
+      writeFileSync(sameStampFile, FIXTURE_V2_SRC);
+      const second = extractFile(sameStampFile, tmpDir, 0, 100);
+      const secondResult = await populateFile(db, {
+        filePath: 'same-stamp.ts',
+        language: 'typescript',
+        mtime: 5_000,
+        chunks: second.chunks,
+        imports: second.imports,
+        symbols: second.symbols,
+        identifierRows: second.identifierRows,
+      });
+
+      // Guard rejects only a STRICTLY older stamp ("exceeds", per the plan) —
+      // an equal stamp is not a regression, so it still applies. (This is the
+      // mtime-granularity blind spot documented in indexer/index.ts's
+      // WHY-comment: same-tick writes can't be ordered by mtime alone.)
+      expect(secondResult.written).toBe(true);
+    } finally {
+      await db.destroy();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Delete-and-replace (incremental reindex consistency)
 // ---------------------------------------------------------------------------
 

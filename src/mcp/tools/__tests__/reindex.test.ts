@@ -8,7 +8,8 @@ import { runIndex } from '../../../indexer/index.js';
 import { openDatabase, type Db } from '../../../graph/db.js';
 import { LanceStore } from '../../../store/lance.js';
 import type { AppContext } from '../../context.js';
-import { registerReindexTool } from '../reindex.js';
+import { registerReindexTool, toReindexResult } from '../reindex.js';
+import type { IndexResult } from '../../../indexer/index.js';
 
 // Minimal mock MCP server capturing the registered tool handler.
 type Handler = (args: Record<string, unknown>) => Promise<{ content: { text: string }[] }>;
@@ -53,6 +54,7 @@ describe('mast_reindex — Phase 2 wiring (H2)', () => {
     const ctx: AppContext = {
       db,
       lance,
+      chunkStore: lance,
       config,
       getEmbedder: () => null,
       searchMode: () => 'lexical',
@@ -70,5 +72,34 @@ describe('mast_reindex — Phase 2 wiring (H2)', () => {
     expect(result.files_indexed).toBeGreaterThan(0);
     // ...and Phase 2 embedding was triggered (the H2 regression).
     expect(embedPendingCalls).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toReindexResult — pure field mapping (cheapest layer, §5.5)
+//
+// A required field on `ReindexResult` guarantees `write_errors` is PRESENT
+// (tsc rejects a literal missing it), but not that it holds the right VALUE —
+// a copy-paste mistake like `write_errors: result.parseErrors` still
+// compiles. This is exactly the "right shape, wrong value" bug class this
+// whole fix targets (§14.6), so the mapping's values are asserted directly.
+// ---------------------------------------------------------------------------
+
+describe('toReindexResult', () => {
+  it('maps writeErrors to write_errors, distinct from parseErrors', () => {
+    const result: IndexResult = {
+      filesIndexed: 3,
+      filesSkipped: 1,
+      chunksAdded: 5,
+      chunksRemoved: 2,
+      parseErrors: 4,
+      writeErrors: 7,
+      durationMs: 123,
+    };
+
+    const mapped = toReindexResult(result);
+
+    expect(mapped.write_errors).toBe(7);
+    expect(mapped.parse_errors).toBe(4);
   });
 });

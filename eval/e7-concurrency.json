@@ -1,0 +1,225 @@
+{
+  "_readme": [
+    "E7 (IMPLEMENTATION_PLAN.md Stage 4) — pressure-test F1's per-batch structure.lock",
+    "under REALISTIC AGENT CONCURRENCY: multiple separate `mast serve` processes",
+    "sharing one state dir, per MAST_SPEC.md §7.6's proper-lockfile rationale",
+    "(container/shared-volume access, not intra-process threading). Compares against",
+    "eval/f1-lock-scope.json (after_p50/p90/p95/max, 170 acquisitions/run, single",
+    "reader/writer at a time) and eval/baseline-locks.json (pre-F1).",
+    "",
+    "Three PRE-COMMITTED falsification criteria (stated before running any test):",
+    "  X1 — JIT acquire wait time scales worse than linearly with client count",
+    "       (e.g. 4 clients >4x the p95 wait of 1 client).",
+    "  X2 — JIT acquire failures appear with NO reindex in flight.",
+    "  X3 — Any tool-call p95 latency regresses >2x vs the single-client case.",
+    "If any fires: F1's per-batch locking made contention worse and the right",
+    "design is a single-writer queue, not finer-grained advisory locking.",
+    "",
+    "RESULT: all three fired. See verdict below.",
+    "",
+    "Harness (kept OUTSIDE this package, /Users/spikedpunchvictim/temp/mast-bench/,",
+    "per the task's measurement-only scope — nothing here is shipped):",
+    "  e7-client.mjs        one SEPARATE mast-serve PROCESS per simulated agent;",
+    "                        appends a real content line to its assigned target file",
+    "                        before every call (genuine edit, not a utime bump) then",
+    "                        calls mast_signature narrowed to that file. jitRefreshFile",
+    "                        runs regardless of whether the (dummy) symbol resolves, so",
+    "                        the JIT lock path fires even when `results` is empty.",
+    "  e7-run-arm.mjs        orchestrator: launches N e7-client.mjs processes",
+    "                        concurrently (+ a real `mast index --phase1-only` for",
+    "                        Arm B), aggregates client latency with the",
+    "                        `<stateDir>/lock-metrics.jsonl` server-side record for",
+    "                        the same window (offset-tracked so repeated runs don't",
+    "                        double-count).",
+    "  e7-single-process.mjs supplementary probe: N concurrent tool calls PIPELINED",
+    "                        over ONE mast-serve process/stdio-connection, to",
+    "                        separate cross-process lock contention from same-process",
+    "                        serialization (better-sqlite3 is synchronous).",
+    "  e7-recovery-probe.mjs + hold-lock.mjs: stale/crashed-lock recovery probe.",
+    "  e7-analyze.py / e7-analyze2.py / e7-analyze-armB.py: aggregation (percentiles,",
+    "                        busy/non-busy split, index-run hold overlap).",
+    "Full per-call JSON and per-run lock-event slices are preserved at",
+    "/Users/spikedpunchvictim/temp/mast-bench/e7-out/ (not committed — regenerate",
+    "per the recipe below; this file is the distilled record).",
+    "",
+    "To regenerate:",
+    "  1. pnpm -F mast build",
+    "  2. Fresh state dir, sibling of nest (NOT mast-state/baseline-state/f1-state):",
+    "     mast init nest --state-dir <abs>/e7-state --no-index",
+    "     mast index nest --state-dir <abs>/e7-state --phase1-only   (full Phase-1",
+    "     populate, ~260s — required so `files` rows exist for jitRefreshFile to act on)",
+    "  3. Truncate <e7-state>/lock-metrics.jsonl (keep a copy) so subsequent arm runs",
+    "     start clean.",
+    "  4. Arm A (no reindex): for N in 1 2 4 8, several reps:",
+    "     node e7-run-arm.mjs A <N> 40 30 <e7-state> <nest> <outDir> <runLabel>",
+    "  5. Arm B (concurrent full reindex of the ALREADY-populated corpus — the",
+    "     f1-lock-scope.json run-2 shape): for N in 1 2 4 8, several reps:",
+    "     node e7-run-arm.mjs B <N> 60 100 <e7-state> <nest> <outDir> <runLabel> 90000",
+    "  6. python3 e7-analyze.py / e7-analyze2.py / e7-analyze-armB.py <outDir> <prefix> 1,2,4,8 <reps>"
+  ],
+  "captured_at": "2026-07-28T08:15:00Z",
+  "mast_version": "0.1.0",
+  "corpus": {
+    "path": "/Users/spikedpunchvictim/temp/mast-bench/nest",
+    "description": "NestJS framework source, disposable benchmark copy shared with baseline-locks.json/f1-lock-scope.json. Target files (8, cycled across clients) are real corpus files under packages/core/injector/ with real top-level exported classes, so mast_signature's querySymbolByName returns >=1 result and the busy flag has somewhere to attach.",
+    "files_indexed": 1338
+  },
+  "state_dir": "/Users/spikedpunchvictim/temp/mast-bench/e7-state (fresh sibling of nest, not reused from f1-state/mast-state/baseline-state)",
+  "machine_load_note": "12 physical cores, `uptime` load average 2.4/4.3/3.9 (1/5/15m) at start of the run — moderate background load from the normal desktop session, not idle. Not re-measured continuously during the ~40 min of harness execution; flagged per the task brief's explicit contamination warning rather than asserted clean.",
+  "falsification_verdict": {
+    "X1_wait_time_scaling": {
+      "status": "FIRED",
+      "evidence": "Arm A (cleanest test — zero reindex activity, pure reader-vs-reader lock traffic). jit-staleness acquireLock waitMs (successful acquisitions only, from lock-metrics.jsonl): N=1 p95=1ms max=2ms -> N=4 p95=306ms max=328ms. That is a ~306x increase in p95 wait against a 4x increase in client count, decisively exceeding the '>4x' bar as literally stated.",
+      "qualification": "The shape is a CLIFF-then-PLATEAU, not unbounded superlinear growth: N=2 p95=307ms, N=4 p95=306ms, N=8 p95=310ms — once ANY contention exists, wait time saturates almost immediately at ~the 3x100ms JIT retry ceiling and does not keep climbing with N. The retry-budget design converts 'wait time keeps growing' into 'wait time hits a hard ceiling almost immediately, then stays there' — which is why the practical cost of added concurrency shows up in X2 (failure RATE), not in ever-larger wait times. Still: going from an uncontended near-zero baseline to hitting that ceiling at the very first unit of added concurrency (N=2) is itself the finding — one other agent editing the codebase is enough to blow through the whole retry budget."
+    },
+    "X2_jit_failures_no_reindex": {
+      "status": "FIRED",
+      "evidence": "Arm A ran ZERO `mast index`/reindex processes at any point — only N client processes each editing their own target file and calling mast_signature. JIT failure rate nonetheless rose with N: N=1 0/120 (0%), N=2 84/240 (35.0%), N=4 335/480 (69.8%), N=8 850/960 (88.5%). Lock traffic among concurrent READERS ALONE is sufficient to starve most JIT refreshes once N>=2 — this is exactly the scenario X2 was written to catch, and it is the headline result of this investigation.",
+      "why_this_happens": "structure.lock is a single global advisory lock per state dir (MAST_SPEC.md §7.6), not per-file. F1 narrowed its SCOPE (whole-run -> per-batch) but did not change its CARDINALITY — every JIT refresh, regardless of which file it targets, still contends for the exact same lock as every other concurrent JIT refresh. Two agents editing two different files still serialize on one lock, and proper-lockfile has no fairness queue — losers simply retry 3x/100ms and give up."
+    },
+    "X3_tool_call_p95_regression": {
+      "status": "FIRED",
+      "evidence": "Arm A, non-busy (successful-refresh) mast_signature latency — the apples-to-apples population, excluding both the artificially-fast busy short-circuit path and a separate WAL-checkpoint confound present equally at every N (see contamination notes): N=1 p95=314ms max=616ms -> N=8 p95=1152ms max=1499ms. That is a 3.67x p95 regression and a 2.43x max regression, both over the 2x bar.",
+      "caveat_on_naive_pooled_numbers": "A naive ALL-calls-pooled p95 (script e7-analyze.py) misleadingly shows p95 going DOWN as N rises (N=1: 2390ms -> N=8: 808ms). This is an artifact, not a real improvement: (a) at high N, most calls fail fast via the busy path (350-400ms) rather than doing real work, which drags the pooled percentile down; (b) fewer successful JIT writes at high N means the periodic WAL-autocheckpoint stall (see contamination notes) fires less often per client, which also lowers the pooled tail. Splitting by outcome (e7-analyze2.py) removes both artifacts and shows the true, unambiguous regression above."
+    }
+  },
+  "scaling_curve_summary": {
+    "description": "wait-time p95 (ms) vs concurrent client count, jit-staleness caller, successful acquisitions only, Arm A (no reindex)",
+    "N=1": 1,
+    "N=2": 307,
+    "N=4": 306,
+    "N=8": 310,
+    "shape": "cliff at N=2 (0ms -> ~300ms, i.e. the full 3x100ms retry ceiling), then flat/plateau through N=8. NOT a smooth superlinear curve — a step function bounded by the retry budget. The real superlinear cost shows up in FAILURE RATE, not wait time: 0% / 35% / 69.8% / 88.5% for N=1/2/4/8, which IS a clearly superlinear (accelerating) curve in N."
+  },
+  "arm_A_no_reindex": {
+    "description": "N in {1,2,4,8} concurrent mast-serve PROCESSES (cross-process, per §7.6), each editing its own real corpus file (distinct target per client, 8 targets cycled) before every mast_signature call narrowed to that file, with NO reindex running anywhere. 3 repetitions per N, 40 calls/client/rep, 30ms pacing.",
+    "per_N": {
+      "N=1": {
+        "reps": 3, "calls_total": 120,
+        "jit": { "acquired": 120, "failed": 0, "fail_rate_pct": 0.0 },
+        "jit_wait_ms_acquired": { "p50": 0, "p95": 1, "max": 2 },
+        "tool_call_latency_ms_non_busy": { "n": 108, "p50": 240, "p90": 291, "p95": 314, "max": 616 },
+        "wal_checkpoint_outliers_gt_1500ms": { "n": 12, "pct_of_calls": 10.0, "note": "periodic, every ~10 calls, present even with zero concurrency — see contamination notes" }
+      },
+      "N=2": {
+        "reps": 3, "calls_total": 240,
+        "jit": { "acquired": 156, "failed": 84, "fail_rate_pct": 35.0 },
+        "jit_wait_ms_acquired": { "p50": 203, "p95": 307, "max": 330 },
+        "jit_wait_ms_failed": { "p50": 305, "p95": 313, "max": 333 },
+        "tool_call_latency_ms_non_busy": { "n": 141, "p50": 435, "p90": 560, "p95": 611, "max": 910 },
+        "tool_call_latency_ms_busy": { "n": 84, "p50": 360, "p90": 374, "p95": 407, "max": 605 },
+        "wal_checkpoint_outliers_gt_1500ms": { "n": 15, "pct_of_calls": 6.2 },
+        "per_client_fail_rate": { "c0": "26/120", "c1": "58/120" }
+      },
+      "N=4": {
+        "reps": 3, "calls_total": 480,
+        "jit": { "acquired": 145, "failed": 335, "fail_rate_pct": 69.8 },
+        "jit_wait_ms_acquired": { "p50": 3, "p95": 306, "max": 328 },
+        "jit_wait_ms_failed": { "p50": 305, "p95": 312, "max": 347 },
+        "tool_call_latency_ms_non_busy": { "n": 130, "p50": 380, "p90": 618, "p95": 677, "max": 1280 },
+        "tool_call_latency_ms_busy": { "n": 335, "p50": 367, "p90": 410, "p95": 476, "max": 638 },
+        "wal_checkpoint_outliers_gt_1500ms": { "n": 15, "pct_of_calls": 3.1 },
+        "per_client_fail_rate": { "c0": "91/120", "c1": "94/120", "c2": "76/120", "c3": "74/120" }
+      },
+      "N=8": {
+        "reps": 3, "calls_total": 960,
+        "jit": { "acquired": 110, "failed": 850, "fail_rate_pct": 88.5 },
+        "jit_wait_ms_acquired": { "p50": 203, "p95": 310, "max": 323 },
+        "jit_wait_ms_failed": { "p50": 307, "p95": 342, "max": 587 },
+        "tool_call_latency_ms_non_busy": { "n": 99, "p50": 546, "p90": 821, "p95": 1152, "max": 1499 },
+        "tool_call_latency_ms_busy": { "n": 843, "p50": 376, "p90": 479, "p95": 700, "max": 1171 },
+        "wal_checkpoint_outliers_gt_1500ms": { "n": 18, "pct_of_calls": 1.9, "note": "one extreme outlier at 9342ms — see contamination notes, WAL-checkpoint stall compounding with lock contention" },
+        "per_client_fail_rate": { "c0": "98/120 (82%)", "c1": "99/120 (82%)", "c2": "100/120 (83%)", "c3": "108/120 (90%)", "c4": "114/120 (95%)", "c5": "115/120 (96%)", "c6": "110/120 (92%)", "c7": "106/120 (88%)" },
+        "fairness_note": "No single client absorbs a disproportionate share of failures and none sails through unaffected — range is 82-96% (a 14pp spread), i.e. contention degrades ALL readers roughly together rather than starving one victim. proper-lockfile has no explicit fairness queue, but observed behavior here is not pathologically unfair."
+      }
+    }
+  },
+  "arm_B_concurrent_reindex": {
+    "description": "Same N/client design as Arm A, PLUS a real `mast index nest --phase1-only` (full, non-incremental) reindex of the ALREADY-populated corpus running concurrently — the f1-lock-scope.json run-2 shape (uniformly multi-second batch holds, not the incremental startup-reindex shape). 2 repetitions per N, 60 calls/client/rep, 100ms pacing, reindex given a 3s head start.",
+    "per_N": {
+      "N=1": {
+        "reps": 2, "calls_total": 120,
+        "jit": { "acquired": 3, "failed": 117, "fail_rate_pct": 97.5 },
+        "jit_failures_overlapping_live_index_run_hold_pct": 63.2,
+        "tool_call_latency_ms_non_busy": { "n": 3, "p50": 268, "p90": 366, "p95": 379, "max": 391 },
+        "tool_call_latency_ms_busy": { "n": 117, "p50": 364, "p90": 421, "p95": 460, "max": 776 },
+        "index_run_hold_ms_this_window": { "n": 6, "p50": 6854, "p95": 18050, "max": 21494 }
+      },
+      "N=2": {
+        "reps": 2, "calls_total": 240,
+        "jit": { "acquired": 69, "failed": 171, "fail_rate_pct": 71.2 },
+        "jit_failures_overlapping_live_index_run_hold_pct": 59.6,
+        "tool_call_latency_ms_non_busy": { "n": 62, "p50": 336, "p90": 463, "p95": 535, "max": 548 },
+        "tool_call_latency_ms_busy": { "n": 171, "p50": 365, "p90": 389, "p95": 403, "max": 495 },
+        "index_run_hold_ms_this_window": { "n": 4, "p50": 4487, "p95": 19694, "max": 21587 },
+        "per_rep_variance_warning": "fail rate swung from 27.0% (rep1: 51/189 -- most of rep1's window fell between batches) to 100% (rep2: 120/120 -- rep2's window landed almost entirely inside a single 21587ms batch hold). With only 2 reps this is a real, load-bearing illustration of the task brief's warning that a single sample of a contended lock is worthless -- the point estimate (71.2%) averages over two qualitatively different windows, not a stable rate."
+      },
+      "N=4": {
+        "reps": 2, "calls_total": 480,
+        "jit": { "acquired": 61, "failed": 419, "fail_rate_pct": 87.3 },
+        "jit_failures_overlapping_live_index_run_hold_pct": 67.8,
+        "tool_call_latency_ms_non_busy": { "n": 55, "p50": 369, "p90": 542, "p95": 568, "max": 785 },
+        "tool_call_latency_ms_busy": { "n": 419, "p50": 363, "p90": 394, "p95": 443, "max": 638 },
+        "index_run_hold_ms_this_window": { "n": 6, "p50": 8145, "p95": 12942, "max": 13573 }
+      },
+      "N=8": {
+        "reps": 2, "calls_total": 960,
+        "jit": { "acquired": 75, "failed": 885, "fail_rate_pct": 92.2 },
+        "jit_failures_overlapping_live_index_run_hold_pct": 42.4,
+        "tool_call_latency_ms_non_busy": { "n": 68, "p50": 388, "p90": 590, "p95": 618, "max": 974 },
+        "tool_call_latency_ms_busy": { "n": 885, "p50": 362, "p90": 381, "p95": 412, "max": 839 },
+        "index_run_hold_ms_this_window": { "n": 4, "p50": 4430, "p95": 19459, "max": 21330 },
+        "per_client_fail_rate": { "c0": "115/120 (96%)", "c1": "109/120 (91%)", "c2": "113/120 (94%)", "c3": "116/120 (97%)", "c4": "108/120 (90%)", "c5": "105/120 (88%)", "c6": "110/120 (92%)", "c7": "109/120 (91%)" },
+        "fairness_note": "88-97% range, same 'everyone degrades together' pattern as Arm A -- no starved victim, but also no lucky survivor."
+      }
+    },
+    "overlap_methodology_caveat": "jit_failures_overlapping_live_index_run_hold_pct is reconstructed from acquired/released 'index-run' event pairs WITHIN each rep's own lock-metrics.jsonl slice. When the reindex process is SIGTERM'd at the end of a rep's window (by design, mirroring f1-lock-scope.json's run-2 methodology), its final in-flight batch has an 'acquired' event but no matching 'released' event -- lock.ts's SIGTERM handler releases the lock synchronously via rmSync WITHOUT calling the metrics-recording release() wrapper (see src/store/lock.ts:108-121). That batch's hold interval is therefore invisible to the overlap reconstruction, undercounting overlap for failures near the end of each window. The <60% overlap at N=1/N=2 and especially N=8 (42.4%) should be read as 'AT LEAST this fraction, likely higher' -- not interpreted as evidence that a large share of Arm B failures are reader-vs-reader (X2-style) rather than reindex-caused. This is a secondary, minor observability gap (lock-metrics.jsonl does not record a hold that ends via SIGTERM), not a functional defect -- the lock itself IS correctly released (confirmed separately, see stale_lock_recovery below)."
+  },
+  "supplementary_intra_process_probe": {
+    "description": "Bonus measurement per the task brief's note: N tool calls PIPELINED over ONE mast-serve process (one stdio connection), not N separate processes, to check whether same-process synchronous SQLite (better-sqlite3) serialization is a confound distinct from cross-process advisory-lock contention.",
+    "N=1": { "latency_ms": 415, "busy": false },
+    "N=8": {
+      "wall_ms": 789,
+      "latencies_ms": [265, 471, 579, 420, 789, 521, 682, 630],
+      "busy_count": 5,
+      "note": "5 of 8 concurrent in-process calls still got busy:true -- the SAME advisory lock file is contended even when all callers share one process and one event loop. This confirms structure.lock contention is a real cross-cutting property of the lock design (file-based, no in-process fast path), not an artifact of process-boundary overhead. It does NOT by itself prove or disprove the 'better-sqlite3 is synchronous' concern raised in the task brief -- distinguishing 'blocked on the advisory lock' from 'blocked on the synchronous SQLite call inside the critical section' would need lock-metrics correlated with sub-millisecond DB-call tracing, which was out of scope for this measurement pass. Flagged as an open question, not resolved."
+    }
+  },
+  "f2_flag_under_load": {
+    "verdict": "CONFIRMED WORKING -- no silent stale result found under any concurrency level tested.",
+    "evidence": "Every call whose JIT refresh failed (acquireLock threw / busy:true from checkAndRefreshIfStale) carried file_busy_returning_stale_cache: true on its result object, verified by parsing the actual MCP response JSON (not just the server-side lock event) across 2,861 busy-outcome calls total (Arm A: 84+335+850=1269; Arm B: 117+171+419+885=1592). Zero cases observed where a stale result was returned without the flag."
+  },
+  "stale_lock_recovery": {
+    "graceful_shutdown_SIGTERM": {
+      "method": "Observed implicitly: every one of the 8 Arm-B configurations starts a fresh `mast index` process against a state dir whose PREVIOUS rep's reindex process was just SIGTERM'd by the orchestrator. In all 8 cases the new process's first structure.lock acquisition succeeded with waitMs 0-5ms (see e7-out/B-*-lock-events.json, first 'index-run acquired' event of each file).",
+      "verdict": "Clean, effectively instant recovery -- lock.ts's SIGTERM/SIGINT handler (src/store/lock.ts:108-121) correctly removes the held lock directory synchronously before exit. No stale-lock wait was ever observed across 8 consecutive graceful-kill/restart cycles."
+    },
+    "hard_crash_SIGKILL": {
+      "method": "node hold-lock.mjs (acquires structure.lock, holds 60s) started, SIGKILLed (-9, bypasses the signal handler entirely -- no cleanup code runs) 2s into its hold, then a fresh acquireLock (mast_reindex retry policy: 5 retries x 1000ms per §7.6) attempted immediately.",
+      "result": "RECOVERED: acquired after 5013ms.",
+      "verdict": "Recovery succeeds well within the configured 10s `stale` window ({ stale: 10_000 } in store/lock.ts) and without manual intervention -- proper-lockfile's own staleness detection covers the true-crash case that the process-local signal handler cannot. The lock directory was confirmed fully removed after the recovery probe released it (no orphan). Practical implication: a genuine crash (not a graceful SIGTERM) costs ~5s of `file_busy_returning_stale_cache: true` responses to any concurrent reader -- much worse than the ~0ms graceful case, but bounded and self-healing, matching the spec's stated rationale for choosing proper-lockfile (§7.6)."
+    }
+  },
+  "contamination_and_confounds": {
+    "wal_autocheckpoint_stalls": {
+      "finding": "A periodic ~1.7-3s latency spike recurs every ~10 successful JIT writes, PRESENT EVEN AT N=1 with zero lock contention (see arm_A_no_reindex.N=1.wal_checkpoint_outliers). This is graph.db's SQLite connection running in WAL mode (src/graph/db.ts:317) with no explicit wal_autocheckpoint override, so the default ~1000-page threshold triggers a blocking passive checkpoint inside populateFile's transaction periodically. This is a REAL, separate defect from lock contention -- it inflates tail latency (p95/max) at every N and is NOT something F1 or this experiment's lock-scope analysis addresses. It is reported here because it was discovered while pressure-testing F1's tail and materially explains why naively-pooled p95 numbers were misleading (see X3 caveat above). NOT FIXED per the task's measurement-only scope; recommend a follow-up item.",
+      "not_a_new_task_item": "Left for the plan owner to triage as a new IMPLEMENTATION_PLAN item; this file only reports it."
+    },
+    "cumulative_lance_version_growth_across_this_experiment": {
+      "finding": "chunks.lance version count grew from 0 (fresh e7-state) to 3,440 versions/290MB after Arm A's ~2,760 JIT single-file rewrites, then to 4,636 versions/444MB after Arm B's two additional full reindexes. This is the exact O(n^2) write-amplification issue IMPLEMENTATION_PLAN.md Stage 2 already targets for replacement. Practical consequence: Arm B's index-run batch holds (p95 12.9-19.7s, max up to 21,587ms) run noticeably HIGHER than f1-lock-scope.json's original clean-state capture (max 11,078ms) -- roughly 2x. This is NOT evidence that F1 regressed; it is evidence that THIS experiment's own repeated-run methodology (many reps against one accumulating state dir, chosen deliberately to get enough samples for variance per the task brief) pushed the corpus into a more Lance-degraded state than F1's single clean run. Absolute Arm-B hold numbers should be read as 'F1's tail under a moderately-aged index', not as a fresh apples-to-apples comparison against f1-lock-scope.json. The RELATIVE comparisons across N within Arm B (all run under comparably-aged state) remain valid for the X1/X2/X3 verdicts above.",
+      "within_arm_B_variance": "Hold durations did not show a clean monotonic rep-over-rep growth trend within Arm B itself (e.g. N=1 rep1's single big hold was 21494ms, N=2 rep1's biggest was only 8970ms) -- the large holds appear to correlate more with WAL-checkpoint stalls landing inside a batch transaction (compounding with normal per-batch FTS cost) than with simple accumulated-version growth alone. With 2 reps/config this cannot be cleanly separated; flagged rather than asserted."
+    },
+    "machine_load": "See machine_load_note above -- moderate, not-idle background load (12 cores, load avg ~2.4-4.3) for the whole ~40-minute harness run. 8 concurrent node processes (Arm A/B clients) plus a `mast index` process compete for the same 12 cores; some of the observed latency growth at N=8, especially in the supplementary intra-process probe and the busy-path latency's rising p95/max with N (407ms -> 700ms in Arm A), may partly reflect OS scheduling contention rather than lock contention alone. Not separately isolated (would require a dedicated single-tenant benchmark host); reported as an open caveat rather than folded silently into the lock-contention numbers."
+  },
+  "recommendation": {
+    "verdict": "MOVE TO A SINGLE-WRITER QUEUE. Do not keep per-batch advisory locking as the sole concurrency mechanism.",
+    "justification": [
+      "All three pre-committed falsification criteria fired, and X2 fired in the STRONGEST possible way: reader-vs-reader lock traffic ALONE (zero reindex activity) drives JIT failure rates to 35/70/88.5% at N=2/4/8. F1 was scoped to fix reindex-vs-reader contention (whole-run -> per-batch); it was never designed for, and does not help with, reader-vs-reader contention, which is the MORE common real-world shape (multiple agents/tools editing a shared codebase and querying mast concurrently, with no reindex running at all).",
+      "structure.lock's cardinality (one global lock per state dir, not per-file) means F1's scope reduction cannot fix this on its own -- two agents editing two completely unrelated files still serialize on the exact same lock. Narrowing scope further (e.g. per-file locks) would need a different mechanism entirely (a lock table, not a single marker file) and starts to look like reinventing a queue anyway.",
+      "proper-lockfile's retry-and-fail semantics (no fairness queue, no wait beyond the caller's own retry budget) convert contention into OUTRIGHT FAILURE (fall through to stale-cache + a flag) rather than a bounded WAIT. That is a defensible design when contention is rare (which is what MAST_SPEC.md:822-826's 'per-file-parse, not per-tool-call' claim assumed), but this experiment shows contention is NOT rare once 2+ concurrent agents are active -- it is closer to the common case. A single-writer queue (all structure-mutating operations, including JIT refreshes, enqueue into one fair, bounded-wait, in-process or cross-process work queue) converts 'most readers independently race and mostly lose' into 'readers wait a fair, bounded amount of time and (almost) always eventually succeed' -- a fundamentally better failure mode for the concurrent-agent deployment shape the spec targets.",
+      "Fairness was NOT the problem here (no single client was starved while others sailed through, in either arm) -- so the fix is not about fairness, it is about converting fail-fast advisory contention into wait-and-succeed queued contention.",
+      "The WAL-autocheckpoint stall (contamination note) is a second, independent tail-latency contributor discovered during this investigation and should be triaged separately -- fixing locking alone will not fix that."
+    ],
+    "not_recommended": "Increasing the JIT retry budget (3x100ms -> something larger) alone would trade failures for longer blocking waits on the SAME no-fairness, no-queue primitive -- it would reduce the fail rate but does not address the root cause (unbounded reader/reader collision on one global lock with no ordering guarantee), and a caller stuck behind an 8-deep unordered retry pile has no better odds than today of winning before its own budget expires."
+  }
+}

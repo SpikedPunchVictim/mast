@@ -1,0 +1,151 @@
+{
+  "_readme": [
+    "SPIKE (not the migration) — SQLite chunk store vs LanceDB chunk store, measured per",
+    "eval/GITNEXUS_COMPARISON.md §13.5 (M1, the O(n^2) defect) and §14.1 (why chunks.lance is not",
+    "redundant and the substituted recommendation: replace it with a plain SQLite table).",
+    "",
+    "Implementation: src/store/sqliteChunkStore.ts (new) + an env-gated swap",
+    "(MAST_CHUNK_STORE=sqlite) at two composition points — src/indexer/index.ts's runIndex and",
+    "src/mcp/context.ts / src/mcp/server.ts. Default (env unset) is byte-identical to pre-spike",
+    "behaviour: 341/341 pre-existing tests pass unmodified with the env var unset. Vectors are",
+    "untouched in both arms (vectors.lance only, no ANN index either way).",
+    "",
+    "To regenerate:",
+    "  1. pnpm -F mast build",
+    "  2. Fresh state dirs per arm (never reuse mast-state/ or baseline-state/):",
+    "       mast index <corpus> --phase1-only --state-dir <state>-lance",
+    "       MAST_CHUNK_STORE=sqlite mast index <corpus> --phase1-only --state-dir <state>-sqlite",
+    "     Corpora: nest/packages/common (188 files), nest (1,335-1,337 files), a COPY of",
+    "     enterprise-apps/directus (2,085 files, copied to mast-bench/directus first).",
+    "  3. Per-arm sizes: `du -sh <state>`; Lance also `find <state>/lance/chunks.lance/_versions",
+    "     -type f | wc -l` and `du -sh <state>/lance/chunks.lance`; SQLite also",
+    "     `du -sh <state>/chunks.db <state>/graph.db`.",
+    "  4. Read-path diff: node mcp-call.mjs-style JSON-RPC session against both arms' `nest` state",
+    "     dirs, fixed 20 mast_search + 5 mast_exports + 5 mast_callers query set (see",
+    "     read_path.query_set below), diffed field-by-field excluding _stats/duration_ms.",
+    "  5. Vectors: load <mast-state>/lance/vectors.lance directly with @lancedb/lancedb, brute-force",
+    "     cosine top-10 in plain JS (Float32Array), 20 trials, no build."
+  ],
+  "captured_at": "2026-07-26T18:45:00Z",
+  "mast_version": "0.1.0",
+  "prediction": {
+    "stated": "nest --phase1-only wall time <= ~70s (vs Lance's 245s), plausibly 10-25s",
+    "actual_sqlite_nest_wall_s": 5,
+    "actual_sqlite_nest_cli_duration_ms": 4184,
+    "outcome": "CONFIRMED — beats even the optimistic 10-25s end by 2-6x. 4.184s vs a 70s ceiling."
+  },
+  "part_a_write_path": {
+    "_note": "cli_duration_ms is runIndex's own Date.now()-startMs, matching the ladder methodology in GITNEXUS_COMPARISON.md §13.5 (whole mast index --phase1-only pipeline: walk+parse+chunk-store-write+graph-write+edge-resolution, not chunk-store time in isolation). wall_s is process-external (date +%s before/after), includes ~1-2s node startup.",
+    "corpora": [
+      {
+        "label": "nest/packages/common",
+        "files": 188,
+        "lance": { "cli_duration_ms": 11233, "wall_s": 12, "ms_per_file": 59.75, "chunk_count": 527, "parse_errors": 0,
+          "state_dir_total": "9.3M", "chunks_lance_versions_file_count": 350, "chunks_lance_bytes": "7.2M" },
+        "sqlite": { "cli_duration_ms": 388, "wall_s": 1, "ms_per_file": 2.06, "chunk_count": 527, "parse_errors": 0,
+          "state_dir_total": "2.3M", "chunks_db_bytes": "520K", "graph_db_bytes": "1.8M" }
+      },
+      {
+        "label": "nest (full)",
+        "files": 1337,
+        "lance": { "cli_duration_ms": 281480, "wall_s": 284, "ms_per_file": 210.53, "chunk_count": 5030, "parse_errors": 0,
+          "state_dir_total": "194M", "chunks_lance_versions_file_count": 2581, "chunks_lance_bytes": "181M" },
+        "sqlite": { "cli_duration_ms": 4184, "wall_s": 5, "ms_per_file": 3.13, "chunk_count": 5022, "parse_errors": 1,
+          "state_dir_total": "18M", "chunks_db_bytes": "4.4M", "graph_db_bytes": "14M",
+          "parse_error_detail": "UNIQUE constraint failed: chunks.chunk_id in probe-lab/lab3.ts — see defects.chunk_id_collision" }
+      },
+      {
+        "label": "directus (copied to mast-bench/directus first, not indexed in place)",
+        "files": 2085,
+        "lance": { "cli_duration_ms": 640252, "wall_s": 642, "ms_per_file": 307.09, "chunk_count": 7214, "parse_errors": 0,
+          "state_dir_total": "409M", "chunks_lance_versions_file_count": 3892, "chunks_lance_bytes": "384M" },
+        "sqlite": { "cli_duration_ms": 8791, "wall_s": 10, "ms_per_file": 4.22, "chunk_count": 7174, "parse_errors": 1,
+          "state_dir_total": "34M", "chunks_db_bytes": "8.3M", "graph_db_bytes": "25M",
+          "parse_error_detail": "UNIQUE constraint failed: chunks.chunk_id in app/src/shims.d.ts (REAL directus file, not a test fixture) — see defects.chunk_id_collision" }
+      }
+    ]
+  },
+  "part_b_read_path": {
+    "_note": "Against the nest index built in part_a (both arms), fixed 20 mast_search + 5 mast_exports + 5 mast_callers query set, one long-lived `mast serve` per arm (not one cold spawn per call). Query set deliberately includes 3 probes at probe-lab/lab3.ts / symbol Dep3, added AFTER discovering the chunk_id collision during part A, to characterize its read-path impact rather than avoid it.",
+    "query_set_counts": { "mast_search": 20, "mast_exports": 5, "mast_callers": 5, "total": 30 },
+    "latency_p50_ms": {
+      "mast_search":  { "lance": 382.15, "sqlite": 144.38, "ratio_sqlite_over_lance": 0.378 },
+      "mast_exports": { "lance": 172.66, "sqlite": 45.18,  "ratio_sqlite_over_lance": 0.262 },
+      "mast_callers": { "lance": 241.58, "sqlite": 23.42,  "ratio_sqlite_over_lance": 0.097 }
+    },
+    "diff_summary": {
+      "identical": 11,
+      "order_only_tie_diffs": 4,
+      "score_drift_same_result_set": 14,
+      "score_drift_with_tie_reorder": 2,
+      "genuine_content_diffs": 3,
+      "total_queries": 30
+    },
+    "genuine_content_diffs": [
+      { "tool": "mast_search", "args": { "query": "Dep3" }, "lance_hits": 6, "sqlite_hits": 0,
+        "cause": "all 6 hits are probe-lab/lab3.ts chunks, entirely absent from the SQLite arm" },
+      { "tool": "mast_exports", "args": { "file_path": "probe-lab/lab3.ts" }, "lance_exports": 2, "sqlite_exports": 0,
+        "cause": "same file, same root cause" },
+      { "tool": "mast_callers", "args": { "symbol": "Dep3" }, "lance_potential_matches": 8, "sqlite_potential_matches": 0,
+        "cause": "same file, same root cause" }
+    ],
+    "score_drift_explanation": "16 mast_search queries returned the identical chunk set (same file/line/content/rank in 14 of them; 2 had a tie-break reorder among near-equal scores — 'observable stream' and 'readme' queries) with only the trailing decimals of match_score (BM25) differing, e.g. -9.125380273214297 (lance) vs -9.120335074860545 (sqlite). Root-caused via a determinism check: two independent Lance-arm builds of the SAME corpus (nest/common) produced BIT-IDENTICAL match_scores — BM25 is deterministic given identical index content. The nest-lance and nest-sqlite graph.db builds differ by exactly one file (probe-lab/lab3.ts, see defects.chunk_id_collision): populateFile (and therefore chunk_fts) is skipped for that file in the SQLite arm because its chunk-store write fails before populateFile runs. That shifts chunk_fts's corpus-wide average-document-length statistic slightly, which BM25 uses, which perturbs every score's trailing digits and occasionally flips a near-tied rank order. All 19 non-identical, non-pure-tie-order diffs trace to this ONE root cause — none are independent."
+  },
+  "part_c_vectors": {
+    "_note": "Measured, not built. src/ has zero ANN index calls (grep -rn 'createIndex|IvfPq|create_index' src/ -> 0 hits, reconfirmed) — table.search() is already a brute-force scan today.",
+    "caveat": "Task assumed 5,030 embedded vectors; the actual mast-state/lance/vectors.lance only has 864 rows (chunk_count is 5,030 but pending_embeddings backlog leaves most chunks unembedded as of this measurement — vectors.lance/vectors table countRows()=864). Measured at the real N=864 and extrapolated linearly per instructions; NOT re-embedded to reach 5,030 (out of scope, 'do not build anything for this').",
+    "measured_chunk_count": 864,
+    "embedding_dim": 768,
+    "trials": 20,
+    "ms_mean": 0.955,
+    "ms_p50": 0.951,
+    "ms_min": 0.897,
+    "ms_max": 1.056,
+    "ms_per_chunk_scanned": 0.001105,
+    "linear_extrapolation": {
+      "at_10000_chunks_ms": 11.05,
+      "at_50000_chunks_ms": 55.27
+    },
+    "extrapolation_caveat": "864 vectors x 768dim x 4 bytes = ~2.65MB, fits comfortably in L2/L3 cache. 50,000 x 768 x 4 = ~147MB does not fit in cache, so the linear extrapolation likely UNDERSTATES real cost at 50k scale (memory-bandwidth-bound, not cache-bound, at that size). Even doubling or tripling the extrapolated 55ms is still well under typical interactive-latency budgets and under the p50s measured for chunk-store reads in part B.",
+    "recommendation": "LanceDB is not earning its keep as an ANN engine for this dataset — it already does a brute-force scan internally (no index built), and a plain JS Float32Array brute-force scan matches that at 50k-chunk scale (tens of ms). This is informative context for a FUTURE decision, not an in-scope recommendation to act on now — this spike's charter keeps vectors in Lance."
+  },
+  "defects": {
+    "chunk_id_collision": {
+      "severity": "notable — pre-existing in MAST, newly surfaced by this spike, not introduced by it",
+      "mechanism": "chunk_id = sha256(file_path + ':' + start_line) (ast/types.ts:28, extractors/typescript.ts:288). When 2+ AST declarations share one physical source line (e.g. `a1(){} a2(){} a3(){} a4(){}` on one line, or multiple `declare module` statements formatted densely), they get the SAME chunk_id.",
+      "lance_behaviour": "Silent. LanceDB enforces no uniqueness on chunk_id (already documented as H1 for the vectors table in store/lance.ts; this spike shows it applies to chunks too). Colliding rows are written as duplicates under one id; a later getChunksByIds(id) lookup for that id returns ALL of them, undetected.",
+      "sqlite_behaviour": "Loud. The chunks table's PRIMARY KEY(chunk_id) (as directed by the spike brief) rejects the whole per-file INSERT. indexer/index.ts's existing per-file error handling catches it, logs a WARN, increments parse_errors — and, because populateFile is gated on the chunk-store write succeeding (chunkStoreOk), the ENTIRE file's symbols/edges/imports/chunk_fts/identifier_fts are also silently skipped, not just its chunks.",
+      "real_world_occurrence": "Verified in TWO places: (1) the synthetic probe-lab/lab3.ts fixture (pre-existing in the nest bench corpus from prior F3/F4 investigation), and (2) a REAL directus file, app/src/shims.d.ts (multiple `declare module` blocks), confirming this is not a contrived edge case.",
+      "read_path_impact": "See part_b_read_path — 3 genuine content diffs (the colliding file is entirely invisible to search/exports/callers in the SQLite arm) plus 16 downstream BM25-score/tie-order perturbations across unrelated queries, all traced to this one cause.",
+      "disposition": "NOT fixed, per scope boundaries ('If you find a NEW defect, report it — do not fix it'). Reported here for the record."
+    }
+  },
+  "revert_triggers": {
+    "R1_superlinear_growth": {
+      "definition": "SQLite-arm ms/file at 2,085 files > 1.5x its ms/file at 188 files",
+      "value_2085_files_ms_per_file": 4.22,
+      "value_188_files_ms_per_file": 2.06,
+      "ratio": 2.05,
+      "threshold": 1.5,
+      "status": "FIRED",
+      "context": "Ratio computed from small absolute numbers (2.06ms -> 4.22ms/file) against Lance's own ladder over the same 3 points (59.75 -> 210.53 -> 307.09 ms/file, a ~5.1x growth in ms/file for an 11x growth in files). duration_ms is the WHOLE runIndex pipeline (walk+parse+chunk-store+graph-write+Pass-2 edge resolution), not chunk-store time isolated — Pass 2's edge resolution does batched WHERE name IN (...) queries whose cost plausibly grows with total corpus size independent of chunk-store choice, so growth in this metric cannot be attributed to the chunks table alone without further instrumentation (out of scope for this spike). Reported as FIRED without dismissal, per instructions."
+    },
+    "R2_wall_ceiling": {
+      "definition": "SQLite-arm nest wall > 82s",
+      "value_s": 5,
+      "cli_reported_ms": 4184,
+      "threshold_s": 82,
+      "status": "NOT FIRED",
+      "context": "16-20x under the ceiling depending on which duration figure is used; also beats the pre-committed optimistic prediction (10-25s) by 2-6x."
+    },
+    "R3_read_correctness": {
+      "definition": "read-set results differ in CONTENT (not tie order), or any tool's p50 regresses > 2x",
+      "content_clause_status": "FIRED",
+      "content_clause_detail": "3 of 30 fixed queries show genuine content differences — see part_b_read_path.genuine_content_diffs. All 3 trace to exactly one root cause (defects.chunk_id_collision), not three independent bugs.",
+      "latency_clause_status": "NOT FIRED",
+      "latency_clause_detail": "SQLite p50 is 2.6x-10.3x FASTER than Lance across all three tools (see part_b_read_path.latency_p50_ms) — the opposite of a regression.",
+      "status": "FIRED (on the content clause)"
+    },
+    "mechanical_verdict": "2 of 3 triggers (R1, R3) fired on a strict reading. Per the pre-committed rule, this means the decision is NOT an unconditional 'MOVE' — that judgement call is deliberately left to the human reader, per the rule's own text ('do not renegotiate after seeing numbers... report it plainly'). Both firings are reported above with full mechanism context: R1 on a whole-pipeline metric that conflates chunk-store cost with graph-layer cost, at absolute values 25-140x smaller than Lance's own equivalent growth; R3 on a single, well-understood, pre-existing chunk_id collision defect that Lance was silently masking, not a defect in the store-swap mechanism itself. Recommend the human weigh: (a) whether R1's growth is real chunk-store O(n) vs O(n^2) contamination from Pass-2 edge resolution — resolvable with one more instrumentation pass, out of scope here; (b) whether R3's finding argues for fixing chunk_id derivation (a real, independently-actionable defect) rather than reverting the store choice, since Lance's 'success' on the same input is a false green, not a correct result."
+  }
+}

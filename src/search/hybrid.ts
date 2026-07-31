@@ -1,6 +1,7 @@
 import type { SearchInput, SearchResult, SearchMode, SearchSuggestion, RelatedHint, Chunk, ChunkType } from '../ast/types.js';
 import type { Db } from '../graph/db.js';
 import type { LanceStore, ChunkRecord } from '../store/lance.js';
+import type { ChunkStore } from '../store/sqliteChunkStore.js';
 import type { EmbedderLike } from '../indexer/embedder.js';
 import { searchFts, searchIdentifierNearMiss, splitIdentifierTerms } from './fts.js';
 import { querySymbolsBySimilarity } from '../graph/queries.js';
@@ -47,6 +48,11 @@ export async function hybridSearch(
   embedder: EmbedderLike | null,
   input: SearchInput,
   config: HybridSearchConfig,
+  // SPIKE (eval/GITNEXUS_COMPARISON.md §13.5/§14.1): chunk reads are split
+  // from `lance` so they can be redirected onto SqliteChunkStore while vector
+  // search (`searchVectors(lance, ...)` below) always stays on Lance.
+  // Defaulting to `lance` keeps every existing call site byte-identical.
+  chunkStore: ChunkStore = lance,
 ): Promise<{ mode: SearchMode; results: SearchResult[]; suggestions?: SearchSuggestion[] }> {
   const limit = input.limit ?? 10;
   // Over-fetch so post-filters don't starve the final result set.
@@ -114,7 +120,7 @@ export async function hybridSearch(
 
   // --- Fetch chunk data and apply post-filters ---
   const topIds = scored.slice(0, candidateLimit).map((s) => s.chunk_id);
-  const chunkRecords = await lance.getChunksByIds(topIds);
+  const chunkRecords = await chunkStore.getChunksByIds(topIds);
 
   const filtered = chunkRecords.filter((c) => {
     if (input.chunk_type != null && c.chunk_type !== input.chunk_type) return false;
@@ -158,7 +164,7 @@ export async function hybridSearch(
   // returning a bare dead end (§9 mast_search). Suggestions never become
   // results — the caller keeps `results: []`.
   if (results.length === 0) {
-    const suggestions = await gatherSuggestions(db, lance, input.query, limit);
+    const suggestions = await gatherSuggestions(db, chunkStore, input.query, limit);
     return { mode, results, suggestions };
   }
 
@@ -260,7 +266,7 @@ export function dedupShellMethodCollisions(
  */
 async function gatherSuggestions(
   db: Db,
-  lance: LanceStore,
+  chunkStore: ChunkStore,
   query: string,
   limit: number,
 ): Promise<SearchSuggestion[]> {
@@ -282,12 +288,12 @@ async function gatherSuggestions(
   if (terms.length > 0) {
     // (b) FTS retry over the split terms.
     const ftsRows = await searchFts(db, terms.join(' '), { limit });
-    const ftsChunks = await lance.getChunksByIds(ftsRows.map((r) => r.chunk_id));
+    const ftsChunks = await chunkStore.getChunksByIds(ftsRows.map((r) => r.chunk_id));
     for (const c of ftsChunks) add(c.symbol_name, c.file_path, 'matched split query terms');
 
     // (c) Identifier near-miss over the split terms.
     const nearRows = await searchIdentifierNearMiss(db, terms, limit);
-    const nearChunks = await lance.getChunksByIds(nearRows.map((r) => r.chunk_id));
+    const nearChunks = await chunkStore.getChunksByIds(nearRows.map((r) => r.chunk_id));
     for (const c of nearChunks) add(c.symbol_name, c.file_path, 'identifier near-miss');
   }
 

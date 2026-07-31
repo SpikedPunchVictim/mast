@@ -5,6 +5,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex, runEmbed } from '../../indexer/index.js';
 import { LanceStore } from '../../store/lance.js';
+import { openDatabase } from '../../graph/db.js';
+import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
 import type { Chunk, VectorEntry } from '../../ast/types.js';
 
@@ -68,7 +70,9 @@ describe('re-embedding on in-place edits (H1)', () => {
     await runEmbed(config, { embedder: makeRecordingEmbedder() });
 
     const lance = await LanceStore.open(config.resolved_state_dir);
-    const chunkCount = await lance.chunkCount();
+    const db = openDatabase(config.resolved_state_dir);
+    const chunkCount = await new SqliteChunkStore(db).chunkCount();
+    await db.destroy();
     expect(await lance.vectorCount()).toBe(chunkCount);
 
     // Edit foo's body in place, reindex, re-embed.
@@ -84,7 +88,10 @@ describe('re-embedding on in-place edits (H1)', () => {
 
     // No duplicate vector for foo's reused chunk_id.
     const lance2 = await LanceStore.open(config.resolved_state_dir);
-    expect(await lance2.vectorCount()).toBe(await lance2.chunkCount());
+    const db2 = openDatabase(config.resolved_state_dir);
+    const chunkCount2 = await new SqliteChunkStore(db2).chunkCount();
+    await db2.destroy();
+    expect(await lance2.vectorCount()).toBe(chunkCount2);
   });
 
   it('skips re-embedding when nothing changed', async () => {

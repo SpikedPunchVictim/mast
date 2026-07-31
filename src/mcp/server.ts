@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { ResolvedConfig } from '../store/config.js';
 import { openDatabase } from '../graph/db.js';
 import { LanceStore } from '../store/lance.js';
+import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
 import { Embedder } from '../indexer/embedder.js';
 import { runIndex } from '../indexer/index.js';
 import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
@@ -65,7 +66,11 @@ export async function serve(options: ServeOptions): Promise<void> {
 
   const db = openDatabase(config.resolved_state_dir);
   const lance = await LanceStore.open(config.resolved_state_dir);
-  await lance.ensureChunksTable();
+
+  // M1 (eval/GITNEXUS_COMPARISON.md §15.1): chunks live in graph.db's
+  // `chunks` table — `SqliteChunkStore` wraps the same `db` connection every
+  // tool below already uses. Vectors stay on `lance` (M2 decides otherwise).
+  const chunkStore: ChunkStore = new SqliteChunkStore(db);
 
   // ── Step 3: open MCP transport and register tools ─────────────────────────
 
@@ -96,7 +101,7 @@ export async function serve(options: ServeOptions): Promise<void> {
   const embedPending = (): Promise<void> => {
     embedChain = embedChain
       .then(async () => {
-        const ids = await pendingChunkIds(lance);
+        const ids = await pendingChunkIds(chunkStore, lance);
         if (ids.length === 0) return;
         embedChild ??= forkEmbedderChild(config.embedding_model, config.resolved_state_dir, config.resolved_transformers_cache_dir);
         await embedChunks(embedChild, ids);
@@ -111,6 +116,7 @@ export async function serve(options: ServeOptions): Promise<void> {
   const ctx: AppContext = {
     db,
     lance,
+    chunkStore,
     config,
     getEmbedder: () => currentEmbedder,
     searchMode: () => currentMode,
@@ -195,6 +201,7 @@ export async function serve(options: ServeOptions): Promise<void> {
         modelId: config.embedding_model,
         stateDir: config.resolved_state_dir,
         transformersCacheDir: config.resolved_transformers_cache_dir,
+        chunkStore,
         lance,
       });
       embedChild = child;

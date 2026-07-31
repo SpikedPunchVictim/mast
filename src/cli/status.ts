@@ -3,6 +3,8 @@ import { resolveConfig } from '../store/config.js';
 import { loadIndexMeta, countPendingEmbeddings, freshnessCause } from '../indexer/index.js';
 import { walkProject, diffManifest } from '../indexer/walker.js';
 import { LanceStore } from '../store/lance.js';
+import { openDatabase } from '../graph/db.js';
+import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -33,11 +35,19 @@ export function registerStatusCommand(program: Command): void {
       const { stale, added, deleted } = diffManifest(currentFiles, prevManifest);
       const staleCount = stale.length + added.length + deleted.length;
 
-      // Guard on the state dir: LanceStore.open would create it as a side
-      // effect, and `mast status` on a never-indexed project must not write.
-      const pendingEmbeddings = existsSync(config.resolved_state_dir)
-        ? await countPendingEmbeddings(await LanceStore.open(config.resolved_state_dir))
-        : 0;
+      // Guard on the state dir: LanceStore.open / openDatabase would create it
+      // as a side effect, and `mast status` on a never-indexed project must
+      // not write.
+      let pendingEmbeddings = 0;
+      if (existsSync(config.resolved_state_dir)) {
+        const lance = await LanceStore.open(config.resolved_state_dir);
+        const db = openDatabase(config.resolved_state_dir);
+        try {
+          pendingEmbeddings = await countPendingEmbeddings(new SqliteChunkStore(db), lance);
+        } finally {
+          await db.destroy();
+        }
+      }
 
       const status = {
         state_dir:     config.resolved_state_dir,
@@ -47,6 +57,7 @@ export function registerStatusCommand(program: Command): void {
         stale_files:   staleCount,
         pending_embeddings: pendingEmbeddings,
         parse_errors:  meta?.parse_errors ?? 0,
+        write_errors:  meta?.write_errors ?? 0,
         index_fresh:   staleCount === 0 && meta !== null,
         freshness_cause: freshnessCause(staleCount, pendingEmbeddings),
         model:         meta?.model ?? config.embedding_model,
@@ -70,6 +81,7 @@ export function registerStatusCommand(program: Command): void {
         `stale_files:    ${status.stale_files}`,
         `pending_embeddings: ${status.pending_embeddings}`,
         `parse_errors:   ${status.parse_errors}`,
+        `write_errors:   ${status.write_errors}`,
         `index_fresh:    ${String(status.index_fresh)}`,
         `freshness_cause: ${status.freshness_cause ?? 'none'}`,
         `model:          ${status.model}`,

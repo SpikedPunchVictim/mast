@@ -139,6 +139,30 @@ interface MetricsDailyTable {
 }
 
 /**
+ * Chunk bodies (M1, `eval/GITNEXUS_COMPARISON.md` §15.1). Lives in `graph.db`
+ * — NOT a separate `chunks.db` — so a chunk write joins the same per-file
+ * `db.transaction()` as `symbols`/`edges`/`imports`/`chunk_fts`
+ * (`graph/populate.ts`'s `populateFile`), closing the two-store consistency
+ * seam the spike deliberately left open (`store/sqliteChunkStore.ts`'s
+ * original SPIKE comment). Column set mirrors `LanceStore`'s chunk schema
+ * (`store/lance.ts:12-26`) so every consumer's `ChunkRecord` shape is
+ * unchanged by the store swap.
+ */
+interface ChunksTable {
+  readonly chunk_id: string;
+  readonly file_path: string;
+  readonly start_line: number;
+  readonly end_line: number;
+  readonly content: string;
+  readonly chunk_type: string;
+  readonly symbol_name: string | null;
+  readonly parent_symbol: string | null;
+  readonly is_exported: BoolCol;
+  readonly language: string;
+  readonly file_mtime: number;
+}
+
+/**
  * FTS5 virtual table for BM25 full-text search over chunk content.
  *
  * `content` is the full-text indexed column (trigram tokeniser).
@@ -178,6 +202,7 @@ export interface MastDatabase {
   readonly metrics: MetricsTable;
   readonly metrics_daily: MetricsDailyTable;
   readonly checker_verdicts: CheckerVerdictsTable;
+  readonly chunks: ChunksTable;
   readonly chunk_fts: ChunkFtsTable;
   readonly identifier_fts: IdentifierFtsTable;
 }
@@ -234,6 +259,22 @@ CREATE TABLE IF NOT EXISTS imports (
   is_external   INTEGER NOT NULL DEFAULT 0,
   resolved_path TEXT
 );
+
+CREATE TABLE IF NOT EXISTS chunks (
+  chunk_id      TEXT PRIMARY KEY,
+  file_path     TEXT NOT NULL,
+  start_line    INTEGER NOT NULL,
+  end_line      INTEGER NOT NULL,
+  content       TEXT NOT NULL,
+  chunk_type    TEXT NOT NULL,
+  symbol_name   TEXT,
+  parent_symbol TEXT,
+  is_exported   INTEGER NOT NULL DEFAULT 0,
+  language      TEXT NOT NULL,
+  file_mtime    REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chunks_file_path ON chunks(file_path);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS chunk_fts USING fts5(
   content,
@@ -316,6 +357,20 @@ export function openDatabase(stateDir: string): Db {
   // WAL + FK must be set on the raw connection before Kysely wraps it.
   sqlite.pragma('journal_mode = WAL');
   sqlite.pragma('foreign_keys = ON');
+  // busy_timeout was never set (found during E7, eval/GITNEXUS_COMPARISON.md
+  // Stage 1 F11 notes): without it, a statement that hits SQLITE_BUSY (e.g. a
+  // WAL-mode writer colliding with a checkpoint, or — now that chunks live
+  // here too, §15.1 — a second process opening graph.db mid-write) fails
+  // IMMEDIATELY instead of waiting, silently making `structure.lock`
+  // responsible for contention SQLite itself is equipped to absorb. 5000ms
+  // matches the total retry budget of `runIndex`'s own lock options
+  // (maxRetries: 5 x retryIntervalMs: 1000 = 5000ms, index.ts's `lockOptions`)
+  // and is the conventional WAL default for moderate-concurrency apps (e.g.
+  // Prisma's and Rails' SQLite adapters both default busy_timeout to 5000ms).
+  // This does not replace `structure.lock` (F11 is a separate, not-yet-done
+  // redesign of that mechanism) — it only stops SQLite's own driver from
+  // being more impatient than the advisory lock wrapped around it.
+  sqlite.pragma('busy_timeout = 5000');
 
   // Apply schema DDL synchronously — safe at startup, idempotent.
   sqlite.exec(SCHEMA_DDL);

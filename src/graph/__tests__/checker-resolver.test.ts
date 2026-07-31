@@ -6,7 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { openDatabase, type Db } from '../db.js';
-import { LanceStore } from '../../store/lance.js';
+import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { querySymbolByName, queryVerifiedCallers, queryCheckerVerdicts } from '../queries.js';
 import { populateFile } from '../populate.js';
 import { extractFile } from '../../ast/extract.js';
@@ -426,7 +426,7 @@ class FakeTsProjectResolver implements TsProjectResolver {
 describe('runCheckerPass — orchestration (fake resolver)', () => {
   let tmpDir: string;
   let db: Db;
-  let lance: LanceStore;
+  let chunkStore: SqliteChunkStore;
   let config: ReturnType<typeof resolveConfig>;
 
   const MATH_SRC = `export function add(a: number, b: number): number {\n  return a + b;\n}\n\nexport function multiply(a: number, b: number): number {\n  return a * b;\n}\n`;
@@ -447,7 +447,7 @@ describe('runCheckerPass — orchestration (fake resolver)', () => {
     config = resolveConfig({ projectRoot: tmpDir });
     await runIndex(config, { incremental: false });
     db = openDatabase(config.resolved_state_dir);
-    lance = await LanceStore.open(config.resolved_state_dir);
+    chunkStore = new SqliteChunkStore(db);
   });
 
   afterAll(async () => {
@@ -468,7 +468,7 @@ describe('runCheckerPass — orchestration (fake resolver)', () => {
       ]),
     );
 
-    const result = await runCheckerPass(db, lance, config, { resolver: fakeResolver });
+    const result = await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
 
     expect(result.edgesUpgraded).toBeGreaterThanOrEqual(1);
     expect(result.classifiedNonCallSite).toBeGreaterThanOrEqual(0);
@@ -509,7 +509,7 @@ describe('runCheckerPass — orchestration (fake resolver)', () => {
       ]),
     );
 
-    const rerun = await runCheckerPass(db, lance, config, { resolver: fakeResolver });
+    const rerun = await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
 
     expect(rerun.edgesUpgraded).toBe(0);
   });
@@ -523,7 +523,7 @@ describe('runCheckerPass — orchestration (fake resolver)', () => {
       skipped: [],
     };
     const fakeResolver = new FakeTsProjectResolver(discovery, new Map());
-    await runCheckerPass(db, lance, config, { resolver: fakeResolver });
+    await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
     expect(fakeResolver.loadCalls).not.toContain('empty');
   });
 });
@@ -585,7 +585,13 @@ describe('checker_verdicts — staleness (severity-zero invariant)', () => {
     await populateFile(db, {
       filePath: 'caller.ts',
       language: result.language,
-      mtime: 2_000,
+      // Strictly newer than the real (epoch-scale) mtime `beforeAll`'s
+      // `runIndex` call already stamped `fileRow.mtime` with — a hardcoded
+      // small literal here would be REJECTED by populateFile's monotonic
+      // write-guard (F12), which refuses to replace a row with an
+      // older-stamped write. This must represent a genuine "edited later",
+      // not an arbitrary placeholder.
+      mtime: fileRow.mtime + 1_000,
       chunks: result.chunks,
       imports: result.imports,
       symbols: result.symbols,

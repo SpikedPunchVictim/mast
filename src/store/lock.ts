@@ -1,6 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import lockfile from 'proper-lockfile';
+import { createFileLockMetricsSink, type LockMetricsSink } from './lockMetrics.js';
 
 export type LockType = 'structure' | 'vectors';
 
@@ -27,12 +28,28 @@ export interface AcquireOptions {
   maxRetries?: number;
   /** Milliseconds between retries (default: 1000). */
   retryIntervalMs?: number;
+  /**
+   * Label identifying the calling workflow in lock metrics (e.g.
+   * `'index-run'`, `'jit-staleness'`) — the signal that distinguishes a
+   * whole-run hold from a per-file JIT re-parse. Defaults to `'unknown'`.
+   */
+  caller?: string;
+  /**
+   * Injection seam (§4.4) for lock metrics — tests pass an in-memory fake so
+   * they can assert on recorded events without touching the filesystem.
+   * Production call sites omit this and get the default JSONL sink for
+   * `stateDir` (see {@link createFileLockMetricsSink}).
+   */
+  sink?: LockMetricsSink;
 }
 
 /**
  * Acquire an advisory write lock for the given lock type.
  *
  * Returns a release function. Always `await release()` in a finally block.
+ * The returned function is wrapped to record hold-duration lock metrics on
+ * release — this covers direct callers (e.g. the JIT re-parse path in
+ * `mcp/staleness.ts`) as well as callers that go through {@link withLock}.
  *
  * Per spec §7.6:
  * - CLI commands: maxRetries=1, retryIntervalMs=2000 (2s total)
@@ -46,14 +63,26 @@ export async function acquireLock(
   type: LockType,
   options: AcquireOptions = {},
 ): Promise<() => Promise<void>> {
-  const { maxRetries = 5, retryIntervalMs = 1_000 } = options;
+  const {
+    maxRetries = 5,
+    retryIntervalMs = 1_000,
+    caller = 'unknown',
+    sink = createFileLockMetricsSink(stateDir),
+  } = options;
   const marker = markerPath(stateDir, type);
+  const attemptStartMs = Date.now();
 
   let lastError: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const release = await lockfile.lock(marker, { stale: STALE_MS, retries: 0 });
-      return release;
+      sink.record({ kind: 'acquired', type, caller, waitMs: Date.now() - attemptStartMs, timestamp: Date.now() });
+
+      const acquiredAtMs = Date.now();
+      return async () => {
+        await release();
+        sink.record({ kind: 'released', type, caller, holdMs: Date.now() - acquiredAtMs, timestamp: Date.now() });
+      };
     } catch (err) {
       lastError = err;
       if (attempt < maxRetries) {
@@ -62,6 +91,7 @@ export async function acquireLock(
     }
   }
 
+  sink.record({ kind: 'failed', type, caller, waitMs: Date.now() - attemptStartMs, timestamp: Date.now() });
   throw new Error(
     `Could not acquire ${type} lock after ${maxRetries + 1} attempt(s): ${String(lastError)}`,
   );

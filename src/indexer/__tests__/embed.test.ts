@@ -6,6 +6,8 @@ import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { runEmbed } from '../../indexer/index.js';
 import { LanceStore } from '../../store/lance.js';
+import { openDatabase } from '../../graph/db.js';
+import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { searchVectors } from '../../search/vector.js';
 import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
 import type { Chunk, VectorEntry } from '../../ast/types.js';
@@ -144,8 +146,10 @@ describe('runEmbed', () => {
       const result = await runEmbed(config, { embedder: makeFakeEmbedder() });
 
       const lance = await LanceStore.open(config.resolved_state_dir);
-      const allChunks = await lance.getAllChunks();
+      const db = openDatabase(config.resolved_state_dir);
+      const allChunks = await new SqliteChunkStore(db).getAllChunks();
       const embeddedIds = await lance.getEmbeddedChunkIds();
+      await db.destroy();
 
       // Every embedded ID must correspond to a live chunk.
       const liveIds = new Set(allChunks.map((c) => c.chunk_id));

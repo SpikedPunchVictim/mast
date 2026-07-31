@@ -5,6 +5,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex, runEmbed } from '../../indexer/index.js';
 import { LanceStore } from '../../store/lance.js';
+import { openDatabase } from '../../graph/db.js';
+import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
 import {
   warmEmbeddings,
@@ -86,7 +88,9 @@ describe('warmEmbeddings', () => {
   it('sends the pending chunk IDs to the embedder and resolves on completion', async () => {
     const config = resolveConfig({ projectRoot: tmpDir });
     const lance = await LanceStore.open(config.resolved_state_dir);
-    const pendingExpected = (await lance.getAllChunks()).map((c) => c.chunk_id);
+    const db = openDatabase(config.resolved_state_dir);
+    const chunkStore = new SqliteChunkStore(db);
+    const pendingExpected = (await chunkStore.getAllChunks()).map((c) => c.chunk_id);
     expect(pendingExpected.length).toBeGreaterThan(0);
 
     const fake = makeFakeChild();
@@ -94,9 +98,11 @@ describe('warmEmbeddings', () => {
     const result = await warmEmbeddings({
       modelId: config.embedding_model,
       stateDir: config.resolved_state_dir,
+      chunkStore,
       lance,
       spawn: () => fake.handle,
     });
+    await db.destroy();
 
     // The driver must actually request embedding of every un-vectorised chunk.
     expect(fake.received).toHaveLength(1);
@@ -110,14 +116,18 @@ describe('warmEmbeddings', () => {
     await runEmbed(config, { embedder: makeFakeEmbedder() });
 
     const lance = await LanceStore.open(config.resolved_state_dir);
+    const db = openDatabase(config.resolved_state_dir);
+    const chunkStore = new SqliteChunkStore(db);
     let spawnCalls = 0;
 
     const result = await warmEmbeddings({
       modelId: config.embedding_model,
       stateDir: config.resolved_state_dir,
+      chunkStore,
       lance,
       spawn: () => { spawnCalls++; return makeFakeChild().handle; },
     });
+    await db.destroy();
 
     expect(spawnCalls).toBe(0);
     expect(result.embedded).toBe(0);

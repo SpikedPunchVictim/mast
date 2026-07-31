@@ -40,9 +40,14 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       const filePath = args.file_path ?? null;
 
       // §9.0 staleness: same JIT policy as mast_callers — refresh the named
-      // file so declaration/caller line numbers reflect disk.
+      // file so declaration/caller line numbers reflect disk. Busy flag goes
+      // at the envelope, not per-VerifiedCaller — see
+      // CallersResponse.file_busy_returning_stale_cache for the reasoning
+      // (this JITs the declaring file, not each caller's own file).
+      let fileBusy = false;
       if (filePath != null) {
-        await jitRefreshFile(ctx.db, ctx.lance, ctx.config, filePath);
+        const r = await jitRefreshFile(ctx.db, ctx.config, filePath);
+        fileBusy = r.busy;
       }
 
       const symbols = await querySymbolByName(ctx.db, args.symbol, filePath ?? undefined);
@@ -77,7 +82,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
           resolution: r.resolution as CallerResolution,
         }));
 
-        const potentialResult = await collectPotentialMatches(ctx.db, ctx.lance, target.id, args.symbol, verified_callers);
+        const potentialResult = await collectPotentialMatches(ctx.db, ctx.chunkStore, target.id, args.symbol, verified_callers);
         potential_matches = potentialResult.matches;
         checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
         checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;
@@ -107,6 +112,8 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       const response: RenameImpactResponse = {
         symbol: args.symbol,
         ...body,
+        // §9.0 TOCTOU policy: omitted when false, never present-and-false.
+        ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
         summary: {
           declaration_count: declaration_sites.length,
           verified_count: verified_callers.length,

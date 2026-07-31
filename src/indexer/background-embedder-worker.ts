@@ -7,6 +7,8 @@
  */
 import { createEmbedder, stampVectorHashes } from './embedder.js';
 import { LanceStore, chunkRecordToChunk } from '../store/lance.js';
+import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
+import { openDatabase, type Db } from '../graph/db.js';
 import type { ChildMessage, EmbedRequest } from './background-embedder.js';
 import { WorkerEnvSchema } from '../env.js';
 
@@ -19,6 +21,10 @@ const BATCH_SIZE = 32;
 export class EmbedWorker {
   private readonly embedder: ReturnType<typeof createEmbedder>;
   private lance: LanceStore | null = null;
+  // Chunks come from graph.db's `chunks` table (§15.1); `db`/`chunkStore` are
+  // opened once in `run()` and kept for the worker's lifetime, same as `lance`.
+  private db: Db | null = null;
+  private chunkStore: SqliteChunkStore | null = null;
 
   constructor(
     modelId: string,
@@ -34,6 +40,8 @@ export class EmbedWorker {
    */
   async run(): Promise<void> {
     this.lance = await LanceStore.open(this.stateDir);
+    this.db = openDatabase(this.stateDir);
+    this.chunkStore = new SqliteChunkStore(this.db);
     // Load first to detect dimension, then create the table with the real size.
     await this.embedder.load();
     await this.lance.ensureVectorsTable(this.embedder.dimension);
@@ -53,8 +61,9 @@ export class EmbedWorker {
     if (req.type !== 'embed') return;
 
     const lance = this.lance!;
+    const chunkStore = this.chunkStore!;
     const startMs = Date.now();
-    const chunks = await lance.getChunksByIds(req.chunkIds);
+    const chunks = await chunkStore.getChunksByIds(req.chunkIds);
     const total = chunks.length;
     let embedded = 0;
 
