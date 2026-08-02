@@ -12,7 +12,10 @@ to `.history/` when every stage is Complete.
 `npx align check` (repo-root CLI; pre-existing `verdict: red` with exactly 2
 violations — `root-layout.tsx` cycle, `fold-build-record-repository.ts`
 apiDomain→apiDb — neither naming `mast`; verify no NEW mast violation).
-Current test count: **366 / 30 files**.
+Current test count: **380 / 34 files** (re-measured 2026-08-01; the previously
+recorded 366 / 30 had gone stale). `align check` on this branch: pre-existing
+`verdict: red`, the same 2 violations, and `baselined debt: 324 → 327 (+3)` — the +3
+is also pre-existing, confirmed by re-running with new files removed.
 
 ---
 
@@ -324,7 +327,7 @@ versions / 444 MB — Stage 2's O(n²), not an F1 regression.
 | — | `chunk_id` collision fix (prerequisite) | **Complete** |
 | — | Loud write failure (prerequisite) | **Complete** |
 | M1 | Promote SQLite store to default; retire the env gate | **Complete** |
-| M2 | Decide vectors: Lance vs SQLite BLOB + JS cosine vs `sqlite-vec` | Not Started |
+| M2 | Decide vectors: Lance vs SQLite BLOB + JS cosine vs `sqlite-vec` | **Blocked on Q1** (see below) |
 
 **Success criteria**: `nest --phase1-only` ≤ 82 s (measured spike: **4.4 s** vs Lance
 **269–284 s**); state 194 MB → ~17 MB; read-set content identical between arms.
@@ -388,6 +391,48 @@ version-manifest-count check), `mcp/tools/__tests__/tools.test.ts` (`is_exported
 round-trips as a real `boolean`, not `0|1`, through the full `mast_search` MCP
 response, not just the store's own unit test).
 
+### M2 framing (2026-08-01) — the option set is four arms, and two have no evidence
+
+**Three facts verified in code before any option was weighed:**
+
+1. **Lance's chunk half is dead code post-M1.** `LanceStore.replaceChunksForFile`,
+   `deleteChunksForFiles`, `getChunksByFilePath`, `chunkCount`, `getAllChunks`,
+   `getChunksByIds`, and `ensureChunksTable` have **zero non-test callers** — every
+   consumer routes through `SqliteChunkStore`. On disk `.mast/lance/` now holds
+   `vectors.lance` alone. So `@lancedb/lancedb` (**91 MB**,
+   `@lancedb+lancedb-darwin-arm64@0.27.2`) is retained for exactly one table.
+2. **The differentiator has never been switched on.** `grep -rn
+   'createIndex|IvfPq|ivf_pq|create_index' src/` → **0 hits**, re-confirmed
+   2026-08-01 (§14.1 found the same in R3). Today's "Lance arm" is a brute-force
+   scan behind a 91 MB native binary: Lance's costs, none of its ANN benefit.
+3. **Live state for calibration**: `graph.db` 129 MB, `vectors.lance` 25 MB
+   (~4,280 of 14,449 chunks embedded), `embed_cache` 83 MB.
+
+**Therefore the honest option set is four arms, not three:**
+
+| arm | | measured evidence today |
+|---|---|---|
+| **A** | Lance **with IVF-PQ actually enabled** | **none** — never created |
+| **B** | SQLite BLOB + JS brute-force cosine | 0.955 ms/864 vec → **169 ms** @153k; **470 MB** f32 |
+| **C** | `sqlite-vec` | **none** — not a dependency |
+| **D** | **Delete vectors entirely** | none directly; strong circumstantial (Q1) |
+
+**Decided on paper now: arm B is eliminated, and [R6]'s retraction holds.** 169 ms of
+scan against a current `mast_search` p50 of 144 ms more than doubles query latency at
+the real target, and 470 MB resident is not acceptable in a task container. The
+2026-08-01 batching falsification confirmed these inputs do not move — q8 and
+multi-process affect *build* time only, not query cost or memory.
+
+**A vs C cannot be decided today and no further prose will decide it** — both arms
+have zero measurements. Choosing between them from reasoning alone would be the
+"invent a number" anti-pattern the global process rules forbid.
+
+**Sequencing decision: Q1 gates M2.** Arm D dominates A/B/C — a "no" on Q1 deletes the
+91 MB dependency, the 7.2 h embed, the 470 MB, the forked embedder, and the whole
+cold-start `mode: "lexical"` ladder, making the backend question moot. Q1 is also
+cheaper than an A-vs-C benchmark. So Q1 runs first; A vs C is benchmarked only if Q1
+justifies the subsystem.
+
 ---
 
 ## Stage 3: Call-graph correctness
@@ -445,7 +490,7 @@ counterfactual. F9/M6 are both "the tool lies about what it did".
 |---|---|---|
 | **D0** | **CLI query surface — parity with the MCP read tools (`mast query <tool> <json>`)** | **Not Started** |
 | D1 | Sort `walkProject` output (`indexer/walker.ts:43`) — kills ±4/3,940 edge nondeterminism | Not Started |
-| D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | Not Started |
+| D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
 | **D6** | **Build the stats/regression suite** — the metric set below, with a baseline captured before each fix | Not Started |
 | D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | Not Started |
 | E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration | Not Started |
@@ -582,13 +627,144 @@ instalments; D6 is generalizing them into a repeatable suite rather than one-off
 
 ---
 
+## Stage 4.5: Scale — the actual target
+**Goal**: MAST is "Monorepo AST search". Make the scale target explicit and measured,
+because it changes several decisions already taken.
+**Status**: Not Started
+
+**Measured chunk counts** (mast defaults, `.ts/.tsx/.js/.jsx/.md`, test/spec excluded):
+
+| corpus | files | chunks |
+|---|---|---|
+| **vscode** | 8,653 | **152,969** |
+| **backstage** | 7,801 | **89,515** |
+| **n8n** | 9,117 | **49,509** |
+| strapi | 3,548 | ~23k (est) |
+| kluster (self) | 1,799 | 14,212 |
+| directus | 2,089 | 7,205 |
+| nest | 1,333 | 5,030 |
+
+**vscode is 10× kluster's own index.** Every measurement in this document was taken on
+a 5k–14k chunk corpus. The real target is **150k+**.
+
+### What breaks at that scale — and what doesn't
+
+**Already sublinear, no work needed**: FTS5 is an inverted index (BM25 costs
+O(matching docs), not O(total)); graph queries use covering indexes with sub-ms
+recursive CTEs; incremental indexing is O(changed files) — 379 ms for one file at any
+corpus size. Post-M1 chunk storage is O(N).
+
+**The vector subsystem is the only component that degrades**, on three axes:
+
+| | n8n 49.5k | backstage 89.5k | **vscode 153k** |
+|---|---|---|---|
+| Brute-force cosine (768-d, measured 0.955 ms/864 vec) | 55 ms | 99 ms | **169 ms** |
+| Vector memory (f32) | 152 MB | 275 MB | **470 MB** |
+| Embed time @ measured 5.88 chunks/s | 2.3 h | 4.2 h | **7.2 h** |
+
+169 ms of scan against a current `mast_search` p50 of **144 ms total**.
+
+### ~~🔴 The 7.2 h figure is an implementation artifact, not a model cost~~ — **FALSIFIED for batching (2026-08-01)**
+
+> **Original claim (kept for the record):** `Embedder.embed()` accepts
+> `chunks: readonly Chunk[]` but **loops one at a time**. Transformers.js accepts an
+> **array** for batched inference; this does N separate forward passes. Compounding it:
+> `dtype: 'fp32'` — no quantization — and a single forked worker (no multi-core).
+> ⇒ "Q1/M2 are currently being decided against an embedder plausibly 10–20× slower than
+> it should be."
+
+**The batching component of that claim is now measured and false.**
+Evidence: `eval/embedder-batching.json`; harnesses `eval/embedder-batching.mjs`
+(arms E/D) and `eval/embedder-batching-lengthprobe.mjs`.
+
+| arm (identical texts ⇒ zero padding) | speedup |
+|---|---|
+| batch-16 vs 16× sequential @ 64 tok | **1.09×** |
+| batch-16 vs 16× sequential @ 514 tok | **1.00×** |
+
+Per-chunk cost is flat across B=1…32. The mechanism: **`cpu/wall ≈ 5.9×` on a
+`batch=1` call** (12 logical cores) — ORT's intra-op pool already saturates ~6 cores on
+a single item, so batching has no parallelism left to claim. Worse, batching *adds*
+failure modes: mixed-length batches pad to longest against unfused-ALiBi O(L²)
+attention (a 16-chunk long batch measured ~59× slower than sequential), and a fixed
+batch count with no token cap makes `[16,12,8192,8192]` fp32 ≈ **51.5 GB** reachable —
+an OOM the per-chunk path structurally cannot hit.
+
+**⇒ The batched-inference implementation was reverted** (preserved in `git stash`:
+*"mast: batched-inference attempt — FALSIFIED"*). The 7.2 h vscode estimate **stands**.
+It is not primarily an implementation artifact.
+
+**Consequences:**
+- **[R6] is no longer "pending a re-measure."** Its retraction of the M2 recommendation
+  was predicated on fixing the embedder and re-measuring. That is done; batching was not
+  the fix. R6 must be re-decided on its own merits.
+- **Two levers remain live and untested**, and now carry the whole hypothesis:
+  **`dtype: 'q8'` quantization** and **multi-process embedding**. Headroom for the
+  latter is bounded — one process already draws ~6 of 12 cores.
+- **Single-host caveat.** All of the above is Apple M2 Pro (ARM). ORT CPU kernels and
+  thread-pool behaviour differ on x86 and in the SDD container; the "batch=1 already
+  saturates" conclusion should be re-confirmed there before being treated as universal.
+
+**Latent defect found while measuring, and still present:** `runEmbed`
+(`indexer/index.ts:552–553`) slices pending chunks into 32-chunk windows, and
+`selectPendingChunks` is a pure filter over `getAllChunks()`, so those windows preserve
+**file order** — chunk lengths within a window are correlated, not random. Any future
+batching attempt must account for this: a file with one large class yields adjacent long
+chunks, so the pathological all-long batch arises routinely from file locality rather
+than being a rare draw.
+
+### [R6] M2 recommendation RETRACTED — ~~pending this~~ **now un-blocked, must be re-decided**
+
+"Drop Lance, use SQLite BLOB + JS brute-force cosine" was scoped to ~14k chunks and
+**inverts at the real target**: at 153k, brute force needs 169 ms and 470 MB, so an ANN
+index becomes mandatory — which means Lance (has IVF-PQ, unused) or `sqlite-vec`, *not*
+JS. Precedent: GitNexus caps embedding at 50k nodes by default and skips it above that.
+
+**Status change (2026-08-01).** The retraction was explicitly "pending" a re-measure of
+the embedder. That re-measure is complete and the embed cost did **not** move — batching
+was falsified (see above), so the 7.2 h / 470 MB / 169 ms figures this retraction was
+argued against all still hold. R6 is therefore no longer blocked on an embedder fix; it
+is a live decision to be made on its own merits, against the *unchanged* numbers. The
+only remaining way the inputs move is q8 and multi-process, and neither changes the
+*query-side* brute-force cost (169 ms) or the *memory* cost (470 MB) that drive R6 —
+they only affect build time. **R6 can be decided now.**
+
+### Scaling levers that are NOT vectors, by leverage
+
+1. **Scoping — highest leverage, already built, barely used.** `mast_project_skeleton`
+   takes `directory`/`max_depth`; `mast_search` takes `file_pattern`/`chunk_type`/
+   `only_exported`. A monorepo task touches 1–2 packages: scoping turns vscode into a
+   5k-chunk problem, where every strategy works. Make the §12 prompt scope by default.
+2. **Identifier decomposition at index time** — index `checkAuthToken` also as
+   `check auth token` in a second FTS column. Makes conceptual queries hit *lexically*.
+   Zero query cost, tiny index cost; best value/effort ratio here. (The zero-result
+   assist already splits terms — this promotes it from fallback to first-class.)
+3. **Graph expansion from lexical seeds** — a lexical hit expanded via
+   `POTENTIAL_CALL`/`IMPLEMENTS`/`PARENT_OF` yields a semantic neighbourhood using
+   indexes that already exist. This is what GitNexus's process-grouping does.
+4. **Per-package / federated indexes** — one state dir per workspace package; query the
+   relevant ones. Matches pnpm workspaces and makes reindexing parallel.
+5. **Coarse-to-fine embedding** — embed only shells + top-level declarations
+   (measured: `class_shell`+`function`+`interface`+`type` = 1,727 of 5,029 = **34%**),
+   then use FTS/graph within the matched class. Cuts embed cost ~66%. Note
+   `is_exported` filtering is NOT a useful lever — **81% of chunks are exported**.
+6. **Result budgets (`maxTokens`)** — grows in value with corpus size.
+7. **ANN** — only if vectors survive Q1, and only above ~50k chunks.
+
+**The synthesis**: the subsystem costing 7.2 h to build, 470 MB to hold, and 169 ms per
+query is the one whose value has *never been measured* (Q1/E4). And the live index has
+been 83% unembedded — i.e. running lexical-only in practice — without anyone noticing a
+quality problem.
+
+---
+
 ## Stage 5: Open questions — decide before building
 **Goal**: Don't build on unexamined defaults.
 **Status**: Not Started
 
 | # | Question | Status |
 |---|---|---|
-| Q1 | Is the vector store justified at all? E4 is one-directional by design and the harness is rotted (§14.3) | Not Started |
+| **Q1** | **Is the vector store justified at all?** E4 is one-directional by design and the harness is rotted (§14.3). **Gates M2.** Pre-registered design below | **In Progress** |
 | Q2 | Should generated/minified files be chunked at all? (451 KB single-line file → 232 `block` chunks) | Not Started |
 | Q3 | `populateFile` FTS insert cost grows with index size (0.37→1.35 ms/KB *within* one run, order-independent) — survives the migration, matters at n8n scale | Not Started |
 | Q4 | Live index is **83% unembedded** (`pending_embeddings: 4166`/5,030) — wire embedder completion, or stop reporting `mode: "hybrid"` | Not Started |
@@ -597,6 +773,685 @@ instalments; D6 is generalizing them into a repeatable suite rather than one-off
 | E5 | `mast index --checker` — untested. Does it convert enough truncated potentials into verified edges to justify §10.3.2's complexity? | Not Started |
 | E6 | Cross-language: index `vscode`/`pulumi`; are non-TS files dropped **silently**, making `mast_project_skeleton` present a partial map as complete? (same false-green class as F5) | Not Started |
 | E8 | GitNexus `impact`/`trace`/`rename` — **design study only**, per the §1 licence bar | Not Started |
+
+---
+
+### Q1 — pre-registered experiment design (written 2026-08-01, BEFORE any arm was run)
+
+Pre-registration is the point. E7's value came from three falsification criteria
+committed before measurement; this follows that precedent. **Nothing below may be
+edited after the first scored run** — amendments get appended with a timestamp and a
+reason, per §15.4's "the instrument was amended mid-experiment" finding.
+
+#### The questions (named first)
+
+1. On **lexically-normal** queries, does hybrid beat lexical-only on NDCG@10, and by
+   how much?
+2. On the existing 28 **anti-lexical** queries, does hybrid beat lexical? (Per §14.3
+   this arm can only *kill* vectors, never justify them — reported, not decisive.)
+3. What fraction of queries does lexical alone answer adequately (a gold target in
+   the top 10)?
+4. Where hybrid wins, is the win concentrated in a nameable query class?
+5. Cost side: what does the subsystem actually buy per unit of the 7.2 h / 470 MB /
+   169 ms it costs at the 153k target?
+
+#### Arms
+
+| arm | construction |
+|---|---|
+| **L** — lexical-only | `hybridSearch(db, null, …)` — falls to lexical at `hybrid.ts:72`. §14.3: adding it is a single argument; call site `score-only.mjs:52`. |
+| **H** — hybrid | shipped RRF, rank-based vector inclusion (§7.3) |
+| **V** — pure vector | raw cosine; isolates the model. Already in the harness. |
+
+#### D2 prerequisite — corpus pinning (decision + rationale)
+
+§14.2 recommended switching to `nest` as an external, pinnable corpus. **Rejected for
+Q1**, with reason: the 28-query / 43-target gold set is authored against *kluster's own*
+chunks, so switching corpora discards all of it. Instead: **pin kluster at a fixed git
+SHA via `git worktree`** and index that. This fixes §14.2's actual defect — `chunk_id`
+is `sha256(file_path + ":" + start_line)`, so ids break on *line drift*, and a pinned
+tree has none — while preserving the sunk authoring cost. `nest` is retained as the
+**n ≥ 2 external replication**, run only if Q1 lands in the ambiguous band below.
+
+Also required: `eval/paths.mjs` `SCRATCH` points at dead session
+`c4f25db4-…`; `corpus-subset.json` is **empty (0 bytes)** despite the README
+describing it as "frozen 3,006 chunk-ids". Both must be repaired and the state moved
+out of the session scratchpad before any arm runs.
+
+#### The new lexically-normal queries — provenance protocol
+
+The trap is symmetrical: E4's 28 queries were *"deliberately worded to minimize lexical
+overlap"*, and me hand-authoring 15 replacements would just bias the other way.
+Two sources were considered and one rejected:
+
+- **Rejected — `metrics.args_json` (real agent queries).** Verified working on
+  2026-08-01 (a `mast_search` call landed one row with `args_json` populated exactly
+  per §14.3 — the previously-empty table was "nothing instrumented had run against
+  this state dir", **not** a defect). But n=1 today, so it cannot source 15 queries.
+  **Promoted to the reserve as the v2 source**: harvest real queries over the coming
+  weeks and re-run Q1 against them.
+- **Adopted — this repo's own pre-existing task descriptions.** `IMPLEMENTATION_PLAN.md`
+  task rows and `GITNEXUS_COMPARISON.md` findings are natural-language descriptions of
+  code locations that **cite their own ground truth** (e.g. "`parseCallee`: unwrap
+  `await_expression` (`typescript.ts:1360`)"). They were written by a human, for a
+  purpose unrelated to this experiment, before it was designed. That is materially
+  better provenance than anything authored now.
+
+Protocol: sample 15 such rows with a seeded RNG, use the description verbatim as the
+query (identifiers included — that is what makes them *normal*), and the cited
+`file:line` as the target. Freeze into `gold-set-normal.json` and gate with
+`verify-gold.mjs` **before** any arm is scored.
+
+#### Pre-committed decision rule (limit=10, NDCG@10 on the normal set)
+
+| outcome | verdict |
+|---|---|
+| hybrid − lexical **< 0.05** *and* lexical Recall@10 ≥ 0.80 × hybrid's | **Vectors die.** M2 resolves to arm D: delete `vectors.lance`, drop `@lancedb/lancedb` (−91 MB), retire the forked embedder and the `mode` discriminator. |
+| hybrid − lexical **≥ 0.15** | **Vectors justified.** Proceed to the A-vs-C benchmark at 153k (vscode). |
+| **0.05 – 0.15** (ambiguous) | Escalate: run the `nest` external replication (n ≥ 2), **and** promote the reserve arm below. |
+
+#### Design Reserve (pre-thought, NOT a build commitment)
+
+- **Identifier decomposition** (Stage 4.5 lever #2) — index `checkAuthToken` also as
+  `check auth token` in a second FTS column, making conceptual queries hit
+  *lexically*. Promoted **only** if Q1 lands in the ambiguous band or justifies
+  vectors: if this closes the gap at zero query cost, vectors still die and the
+  capability is kept. Do not build it to find out — measure L vs H first.
+- **`metrics.args_json` harvest** — the real-query re-run described above.
+
+#### D2 result (2026-08-01) — harness repaired, gate green
+
+**Two M1-induced rot sites found, both reading the retired Lance chunk table:**
+
+| site | symptom | severity |
+|---|---|---|
+| `build-corpus.mjs:38–39` | `LanceStore.chunkCount()` → reported `TOTAL CHUNKS = 0` **as success** | **false-green** — would have frozen an empty corpus and scored against it |
+| `verify-gold.mjs:11–12` | `LanceStore.getAllChunks()` → empty set, so all 43 targets read `(file not in corpus)` | false-red — a confident, wholly artifactual "GOLD SET INVALID" verdict |
+
+The second failed *closed* (exit 1), so nothing was scored against bad data. The first
+did not — it printed a zero-chunk corpus as a successful build. Both now route through
+`SqliteChunkStore`, and **both gained an explicit zero-chunk guard** so this class
+cannot recur silently in either direction.
+
+**Corpus pinned and rebuilt:**
+- `git worktree add --detach ~/.cache/mast-eval/corpus-kluster 07d705b…`
+- `paths.mjs` moved off the dead session scratchpad to `~/.cache/mast-eval`, and now
+  exports `CORPUS_SHA` for stamping into results.
+- Build: **1,322 files / 10,997 chunks / 0 parse errors in 27.2 s** — against the
+  README's pre-M1 budget of ~7 min, an incidental reconfirmation of M1's win.
+
+**Gold set survived the pin:** after the read-path fix, 42 of 43 targets resolved
+unchanged. The single casualty (q19 → `packages/IMPLEMENTATION_PLAN.md` L1620) targets
+a file deleted before `07d705b`; it was **dropped, not substituted** (see
+`gold-set.json > amendments`), and the repair was made before any arm was scored.
+Gate now prints `queries: 28  targets: 42  missing: 0  → gold set OK`.
+
+**A third and fourth Lance rot site were found while wiring the arms:**
+
+- `make-subset.mjs:20–21` — `LanceStore.getAllChunks()`. Would have frozen a subset
+  containing **zero gold needles**, silently crippling every vector-using arm while
+  reporting "subset frozen: 3000 chunks".
+- `search/hybrid.ts:55` — `chunkStore: ChunkStore = lance`. The **shipped** default
+  parameter still points at the retired Lance chunk table. Shipped call sites all pass
+  it explicitly so production is unaffected, but any new caller that omits it gets zero
+  results with no error. Left in place (out of M2's scope) but flagged: this is a
+  loaded gun in a public signature. Candidate for Stage 3.5/C1.
+
+**Instrument built (2026-08-01):**
+
+| artifact | what it is |
+|---|---|
+| `gold-set-normal.json` | 15 lexically-normal queries, **15 distinct targets**, mechanically selected (seed 20260801) from the pinned tree's own task rows. 3 amendments logged, all pre-scoring, plus an explicit stopping rule. |
+| `build-normal-set.mjs` | the harvester; sentence/table-row units, dedup by target chunk |
+| `corpus-subset.json` | re-frozen: 3,000 chunks = **54 gold needles (from 57 targets across both sets, 0 unresolved)** + 2,946 distractors |
+| `q1-vector-value.mjs` | the three-arm scorer (L/H/V) with the pre-committed decision rule inlined |
+
+One amendment is worth calling out because it cuts against the incumbent: the harvest
+unit was changed from *line* to *sentence* because line-splitting produced grammatical
+debris that keeps rare identifiers but loses conceptual content — which would have
+biased the experiment **toward killing vectors**. The correction favours the subsystem
+under test, which is the direction an author with a thesis would not choose.
+
+#### 🔴 Q1 run of 2026-08-01 is VOID — corpus leakage in the query protocol
+
+The run completed and printed `VERDICT: VECTORS JUSTIFIED`. **That verdict must not be
+used.** Raw numbers kept on the record (`~/.cache/mast-eval/results/q1-vector-value.json`):
+
+| set | arm L (lexical) | arm H (hybrid) | arm V (pure vector) |
+|---|---|---|---|
+| normal (15) | **0.0000** | 0.4386 | 0.5046 |
+| anti-lexical (28) | **0.0000** | 0.5109 | 0.5193 |
+
+**What tipped it off:** arm L scored *exactly* 0.0000 on NDCG, Recall and MRR across
+all 43 queries. A BM25 index containing the literal tokens `parseCallee` and
+`walkProject` cannot score zero on queries containing those words — and standalone,
+`hybridSearch(db, lance, null, …)` on `"walkProject"` returns 10 results with the
+correct target at rank 1. So the arm works; the *queries* are broken.
+
+**Root cause — confirmed, not theorised.** Every normal query returned **exactly one**
+result, and for all 15 that sole hit is the query's **own source document**:
+
+```
+n01 provenance: eval/GITNEXUS_COMPARISON.md  → L-arm sole hit: eval/GITNEXUS_COMPARISON.md (doc)
+n02 provenance: IMPLEMENTATION_PLAN.md       → L-arm sole hit: IMPLEMENTATION_PLAN.md (doc)
+```
+
+The protocol harvested queries **verbatim from documents that are themselves in the
+corpus** (`.md` is in `file_extensions`). A 200-character verbatim sentence is a
+near-perfect trigram match for exactly one chunk — the paragraph it was copied from —
+so FTS returns that and nothing else. Arm L therefore scores 0 **by construction**, not
+by measurement.
+
+**The bias runs toward the incumbent.** The leak cripples the lexical arm specifically,
+manufacturing the "vectors justified" verdict. Had I taken the number at face value,
+M2 would have proceeded to an A-vs-C benchmark on the strength of an artifact.
+
+**Two distinct defects, only one of which I anticipated:**
+
+1. **Corpus leakage** — the source docs are in the corpus. Fixable by excluding
+   `packages/mast/IMPLEMENTATION_PLAN.md`, `eval/GITNEXUS_COMPARISON.md`, and
+   `packages/mast/.history/**` (q19's target lives in `workbench/fold/`, so it survives).
+2. **Query realism** — a 200-char verbatim sentence is not how anything searches. MAST's
+   own §12 prompt tells agents to use *code tokens*. Even leak-free, these queries do not
+   represent the workload. This defect I did not foresee, and it is the more serious of
+   the two.
+
+**Not a bug:** the anti-lexical set's `L = 0` is expected. That set is anti-lexical by
+design (§14.3) — it exists to defeat trigram FTS. Only the normal set is affected.
+
+**Why this is not being quietly re-run.** `gold-set-normal.json` carries a declared
+stopping rule, and I have now seen which direction the error ran. Amending an instrument
+after seeing its results is exactly the §15.4 failure ("the instrument was amended
+mid-experiment"). The redesign needs an explicit, recorded decision and a re-registration
+**before** the next run — not a fourth silent amendment.
+
+**Status: Q1 unresolved. M2 remains blocked.**
+
+#### Q1-r2 — RE-REGISTERED protocol (written 2026-08-01, BEFORE the re-run)
+
+Approved after the void run. The v1 numbers stay on the record above so this change
+is auditable.
+
+**Fix 1 — leakage.** Exclude the query source documents from the corpus:
+`packages/mast/IMPLEMENTATION_PLAN.md`, `packages/mast/eval/GITNEXUS_COMPARISON.md`,
+`packages/mast/.history/**`. q19's target (`workbench/fold/IMPLEMENTATION_PLAN.md`)
+is unaffected. Requires: rebuild corpus → re-run `verify-gold` → re-freeze subset →
+re-embed.
+
+**Fix 2 — realism.** Query is derived from the TARGET, not from prose quoting it:
+`camelCaseSplit(symbol_name)` + the first sentence of its TSDoc, capped at ~12 words,
+code tokens retained. E.g. `walkProject` → *"walk project file discovery exclude
+patterns"*.
+
+**⚠ Fix 2 introduces a KNOWN, OPPOSITE bias — stated before the run, not after.**
+A chunk's TSDoc is part of its own indexed content, so a TSDoc-derived query hands the
+lexical arm tokens that are literally inside the target. The normal set is therefore
+**biased FOR lexical**. This is not concealed — it is load-bearing, because it converts
+Q1 into a **bracketing** design:
+
+| set | built-in bias | what a win there proves |
+|---|---|---|
+| anti-lexical (28) | **for vectors** — worded to defeat trigram FTS (§14.3) | **lexical** winning ⇒ vectors die decisively |
+| normal (15) | **for lexical** — query tokens sit inside the target | **hybrid** winning ⇒ vectors justified decisively |
+
+**Re-committed decision rule (supersedes v1's single-set rule):**
+
+| outcome | verdict |
+|---|---|
+| hybrid ≥ lexical on the **normal** set by ≥ 0.10 NDCG@10 | **Vectors justified** — beat a lexically-rigged set. Proceed to A-vs-C. |
+| lexical ≥ hybrid on the **anti-lexical** set | **Vectors die** — lost a vector-rigged set. M2 = arm D. |
+| each arm wins its own biased set | **Ambiguous by construction.** Do NOT force a call: escalate to the `metrics.args_json` real-query harvest (reserve), and run the `nest` replication. |
+| both sets agree on one arm | that arm wins outright; bias direction is irrelevant when it is overcome. |
+
+**Sanity gate — must pass before any score is believed.** The v1 run failed because
+nobody asserted a floor on arm behaviour. Before scoring: assert arm L returns **> 1
+result for at least 12 of 15** normal queries, and that no arm's sole hit is a `doc`
+chunk from a query's own provenance file. A run violating this is void by rule, not by
+judgement.
+
+#### Q1-r2 RESULT (2026-08-01) — leak fixed, gate failed on a mis-calibrated clause
+
+Corpus: 1,320 files / 10,943 chunks (source docs excluded). Query set:
+`gold-set-normal-r2.json`, 11 TSDoc-derived queries (4 v1 targets dropped — no TSDoc
+and too-short identifiers). Subset: 3,000 chunks, 50 gold needles, 0 unresolved.
+
+| set | bias | arm L (lexical) | arm H (hybrid) | arm V (pure vector) |
+|---|---|---|---|---|
+| **normal** (11) | **FOR lexical** | 0.3319 | **0.7567** | 0.7624 |
+| **anti-lexical** (28) | **FOR vectors** | 0.0000 | 0.4894 | 0.5213 |
+
+*(NDCG@10. Normal-set Recall@10: L 0.5455, H **1.0000**, V 0.9091.)*
+
+**The leak is fixed.** Arm L went from 0/15 targets found (v1) to **6/11**, with real
+result sets instead of a single self-match. `soleDocHit = 0`.
+
+**The gate failed — on the wrong clause.** It has two clauses:
+- `soleDocHit === 0` — the clause written to catch the **v1 pathology**: **PASSED**.
+- `>1 result for ≥80% of queries` (8/11, needed 9): **FAILED**.
+
+The failing clause is a **proxy** for "the lexical arm is being exercised", and the
+direct evidence contradicts it: arm L scores 0.3319 NDCG / 0.5455 Recall and retrieves
+6 targets. A query that legitimately returns one excellent result is not a broken arm.
+Per the pre-registration the run is **void by rule**, and it is recorded as such rather
+than quietly re-graded.
+
+**Sensitivity check — the conclusion is invariant.** Restricting to only the 8 queries
+that *pass* the gate (which **helps** L, since the 3 excluded are ones it failed):
+
+| | L | H | V |
+|---|---|---|---|
+| normal, gate-passing 8 only | 0.4564 | **0.7741** | 0.7359 |
+
+Delta H−L = **0.3177**, still 3× the 0.10 decisive threshold. On all 11: **0.4248**.
+
+**What the numbers say, pending ratification of a gate fix:** hybrid beat lexical by
+0.42 NDCG@10 on a set **deliberately rigged for lexical**, and lexical scored **0.0000**
+on the set rigged for vectors. Under the bracketing rule that is the *decisive* branch —
+`VECTORS JUSTIFIED` — reached from the direction that is hard to fake. It is **not**
+being recorded as the verdict until the gate clause is amended and re-registered,
+because the author does not get to grade his own failed gate.
+
+**Secondary finding, unprompted:** arm **V (pure vector) ≈ arm H (hybrid)** on both sets,
+and V *beats* H on the normal set (0.7624 vs 0.7567) and on anti-lexical (0.5213 vs
+0.4894). The FTS side contributes ~nothing to the fused ranking here and may be diluting
+it. That is a live question about **RRF fusion value**, distinct from Q1's
+"do vectors earn their keep" — worth its own entry.
+
+**Gate amendment — RATIFIED 2026-08-01 (user-approved).** The multi-result proxy is
+replaced by a direct assertion on retrieval: arm L must achieve `NDCG > 0` on ≥ 40% of
+normal queries. The `soleDocHit === 0` clause — the one that actually detects the v1
+leakage pathology — is unchanged. The original clause and its failure are preserved
+above; the amendment was proposed with the failure on the record and approved
+separately, not applied by the author unilaterally.
+
+Re-scored under the ratified gate: **arm L retrieves on 6/11 (need ≥ 5), sole-doc-hits
+= 0 → PASS.**
+
+> **VERDICT (home-field): VECTORS JUSTIFIED.** Hybrid beat lexical by **0.4248**
+> NDCG@10 on a set deliberately rigged *for* lexical, and lexical scored **0.0000** on
+> the set rigged *for* vectors. Both branches of the bracketing rule point the same way.
+
+**This is one corpus.** Per the n ≥ 2 rule the result is not generalised until the
+external replication below lands.
+
+#### 🔴 nest replication (n≥2) — VOID, and it exposed a shipped FTS defect that confounds Q1
+
+External corpus: `nestjs/nest` @ `f7fffd6`, pinned worktree, 1,332 files / 4,994 chunks
+/ 0 parse errors. 20 queries, mechanically selected (seed 20260801: exported,
+TSDoc-bearing declarations, one per file), same TSDoc derivation as the kluster set.
+
+| arm | NDCG@10 | Recall@10 | MRR |
+|---|---|---|---|
+| L (lexical) | 0.2315 | 0.2500 | 0.2250 |
+| H (hybrid) | 0.5815 | 0.6500 | 0.5583 |
+| **V (pure vector)** | **0.7827** | **0.9000** | 0.7417 |
+
+**Gate: FAIL** — arm L retrieves on 5/20 (need ≥ 8). Void by the ratified rule. The gate
+was **not** amended again; a third revision, made after seeing an unwelcome result,
+is exactly the trap the pre-registration exists to prevent.
+
+**Why L failed — root cause found, and it is not "BM25 is weak".** 6 of 20 queries
+returned **zero** FTS rows on a corpus that plainly contains the target symbol.
+`search/fts.ts:202`:
+
+```js
+return tokens.map((t) => `"${t}"`).join(' ');   // FTS5: implicit AND
+```
+
+Every token is ANDed, so a 12-word conceptual query only matches a chunk containing
+**all twelve words**. Confirmed directly against the nest index:
+
+```
+query: "precondition failed exception defines an http for type errors"
+  AND (shipped) -> 0 rows
+  OR            -> 5 rows
+```
+
+`identifier_fts` at `fts.ts:147` already uses `.join(' OR ')`. Only `chunk_fts` — the
+BM25 path behind `mast_search` — ANDs.
+
+**This confounds Q1 on both corpora.** The "lexical arm" was never plain BM25; it was
+BM25 behind a query builder that discards any multi-word conceptual query. Vectors have
+been compensating for a **fixable lexical defect**, not demonstrating irreplaceable
+semantic value. It also retroactively explains why §9's "zero-result assist"
+(`suggestions`, split-term retry) exists at all — that machinery papers over this bug.
+
+**Consequences:**
+- **The home-field `VECTORS JUSTIFIED` verdict is downgraded to *confounded*.** It is
+  not withdrawn — hybrid did win — but it cannot carry M2 while a known defect
+  handicaps the arm it beat.
+- **M2 must NOT proceed to the A-vs-C benchmark yet.** Spending a 153k-chunk benchmark
+  to pick a backend for a subsystem whose measured value rests on a one-line FTS bug is
+  the wrong order.
+- **New blocking task (F15): fix `buildMatchExpr`.** OR-join at minimum; better, OR with
+  an AND-boost so full-phrase matches still rank first. Then re-run Q1 on both corpora.
+- **V ≫ H on nest (0.7827 vs 0.5815).** Pure vector beats the shipped fusion by 0.20.
+  Combined with the same sign on kluster, this is now a strong signal that **RRF fusion
+  is actively degrading ranking** — plausibly the same root cause, since an AND-matched
+  FTS list contributes near-random ranks to the fusion. Re-measure after F15.
+
+---
+
+### F15 — FTS OR-join (SHIPPED 2026-08-01) + Q1 re-run on both corpora
+
+**Fix**: `toFtsMatch` (`search/fts.ts:199`) now `.join(' OR ')` instead of `.join(' ')`,
+plus `"`-escaping. TDD: `fts-query.test.ts` gained a red-first test
+("matches when only SOME query terms occur in the chunk") and a BM25 ranking-order test.
+**Verification**: `pnpm -F mast test` **382 passed / 34 files** (baseline was 380 — the
+2 new tests), `tsc --noEmit` clean, `eslint` clean. No structural change, so `align`
+is unaffected.
+
+**Q1 re-run, post-F15 — both corpora, no re-index or re-embed needed (query
+construction only):**
+
+| corpus | set (bias) | L | H | V | Δ(H−L) | gate |
+|---|---|---|---|---|---|---|
+| kluster | normal (**for lexical**) | 0.5663 | **0.8140** | 0.7624 | **0.2477** | 11/11 PASS |
+| kluster | anti-lexical (**for vectors**) | 0.1908 | 0.4869 | **0.5213** | 0.2961 | — |
+| **nest** (external) | normal (**for lexical**) | 0.5119 | **0.6201** | **0.7827** | **0.1082** | 14/20 PASS |
+
+> **⚠️ THIS VERDICT IS WITHDRAWN — see "Adversarial review" below (2026-08-01).**
+> ~~VERDICT: VECTORS JUSTIFIED — and REPLICATED on an external corpus. Both gates pass.
+> Hybrid beats lexical on a set rigged for lexical, on both a home-field and a foreign
+> codebase, and on kluster it also wins the set rigged the other way. Q1 is resolved;
+> M2 is unblocked.~~
+>
+> Kept struck-through rather than deleted: the claim was made, and the record of an
+> overclaim is more useful than its absence. **Corrected status: Q1 is AMBIGUOUS** by
+> its own pre-registered rule. See below.
+
+**How much F15 changed the picture — this is the honest part:**
+
+| | pre-F15 | post-F15 |
+|---|---|---|
+| nest arm L NDCG | 0.2315 | **0.5119** (+121%) |
+| nest Δ(H−L) | 0.3500 | **0.1082** |
+| kluster normal Δ(H−L) | 0.4248 | **0.2477** |
+| kluster anti-lexical arm L | **0.0000** | 0.1908 |
+
+Fixing one line of query construction **more than halved** the measured value of the
+vector store, and the external margin now clears the pre-committed 0.10 threshold by
+**0.0082**. Vectors still win everywhere, but "vectors are worth 0.35 NDCG" was never
+true — it was worth ~0.11 on a foreign corpus, and the rest was a bug. Anyone re-reading
+this should treat the external margin as *thin*, not comfortable, at n=20.
+
+**🔴 The fusion finding survived F15 and is now the top open question.**
+On nest, **pure vector beats the shipped hybrid fusion by 0.1626** (0.7827 vs 0.6201) —
+V also beats H on kluster's anti-lexical set (0.5213 vs 0.4869), and only loses on
+kluster's normal set (0.7624 vs 0.8140). So RRF-fusing the FTS list *costs* ranking
+quality on 2 of 3 measured sets, even with FTS repaired. This is not Q1's question and
+must not be folded into it. **New task F16: measure and fix RRF fusion** (candidate
+causes: `rrf_k = 60` mis-tuned for a 40-candidate pool; OR-matching now injecting many
+weak lexical candidates at high rank). Directly relevant to M2 — if the answer is
+"vector-only ranking", the backend choice changes.
+
+**M2 status: UNBLOCKED.** Arm B eliminated on paper; Q1 resolved and replicated; the
+A-vs-C benchmark (Lance+IVF-PQ vs `sqlite-vec` at 153k) is now the correct next step —
+though F16 should land first, since it may change what the store must support.
+
+---
+
+### F16 — RRF fusion: `rrf_k` hypothesis FALSIFIED, and a confound found in the harness
+
+**Hypothesis (mine, pre-measurement):** `rrf_k = 60` is calibrated for TREC-style pools
+of ~1000 but `hybridSearch` fuses `limit * 4 = 40`. At k=60 the constant swamps the
+rank — `rrfScore(1,60)=0.01639` vs `rrfScore(40,60)=0.01000`, only 64% apart — while
+merely *appearing in both lists* roughly doubles the score. So a weak lexical match that
+is also a mediocre vector match should outrank a true target at vector rank 1 that is
+absent from the FTS top-40.
+
+**Measured (`eval/f16-rrf-sweep.mjs`, k ∈ {0,1,2,5,10,20,40,60,120}):**
+
+| set | L | V | shipped k=60 | best hybrid | verdict |
+|---|---|---|---|---|---|
+| kluster-normal (11) | 0.5663 | 0.7624 | 0.8140 | 0.8140 @ k=10–120 (flat) | hybrid wins |
+| kluster-anti (28) | 0.1908 | 0.5213 | 0.4869 | 0.5034 @ k=10 | **vector still wins** |
+| nest (20) | 0.5119 | 0.7827 | 0.6201 | 0.7012 @ k=2 | **vector still wins** |
+
+**The hypothesis is false.** Tuning k yields marginal gains and never closes the gap:
+nest's best (0.7012) still trails pure vector by 0.0815, kluster-anti's best (0.5034) by
+0.0179. The optima also *disagree* across corpora (k=10 vs k=2) and kluster-normal is
+flat from k=10 to k=120 — so k-tuning would be overfitting to a corpus, not fixing a
+defect. **Do not ship a k change on this evidence.**
+
+**🔴 But F16 cannot be concluded yet — the harness confounds it, worse than it confounds Q1.**
+
+Arm V ranks within the **embedded subset** (3,000 chunks); arms L/H rank against
+**full-corpus FTS**. Two consequences, the second specific to fusion:
+
+1. *(Q1)* The vector arm faces fewer distractors than the lexical arm — an easier
+   problem. kluster embedded **27%** of its corpus and showed Δ(H−L)=0.2477; nest
+   embedded **60%** and showed Δ=0.1082. The corpus with the bigger handicap-in-V's-favour
+   produced the bigger vector advantage, consistent with inflation.
+2. *(F16, worse)* The FTS side contributes candidates that **have no vector at all**, so
+   they fuse on lexical evidence alone and pollute the ranking. In production every chunk
+   is embedded and both rankers cover the same universe. The shipped fusion has therefore
+   never been measured under the conditions it actually runs in.
+
+The eval README justifies the subset for *model-vs-model* comparison, where an
+easier-but-identical pool cancels. It does **not** cancel for *arm-vs-arm*. That
+justification does not transfer and should not have been carried over.
+
+**Action taken:** `eval/embed-full-corpus.mjs` — embed every chunk in both corpora
+(nest 1,994 remaining ≈ 5 min; kluster 7,943 ≈ 22 min). F16 and Q1 both re-measure
+against full embeds before any fusion change or any A-vs-C spend.
+
+**Implication for the vscode question:** a vscode run on the 3,000-chunk subset would be
+**2% embedded** — a ~50× asymmetry that would flatter vectors enormously. A valid vscode
+run needs a full embed (152,969 ÷ 6.15 ch/s ≈ **6.9 h**, matching §4.5's 7.2 h figure).
+Cheap-and-invalid is worse than not running it.
+
+---
+
+### 🔴 Adversarial review (Fable, 2026-08-01) — verdict withdrawn, Q1 is AMBIGUOUS
+
+An independent adversarial review was run against the plan, both result JSONs, all three
+query sets, the harness, and `hybrid.ts`/`fts.ts`. It found four issues that each
+independently threaten the withdrawn verdict. **All four are accepted.**
+
+**1. The external margin is not a measurement.** No inferential statistics were computed
+anywhere in this program — every threshold was applied to a point estimate. Recomputed
+from the recorded per-query pairs: n=20, mean Δ(H−L)=0.1082, paired SD=0.3281,
+SE=0.0734, **95% CI [−0.045, +0.262]**, t(19)=1.47 vs zero. Against the 0.10 threshold,
+p≈0.46 — a coin flip. Only 10 of 20 queries differ at all (9 wins, 1 loss), and dropping
+any one of **seven** queries pushes the mean under 0.10. Detecting Δ=0.10 at this
+variance with 80% power needs **n≈67**; n=20 gives ≈35%. The celebrated "clears by
+0.0082" margin is **9× smaller than the standard error**. By contrast the kluster
+home-field delta *is* significant (n=11, t=3.70 vs zero, t=2.21 vs threshold) — that is
+the real evidence in this record.
+
+**2. The record contradicted itself.** The F15 verdict box said "Q1 resolved, M2
+unblocked" while the F16 section below it mandated a full-embed re-measurement of the
+same numbers. Now fixed (verdict struck through). The confound is also *worse* than
+stated: `make-subset.mjs` and `q1-nest-replication.mjs` **seed every gold needle into the
+embed pool first**, so the vector arm is guaranteed its target is embedded while 40%
+(nest) / 73% (kluster) of the corpus is invisible to it — the needle can never lose to
+an unembedded distractor. The plan's own dose-response (27% embedded → Δ=0.2477; 60% →
+Δ=0.1082) predicts further shrinkage at 100%.
+
+**3. The bracketing premise was asserted, never measured — and the data suggest it is
+backwards.** Chunk content *includes* the leading TSDoc
+(`ast/extractors/typescript.ts:521,563,763`), and that same text is what gets embedded.
+So a `symbol + TSDoc-first-sentence` query is a bag-of-words subset of the target's own
+embedded text — a self-retrieval task dense encoders ace. The tell: **pure vector scores
+its maximum anywhere on the supposedly "lexically rigged" sets** (0.7827 nest, 0.7624
+kluster) versus 0.5213 on the set built to favour vectors. A set where the vector arm
+peaks is not rigged against vectors. Declaring a bias direction does not make it real,
+and the entire "a win on the set rigged against you is decisive" rule rests on it.
+Without that premise the result is "each arm won a set favourable to itself" — the
+pre-registered **AMBIGUOUS** branch.
+
+**4. The pre-registered reserve arm was skipped exactly when its trigger fired.** The
+Design Reserve says identifier decomposition is promoted "**only** if Q1 lands in the
+ambiguous band **or justifies vectors**". Q1 was declared to justify vectors; the arm was
+never run; the verdict jumped to "proceed to A-vs-C". Violating a pre-registration in the
+direction that favours the incumbent subsystem is the exact failure the pre-registration
+existed to prevent. F15 is the proof it matters — one line of lexical query construction
+halved the measured value of vectors, and the residual gap is only ~0.11.
+
+**Further accepted findings:**
+
+- **Arm V runs a different pipeline.** It calls `lance.searchVectors` directly, bypassing
+  `dedupShellMethodCollisions` (`hybrid.ts:139,201-253`), post-filters, and the candidate
+  pipeline that L/H go through. Shells carry the same TSDoc + signatures as their methods,
+  so on TSDoc-derived queries dedup can **delete the designated target from L/H's list**
+  and score the surviving shell as a miss. This contaminates F16's "V beats H" headline —
+  part of V's edge may be dedup penalising H, not fusion degradation. nest **x13: L=1.0,
+  H=0.0** — hybrid destroyed a rank-1 lexical hit and nobody diagnosed it.
+- **The two runs use different relevance definitions** — kluster matches by line
+  containment (a shell spanning the line counts), nest by exact symbol (the shell is a
+  miss). Comparing 0.2477 to 0.1082 as one replicated quantity is not apples-to-apples.
+- **Practical significance was never established.** On kluster normal, **arm L
+  Recall@10 = 1.000** — lexical already puts the target in the 10-result window on *every*
+  home query, so the entire home delta is intra-window ordering, for a consumer (an LLM
+  agent) that reads all 10. On nest the recall gain is 0.70→0.80: **2 queries in 20**.
+  Pre-registered questions Q4 (win concentrated in a nameable class?) and Q5 (value per
+  unit of 7.2h/470MB/169ms?) were silently dropped.
+- **Query-set defects reduce effective n**: nest x17 is generated-file banner text
+  (unanswerable by design), x01/x12/x13 are near-duplicate exception boilerplate
+  (effective n≈17), and word-cap mangling leaves stop-word debris.
+- **F15's comment is wrong even though the fix is right.** `fts.ts:210` claims "bm25()
+  already ranks by term coverage" — BM25 has **no coverage term**; high tf of one mid-IDF
+  token can outrank full coverage. Tokens ≥3 chars now OR in stop-words ("the", "and"),
+  and `searchFts` truncates at `limit*2` **before** fusion (`fts.ts:92`), so a
+  full-coverage target can be pushed out of the top-80 by token-stuffed chunks in a way
+  AND made impossible. Recall win is measured; precision and latency cost are not.
+
+**CORRECTED STATUS: Q1 is AMBIGUOUS.** The mandated action for that branch is the
+real-query harvest + the reserve arm — **not** A-vs-C. Ordered next steps:
+
+1. Full-embed re-run of Q1 + F16 (in flight; nest done at 4,994/4,994).
+2. **Promote the identifier-decomposition reserve arm** (pre-registered, overdue).
+3. Report **confidence intervals, not point estimates**, on every future arm comparison;
+   raise n toward ≈67 or accept that only large effects are detectable.
+4. Equalise the arms: run V through `hybridSearch`'s pipeline, and use one relevance
+   matcher across corpora.
+5. Fix `fts.ts:210`'s incorrect BM25 claim; measure F15's precision/latency cost.
+6. **M2 stays BLOCKED.**
+
+---
+
+### Q1/F16 FULL-EMBED RE-RUN (2026-08-01) — the corrected numbers
+
+`eval/q1-final.mjs`. 100% of both corpora embedded, **one** relevance matcher (symbol OR
+line containment) across all sets, paired 95% CIs on every comparison.
+
+| set | n | L | H | V | H−L (95% CI) | sig? | V−H (95% CI) | sig? |
+|---|---|---|---|---|---|---|---|---|
+| kluster-normal | 11 | 0.5663 | **0.7331** | 0.6842 | **0.1669** [0.028, 0.306] | **YES** t=2.68 | −0.049 [−0.223, 0.125] | no |
+| kluster-anti | 28 | 0.1908 | 0.3222 | **0.3574** | **0.1313** [0.068, 0.195] | **YES** t=4.34 | 0.035 [−0.102, 0.173] | no |
+| nest-external | 20 | 0.5119 | 0.6122 | **0.6889** | 0.1003 [**−0.058**, 0.259] | **NO** t=1.33 | 0.077 [−0.069, 0.222] | no |
+
+**1. The subset confound was real and large — the review's prediction held.** Embedding
+the remaining corpus dropped arm V on *every* set: kluster-normal 0.7624→0.6842,
+kluster-anti 0.5213→0.3574, nest 0.7827→0.6889. The needle-seeded 3,000-chunk pool had
+been inflating the vector arm exactly as the dose-response suggested.
+
+**2. 🔴 F16 IS CLOSED — NO ACTION. My "pure vector beats the shipped fusion" finding was
+a harness artifact.** With full embeds, V−H is **not significant on any set** (t = −0.63,
+0.54, 1.10) and is *negative* on kluster-normal. The apparent 0.16 gap on nest came from
+the FTS side contributing candidates that had no vector, precisely as hypothesised — but
+the fix was to the harness, not to `hybrid.ts`. **RRF fusion needs no redesign, and
+`rrf_k = 60` should not be changed.** Both F16 hypotheses (k mis-tuning, then fusion
+degradation) are now falsified. Good: the shipped design survives.
+
+**3. Q1 remains AMBIGUOUS, but the shape is clearer.** Hybrid beats lexical
+**significantly on both kluster sets** — including the one whose queries are drawn from
+the targets' own TSDoc, and the one built to defeat trigram FTS (t=4.34, the strongest
+result in the record). On the **external** corpus the effect is the right sign and
+similar size (+0.1003) but the **CI spans zero** (t=1.33): consistent with a real effect,
+not a demonstration of one. Per the review's power analysis, n≈67 would be needed; nest
+has 20.
+
+**Honest one-liner:** *vectors measurably help on our own repo; the external evidence
+points the same way but does not reach significance.*
+
+**Still outstanding before M2 unblocks** (unchanged by this run):
+- identifier-decomposition reserve arm (pre-registered, still not run)
+- real-query harvest via `metrics.args_json`
+- arm V still bypasses `hybridSearch`'s dedup/post-filters (review finding 5)
+- practical significance: kluster arm L **Recall@10 = 1.000** — lexical already puts the
+  target in the window on every home query, so the entire home-field gain is intra-window
+  reordering for a consumer that reads all 10 results. Until Q4/Q5 are answered, no
+  measurement connects Δ-NDCG to agent task outcomes.
+
+#### Known limitations, stated up front
+
+- Single corpus for the primary run (kluster @ pinned SHA); `nest` replication is
+  conditional, so a pass in the "vectors die" band is **home-field validated only**.
+- 15 normal + 28 anti-lexical queries separates tiers, not near-ties (the existing
+  set's own ±30% caveat carries over).
+- The live index is 70% unembedded (`pending_embeddings: 10169` / 14,449), so arms H
+  and V require a completed embed of the pinned corpus before scoring. That embed
+  cost (~30–45 min per §14.3) is Q1's dominant runtime.
+
+---
+
+## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
+
+Everything above records *reasoning*. This records *state*, which is otherwise only in
+one session's head. Read this before running anything.
+
+### Off-repo state (none of it is in git)
+
+| path | what | rebuild cost |
+|---|---|---|
+| `~/.cache/mast-eval/corpus-kluster` | git worktree, kluster @ `07d705b` | seconds |
+| `~/.cache/mast-eval/corpus-nest` | git worktree of `~/temp/mast-bench/nest` @ `f7fffd6` | seconds |
+| `~/.cache/mast-eval/base-state-r2` | kluster corpus, **10,943 chunks, 100% embedded** | 13 s index + **~30 min embed** |
+| `~/.cache/mast-eval/base-state-nest` | nest corpus, **4,994 chunks, 100% embedded** | 4 s index + **~14 min embed** |
+| `~/.cache/mast-eval/model-cache` | jina ONNX weights (627 MB) | 627 MB download |
+| `~/.cache/mast-eval/results/` | `q1-final-fullembed.json` ← **the authoritative result** | — |
+
+**The embeds are the expensive asset — ~45 min of compute. Do not delete these dirs.**
+Remove the worktrees with `git worktree remove <path>` (from the owning repo), never `rm -rf`.
+
+### Env vars
+
+- `MAST_EVAL_STATE` — overrides `BASE_STATE_DIR` in `paths.mjs`. **Required** for every
+  script except `q1-nest-replication.mjs` (which hardcodes its own paths).
+- `MAST_EVAL_R2=1` — makes `build-corpus.mjs` apply the source-doc excludes. Without it
+  you rebuild the **leaky v1 corpus**.
+
+### Script inventory (`eval/`) — `eval/README.md` is STALE and documents only the old N1 bake-off
+
+| script | status |
+|---|---|
+| `q1-final.mjs` | ✅ **authoritative** — full embeds, unified matcher, paired CIs |
+| `embed-full-corpus.mjs` | ✅ embeds every chunk in `$MAST_EVAL_STATE` |
+| `build-normal-set-r2.mjs` | ✅ builds `gold-set-normal-r2.json` (TSDoc-derived) |
+| `q1-nest-replication.mjs` | ⚠️ `build`/`embed` still useful; its `score` is **superseded** by `q1-final.mjs` (subset-based, strict-symbol matcher) |
+| `q1-vector-value.mjs` | ⚠️ **superseded** by `q1-final.mjs`; kept for the void-run audit trail |
+| `f16-rrf-sweep.mjs` | ⚠️ ran pre-full-embed; its conclusion is void (see F16 closure) |
+| `build-normal-set.mjs`, `extract-normal-candidates.mjs` | ❌ **v1, VOID** (in-corpus leakage). Kept only as the record of the failure |
+| `corpus-subset.json`, `corpus-subset-nest.json` | ❌ **stale** — the 3,000-chunk subsets, bypassed by full embedding. Do not reuse; they carry the needle-seeding bias. |
+
+### Reproduce the authoritative result
+
+```bash
+cd packages/mast && pnpm build
+node eval/q1-final.mjs        # ~2 min, needs the two base-state dirs above
+```
+
+### ⚠️ Uncommitted work — the real handoff risk
+
+Nothing in this track is committed. **`src/search/fts.ts` (F15) is a shipped
+behavioural change** sitting in the working tree alongside its tests
+(`src/search/__tests__/fts-query.test.ts`), plus ~20 eval files and the edits to
+`gold-set.json` / `paths.mjs` / `build-corpus.mjs` / `verify-gold.mjs` / `make-subset.mjs`.
+Verified green at the time of writing: **382 tests / 34 files, `tsc --noEmit` clean,
+eslint clean.** Commit F15 separately from the eval harness — it is the only change that
+alters product behaviour.
+
+### Next action (do not skip to A-vs-C)
+
+1. **Identifier-decomposition reserve arm** — pre-registered, trigger fired, never run.
+   Cheapest remaining lever, and F15 proved lexical fixes move these numbers a lot.
+2. Real-query harvest via `metrics.args_json` (write path verified working; n=1 today).
+3. Equalise arm V through `hybridSearch`'s pipeline (review finding 5).
+4. Answer pre-registered Q4/Q5 (practical significance) — note kluster arm L
+   **Recall@10 = 1.000**.
+5. Only then reconsider M2's A-vs-C.
 
 ---
 

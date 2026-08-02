@@ -1,0 +1,153 @@
+{
+  "version": "2.0.0",
+  "created": "2026-08-01",
+  "supersedes": "gold-set-normal.json v1.0.0 (VOID — in-corpus source leakage)",
+  "corpus": {
+    "corpus_sha": "07d705b354e256d3175594f959f945d92cfc116d",
+    "chunks": 10943
+  },
+  "purpose": "Lexically-normal counterweight to gold-set.json for Q1-r2.",
+  "derivation": "query = camelCaseSplit(symbol_name) + first TSDoc sentence, deduped, capped at 12 words",
+  "declared_bias": "BIASED FOR THE LEXICAL ARM, deliberately and stated before the run. A chunk's TSDoc is part of its own indexed content, so these queries hand FTS tokens that sit inside the target. Q1-r2 is a BRACKETING design: this set is rigged for lexical, gold-set.json is rigged for vectors (§14.3). A win on the set rigged against you is decisive; each arm winning its own set is ambiguous by construction and escalates to real agent queries.",
+  "targets_carried_from_v1": true,
+  "skipped": [
+    "n08 serve (too few query words)",
+    "n11 IndexOptions (too few query words)",
+    "n12 LanceStore (too few query words)",
+    "n14 runIndex (too few query words)"
+  ],
+  "queries": [
+    {
+      "id": "n01",
+      "query": "walk project the and return all indexable files",
+      "derived_from": "walkProject",
+      "had_tsdoc": true,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/walker.ts",
+          "line": 43
+        }
+      ]
+    },
+    {
+      "id": "n02",
+      "query": "register signature tool",
+      "derived_from": "registerSignatureTool",
+      "had_tsdoc": false,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/mcp/tools/signature.ts",
+          "line": 55
+        }
+      ]
+    },
+    {
+      "id": "n03",
+      "query": "estimate full file bound the full-file token upper for set of paths",
+      "derived_from": "estimateFullFileBound",
+      "had_tsdoc": true,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/telemetry/tokenizer.ts",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "id": "n04",
+      "query": "emit chunks for node",
+      "derived_from": "emitChunksForNode",
+      "had_tsdoc": false,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+          "line": 379
+        }
+      ]
+    },
+    {
+      "id": "n05",
+      "query": "register init command",
+      "derived_from": "registerInitCommand",
+      "had_tsdoc": false,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/cli/init.ts",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "id": "n06",
+      "query": "collect calls call expression nodes within body not descending into nested named",
+      "derived_from": "collectCalls",
+      "had_tsdoc": true,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+          "line": 1360
+        }
+      ]
+    },
+    {
+      "id": "n07",
+      "query": "parse callee extract receiver method from call expression or null if unhandled",
+      "derived_from": "parseCallee",
+      "had_tsdoc": true,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+          "line": 1379
+        }
+      ]
+    },
+    {
+      "id": "n09",
+      "query": "register callers tool",
+      "derived_from": "registerCallersTool",
+      "had_tsdoc": false,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/mcp/tools/callers.ts",
+          "line": 73
+        }
+      ]
+    },
+    {
+      "id": "n10",
+      "query": "hybrid search bm25 vector fused via reciprocal rank fusion",
+      "derived_from": "hybridSearch",
+      "had_tsdoc": true,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/search/hybrid.ts",
+          "line": 133
+        }
+      ]
+    },
+    {
+      "id": "n13",
+      "query": "vector key identity of chunk for freshness comparison its id plus hash",
+      "derived_from": "vectorKey",
+      "had_tsdoc": true,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/embedder.ts",
+          "line": 148
+        }
+      ]
+    },
+    {
+      "id": "n15",
+      "query": "run index walk the project parse changed files into chunks populate graph",
+      "derived_from": "runIndex",
+      "had_tsdoc": true,
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/index.ts",
+          "line": 217
+        }
+      ]
+    }
+  ]
+}

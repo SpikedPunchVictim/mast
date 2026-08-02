@@ -1,0 +1,124 @@
+{
+  "experiment": "embedder-batching",
+  "date": "2026-08-01",
+  "question": "Is Embedder.embed()'s per-chunk inference loop the reason embedding throughput is 5.88 chunks/s? Stage 4.5 hypothesised batched inference would deliver 10-20x.",
+  "verdict": "FALSIFIED for the batching lever. Batched inference delivers 1.00-1.09x on this stack. The per-chunk loop was never the bottleneck.",
+
+  "host": {
+    "cpu": "Apple M2 Pro",
+    "cores_reported": 12,
+    "core_layout": "8 performance + 4 efficiency",
+    "memory_gb": 17.2
+  },
+  "stack": {
+    "transformers_js": "4.2.0",
+    "onnxruntime_node": "1.24.3",
+    "execution_provider": "cpu",
+    "session_options": "none passed; ORT intra-op pool defaults to ~core count",
+    "model": "jinaai/jina-embeddings-v2-base-code",
+    "dtype": "fp32",
+    "pooling": "mean",
+    "normalize": true,
+    "tokenizer_call": "{ padding: true, truncation: true } -> pads to longest member of batch, cap 8192"
+  },
+
+  "methodology": {
+    "corpus": "real chunks from ~/temp/mast-bench/embed-batching-eval-state (kluster self-index)",
+    "chunk_selection": "real chunk nearest each target TOKEN length (tokenized, not char-estimated)",
+    "warmup": "both the solo shape and the batched shape warmed before timing, 1-2 discarded calls each",
+    "reps": 3,
+    "statistic": "median",
+    "padding_control": "arm D batches N IDENTICAL texts, so padding is zero by construction and any delta is intrinsic batching cost",
+    "script": "packages/mast/eval/embedder-batching.mjs (arms E and D, this result set)",
+    "script_lengthprobe": "packages/mast/eval/embedder-batching-lengthprobe.mjs (the mixed-length long-batch probe behind M2/M3)"
+  },
+
+  "arms": {
+    "64": {
+      "tokens": 64,
+      "solo_wall_ms": 33.2,
+      "solo_cpu_wall_ratio": 5.92,
+      "seq_x16_wall_ms": 541.2,
+      "batch16_identical_wall_ms": 494.4,
+      "batch_speedup": 1.09,
+      "sweep_per_chunk_ms": { "1": 32.89, "2": 30.90, "4": 29.85, "8": 30.18, "16": 30.52, "32": 29.72 }
+    },
+    "514": {
+      "tokens": 514,
+      "solo_wall_ms": 259.8,
+      "solo_cpu_wall_ratio": 5.94,
+      "seq_x16_wall_ms": 4532.0,
+      "batch16_identical_wall_ms": 4516.2,
+      "batch_speedup": 1.00,
+      "sweep_per_chunk_ms": { "1": 268.52, "2": 286.49, "4": 269.38, "8": 276.60, "16": 271.20 },
+      "note": "B=32 skipped: B*tokens=16448 exceeds the 16384-token safety budget"
+    }
+  },
+
+  "findings": [
+    {
+      "id": "M1",
+      "claim": "ORT's intra-op thread pool already saturates the machine at batch=1, so batching adds no parallelism.",
+      "status": "CONFIRMED",
+      "evidence": "cpu/wall = 5.92x (64 tok) and 5.94x (514 tok) on a SOLO call, 12 logical cores. Per-chunk cost flat across B=1..32."
+    },
+    {
+      "id": "M2",
+      "claim": "Padding-to-longest x O(L^2) attention makes mixed-length batches catastrophically slow.",
+      "status": "CONFIRMED (magnitude contaminated, see caveats)",
+      "evidence": "tmp-diagnose.mjs: 16 real long chunks (4841-8102 chars) batched took 1807115 ms vs ~30480 ms sequential (~59x). batch-4-long was already 1.15x SLOWER per chunk than solo (8748ms/4=2187 vs 1905), which does not depend on swap."
+    },
+    {
+      "id": "M3",
+      "claim": "Activation memory blows up as [B, 12, L, L] fp32 and thrashes a 16 GB box.",
+      "status": "CONFIRMED",
+      "evidence": "Predicted peak for [16,12,2048,2048] fp32 = 3.22 GB; measured maxRSS during that arm = 3.89 GB. RSS also collapsed to 404 MB mid-arm, indicating allocator thrash."
+    },
+    {
+      "id": "M5",
+      "claim": "The original 'batching is slower' observation may have been a warm-up artifact.",
+      "status": "PARTIALLY CONFIRMED",
+      "evidence": "tmp-diagnose.mjs ran solo arms first with no warm-up and had no xN sequential baseline, so its solo-short figure (22ms) was inflated by first-call ORT init. Correctly warmed, solo-short-class cost is ~30ms. This biased tmp-diagnose TOWARD making batching look good; batching still fails on the properly controlled arms D."
+    }
+  ],
+
+  "defects_found_in_the_batching_implementation": [
+    {
+      "id": "B1",
+      "severity": "high",
+      "summary": "Fixed INFERENCE_BATCH_SIZE=16 with no token cap is a latent OOM. One near-8192-token chunk pads all 16 sequences to 8192, requesting [16,12,8192,8192] fp32 ~= 51.5 GB. The old per-chunk path bounded this at B=1; the new code removes that bound. The per-chunk fallback cannot rescue it because a native ORT abort or OS-level thrash does not throw a catchable JS exception."
+    },
+    {
+      "id": "B2",
+      "severity": "high",
+      "summary": "The length-bucketing sort is structurally dead as wired. runEmbed (indexer/index.ts:552-553) slices pending chunks into 32-chunk windows BEFORE calling embed(), so embedMisses never sees more than 32 chunks and emits exactly 2 sub-batches of near-arbitrary composition. The comment claiming it reflects 'this repo's chunk-length distribution' cannot be true."
+    },
+    {
+      "id": "B3",
+      "severity": "medium",
+      "summary": "selectPendingChunks is a pure filter over getAllChunks(), so the 32-chunk windows preserve file order. Chunk lengths within a window are therefore CORRELATED, not random: a file with one large class yields adjacent long chunks. The pathological all-long batch arises routinely from file locality rather than being a rare draw."
+    },
+    {
+      "id": "B4",
+      "severity": "high",
+      "summary": "Fabricated empirical citations. embedder.ts:31 and :130 cited eval/embedder-batching.json ('Chosen empirically', 'measured to help') for a file that did not exist until this run, in support of a conclusion this run contradicts."
+    },
+    {
+      "id": "B5",
+      "severity": "low",
+      "summary": "Sort key is content.length (chars) while all cost is in tokens. Chars-per-token varies widely between ordinary code and minified blobs, so bucket boundaries can misplace exactly the pathological chunks that matter most."
+    }
+  ],
+
+  "caveats": [
+    "The 1807115 ms figure for batch-16-long was measured while a subagent was running concurrently on the same machine. The failure mode IS memory pressure, so that specific number is inflated by an unknown amount and should be re-measured on a quiet host before being quoted as a magnitude. The qualitative result does not depend on it: batch-4-long (2187 ms/chunk vs 1905 ms/chunk solo) shows batching losing at a scale far below swap.",
+    "All measurements are single-host (Apple M2 Pro, ARM). ORT's CPU kernels and thread-pool behaviour differ on x86 and in the Docker container the SDD pipeline actually uses. The M1 conclusion (batch=1 already saturates the pool) should be re-confirmed there before being treated as universal.",
+    "Only fp32 was measured. q8 quantization changes the compute profile and could alter the parallelism picture; it is untested."
+  ],
+
+  "consequences": [
+    "Stage 4.5's red finding ('Q1/M2 are currently being decided against an embedder plausibly 10-20x slower than it should be') is FALSIFIED for the batching component. The 7.2 h vscode embed estimate stands; it is not primarily an implementation artifact.",
+    "[R6]'s retraction of the M2 recommendation was predicated on 're-measure after fixing the embedder'. The embedder has now been fixed and re-measured, and batching was not the fix. R6 needs revisiting on its own merits.",
+    "The two remaining Stage 4.5 levers are untested and now carry the whole hypothesis: dtype q8 quantization, and multi-process embedding. Note the headroom for the latter is bounded: one process already draws ~6 of 12 cores."
+  ]
+}

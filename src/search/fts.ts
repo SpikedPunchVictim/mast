@@ -192,12 +192,27 @@ function globToLike(pattern: string): string {
  * Turn a free-form query into a safe FTS5 MATCH expression for the trigram
  * `chunk_fts`: identifier-ish tokens (length ≥ 3, the trigram minimum), each
  * quoted as a phrase so no character is treated as query syntax, joined by
- * spaces (FTS5 ANDs bare phrases). Returns null when no usable token remains,
- * so the caller can short-circuit to an empty result instead of running an
- * invalid query.
+ * `OR`. Returns null when no usable token remains, so the caller can
+ * short-circuit to an empty result instead of running an invalid query.
+ *
+ * **F15 — why OR and not AND.** FTS5 ANDs bare space-separated phrases, so the
+ * previous space-join required a chunk to contain *every* token. A conceptual
+ * multi-word query therefore matched nothing at all: measured against the nest
+ * corpus, 6 of 20 TSDoc-derived queries returned zero rows despite the corpus
+ * plainly containing the target symbol (e.g. "precondition failed exception
+ * defines an http for type errors" → 0 rows ANDed, 5 ORed). That silently
+ * crippled the lexical half of hybrid search, and made the vector store look
+ * indispensable when it was partly compensating for this bug — see
+ * IMPLEMENTATION_PLAN.md § "nest replication".
+ *
+ * Recall is not traded for precision here: `bm25()` already ranks by term
+ * coverage and inverse document frequency, so a chunk matching every token
+ * still outranks one matching a single common token. OR widens the candidate
+ * pool and lets the ranker do the discriminating — which is what
+ * `identifier_fts` (searchIdentifiers, below) has always done.
  */
 function toFtsMatch(query: string): string | null {
   const tokens = (query.match(/[A-Za-z0-9_]+/g) ?? []).filter((t) => t.length >= 3);
   if (tokens.length === 0) return null;
-  return tokens.map((t) => `"${t}"`).join(' ');
+  return tokens.map((t) => `"${t.replace(/"/g, '""')}"`).join(' OR ');
 }

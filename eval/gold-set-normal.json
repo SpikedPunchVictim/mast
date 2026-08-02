@@ -1,0 +1,239 @@
+{
+  "version": "1.0.0",
+  "created": "2026-08-01",
+  "purpose": "The lexically-NORMAL counterweight to gold-set.json for Q1 (is the vector store justified at all?). gold-set.json is anti-lexical by design and can only kill vectors, never justify them (GITNEXUS_COMPARISON.md §14.3); this set is the two-directional half.",
+  "corpus": {
+    "corpus_sha": "07d705b354e256d3175594f959f945d92cfc116d",
+    "chunks": 10997
+  },
+  "provenance_note": "NOT hand-authored for this experiment. Queries are pre-existing task descriptions written by a human, for tracking work, before Q1 was designed — harvested from the PINNED tree so nothing written during the Q1 design can leak in. Each cites its own ground truth as file:NNN, which becomes the target; the citation is stripped from the query text because an agent that already knows file:line has no reason to search. Selection is mechanical: seeded shuffle, first N that resolve to a real corpus chunk. The author chose the SOURCES and the seed, not the individual queries.",
+  "match_rule": "A returned chunk is relevant iff some target has the same file_path AND target.line falls within [chunk.start_line, chunk.end_line]. Same rule as gold-set.json.",
+  "selection": {
+    "seed": 20260801,
+    "candidates": 32,
+    "picked": 15,
+    "rejected": 9
+  },
+  "amendments": [
+    {
+      "date": "2026-08-01",
+      "change": "Harvest unit changed from raw LINE to sentence-or-table-row.",
+      "why": "Markdown prose wraps mid-sentence, so line-splitting produced grammatical debris (\"both; neither exists. receiverString handles\") that retains rare identifiers but loses all conceptual content. That would have systematically favoured the LEXICAL arm and biased Q1 toward killing vectors — i.e. the amendment corrects a bias AGAINST the incumbent subsystem, not for it.",
+      "made_before_any_arm_was_scored": true
+    },
+    {
+      "date": "2026-08-01",
+      "change": "Dedup by target chunk.",
+      "why": "Three separate task rows cite `parseCallee`, two cite `walkProject`. Keeping them would silently multiply-weight whatever the arms do on those chunks. Affects all arms identically, but distorts the per-query average.",
+      "made_before_any_arm_was_scored": true
+    },
+    {
+      "date": "2026-08-01",
+      "change": "Stopping rule declared: no further instrument changes. Whatever this configuration yields is the set that gets scored.",
+      "why": "Iterating on a query set until it \"looks right\" is how an author launders taste into an instrument. Three changes were made, all mechanical, all pre-scoring, all logged here; the rule closes the loop before any result can influence it.",
+      "made_before_any_arm_was_scored": true
+    }
+  ],
+  "known_limitations": [
+    "Sources are this repo's own mast docs, so targets skew toward packages/mast/src. Other plan docs in the tree carry no cited table rows (checked). This is home-field bias in the TARGET distribution, not in the query wording.",
+    "n=15 separates tiers, not near-ties — same caveat gold-set.json carries at n=28.",
+    "Cited line numbers reflect the doc author's tree, which may differ slightly from corpus_sha; each target was resolved to a real chunk, and resolved_symbol is recorded so a mismatch is auditable."
+  ],
+  "queries": [
+    {
+      "id": "n01",
+      "query": "Pass-2 edge resolution is run-to-run nondeterministic. walkProject (–49) never sorts — fast-glob returns readdir order, and barrel/star re-export machinery is built *during* Pass 2 in walk order.",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "indexer/walker.ts:43",
+      "resolved_symbol": "walkProject",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/walker.ts",
+          "line": 43
+        }
+      ]
+    },
+    {
+      "id": "n02",
+      "query": "F14 mast_signature drops the busy flag when the symbol query returns 0 results — topLevelBusy is only consumed inside the per-result loop (:76), so an empty result set discards it. Worst case: \"no results\" + stale index reads as \"symbol doesn't exist\" Not Started",
+      "provenance": "packages/mast/IMPLEMENTATION_PLAN.md",
+      "cited": "signature.ts:55",
+      "resolved_symbol": "registerSignatureTool",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/mcp/tools/signature.ts",
+          "line": 55
+        }
+      ]
+    },
+    {
+      "id": "n03",
+      "query": "F8 Cap the *work*, not the cache, in estimateFullFileBound telemetry/__tests__/tokenizer.test.ts (pure, DI seam exists)",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "telemetry/tokenizer.ts:97",
+      "resolved_symbol": "estimateFullFileBound",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/telemetry/tokenizer.ts",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "id": "n04",
+      "query": "*Changes: - –402 — default block branch skips empty_statement and any node whose own source text is empty/whitespace-only.",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "ast/extractors/typescript.ts:379",
+      "resolved_symbol": "emitChunksForNode",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+          "line": 379
+        }
+      ]
+    },
+    {
+      "id": "n05",
+      "query": "F9 mast init --extensions / --exclude are parsed and ignored (–23); loadStateConfig has zero callers outside config.ts, and serve *overwrites* the persisted config. Honour them or delete the flags Not Started",
+      "provenance": "packages/mast/IMPLEMENTATION_PLAN.md",
+      "cited": "cli/init.ts:20",
+      "resolved_symbol": "registerInitCommand",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/cli/init.ts",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "id": "n06",
+      "query": "F3 parseCallee: unwrap await_expression — one line Not Started",
+      "provenance": "packages/mast/IMPLEMENTATION_PLAN.md",
+      "cited": "typescript.ts:1360",
+      "resolved_symbol": "collectCalls",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+          "line": 1360
+        }
+      ]
+    },
+    {
+      "id": "n07",
+      "query": "F4 Implement this. / super. resolution (§10.3.1) + new resolution label , 1213 call-edges.test.ts ×3 incl. nested-function guard",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "typescript.ts:1379",
+      "resolved_symbol": "parseCallee",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/ast/extractors/typescript.ts",
+          "line": 1379
+        }
+      ]
+    },
+    {
+      "id": "n08",
+      "query": "*[R2] §7.2's \"forked startup reindex\" is wrong. runs forks.",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "src/mcp/server.ts:177",
+      "resolved_symbol": "serve",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/mcp/server.ts",
+          "line": 177
+        }
+      ]
+    },
+    {
+      "id": "n09",
+      "query": "F5 Pass the leaf name to identifier FTS — *design change, see below* , rename-impact.ts tools.test.ts with a method fixture",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "callers.ts:73",
+      "resolved_symbol": "registerCallersTool",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/mcp/tools/callers.ts",
+          "line": 73
+        }
+      ]
+    },
+    {
+      "id": "n10",
+      "query": "Q5 Result diversification in mast_search — no per-file dedup exists ( dedups shell↔method only). Held at P2: evidence was n=1 and confounded by lexical-only mode. Re-test after Q1/Q4 Not Started",
+      "provenance": "packages/mast/IMPLEMENTATION_PLAN.md",
+      "cited": "hybrid.ts:133",
+      "resolved_symbol": "hybridSearch",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/search/hybrid.ts",
+          "line": 133
+        }
+      ]
+    },
+    {
+      "id": "n11",
+      "query": "F1 withLock per batch, not per run — matches MAST_SPEC.md:822 indexer/__tests__/ (integration)",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "indexer/index.ts:46",
+      "resolved_symbol": "IndexOptions",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/index.ts",
+          "line": 46
+        }
+      ]
+    },
+    {
+      "id": "n12",
+      "query": "Two sub-points that *did* hold, both verified: - Vectors need no colocation. searchVectors (–190) touches only VECTOR_TABLE, returns {chunk_id, model_version, _distance}, no join. - There is no ANN index. grep -rn 'createIndex IvfPq create_index' src/ → zero hits (confirmed).",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "store/lance.ts:181",
+      "resolved_symbol": "LanceStore",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/store/lance.ts",
+          "line": 181
+        }
+      ]
+    },
+    {
+      "id": "n13",
+      "query": "*chunkId itself is unchanged — ids stay position-based, preserving the \"content edit keeps the chunk_id\" contract that vectorKey and rejected for that reason; a (file,start,end,type) composite was rejected because it still collides on same-line siblings.",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "embedder.ts:148",
+      "resolved_symbol": "vectorKey",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/embedder.ts",
+          "line": 148
+        }
+      ]
+    },
+    {
+      "id": "n14",
+      "query": "Already answered, zero information. Its own falsifier is satisfied by disk state plus one line of source: the embed path already batches (batchSize = 32, ; one upsertVectors per batch, :318–323).",
+      "provenance": "packages/mast/eval/GITNEXUS_COMPARISON.md",
+      "cited": "indexer/index.ts:281",
+      "resolved_symbol": "runIndex",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/index.ts",
+          "line": 281
+        }
+      ]
+    },
+    {
+      "id": "n15",
+      "query": "*Verified in code. runIndex parses unlocked at (the comment at :210–213 says so explicitly), then stats the file at :282 — *after* the parse, inside the write lock.",
+      "provenance": "packages/mast/IMPLEMENTATION_PLAN.md",
+      "cited": "indexer/index.ts:217",
+      "resolved_symbol": "runIndex",
+      "relevant": [
+        {
+          "file_path": "packages/mast/src/indexer/index.ts",
+          "line": 217
+        }
+      ]
+    }
+  ]
+}

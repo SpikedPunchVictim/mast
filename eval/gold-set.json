@@ -1,13 +1,24 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "created": "2026-07-09",
   "corpus": {
-    "project_root": "/Users/spikedpunchvictim/projects/kluster",
-    "chunks": 12853,
-    "files": 1678,
+    "project_root": "~/.cache/mast-eval/corpus-kluster (pinned git worktree)",
+    "corpus_sha": "07d705b354e256d3175594f959f945d92cfc116d",
+    "chunks": 10997,
+    "files": 1322,
     "extensions": [".ts", ".tsx", ".js", ".jsx", ".md"],
-    "note": "Frozen before any model was scored. Every `relevant` target below was verified to exist in this corpus by verify-gold.mjs."
+    "note": "Frozen before any model was scored. Every `relevant` target below was verified to exist in this corpus by verify-gold.mjs. D2 (2026-08-01): the corpus is now a PINNED worktree, not the live drifting repo — chunk_id is sha256(file_path + ':' + start_line), so line drift in the live tree silently invalidated targets and broke cross-time comparability (GITNEXUS_COMPARISON.md §14.2)."
   },
+  "amendments": [
+    {
+      "date": "2026-08-01",
+      "version": "1.0.0 -> 1.1.0",
+      "change": "Dropped q19's second target (packages/IMPLEMENTATION_PLAN.md L1620) — that file does not exist at corpus_sha 07d705b. q19 retains its first target (packages/workbench/fold/IMPLEMENTATION_PLAN.md L1800), which resolves. Target count 43 -> 42.",
+      "why_this_repair": "The target referenced a deleted file, so dropping it is mechanical. A SUBSTITUTE target was deliberately NOT chosen: hand-picking a replacement chunk would let the author bias the set toward an arm, which is the exact failure the Q1 provenance protocol exists to prevent.",
+      "effect_on_scores": "q19's NDCG ceiling is computed over 1 relevant item instead of 2. This applies identically to every arm, so relative ranking is unaffected (same argument the README makes for the subset vector pool).",
+      "made_before_any_arm_was_scored": true
+    }
+  ],
   "provenance_note": "No production query log exists for MAST yet, so these 28 pairs are HAND-CONSTRUCTED to reproduce the Task-1 zero-result / near-miss class the rubric prioritizes: conceptual queries phrased in synonyms the target chunk does NOT contain (so trigram FTS ranks the true chunk low and the vector model must carry it), qualified method-name lookups, and cross-file concepts. Each query was written against a KNOWN real target chunk, then deliberately worded to minimize lexical overlap. This is a stated limitation (see README): a real miss-log would be higher-signal. Relevance is matched by file_path + symbol_name (code) or file_path + line-containment (doc/block).",
   "match_rule": "A returned chunk is relevant iff some target has the same file_path AND (target.symbol == chunk.symbol_name, OR target.line falls within [chunk.start_line, chunk.end_line]).",
   "queries": [
@@ -172,8 +183,7 @@
       "hard_class": "cross-file",
       "why_hard": "Resilience design lives in plan docs; matches on doc chunks about retry budgets.",
       "relevant": [
-        { "file_path": "packages/workbench/fold/IMPLEMENTATION_PLAN.md", "line": 1800 },
-        { "file_path": "packages/IMPLEMENTATION_PLAN.md", "line": 1620 }
+        { "file_path": "packages/workbench/fold/IMPLEMENTATION_PLAN.md", "line": 1800 }
       ]
     },
     {

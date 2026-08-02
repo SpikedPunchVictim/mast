@@ -1,0 +1,239 @@
+{
+  "version": "1.0.0",
+  "created": "2026-08-01",
+  "corpus": {
+    "repo": "nestjs/nest",
+    "sha": "f7fffd63937ce6133624d23eb1d46fdd3c271526",
+    "chunks": 4994
+  },
+  "purpose": "Q1 external (n>=2) replication — foreign corpus, same TSDoc-derived protocol as gold-set-normal-r2.json.",
+  "declared_bias": "BIASED FOR THE LEXICAL ARM (TSDoc tokens sit inside the target), identical to the kluster normal set. Hybrid winning here is the hard direction.",
+  "selection": {
+    "seed": 20260801,
+    "eligible": 3636,
+    "picked": 20,
+    "rule": "exported + TSDoc-bearing declarations, seeded shuffle, one per file"
+  },
+  "queries": [
+    {
+      "id": "x01",
+      "query": "precondition failed exception defines an http for type errors",
+      "derived_from": "PreconditionFailedException",
+      "relevant": [
+        {
+          "file_path": "packages/common/exceptions/precondition-failed.exception.ts",
+          "symbol": "PreconditionFailedException"
+        }
+      ]
+    },
+    {
+      "id": "x02",
+      "query": "call module destroy hook calls the onmoduledestroy function on and its children",
+      "derived_from": "callModuleDestroyHook",
+      "relevant": [
+        {
+          "file_path": "packages/core/hooks/on-module-destroy.hook.ts",
+          "symbol": "callModuleDestroyHook"
+        }
+      ]
+    },
+    {
+      "id": "x03",
+      "query": "validator options passed to during validation",
+      "derived_from": "ValidatorOptions",
+      "relevant": [
+        {
+          "file_path": "packages/common/interfaces/external/validator-options.interface.ts",
+          "symbol": "ValidatorOptions"
+        }
+      ]
+    },
+    {
+      "id": "x04",
+      "query": "context id factory get by request generates random identifier to track asynchronous",
+      "derived_from": "ContextIdFactory.getByRequest",
+      "relevant": [
+        {
+          "file_path": "packages/core/helpers/context-id-factory.ts",
+          "symbol": "ContextIdFactory.getByRequest"
+        }
+      ]
+    },
+    {
+      "id": "x05",
+      "query": "no files interceptor localoptions",
+      "derived_from": "NoFilesInterceptor",
+      "relevant": [
+        {
+          "file_path": "packages/platform-express/multer/interceptors/no-files.interceptor.ts",
+          "symbol": "NoFilesInterceptor"
+        }
+      ]
+    },
+    {
+      "id": "x06",
+      "query": "server grpc get service names will return all of the services along",
+      "derived_from": "ServerGrpc.getServiceNames",
+      "relevant": [
+        {
+          "file_path": "packages/microservices/server/server-grpc.ts",
+          "symbol": "ServerGrpc.getServiceNames"
+        }
+      ]
+    },
+    {
+      "id": "x07",
+      "query": "nest application context init initializes the",
+      "derived_from": "NestApplicationContext.init",
+      "relevant": [
+        {
+          "file_path": "packages/core/nest-application-context.ts",
+          "symbol": "NestApplicationContext.init"
+        }
+      ]
+    },
+    {
+      "id": "x08",
+      "query": "module ref get retrieves an instance or list of instances either injectable",
+      "derived_from": "ModuleRef.get",
+      "relevant": [
+        {
+          "file_path": "packages/core/injector/module-ref.ts",
+          "symbol": "ModuleRef.get"
+        }
+      ]
+    },
+    {
+      "id": "x09",
+      "query": "kafka context get message returns the reference to original",
+      "derived_from": "KafkaContext.getMessage",
+      "relevant": [
+        {
+          "file_path": "packages/microservices/ctx-host/kafka.context.ts",
+          "symbol": "KafkaContext.getMessage"
+        }
+      ]
+    },
+    {
+      "id": "x10",
+      "query": "barrier signal and wait that participant has reached the for to be",
+      "derived_from": "Barrier.signalAndWait",
+      "relevant": [
+        {
+          "file_path": "packages/core/helpers/barrier.ts",
+          "symbol": "Barrier.signalAndWait"
+        }
+      ]
+    },
+    {
+      "id": "x11",
+      "query": "redis events map for the client",
+      "derived_from": "RedisEvents",
+      "relevant": [
+        {
+          "file_path": "packages/microservices/events/redis.events.ts",
+          "symbol": "RedisEvents"
+        }
+      ]
+    },
+    {
+      "id": "x12",
+      "query": "bad request exception defines an http for type errors",
+      "derived_from": "BadRequestException",
+      "relevant": [
+        {
+          "file_path": "packages/common/exceptions/bad-request.exception.ts",
+          "symbol": "BadRequestException"
+        }
+      ]
+    },
+    {
+      "id": "x13",
+      "query": "payload too large exception defines an http for type errors",
+      "derived_from": "PayloadTooLargeException",
+      "relevant": [
+        {
+          "file_path": "packages/common/exceptions/payload-too-large.exception.ts",
+          "symbol": "PayloadTooLargeException"
+        }
+      ]
+    },
+    {
+      "id": "x14",
+      "query": "nest microservice use web socket adapter registers that will be used for",
+      "derived_from": "NestMicroservice.useWebSocketAdapter",
+      "relevant": [
+        {
+          "file_path": "packages/microservices/nest-microservice.ts",
+          "symbol": "NestMicroservice.useWebSocketAdapter"
+        }
+      ]
+    },
+    {
+      "id": "x15",
+      "query": "assign to object similar but copying properties descriptors from source as well",
+      "derived_from": "assignToObject",
+      "relevant": [
+        {
+          "file_path": "packages/core/repl/assign-to-object.util.ts",
+          "symbol": "assignToObject"
+        }
+      ]
+    },
+    {
+      "id": "x16",
+      "query": "server unwrap returns an instance of the underlying broker or group servers",
+      "derived_from": "Server.unwrap",
+      "relevant": [
+        {
+          "file_path": "packages/microservices/server/server.ts",
+          "symbol": "Server.unwrap"
+        }
+      ]
+    },
+    {
+      "id": "x17",
+      "query": "new post ------------------------------------------------------- this file was automatically generated do not modify tslint",
+      "derived_from": "NewPost",
+      "relevant": [
+        {
+          "file_path": "sample/22-graphql-prisma/src/graphql.schema.ts",
+          "symbol": "NewPost"
+        }
+      ]
+    },
+    {
+      "id": "x18",
+      "query": "streamable file streaming files https docs nestjs com techniques streaming-files",
+      "derived_from": "StreamableFile",
+      "relevant": [
+        {
+          "file_path": "packages/common/file-stream/streamable-file.ts",
+          "symbol": "StreamableFile"
+        }
+      ]
+    },
+    {
+      "id": "x19",
+      "query": "file validator build error message builds an in case the validation fails",
+      "derived_from": "FileValidator.buildErrorMessage",
+      "relevant": [
+        {
+          "file_path": "packages/common/pipes/file/file-validator.interface.ts",
+          "symbol": "FileValidator.buildErrorMessage"
+        }
+      ]
+    },
+    {
+      "id": "x20",
+      "query": "consumer each batch payload type alias to keep compatibility with kafkajs https",
+      "derived_from": "ConsumerEachBatchPayload",
+      "relevant": [
+        {
+          "file_path": "packages/microservices/external/kafka.interface.ts",
+          "symbol": "ConsumerEachBatchPayload"
+        }
+      ]
+    }
+  ]
+}

@@ -10,15 +10,35 @@
 import { mkdirSync } from 'node:fs';
 import { resolveConfig } from '../dist/store/config.js';
 import { runIndex } from '../dist/indexer/index.js';
-import { LanceStore } from '../dist/store/lance.js';
-import { BASE_STATE_DIR, PROJECT_ROOT } from './paths.mjs';
+// D2 (2026-08-01): chunks moved to graph.db's `chunks` table in M1, so the old
+// `LanceStore.chunkCount()` here counted a table that no longer exists and would
+// have reported 0 — a silent false result in the corpus-freezing step itself.
+import { openDatabase } from '../dist/graph/db.js';
+import { SqliteChunkStore } from '../dist/store/sqliteChunkStore.js';
+import { BASE_STATE_DIR, PROJECT_ROOT, CORPUS_SHA } from './paths.mjs';
 
 mkdirSync(BASE_STATE_DIR, { recursive: true });
 
-const config = resolveConfig({
+// Q1-r2 (re-registered 2026-08-01): exclude the documents the query set is
+// harvested from. Leaving them in made every harvested query a near-perfect
+// trigram match for its OWN source paragraph, so the lexical arm returned that
+// one chunk and nothing else — scoring 0 by construction and manufacturing a
+// "vectors justified" verdict. q19's target lives in workbench/fold, unaffected.
+const Q1_EXCLUDES = [
+  'packages/mast/IMPLEMENTATION_PLAN.md',
+  'packages/mast/eval/GITNEXUS_COMPARISON.md',
+  'packages/mast/.history/**',
+];
+
+const base = resolveConfig({
   projectRoot: PROJECT_ROOT,
   stateDirOverride: BASE_STATE_DIR,
 });
+const config = {
+  ...base,
+  exclude_patterns: [...base.exclude_patterns, ...(process.env.MAST_EVAL_R2 ? Q1_EXCLUDES : [])],
+};
+if (process.env.MAST_EVAL_R2) console.log(`[build-corpus] Q1-r2 excludes: ${Q1_EXCLUDES.join(', ')}`);
 
 console.log(`[build-corpus] project_root = ${config.resolved_project_root}`);
 console.log(`[build-corpus] state_dir    = ${config.resolved_state_dir}`);
@@ -35,9 +55,16 @@ const result = await runIndex(config, {
 });
 process.stdout.write('\n');
 
-const lance = await LanceStore.open(BASE_STATE_DIR);
-const chunkCount = await lance.chunkCount();
+const db = openDatabase(BASE_STATE_DIR);
+const chunkCount = await new SqliteChunkStore(db).chunkCount();
+await db.destroy();
 
 console.log(`[build-corpus] done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+console.log(`[build-corpus] corpus_sha   = ${CORPUS_SHA}`);
 console.log(`[build-corpus] filesIndexed=${result.filesIndexed} parseErrors=${result.parseErrors}`);
 console.log(`[build-corpus] TOTAL CHUNKS = ${chunkCount}`);
+
+if (chunkCount === 0) {
+  console.error('[build-corpus] FAIL: zero chunks — corpus is empty, do not score against it');
+  process.exit(1);
+}

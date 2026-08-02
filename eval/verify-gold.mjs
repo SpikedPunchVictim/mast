@@ -4,12 +4,25 @@
 // set is broken and results would be meaningless — exits non-zero.
 
 import { readFileSync } from 'node:fs';
-import { LanceStore } from '../dist/store/lance.js';
+// D2 (2026-08-01): was `LanceStore.getAllChunks()` — dead post-M1, so it returned
+// an EMPTY chunk set and reported all 43 targets as "(file not in corpus)". The
+// determinism gate's own read path was broken, producing a confident, entirely
+// artifactual verdict. It failed closed (exit 1) so nothing was scored against
+// bad data, but the same rot in build-corpus.mjs reported `TOTAL CHUNKS = 0` as
+// success — hence the explicit zero-chunk guard added there.
+import { openDatabase } from '../dist/graph/db.js';
+import { SqliteChunkStore } from '../dist/store/sqliteChunkStore.js';
 import { BASE_STATE_DIR } from './paths.mjs';
 
 const gold = JSON.parse(readFileSync(new URL('./gold-set.json', import.meta.url), 'utf-8'));
-const lance = await LanceStore.open(BASE_STATE_DIR);
-const chunks = await lance.getAllChunks();
+const db = openDatabase(BASE_STATE_DIR);
+const chunks = await new SqliteChunkStore(db).getAllChunks();
+await db.destroy();
+
+if (chunks.length === 0) {
+  console.error('FAIL: corpus has zero chunks — run build-corpus.mjs first.');
+  process.exit(1);
+}
 
 // Index chunks by file for fast lookup.
 const byFile = new Map();

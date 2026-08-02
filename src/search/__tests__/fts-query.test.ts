@@ -44,6 +44,28 @@ describe('FTS query sanitisation (L2)', () => {
     expect(await searchFts(db, 'a b', { limit: 10 })).toEqual([]); // all < 3 chars
   });
 
+  // F15. Bare phrases are ANDed by FTS5, so `toFtsMatch`'s space-join required a
+  // chunk to contain EVERY token. Any multi-word conceptual query therefore
+  // returned nothing — measured on the nest corpus, 6 of 20 TSDoc-derived queries
+  // matched zero rows against a corpus that plainly contained the target symbol
+  // (IMPLEMENTATION_PLAN.md § "nest replication"). This silently handicapped the
+  // lexical side of hybrid search and confounded Q1's vector-value measurement.
+  it('matches when only SOME query terms occur in the chunk (OR, not AND)', async () => {
+    const rows = await searchFts(db, 'handleLogin authenticates the user and issues a session token', {
+      limit: 10,
+    });
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it('ranks a chunk matching more query terms above one matching fewer', async () => {
+    // BM25 is what turns an OR-match back into a useful ranking: both chunks
+    // match, the one covering more of the query must win.
+    const rows = await searchFts(db, 'handleLogin validateSession LoginRequest', { limit: 10 });
+    expect(rows.length).toBeGreaterThan(0);
+    // bm25() is negative, more-negative = better; searchFts returns best-first.
+    expect(rows[0]!.bm25_score).toBeLessThanOrEqual(rows[rows.length - 1]!.bm25_score);
+  });
+
   it('searchIdentifiers does not throw on a qualified name', async () => {
     await expect(searchIdentifiers(db, 'AuthService.check', 50)).resolves.toBeInstanceOf(Array);
     expect(await searchIdentifiers(db, '', 50)).toEqual([]);
