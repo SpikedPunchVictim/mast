@@ -2243,32 +2243,52 @@ files existed.
 symbol level *and* file level. H 8/12, L 8/12. Exact McNemar p = 1.000. Gate 5 marginals
 **ok** — 8/12 is neither ceiling nor floor, so the task set did discriminate.
 
-**Co-primary B — retrieval effort: not significant.** Sign test p = 0.219; median search
-calls identical (H 2, L 2). Direction, such as it is, runs *against* hybrid: L used more
-calls on 1 task, H on 5. So there is no "outcome-neutral but effort-positive" escape —
-lexical did not buy its equal outcomes with extra work.
+**Co-primary B — retrieval effort: not significant on either metric.** See AMENDMENT 3 —
+the first scoring pass used the WRONG statistic. On the **registered** metric (search
+calls before first correct sighting): 11/12 ties, one non-tie (T09, H = 4 vs L = 1), sign
+test **p = 1.000**. On the substituted metric (total calls) p = 0.219. Neither is
+significant, so the branch is unaffected, but the original write-up's flourish — "the
+direction runs against hybrid" — was an artifact of the wrong metric and is **withdrawn**.
 
-**Noise floor: 0/6 within-arm success discordance** across the 3 seeded replicate tasks.
-The zero between-arm discordance is therefore not noise swamping a real effect; the
-outcome measure is stable. (Call counts do wobble — T08 hybrid 11 vs 15 — so the effort
-metric is noisier than the success metric, as expected.)
+**The single most informative descriptive fact, which the first write-up buried: H and L
+returned byte-identical `(file, symbol)` answers on 12/12 tasks — including all four
+failures.** Not merely the same success bits: the same answers. This is why b = c = 0 is
+robust to any regrading dispute below. It also means outcome here is heavily determined by
+task text plus a near-deterministic agent policy, so the experiment's effective
+sensitivity to retrieval mode is *lower* than "12 paired tasks" suggests.
 
-**The mechanism, measured rather than argued.** Gate 4 established that the arms *did*
-differ in retrieval on this exact task set: three tasks where the target file was inside
-hybrid's ten-result window and outside lexical's. All three converted to identical
-outcomes:
+**Noise floor: 0/6 within-arm success discordance** across the 3 seeded replicate tasks —
+and replicates returned identical *answers*, not just identical success bits, which is the
+stronger stability evidence. But 6 binary cells bound the within-arm flip rate only at
+≈39% (rule of three), the same order as the effect bound itself, so the original claim
+that this proves "the zero discordance is not noise swamping a real effect" is
+**overstated and withdrawn**. It is consistent with stability, not proof of it.
 
-| task | file rank H | file rank L | outcome | search calls |
-|---|---|---|---|---|
-| T03 | 4 | 32 | **both failed** | 12 vs 7 |
-| T08 | 6 | not in window | **both succeeded** | 11 vs 14 |
-| T10 | 5 | 21 | **both succeeded** | 3 vs 2 |
+**The mechanism — corrected. It is query authoring, not re-querying.** The original
+write-up claimed lexical "recovered by reformulating the query." The logs falsify that:
 
-T03 is the sharpest: hybrid put the target file at rank 4 and *still* failed. T08 and T10
-are the reframe's exact prediction — lexical did not have the target in the window and
-succeeded anyway, by reformulating the query. **Retrieval rank is substitutable by agent
-re-querying.** That is the causal claim the whole reframe rested on, and it is now
-measured on this task set rather than asserted.
+- **0 of 147** logged queries were the task text. Gate 4's rank deltas were computed on
+  queries **no agent ever issued** — a real limit on how much Gate 4's table can carry.
+- On T08 and T10, the lexical arm's **first self-authored query already had the target
+  file in the window** (`calls_to_sight = 1` for T03-B1, T08-B1, T10-B1). There was no
+  recovery to perform.
+
+The stronger evidence was sitting unanalysed in the log. **Six queries were issued
+verbatim by both arms. All 6 returned different ten-result windows** (overlap 3–9 of 10)
+— **and the outcome was identical in all 6.**
+
+| overlap@10 | query (both arms, verbatim) |
+|---|---|
+| 3/10 | `reDiscover ReDiscoverFn injected seam` |
+| 6/10 | `WorkspaceFs port interface writeFile readFile Promise<void>` |
+| 6/10 | `ChainedCapabilityMatcher first non-null lexical embedding` |
+| 6/10 | `behavior tree leaf node single LLM call renders prompt` |
+| 7/10 | `installToolchain pnpm add retries 3 times provisioning` |
+| 9/10 | `AgentLoop multi-turn tool-aware agent loop` |
+
+That is the reframe's claim in its cleanest measurable form: on the queries agents actually
+write, the arms surface materially different windows, and it changes nothing about what the
+agent concludes. **The window moved; the outcome did not.**
 
 **What this does and does not license — the registered bounds, applied.**
 
@@ -2280,15 +2300,37 @@ measured on this task set rather than asserted.
 - **Scale caveat stands and is verdict-blocking:** measured at ~14.5k chunks; the 91 MB /
   ~7 h / 470 MB is priced at 153k. This result does **not** license deleting the vector
   store at the target scale.
-- 4 of 12 tasks were concordant failures, contributing nothing to b or c — effective
-  discriminating power is below the nominal k.
+- **"The task set discriminated" is WITHDRAWN.** Gate 5 read `ok` on mechanical grading
+  (8/12), but a referent audit of the four failures finds **three are ground-truth
+  extraction artifacts**, not agent failures. The harvester takes the first
+  uniquely-resolving backticked identifier in a doc line (`ab-build-tasks.mjs:88-104`),
+  which yields *a symbol the line mentions*, not *the symbol the line is about*:
+  T06 (line is about the shared retry behaviour; both arms answered `retrySpawn`, arguably
+  more correct than the recorded truth), T04 (the line's disjunction *is* the classifier
+  `isEndpointStallFailure` both arms named), T01 (both answered `GapClosureOptions`, the
+  interface declaring the `reDiscover` seam the line describes). Only T03 is a clean
+  failure. Regraded, both marginals are 11/12 — **brushing the registered Gate 5 ceiling
+  rule**, under which the set would be UNINFORMATIVE rather than SUPPORTED. b = c = 0 is
+  unaffected (the arms gave identical answers), but effective discrimination is well below
+  nominal k. A referent-ambiguity rule must be pre-registered before any repeat.
+- **The S-ident null is weaker than the S-concept null.** Deleting the source document does
+  not remove the identifier from the code, so S-ident tasks stay Grep-resolvable in
+  principle. The S-concept stratum carries no such shadow.
 - External validity limits: Bash surface rather than the MCP tool; `doc` chunks excluded
   in both arms; investigative read-only tasks, so code-change correctness is untested.
 
 **Verdict per the registered rule:** b + c ≤ 1 **and** co-primary B not significant →
-**Reframe SUPPORTED.** Mode is outcome-neutral and effort-neutral at this power. Combined
-with the retrieval-level evidence that the arms genuinely differed, this is the
-practical-significance evidence Q4/Q5 were deferred four times for.
+**Reframe SUPPORTED**, mechanically. But the honest statement of what was shown is a notch
+weaker than that label, and this is the version that should be quoted:
+
+> *Outcome-concordant at k = 12 under mechanical grading — indeed answer-identical on
+> 12/12 — with effective discrimination below 8/12 because three of the four failures are
+> ground-truth extraction artifacts, an S-ident stratum shadowed by Grep-resolvability,
+> and a mechanism that is query authoring rather than re-querying.*
+
+Combined with the 6/6 same-query/different-window evidence, this is still the
+practical-significance evidence Q4/Q5 were deferred four times for — it is just not the
+clean sweep the first write-up implied.
 
 **Q1 remains AMBIGUOUS and M2 remains BLOCKED**, and that is not timidity. The registered
 verdict is bounded at 22%/39% and explicitly does not extend to 153k chunks — the scale
@@ -2302,6 +2344,37 @@ the argument's foundation, but on this task set the target *chunk* was in the wi
 **3/12** tasks for both arms. The reframe was right about the conclusion for a reason
 partly different from the one it gave — outcomes are rank-insensitive because agents
 re-query, not because lexical already retrieves everything.
+
+#### AMENDMENT 3 — 2026-08-02, POST-scoring, after adversarial review of the results
+
+Unlike Amendments 1–2 these corrections were made **after** seeing results, so each states
+which direction the error ran. All were found by a commissioned Fable review of the result,
+not by me. None flips the registered branch; all were reported as errors rather than
+quietly fixed.
+
+| # | Error | Direction it ran |
+|---|---|---|
+| 1 | **Co-primary B scored on the wrong statistic.** Registered: search calls *before first correct sighting*, Wilcoxon primary / sign fallback. Scored: **total** calls, sign test only; Wilcoxon never implemented (`ab-score.mjs:97-99`). Registered metric gives p = 1.000 (11/12 ties); the reported 0.219 and the "direction runs against hybrid" remark are artifacts of the substitution. | The flourish **flattered the reframe** — my own framing. Corrected and withdrawn above. |
+| 2 | **Mechanism mischaracterised** as "re-querying". 0/147 queries were the task text, and lexical's first query already sighted the target on T03/T08/T10. | Overstated the reframe's story. Replaced with the 6/6 same-query/different-window analysis, which is stronger. |
+| 3 | **"The task set discriminated" unsupported** — 3 of 4 failures are extraction artifacts; regraded marginals 11/12 brush the Gate 5 ceiling. | Made the null look better-earned than it was. Withdrawn. |
+| 4 | **Noise-floor claim overstated** — 6 cells bound the flip rate at ≈39%, not "therefore not noise". | Pro-reframe. Softened. |
+| 5 | **McNemar registration/implementation mismatch:** the registered example (b=5,c=0 → p=0.031) is *one-sided*; the implementation is two-sided (0.0625). | Makes FALSIFIED **harder** → pro-reframe. Moot at b=c=0 (p=1 either way), logged for the next run. |
+| 6 | **The 12/12 identical-answers fact went unreported** — the strongest datum in the set, omitted in favour of a weaker three-task story. | Omission, not direction. Now headlined. |
+| 7 | `ab-score.mjs:40-45` comment says "ground-truth **chunk**"; the code matches **file** prefix. `sighted` is file-level, and would not be 30/30 at chunk level. | Comment/code mismatch; the metric used is file-level and is now labelled as such. |
+
+Reviewer criticisms checked and **withdrawn by the reviewer**: agents did not bypass the
+tool (all 147 calls logged, all `arm_intact: true`, every answered file appeared in that
+run's own search results); the paraphrase audit's zero-overlap result reproduces
+independently; source-doc deletion held in all 12 worktrees with 0 doc chunks reaching any
+agent; noise-floor task selection was sealed before the first search; and the commit
+ordering (registration `ad88009` 08:41Z → instrument `e61008c` 09:02Z → seal → runs
+09:09–09:19Z → scoring 09:19:52Z) confirms nothing was scored before it was registered.
+
+**Unresolved gap, carried forward:** the 30 subagent prompts and model identity are not in
+the committed record — only `cards.json`'s question text. Whether agents were asked for
+"the symbol this line refers to" versus "the code implementing this" is exactly what
+decides the artifact-vs-genuine status of the four failures. **Commit the agent prompt
+template with any repeat.**
 
 **Next (registered order unchanged):** (2) equalise arm V via `rankers: ['vec']` in
 `q1-reserve2.mjs`; (3) Q4 win-class labelling, now with 30 transcripts and per-task rank
