@@ -2404,6 +2404,54 @@ it would reopen F16, which is currently CLOSED.
 `hybridSearch` must remain at **0 mismatches**. If adding V perturbs it, the change is
 contaminating the pipeline and must be reverted rather than interpreted.
 
+#### Q1/ARM-V RESULT (2026-08-02) — V ≈ H everywhere; F16 stays CLOSED
+
+Equalisation is clean: **self-check = 0 mismatches** on all three sets, `empty` = 0 for
+every arm including V. L/H reproduce shipped `hybridSearch` exactly, so adding V did not
+perturb the pipeline.
+
+| set | n | L | H | **V** | V−H (paired 95% CI) | V−L (paired 95% CI) |
+|---|---|---|---|---|---|---|
+| kluster-normal | 11 | 0.4238 | 0.5907 | 0.5417 | −0.0490 [−0.223, +0.125] t=−0.63 **ns** | +0.1179 [−0.065, +0.301] t=1.43 ns |
+| kluster-anti ¹ | 28 | 0.1908 | 0.3222 | 0.3436 | +0.0214 [−0.111, +0.154] t=0.33 **ns** | +0.1527 [+0.013, +0.292] t=2.25 **sig** |
+| nest-external | 20 | 0.5119 | 0.6122 | 0.6608 | +0.0486 [−0.083, +0.180] t=0.77 **ns** | +0.1489 [−0.052, +0.349] t=1.56 ns |
+
+¹ one-directional per §14.3 — may kill vectors, never justify them.
+
+**🔴 A near-miss worth recording as a process finding.** On raw means V beat H on two of
+three sets (anti 0.3436 vs 0.3222; nest 0.6608 vs 0.6122), and my pre-registration said
+exactly that outcome "would reopen F16, which is currently CLOSED." **The paired CIs say
+no**: V−H is not significant anywhere, |t| < 0.8 on all three sets. Acting on the point
+estimate would have reopened a closed question and re-run the fusion investigation for
+nothing. This is the "report confidence intervals, not point estimates" rule earning its
+keep for the second time in this program — the first was an "external replication" that
+turned out to be 9× smaller than its own standard error. **F16 stays CLOSED. `rrf_k`
+remains 60.**
+
+**What V actually shows, within its registered descriptive-only limit.** The vector ranker
+*alone* is statistically indistinguishable from the shipped fusion on all three gold sets.
+The lexical half of RRF contributes nothing detectable **on these query sets** — which are
+TSDoc-prose-derived and therefore the class most favourable to vectors. It is **not**
+licence to drop the lexical half: the registration forbids V bearing any
+justify-or-kill verdict, RESERVE-2 showed the shipped trigram tokenizer is doing real work
+(W−L significantly negative on both kluster sets), and F15 showed a one-line lexical fix
+more than halved the measured value of vectors.
+
+**My pre-stated expectation was wrong in direction, and that is recorded rather than
+quietly dropped.** I predicted V would trail L on kluster-normal and nest. V led L on both
+(+0.118, +0.149), though neither reaches significance. Only the anti set — where V leading
+was expected — is significant, and it is the one set whose registration forbids it from
+justifying vectors.
+
+**How this sits with Q1/OUTCOME.** On gold-set ranking H ≈ V (lexical half adds nothing
+measurable); on task outcomes H ≈ L (vector half changed no outcome). These are different
+metrics on different query sets and are not formally contradictory, but jointly they say:
+**ranking-metric differences among all three arms are not what determines agent outcomes.**
+That is now two independent lines of evidence pointing at the same conclusion, and it is
+the strongest argument yet that Q1 cannot be closed from ranking metrics at all.
+
+Q1 remains AMBIGUOUS. M2 remains BLOCKED — the 153k scale caveat is untouched by this.
+
 **Next (registered order unchanged):** (2) equalise arm V via `rankers: ['vec']` in
 `q1-reserve2.mjs`; (3) Q4 win-class labelling, now with 30 transcripts and per-task rank
 deltas as raw material; (4) the organic harvest — note these 30 runs wrote real

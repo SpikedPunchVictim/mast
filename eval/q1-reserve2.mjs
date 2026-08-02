@@ -158,7 +158,7 @@ async function canaryQuery(q, chunkStore) {
   return kept.length >= 3 ? kept.join(' ') : null;
 }
 
-const ARMS = ['L', 'T+D', 'W', 'W+D', 'H'];
+const ARMS = ['L', 'T+D', 'W', 'W+D', 'H', 'V'];  // V equalised through this pipeline (registration: Q1/ARM-V)
 const LEXICAL = ['L', 'T+D', 'W', 'W+D'];
 const report = {};
 
