@@ -2551,3 +2551,59 @@ alters product behaviour.
   (`verified-callers.test.ts:413–444`), not a defect.
 - **Per-chunk quarantine on write failure** — decision was loud failure; a bad chunk
   fails its file loudly rather than being partially recovered.
+
+---
+
+### Q4 RESULT (2026-08-02) — the win has no nameable class, and the class that matters is absent
+
+Answered from per-query data already emitted by `q1-reserve2.mjs` — no new runs, no new
+data, as registered. Queries were split mechanically on whether they contain a code
+identifier (CamelCase / snake_case / dotted), and separately at the median word count.
+
+| class | n | H−L | 95% CI | t | sig |
+|---|---|---|---|---|---|
+| pure prose (pooled, 3 sets) | 57 | +0.1264 | [+0.061, +0.192] | 3.95 | **yes** |
+| identifier-bearing (pooled) | **2** | +0.1577 | [−0.167, +0.483] | 1.00 | no |
+| short queries (≤ 11 words) | 32 | +0.1250 | [+0.024, +0.226] | 2.56 | yes |
+| long queries (> 11 words) | 27 | +0.1303 | [+0.055, +0.206] | 3.54 | yes |
+
+**Answer to Q4: no.** Within the range these gold sets cover, hybrid's advantage is
+*flat* — indistinguishable between short and long queries (+0.125 vs +0.130), and uniform
+across prose. There is no sub-class to point at and say "this is what vectors are for."
+
+**🔴 The structural finding, which outranks the answer.** Only **2 of 59** gold queries
+across all three sets are identifier-bearing. **97% of the entire Q1 ranking evidence base
+is pure prose.** That is not a property of code search; it is a property of how these sets
+were built — every one is TSDoc/plan-prose derived. So:
+
+- Q4 **cannot be answered for the query class that matters most** from existing data. The
+  identifier arm is n=2 with a CI four times wider than the effect.
+- This independently corroborates the harvest's n=2 hypothesis from the other direction:
+  real queries are identifier-bearing (both harvested rows; median 5 words), and the
+  Q1/OUTCOME runs confirmed it behaviourally — **0 of 147** agent searches reused the
+  question's prose wording; every one was rewritten into code-token shorthand.
+- Therefore the measured H−L advantage is established *on a query class agents demonstrably
+  do not use*. That does not make it wrong, but it does mean **the ranking evidence base and
+  the production workload are disjoint on the one dimension we can measure.**
+
+Q4 is CLOSED as "not answerable from synthetic sets; requires the harvest." It joins
+Q1/OUTCOME and arm V as a third independent line arriving at the same place: ranking
+metrics on prose gold sets cannot settle Q1.
+
+### Q1-v2 HARVEST — re-checked 2026-08-02, still n=0
+
+```
+rows_with_args=2  searches=2  self_ref=2  organic=0  chain_labelled=0
+POWER: have 0 / need ~67 -> INSUFFICIENT
+query shape (all n=2): identifier-bearing=2  median_words=5
+```
+
+Unchanged. **The 30 Q1/OUTCOME runs did not help**: they wrote to the A/B harness log, not
+to `metrics`, because `ab-search.mjs` calls `hybridSearch` directly and deliberately skips
+the MCP tool's telemetry path. That was correct for the experiment (telemetry writes would
+have contaminated the frozen snapshot) but it means the organic counter did not move.
+
+**Q1's remaining cost is still elapsed real usage of MAST for non-MAST work** — the same
+blocker as 2026-08-01, now with Q4 showing exactly why it matters: the harvest is the only
+instrument that can supply identifier-bearing queries, which is the only class the ranking
+evidence lacks.
