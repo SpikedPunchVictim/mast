@@ -1837,6 +1837,72 @@ second column) across **two** tokenizers. It does not exist at a size worth buil
 instrument that can close Q1 — gate unmoved, as registered); equalising arm V through the
 now-validated N-ranker pipeline (`rankers: ['vec']`, cheap); Q4/Q5 practical significance.
 
+### Q1-v2 REAL-QUERY HARVEST (2026-08-02) — instrument ready, data absent, and Q1 cannot close from this source yet
+
+`eval/harvest-real-queries.mjs`. Extracts real queries from `metrics.args_json` and derives
+**behavioural** relevance labels from `results_json` via the **chain**: a later
+`mast_signature`/`mast_exports`/`mast_callers` call in the same session targeting a
+file/symbol an earlier `mast_search` returned is the *agent itself* judging that result
+relevant — a label with no author's opinion in it. This is what §14.3 wired the columns for.
+
+**Measured today, against the live `.mast`:**
+
+```
+rows_with_args=2  searches=2  self_referential=2  organic=0  chain_labelled=0
+POWER: have 0 / need ~67 -> INSUFFICIENT
+```
+
+| # | when | query | |
+|---|---|---|---|
+| 1 | 2026-08-01 09:32 | `selectPendingChunks runEmbed vectors` | prior session's write-path verification |
+| 2 | 2026-08-02 02:14 | `recordToolCall metrics args_json write path` | this session's re-verification |
+
+**The write path WORKS** — re-verified today, 24 h and two sessions after the first row,
+with both `args_json` *and* `results_json` populated exactly per §14.3. But **both rows are
+this investigation's own traffic**, so organic n = **0**. Using them as a Q1 gold set would
+be a third flavour of the circularity that voided two earlier sets: queries *about the
+retrieval system*, scored *against the retrieval system's own code*. The harvester
+separates them automatically (`self_referential`) rather than quietly counting them.
+
+**🔴 A read-mode trap that cost this session a false conclusion — recorded so it doesn't
+recur.** `graph.db` runs in WAL, and the live `mast serve` holds pages in an 8 MB
+`graph.db-wal`. Opening with `?mode=ro&immutable=1` **ignores the WAL** and reports the
+`metrics` table as **empty**. That is exactly how I first concluded the write path was
+broken and the plan's "n=1" row had been lost — it hadn't; I was reading the wrong
+artifact. Same error class as the reviewer's round-2 miss (source file vs indexed chunk)
+and as D2's Lance rot sites: *the query was fine, the artifact was wrong.* **Always open
+`graph.db` plainly for metrics reads.** Verified the eval corpora are unaffected — both
+have no WAL (checkpointed) and both read modes agree (10,943 / 4,994 chunks), so the
+RESERVE-1/2 results and the reachability bound stand.
+
+**The one thing measurable at n=2, stated with its n.** Both real queries are
+**identifier-bearing** (`selectPendingChunks runEmbed vectors`; `recordToolCall metrics
+args_json write path`), median **5 words** — code tokens, exactly as §12's prompt instructs
+agents to search. Every gold set that has carried a Q1 verdict is instead **TSDoc-prose
+derived**. If the organic workload is identifier-heavy, the lexical arm is *advantaged in
+production relative to what every synthetic set measured* — which would push Q1 further
+toward arm D, not away. **This is n=2 and both are self-referential; it is a hypothesis the
+harvest must test, not a finding.** Recorded because it points against the incumbent and
+should not wait for someone to notice it later.
+
+**What actually gates Q1 now — and it is not an engineering task.** Reaching n≈67 organic
+chain-labelled queries requires MAST to be *used for real work*, not used to investigate
+itself. Two sessions of intensive MAST-on-MAST investigation produced **zero** eligible
+queries. So Q1's remaining cost is **elapsed usage**, not compute. Until then:
+
+- **Q1 stays AMBIGUOUS; M2 stays BLOCKED.** No synthetic-set run may issue a verdict
+  stronger than "pending harvest" (registered in RESERVE-1, unmoved).
+- The A-vs-C 153k benchmark stays cancelled-until-justified.
+- Re-run `node eval/harvest-real-queries.mjs .mast` periodically; it prints the power check
+  and refuses to imply sufficiency.
+
+**Pre-registered for when n suffices** (written now, before any harvested number exists):
+arms and pipeline exactly as `q1-reserve2.mjs` (self-check against shipped `hybridSearch`
+mandatory); relevance = chain labels only, never author-assigned; `self_referential` rows
+excluded by construction; paired 95% CIs; the anti-lexical set stays one-directional; and
+**the harvest may resolve Q1 in either direction** — unlike the reserve arms, it carries no
+authority limit, because its provenance predates the experiment.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
