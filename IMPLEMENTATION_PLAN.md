@@ -2513,7 +2513,13 @@ class_shell 11,636; interface 10,776; type 3,239; doc 1,026 (0.74%).
   because Q1/OUTCOME showed rank movement does not imply outcome movement.
 - In the pro-deletion direction it is the registered discharge instrument for the scale
   caveat: if the 14.5k picture holds at 138k at retrieval level, the caveat is discharged
-  and Q1 may resolve on the strength of the three existing lines.
+  at target-rank retrieval level and Q1 may resolve on the strength of the three existing
+  lines — residual scale channels (window composition at scale; outcome transfer across
+  corpus and scale) are accepted by decision, not evidence (see AMENDMENT 1, F10).
+- **External validity (F11).** Measured at 138,440 chunks; the 14,529-chunk fixture tail
+  (the corpus's two largest, most repetitive files — see Corpus-truth correction above) is
+  absent due to the logged insert defect; the 153k-priced cost basis includes distractor
+  mass this measurement does not.
 
 #### Design — nested tiers, fixed queries, one corpus
 
@@ -2561,20 +2567,50 @@ coverage checked per tier before scoring.
 
 Targets are sampled from **T1's TSDoc-rich exported chunks** (functions/methods/
 class_shells/interfaces/types with a leading TSDoc comment ≥ 80 chars) — measured 4,357 such
-chunks corpus-wide (of 71,472 exported candidates). Under the seeded random tier assignment,
-expected TSDoc-rich chunks landing in T1 ≈ 497 — comfortably above the 160 needed
-(150 scored + 10 probe). Both scored strata, plus the probe set, are disjoint seeded samples
-from that same T1 pool; target = the sampled symbol's own declaration chunk, which makes the
-Q1/OUTCOME referent-ambiguity defect (harvester grading "a symbol the line mentions, not the
-one it is about") structurally impossible: the referent IS the sampled declaration.
+chunks corpus-wide (of 71,472 exported candidates). Expected TSDoc-rich chunks landing in T1
+under the seeded random tier assignment: 4,357 × 15,000/138,440 ≈ **472** (corrected from a
+previously unreconstructable 497 — AMENDMENT 1, item 12). Distinct T1 targets needed:
+**150 (S-ident) + 100 (S-prose) + 10 (probes) = 260** — S-approx (below) reuses the S-ident
+targets and draws no additional pool. 472 comfortably covers 260.
 
-- **S-ident** (n = 75, floor 40) — query = symbol name + up to 3 rare content words from its
+**Floor rule if the realized T1 pool falls short of 260:** reduce S-prose first (floor 50);
+any further reduction below that floor hits S-ident and must be logged as an amendment.
+
+S-prose, S-ident, and the probe set are disjoint seeded samples from the T1 pool; S-approx is
+a paired derivation from the S-ident sample (draws no separate targets). Target = the sampled
+symbol's own declaration chunk, which makes the Q1/OUTCOME referent-ambiguity defect
+(harvester grading "a symbol the line mentions, not the one it is about") structurally
+impossible: the referent IS the sampled declaration.
+
+- **S-ident** (n = 150, floor 40) — query = symbol name + up to 3 rare content words from its
   TSDoc, mirroring the measured shape of real agent queries (harvest n=2 and the 147-call
   log: identifier-bearing, median 5 words). Production-relevant stratum; **this is the
-  decision-bearing stratum** (see below).
-- **S-prose** (n = 75, floor 40) — the `build-normal-set-r2.mjs` TSDoc-derivation protocol
-  applied verbatim to vscode. Comparable in class to the existing kluster-normal/nest
-  evidence base (97% prose). **Supporting only.**
+  decision-bearing stratum**, covering **exact-identifier retrieval** (see below and
+  AMENDMENT 1, F6). n_min for the 10 pp discharge bound to be reachable under a true zero
+  effect is 154 at p_nz = 0.4 (1.96²·p_nz/0.10²) — n = 150 (not the original 75) is sized to
+  that, not to the old 75-query design (AMENDMENT 1, F2).
+  - **"Rare" defined mechanically (F7).** Content words = alphabetic tokens ≥ 4 chars from
+    the target's TSDoc, excluding a fixed stopword list committed with the generator.
+    Rarity = document frequency computed over **T1's index only** — not T4: T4-side rarity
+    would exclude exactly the terms that are rare-at-15k/common-at-138k, the terms through
+    which the scale mechanism would show. Qualification: T1 DF ≤ 50 documents. Selection: up
+    to 3 qualifying words, lowest T1 DF first, ties broken by earliest occurrence in the
+    TSDoc. If no word qualifies, the query is the symbol name alone, logged.
+- **S-prose** (n = 100, floor 50) — build-normal-set-r2.mjs's **derivation rule**
+  (`camelCaseSplit(symbol)` + first TSDoc sentence, ≤ 12 words) applied by a **new committed
+  generator** to fresh seeded targets from the T1 pool (F12). Not "verbatim": the original
+  script hardcodes kluster targets/paths (lines 26, 77) — only the derivation rule transfers.
+  Comparable in class to the existing kluster-normal/nest evidence base (97% prose), because
+  that base was built by the same rule. Note plainly: the rule *prepends* the split symbol
+  name, so **both S-prose and S-ident are identifier-led** — this is why the comparability
+  claim to the existing evidence base survives, not despite it. **Supporting only.**
+- **S-approx** (n = 150, supporting) — for each of the 150 S-ident targets: the same query
+  with the exact symbol name replaced by its camelCase/snake-split words (the shipped
+  `splitIdentifierTerms` rule), keeping the same rare-word suffix. Mirrors guessed/
+  partial-identifier search behaviour and directly addresses F6 (exact-name queries are
+  near-unique trigram keys that may flatten the dose–response). Paired to the S-ident
+  targets, so it draws no additional pool cost. In the consistency set (see Pre-committed
+  decision rule below).
 - **10 probe queries** — instrument self-check only (Gate 2), excluded from scoring.
 
 **Doc chunks are NOT excluded** — a deliberate contrast with Q1/OUTCOME, which excluded
@@ -2598,8 +2634,18 @@ with the seed and the generator script.
 Per query × tier × arm, through the wrapper at `limit = DEPTH = 200`, `WINDOW = 10` (deeper
 than the window so "below window" is distinguishable from "unretrievable"; 200 not 100
 because censoring risk grows with corpus size):
-- chunk-level `rank` of the target's own declaration chunk; chunk-level `in_window@10`
-  (rank ≤ 10).
+- **Hit definition, amended for dedup suppression (F4).** `hybridSearch` routes results
+  through `dedupShellMethodCollisions` (`hybrid.ts:139, 201–253`), which can suppress the
+  target chunk itself in favour of its class shell (or a method over its shell) — the
+  survivor's hint still names the target, so production treats this as a hit either way.
+  Registered rule: a result counts as the target at rank r if it IS the target chunk, OR it
+  is the target's shell↔method counterpart in the same file (a kept `class_shell` whose
+  `symbol_name` equals the target method's `parent_symbol`, or a kept `method` whose
+  `parent_symbol` equals the target shell's `symbol_name`). The wrapper additionally records
+  the **PRE-dedup rank** as a diagnostic (not scored), and suppression events are logged and
+  reported per arm × tier.
+- chunk-level `rank` of the target's own declaration chunk (post-dedup, per the hit
+  definition above); chunk-level `in_window@10` (rank ≤ 10).
 - Censoring: rank null at DEPTH recorded as censored and entered into the rank co-metric at
   DEPTH+1 = 201 (a floor on degradation — stated, not hidden); censoring counts reported per
   arm × tier × stratum. `in_window@10` is uncensored by construction.
@@ -2607,38 +2653,76 @@ because censoring risk grows with corpus size):
 #### Exactly one decision-bearing test (multiplicity killed by construction)
 
 One test carries the verdict; everything else is supporting evidence — reported in full,
-never itself dispositive:
+never itself dispositive.
 
-- **Decision-bearing.** S-ident stratum, chunk-level `in_window@10`. Per query, endpoint
-  degradation D = metric(T4) − metric(T1). Contrast **D_L − D_H** (paired by query),
-  Wilcoxon signed-rank, two-sided, α = 0.05, with Hodges–Lehmann estimate and its 95% CI.
-  The in-window proportion difference additionally gets a seeded **BCa bootstrap CI
-  (10,000 resamples)** as a second, non-parametric check on the same contrast.
+**Sign convention (F1), fixed once, used everywhere below:** per query, per arm,
+**D_loss = in_window@10(T1) − in_window@10(T4)** (positive = membership degraded from T1 to
+T4). Contrast **Δ = D_loss_L − D_loss_H** (paired by query); positive Δ means lexical
+degrades more than hybrid — the pro-vector direction.
+
+- **Decision-bearing.** S-ident stratum, chunk-level `in_window@10`, contrast Δ as defined
+  above, tested two ways:
+  - **Wilcoxon signed-rank, EXACT** (exact distribution/permutation, not normal
+    approximation), two-sided, α = 0.05, zeros dropped per standard practice.
+    Hodges–Lehmann's estimate and CI are reported but **demoted to descriptive only**
+    (F5) — the near-symmetric {−2..2} support of this contrast makes HL prone to a
+    degenerate `[0,0]` reading that must not be a loophole into discharge.
+  - A seeded **BCa bootstrap 95% CI (10,000 resamples)** on the paired proportion difference
+    Δ, computed over **ALL n queries** (zeros are data for this estimand, not dropped). This
+    CI — not Wilcoxon, not HL — is what the discharge branch of the decision rule keys on
+    (F2).
 - **Supporting (reported in full; must be directionally consistent for a clean verdict).**
-  S-prose (identical construction, not decision-bearing); the Δlog2(rank) co-metric
-  (censored at DEPTH+1 = 201); T2/T3 as intermediate points on the dose–response curve
-  (monotonicity check between T1 and T4). Material inconsistency between any supporting cell
-  and the decision-bearing result forces **AMBIGUOUS** rather than a headline resting on the
-  single test alone.
-- **Zero-differences.** The zero count (D_L = D_H per query) is reported. Wilcoxon drops
-  zeros per standard practice. If fewer than 10 non-zero pairs remain in S-ident, the
-  stratum is reported **underpowered** — never given fake precision by proceeding as if n
-  were unchanged.
+  S-prose and S-approx (F6) — identical construction, not decision-bearing, in the
+  consistency set below; the Δlog2(rank) co-metric (censored at DEPTH+1 = 201, supporting
+  only, never carries a verdict — F3); T2/T3 as intermediate points on the dose–response
+  curve (monotonicity check between T1 and T4).
+- **Registered consistency triggers (F10 — replaces the previous unregistered "material
+  inconsistency"):**
+  1. If either supporting stratum's (S-prose, S-approx) own all-n BCa CI excludes 0 in the
+     lexical-degrading direction while the decision-bearing test discharges →
+     **AMBIGUOUS**.
+  2. The Δlog2(rank) co-metric forces **AMBIGUOUS** only if its bootstrap CI excludes 0 in
+     the lexical-degrading direction — otherwise it is reported, never dispositive.
+  3. **Monotonicity:** any tier mean outside the [T1, T4] envelope by more than its own 95%
+     CI is flagged and discussed in the result, but does not alone force AMBIGUOUS — the
+     endpoints (T1, T4), not the middle tiers, carry the decision.
+- **Zero-differences.** The zero count (D_loss_L = D_loss_H per query) is reported. Wilcoxon
+  drops zeros per standard practice. If fewer than 10 non-zero pairs remain in S-ident, the
+  **Wilcoxon report only** is flagged **underpowered** (F2) — a degenerate or non-runnable
+  Wilcoxon does NOT block CI-based discharge, which is defined over all n and treats zeros
+  as data.
 
 #### Pre-committed decision rule
 
 | observed | verdict |
 |---|---|
-| D_L − D_H significant on the decision-bearing test, lexical degrading more | **SCALE CAVEAT CONFIRMED.** The 14.5k null does not extend to 138k at retrieval level. Q1 stays open; the pro-vector path requires an outcome test at scale (Reserve). M2's delete arm stays blocked. |
-| Not significant AND the 95% CI upper bound on extra lexical `in_window@10` loss ≤ 10 percentage points | **SCALE CAVEAT DISCHARGED at retrieval level.** The 14.5k picture holds at 138k. Combined with the three converged lines, Q1 resolves provisionally toward deletion; M2 unblocks for the delete-arm decision (not for a silent delete — M2 is decided on its own section). |
-| Significant in the reverse direction (hybrid degrades more) | Caveat discharged a fortiori; reported as a fusion-at-scale finding, descriptive only. |
+| Δ significant on the decision-bearing test (exact Wilcoxon), lexical degrading more (Δ > 0) | **SCALE CAVEAT CONFIRMED.** The 14.5k null does not extend to 138k at retrieval level. Q1 stays open; the pro-vector path requires an outcome test at scale (Reserve). M2's delete arm stays blocked. |
+| Wilcoxon not significant (or degenerate/non-runnable — see below) AND the all-n BCa 95% CI upper bound on Δ (extra lexical `in_window@10` loss) ≤ 10 percentage points | **SCALE CAVEAT DISCHARGED at target-rank retrieval level.** The 14.5k picture holds at 138k. Residual scale channels (window composition at scale; outcome transfer across corpus and scale) are accepted by decision, not evidence (F10). Combined with the three converged lines, Q1 resolves provisionally toward deletion; M2 unblocks for the delete-arm decision (not for a silent delete — M2 is decided on its own section). |
+| Significant in the reverse direction (Δ < 0, hybrid degrades more) | Caveat discharged a fortiori; reported as a fusion-at-scale finding, descriptive only. |
 | anything else | **AMBIGUOUS.** Report; escalate by increasing n, never by reinterpreting. |
+
+A degenerate or non-runnable Wilcoxon (e.g. an all-ties stratum) counts as "not significant"
+for this table and does **not** block CI-based discharge (F2/F5); the "<10 non-zero pairs →
+underpowered" rule applies to the Wilcoxon **report** only, never to the BCa branch.
+
+**Trivial discharge on T4 ceiling, per stratum (F3 — replaces the deleted anti-ceiling
+gate).** If **T4** chunk-level `in_window@10` ≥ 95% in **both arms** in a stratum (integer
+trigger: ≥ 143/150 for n=150, ≥ 95/100 for n=100), the caveat is **discharged trivially for
+that stratum** — no membership loss materialized at full scale — reported with the all-n
+BCa CI for that stratum. This replaces the original T1-ceiling gate, which fired backwards:
+T1 ceiling is the *ideal* starting condition for measuring degradation (everything visible
+at the small tier), not a disqualifying one — the dead case was always
+T4-ceiling-in-both-arms, which is discharge evidence, not failure. Δlog2(rank) remains
+supporting-only everywhere and never carries a verdict, on this path or any other.
 
 The 10 pp bound is pre-set and admittedly a judgment call: an extra one-in-ten loss of
 window membership at scale could plausibly move outcomes and cannot be waved off; below
 that, with outcomes already shown insensitive to window composition at 14.5k, the burden of
 proof shifts to whoever wants to keep the store. The bound is registered here so it cannot
-be tuned after the numbers exist.
+be tuned after the numbers exist. n_min for the bound to be reachable under a true zero
+effect is 154 at p_nz = 0.4 (1.96²·p_nz/0.10²) — n = 150 (not the original 75) is sized to
+make the discharge branch reachable across realistic non-zero rates instead of the original
+design's ~[10,14]-of-75 corridor (F2).
 
 **Direction-of-error statement, in advance:** the investigator's prior (three converged
 lines) favours deletion. A null here flatters that prior. Therefore the null branch carries
@@ -2647,21 +2731,34 @@ adversarial results review mandatory before the verdict is recorded).
 
 #### Falsification criteria (pre-stated)
 
-- **Lexical degrading with scale (the pro-vector outcome):** D_L − D_H positive and
-  significant on the decision-bearing test — vectors' scale story is real at retrieval
-  level.
-- **The 14.5k picture holding:** the discharge row above.
+- **Lexical degrading with scale (the pro-vector outcome):** Δ positive
+  (D_loss_L > D_loss_H) and significant on the decision-bearing test (exact Wilcoxon) —
+  vectors' scale story is real at retrieval level.
+- **The 14.5k picture holding:** the discharge row above (all-n BCa CI upper bound ≤ 10 pp).
 - The registration is falsifiable in both directions; neither outcome is "no result".
 
 #### Gates before any scored measurement
 
-1. **Wilcoxon implemented and unit-tested BEFORE scoring.** The registered Wilcoxon
+0. **Tier integrity (F8), per tier, before any measurement:** (a) tier chunk count ==
+   the frozen tier manifest's count; (b) tier build `write_errors == 0` — with the two known
+   whale fixture files excluded from the corpus file list up front (already absent from the
+   full index for the reason logged in Corpus-truth correction above; recorded here, not a
+   new defect); (c) per-tier `vectors.lance` row count == tier chunk count; (d) an anti-join
+   proves zero vectors whose `chunk_id` lies outside the tier's chunk set (out-of-tier vector
+   hits would die silently at `chunkStore.getChunksByIds` (`hybrid.ts:123`), eating H-only
+   candidate slots — an asymmetric arm distortion that nothing else in this design would
+   catch).
+1. **Wilcoxon implemented and unit-tested BEFORE scoring, EXACT.** The registered Wilcoxon
    signed-rank test in `ab-score.mjs` was never implemented (HANDOFF_Q1.md §5) — that defect
-   does not repeat here. The implementation ships with its own unit tests (known-answer
-   cases) before it touches real data.
-2. **Instrument self-check** — the tier wrapper must reproduce shipped `hybridSearch`
-   exactly (same ordered `chunk_id` list) on the 10 probe queries against each tier's state,
-   **0 mismatches required** (`q1-reserve2.mjs` precedent).
+   does not repeat here. The implementation must be the **exact** distribution/permutation
+   form, not normal approximation, and ships with its own unit tests before it touches real
+   data: known-answer cases including an **all-ties case** and a **small-m (m=12) exact-tail
+   case** (F2/F5), plus a **known-answer scorer test (F1)** in which a synthetic dataset with
+   obvious lexical degradation must fire the CONFIRMED row under the Δ sign convention above.
+2. **Instrument self-check (F9)** — the tier wrapper must reproduce shipped `hybridSearch`
+   exactly (same ordered `chunk_id` list, all 200) on **10 probe queries × 4 tiers × 2 arms**
+   against each tier's state, **0 mismatches required** (`q1-reserve2.mjs` precedent); H
+   probes additionally assert `mode: "hybrid"`.
 3. **Arm integrity, per call** — `chunkStore` passed **explicitly** on every call
    (`hybrid.ts:55` loaded-gun default reads the retired Lance chunk table); `mode` recorded
    per call, any H call not returning `mode: "hybrid"` voids that tier's H measurement
@@ -2669,10 +2766,7 @@ adversarial results review mandatory before the verdict is recorded).
    counts reported.
 4. **Vector coverage** — `pending_embeddings == 0` in every tier state before that tier's H
    measurement is scored; reported per tier.
-5. **Anti-ceiling gate** — if T1 chunk-level `in_window@10` ≥ 95% in both arms in a stratum,
-   membership cannot degrade measurably from T1 in that stratum; the Δlog2(rank) co-metric
-   carries that stratum alone, reported, not silently absorbed.
-6. **Determinism** — seed (153), tier-construction script, query-generator script, and the
+5. **Determinism** — seed (153), tier-construction script, query-generator script, and the
    frozen query set (`eval/scale-queries.json`) all committed **before** any measurement.
 
 #### Costs (stated before spending)
@@ -2688,9 +2782,10 @@ adversarial results review mandatory before the verdict is recorded).
 - **Tier Phase-1 builds.** The full 8,653-file corpus's Phase-1 (chunk extraction + FTS)
   measured at **577 s** wall clock in this spike; each smaller tier operates over a file
   subset and is expected to be sub-linear in file count, bounded above by 577 s.
-- **Measurement volume.** 150 scored queries (75 S-ident + 75 S-prose) × 4 tiers × 2 arms =
-  **1,200 core searches**, plus 10 probe queries × 4 tiers = 40 self-check calls. Minutes to
-  tens of minutes. No agents run; no token spend beyond orchestration.
+- **Measurement volume.** 150 (S-ident) + 100 (S-prose) + 150 (S-approx) = 400 scored
+  queries × 4 tiers × 2 arms = **3,200 core searches**, plus 10 probe queries × 4 tiers × 2
+  arms = **80 self-check calls** (Gate 2, F9). Minutes to tens of minutes. No agents run; no
+  token spend beyond orchestration.
 
 #### Logged deviation — the embed was started before this registration was committed
 
@@ -2709,7 +2804,41 @@ An outcome A/B at full scale (the required follow-up if the caveat is confirmed)
 `--no-embeddings` container A/B; shipping D0; a fifth tier at ~30k if the dose–response
 curve needs resolution between 15k and 50k; **the directory-based tier partition** as a
 sensitivity analysis (promoted only if the primary random-nesting result is challenged or
-ambiguous — see Design above); per-directory heterogeneity analysis.
+ambiguous — see Design above); per-directory heterogeneity analysis; **multi-seed T1
+sensitivity** — rebuild T1 under 2 extra seeds, Phase-1 only, no new embeds, promoted only
+if the result is challenged as a seed artifact.
+
+#### AMENDMENT 1 — 2026-08-02, pre-run, post-adversarial-review
+
+Adversarial review commissioned per the standing §6 rule (Fable agent), against this section
+as committed at `3e497da`, **before any measurement had occurred**. Per the Q1/OUTCOME
+precedent, no data existed, so the registration above was revised in place rather than
+appended to; this log is the audit trail. The full review is committed verbatim at
+`eval/results/q1-scale-design-review.md`.
+
+Stated plainly, because it is the finding that matters most about the process, not just the
+instrument: **of the twelve findings, at least seven ran toward false DISCHARGED — i.e.
+toward the investigator's own prior (deletion) — and the sign error (F1) and the inverted
+gate (F3) were the investigator's own drafting errors**, not defects inherited from elsewhere.
+
+| # | Finding | Change | Direction the error ran |
+|---|---|---|---|
+| 1 | Sign contradiction: `D = metric(T4) − metric(T1)` made degradation negative, but the falsification bullet registered "positive" as the pro-vector outcome — a tail swap. | One convention fixed everywhere: `D_loss = in_window@10(T1) − in_window@10(T4)` (positive = degradation), contrast `Δ = D_loss_L − D_loss_H`; all rows restated; Gate 1 gets a known-answer scorer test that must fire CONFIRMED on synthetic lexical degradation. | **False DISCHARGED / verdict swap** — the investigator's own drafting error. |
+| 2 | At n=75, the ≤10pp discharge bound is reachable under a true null only in a narrow non-zero corridor (~[10,14]-of-75), colliding with the "<10 non-zero pairs → underpowered" rule, which could route the most informative null (all zeros) to "underpowered." | Discharge keyed on the all-n seeded BCa bootstrap CI (zeros are data); the underpowered rule restricted to the Wilcoxon report only; n raised to 150 (S-ident) — n_min = 154 at p_nz = 0.4. | **Structural, toward perpetual AMBIGUOUS (pro-incumbent)** — collision resolution unknowable. |
+| 3 | Gate 5 fired on T1-ceiling, the *ideal* start condition, demoting to Δlog2(rank), which had no registered decision rule — verdict machinery undefined on the modal data pattern. | Old gate deleted. New rule: T4-ceiling-in-both-arms is trivial discharge per stratum, reported with the all-n CI; Δlog2(rank) stays supporting-only, never a verdict. | **Unknowable, resolved post-hoc by the prior** — the investigator's own drafting error. |
+| 4 | `dedupShellMethodCollisions` can suppress the target chunk itself in favour of its shell/method counterpart, censoring it at any depth even though production surfaces the survivor with a hint naming the target. | Hit rule extended to count the shell↔method counterpart as a hit at the survivor's rank; PRE-dedup rank logged as a diagnostic; suppression events reported per arm × tier. | **Unknowable, noise concentrated at the largest tiers.** |
+| 5 | Hodges–Lehmann is near-meaningless on this support (degenerate `[0,0]` CIs), and the registration never named which CI (HL vs BCa) governs discharge — a loophole. | HL demoted to descriptive; discharge bound is the all-n BCa CI; Wilcoxon required exact, with all-ties and m=12 exact-tail unit tests. | **False DISCHARGED.** |
+| 6 | Exact-symbol-name queries are near-unique trigram keys, largely insensitive to distractor mass — the hot stratum plausibly flatters the null. | New supporting stratum S-approx (symbol name replaced by its split words, same rare-word suffix, paired to S-ident targets); discharge language scoped to "exact-identifier retrieval." | **False DISCHARGED.** |
+| 7 | "Rare" was undefined; computing rarity against T4 would exclude exactly the terms whose T1→T4 sensitivity the experiment measures. | Rarity defined as DF over T1's index only; numeric threshold (DF ≤ 50), deterministic tie-break, stopword handling, symbol-only fallback, all committed with the generator. | **False DISCHARGED**, had rarity been computed T4-side. |
+| 8 | No tier-integrity gate, despite the corpus-truth correction already surfacing an index-integrity defect; an out-of-tier vector leak would silently eat H-only candidate slots. | New Gate 0: per-tier chunk count == manifest, `write_errors == 0`, `vectors.lance` row count == tier chunk count, anti-join proves zero out-of-tier vectors. | **Both directions** — missing chunks toward false DISCHARGED, vector leakage toward false CONFIRMED; severity-zero class either way. |
+| 9 | Gate 2's self-check named no depth or arm; a wrapper diverging only past rank 10, at the pool boundary, or only in H's embedder wiring could pass a shallow, L-only probe. | Self-check widened to 10 probes × 4 tiers × 2 arms at limit=200, full ordered-list comparison, H probes assert `mode: "hybrid"`. | **Unknowable.** |
+| 10 | "Material inconsistency" and the monotonicity check had no registered thresholds — a post-hoc lever; the verdict language overreached what target-rank retrieval evidence supports. | Verdict reworded to "discharged at target-rank retrieval level; residual channels accepted by decision, not evidence"; three concrete consistency triggers registered. | **False DISCHARGED.** |
+| 11 | The 14,529 absent chunks are deterministically the two most extreme, most repetitive files — plausibly the most BM25-stressing distractor mass — and were absent from the external-validity limits. | One limits bullet added: measured at 138,440 chunks; the absent tail is excluded distractor mass the 153k cost basis prices in. | **Weakly false DISCHARGED.** |
+| 12 | "Applied verbatim" was impossible — `build-normal-set-r2.mjs` hardcodes kluster targets/paths; its rule also prepends the split symbol name, so S-prose is identifier-led too, a fact the wording obscured. | Reworded to "derivation rule ... applied by a new committed generator"; noted both S-prose and S-ident are identifier-led, which is why the comparability claim survives. | **Mislabel, no verdict path.** |
+
+The reviewer's SOUND list and withdrawn items — including the recomputed 497→472 pool
+correction — are recorded in full in the committed review file,
+`eval/results/q1-scale-design-review.md`.
 
 ---
 
