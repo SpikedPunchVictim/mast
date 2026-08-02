@@ -644,6 +644,13 @@ because it changes several decisions already taken.
 | directus | 2,089 | 7,205 |
 | nest | 1,333 | 5,030 |
 
+**[Correction, 2026-08-02 — see Q1/SCALE below]:** vscode's true chunk count is **138,440**,
+read from `graph.db`'s `chunks` table after indexing. 152,969 was the CLI stdout counter,
+which silently includes two files whose chunk writes failed deterministically on SQLite's
+32,766-parameter INSERT ceiling (`replaceChunksForFile`, `src/store/sqliteChunkStore.ts`).
+See the Q1/SCALE registration's corpus-truth-correction subsection for the full root cause
+and the product-defect finding.
+
 **vscode is 10× kluster's own index.** Every measurement in this document was taken on
 a 5k–14k chunk corpus. The real target is **150k+**.
 
@@ -2458,6 +2465,251 @@ deltas as raw material; (4) the organic harvest — note these 30 runs wrote rea
 non-self-referential rows into the A/B search log, though not into `metrics`; (5) the
 scale-out of Gate 4's rank-delta pre-check onto a 153k corpus, which is the cheapest
 attack on the one caveat that blocks M2.
+
+### Q1/SCALE — 153k scale-out of the Gate-4 rank-delta pre-check: PRE-REGISTRATION (written 2026-08-02, BEFORE any measurement)
+
+**Nothing below may be edited after the first scored measurement.** Amendments are appended
+with a timestamp, a reason, and which direction the error runs. Registration is committed
+before the instrument is built, per the Q1/OUTCOME precedent.
+
+#### Why this experiment
+
+The one verdict-blocking caveat on Q1: every benefit measurement sits at ~14.5k chunks; the
+cost (91 MB dep, ~7.2 h embed, 470 MB RAM, 169 ms brute-force scan) is priced at the
+153k-chunk target (vscode). Mechanism under test: BM25 over OR'd trigrams plausibly degrades
+as the corpus grows (more distractors sharing trigrams; shifting collection statistics) in a
+way dense vectors may not. Three converged lines (Q1/OUTCOME, arm V, Q4) already show prose
+gold-set ranking cannot settle Q1 — this experiment does not re-litigate them; it attacks
+only the scale caveat.
+
+#### Corpus-truth correction, and a product defect found while measuring it
+
+Stage 4.5's vscode figure (152,969 chunks) was the CLI stdout counter, not a ground-truth
+count. The true count, read from `graph.db`'s `chunks` table after indexing commit
+`5ebbe53282bd1d5d3453405d9e6a34ee2eb7f42d` (full clone, clean tree, 8,653 files indexed, 0
+skipped, Phase-1 wall clock 577 s, state dir 737 MB), is **138,440**. The 14,529-chunk gap is
+fully accounted for: two files — `extensions/vscode-colorize-perf-tests/test/colorize-fixtures/test-checker.ts`
+(a 146,620-line fixture) and `src/vs/workbench/services/search/test/node/fixtures/examples/employee.js`
+(an 11,190-line fixture) — had **all** of their chunk writes fail deterministically with
+"too many SQL variables."
+
+**Root cause (product defect, logged, NOT fixed in this effort).** `replaceChunksForFile`
+(`src/store/sqliteChunkStore.ts`, ~line 66) inserts every chunk for a file in one unbatched
+multi-row `INSERT`. At 11 columns/row, SQLite's 32,766-parameter ceiling caps a single file
+at ~2,979 chunks; a larger file's insert rolls back **entirely** — loud, not silent
+(`write_errors=2`, CLI exit code 1). The gap this leaves: orchestration that gates only on
+exit code and does not additionally check `write_errors` would still silently drop the
+file's chunks from the index. That gating gap is recorded as a finding here; batching
+`replaceChunksForFile`'s insert is out of scope for this registration.
+
+Chunk-type distribution over the true 138,440: method 74,685; block 22,791; function 14,287;
+class_shell 11,636; interface 10,776; type 3,239; doc 1,026 (0.74%).
+
+#### What this measures — and does not (scope, stated first)
+
+- This measures **retrieval** (rank of a known target as distractor mass grows), **not
+  outcomes**. It cannot by itself resolve Q1 in the pro-vector direction: if lexical
+  degrades at scale, the required next step is an outcome test at that scale (Reserve),
+  because Q1/OUTCOME showed rank movement does not imply outcome movement.
+- In the pro-deletion direction it is the registered discharge instrument for the scale
+  caveat: if the 14.5k picture holds at 138k at retrieval level, the caveat is discharged
+  and Q1 may resolve on the strength of the three existing lines.
+
+#### Design — nested tiers, fixed queries, one corpus
+
+Single-point measurement at full scale confounds corpus content with corpus scale. Instead:
+**nested corpus tiers within one pinned vscode checkout** (commit
+`5ebbe53282bd1d5d3453405d9e6a34ee2eb7f42d`).
+
+- **Tiers are seeded RANDOM file-level nested subsets, not directory-based.** Construction:
+  seeded shuffle (seed = 153, committed) of the full indexed file list; take file prefixes
+  whose cumulative chunk counts land nearest ~15,000 (T1) / ~50,000 (T2) / ~90,000 (T3);
+  T4 = all 138,440 chunks (every indexed file). Each tier is a strict superset of the
+  smaller by construction — T1 ⊂ T2 ⊂ T3 ⊂ T4.
+- **Why random, not directory-based (a reversal from the original framing).** A
+  directory-based partition looks natural (grow the corpus one extension folder at a time)
+  but confounds scale with *content*: `extensions/copilot` alone is 29,459 chunks of one
+  topical flavour, so each increment would differ in kind as well as in size, and a
+  rank-delta measured that way cannot distinguish "more distractors" from "different
+  distractors." Random file-level nesting makes distractor *mass* the only thing varying in
+  expectation across tiers — the actual quantity the scale caveat is about. The
+  directory-based partition is not discarded; it moves to the **Design Reserve** as a
+  sensitivity analysis, promoted only if the primary result is challenged or ambiguous.
+- All (query, target) pairs have their **target in T1** (targets are sampled after tier
+  assignment — see Query strata below), so every query is answerable at every tier; the
+  only thing that varies across tiers is distractor mass and collection statistics.
+  Per-query rank across tiers is a within-query dose–response curve.
+- Each tier gets its own state dir (own FTS index → own BM25 stats; own vector table scoped
+  to the tier). Embeddings are computed once against T4 (the full-corpus embed — see the
+  Deviation below) and shared into the smaller tiers via the content-hash embed cache
+  (`<stateDir>/embed_cache/<modelId>__<dtype>__<recipeTag>/<sha256(content)>.json`); each
+  tier still needs its own `lance/vectors.lance` populate pass (cache read + write, no model
+  call).
+
+#### Arms
+
+| arm | construction |
+|---|---|
+| H | shipped `hybridSearch(db, lance, embedder, …)` |
+| L | shipped `hybridSearch(db, lance, null, …)` — the supported `--no-embeddings` path |
+
+Known-defect mitigations carried forward from Q1/OUTCOME (§5 of HANDOFF_Q1.md) are enforced
+as Gates 2–4 below: `chunkStore` passed explicitly, per-call `mode` assertion, vector
+coverage checked per tier before scoring.
+
+#### Query strata — sampled AFTER tier assignment, mechanical derivation only
+
+Targets are sampled from **T1's TSDoc-rich exported chunks** (functions/methods/
+class_shells/interfaces/types with a leading TSDoc comment ≥ 80 chars) — measured 4,357 such
+chunks corpus-wide (of 71,472 exported candidates). Under the seeded random tier assignment,
+expected TSDoc-rich chunks landing in T1 ≈ 497 — comfortably above the 160 needed
+(150 scored + 10 probe). Both scored strata, plus the probe set, are disjoint seeded samples
+from that same T1 pool; target = the sampled symbol's own declaration chunk, which makes the
+Q1/OUTCOME referent-ambiguity defect (harvester grading "a symbol the line mentions, not the
+one it is about") structurally impossible: the referent IS the sampled declaration.
+
+- **S-ident** (n = 75, floor 40) — query = symbol name + up to 3 rare content words from its
+  TSDoc, mirroring the measured shape of real agent queries (harvest n=2 and the 147-call
+  log: identifier-bearing, median 5 words). Production-relevant stratum; **this is the
+  decision-bearing stratum** (see below).
+- **S-prose** (n = 75, floor 40) — the `build-normal-set-r2.mjs` TSDoc-derivation protocol
+  applied verbatim to vscode. Comparable in class to the existing kluster-normal/nest
+  evidence base (97% prose). **Supporting only.**
+- **10 probe queries** — instrument self-check only (Gate 2), excluded from scoring.
+
+**Doc chunks are NOT excluded** — a deliberate contrast with Q1/OUTCOME, which excluded
+`chunk_type: 'doc'` results in both arms because task text there was copied verbatim from an
+indexed `.md` file, giving a doc-mediated path to the same ground truth. Here queries derive
+from TSDoc content that lives *inside* the target chunk itself, not from a separate document
+that cites the target — there is no leakage channel of that shape. `.md` distractor chunks
+(1,026 of 138,440 corpus-wide, 0.74%) are legitimate production corpus mass; production
+`mast_search` does not exclude them, and neither does this measurement.
+
+Honest lexical-hotness note: queries derived from the target's own TSDoc are lexically hot
+by construction. This affects the **level** of ranks identically at every tier; the
+registered quantity is the **change across tiers**, which hotness does not fabricate. It
+does bound external validity: these are not agent-authored queries.
+
+The frozen query set is committed as `eval/scale-queries.json` BEFORE any tier measurement,
+with the seed and the generator script.
+
+#### Metrics and censoring
+
+Per query × tier × arm, through the wrapper at `limit = DEPTH = 200`, `WINDOW = 10` (deeper
+than the window so "below window" is distinguishable from "unretrievable"; 200 not 100
+because censoring risk grows with corpus size):
+- chunk-level `rank` of the target's own declaration chunk; chunk-level `in_window@10`
+  (rank ≤ 10).
+- Censoring: rank null at DEPTH recorded as censored and entered into the rank co-metric at
+  DEPTH+1 = 201 (a floor on degradation — stated, not hidden); censoring counts reported per
+  arm × tier × stratum. `in_window@10` is uncensored by construction.
+
+#### Exactly one decision-bearing test (multiplicity killed by construction)
+
+One test carries the verdict; everything else is supporting evidence — reported in full,
+never itself dispositive:
+
+- **Decision-bearing.** S-ident stratum, chunk-level `in_window@10`. Per query, endpoint
+  degradation D = metric(T4) − metric(T1). Contrast **D_L − D_H** (paired by query),
+  Wilcoxon signed-rank, two-sided, α = 0.05, with Hodges–Lehmann estimate and its 95% CI.
+  The in-window proportion difference additionally gets a seeded **BCa bootstrap CI
+  (10,000 resamples)** as a second, non-parametric check on the same contrast.
+- **Supporting (reported in full; must be directionally consistent for a clean verdict).**
+  S-prose (identical construction, not decision-bearing); the Δlog2(rank) co-metric
+  (censored at DEPTH+1 = 201); T2/T3 as intermediate points on the dose–response curve
+  (monotonicity check between T1 and T4). Material inconsistency between any supporting cell
+  and the decision-bearing result forces **AMBIGUOUS** rather than a headline resting on the
+  single test alone.
+- **Zero-differences.** The zero count (D_L = D_H per query) is reported. Wilcoxon drops
+  zeros per standard practice. If fewer than 10 non-zero pairs remain in S-ident, the
+  stratum is reported **underpowered** — never given fake precision by proceeding as if n
+  were unchanged.
+
+#### Pre-committed decision rule
+
+| observed | verdict |
+|---|---|
+| D_L − D_H significant on the decision-bearing test, lexical degrading more | **SCALE CAVEAT CONFIRMED.** The 14.5k null does not extend to 138k at retrieval level. Q1 stays open; the pro-vector path requires an outcome test at scale (Reserve). M2's delete arm stays blocked. |
+| Not significant AND the 95% CI upper bound on extra lexical `in_window@10` loss ≤ 10 percentage points | **SCALE CAVEAT DISCHARGED at retrieval level.** The 14.5k picture holds at 138k. Combined with the three converged lines, Q1 resolves provisionally toward deletion; M2 unblocks for the delete-arm decision (not for a silent delete — M2 is decided on its own section). |
+| Significant in the reverse direction (hybrid degrades more) | Caveat discharged a fortiori; reported as a fusion-at-scale finding, descriptive only. |
+| anything else | **AMBIGUOUS.** Report; escalate by increasing n, never by reinterpreting. |
+
+The 10 pp bound is pre-set and admittedly a judgment call: an extra one-in-ten loss of
+window membership at scale could plausibly move outcomes and cannot be waved off; below
+that, with outcomes already shown insensitive to window composition at 14.5k, the burden of
+proof shifts to whoever wants to keep the store. The bound is registered here so it cannot
+be tuned after the numbers exist.
+
+**Direction-of-error statement, in advance:** the investigator's prior (three converged
+lines) favours deletion. A null here flatters that prior. Therefore the null branch carries
+the harder requirements (CI bound, not just p > 0.05; decision-bearing-stratum-specific;
+adversarial results review mandatory before the verdict is recorded).
+
+#### Falsification criteria (pre-stated)
+
+- **Lexical degrading with scale (the pro-vector outcome):** D_L − D_H positive and
+  significant on the decision-bearing test — vectors' scale story is real at retrieval
+  level.
+- **The 14.5k picture holding:** the discharge row above.
+- The registration is falsifiable in both directions; neither outcome is "no result".
+
+#### Gates before any scored measurement
+
+1. **Wilcoxon implemented and unit-tested BEFORE scoring.** The registered Wilcoxon
+   signed-rank test in `ab-score.mjs` was never implemented (HANDOFF_Q1.md §5) — that defect
+   does not repeat here. The implementation ships with its own unit tests (known-answer
+   cases) before it touches real data.
+2. **Instrument self-check** — the tier wrapper must reproduce shipped `hybridSearch`
+   exactly (same ordered `chunk_id` list) on the 10 probe queries against each tier's state,
+   **0 mismatches required** (`q1-reserve2.mjs` precedent).
+3. **Arm integrity, per call** — `chunkStore` passed **explicitly** on every call
+   (`hybrid.ts:55` loaded-gun default reads the retired Lance chunk table); `mode` recorded
+   per call, any H call not returning `mode: "hybrid"` voids that tier's H measurement
+   (`hybrid.ts:102-104` swallows embedder failure silently) — re-run after diagnosis, void
+   counts reported.
+4. **Vector coverage** — `pending_embeddings == 0` in every tier state before that tier's H
+   measurement is scored; reported per tier.
+5. **Anti-ceiling gate** — if T1 chunk-level `in_window@10` ≥ 95% in both arms in a stratum,
+   membership cannot degrade measurably from T1 in that stratum; the Δlog2(rank) co-metric
+   carries that stratum alone, reported, not silently absorbed.
+6. **Determinism** — seed (153), tier-construction script, query-generator script, and the
+   frozen query set (`eval/scale-queries.json`) all committed **before** any measurement.
+
+#### Costs (stated before spending)
+
+- **Full-corpus embed.** Measured 9.6 chunks/s on this host (Apple M2 Pro, node v24.18.0,
+  jina-embeddings-v2-base-code fp32, batch 32) over a 500-chunk sample → projected **~4.0 h**
+  for 138,440 chunks. The prior 5.88 chunks/s / 7.2 h figure (Stage 4.5) is **not
+  overwritten** — both are reported; a 500-chunk sample cannot rule out slowdown on
+  pathological chunks or thermal effects over a multi-hour run.
+- **Storage.** Content-hash embed cache shared across all four tiers, ≈ 2.16 GB; per-tier
+  `vectors.lance` ≈ 526 MB for the full tier (smaller tiers scale down); all four tiers ≈
+  4.8–5 GB total; 114 GB free on this host.
+- **Tier Phase-1 builds.** The full 8,653-file corpus's Phase-1 (chunk extraction + FTS)
+  measured at **577 s** wall clock in this spike; each smaller tier operates over a file
+  subset and is expected to be sub-linear in file count, bounded above by 577 s.
+- **Measurement volume.** 150 scored queries (75 S-ident + 75 S-prose) × 4 tiers × 2 arms =
+  **1,200 core searches**, plus 10 probe queries × 4 tiers = 40 self-check calls. Minutes to
+  tens of minutes. No agents run; no token spend beyond orchestration.
+
+#### Logged deviation — the embed was started before this registration was committed
+
+The full-corpus embed (`eval/embed-full-corpus.mjs` against `vscode-state-full`) was started
+**before** this registration was committed, for wall-clock economics: the ~4 h (projected)
+critical path dominates every other step in this design, so waiting for the registration
+commit to start it would only lengthen the total time to a result. **Direction of error:
+none.** Embeddings are deterministic given the model and chunk content; a background embed
+run before or after this text is committed produces the identical vectors either arm would
+see, and **no search, ranking, or measurement of any kind ran** before this commit. This is
+stated so the deviation is auditable, not because it biases anything.
+
+#### Design Reserve (pre-thought, NOT commitments)
+
+An outcome A/B at full scale (the required follow-up if the caveat is confirmed); a
+`--no-embeddings` container A/B; shipping D0; a fifth tier at ~30k if the dose–response
+curve needs resolution between 15k and 50k; **the directory-based tier partition** as a
+sensitivity analysis (promoted only if the primary random-nesting result is challenged or
+ambiguous — see Design above); per-directory heterogeneity analysis.
 
 ---
 
