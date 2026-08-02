@@ -1,0 +1,50 @@
+{
+  "ran_at": "2026-08-02T08:59:20.695Z",
+  "corpus_chunks": 14464,
+  "rare_df_fraction": 0.01,
+  "flagged": 0,
+  "report": [
+    {
+      "id": "T07",
+      "paraphrase": "A settings knob capping total model spend during an automated code-writing run's early thinking stages; going over that limit ends whole runs outright.",
+      "shared_count": 0,
+      "rare_shared": [],
+      "all_shared": []
+    },
+    {
+      "id": "T08",
+      "paraphrase": "Pluggable port for an add-at-tail, mutation-free record of what happened during a run; callers add entries or fetch all in insertion sequence.",
+      "shared_count": 0,
+      "rare_shared": [],
+      "all_shared": []
+    },
+    {
+      "id": "T09",
+      "paraphrase": "Driver that has a language model generate a missing internal package, vets the output, retries briefly, then writes accepted results under a staging directory.",
+      "shared_count": 0,
+      "rare_shared": [],
+      "all_shared": []
+    },
+    {
+      "id": "T10",
+      "paraphrase": "Behavior-tree leaf making one language-model round trip: it fills a role-specific prompt template, sends it, then stores the reply on the shared blackboard.",
+      "shared_count": 0,
+      "rare_shared": [],
+      "all_shared": []
+    },
+    {
+      "id": "T11",
+      "paraphrase": "Common wrapper that drives an autonomous model session editing project source directly, logging consumption into ledgers, converting failures into values instead of raising exceptions.",
+      "shared_count": 0,
+      "rare_shared": [],
+      "all_shared": []
+    },
+    {
+      "id": "T12",
+      "paraphrase": "RAM-backed test double offering the same history-recording port as the real disk-backed one; optionally pre-seeded, it lets suites skip filesystem I/O.",
+      "shared_count": 0,
+      "rare_shared": [],
+      "all_shared": []
+    }
+  ]
+}

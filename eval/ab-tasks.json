@@ -1,0 +1,218 @@
+{
+  "registered": "IMPLEMENTATION_PLAN.md § Q1/OUTCOME",
+  "built_at": "2026-08-02T08:53:01.432Z",
+  "seed": 20260802,
+  "state": "/Users/spikedpunchvictim/.cache/mast-eval/ab-state",
+  "docs_scanned": 73,
+  "candidates_found": 219,
+  "pool_after_dedup": 135,
+  "k": 12,
+  "tasks": [
+    {
+      "source_doc": "packages/workbench/fold/ledger/IMPLEMENTATION_PLAN.md",
+      "source_line": 268,
+      "text": "`reDiscover` is an injected `ReDiscoverFn` seam.",
+      "identifier": "ReDiscoverFn",
+      "target": {
+        "file_path": "packages/workbench/fold/ledger/src/gapClosure.ts",
+        "symbol": "ReDiscoverFn",
+        "kind": "type",
+        "line": 20,
+        "chunk_key": "20",
+        "chunk_type": "type"
+      },
+      "id": "T01",
+      "stratum": "S-ident",
+      "query": "`reDiscover` is an injected `ReDiscoverFn` seam."
+    },
+    {
+      "source_doc": "packages/workbench/fold/ledger/IMPLEMENTATION_PLAN.md",
+      "source_line": 70,
+      "text": "synonyms), `ChainedCapabilityMatcher` (first non-null → `[lexical, embedding]`",
+      "identifier": "ChainedCapabilityMatcher",
+      "target": {
+        "file_path": "packages/workbench/fold/ledger/src/matchers.ts",
+        "symbol": "ChainedCapabilityMatcher",
+        "kind": "class",
+        "line": 119,
+        "chunk_key": "119",
+        "chunk_type": "class_shell"
+      },
+      "id": "T02",
+      "stratum": "S-ident",
+      "query": "synonyms), `ChainedCapabilityMatcher` (first non-null → `[lexical, embedding]`"
+    },
+    {
+      "source_doc": "packages/workbench/foldv2/.archived/fable_feedback/FABLE_FEEDBAK_V2.md",
+      "source_line": 522,
+      "text": "async (`Promise<void>`) — this changes the `WorkspaceFs` port in `@foldv2/contracts`; update all",
+      "identifier": "WorkspaceFs",
+      "target": {
+        "file_path": "packages/workbench/foldv2/contracts/src/ports.ts",
+        "symbol": "WorkspaceFs",
+        "kind": "interface",
+        "line": 100,
+        "chunk_key": "100",
+        "chunk_type": "interface"
+      },
+      "id": "T03",
+      "stratum": "S-ident",
+      "query": "async (`Promise<void>`) — this changes the `WorkspaceFs` port in `@foldv2/contracts`; update all"
+    },
+    {
+      "source_doc": "packages/workbench/foldv2/.archived/ENDPOINT_OUTAGE_CIRCUIT_BREAKER_PLAN.md",
+      "source_line": 19,
+      "text": "`RunnerTimeoutError` message (`\"timed out after Ns — endpoint stalled\"`) or a transport error",
+      "identifier": "RunnerTimeoutError",
+      "target": {
+        "file_path": "packages/workbench/foldv2/runner-bridge/src/errors.ts",
+        "symbol": "RunnerTimeoutError",
+        "kind": "class",
+        "line": 12,
+        "chunk_key": "12",
+        "chunk_type": "class_shell"
+      },
+      "id": "T04",
+      "stratum": "S-ident",
+      "query": "`RunnerTimeoutError` message (`\"timed out after Ns — endpoint stalled\"`) or a transport error"
+    },
+    {
+      "source_doc": "packages/kluster-bt/nodes-llm/README.md",
+      "source_line": 35,
+      "text": "`llm:composite.agent-loop` | `AgentLoop` | **Phase 8a.** Multi-turn tool-aware agent loop. See detailed section below. |",
+      "identifier": "AgentLoop",
+      "target": {
+        "file_path": "packages/kluster-bt/nodes-llm/src/agent-loop.ts",
+        "symbol": "AgentLoop",
+        "kind": "class",
+        "line": 239,
+        "chunk_key": "239",
+        "chunk_type": "class_shell"
+      },
+      "id": "T05",
+      "stratum": "S-ident",
+      "query": "`llm:composite.agent-loop` | `AgentLoop` | **Phase 8a.** Multi-turn tool-aware agent loop. See detailed section below. |"
+    },
+    {
+      "source_doc": "packages/workbench/foldv2/.archived/FABLE_UPGRADES.md",
+      "source_line": 315,
+      "text": "shared by `installToolchain` and the composition root's provisioning `install` (`pnpm add` retries 3× with",
+      "identifier": "installToolchain",
+      "target": {
+        "file_path": "packages/workbench/foldv2/cli/src/toolchain.ts",
+        "symbol": "installToolchain",
+        "kind": "function",
+        "line": 49,
+        "chunk_key": "49",
+        "chunk_type": "function"
+      },
+      "id": "T06",
+      "stratum": "S-ident",
+      "query": "shared by `installToolchain` and the composition root's provisioning `install` (`pnpm add` retries 3× with"
+    },
+    {
+      "source_doc": "packages/workbench/foldv2/.archived/FABLE_UPGRADES.md",
+      "source_line": 574,
+      "text": "by default), threaded via `BuildPipelineOptions.designBudget` → `MakeStepOptions`. As with FU-5 the runner",
+      "identifier": "MakeStepOptions",
+      "target": {
+        "file_path": "packages/workbench/foldv2/cli/src/pipelineCore.ts",
+        "symbol": "MakeStepOptions",
+        "kind": "interface",
+        "line": 119,
+        "chunk_key": "119",
+        "chunk_type": "interface"
+      },
+      "id": "T07",
+      "stratum": "S-concept",
+      "query": "A settings knob capping total model spend during an automated code-writing run's early thinking stages; going over that limit ends whole runs outright."
+    },
+    {
+      "source_doc": "packages/workbench/fold/ledger/IMPLEMENTATION_PLAN.md",
+      "source_line": 47,
+      "text": "`store.ts` — `LedgerStore` port (`append` / `readEvents`),",
+      "identifier": "LedgerStore",
+      "target": {
+        "file_path": "packages/workbench/fold/ledger/src/store.ts",
+        "symbol": "LedgerStore",
+        "kind": "interface",
+        "line": 13,
+        "chunk_key": "13",
+        "chunk_type": "interface"
+      },
+      "id": "T08",
+      "stratum": "S-concept",
+      "query": "Pluggable port for an add-at-tail, mutation-free record of what happened during a run; callers add entries or fetch all in insertion sequence."
+    },
+    {
+      "source_doc": "packages/workbench/fold/ledger/IMPLEMENTATION_PLAN.md",
+      "source_line": 121,
+      "text": "`substrate-packages`) so `runAuthor` can target a staging root; `defaultGate`",
+      "identifier": "runAuthor",
+      "target": {
+        "file_path": "packages/workbench/fold/foldctl/src/commands/author.ts",
+        "symbol": "runAuthor",
+        "kind": "function",
+        "line": 260,
+        "chunk_key": "260",
+        "chunk_type": "function"
+      },
+      "id": "T09",
+      "stratum": "S-concept",
+      "query": "Driver that has a language model generate a missing internal package, vets the output, retries briefly, then writes accepted results under a staging directory."
+    },
+    {
+      "source_doc": "packages/kluster-bt/nodes-llm/README.md",
+      "source_line": 30,
+      "text": "`llm:action.agent-dispatch` | `AgentDispatch` | Single-turn prompt: resolves a role + prompt template, calls `provider.execute()`, writes the response to a blackboard key. |",
+      "identifier": "AgentDispatch",
+      "target": {
+        "file_path": "packages/kluster-bt/nodes-llm/src/agent-dispatch.ts",
+        "symbol": "AgentDispatch",
+        "kind": "class",
+        "line": 12,
+        "chunk_key": "12",
+        "chunk_type": "class_shell"
+      },
+      "id": "T10",
+      "stratum": "S-concept",
+      "query": "Behavior-tree leaf making one language-model round trip: it fills a role-specific prompt template, sends it, then stores the reply on the shared blackboard."
+    },
+    {
+      "source_doc": "packages/workbench/foldv2/.archived/FABLE_UPGRADES.md",
+      "source_line": 35,
+      "text": "F2. `runCodeAgent` has no token or turn bound — runaway tasks are paid in full",
+      "identifier": "runCodeAgent",
+      "target": {
+        "file_path": "packages/workbench/foldv2/phases/src/codeOutput.ts",
+        "symbol": "runCodeAgent",
+        "kind": "function",
+        "line": 152,
+        "chunk_key": "152",
+        "chunk_type": "function"
+      },
+      "id": "T11",
+      "stratum": "S-concept",
+      "query": "Common wrapper that drives an autonomous model session editing project source directly, logging consumption into ledgers, converting failures into values instead of raising exceptions."
+    },
+    {
+      "source_doc": "packages/workbench/fold/ledger/IMPLEMENTATION_PLAN.md",
+      "source_line": 48,
+      "text": "`InMemoryLedgerStore` fake, `loadState(store)` convenience.",
+      "identifier": "InMemoryLedgerStore",
+      "target": {
+        "file_path": "packages/workbench/fold/ledger/src/store.ts",
+        "symbol": "InMemoryLedgerStore",
+        "kind": "class",
+        "line": 28,
+        "chunk_key": "28",
+        "chunk_type": "class_shell"
+      },
+      "id": "T12",
+      "stratum": "S-concept",
+      "query": "RAM-backed test double offering the same history-recording port as the real disk-backed one; optionally pre-seeded, it lets suites skip filesystem I/O."
+    }
+  ],
+  "paraphrases_merged_at": "2026-08-02T09:00:14.634Z",
+  "paraphrase_audit": "./eval/ab-paraphrase-audit.json"
+}
