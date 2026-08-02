@@ -1541,6 +1541,128 @@ spanning zero. ΔRecall@10 (H+D vs L+D): normal ≈0, **anti +0.10–0.20**, nes
 Predicted branch: mixed/diagnostic — neither branch fires; Q1 stays open pending harvest.
 Confidence ~70%; ~20% a delete-leaning surprise; ~10% void on first scored attempt.
 
+**Round-3 revisions (after the reviewer conceded the bound), superseding the above where
+they differ:** anti-set L+D gain revised **up** to +0.02–0.07 ("the bound proved my model of
+D's reach was too pessimistic once already"); split moves to **65% mixed / 25%
+delete-leaning surprise / 10% void**. New attributed prediction: `tsdoc_in_chunk` will be
+absent/truncated for **30–50%** of normal+nest queries, concentrated in well-documented
+symbols, and D's realized gains will correlate with the **symbol echo**, not TSDoc presence.
+
+**Pre-committed addition, requested by the reviewer because it cuts TOWARD the incumbent**
+(hence committed before the number exists, not discovered post-hoc): stratify the
+**existing** per-query H and V results by `tsdoc_in_chunk`. The prior review's finding 3
+("the normal sets are a self-retrieval task for embeddings, so their declared FOR-lexical
+bias is backwards") rests on the TSDoc being *inside* the embedded chunk. If H's
+kluster-normal win (the significant 0.1669) **holds on the queries whose TSDoc is not in
+the chunk**, that win is more genuine than the current AMBIGUOUS ruling credits, and the
+record must be ready to say so.
+
+#### Q1/RESERVE RESULT (2026-08-02) — the stop rule fired: decomposition is HARMFUL, not neutral
+
+`eval/q1-reserve-decomp.mjs` → `~/.cache/mast-eval/results/q1-reserve-decomp.json`.
+Runtime ~4 min, no re-index and no re-embed (index-side build is 15 s for both corpora).
+
+| set | n | L | D | **L+D** | H | H+D |
+|---|---|---|---|---|---|---|
+| kluster-normal | 11 | 0.5663 | 0.3230 | **0.4001** | 0.7331 | 0.5984 |
+| kluster-anti | 28 | 0.1908 | 0.1681 | **0.2042** | 0.3222 | 0.2822 |
+| nest-external | 20 | 0.5119 | 0.4323 | **0.4385** | 0.6122 | 0.5521 |
+
+**Harness validated first: `self_check_mismatches = 0` on all three sets.** The
+reimplemented N-ranker pipeline reproduces shipped `hybridSearch` result-for-result on
+both overlapping configurations, and its `H−L` reference reproduces `q1-final.mjs`'s
+recorded **0.1669 / 0.1313 / 0.1003** to the digit. Anti-degeneracy gate: arm D returned
+≥1 result on **every** query of every set (0 empty), no arm scored 0.0000. Gate PASS.
+
+**🔴 The pre-registered stop rule fired.** *"(L+D) < L significantly on any set →
+decomposition is harmful. Stop, do not tune."*
+
+| set | (L+D) − L | 95% CI | t | |
+|---|---|---|---|---|
+| **kluster-normal** | **−0.1661** | **[−0.3247, −0.0075]** | **−2.333** | **significantly NEGATIVE** |
+| kluster-anti | +0.0133 | [−0.0835, +0.1102] | 0.288 | n.s. |
+| nest-external | −0.0734 | [−0.2517, +0.1049] | −0.862 | n.s. |
+
+Arm D alone loses to arm L on **all three** sets. Worse, the harm lands on the metric that
+matters: **kluster-normal Recall@10 falls from L's 1.0000 to L+D's 0.7273** — decomposition
+*removes* targets from the ten-result window the agent reads in full. The reachability
+bound was right that decomposition can *move* these queries; it moved them the wrong way.
+
+**Mechanism (stated, not assumed):** fusing a strictly weaker, highly *correlated* ranker
+into RRF dilutes the stronger one — the same vote-splitting the reviewer identified for
+H+D, here applied to the lexical side. Where L is strong (normal, Recall 1.000) and D is
+weak (0.6364), fusion drags the pair toward D.
+
+**Answer to the Design Reserve's question: the cheapest remaining lexical lever does not
+exist.** Decomposition does not close the gap at zero query cost; it opens it. F15 remains
+the only lexical fix that moved these numbers, and it moved them by *repairing a defect*,
+not by adding signal.
+
+##### 🔴 Construction deviation from the pre-registration — logged, and it runs TOWARD the incumbent
+
+The Design Reserve specified *"index `checkAuthToken` also as `check auth token` in a
+**second FTS column**"*. I built a second FTS **table**, fused by RRF. These are not the
+same instrument: a second *column* is scored jointly by one `bm25()` call over one
+document; a second *table* is a separate ranker whose votes must be fused — and RRF
+vote-dilution is precisely the mechanism that produced the harm above. The column
+construction cannot dilute this way.
+
+**Direction of the error: it favours the incumbent** (harm to the lexical arm ⇒ vectors
+look better). That is the exact direction in which this program has already failed twice.
+The result above therefore answers *"is decomposition-as-a-fused-ranker a lever?"* — **no,
+it is a regression** — and does **not** answer the Reserve's actual question. **RESERVE-2
+(second-column construction) is registered as owed work, not optional**, for the same
+reason the original arm was owed.
+
+##### Auxiliary findings
+
+- **Doc-magnet prediction FALSIFIED, inverted.** Predicted arm D would over-return `doc`
+  chunks. Measured share of returned slots that are `doc`: kluster-anti **D 26.1% vs L
+  45.7%** (128/280 slots); nest D 4% vs L 2%. The shipped **trigram** arm is the bigger doc
+  magnet; decomposition *reduces* prose pollution.
+- **Canary did not execute on kluster-normal (n=0).** Its targets are line-addressed
+  (`symbol: null`), so the symbol-stripping step had nothing to strip. **Moot rather than
+  missing**: the canary exists to test whether D's *gain* is symbol echo, and on that set
+  there is no gain to attribute — D lost, significantly. Ran fine on anti (n=27,
+  (L+D)−L = +0.0322) and nest (n=18, +0.0046), both null. Fix owed for RESERVE-2 (resolve
+  the symbol from the chunk at the cited line).
+- **`query_in_chunk` stratification is unanswerable on kluster-normal: 11/11 queries have
+  ≥50% of their terms inside the target chunk** (nest 18/20; anti only 6/28, as expected
+  for a set built to avoid lexical overlap). So the reviewer's round-3 prediction that
+  30–50% of TSDoc-derived queries would fall *outside* their chunk is **falsified**, and
+  the pre-committed test — "does H's normal-set win survive on queries whose TSDoc is not
+  in the chunk?" — has **zero eligible queries** and cannot be run on this instrument. The
+  prior review's self-retrieval premise for the normal set therefore **stands**: those
+  queries are inside their targets' own indexed text, for the lexical *and* vector arms
+  alike.
+
+##### What this does and does not change for Q1
+
+**Does not change:** Q1 stays **AMBIGUOUS** and M2 stays **BLOCKED**. Under the registered
+authority limit this arm *can never justify vectors* — only the real-query harvest can.
+Nothing here is evidence *for* the vector store; it is evidence *against a proposed
+alternative to it*.
+
+**Does change:** the primary contrast now reads on the *shipped* configuration, because
+L+D is not a configuration anyone would ship. `(H+D)−(L+D)` was significant on
+kluster-normal (**0.1982**, CI [0.061, 0.336], t=3.219) and on kluster-anti (0.0781, CI
+[0.021, 0.135], t=2.862 — **one-directional, cannot count toward keeping vectors**), and
+**not** significant on nest (0.1136, CI [−0.009, 0.236], t=1.936). That is the same shape
+as `H−L`: significant at home, not significant externally. **The external CI still spans
+zero. Nothing has replicated.**
+
+##### Reviewer's pre-run predictions, scored
+
+Recorded before the numbers existed, so they can be graded. **Right:** kluster-anti
+`(H+D)−(L+D)` ≈0.08–0.13 at t≈3 (actual 0.0781, t=2.862); ΔRecall@10 anti +0.10–0.20
+(actual 0.1607); nest CI spanning zero; arm D anti 0.15–0.25 (0.1681) and nest 0.40–0.55
+(0.4323). **Wrong:** the self-check would fail on first attempt (0 mismatches); arm D on
+normal 0.45–0.60 (actual 0.3230); kluster-normal `(H+D)−(L+D)` CI spanning zero (actual
+significant); `tsdoc_in_chunk` absent for 30–50% (actual ~0%); the doc-magnet direction.
+**Missed by both of us:** that decomposition would come out *significantly negative* —
+neither the reviewer's range (+0.02–0.07 on anti, +0.05–0.12 on normal) nor mine allowed
+for harm on the normal set.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
@@ -1601,13 +1723,24 @@ alters product behaviour.
 
 ### Next action (do not skip to A-vs-C)
 
-1. **Identifier-decomposition reserve arm** — pre-registered, trigger fired, never run.
-   Cheapest remaining lever, and F15 proved lexical fixes move these numbers a lot.
-2. Real-query harvest via `metrics.args_json` (write path verified working; n=1 today).
-3. Equalise arm V through `hybridSearch`'s pipeline (review finding 5).
-4. Answer pre-registered Q4/Q5 (practical significance) — note kluster arm L
+1. ~~**Identifier-decomposition reserve arm**~~ — **DONE 2026-08-02**, pre-registered at
+   commit `c5f4486`. Stop rule fired: decomposition-as-a-fused-ranker is a **regression**
+   ((L+D)−L = −0.1661, t=−2.333 on kluster-normal; Recall@10 1.000 → 0.727). See
+   "Q1/RESERVE RESULT" above.
+2. **RESERVE-2 — the second-COLUMN construction. Owed, not optional.** The Reserve
+   specified a second FTS *column* (one joint `bm25()`); I built a second *table* (RRF
+   fusion), and RRF vote-dilution is what caused the harm. The deviation runs **toward the
+   incumbent**, so leaving it unrun repeats the original violation. Also fix the canary's
+   symbol resolution (line-addressed targets yield no symbol to strip).
+3. Real-query harvest via `metrics.args_json` — **the only instrument that can resolve
+   Q1**; the reserve arm's registered authority limit forbids it justifying vectors. Write
+   path verified working; n=1 today, needs ≈67 for 80% power at the observed variance.
+4. Equalise arm V through `hybridSearch`'s pipeline (review finding 5). **Now cheap:** the
+   validated N-ranker pipeline in `q1-reserve-decomp.mjs` (self-check 0 mismatches, exact
+   reproduction of `q1-final`'s H−L) is the vehicle — arm V becomes `rankers: ['vec']`.
+5. Answer pre-registered Q4/Q5 (practical significance) — note kluster arm L
    **Recall@10 = 1.000**.
-5. Only then reconsider M2's A-vs-C.
+6. Only then reconsider M2's A-vs-C.
 
 ---
 
