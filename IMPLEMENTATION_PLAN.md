@@ -1944,6 +1944,291 @@ sample; it does not fix the metric.
 
 ---
 
+### Q1/OUTCOME — hybrid vs lexical **task-outcome** A/B: PRE-REGISTRATION (written 2026-08-02, BEFORE any run)
+
+**Nothing below may be edited after the first scored run.** Amendments are appended with a
+timestamp, a reason, and **which direction the error runs**. This registration is committed
+before the instrument is built, per the §Q1 precedent.
+
+#### Why this experiment and not more synthetic-set work
+
+Every Q1 verdict to date is denominated in NDCG@10 — an *intra-window reordering* metric —
+while the record already holds kluster arm L **Recall@10 = 1.000** for a consumer that reads
+the whole window. The reframe above argues that no `n` fixes this. **The reframe is an
+argument, not a measurement.** It rests on an unmeasured assumption: that the agent uses all
+ten results roughly equally. This experiment is the measurement. It is designed so it can
+falsify the reframe, not only confirm it — the failure mode this program has repeatedly
+suffered is bias toward the incumbent, and a registration that could only vindicate my own
+new framing would reproduce that failure with the sign flipped.
+
+#### The question, in the units the cost is paid in
+
+Does running MAST in `mode: "lexical"` instead of `mode: "hybrid"` change **whether an agent
+completes a real task, and at what effort** — where the cost of the hybrid half is 91 MB of
+dependency, ~7 h of embed, and 470 MB RAM at the 153k-chunk target?
+
+#### Arms
+
+| arm | construction |
+|---|---|
+| **H** — hybrid | `hybridSearch(db, lance, embedder, …)` — shipped RRF, rank-based vector inclusion |
+| **L** — lexical | `hybridSearch(db, lance, **null**, …)` — the shipped, supported `--no-embeddings` configuration (§13.11); `mode` defaults to lexical at `hybrid.ts:75`, embedder gate at `hybrid.ts:78` |
+
+The switch is one argument. Both arms are shipped code paths; neither is a reimplementation.
+
+#### Mechanism (and its honest limitation)
+
+No `mast search` CLI exists (D0 unshipped) and a subagent cannot be given its own MCP server
+config, so the arms are exposed through a thin eval wrapper, `eval/ab-search.mjs`, that
+replicates `src/mcp/tools/search.ts`'s call exactly — including passing `chunkStore`
+explicitly (the `hybrid.ts:55` loaded-gun default reads the **retired** Lance chunk table).
+
+- **Limitation, stated up front:** agents will search via a Bash command rather than the
+  `mast_search` MCP tool. Both arms share that surface, so **internal validity is preserved**;
+  what is weakened is external validity — a Bash surface may be reached for less readily than
+  an MCP tool. This is a limit on generalising the *absolute* effort numbers, not on the
+  H-vs-L contrast.
+- **Frozen index.** All runs read one snapshot of `.mast` copied to
+  `~/.cache/mast-eval/ab-state` before run 1, so index drift cannot differ between arms.
+  `last_indexed`, `chunk_count`, and vector coverage are recorded into the results file.
+- **Blinding — and the defect that nearly broke it.** Naively replicating the MCP tool leaks
+  the arm into every response: `search.ts:35` serialises `mode`, `_stats` carries it
+  (`search.ts:43`), and `similarity_score` is non-null **only** in hybrid
+  (`hybrid.ts:153`). Transcripts would therefore have contained the arm, and "graded blind"
+  would have been a false claim. The wrapper **redacts `mode`, `_stats`, and
+  `similarity_score` from agent-visible output, identically in both arms**; the fidelity gate
+  compares the *pre-redaction* payload. Arm comes from an env var the agent never sees;
+  transcripts use opaque run-ids; the run-id → arm mapping is not opened until grading is
+  committed.
+- **Arm-integrity assertion (per call, not per experiment).** `hybrid.ts:102–104` swallows
+  any embedder failure — `catch { /* Embedding failure is non-fatal */ }` — and silently
+  returns `mode: "lexical"`. A mid-experiment model-load or memory failure would therefore
+  turn arm H into arm L and manufacture exactly the null the reframe predicts. The wrapper
+  records `mode` on **every** call (pre-redaction, to the results file); any H-arm run
+  containing a call that did not return `mode: "hybrid"` is **void and re-run**. Void counts
+  are reported.
+- **MCP bypass control.** Subagents are instructed not to call any `mcp__mast__*` tool. This
+  is enforced by measurement, not by hope: mast's MCP tools are *deferred* in this harness
+  (they require an explicit `ToolSearch` to load), and any transcript containing a mast MCP
+  call is **void and re-run**. Void counts are reported.
+
+#### Task set — provenance protocol
+
+Tasks must be **real and not about MAST** (organic query n is 0 precisely because MAST is
+only ever used to investigate MAST). Sampling frame: pre-existing documents in the *other*
+packages — `packages/workbench/{foldv2,sdd,fold,metrics}`, `packages/kluster-bt` — written
+for unrelated purposes before this experiment existed, each row citing or implying a concrete
+code location that serves as ground truth. Sampled with a seeded RNG; frozen to
+`eval/ab-tasks.json` and committed **before** any run.
+
+Two pre-registered strata, 6 tasks each (k = 12 total, 24 runs):
+
+- **S-ident** — task text retains its code identifiers. This is the *production-realistic*
+  stratum under the harvest's n=2 hypothesis (real queries are identifier-bearing, median 5
+  words).
+- **S-concept** — task text paraphrased to contain **no identifier appearing in the target
+  code**. This is the anti-lexical construction and is **vector-favourable by design**.
+
+**The weakest link, named — and my first claim about it RETRACTED.** S-concept paraphrases
+must be authored, and three earlier query sets in this program were voided by authoring bias.
+I originally registered that the bias "runs toward vectors, so a null is conservative."
+**That is not established, and the counter-construction is concrete:** the S-concept
+constraint bans only identifiers *appearing in the target code*, but the shipped `chunk_fts`
+uses the **trigram** tokenizer, which matches prose as readily as identifiers. A paraphraser
+working from a doc row that describes the target will naturally reuse rare *prose* tokens
+that also occur in the target chunk's comments or TSDoc — producing paraphrases that are
+formally identifier-free but **lexically hot**. The net direction of the bias is therefore
+**unknown**, not favourable to vectors.
+
+Mitigations: (a) paraphrases written by an agent told only "restate without using any
+identifier from the target", never told which arm benefits; (b) frozen and committed pre-run;
+(c) **a mandatory automated overlap audit** — for every paraphrase, list tokens ≥ 3 chars
+shared with the target chunk's **full indexed content** (not merely its identifiers); any
+paraphrase sharing a rare token is rewritten or flagged, and the audit output is committed
+alongside `ab-tasks.json`. Because the direction is unknown, the asymmetric reading below
+("no hybrid advantage even in S-concept is strong evidence against vectors") is **conditional
+on that audit passing**, and is void without it.
+
+**Leakage exclusion — index level AND filesystem level.** Task text is verbatim from an
+indexed `.md` file. Excluding it only from *search results* is insufficient: the file is
+still on disk, so `grep` over a task-text fragment finds the doc, which cites the ground
+truth. Therefore: (a) agents run in a `git worktree` with each task's source document
+**removed from the filesystem**; (b) the wrapper additionally excludes `chunk_type: 'doc'`
+results in **both** arms — the registered question is whether the agent found the right
+*code*, and 187 indexed `.md` files otherwise give a doc-mediated path to the answer that
+ceilings both arms. Both exclusions are symmetric and logged; neither favours an arm. The
+doc-chunk exclusion is a deviation from production configuration and is stated as a limit on
+external validity.
+
+#### Outcomes
+
+Two **co-primary** outcomes. The original registration made success the sole primary while
+conceding in the same breath that the secondaries "carry the power the binary lacks" — an
+incoherence that would have put the entire verdict on the statistic least able to bear it.
+
+- **Co-primary A — task success (binary).** Did the agent identify the pre-specified
+  ground-truth location and answer correctly? Graded against a rubric written before any run,
+  **blind to arm**, by an independent Fable agent; disputes adjudicated by reading the
+  transcript, every overturn logged.
+- **Co-primary B — retrieval effort (paired, continuous).** Search calls issued before the
+  first correct sighting of the ground-truth location. Tested by **Wilcoxon signed-rank**
+  (sign test as the pre-registered fallback if ties dominate), two-sided, α = 0.05, paired by
+  task. This is where the power actually lives, so it gets a real pre-registered statistic
+  rather than a round-number override.
+- **Secondary:** fallback to `Grep`/`Glob`/`Read` (binary + count); total tool calls;
+  wall-clock; void-run count.
+
+#### Pre-committed decision rule
+
+Paired over k = 12 tasks. Let **b** = tasks where H succeeds and L fails; **c** = the reverse.
+
+| outcome | verdict |
+|---|---|
+| **exact McNemar p ≤ 0.05** (at k = 12: e.g. b = 5, c = 0 → p = 0.031) | **Reframe FALSIFIED.** Retrieval mode changes agent outcomes. Q1 moves toward justifying vectors — but M2 stays blocked until Q4 names the winning query class. |
+| **b + c ≤ 1** *and* co-primary B not significant | **Reframe SUPPORTED.** Mode is outcome-neutral *and* effort-neutral at this power. With Recall@10 = 1.000 this is the practical-significance evidence Q4/Q5 have been deferred for four times; Q1 resolves *provisionally* toward arm D, subject to the bounds below, the scale caveat, and Gate 0. |
+| **b + c ≤ 1** *but* co-primary B significant | **Outcome-neutral, effort-positive.** L reaches the same answers but costs materially more retrieval. That cost is real and **blocks a clean arm-D resolution**. |
+| anything else | **AMBIGUOUS.** Report; do not resolve Q1. Escalate by increasing k, not by reinterpreting. |
+
+**Why the falsification threshold moved (correcting my own arithmetic).** The originally
+registered rule was `b − c ≥ 3 and b ≥ 3`. Its `b ≥ 3` clause is **redundant** (`b − c ≥ 3`
+with `c ≥ 0` already implies it), and worse, it is not a fixed-significance rule: under H₀,
+`b ~ Binomial(b+c, ½)`, so it fires at one-sided p = 0.125 (b=3,c=0), 0.188 (b=4,c=1), 0.227
+(b=5,c=2), up to ≈ 0.27 (b=7,c=4). It would have let the **pro-incumbent** branch issue on
+near-coin-flip evidence, in a program whose named failure mode is pro-incumbent bias. Exact
+McNemar at α = 0.05 replaces it. This makes falsification demanding at k = 12 — that is the
+honest exposure of how little k = 12 can falsify, not a defect to be tuned away.
+
+**Per-stratum reporting is mandatory and asymmetric.** S-concept is vector-favourable by
+construction, so a hybrid win there is weak evidence *for* vectors, while **no hybrid
+advantage even in S-concept is strong evidence against them**. Headline rule applies to the
+pooled set; strata are always reported separately.
+
+#### Power — stated before the result, not after
+
+This experiment is powered only for **large** effects. The bound depends on where in the
+SUPPORTED region the result lands, and the original registration quoted only the best case —
+corrected here, before any data exists:
+
+| observed | 95% upper bound on the outcome-changing rate |
+|---|---|
+| b + c = 0, k = 12 | exact 1 − 0.05^(1/12) = **22.1%** (rule of three ≈ 25%, conservative) |
+| b + c = 1, k = 12 | ≈ **34%** |
+| b + c = 0, **S-ident alone** (n = 6) | ≈ **39%** |
+
+That last row matters: if the harvest's n=2 hypothesis holds and production queries are
+identifier-bearing, **S-ident is the production-relevant stratum**, and the pooled 25%
+headline silently borrows power from the vector-favourable stratum. Any null must be reported
+with the S-ident bound alongside the pooled one.
+
+None of this is equivalence and must never be reported as such. The defensible null claim is:
+*"mode-driven outcome differences are not large — bounded above at ~22% of tasks pooled,
+~39% on the production-relevant stratum — and combined with Recall@10 = 1.000 the burden of
+proof shifts to whoever wants to keep the vector store."* No verdict stronger may be issued
+from k = 12.
+
+**Discordance ≠ mode effect.** `b + c` also absorbs agent run-to-run stochasticity and
+grading noise. With one replicate per cell there is no estimate of that floor: symmetric
+noise inflates `b + c` (blocking SUPPORTED → AMBIGUOUS → "escalate k" → the incumbent
+survives by default). **Registered noise-floor probe:** 3 tasks are run with 2 replicates
+**per arm**; within-arm discordance across replicates estimates the floor. If the
+within-arm floor is as large as the between-arm discordance, the experiment is
+**uninformative at this k** and must be reported as such rather than resolved.
+
+#### Gates that must pass BEFORE any task run is scored
+
+**Instrument gates** (must pass before the spend gate):
+
+1. **Fidelity self-check.** For 10 fixed probe queries, `ab-search --arm hybrid` must return
+   the same `mode` and the same ordered `chunk_id` list as the shipped `mast_search` MCP tool,
+   **both reading the same state dir** (otherwise a mismatch is index drift, not infidelity).
+   Arm H probes must report `mode: "hybrid"`. **Zero mismatches required** (the
+   `q1-reserve2.mjs` precedent).
+2. **Switch-liveness check.** The two arms must differ in ranking on **≥ 1** of those 10
+   probes, and arm L must report `mode: "lexical"`. **If H and L return identical rankings on
+   all 10 probes, STOP: the instrument is broken, not the hypothesis.**
+   **Necessary but NOT sufficient, and registered as such:** this proves the switch is alive,
+   *not* that it is connected to the outcome. A live switch the agent routes around produces
+   the identical fake null. Gate 4 is what closes that.
+3. **Vector coverage recorded.** The frozen state's embedded fraction is measured and
+   reported; the live `.mast` showed `pending_embeddings: 10 / 14,464` at registration time
+   (99.93% embedded), but a degraded hybrid arm would silently manufacture a null.
+
+**Spend gate — the retrieval-level target-rank pre-check (run BEFORE any agent is spawned):**
+
+4. For each of the 12 task queries, compute the **rank of the ground-truth chunk under H and
+   under L** through the wrapper. No agents, minutes of compute, zero token cost.
+   - If H and L place the ground truth at the **same rank on every task**, the arms cannot
+     discriminate on this task set and **the 24 agent runs must not be spent** — the task set
+     is replaced, not the hypothesis resolved.
+   - If ranks **do** differ, the causal precondition is established, and any subsequent
+     outcome concordance is then genuinely informative — it is the reframe's exact prediction
+     (rank moves, outcome doesn't) rather than an artifact.
+   - The per-task rank deltas are committed with the results and become Q4's raw material.
+
+   This is the cheapest test in the design and it was missing from the original registration.
+   It also has standalone value: it is a direct measurement of how often mode changes the
+   *retrieval* answer on non-synthetic queries.
+
+**Interpretation gate (applied at analysis):**
+
+5. **Marginals validity.** If pooled success is ~12/12 or ~0/12 in **both** arms, the task set
+   is **uninformative** (ceiling or floor) and must be reported as such — never as SUPPORTED.
+   A concordant null is only evidence when the tasks were capable of discriminating.
+
+#### What this experiment does NOT measure (scope, stated plainly)
+
+- **🔴 Scale — the benefit and the cost are measured at different corpus sizes.** The costs
+  this decision is about (91 MB, ~7 h embed, 470 MB RAM) are priced at the **153k-chunk**
+  target; this experiment measures the benefit at **~14.5k chunks**, where lexical
+  Recall@10 = 1.000 is *already known*. BM25 over OR'd trigrams plausibly degrades as the
+  corpus grows (more distractors sharing trigrams) in a way vectors may not. **A SUPPORTED
+  verdict here therefore does NOT license deleting the vector store at 153k** — it licenses
+  the claim at the scale measured, and makes scale the next question rather than a resolved
+  one. Registered now so it cannot be quietly skipped when the result arrives.
+- **Code-change correctness.** Tasks are investigative/read-only so the two arms cannot
+  contaminate each other through the filesystem. The causal path from retrieval mode to
+  outcome runs through "did the agent find the right code", which is in scope; "did the edit
+  land correct" is not. *Deviation from the handoff's wording, logged: the handoff listed "did
+  the change land correct" as an outcome.* Code-change tasks under `isolation: "worktree"` go
+  to the Reserve.
+- **Production MCP-surface effort levels** (see the Bash-surface limitation above).
+- **Latency.** Not asserted here (§14.9 stands).
+
+#### Design Reserve (pre-thought, NOT build commitments)
+
+Code-change tasks under worktree isolation; a `--no-embeddings` container A/B at task scale;
+per-query win-class labelling (Q4) fed by this run's transcripts; shipping D0 (a real
+`mast search` CLI) so the wrapper's external-validity caveat disappears; a scale-out of
+Gate 4's rank-delta pre-check onto a 153k-chunk corpus (addresses the scale gap above at
+retrieval level, with no agent spend). Promote only on evidence.
+
+#### AMENDMENT 1 — 2026-08-02, pre-run, post-adversarial-review
+
+Adversarial review commissioned per the standing rule (Fable agent). **No run had occurred
+and no data existed**, so the instrument was revised in place rather than appended to; this
+log is the audit trail. Direction of each error is stated, since three of these ran in the
+direction that would have produced a *false* result.
+
+| # | Finding | Change | Direction the error ran |
+|---|---|---|---|
+| 1 | **Bypass/ceiling fake null (SEV-0).** Source doc excluded from the *index* but still on disk; S-ident task text carries the target's identifiers, so one `grep` resolves the task. Both arms concord for reasons unrelated to the hypothesis. | Filesystem-level source-doc removal via worktree; `chunk_type: 'doc'` excluded in both arms; marginals validity gate (Gate 5). | **Toward a false SUPPORTED → toward deleting the vector store.** Anti-incumbent — i.e. toward my own new framing. |
+| 2 | **Missing spend gate.** No check that the arms disagree about anything the tasks depend on, before spending 24 agent runs. | **Gate 4** target-rank pre-check added — the cheapest test in the design, and standalone-informative. | Toward spending compute on an experiment guaranteed to be concordant. |
+| 3 | **Blinding was false.** `mode` (`search.ts:35`), `_stats` (`:43`) and `similarity_score` (`hybrid.ts:153`) all leak the arm into agent-visible output *and* into transcripts, so "graded blind" was untrue as written. | Redaction of all three, identically in both arms; fidelity gate compares pre-redaction payload. | Toward unblinded grading — direction unknowable, therefore worst kind. |
+| 4 | **Silent arm degradation.** `hybrid.ts:102–104` swallows embedder failure and returns `mode: "lexical"`; gates ran once, so arm H could become arm L mid-experiment. | Per-call `mode` assertion; any H-run with a non-hybrid call is void and re-run. | **Toward a false SUPPORTED.** Anti-incumbent. |
+| 5 | **Decision rule not fixed-significance.** `b − c ≥ 3` fires at one-sided p = 0.125–0.27; its `b ≥ 3` clause was redundant. | Exact McNemar p ≤ 0.05. | **Toward a false FALSIFIED → pro-incumbent**, this program's named failure mode. |
+| 6 | **Verdict rested on the admittedly-powerless statistic**, with effort demoted to a round-number override. | Retrieval effort promoted to **co-primary B** with a pre-registered Wilcoxon signed-rank test. | Toward under-detecting a real cost of lexical → anti-incumbent. |
+| 7 | **Power quoted only the best case** (b+c=0 pooled), while SUPPORTED fires at b+c ≤ 1, and the production-relevant stratum is n=6. | Three bounds tabulated: 22.1% / 34% / 39%. | Toward overstating the strength of a null. |
+| 8 | **"Authoring bias runs toward vectors" was unsupported** — trigram FTS matches prose, so identifier-free paraphrases can still be lexically hot. | Claim **retracted**; mandatory token-overlap audit against full chunk content; the asymmetric S-concept reading made conditional on it. | Unknown direction — which is exactly why the original claim was unsafe. |
+| 9 | **Scale gap:** cost priced at 153k chunks, benefit measured at 14.5k. | Registered as a scope limit that **blocks** a SUPPORTED verdict from licensing deletion at 153k. | Toward over-generalising a null. |
+| 10 | Stale citation `hybrid.ts:72`. | Corrected to `:75` / `:78`. | Cosmetic. |
+
+Findings the reviewer checked and **withdrew** are recorded in its report: the frozen index
+does cover the target packages (993 workbench + 200 kluster-bt files), sibling roadmap docs
+do **not** duplicate task rows verbatim (zero shared lines > 40 chars on the highest-risk
+pair), and rule-of-three *is* the right shape for a paired discordance count.
+
+---
+
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
 
 Everything above records *reasoning*. This records *state*, which is otherwise only in
