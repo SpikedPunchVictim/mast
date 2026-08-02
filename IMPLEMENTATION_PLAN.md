@@ -1905,6 +1905,45 @@ authority limit, because its provenance predates the experiment.
 
 ---
 
+### 🔴 Q1 REFRAME (2026-08-02, empirical-planning audit) — the metric, not the sample size, is the blocker
+
+Five scored Q1 experiments have now run; **three were invalidated by circularity in a query
+set someone constructed**, and the sixth (harvest) is gated on organic n=0. Applying the
+"what is the biggest thing I am missing?" test to the *strategic bet* rather than the
+arms gives an uncomfortable answer, and it is not a defect:
+
+**Every Q1 verdict is denominated in NDCG@10, and the record already contains kluster arm L
+Recall@10 = 1.000.** Lexical puts the target inside the ten-result window on *every* home
+query, and the consumer is an LLM agent that reads all ten. If that generalises, the entire
+home-field delta is **intra-window reordering for a reader who consumes the whole window** —
+in which case no n resolves Q1, because the metric is measuring something that cannot change
+the consumer's behaviour. Pre-registered questions **Q4/Q5 (practical significance) have now
+been deferred four times**; that deferral, not the arm design, is this program's
+load-bearing unexamined decision.
+
+**The cheapest test that could make half of this unnecessary — drive the real thing.**
+`mode: "lexical"` is already a shipped, supported configuration (§13.11 `--no-embeddings`).
+So the decisive experiment needs **no gold set at all**: run the *same real task* twice,
+hybrid vs lexical-only, and measure **task outcome** — did the agent find what it needed,
+how many tool calls, did it fall back to Read/Grep, did the change land correct. That is
+Q1's question in the units the 91 MB / ~7 h / 470 MB is actually spent in.
+
+It also dissolves the harvest blocker rather than waiting it out: organic n is 0 **because
+MAST is only ever used to investigate MAST**. Running real tasks under both modes fills
+`metrics` with organic rows *and* produces the outcome comparison. One activity, both
+payoffs — which is why it should precede any further synthetic-set work.
+
+**Reserve (pre-thought, NOT build commitments):** per-query win-class labelling for Q4;
+`--no-embeddings` container A/B at task scale; latency/precision cost of F15's OR-join.
+Promote only on evidence.
+
+**Standing correction to this plan's own framing:** "Q1 is blocked on the harvest" is
+imprecise and should not be repeated. Q1 is blocked on **never having measured whether
+retrieval-rank differences change agent outcomes at all**. The harvest improves the query
+sample; it does not fix the metric.
+
+---
+
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
 
 Everything above records *reasoning*. This records *state*, which is otherwise only in
