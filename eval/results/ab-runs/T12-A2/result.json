@@ -1,0 +1,1 @@
+{"run_id":"T12-A2","answer_file":"packages/workbench/fold/ledger/src/store.ts","answer_symbol":"InMemoryLedgerStore","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"InMemoryLedgerStore implements the LedgerStore append/readEvents port with an optional seeded initial event array, serving as the in-memory fake for the disk-backed FileLedgerStore."}

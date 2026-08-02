@@ -1,0 +1,141 @@
+{
+  "experiment": "Q1/F16 re-run — full embeds, unified matcher, paired CIs",
+  "ranAt": "2026-08-01T23:49:45.126Z",
+  "model": "jinaai/jina-embeddings-v2-base-code",
+  "results": {
+    "kluster-normal": {
+      "bias": "declared FOR lexical (UNVALIDATED - see review)",
+      "n": 11,
+      "corpus": {
+        "chunks": 10943,
+        "vectors": 10943,
+        "embedded_pct": 100
+      },
+      "ndcg": {
+        "L": 0.5663,
+        "H": 0.7331,
+        "V": 0.6842
+      },
+      "recall": {
+        "L": 1,
+        "H": 1,
+        "V": 0.9091
+      },
+      "H-L": {
+        "n": 11,
+        "mean": 0.1669,
+        "sd": 0.2066,
+        "se": 0.0623,
+        "ci95": [
+          0.0281,
+          0.3057
+        ],
+        "t_vs_zero": 2.679,
+        "significant_vs_zero": true
+      },
+      "V-H": {
+        "n": 11,
+        "mean": -0.049,
+        "sd": 0.2585,
+        "se": 0.078,
+        "ci95": [
+          -0.2226,
+          0.1247
+        ],
+        "t_vs_zero": -0.628,
+        "significant_vs_zero": false
+      }
+    },
+    "kluster-anti": {
+      "bias": "FOR vectors (worded to defeat trigram FTS)",
+      "n": 28,
+      "corpus": {
+        "chunks": 10943,
+        "vectors": 10943,
+        "embedded_pct": 100
+      },
+      "ndcg": {
+        "L": 0.1908,
+        "H": 0.3222,
+        "V": 0.3574
+      },
+      "recall": {
+        "L": 0.2857,
+        "H": 0.494,
+        "V": 0.5833
+      },
+      "H-L": {
+        "n": 28,
+        "mean": 0.1313,
+        "sd": 0.16,
+        "se": 0.0302,
+        "ci95": [
+          0.0681,
+          0.1946
+        ],
+        "t_vs_zero": 4.344,
+        "significant_vs_zero": true
+      },
+      "V-H": {
+        "n": 28,
+        "mean": 0.0352,
+        "sd": 0.3479,
+        "se": 0.0658,
+        "ci95": [
+          -0.1024,
+          0.1728
+        ],
+        "t_vs_zero": 0.535,
+        "significant_vs_zero": false
+      }
+    },
+    "nest-external": {
+      "bias": "declared FOR lexical (UNVALIDATED)",
+      "n": 20,
+      "corpus": {
+        "chunks": 4994,
+        "vectors": 4994,
+        "embedded_pct": 100
+      },
+      "ndcg": {
+        "L": 0.5119,
+        "H": 0.6122,
+        "V": 0.6889
+      },
+      "recall": {
+        "L": 0.7,
+        "H": 0.8,
+        "V": 0.9
+      },
+      "H-L": {
+        "n": 20,
+        "mean": 0.1003,
+        "sd": 0.338,
+        "se": 0.0756,
+        "ci95": [
+          -0.0579,
+          0.2585
+        ],
+        "t_vs_zero": 1.327,
+        "significant_vs_zero": false
+      },
+      "V-H": {
+        "n": 20,
+        "mean": 0.0767,
+        "sd": 0.3109,
+        "se": 0.0695,
+        "ci95": [
+          -0.0688,
+          0.2222
+        ],
+        "t_vs_zero": 1.103,
+        "significant_vs_zero": false
+      }
+    }
+  },
+  "caveats": [
+    "Arm V still bypasses hybridSearch dedup/post-filters — arms not fully equalised (review finding 5).",
+    "The \"declared FOR lexical\" bias of the normal sets remains UNVALIDATED and may be inverted.",
+    "Identifier-decomposition reserve arm not yet run."
+  ]
+}

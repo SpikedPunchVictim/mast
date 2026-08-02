@@ -1,0 +1,975 @@
+{
+  "experiment": "Q1 RESERVE — identifier decomposition (pre-registered, commit c5f4486)",
+  "ranAt": "2026-08-02T00:58:31.454Z",
+  "model": "jinaai/jina-embeddings-v2-base-code",
+  "rrf_k": 60,
+  "pinned": {
+    "candidate_limit": 40,
+    "lexical_pool": 80,
+    "ranker_order": "fts,decomp,vec"
+  },
+  "results": {
+    "kluster-normal": {
+      "n": 11,
+      "one_directional": false,
+      "ndcg": {
+        "L": 0.5663,
+        "D": 0.323,
+        "L+D": 0.4001,
+        "H": 0.7331,
+        "H+D": 0.5984
+      },
+      "recall": {
+        "L": 1,
+        "D": 0.6364,
+        "L+D": 0.7273,
+        "H": 1,
+        "H+D": 0.9091
+      },
+      "primary_HD_minus_LD": {
+        "n": 11,
+        "mean": 0.1982,
+        "sd": 0.2043,
+        "se": 0.0616,
+        "ci95": [
+          0.061,
+          0.3355
+        ],
+        "t": 3.219,
+        "sig": true
+      },
+      "secondary_H_minus_LD": {
+        "n": 11,
+        "mean": 0.333,
+        "sd": 0.2853,
+        "se": 0.086,
+        "ci95": [
+          0.1414,
+          0.5246
+        ],
+        "t": 3.872,
+        "sig": true
+      },
+      "reference_H_minus_L": {
+        "n": 11,
+        "mean": 0.1669,
+        "sd": 0.2066,
+        "se": 0.0623,
+        "ci95": [
+          0.0281,
+          0.3057
+        ],
+        "t": 2.679,
+        "sig": true
+      },
+      "decomp_effect_LD_minus_L": {
+        "n": 11,
+        "mean": -0.1661,
+        "sd": 0.2361,
+        "se": 0.0712,
+        "ci95": [
+          -0.3247,
+          -0.0075
+        ],
+        "t": -2.333,
+        "sig": true
+      },
+      "recall_primary_HD_minus_LD": {
+        "n": 11,
+        "mean": 0.1818,
+        "sd": 0.4045,
+        "se": 0.122,
+        "ci95": [
+          -0.0899,
+          0.4536
+        ],
+        "t": 1.491,
+        "sig": false
+      },
+      "gate": {
+        "self_check_mismatches": 0,
+        "arm_D_empty_queries": 0,
+        "arm_D_doc_share": 0.118,
+        "arm_L_doc_count": 27,
+        "any_arm_exactly_zero": []
+      },
+      "canary": {
+        "n": 0,
+        "ndcg": {
+          "L": null,
+          "D": null,
+          "L+D": null
+        },
+        "decomp_effect": null
+      },
+      "query_in_chunk_ge_half": "11/11",
+      "per_query": [
+        {
+          "id": "n01",
+          "query": "walk project the and return all indexable files",
+          "L": 0.4307,
+          "D": 0.4307,
+          "L+D": 0.4307,
+          "H": 0.6309,
+          "H+D": 0.6309,
+          "query_in_chunk": 0.75,
+          "canary_query": null
+        },
+        {
+          "id": "n02",
+          "query": "register signature tool",
+          "L": 0.3869,
+          "D": 0,
+          "L+D": 0.2891,
+          "H": 0.6309,
+          "H+D": 0.5,
+          "query_in_chunk": 1,
+          "canary_query": null
+        },
+        {
+          "id": "n03",
+          "query": "estimate full file bound the full-file token upper for set of paths",
+          "L": 0.6309,
+          "D": 0.3869,
+          "L+D": 0.6309,
+          "H": 0.6309,
+          "H+D": 0.6309,
+          "query_in_chunk": 0.92,
+          "canary_query": null
+        },
+        {
+          "id": "n04",
+          "query": "emit chunks for node",
+          "L": 0.4307,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.3155,
+          "H+D": 0,
+          "query_in_chunk": 1,
+          "canary_query": null
+        },
+        {
+          "id": "n05",
+          "query": "register init command",
+          "L": 0.301,
+          "D": 0.2891,
+          "L+D": 0.2891,
+          "H": 0.3562,
+          "H+D": 0.3333,
+          "query_in_chunk": 1,
+          "canary_query": null
+        },
+        {
+          "id": "n06",
+          "query": "collect calls call expression nodes within body not descending into nested named",
+          "L": 1,
+          "D": 0.6309,
+          "L+D": 0.6309,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 1,
+          "canary_query": null
+        },
+        {
+          "id": "n07",
+          "query": "parse callee extract receiver method from call expression or null if unhandled",
+          "L": 1,
+          "D": 1,
+          "L+D": 1,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 1,
+          "canary_query": null
+        },
+        {
+          "id": "n09",
+          "query": "register callers tool",
+          "L": 0.3562,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.5,
+          "H+D": 0.3562,
+          "query_in_chunk": 1,
+          "canary_query": null
+        },
+        {
+          "id": "n10",
+          "query": "hybrid search bm25 vector fused via reciprocal rank fusion",
+          "L": 0.4307,
+          "D": 0.3155,
+          "L+D": 0.5,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.67,
+          "canary_query": null
+        },
+        {
+          "id": "n13",
+          "query": "vector key identity of chunk for freshness comparison its id plus hash",
+          "L": 0.6309,
+          "D": 0.5,
+          "L+D": 0.6309,
+          "H": 1,
+          "H+D": 0.6309,
+          "query_in_chunk": 0.5,
+          "canary_query": null
+        },
+        {
+          "id": "n15",
+          "query": "run index walk the project parse changed files into chunks populate graph",
+          "L": 0.6309,
+          "D": 0,
+          "L+D": 0,
+          "H": 1,
+          "H+D": 0.5,
+          "query_in_chunk": 0.83,
+          "canary_query": null
+        }
+      ]
+    },
+    "kluster-anti": {
+      "n": 28,
+      "one_directional": true,
+      "ndcg": {
+        "L": 0.1908,
+        "D": 0.1681,
+        "L+D": 0.2042,
+        "H": 0.3222,
+        "H+D": 0.2822
+      },
+      "recall": {
+        "L": 0.2857,
+        "D": 0.25,
+        "L+D": 0.25,
+        "H": 0.494,
+        "H+D": 0.4107
+      },
+      "primary_HD_minus_LD": {
+        "n": 28,
+        "mean": 0.0781,
+        "sd": 0.1443,
+        "se": 0.0273,
+        "ci95": [
+          0.021,
+          0.1352
+        ],
+        "t": 2.862,
+        "sig": true
+      },
+      "secondary_H_minus_LD": {
+        "n": 28,
+        "mean": 0.118,
+        "sd": 0.2404,
+        "se": 0.0454,
+        "ci95": [
+          0.0229,
+          0.2131
+        ],
+        "t": 2.598,
+        "sig": true
+      },
+      "reference_H_minus_L": {
+        "n": 28,
+        "mean": 0.1313,
+        "sd": 0.16,
+        "se": 0.0302,
+        "ci95": [
+          0.0681,
+          0.1946
+        ],
+        "t": 4.344,
+        "sig": true
+      },
+      "decomp_effect_LD_minus_L": {
+        "n": 28,
+        "mean": 0.0133,
+        "sd": 0.2448,
+        "se": 0.0463,
+        "ci95": [
+          -0.0835,
+          0.1102
+        ],
+        "t": 0.288,
+        "sig": false
+      },
+      "recall_primary_HD_minus_LD": {
+        "n": 28,
+        "mean": 0.1607,
+        "sd": 0.3348,
+        "se": 0.0633,
+        "ci95": [
+          0.0283,
+          0.2931
+        ],
+        "t": 2.54,
+        "sig": true
+      },
+      "gate": {
+        "self_check_mismatches": 0,
+        "arm_D_empty_queries": 0,
+        "arm_D_doc_share": 0.261,
+        "arm_L_doc_count": 128,
+        "any_arm_exactly_zero": []
+      },
+      "canary": {
+        "n": 27,
+        "ndcg": {
+          "L": 0.0929,
+          "D": 0.1223,
+          "L+D": 0.1251
+        },
+        "decomp_effect": {
+          "n": 27,
+          "mean": 0.0322,
+          "sd": 0.0884,
+          "se": 0.017,
+          "ci95": [
+            -0.0034,
+            0.0678
+          ],
+          "t": 1.891,
+          "sig": false
+        }
+      },
+      "query_in_chunk_ge_half": "6/28",
+      "per_query": [
+        {
+          "id": "q01",
+          "query": "combine two ranked result lists into a single blended score",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.3562,
+          "H+D": 0.301,
+          "query_in_chunk": 0.11,
+          "canary_query": "combine two ranked result lists into a single blended"
+        },
+        {
+          "id": "q02",
+          "query": "stop two processes from writing the index directory at the same time",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0,
+          "canary_query": "stop two processes from writing the index directory at the same time"
+        },
+        {
+          "id": "q03",
+          "query": "suggest a close symbol name when the user misspelled it",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.2641,
+          "H+D": 0.1846,
+          "query_in_chunk": 0.5,
+          "canary_query": "suggest a close symbol name when the user misspelled it"
+        },
+        {
+          "id": "q04",
+          "query": "how long the file watcher waits after edits before it reindexes",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.1,
+          "canary_query": "how long the file watcher waits after edits before it reindexes"
+        },
+        {
+          "id": "q05",
+          "query": "measure how alike two embedding vectors are",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.1413,
+          "H+D": 0,
+          "query_in_chunk": 0.14,
+          "canary_query": "measure how alike two embedding vectors are"
+        },
+        {
+          "id": "q06",
+          "query": "remove stored embeddings whose source code chunk was deleted",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.11,
+          "canary_query": "remove stored embeddings whose source code chunk was deleted"
+        },
+        {
+          "id": "q07",
+          "query": "tag each vector with a fingerprint so edits force a re-embed",
+          "L": 0.1934,
+          "D": 0,
+          "L+D": 0.3066,
+          "H": 0.3869,
+          "H+D": 0.3869,
+          "query_in_chunk": 0.38,
+          "canary_query": "tag each with a fingerprint so edits force a re-embed"
+        },
+        {
+          "id": "q08",
+          "query": "avoid returning both a class outline and one of its methods for the same match",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.5,
+          "H+D": 0.301,
+          "query_in_chunk": 0.46,
+          "canary_query": "avoid returning both a class outline and one of its methods for the same match"
+        },
+        {
+          "id": "q09",
+          "query": "warn that the token count is only a rough estimate for newer models",
+          "L": 0.6934,
+          "D": 0.5714,
+          "L+D": 0.9197,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.55,
+          "canary_query": "warn that the token count is only a rough estimate for newer models"
+        },
+        {
+          "id": "q10",
+          "query": "break a camelCase identifier into its separate words",
+          "L": 0.3155,
+          "D": 0.4307,
+          "L+D": 1,
+          "H": 0.6309,
+          "H+D": 1,
+          "query_in_chunk": 0.29,
+          "canary_query": "break a camelCase into its separate words"
+        },
+        {
+          "id": "q11",
+          "query": "recover when the vector database files vanish from disk underneath us",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.3,
+          "canary_query": "recover when the vector database files vanish from disk underneath us"
+        },
+        {
+          "id": "q12",
+          "query": "translate a wildcard file pattern into a SQL LIKE expression",
+          "L": 1,
+          "D": 1,
+          "L+D": 1,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.63,
+          "canary_query": "translate a wildcard file pattern into a SQL expression"
+        },
+        {
+          "id": "q13",
+          "query": "figure out which files changed since the last indexing run",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.3,
+          "canary_query": "figure out which files changed since the last indexing run"
+        },
+        {
+          "id": "q14",
+          "query": "shared scratch memory that behavior tree nodes read and write between steps",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.25,
+          "canary_query": "shared scratch memory that behavior tree nodes read and write between steps"
+        },
+        {
+          "id": "q15",
+          "query": "escape single quotes before putting a value into a SQL string literal",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.3155,
+          "H+D": 0,
+          "query_in_chunk": 0.2,
+          "canary_query": "single quotes before putting a value into a SQL literal"
+        },
+        {
+          "id": "q16",
+          "query": "list every barrel file that forwards a renamed export onward",
+          "L": 0.3333,
+          "D": 0.3155,
+          "L+D": 0.3869,
+          "H": 0.4307,
+          "H+D": 0.5,
+          "query_in_chunk": 0.56,
+          "canary_query": "list every file that forwards a renamed export onward"
+        },
+        {
+          "id": "q17",
+          "query": "find code that contains an identifier the resolver could not statically link",
+          "L": 0.6131,
+          "D": 0.6131,
+          "L+D": 0.6131,
+          "H": 0.6131,
+          "H+D": 0.6131,
+          "query_in_chunk": 0.09,
+          "canary_query": "find code that contains an the resolver could not statically link"
+        },
+        {
+          "id": "q18",
+          "query": "give back the same answer instantly instead of recomputing an embedding twice",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.3,
+          "canary_query": "give back the same answer instantly instead of recomputing an embedding twice"
+        },
+        {
+          "id": "q19",
+          "query": "retry policy with escalation and quarantine when a build stage keeps failing",
+          "L": 1,
+          "D": 0,
+          "L+D": 0,
+          "H": 1,
+          "H+D": 0.6309,
+          "query_in_chunk": 0.91,
+          "canary_query": null
+        },
+        {
+          "id": "q20",
+          "query": "nearest neighbour lookup over stored vectors using cosine distance",
+          "L": 0.5706,
+          "D": 0.5706,
+          "L+D": 0.5706,
+          "H": 0.5706,
+          "H+D": 0.5706,
+          "query_in_chunk": 0.33,
+          "canary_query": "nearest neighbour lookup over stored using cosine distance"
+        },
+        {
+          "id": "q21",
+          "query": "decide whether a re-parsed file is byte-identical so we can skip rewriting it",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.3066,
+          "H+D": 0.2372,
+          "query_in_chunk": 0.33,
+          "canary_query": "decide whether a re-parsed is byte-identical so we can skip rewriting it"
+        },
+        {
+          "id": "q22",
+          "query": "which chunks still need embeddings computed for them",
+          "L": 0.6241,
+          "D": 1,
+          "L+D": 0.9197,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.25,
+          "canary_query": "which still need embeddings computed for them"
+        },
+        {
+          "id": "q23",
+          "query": "explain why the index looks out of date to the agent",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.33,
+          "canary_query": "explain why the index looks out of date to the agent"
+        },
+        {
+          "id": "q24",
+          "query": "resolve a .js import specifier back to its TypeScript source file",
+          "L": 0,
+          "D": 0.2044,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0.1772,
+          "query_in_chunk": 0.75,
+          "canary_query": "resolve a .js import specifier back to its TypeScript source file"
+        },
+        {
+          "id": "q25",
+          "query": "collect close candidate names when a search comes back empty",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.2044,
+          "H+D": 0,
+          "query_in_chunk": 0.22,
+          "canary_query": "collect close candidate names when a search comes back empty"
+        },
+        {
+          "id": "q26",
+          "query": "turn a shell glob like double-star slash into a regular expression",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.301,
+          "H+D": 0,
+          "query_in_chunk": 0.2,
+          "canary_query": "turn a shell like double-star slash into a regular expression"
+        },
+        {
+          "id": "q27",
+          "query": "keep the highest ranked hit and note the class it belongs to",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.4,
+          "canary_query": "keep the highest ranked hit and note the class it belongs to"
+        },
+        {
+          "id": "q28",
+          "query": "how the runner pre-warms model weights so the container does not download them at request time",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.27,
+          "canary_query": "how the runner pre-warms model weights so the container does not download them at request time"
+        }
+      ]
+    },
+    "nest-external": {
+      "n": 20,
+      "one_directional": false,
+      "ndcg": {
+        "L": 0.5119,
+        "D": 0.4323,
+        "L+D": 0.4385,
+        "H": 0.6122,
+        "H+D": 0.5521
+      },
+      "recall": {
+        "L": 0.7,
+        "D": 0.6,
+        "L+D": 0.65,
+        "H": 0.8,
+        "H+D": 0.75
+      },
+      "primary_HD_minus_LD": {
+        "n": 20,
+        "mean": 0.1136,
+        "sd": 0.2623,
+        "se": 0.0587,
+        "ci95": [
+          -0.0092,
+          0.2363
+        ],
+        "t": 1.936,
+        "sig": false
+      },
+      "secondary_H_minus_LD": {
+        "n": 20,
+        "mean": 0.1737,
+        "sd": 0.2932,
+        "se": 0.0656,
+        "ci95": [
+          0.0365,
+          0.3109
+        ],
+        "t": 2.65,
+        "sig": true
+      },
+      "reference_H_minus_L": {
+        "n": 20,
+        "mean": 0.1003,
+        "sd": 0.338,
+        "se": 0.0756,
+        "ci95": [
+          -0.0579,
+          0.2585
+        ],
+        "t": 1.327,
+        "sig": false
+      },
+      "decomp_effect_LD_minus_L": {
+        "n": 20,
+        "mean": -0.0734,
+        "sd": 0.381,
+        "se": 0.0852,
+        "ci95": [
+          -0.2517,
+          0.1049
+        ],
+        "t": -0.862,
+        "sig": false
+      },
+      "recall_primary_HD_minus_LD": {
+        "n": 20,
+        "mean": 0.1,
+        "sd": 0.3078,
+        "se": 0.0688,
+        "ci95": [
+          -0.0441,
+          0.2441
+        ],
+        "t": 1.453,
+        "sig": false
+      },
+      "gate": {
+        "self_check_mismatches": 0,
+        "arm_D_empty_queries": 0,
+        "arm_D_doc_share": 0.04,
+        "arm_L_doc_count": 4,
+        "any_arm_exactly_zero": []
+      },
+      "canary": {
+        "n": 18,
+        "ndcg": {
+          "L": 0.3672,
+          "D": 0.3829,
+          "L+D": 0.3718
+        },
+        "decomp_effect": {
+          "n": 18,
+          "mean": 0.0046,
+          "sd": 0.1397,
+          "se": 0.0329,
+          "ci95": [
+            -0.0656,
+            0.0747
+          ],
+          "t": 0.139,
+          "sig": false
+        }
+      },
+      "query_in_chunk_ge_half": "18/20",
+      "per_query": [
+        {
+          "id": "x01",
+          "query": "precondition failed exception defines an http for type errors",
+          "L": 1,
+          "D": 0,
+          "L+D": 0,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.63,
+          "canary_query": "defines an http for type errors"
+        },
+        {
+          "id": "x02",
+          "query": "call module destroy hook calls the onmoduledestroy function on and its children",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.3869,
+          "H+D": 0.3562,
+          "query_in_chunk": 0.73,
+          "canary_query": "calls the onmoduledestroy function on and its children"
+        },
+        {
+          "id": "x03",
+          "query": "validator options passed to during validation",
+          "L": 0.3869,
+          "D": 0,
+          "L+D": 0.3155,
+          "H": 0.6309,
+          "H+D": 0.4307,
+          "query_in_chunk": 0.8,
+          "canary_query": "passed to during validation"
+        },
+        {
+          "id": "x04",
+          "query": "context id factory get by request generates random identifier to track asynchronous",
+          "L": 0.5,
+          "D": 0.6309,
+          "L+D": 0.6309,
+          "H": 0.6309,
+          "H+D": 0.6309,
+          "query_in_chunk": 1,
+          "canary_query": "id by generates random identifier to track asynchronous"
+        },
+        {
+          "id": "x05",
+          "query": "no files interceptor localoptions",
+          "L": 1,
+          "D": 0.6309,
+          "L+D": 0.6309,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 1,
+          "canary_query": null
+        },
+        {
+          "id": "x06",
+          "query": "server grpc get service names will return all of the services along",
+          "L": 0.5,
+          "D": 0.6309,
+          "L+D": 0.5,
+          "H": 0.6309,
+          "H+D": 0.6309,
+          "query_in_chunk": 0.73,
+          "canary_query": "will return all of the services along"
+        },
+        {
+          "id": "x07",
+          "query": "nest application context init initializes the",
+          "L": 0.3869,
+          "D": 0.4307,
+          "L+D": 0.5,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.83,
+          "canary_query": null
+        },
+        {
+          "id": "x08",
+          "query": "module ref get retrieves an instance or list of instances either injectable",
+          "L": 1,
+          "D": 1,
+          "L+D": 1,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.56,
+          "canary_query": "retrieves an instance or list of instances either injectable"
+        },
+        {
+          "id": "x09",
+          "query": "kafka context get message returns the reference to original",
+          "L": 0,
+          "D": 0.6309,
+          "L+D": 0.6309,
+          "H": 0.5,
+          "H+D": 0.5,
+          "query_in_chunk": 0.75,
+          "canary_query": "returns the reference to original"
+        },
+        {
+          "id": "x10",
+          "query": "barrier signal and wait that participant has reached the for to be",
+          "L": 0,
+          "D": 0.4307,
+          "L+D": 0.4307,
+          "H": 0.5,
+          "H+D": 0.4307,
+          "query_in_chunk": 0.6,
+          "canary_query": "that participant has reached the for to be"
+        },
+        {
+          "id": "x11",
+          "query": "redis events map for the client",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.5,
+          "canary_query": "map for the client"
+        },
+        {
+          "id": "x12",
+          "query": "bad request exception defines an http for type errors",
+          "L": 0.3333,
+          "D": 0,
+          "L+D": 0,
+          "H": 0.6309,
+          "H+D": 0,
+          "query_in_chunk": 0.63,
+          "canary_query": "defines an http for type errors"
+        },
+        {
+          "id": "x13",
+          "query": "payload too large exception defines an http for type errors",
+          "L": 1,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.67,
+          "canary_query": "defines an http for type errors"
+        },
+        {
+          "id": "x14",
+          "query": "nest microservice use web socket adapter registers that will be used for",
+          "L": 0.5,
+          "D": 0.6309,
+          "L+D": 0.5,
+          "H": 0.3333,
+          "H+D": 0.4307,
+          "query_in_chunk": 0.73,
+          "canary_query": "registers that will be used for"
+        },
+        {
+          "id": "x15",
+          "query": "assign to object similar but copying properties descriptors from source as well",
+          "L": 1,
+          "D": 1,
+          "L+D": 1,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 1,
+          "canary_query": "to similar but copying properties descriptors from source as well"
+        },
+        {
+          "id": "x16",
+          "query": "server unwrap returns an instance of the underlying broker or group servers",
+          "L": 0.6309,
+          "D": 0.6309,
+          "L+D": 0.6309,
+          "H": 1,
+          "H+D": 0.6309,
+          "query_in_chunk": 1,
+          "canary_query": "returns an instance of the underlying broker or group servers"
+        },
+        {
+          "id": "x17",
+          "query": "new post ------------------------------------------------------- this file was automatically generated do not modify tslint",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.2,
+          "canary_query": "------------------------------------------------------- this file was automatically generated do not modify tslint"
+        },
+        {
+          "id": "x18",
+          "query": "streamable file streaming files https docs nestjs com techniques streaming-files",
+          "L": 0,
+          "D": 0,
+          "L+D": 0,
+          "H": 0,
+          "H+D": 0,
+          "query_in_chunk": 0.27,
+          "canary_query": "streaming files https docs nestjs com techniques streaming-files"
+        },
+        {
+          "id": "x19",
+          "query": "file validator build error message builds an in case the validation fails",
+          "L": 1,
+          "D": 1,
+          "L+D": 1,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 0.9,
+          "canary_query": "builds an in case the validation fails"
+        },
+        {
+          "id": "x20",
+          "query": "consumer each batch payload type alias to keep compatibility with kafkajs https",
+          "L": 1,
+          "D": 1,
+          "L+D": 1,
+          "H": 1,
+          "H+D": 1,
+          "query_in_chunk": 1,
+          "canary_query": "type alias to keep compatibility with kafkajs https"
+        }
+      ]
+    }
+  }
+}

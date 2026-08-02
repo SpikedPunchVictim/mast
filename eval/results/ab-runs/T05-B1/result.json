@@ -1,0 +1,1 @@
+{"run_id":"T05-B1","answer_file":"packages/kluster-bt/nodes-llm/src/agent-loop.ts","answer_symbol":"AgentLoop","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"First search hit the file directly; the AgentLoop class declares readonly type = 'llm:composite.agent-loop' and is registered under that key in nodes-llm/src/index.ts."}

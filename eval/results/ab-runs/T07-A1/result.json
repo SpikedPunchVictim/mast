@@ -1,0 +1,1 @@
+{"run_id":"T07-A1","answer_file":"packages/workbench/foldv2/cli/src/pipelineCore.ts","answer_symbol":"MakeStepOptions","confidence":"medium","fallback_calls":0,"fallback_used":false,"notes":"MakeStepOptions is the options interface whose sole field designBudget caps cumulative design-phase token spend, and a breach is fatal to the whole build/run."}

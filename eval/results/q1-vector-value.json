@@ -1,0 +1,669 @@
+{
+  "experiment": "Q1 — is the vector store justified at all?",
+  "ranAt": "2026-08-01T18:15:31.763Z",
+  "corpus_sha": "07d705b354e256d3175594f959f945d92cfc116d",
+  "model": "jinaai/jina-embeddings-v2-base-code",
+  "vectors_in_index": 3000,
+  "subset_size": 3000,
+  "arms": {
+    "L": "lexical-only (embedder=null)",
+    "H": "hybrid RRF",
+    "V": "pure vector cosine"
+  },
+  "results": {
+    "normal": {
+      "L": {
+        "ndcg": 0.5663,
+        "recall": 1,
+        "mrr": 0.4298,
+        "perQuery": [
+          {
+            "id": "n01",
+            "ndcg": 0.4307,
+            "recall": 1
+          },
+          {
+            "id": "n02",
+            "ndcg": 0.3869,
+            "recall": 1
+          },
+          {
+            "id": "n03",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "n04",
+            "ndcg": 0.4307,
+            "recall": 1
+          },
+          {
+            "id": "n05",
+            "ndcg": 0.301,
+            "recall": 1
+          },
+          {
+            "id": "n06",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n07",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n09",
+            "ndcg": 0.3562,
+            "recall": 1
+          },
+          {
+            "id": "n10",
+            "ndcg": 0.4307,
+            "recall": 1
+          },
+          {
+            "id": "n13",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "n15",
+            "ndcg": 0.6309,
+            "recall": 1
+          }
+        ]
+      },
+      "H": {
+        "ndcg": 0.814,
+        "recall": 1,
+        "mrr": 0.75,
+        "perQuery": [
+          {
+            "id": "n01",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "n02",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "n03",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "n04",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "n05",
+            "ndcg": 0.4307,
+            "recall": 1
+          },
+          {
+            "id": "n06",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n07",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n09",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n10",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n13",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n15",
+            "ndcg": 1,
+            "recall": 1
+          }
+        ]
+      },
+      "V": {
+        "ndcg": 0.7624,
+        "recall": 0.9091,
+        "mrr": 0.7152,
+        "perQuery": [
+          {
+            "id": "n01",
+            "ndcg": 0.5,
+            "recall": 1
+          },
+          {
+            "id": "n02",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n03",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n04",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "n05",
+            "ndcg": 0.5,
+            "recall": 1
+          },
+          {
+            "id": "n06",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n07",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n09",
+            "ndcg": 0.3869,
+            "recall": 1
+          },
+          {
+            "id": "n10",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n13",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "n15",
+            "ndcg": 1,
+            "recall": 1
+          }
+        ]
+      }
+    },
+    "anti_lexical": {
+      "L": {
+        "ndcg": 0.1908,
+        "recall": 0.2857,
+        "mrr": 0.1688,
+        "perQuery": [
+          {
+            "id": "q01",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q02",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q03",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q04",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q05",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q06",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q07",
+            "ndcg": 0.1934,
+            "recall": 0.5
+          },
+          {
+            "id": "q08",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q09",
+            "ndcg": 0.6934,
+            "recall": 1
+          },
+          {
+            "id": "q10",
+            "ndcg": 0.3155,
+            "recall": 1
+          },
+          {
+            "id": "q11",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q12",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q13",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q14",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q15",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q16",
+            "ndcg": 0.3333,
+            "recall": 1
+          },
+          {
+            "id": "q17",
+            "ndcg": 0.6131,
+            "recall": 0.5
+          },
+          {
+            "id": "q18",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q19",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q20",
+            "ndcg": 0.5706,
+            "recall": 1
+          },
+          {
+            "id": "q21",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q22",
+            "ndcg": 0.6241,
+            "recall": 1
+          },
+          {
+            "id": "q23",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q24",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q25",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q26",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q27",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q28",
+            "ndcg": 0,
+            "recall": 0
+          }
+        ]
+      },
+      "H": {
+        "ndcg": 0.4869,
+        "recall": 0.6548,
+        "mrr": 0.4784,
+        "perQuery": [
+          {
+            "id": "q01",
+            "ndcg": 0.3562,
+            "recall": 1
+          },
+          {
+            "id": "q02",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q03",
+            "ndcg": 0.6131,
+            "recall": 0.5
+          },
+          {
+            "id": "q04",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q05",
+            "ndcg": 0.1815,
+            "recall": 0.3333
+          },
+          {
+            "id": "q06",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q07",
+            "ndcg": 0.7904,
+            "recall": 1
+          },
+          {
+            "id": "q08",
+            "ndcg": 0.5,
+            "recall": 1
+          },
+          {
+            "id": "q09",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q10",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q11",
+            "ndcg": 0.1934,
+            "recall": 0.5
+          },
+          {
+            "id": "q12",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q13",
+            "ndcg": 0.3333,
+            "recall": 1
+          },
+          {
+            "id": "q14",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q15",
+            "ndcg": 0.3333,
+            "recall": 1
+          },
+          {
+            "id": "q16",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q17",
+            "ndcg": 0.6131,
+            "recall": 0.5
+          },
+          {
+            "id": "q18",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q19",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q20",
+            "ndcg": 0.6934,
+            "recall": 1
+          },
+          {
+            "id": "q21",
+            "ndcg": 0.6131,
+            "recall": 0.5
+          },
+          {
+            "id": "q22",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q23",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q24",
+            "ndcg": 0.5013,
+            "recall": 1
+          },
+          {
+            "id": "q25",
+            "ndcg": 0.525,
+            "recall": 1
+          },
+          {
+            "id": "q26",
+            "ndcg": 0.3869,
+            "recall": 1
+          },
+          {
+            "id": "q27",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q28",
+            "ndcg": 0,
+            "recall": 0
+          }
+        ]
+      },
+      "V": {
+        "ndcg": 0.5213,
+        "recall": 0.6905,
+        "mrr": 0.5167,
+        "perQuery": [
+          {
+            "id": "q01",
+            "ndcg": 0.5,
+            "recall": 1
+          },
+          {
+            "id": "q02",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q03",
+            "ndcg": 0.1934,
+            "recall": 0.5
+          },
+          {
+            "id": "q04",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q05",
+            "ndcg": 0.4693,
+            "recall": 0.3333
+          },
+          {
+            "id": "q06",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q07",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q08",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q09",
+            "ndcg": 0.6934,
+            "recall": 1
+          },
+          {
+            "id": "q10",
+            "ndcg": 0.3333,
+            "recall": 1
+          },
+          {
+            "id": "q11",
+            "ndcg": 0.3066,
+            "recall": 0.5
+          },
+          {
+            "id": "q12",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q13",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "q14",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q15",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q16",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "q17",
+            "ndcg": 0.6131,
+            "recall": 0.5
+          },
+          {
+            "id": "q18",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "q19",
+            "ndcg": 0.6309,
+            "recall": 1
+          },
+          {
+            "id": "q20",
+            "ndcg": 0.5706,
+            "recall": 1
+          },
+          {
+            "id": "q21",
+            "ndcg": 0.6131,
+            "recall": 0.5
+          },
+          {
+            "id": "q22",
+            "ndcg": 0.6934,
+            "recall": 1
+          },
+          {
+            "id": "q23",
+            "ndcg": 0.3869,
+            "recall": 1
+          },
+          {
+            "id": "q24",
+            "ndcg": 0.8503,
+            "recall": 1
+          },
+          {
+            "id": "q25",
+            "ndcg": 0.8503,
+            "recall": 1
+          },
+          {
+            "id": "q26",
+            "ndcg": 1,
+            "recall": 1
+          },
+          {
+            "id": "q27",
+            "ndcg": 0,
+            "recall": 0
+          },
+          {
+            "id": "q28",
+            "ndcg": 0,
+            "recall": 0
+          }
+        ]
+      }
+    }
+  },
+  "decision": {
+    "rule": "BRACKETING (Q1-r2): lexical wins the anti-lexical set (rigged FOR vectors) -> vectors die; hybrid wins the normal set (rigged FOR lexical) by >=0.10 NDCG@10 -> justified; each wins only its own biased set -> ambiguous by construction; sanity gate must pass or the run is void.",
+    "delta_ndcg_normal": 0.2477,
+    "delta_ndcg_anti": 0.2961,
+    "sanity_gate": {
+      "clause_retrieval": {
+        "lRetrieving": 11,
+        "required": 5,
+        "of": 11
+      },
+      "clause_no_source_leak": {
+        "soleDocHit": 0
+      },
+      "multiResult_informational": 11,
+      "passed": true
+    },
+    "verdict": "VECTORS JUSTIFIED — hybrid won the set rigged FOR lexical by >=0.10 NDCG@10. Proceed to the A-vs-C backend benchmark at 153k."
+  },
+  "caveats": [
+    "The anti-lexical set is one-directional by construction (§14.3): it can kill vectors, never justify them. Only the NORMAL set drives the verdict.",
+    "Vector pool is the frozen 3,000-chunk subset; FTS is full-corpus (10,997). Absolute scores are easier than full-corpus, identically for every arm.",
+    "Single corpus (kluster @ pinned SHA) — home-field. nest replication is conditional on the ambiguous band."
+  ]
+}

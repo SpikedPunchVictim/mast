@@ -1,0 +1,1 @@
+{"run_id":"T10-A1","answer_file":"packages/kluster-bt/nodes-llm/src/agent-dispatch.ts","answer_symbol":"AgentDispatch","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"AgentDispatch is a leaf Node that resolves a role into a system prompt, makes one llmProvider.execute call, and writes the response to the blackboard at outputKey (default 'llm.response')."}

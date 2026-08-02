@@ -1,0 +1,1 @@
+{"run_id":"T08-B1","answer_file":"packages/workbench/fold/ledger/src/store.ts","answer_symbol":"LedgerStore","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"Interface with append(event) (append-only, never rewrites/reorders) and readEvents() returning every event in append order, with the concrete backend chosen at the composition root."}

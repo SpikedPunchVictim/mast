@@ -1,0 +1,1 @@
+{"run_id":"T12-B2","answer_file":"packages/workbench/fold/ledger/src/store.ts","answer_symbol":"InMemoryLedgerStore","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"In-memory LedgerStore fake with optional seeded initial events, counterpart to the disk-backed FileLedgerStore in filestore.ts."}

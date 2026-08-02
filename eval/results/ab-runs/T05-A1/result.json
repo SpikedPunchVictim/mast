@@ -1,0 +1,1 @@
+{"run_id":"T05-A1","answer_file":"packages/kluster-bt/nodes-llm/src/agent-loop.ts","answer_symbol":"AgentLoop","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"First search hit returned the AgentLoop class whose type field is 'llm:composite.agent-loop', registered in the LlmNodesPlugin for Phase 8a."}

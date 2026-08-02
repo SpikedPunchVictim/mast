@@ -1,0 +1,1 @@
+{"run_id":"T01-A1","answer_file":"packages/workbench/fold/ledger/src/gapClosure.ts","answer_symbol":"GapClosureOptions","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"GapClosureOptions declares `reDiscover: ReDiscoverFn` as an injected dependency consumed by reconcileGapClosure."}

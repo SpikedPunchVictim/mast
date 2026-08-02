@@ -1,0 +1,212 @@
+[
+  {
+    "run_id": "T01-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T01",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T01-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T01-A1/result.json",
+    "question": "`reDiscover` is an injected `ReDiscoverFn` seam."
+  },
+  {
+    "run_id": "T01-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T01",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T01-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T01-B1/result.json",
+    "question": "`reDiscover` is an injected `ReDiscoverFn` seam."
+  },
+  {
+    "run_id": "T02-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T02",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T02-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T02-A1/result.json",
+    "question": "synonyms), `ChainedCapabilityMatcher` (first non-null → `[lexical, embedding]`"
+  },
+  {
+    "run_id": "T02-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T02",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T02-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T02-B1/result.json",
+    "question": "synonyms), `ChainedCapabilityMatcher` (first non-null → `[lexical, embedding]`"
+  },
+  {
+    "run_id": "T03-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T03",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T03-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T03-A1/result.json",
+    "question": "async (`Promise<void>`) — this changes the `WorkspaceFs` port in `@foldv2/contracts`; update all"
+  },
+  {
+    "run_id": "T03-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T03",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T03-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T03-B1/result.json",
+    "question": "async (`Promise<void>`) — this changes the `WorkspaceFs` port in `@foldv2/contracts`; update all"
+  },
+  {
+    "run_id": "T04-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T04",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-A1/result.json",
+    "question": "`RunnerTimeoutError` message (`\"timed out after Ns — endpoint stalled\"`) or a transport error"
+  },
+  {
+    "run_id": "T04-A2",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T04",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-A2/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-A2/result.json",
+    "question": "`RunnerTimeoutError` message (`\"timed out after Ns — endpoint stalled\"`) or a transport error"
+  },
+  {
+    "run_id": "T04-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T04",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-B1/result.json",
+    "question": "`RunnerTimeoutError` message (`\"timed out after Ns — endpoint stalled\"`) or a transport error"
+  },
+  {
+    "run_id": "T04-B2",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T04",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-B2/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T04-B2/result.json",
+    "question": "`RunnerTimeoutError` message (`\"timed out after Ns — endpoint stalled\"`) or a transport error"
+  },
+  {
+    "run_id": "T05-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T05",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T05-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T05-A1/result.json",
+    "question": "`llm:composite.agent-loop` | `AgentLoop` | **Phase 8a.** Multi-turn tool-aware agent loop. See detailed section below. |"
+  },
+  {
+    "run_id": "T05-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T05",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T05-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T05-B1/result.json",
+    "question": "`llm:composite.agent-loop` | `AgentLoop` | **Phase 8a.** Multi-turn tool-aware agent loop. See detailed section below. |"
+  },
+  {
+    "run_id": "T06-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T06",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T06-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T06-A1/result.json",
+    "question": "shared by `installToolchain` and the composition root's provisioning `install` (`pnpm add` retries 3× with"
+  },
+  {
+    "run_id": "T06-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T06",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T06-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T06-B1/result.json",
+    "question": "shared by `installToolchain` and the composition root's provisioning `install` (`pnpm add` retries 3× with"
+  },
+  {
+    "run_id": "T07-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T07",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T07-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T07-A1/result.json",
+    "question": "A settings knob capping total model spend during an automated code-writing run's early thinking stages; going over that limit ends whole runs outright."
+  },
+  {
+    "run_id": "T07-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T07",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T07-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T07-B1/result.json",
+    "question": "A settings knob capping total model spend during an automated code-writing run's early thinking stages; going over that limit ends whole runs outright."
+  },
+  {
+    "run_id": "T08-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T08",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-A1/result.json",
+    "question": "Pluggable port for an add-at-tail, mutation-free record of what happened during a run; callers add entries or fetch all in insertion sequence."
+  },
+  {
+    "run_id": "T08-A2",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T08",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-A2/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-A2/result.json",
+    "question": "Pluggable port for an add-at-tail, mutation-free record of what happened during a run; callers add entries or fetch all in insertion sequence."
+  },
+  {
+    "run_id": "T08-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T08",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-B1/result.json",
+    "question": "Pluggable port for an add-at-tail, mutation-free record of what happened during a run; callers add entries or fetch all in insertion sequence."
+  },
+  {
+    "run_id": "T08-B2",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T08",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-B2/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T08-B2/result.json",
+    "question": "Pluggable port for an add-at-tail, mutation-free record of what happened during a run; callers add entries or fetch all in insertion sequence."
+  },
+  {
+    "run_id": "T09-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T09",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T09-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T09-A1/result.json",
+    "question": "Driver that has a language model generate a missing internal package, vets the output, retries briefly, then writes accepted results under a staging directory."
+  },
+  {
+    "run_id": "T09-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T09",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T09-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T09-B1/result.json",
+    "question": "Driver that has a language model generate a missing internal package, vets the output, retries briefly, then writes accepted results under a staging directory."
+  },
+  {
+    "run_id": "T10-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T10",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T10-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T10-A1/result.json",
+    "question": "Behavior-tree leaf making one language-model round trip: it fills a role-specific prompt template, sends it, then stores the reply on the shared blackboard."
+  },
+  {
+    "run_id": "T10-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T10",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T10-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T10-B1/result.json",
+    "question": "Behavior-tree leaf making one language-model round trip: it fills a role-specific prompt template, sends it, then stores the reply on the shared blackboard."
+  },
+  {
+    "run_id": "T11-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T11",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T11-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T11-A1/result.json",
+    "question": "Common wrapper that drives an autonomous model session editing project source directly, logging consumption into ledgers, converting failures into values instead of raising exceptions."
+  },
+  {
+    "run_id": "T11-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T11",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T11-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T11-B1/result.json",
+    "question": "Common wrapper that drives an autonomous model session editing project source directly, logging consumption into ledgers, converting failures into values instead of raising exceptions."
+  },
+  {
+    "run_id": "T12-A1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T12",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-A1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-A1/result.json",
+    "question": "RAM-backed test double offering the same history-recording port as the real disk-backed one; optionally pre-seeded, it lets suites skip filesystem I/O."
+  },
+  {
+    "run_id": "T12-A2",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T12",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-A2/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-A2/result.json",
+    "question": "RAM-backed test double offering the same history-recording port as the real disk-backed one; optionally pre-seeded, it lets suites skip filesystem I/O."
+  },
+  {
+    "run_id": "T12-B1",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T12",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-B1/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-B1/result.json",
+    "question": "RAM-backed test double offering the same history-recording port as the real disk-backed one; optionally pre-seeded, it lets suites skip filesystem I/O."
+  },
+  {
+    "run_id": "T12-B2",
+    "worktree": "/Users/spikedpunchvictim/.cache/mast-eval/ab-wt/T12",
+    "search": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-B2/search.sh",
+    "result_file": "/Users/spikedpunchvictim/.cache/mast-eval/ab-runs/T12-B2/result.json",
+    "question": "RAM-backed test double offering the same history-recording port as the real disk-backed one; optionally pre-seeded, it lets suites skip filesystem I/O."
+  }
+]

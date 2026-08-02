@@ -1,0 +1,286 @@
+{
+  "experiment": "Q1 external replication (n>=2) — nest",
+  "ranAt": "2026-08-01T18:15:33.598Z",
+  "corpus": {
+    "repo": "nestjs/nest",
+    "sha": "f7fffd63937ce6133624d23eb1d46fdd3c271526",
+    "chunks": 4994
+  },
+  "model": "jinaai/jina-embeddings-v2-base-code",
+  "vectors_in_index": 3000,
+  "queries": 20,
+  "results": {
+    "L": {
+      "ndcg": 0.5119,
+      "recall": 0.7,
+      "mrr": 0.4521,
+      "perQuery": [
+        {
+          "id": "x01",
+          "ndcg": 1
+        },
+        {
+          "id": "x02",
+          "ndcg": 0
+        },
+        {
+          "id": "x03",
+          "ndcg": 0.3869
+        },
+        {
+          "id": "x04",
+          "ndcg": 0.5
+        },
+        {
+          "id": "x05",
+          "ndcg": 1
+        },
+        {
+          "id": "x06",
+          "ndcg": 0.5
+        },
+        {
+          "id": "x07",
+          "ndcg": 0.3869
+        },
+        {
+          "id": "x08",
+          "ndcg": 1
+        },
+        {
+          "id": "x09",
+          "ndcg": 0
+        },
+        {
+          "id": "x10",
+          "ndcg": 0
+        },
+        {
+          "id": "x11",
+          "ndcg": 0
+        },
+        {
+          "id": "x12",
+          "ndcg": 0.3333
+        },
+        {
+          "id": "x13",
+          "ndcg": 1
+        },
+        {
+          "id": "x14",
+          "ndcg": 0.5
+        },
+        {
+          "id": "x15",
+          "ndcg": 1
+        },
+        {
+          "id": "x16",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x17",
+          "ndcg": 0
+        },
+        {
+          "id": "x18",
+          "ndcg": 0
+        },
+        {
+          "id": "x19",
+          "ndcg": 1
+        },
+        {
+          "id": "x20",
+          "ndcg": 1
+        }
+      ]
+    },
+    "H": {
+      "ndcg": 0.6201,
+      "recall": 0.8,
+      "mrr": 0.5642,
+      "perQuery": [
+        {
+          "id": "x01",
+          "ndcg": 1
+        },
+        {
+          "id": "x02",
+          "ndcg": 0.4307
+        },
+        {
+          "id": "x03",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x04",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x05",
+          "ndcg": 1
+        },
+        {
+          "id": "x06",
+          "ndcg": 1
+        },
+        {
+          "id": "x07",
+          "ndcg": 1
+        },
+        {
+          "id": "x08",
+          "ndcg": 1
+        },
+        {
+          "id": "x09",
+          "ndcg": 0
+        },
+        {
+          "id": "x10",
+          "ndcg": 0
+        },
+        {
+          "id": "x11",
+          "ndcg": 0.2891
+        },
+        {
+          "id": "x12",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x13",
+          "ndcg": 0
+        },
+        {
+          "id": "x14",
+          "ndcg": 0.5
+        },
+        {
+          "id": "x15",
+          "ndcg": 1
+        },
+        {
+          "id": "x16",
+          "ndcg": 1
+        },
+        {
+          "id": "x17",
+          "ndcg": 0
+        },
+        {
+          "id": "x18",
+          "ndcg": 0.2891
+        },
+        {
+          "id": "x19",
+          "ndcg": 1
+        },
+        {
+          "id": "x20",
+          "ndcg": 1
+        }
+      ]
+    },
+    "V": {
+      "ndcg": 0.7827,
+      "recall": 0.9,
+      "mrr": 0.7417,
+      "perQuery": [
+        {
+          "id": "x01",
+          "ndcg": 1
+        },
+        {
+          "id": "x02",
+          "ndcg": 1
+        },
+        {
+          "id": "x03",
+          "ndcg": 1
+        },
+        {
+          "id": "x04",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x05",
+          "ndcg": 1
+        },
+        {
+          "id": "x06",
+          "ndcg": 1
+        },
+        {
+          "id": "x07",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x08",
+          "ndcg": 1
+        },
+        {
+          "id": "x09",
+          "ndcg": 0.5
+        },
+        {
+          "id": "x10",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x11",
+          "ndcg": 1
+        },
+        {
+          "id": "x12",
+          "ndcg": 1
+        },
+        {
+          "id": "x13",
+          "ndcg": 0.6309
+        },
+        {
+          "id": "x14",
+          "ndcg": 0
+        },
+        {
+          "id": "x15",
+          "ndcg": 1
+        },
+        {
+          "id": "x16",
+          "ndcg": 1
+        },
+        {
+          "id": "x17",
+          "ndcg": 0
+        },
+        {
+          "id": "x18",
+          "ndcg": 1
+        },
+        {
+          "id": "x19",
+          "ndcg": 1
+        },
+        {
+          "id": "x20",
+          "ndcg": 0.6309
+        }
+      ]
+    }
+  },
+  "sanity_gate": {
+    "lRetrieving": 14,
+    "of": 20,
+    "passed": true
+  },
+  "delta_ndcg": 0.1082,
+  "verdict": "REPLICATED — hybrid beats lexical on a foreign corpus with a lexically-rigged set",
+  "caveats": [
+    "Normal (lexically-biased) set only — the 28 anti-lexical queries are kluster-specific and cannot port.",
+    "Targets are exported TSDoc-bearing declarations, one per file, seeded selection."
+  ]
+}

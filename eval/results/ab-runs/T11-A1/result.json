@@ -1,0 +1,1 @@
+{"run_id":"T11-A1","answer_file":"packages/workbench/foldv2/phases/src/codeOutput.ts","answer_symbol":"runCodeAgent","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"Top search hit: shared helper that runs the code agent against the build workspace, records usage/toolCall/timing ledgers, and returns a Result instead of throwing."}

@@ -1,0 +1,1 @@
+{"run_id":"T06-A1","answer_file":"packages/workbench/foldv2/cli/src/toolchain.ts","answer_symbol":"retrySpawn","confidence":"high","fallback_calls":0,"fallback_used":false,"notes":"retrySpawn's TSDoc describes it as the shared backoff-retry resilience behind installToolchain and the composition root's provisioning install."}
