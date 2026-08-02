@@ -1663,6 +1663,95 @@ significant); `tsdoc_in_chunk` absent for 30–50% (actual ~0%); the doc-magnet 
 neither the reviewer's range (+0.02–0.07 on anti, +0.05–0.12 on normal) nor mine allowed
 for harm on the normal set.
 
+### Q1/RESERVE-2 — second-COLUMN construction: PRE-REGISTRATION (written 2026-08-02, BEFORE scoring)
+
+Owed work, not optional: RESERVE-1 deviated from the Reserve's specified construction (a
+second FTS *column*, one joint `bm25()`) by building a second *table* fused via RRF — and
+that fusion is what caused the harm. The deviation ran toward the incumbent.
+
+**Hard constraint (verified):** FTS5's `tokenize=` is **table-level, not column-level**, so
+a second column cannot keep trigram on `content` while word-tokenizing `decomposed`.
+Per-column `bm25(tbl, w0, w1)` weights *are* supported. This forces the tokenizer and the
+decomposition to be varied together — so the design varies them **factorially** instead.
+
+| arm | table | isolates |
+|---|---|---|
+| L | shipped `chunk_fts` (trigram, content) | baseline |
+| **T+D** | trigram, (content, decomposed) | decomposition under **shipped** tokenization — the literal Reserve reading |
+| **W** | unicode61, (content) | the **tokenizer** change alone |
+| **W+D** | unicode61, (content, decomposed) | decomposition **on top of** word tokenization |
+| H | RRF(`chunk_fts`, vectors) | shipped hybrid, reference |
+
+A complete 2×2, so `(T+D)−L` and `(W+D)−W` are **unconfounded** decomposition effects with
+the tokenizer held fixed, `W−L` is the pure tokenizer effect, and the **interaction**
+`((W+D)−W) − ((T+D)−L)` — free from the factorial — tests the Reserve's actual mechanistic
+claim: that decomposition's value *depends* on word tokenization.
+
+**Pinned before the run.** Identical query expression for every lexical arm (shipped
+`toFtsMatch`; **no** query-side splitting anywhere, so every lexical contrast is
+index-side-only — costs nothing here, camelCase appears in 0/11, 0/20, 2/28 queries).
+`decomposed` column = the split sub-terms **not already present as whole tokens in
+content**, i.e. exactly the surface decomposition adds; mirroring the full bag would
+duplicate every content token across two columns and penalise the arm for redundancy
+rather than test it. `bm25` weights **default (1.0, 1.0)** — a declared choice, not an
+absence of one; the decomposed column is a short deduped bag and FTS5's per-column length
+normalisation makes matches there disproportionately potent, so if W+D shows harm that is
+the named first suspect (a follow-up hypothesis, **not** a knob to tune now).
+
+**Decision rule.**
+- **Decomposition LIVES** only if a decomposition contrast is significantly positive on a
+  non-one-directional set **AND that arm beats L**, the shipped alternative. *(Reviewer
+  catch: without the beats-L clause, `(W+D)−W > 0` could ship a net regression — an arm
+  beating its own tokenizer-mate while the whole unicode61 family loses to shipped
+  trigram.)*
+- **Closure, two tiers** — the original single tier (CI upper < 0.05 on all three sets ×
+  both contrasts) is **unreachable at these n**: six equivalence cells with SEs of
+  0.05–0.09 pass jointly ≈ never even under a true null, which is the same reachability
+  defect caught in round 1. **Strong closure:** CI upper < 0.10 (the inherited margin) on
+  both kluster sets, both contrasts. **Weak closure:** no contrast significantly positive
+  anywhere and all point estimates < 0.05.
+- **Delete-vectors branch** (the authority this arm does hold): `H − lexical[LOO]`
+  equivalence CI upper < 0.10 **and** ΔRecall@10 CI upper < 0.10, on **both** kluster sets.
+- **Stop rule retained:** any arm significantly below L is reported as harm, not tuned.
+- Anti-lexical set stays **one-directional** (§14.3).
+
+**Selection bias — fixed, not just declared.** A per-set max over 4 correlated arms inflates
+the winner by ≈0.5–1 SE (0.05–0.09 NDCG — the size of the entire nest H−L effect), so
+testing H against it would *manufacture* deletion. A holdout is infeasible at n=11
+(select on 5, score on 6). The delete branch therefore uses **leave-one-query-out
+selection**: for query *i*, pick the lexical arm on the other n−1, score *i* under that
+pick. The raw max is reported **descriptively only**, labelled.
+
+**Pre-run assertions (all PASS before scoring):** each new FTS table's rows == chunk count
+(10,943 / 4,994 × 3 tables); `decomposed` column **byte-identical** between T+D and W+D
+(0 mismatches both corpora, so the tokenizer contrast is not contaminated by content
+drift); arms L and H must still reproduce shipped `hybridSearch` exactly.
+
+**🔴 Instrument dilution, measured pre-run and recorded because it weakens the arm.** The
+mechanism spot-check asked whether `walkProject`'s chunk is reachable via "walk project" in
+W+D but *not* in W. It **is reachable in W too** — the chunk's own prose supplies both
+words. So wherever documentation restates an identifier's constituent words, decomposition
+is redundant with prose and `(W+D)−W` is diluted toward null. The residual value of
+decomposition should concentrate on **terse or undocumented** chunks. Stated before the
+numbers exist.
+
+**Authority limit, unchanged and explicit:** RESERVE-2 may trigger the delete branch; it
+can **never** justify vectors. **The harvest gate does not move regardless of this
+outcome** — after two reserve runs whose most decisive findings were about *lexical*
+machinery, marginal information per synthetic-set run is visibly declining, and the
+real-query harvest remains the only instrument that can close Q1.
+
+**Reviewer's pre-run predictions (Fable, round 4), recorded before the numbers exist:**
+`(T+D)−L` null everywhere (−0.02 to +0.03, all CIs spanning zero); `W−L` negative on
+normal/nest (−0.05 to −0.15), near-zero to slightly positive on anti; **`(W+D)−W` the one
+real effect** (+0.05 to +0.15 normal/nest, +0.00 to +0.05 anti); interaction positive; net
+W+D vs L a wash; `H − lexical[LOO]` stays significantly positive on both kluster sets
+(~0.12–0.17 normal, ~0.09–0.13 anti), nest CI spanning zero; **delete branch does not
+fire**. 60% that shape / 20% W+D beats L outright on a non-anti set / 10% T+D surprises
+positive / 10% void. Self-scored round-1 record: *"my mechanism reasoning has been good, my
+quantitative intuitions about this corpus have been poor"* — vote-dilution was correctly
+identified, then not followed to its conclusion that it would dilute **L** in L+D too.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
