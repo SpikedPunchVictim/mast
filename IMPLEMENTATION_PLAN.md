@@ -1752,6 +1752,91 @@ positive / 10% void. Self-scored round-1 record: *"my mechanism reasoning has be
 quantitative intuitions about this corpus have been poor"* — vote-dilution was correctly
 identified, then not followed to its conclusion that it would dilute **L** in L+D too.
 
+#### Q1/RESERVE-2 RESULT (2026-08-02) — decomposition doesn't live; the shipped TRIGRAM tokenizer is doing real work; and the home-field verdict is NOT robust to the lexical baseline
+
+`eval/q1-reserve2.mjs` → `~/.cache/mast-eval/results/q1-reserve2.json`. Gate: self-check
+**0 mismatches** all sets, no empty arms, all pre-run assertions PASS.
+
+| set | n | L | T+D | W | W+D | H |
+|---|---|---|---|---|---|---|
+| kluster-normal | 11 | 0.5663 | **0.5807** | 0.3710 | 0.4281 | 0.7331 |
+| kluster-anti | 28 | 0.1908 | **0.2150** | 0.1322 | 0.1909 | 0.3222 |
+| nest-external | 20 | **0.5119** | 0.4774 | 0.4162 | 0.4127 | 0.6122 |
+
+**1. Decomposition does not live — but it is not "closed for good" either.** No
+decomposition contrast is significantly positive **anywhere**:
+
+| contrast | kluster-normal | kluster-anti | nest |
+|---|---|---|---|
+| `(T+D)−L` (trigram) | +0.0144 [−0.030, +0.059] | +0.0242 [−0.001, +0.049] t=2.04 | −0.0345 [−0.086, +0.017] |
+| `(W+D)−W` (unicode61) | +0.0570 [−0.032, +0.146] | +0.0587 [−0.002, +0.120] t=2.02 | −0.0035 [−0.066, +0.059] |
+
+The **literal Reserve reading (`T+D`) is a measured null**, as predicted — under trigram the
+decomposed column is near-redundant because trigram already substring-matches.
+`(W+D)−W` is consistently positive on kluster and consistently non-significant. Per the
+registered rule: **strong closure FAILS** ((W+D)−W CI upper 0.146/0.120 > 0.10) and **weak
+closure FAILS narrowly** (point estimates 0.057/0.059 > 0.05). Honest status: *decomposition
+under word tokenization is a small, consistently-signed, never-significant effect that never
+beats the shipped baseline.* Not dead; not worth building.
+
+**Lives branch does not fire:** nothing is significantly positive, and `(W+D)−L` is
+significantly **negative** on kluster-normal (−0.1382 [−0.253, −0.023]). The beats-L clause
+the review added is what makes this unambiguous — without it, `(W+D)−W = +0.0587` could
+have been read as a win while the arm was losing to shipped.
+
+**2. 🔴 The stop rule fired again — on the TOKENIZER this time.** `W − L` is significantly
+**negative** on both kluster sets (**−0.1952**, t=−2.77 normal; **−0.0587**, t=−2.492 anti),
+with Recall@10 collapsing 1.000 → 0.636 on normal. **Swapping trigram for unicode61 is a
+large regression.** The shipped trigram tokenizer is not an incidental default — it is
+carrying substantial retrieval value via substring matching, which is exactly what the
+RESERVE-1 mechanism check found and what makes the decomposed column redundant under it.
+That is a positive finding about the shipped design, arrived at by trying to beat it.
+
+**3. Interaction is positive on all three sets** (+0.043, +0.035, +0.031) and significant on
+none. Directionally it confirms the mechanism restatement — decomposition is worth more
+under word tokenization than under trigram — but the effect is smaller than the tokenizer
+penalty that buying it would cost. The 2×2 says: you cannot have word-level decomposition
+without giving up substring matching, and the trade is a net loss.
+
+**4. 🔴 The finding that cuts AGAINST the incumbent — and it is the important one.**
+With the LOO-selected lexical baseline (picks: `T+D` on both kluster sets, `L` on nest):
+
+| set | H − lexical[LOO] | 95% CI | t | sig? |
+|---|---|---|---|---|
+| kluster-normal | **0.1525** | **[−0.0015, +0.3065]** | 2.206 | **NO** (t_crit 2.228) |
+| kluster-anti | 0.1072 | [+0.0544, +0.1600] | 4.252 | YES — but **one-directional**, cannot justify vectors |
+| nest-external | 0.1003 | [−0.0579, +0.2585] | 1.327 | NO |
+
+**kluster-normal was the only significant, non-one-directional evidence for vectors in the
+entire record** (`H−L` = 0.1669, t=2.68). Against a marginally better lexical arm — one
+that is *itself* not significantly better than L — **it loses significance** (CI now spans
+zero by 0.0015). The flip is fragile in both directions and must not be overread: t=2.206
+vs a 2.228 critical value is a coin-flip margin, driven by a non-significant improvement.
+The defensible statement is: **the home-field result is not robust to the choice of lexical
+baseline.** A result that survives only against one specific baseline is weaker evidence
+than the AMBIGUOUS ruling already credited it with.
+
+**Delete branch does not fire** (requires equivalence CI upper < 0.10 on both kluster sets;
+normal's upper is 0.3065). **Q1 stays AMBIGUOUS. M2 stays BLOCKED.**
+
+##### Reviewer's round-4 predictions, scored
+
+**Right:** `(T+D)−L` null everywhere; interaction positive on all sets; delete branch does
+not fire; `H − lexical[LOO]` on anti (~0.09–0.13, significant → 0.1072, t=4.25); the
+overall branch shape. **Wrong:** `(W+D)−W` positive on nest (actual −0.0035); `W−L`
+near-zero-to-positive on anti (actual significantly negative); net `W+D` vs `L` "a wash"
+(actual significantly negative on normal); `H − lexical[LOO]` significant on kluster-normal
+(actual just misses). Its self-assessment held — mechanism reasoning good, corpus numbers
+mediocre — but round 4 was its most accurate.
+
+##### What is now owed
+
+The Reserve's lever has been tested in **both** registered constructions (fused table,
+second column) across **two** tokenizers. It does not exist at a size worth building.
+**The reserve is discharged.** Remaining, in order: the real-query harvest (the only
+instrument that can close Q1 — gate unmoved, as registered); equalising arm V through the
+now-validated N-ranker pipeline (`rankers: ['vec']`, cheap); Q4/Q5 practical significance.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
@@ -1816,7 +1901,7 @@ alters product behaviour.
    commit `c5f4486`. Stop rule fired: decomposition-as-a-fused-ranker is a **regression**
    ((L+D)−L = −0.1661, t=−2.333 on kluster-normal; Recall@10 1.000 → 0.727). See
    "Q1/RESERVE RESULT" above.
-2. **RESERVE-2 — the second-COLUMN construction. Owed, not optional.** The Reserve
+2. ~~**RESERVE-2 — second-COLUMN construction**~~ — **DONE 2026-08-02** (registration `a042cb1`). Decomposition tested in both constructions across two tokenizers; does not live, reserve discharged. Old text: The Reserve
    specified a second FTS *column* (one joint `bm25()`); I built a second *table* (RRF
    fusion), and RRF vote-dilution is what caused the harm. The deviation runs **toward the
    incumbent**, so leaving it unrun repeats the original violation. Also fix the canary's
