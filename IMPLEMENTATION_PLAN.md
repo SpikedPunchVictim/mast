@@ -2376,6 +2376,34 @@ the committed record — only `cards.json`'s question text. Whether agents were 
 decides the artifact-vs-genuine status of the four failures. **Commit the agent prompt
 template with any repeat.**
 
+#### Q1/ARM-V EQUALISATION — PRE-REGISTRATION (written 2026-08-02, BEFORE the arm was scored)
+
+Closes the last open finding from the 2026-08-01 adversarial review (finding 5): arm V
+(pure vector) was scored by a *different* harness from L and H, so its numbers were never
+comparable to theirs. `runArm` in `q1-reserve2.mjs` already implements `V` — it was simply
+absent from `ARMS`. Equalisation is therefore adding one list entry, and V then runs the
+identical path as L/H: same candidate pool, same `chunkStore` fetch, same dedup, same
+scorer. No new data, no re-embedding.
+
+`LEXICAL = ['L','T+D','W','W+D']` deliberately excludes V, so the leave-one-out lexical
+baseline — the only baseline permitted to bear the delete-branch contrast — is untouched.
+
+**Registered authority limit.** Arm V is **DESCRIPTIVE ONLY**. It answers "how much of
+hybrid's ranking comes from the vector side alone?" It may **not** be used to justify or
+kill the vector store in either direction: V < L would not prove vectors worthless (RRF
+fuses a weak-but-decorrelated ranker to real effect — that is the whole premise of hybrid),
+and V > L would not prove them necessary (H is what ships, not V). Any verdict language
+stronger than description is out of scope by pre-registration.
+
+**Pre-stated expectation, so the result can surprise me:** on the anti-lexical set V should
+be strongest relative to L; on kluster-normal and nest V should trail L. If V beats H
+anywhere, that is a *fusion* finding — RRF diluting a strong ranker with a weak one — and
+it would reopen F16, which is currently CLOSED.
+
+**Falsification of the equalisation itself:** the existing L/H self-check against shipped
+`hybridSearch` must remain at **0 mismatches**. If adding V perturbs it, the change is
+contaminating the pipeline and must be reverted rather than interpreted.
+
 **Next (registered order unchanged):** (2) equalise arm V via `rankers: ['vec']` in
 `q1-reserve2.mjs`; (3) Q4 win-class labelling, now with 30 transcripts and per-task rank
 deltas as raw material; (4) the organic harvest — note these 30 runs wrote real
