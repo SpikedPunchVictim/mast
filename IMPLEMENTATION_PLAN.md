@@ -2227,6 +2227,89 @@ does cover the target packages (993 workbench + 200 kluster-bt files), sibling r
 do **not** duplicate task rows verbatim (zero shared lines > 40 chars on the highest-risk
 pair), and rule-of-three *is* the right shape for a paired discordance count.
 
+#### AMENDMENT 2 — 2026-08-02, pre-scoring: grading is mechanical, not Fable-blind
+
+The registration specified a blind Fable grader. Ground truth is a mechanically-resolved
+unique symbol, so grading is exact string match on `(answer_file, answer_symbol)` — which
+removes the grader as a bias source entirely rather than blinding it. Strictly stronger;
+runs in no direction. The SEALED arm manifest was opened only after all 30 `result.json`
+files existed.
+
+#### Q1/OUTCOME RESULT (2026-08-02) — outcome-neutral at k=12, and the mechanism is visible
+
+30 runs (24 registered + 6 noise-floor), 0 void, 0 missing, 0 arm-integrity failures.
+
+**Co-primary A — task success: b = 0, c = 0.** Perfect concordance on all 12 tasks, at
+symbol level *and* file level. H 8/12, L 8/12. Exact McNemar p = 1.000. Gate 5 marginals
+**ok** — 8/12 is neither ceiling nor floor, so the task set did discriminate.
+
+**Co-primary B — retrieval effort: not significant.** Sign test p = 0.219; median search
+calls identical (H 2, L 2). Direction, such as it is, runs *against* hybrid: L used more
+calls on 1 task, H on 5. So there is no "outcome-neutral but effort-positive" escape —
+lexical did not buy its equal outcomes with extra work.
+
+**Noise floor: 0/6 within-arm success discordance** across the 3 seeded replicate tasks.
+The zero between-arm discordance is therefore not noise swamping a real effect; the
+outcome measure is stable. (Call counts do wobble — T08 hybrid 11 vs 15 — so the effort
+metric is noisier than the success metric, as expected.)
+
+**The mechanism, measured rather than argued.** Gate 4 established that the arms *did*
+differ in retrieval on this exact task set: three tasks where the target file was inside
+hybrid's ten-result window and outside lexical's. All three converted to identical
+outcomes:
+
+| task | file rank H | file rank L | outcome | search calls |
+|---|---|---|---|---|
+| T03 | 4 | 32 | **both failed** | 12 vs 7 |
+| T08 | 6 | not in window | **both succeeded** | 11 vs 14 |
+| T10 | 5 | 21 | **both succeeded** | 3 vs 2 |
+
+T03 is the sharpest: hybrid put the target file at rank 4 and *still* failed. T08 and T10
+are the reframe's exact prediction — lexical did not have the target in the window and
+succeeded anyway, by reformulating the query. **Retrieval rank is substitutable by agent
+re-querying.** That is the causal claim the whole reframe rested on, and it is now
+measured on this task set rather than asserted.
+
+**What this does and does not license — the registered bounds, applied.**
+
+- b + c = 0 at k = 12 → 95% upper bound on the outcome-changing rate = **22.1%** exact
+  (25% by rule of three). **This is not equivalence.**
+- S-ident alone (n = 6, the production-relevant stratum under the harvest hypothesis) →
+  **≈39%**. The pooled bound borrows power from the vector-favourable stratum; both are
+  reported, as registered.
+- **Scale caveat stands and is verdict-blocking:** measured at ~14.5k chunks; the 91 MB /
+  ~7 h / 470 MB is priced at 153k. This result does **not** license deleting the vector
+  store at the target scale.
+- 4 of 12 tasks were concordant failures, contributing nothing to b or c — effective
+  discriminating power is below the nominal k.
+- External validity limits: Bash surface rather than the MCP tool; `doc` chunks excluded
+  in both arms; investigative read-only tasks, so code-change correctness is untested.
+
+**Verdict per the registered rule:** b + c ≤ 1 **and** co-primary B not significant →
+**Reframe SUPPORTED.** Mode is outcome-neutral and effort-neutral at this power. Combined
+with the retrieval-level evidence that the arms genuinely differed, this is the
+practical-significance evidence Q4/Q5 were deferred four times for.
+
+**Q1 remains AMBIGUOUS and M2 remains BLOCKED**, and that is not timidity. The registered
+verdict is bounded at 22%/39% and explicitly does not extend to 153k chunks — the scale
+at which the cost is actually paid. What changed is the *burden of proof*: the case for
+keeping the vector store can no longer rest on NDCG@10 deltas, because a measured
+retrieval advantage did not move a single task outcome.
+
+**Honest counter-evidence, recorded because it cuts against this result.** Gate 4 also
+showed the reframe's own premise does not generalise: kluster arm L Recall@10 = 1.000 was
+the argument's foundation, but on this task set the target *chunk* was in the window on
+**3/12** tasks for both arms. The reframe was right about the conclusion for a reason
+partly different from the one it gave — outcomes are rank-insensitive because agents
+re-query, not because lexical already retrieves everything.
+
+**Next (registered order unchanged):** (2) equalise arm V via `rankers: ['vec']` in
+`q1-reserve2.mjs`; (3) Q4 win-class labelling, now with 30 transcripts and per-task rank
+deltas as raw material; (4) the organic harvest — note these 30 runs wrote real
+non-self-referential rows into the A/B search log, though not into `metrics`; (5) the
+scale-out of Gate 4's rank-delta pre-check onto a 153k corpus, which is the cheapest
+attack on the one caveat that blocks M2.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
