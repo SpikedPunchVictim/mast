@@ -1387,6 +1387,162 @@ points the same way but does not reach significance.*
 
 ---
 
+### Q1/RESERVE — identifier-decomposition arm: PRE-REGISTRATION (written 2026-08-02, BEFORE any arm was scored)
+
+Pre-registered in the Design Reserve; trigger (ambiguous band) fired; skipped once — a
+pre-registration violation in the direction favouring the incumbent. Registered properly
+here. Adversarially reviewed **before** running (Fable agent, two rounds, transcript
+findings folded in below and attributed).
+
+#### Mechanism restatement — the lever is NOT what the Reserve said it was
+
+The Reserve described it as *"index `checkAuthToken` also as `check auth token` … making
+conceptual queries hit **lexically**"* — a **recall** claim. Measured against the pinned
+corpus before designing anything:
+
+| probe | result |
+|---|---|
+| `chunk_fts` is **trigram** → already substring-matches | `"project"` matches **1,688** chunks, **including `walkProject`'s own chunk** |
+| `identifier_fts` (unicode61) does **not** substring-match | `"project"` → 805 chunks; `"walkProject"` → 5; the former never retrieves the latter |
+| `extractIdentifiers` (`typescript.ts:1430`) is a bare `\b[A-Za-z_$][A-Za-z0-9_$]*\b` regex over full content | so `identifier_fts` is already a word-level bag-of-words **including prose**, camelCase unsplit |
+| `identifier_fts` coverage | **9,420 / 10,943** chunks — `doc` chunks excluded by design (§10.1) |
+
+**So the recall path already exists.** What decomposition actually adds is **word-boundary
+term statistics** (word-level IDF; `project` stops matching `projection`) plus *effective
+recall into the candidate window* — `searchFts` truncates at `limit*2 = 80` **after** BM25
+ordering (`fts.ts:92`), so a target ranked below 80 among 1,688 trigram matches never
+reaches fusion at all. This is a **weaker** premise than the Reserve assumed. Recorded
+before the run so it cannot be used post-hoc to explain away a null — and equally, so
+"the original recall lever was never testable here" is not available as an excuse either.
+
+#### Pre-run reachability bound (zero-compute, computed BEFORE registering)
+
+Per query: resolve the target chunk, build the decomposed bag the proposed index would
+hold, and ask whether the query gains a ≥3-char word match the **prose-inclusive**
+undecomposed baseline does not already have. This bounds *movement*, not gap closure.
+
+| set | can move | provably adds nothing | max possible effect |
+|---|---|---|---|
+| kluster-normal | 7 | 4 | **7/11 (64%)** |
+| kluster-anti | 13 | 15 | **13/28 (46%)** |
+| nest-external | 14 | 6 | **14/20 (70%)** |
+
+This **falsified** the reviewer's round-1 claim that the anti set is structurally immune to
+decomposition (its round-2 challenge to the bound was itself falsified: its spot-checks
+read TSDoc from the *source file*, whereas chunks store the declaration plus only
+`context_lines: 3` backward — `splitIdentifierTerms`'s chunk is `fts.ts:170-184` and does
+**not** contain the prose word "identifier"; the gain is real). Reviewer conceded its
+"mechanically cannot inject" phrasing was an overclaim.
+
+**Incidental finding, worth its own follow-up:** because chunk spans start at the
+declaration line, a **long** TSDoc is largely *outside* its own chunk. The prior
+adversarial review's finding 3 — "a symbol+TSDoc-first-sentence query is a bag-of-words
+subset of the target's own embedded text" — therefore holds only for **short**-TSDoc
+symbols. This weakens the self-retrieval premise for the vector arm *and* the decomp arm.
+Measured and reported as `tsdoc_in_chunk_pct` in this run.
+
+#### Arms — five, all through ONE pipeline
+
+| arm | rankers fused |
+|---|---|
+| L | `chunk_fts` BM25 (shipped lexical) |
+| D | `decomp_fts` BM25 alone (diagnostic) |
+| **L+D** | RRF(`chunk_fts`, `decomp_fts`) — the reserve arm |
+| H | RRF(`chunk_fts`, vectors) — shipped hybrid |
+| **H+D** | RRF(`chunk_fts`, `decomp_fts`, vectors) |
+
+`decomp_fts` is built from `chunks.content` (all chunks incl. `doc`), **not** from
+`identifier_fts` — inheriting that table's doc exclusion would silently shrink a *search*
+arm's corpus by 1,523 chunks for a *call-graph* reason. Built into a separate database
+file; the authoritative state dirs are never opened for writing.
+
+**Knobs pinned before the run** (each is otherwise a post-hoc tuning knob): decomp pool =
+80 (mirrors `searchFts`'s `limit*2` at `candidateLimit=40`, `fts.ts:92`); vector pool = 40
+(`hybrid.ts:59`); ranker enumeration order (fts, decomp, vec) with stable sort;
+`chunkStore` passed explicitly at every call site (`hybrid.ts:55`'s default is the retired
+Lance table — the v1 `0.0000` pathology's cousin).
+
+**Equalisation** (fixes review finding 5, where arm V bypassed the pipeline and
+contaminated F16): every arm runs the same candidate → RRF → fetch → post-filter →
+`dedupShellMethodCollisions` path.
+
+**Self-check, mandatory before any new arm is believed:** the reimplemented pipeline must
+reproduce `q1-final.mjs`'s L and H **exactly** on all three sets. A failure is diagnosed to
+root cause, and the ONLY permitted harness change is enumeration-order / embed-path
+alignment (`embed([queryAsChunk])` vs `embedRawUncached`). Anything else is tuning.
+
+#### Pre-committed decision rule
+
+**Primary contrast: (H+D) − (L+D)** — vectors' marginal value holding the lexical machinery
+constant. `H − (L+D)` is secondary; it confounds *adding vectors* with *removing
+decomposition*.
+
+**Co-primary metric: ΔRecall@10**, not NDCG alone. kluster arm L already has
+Recall@10 = 1.000, so home-field NDCG deltas are intra-window reordering for a consumer
+(an LLM agent) that reads all 10 results. Recall is the metric a 91 MB / 7 h / 470 MB cost
+argument can attach to.
+
+| branch | decisive cell | verdict |
+|---|---|---|
+| **Vectors retain marginal value** | (H+D)−(L+D) CI excludes zero AND mean ≥ 0.10 on **kluster-normal or nest** | Decomposition does not close the gap. Reserve arm answers NO. Q1 still not *resolved* — see authority limit below. |
+| **Vectors die** | equivalence: CI **upper** < 0.10 for **both** (H+D)−(L+D) **and** H−(L+D), on **both** kluster sets, **and** ΔRecall@10 CI upper < 0.10 | **Committed consequence: the A-vs-C 153k benchmark is cancelled outright**, and deletion of `vectors.lance` + `@lancedb/lancedb` is scheduled, contingent only on the real-query harvest not reversing it. |
+| Significant but mean < 0.10 | — | "Statistically real, practically below threshold." Bound to this cell only; not a free narrative slot. |
+| **(L+D) < L significantly on any set** | — | Decomposition is **harmful**. Stop, do not tune. Primary contrast collapses back to H−L and the arm reports "decomposition dead, Q1 unchanged." |
+
+**Anti-lexical set is one-directional** (§14.3, restored): it may *kill* vectors, never
+*justify* them. It cannot contribute to the "retain value" branch.
+
+**Deletion requires BOTH contrasts to fail the bar.** Reviewer's vote-dilution argument,
+accepted: in H vectors hold 1 of 2 votes; in H+D they hold 1 of 3 against a *correlated*
+two-ranker lexical bloc, so `H+D < H` is plausible and `(H+D)−(L+D) ≈ 0` could coexist with
+`H−(L+D) > 0`. Reading that as "vectors add nothing" would be false.
+
+**Threshold provenance, stated rather than laundered.** 0.10 was registered for `H−L` on
+the shipped configuration. `(H+D)−(L+D)` is structurally *smaller* (D absorbs part of the
+deficit vectors compensated for; vectors' vote share drops 1/2 → 1/3). Reusing 0.10 is
+therefore **conservative against vectors** in the keep direction and **permissive** in the
+delete direction. Not re-derived post-hoc — that would be tuning. Weight rests on the
+Recall@10 co-primary instead.
+
+**Authority limit, committed in advance and asymmetric on purpose:** this arm **can never
+justify** the vector store — only the real-query harvest can. It **can** trigger the delete
+branch. No verdict stronger than "pending harvest" may issue from any synthetic-set run.
+
+#### Anti-degeneracy gate (from the run where arm L scored exactly 0.0000)
+
+1. `decomp_fts` rows == chunk count per corpus. **[PASS pre-run: 10,943/10,943 and 4,994/4,994]**
+2. Arm D returns ≥1 result for ≥90% of queries on every set.
+3. No arm scores exactly 0.0000 across an entire set.
+4. Spot-check: a known camelCase target retrieved by its decomposed words. **[PASS pre-run: `walkProject`'s chunk is returned for `"walk" OR "project"`]**
+5. Doc-magnet check: arm D's top-10 `doc`-chunk share vs arm L's (assertion, not a knob —
+   de-duplicating the bag flattens BM25 tf to 1, so prose chunks citing many rare
+   identifiers become short, dense documents).
+6. **Self-retrieval canary:** normal + nest re-scored with the symbol-derived tokens
+   stripped (TSDoc sentence only). `gold-set-normal-r2.json`'s own `meta.derivation` is
+   `camelCaseSplit(symbol_name) + first TSDoc sentence` — which *is* the index-construction
+   function, so a gain there may be echo, not measurement. If D's gain vanishes under the
+   canary, those sets cannot support a verdict.
+
+Violation of 1–4 → **void by rule**, stop and prove the mechanism.
+
+**Known instrument limit:** the query-side half of the lever is **dead on this instrument**
+— camelCase tokens appear in 0/11 normal, 0/20 nest, 2/28 anti queries. The normal/nest
+queries were pre-split by the derivation protocol. So this run tests the *index-side* half
+only, and a shipped `decomp_fts` would carry query-side behaviour no experiment here
+exercised.
+
+#### Reviewer's pre-run predictions, recorded before the numbers exist (Fable, round 2)
+
+Self-check fails first attempt on embed-path or tie-break, passes after permitted
+alignment. Arm D alone: normal 0.45–0.60, anti 0.15–0.25, nest 0.40–0.55. L+D over L:
+normal +0.05–0.12, anti +0.00–0.05, nest +0.03–0.08. **(H+D)−(L+D): kluster-anti stays
+significant, ≈0.08–0.13, t≈3**; normal ≈+0.03–0.10 CI spanning zero; nest ≈+0.03–0.08 CI
+spanning zero. ΔRecall@10 (H+D vs L+D): normal ≈0, **anti +0.10–0.20**, nest +0.05–0.10.
+Predicted branch: mixed/diagnostic — neither branch fires; Q1 stays open pending harvest.
+Confidence ~70%; ~20% a delete-leaning surprise; ~10% void on first scored attempt.
+
+---
+
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
 
 Everything above records *reasoning*. This records *state*, which is otherwise only in
