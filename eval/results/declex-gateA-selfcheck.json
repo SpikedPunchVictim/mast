@@ -1,0 +1,1049 @@
+{
+  "ran_at": "2026-08-03T18:55:40.887Z",
+  "tier": null,
+  "mismatches": 0,
+  "full_mismatches": 0,
+  "pass": true,
+  "rows": [
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "onLanguage emitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "IChannel abstraction several taking",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "CommentService.setActiveEditingCommentThread edited commentthread",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "ResourceDeleteParams resourcedelete permissiondenied permitted",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "isLoggingOnly purposes actually",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "AgentHostSessionListController querying listens iagentconnection",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "IClaudePlanFileTracker handleassistantmessage multiedit circuits",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "ConversationHistorySummarizationPrompt exceeded",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "ok tooling generating chosen",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "buildModelPickerItems bedrock customoai alphabetically",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    }
+  ]
+}

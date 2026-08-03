@@ -1,0 +1,76 @@
+{
+  "ran_at": "2026-08-03T21:46:08.120Z",
+  "description": "Cross-run reproducibility (descriptive, IMPLEMENTATION_PLAN.md:3601): declex-measure-raw-original.json L/H rows (this session, original-400 query set) vs idfuse-measure-raw.json L/H rows (Q1/IDFUSE run), joined on (query_id, tier, arm).",
+  "source_files": {
+    "declex_original": "eval/results/declex-measure-raw-original.json",
+    "idfuse": "eval/results/idfuse-measure-raw.json"
+  },
+  "n_declex_lh_rows": 3200,
+  "n_idfuse_lh_rows": 3200,
+  "n_matched_pairs": 3200,
+  "n_differing_rows": 0,
+  "overall_identical_rank_fraction": 1,
+  "identical_rank_fraction_per_arm_x_tier": {
+    "L": {
+      "T1": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      },
+      "T2": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      },
+      "T3": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      },
+      "T4": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      }
+    },
+    "H": {
+      "T1": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      },
+      "T2": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      },
+      "T3": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      },
+      "T4": {
+        "n_declex_rows": 400,
+        "n_compared": 400,
+        "n_missing_in_idfuse": 0,
+        "n_identical_rank": 400,
+        "identical_rank_fraction": 1
+      }
+    }
+  },
+  "differing_rows": []
+}
