@@ -2972,6 +2972,170 @@ registered consistency triggers guarded only the branch the investigator's own p
 (deletion) argued against** — is an asymmetry to make symmetric in any future registration on
 this track, the same lesson AMENDMENT 1 already applied to the discharge branch.
 
+### Q1/IDFUSE — the identifier_fts fusion lever: PRE-REGISTRATION (written 2026-08-03, BEFORE any measurement)
+
+**Nothing below may be edited after the first scored measurement.** Amendments are appended
+with timestamp, reason, and the direction the error runs.
+
+#### Why this experiment
+
+Q1/SCALE confirmed the scale caveat: lexical degrades with corpus growth on exact-identifier
+queries (+6.7 pp [1.3, 11.3] extra in-window loss vs hybrid at 138k) — and its results review
+verified in code that the shipped `hybridSearch` ranks via trigram `chunk_fts` only:
+`identifier_fts` (unicode61, exact-identifier semantics) exists but is never consulted in
+ranking. Exact names therefore have no exact-token lexical anchor, which is a candidate
+non-vector explanation for the entire measured vector advantage. This is the registered
+cheapest attack on M2's blocked state (HANDOFF §4 line (a)): if a lexical ranker closes the
+scale gap, the delete arm re-opens; if the gap survives, vectors have earned a defensible
+niche. Either outcome moves M2. F15 precedent: one lexical line more than halved the measured
+value of vectors.
+
+#### What this measures — and does not
+
+- Retrieval only, same scope limits as Q1/SCALE (target-rank level; not outcomes; TSDoc-hot
+  mechanical queries; one corpus, one host).
+- It gates the M2 delete-arm question; it does NOT by itself decide shipping F17 (the product
+  change wiring identifier_fts into search) — that is a separate decision informed by both
+  branches.
+
+#### Arms
+
+All arms run through the SAME validated eval reconstruction pipeline (Gate-2 precedent:
+reconstruction reproduces shipped `hybridSearch` output exactly, 80/80 at limit 200), on the
+SAME frozen tier states (T1–T4) and the SAME frozen query set (`eval/scale-queries.json`,
+400 scored + 10 probes). No product code changes.
+
+| arm | rankers in RRF (k = 60, pool 4×limit per ranker) |
+|---|---|
+| L  | chunk_fts BM25 (shipped lexical) — REUSED from f40f2bf |
+| H  | chunk_fts + vectors (shipped hybrid) — REUSED from f40f2bf |
+| L+I | chunk_fts + **identifier_fts** (lexical-only, two rankers) — NEW |
+| H+I | chunk_fts + vectors + identifier_fts — NEW, **DESCRIPTIVE ONLY** (arm-V precedent: answers "should the keep-branch also wire identifier_fts?"; barred from bearing the close/survive verdict) |
+
+#### Ranker I — mechanics (mechanical, committed before measurement; verified against `src/search/fts.ts` and `src/graph/db.ts`)
+
+**Schema.** `identifier_fts` (`src/graph/db.ts:287-292`) is an FTS5 virtual table with a
+single indexed column `identifiers` (`chunk_id`, `file_path` UNINDEXED) and
+`tokenize = "unicode61 separators '.-_/()[]{}<>:;,=+*&|!?'"` — this is what "unicode61,
+exact-identifier semantics" means concretely: identifier-shaped separators split tokens, but
+there is no trigram sub-word matching the way `chunk_fts` has. **Population** is one row per
+chunk (`src/graph/populate.ts:187-214`, same transaction as `symbols`/`imports`): `identifiers`
+is the deduplicated, space-joined set of `\b[A-Za-z_$][A-Za-z0-9_$]*\b` tokens extracted from
+the chunk's raw content by `extractIdentifiers` (`src/ast/extractors/typescript.ts:1430-1438`);
+markdown chunks get no row (`identifierRows: []`, `src/ast/extractors/markdown.ts:59`).
+
+**Match-expression construction — reused verbatim from `searchIdentifierNearMiss`
+(`src/search/fts.ts:140-154`):** input terms are trimmed and empty-filtered; each surviving
+term is quoted as an FTS5 phrase (`"${term.replace(/"/g, '""')}"`, so separator characters
+inside a term are matched literally rather than parsed as FTS5 query syntax); phrases are
+joined with `' OR '`; an empty term list short-circuits to no query issued (contributes
+nothing to RRF for that query) — exactly the "empty-match contributes nothing" behaviour
+specified below.
+
+**Correction to the mechanics as drafted — neither shipped identifier_fts function ranks by
+relevance.** `searchIdentifierNearMiss`'s query and its exact-match sibling `searchIdentifiers`
+(`fts.ts:121-126`) are both `.selectFrom('identifier_fts').select('chunk_id').where(MATCH
+matchExpr).limit(n).execute()` with **no `ORDER BY` / `bm25()` clause at all** — row order is
+FTS5's default (effectively rowid/insertion order), not a BM25 ranking. This is safe in both
+of their current production call sites precisely because order doesn't matter there:
+`searchIdentifiers` feeds `mast_callers`'s unordered `potential_matches` set
+(`src/search/potential-matches.ts:68`), and `searchIdentifierNearMiss` feeds `hybridSearch`'s
+zero-result "identifier near-miss" advisory suggestions (`hybrid.ts:295`, inside
+`gatherSuggestions`, `hybrid.ts:259-301`) — all near-misses are surfaced as unranked "did you
+mean" hints, never fused into an RRF score. This is also the code-level confirmation that
+`identifier_fts` is absent from ranking: it is referenced nowhere in `hybridSearch`'s
+RRF-fusion body (`hybrid.ts:61-119`, which builds only `ftsMap` from `searchFts`/`chunk_fts`
+and `vecMap` from `searchVectors`) — its only call site in that file is the post-fusion,
+zero-result branch.
+
+Ranker I therefore cannot be "call the shipped `searchIdentifierNearMiss` and RRF-rank its
+output" — feeding an unordered chunk_id list into `rank = array index` would fabricate a
+ranking that does not exist. The instrument adds one new, explicitly-ordered query that
+reuses ONLY the match-expression-building step above (term cleaning, phrase-quoting, OR-join)
+from `searchIdentifierNearMiss`, with an explicit `.orderBy(sql\`bm25(identifier_fts)\`, 'asc')`
+appended — the same pattern `searchFts` already uses for `chunk_fts` (`fts.ts:90-93`). No new
+tokenizer, no schema change: the `identifiers` column and its unicode61 separator set are
+untouched; the only addition is the BM25 ORDER BY that neither shipped identifier_fts function
+currently has. Candidate pool 4×limit like the other rankers; ties and empty matches handled
+identically to the other rankers. The exact match-expression + ORDER BY code ships in the
+committed instrument; any further deviation from this description is a logged amendment.
+
+**Reuse of L/H cells:** the f40f2bf raw rows are reused verbatim (same pipeline, same frozen
+states, same queries). Gate D below re-verifies state integrity before trusting them.
+
+#### Metrics
+
+Identical to Q1/SCALE: dedup-aware hit rule (target chunk or shell↔method counterpart at
+survivor rank), in_window@10, D_loss = in_window@10(T1) − in_window@10(T4) per query,
+censoring at 201, per-call mode recording, suppression logging. DEPTH = 200, WINDOW = 10.
+
+#### Decision rules — exactly one decision-bearing contrast, symmetric triggers
+
+**Decision-bearing:** S-ident stratum, Δ′ = D_loss_{L+I} − D_loss_H (paired by query).
+Exact Wilcoxon (zeros dropped) two-sided α = 0.05 + all-n seeded BCa 95% CI (10,000
+resamples) on the paired proportion difference — same machinery, same seeds policy as
+Q1/SCALE.
+
+**Efficacy precondition (sanity, evaluated first):** ranker I must actually do something —
+L+I vs L at T4 on S-ident must show improvement with its all-n BCa CI excluding 0. If I is
+inert (CI includes 0), the experiment reports INERT-LEVER: the gap trivially "survives" but
+the interesting claim is that the candidate mechanism failed; the delete arm stays blocked
+and F17 is dead as a rescue.
+
+| observed (given efficacy passes) | verdict |
+|---|---|
+| Δ′ Wilcoxon **not** significant AND BCa CI upper bound ≤ **5 pp** | **GAP CLOSED.** The vector scale advantage is reproduced by a lexical ranker; the non-vector explanation stands. The M2 delete arm RE-OPENS (subject to the standing outcome-level caveats), with F17 as the enabling product change. |
+| Δ′ significant, L+I degrading more | **GAP SURVIVES.** identifier_fts does not substitute for vectors at scale; vectors have earned a defensible retrieval niche on this query class. M2 proceeds as a keep-decision (Lance IVF-PQ vs sqlite-vec). |
+| anything else | **AMBIGUOUS.** Report; escalate by adding queries to the frozen set (logged amendment), never by reinterpreting. |
+
+The 5 pp bound: at Q1/SCALE's realized non-zero rate (p_nz ≈ 0.107, n = 150) a true-zero
+contrast yields a CI of ≈ ±5.2 pp — so 5 pp is the instrument's own precision floor, and a
+"closed" verdict requires the residual gap to be indistinguishable from zero at the precision
+that detected the original +6.7 pp. If the realized CI width makes the bound unreachable at a
+true zero, the correct output is AMBIGUOUS + escalate n, and that is stated now.
+
+**Symmetric consistency triggers (the Q1/SCALE F-R3 lesson — both branches guarded):**
+1. GAP CLOSED additionally requires no supporting cell (S-approx, S-prose, Δlog2 co-metric)
+   showing L+I significantly worse than H (all-n BCa CI excluding 0 in the worse direction);
+   any such cell → AMBIGUOUS.
+2. GAP SURVIVES additionally requires no supporting cell showing L+I significantly better
+   than H; any such cell → AMBIGUOUS.
+3. Monotonicity: tier means outside the [T1,T4] envelope by more than a 95% CI are flagged
+   and discussed; endpoints carry the decision (unchanged from Q1/SCALE as amended).
+
+**Direction-of-error statement:** after Q1/SCALE, the investigator holds no clean prior —
+the deletion prior argues for GAP CLOSED; the just-confirmed scale result argues for GAP
+SURVIVES. Both branches therefore carry the same evidentiary bar (the symmetry above is the
+structural version of that), and the results review is instructed to attack whichever branch
+the numbers land on.
+
+#### Gates before any scored measurement
+
+A. **Instrument self-check** — with ranker I disabled, the pipeline must reproduce shipped
+   `hybridSearch` (arms L and H) exactly on the 10 probes × 4 tiers × 2 arms at limit 200,
+   0 mismatches (the existing Gate-2 harness, re-run).
+B. **Ranker-I unit tests** — known-answer tests on a fixture db: exact-identifier query hits
+   the declaring chunk; OR semantics; empty-match contributes nothing; committed before
+   measurement.
+C. **Arm integrity per call** — explicit chunkStore; mode recorded (L/L+I lexical, H/H+I
+   hybrid); any violation voids that tier-arm run, void counts reported.
+D. **State-drift gate (for reusing f40f2bf L/H rows)** — re-measure 20 seeded-random frozen
+   queries in arms L and H across all 4 tiers; ranks must be byte-identical to the f40f2bf
+   raw rows. Any drift → the reused rows are void and L/H are re-run in full (cheap), logged.
+E. **Vector coverage** — pending_embeddings == 0 per tier (H arms only).
+
+#### Costs
+
+~3,200 new searches (L+I and H+I × 400 queries × 4 tiers) + 80 probe calls + 160 drift-gate
+calls; minutes to tens of minutes; zero embeds; zero agents.
+
+#### Design Reserve (pre-thought, NOT commitments)
+
+Shipping F17 (the product change) with its own regression suite; an exact-phrase (rather
+than OR) ranker-I variant; per-query-class analysis of where I helps; re-running Q1/SCALE's
+directory-partition sensitivity under L+I; an outcome A/B at scale (unchanged standing
+reserve).
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
