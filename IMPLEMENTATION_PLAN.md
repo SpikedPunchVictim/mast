@@ -3436,6 +3436,193 @@ the **review's own**, labelled post-hoc throughout, not the pre-registered instr
 
 ---
 
+### Q1/DECLEX — the declaration-exact ranker: PRE-REGISTRATION (written 2026-08-03, BEFORE any measurement)
+
+**Nothing below may be edited after the first scored measurement.** Amendments appended with
+timestamp, reason, direction.
+
+#### Why this experiment, and its provenance risk (stated first)
+
+Q1/IDFUSE's results review (`eval/results/q1-idfuse-results-review.md`, F-R2) diagnosed WHY
+the bag ranker failed (declarations outranked ~26:1 by call-site chunks inside
+`identifier_fts`; fusion dilution caps any bag fix) and computed a post-hoc counterfactual: a
+SYMBOL-GATED DECLARATION-EXACT ranker projects T4 S-ident `in_window@10` ≈ **.9800** (vs H
+**.9333**, L **.8400**) with s_approx/s_prose EXACTLY = L (**.8400** / **.8200** respectively —
+zero harm). Quoted verbatim from F-R2: "SYMBOL-GATED declaration-exact: T4 s_ident .9800,
+s_approx .8400 = L exactly, s_prose .8200 = L exactly (zero harm); T1 s_ident 1.0000; D_loss
+~2pp vs H 6pp — closure shape, no off-stratum cost." The Reserve promotion condition for this
+variant ("if bag-BM25 ranking of declarations proves weak") is empirically met (Q1/IDFUSE
+RESULT, and HANDOFF_Q1.md §4a).
+
+**Provenance risk:** that projection was mined from the same 400 frozen queries
+(`eval/scale-queries.json`) the whole Q1/SCALE → Q1/IDFUSE track has scored against.
+Therefore the DECISION-BEARING data here is a FRESH query set (below); the original 400 are
+re-scored as descriptive comparability only. **Direction-of-error statement:** the projection
+is pro-deletion and investigator momentum now favours closure — the CLOSED branch carries the
+extra scrutiny (fresh-set primary, mandatory harm gate, results review instructed to attack
+CLOSED hardest if it lands there).
+
+**Pre-stated prediction (so the result can surprise):** L+D T4 S-ident ≈ .98, Δ′ ≈ −2 to
+−4 pp (L+D degrading LESS than H — a-fortiori-closure territory), off-strata level == L.
+Mined-from-old-data; fresh-set regression toward L is the live risk.
+
+#### Ranker D — mechanics (mechanical, committed before measurement)
+
+- Query terms: raw-token split `/[A-Za-z0-9_$]+/` (the Q1/IDFUSE registered derivation,
+  `deriveRankerITerms`, `eval/idfuse-ranker.mjs:58-60`; no camelCase split, no lowercasing).
+- **Eligibility gate (primary arm):** only SYMBOL-SHAPED tokens participate — the F7 predicate
+  as actually implemented, `isSymbolShapedTerm` (`eval/idfuse-ranker.mjs:81-89`): a term
+  qualifies if it contains an uppercase letter (`/[A-Z]/`), an underscore, a dollar sign, or a
+  digit adjacent to a letter (`/[0-9][A-Za-z]|[A-Za-z][0-9]/`) — **minus the dead dot
+  criterion**: the implementation also tests `term.includes('.')`, but the upstream split
+  character class `/[A-Za-z0-9_$]+/` never includes `.` in any surviving token (`.` is a
+  separator, not a class member), so that arm of the predicate can never fire on any
+  post-split term. The registered `eval/idfuse-ranker.mjs` JSDoc calls this out explicitly:
+  "That criterion is therefore dead code by construction." Ranker D's eligibility gate
+  reproduces this predicate but drops the dead clause rather than reimplementing dead code.
+- **Match rule:** a chunk is a candidate iff an eligible token equals, case-insensitively, the
+  chunk's `symbol_name` OR its final dot-segment. Verified against the chunk schema
+  (`MAST_SPEC.md` §6.1, `src/ast/extractors/typescript.ts:280-330`): method chunks carry
+  `symbol_name = `${className}.${methodName}`` (`typescript.ts:324`, "qualified as
+  `ClassName.methodName`" per `MAST_SPEC.md:174`) — the raw `/[A-Za-z0-9_$]+/` split severs
+  the dot (same mechanism that splits `Class.method` queries into two OR terms for ranker I),
+  so the method-name segment must match on its own. `class_shell` chunks carry the unqualified
+  class name (`symbol_name = className`, `typescript.ts:294`) and match on that directly — no
+  segment logic needed for `class_shell`.
+- **Ordering (deterministic):** full-name matches before segment-only matches; then fewer
+  total same-name candidates first; then ascending chunk_id. Pool cap 4×limit (matching
+  `searchVectors`; `chunk_fts` is effectively 8× by shipped code — `hybrid.ts:59`
+  `candidateLimit = limit*4` into `searchFts`'s own `fts.ts:92` `limit*2`, per Q1/IDFUSE
+  AMENDMENT 1 F8).
+- RRF k = 60, fused exactly as the other rankers. Empty term set / no matches → contributes
+  nothing.
+- **Escape variant (descriptive arm only, D+esc):** lowercase tokens also eligible IFF their
+  declaration-match count within the tier is ≤ 20 (a token matching more declarations carries
+  no signal and is the measured common-word harm channel). Registered to recover the
+  all-lowercase-identifier class (rtrim/splice — the 3 L+Isym regressions, quoted verbatim
+  from F-R2: "the plain declaration-exact shape loses the 3 all-lowercase-identifier L+Isym
+  regressions... so variant should OR-in whole-query-token matches on symbol_name") without
+  reintroducing ungated harm (ungated counterfactual measured s_prose T4 .73, per F-R2).
+
+#### Query sets
+
+- **FRESH set (decision-bearing):** generated by the committed generator's derivation rules
+  (`eval/scale-build-queries.mjs` — pool = T1's TSDoc-rich exported chunks with a leading
+  TSDoc block ≥ 80 chars; rare-word selection via T1's own `chunk_fts` DF ≤ 50; S-approx via
+  shipped `splitIdentifierTerms`, paired 1:1 to S-ident by target, drawing no separate pool
+  cost) under **seed 154** (the pre-registered escalation seed — Q1/IDFUSE AMENDMENT 1 F6
+  reserved it for extending S-ident to n=300 if that track landed AMBIGUOUS via CI-width;
+  Q1/IDFUSE instead resolved directly to INERT-LEVER, base row 3 of its 2×2, without ever
+  reaching the AMBIGUOUS/CI-width path — so seed 154 was never drawn. Reused here for a
+  different purpose: DECLEX's own fresh primary set, not an escalation. Verified no
+  collision: no `eval/declex-queries.json` or any other seed-154/155 artifact exists in the
+  repo yet.) — targets drawn from T1's TSDoc-rich pool EXCLUDING all 260 previously used
+  targets. The 260 is verified directly from the committed `eval/scale-queries.json`: 150
+  S-ident targets, 150 S-approx targets (identical chunk_ids to S-ident, paired 1:1 by array
+  index), 100 S-prose targets, 10 probe targets — all pairwise disjoint except the
+  S-ident/S-approx pairing, union = 260 distinct chunk_ids. Realized T1 pool = **593**, the
+  `pool_size` field committed in `eval/scale-queries.json` (produced by
+  `scale-build-queries.mjs`'s own count of TSDoc≥80-char T1 chunks, independent of seed — the
+  seed only orders the sampling draw). 593 − 260 = **333 available** (exact, not
+  approximate). n = 150 S-ident + 150 S-approx (paired, same targets) + 100 S-prose + 10
+  probes (needs 260 distinct targets against the 333 available — comfortably above the
+  registered floor; floor rule carried forward from `scale-build-queries.mjs`: if the
+  realized available pool < 260, reduce S-prose first, floor 50, further reduction hits
+  S-ident and MUST be logged as an amendment). Committed as `eval/declex-queries.json` BEFORE
+  any measurement, with a zero-overlap verification against `eval/scale-queries.json` (Gate
+  F). **Seed 155 is reserved now for DECLEX's own escalation** (below) — distinct from seed
+  154's reuse here, so a future escalation draw cannot collide with this registration's
+  primary draw.
+- **ORIGINAL 400 (descriptive comparability only):** re-scored so DECLEX numbers sit beside
+  SCALE/IDFUSE numbers; never verdict-bearing (it is the data the projection was mined from).
+
+#### Arms (all fresh runs; no row reuse — the IDFUSE F3 lesson)
+
+| arm | rankers | role |
+|---|---|---|
+| L | chunk_fts | baseline |
+| H | chunk_fts + vectors | incumbent |
+| L+D | chunk_fts + ranker D (symbol-gated) | **decision arm** |
+| H+D | chunk_fts + vectors + ranker D | descriptive only (keep-branch question) |
+| L+D+esc | chunk_fts + ranker D with lowercase escape | descriptive sensitivity |
+
+Both query sets × 4 tiers × 5 arms. Fresh set: 400 × 4 × 5 = 8,000 rows (400 = the 150+150+100
+scored S-ident/S-approx/S-prose queries; the 10 probes are Gate A self-check only, excluded
+from scoring, same convention as `eval/scale-queries.json`'s own probes note and Q1/IDFUSE's
+costs line); original set the same; ~16,000 scored rows total, minutes-scale, zero embeds.
+Cross-run reproducibility report for L/H vs the IDFUSE run (descriptive).
+
+#### Metrics
+
+Identical machinery to Q1/IDFUSE (dedup-aware hit rule, in_window@10, D_loss endpoints,
+censoring 201, per-call mode, suppression, pre-dedup ranks). DEPTH 200, WINDOW 10.
+Per-query ranker-D diagnostic: whether D matched the target, via full-name or segment, and
+D's candidate count per query.
+
+#### Decision structure — one decision-bearing contrast + one mandatory harm gate
+
+**Efficacy 2×2 gate (first):** L+D vs L @ T4, fresh S-ident, all-n BCa CI excluding 0 =
+pass. Fail + closed-criteria-met → AMBIGUOUS (both reported). Fail + not-met → INERT-LEVER.
+Reverse-significant efficacy (D hurts L on-stratum) → efficacy FAIL, flagged explicitly.
+
+**Decision-bearing:** fresh-set S-ident, Δ′ = D_loss_{L+D} − D_loss_H, exact Wilcoxon
+(zeros dropped; degenerate = not significant) two-sided α = .05 + all-n seeded BCa 95% CI.
+Verdict table (amended-IDFUSE structure):
+| Δ′ ns AND CI upper ≤ 5 pp AND HARM-CLEAN | **GAP CLOSED.** Lexical reproduces the vector scale advantage; M2 delete arm RE-OPENS (standing outcome-level caveats unchanged), F18 (shipping ranker D) becomes the enabling product change, subject to its own regression suite. |
+| Δ′ significant, L+D degrading LESS than H, AND HARM-CLEAN | **CLOSED A FORTIORI** (lexical beats hybrid at scale on this stratum; descriptive fusion finding). |
+| Δ′ significant, L+D degrading more, CI upper > 5 pp | **GAP SURVIVES.** Two independent lexical constructions have now failed; vectors' niche is earned. M2 proceeds as keep-decision. |
+| Δ′ significant, L+D degrading more, CI upper ≤ 5 pp | **SURVIVES (marginal, sub-precision-floor).** |
+| closure criteria met but HARM gate fails | **CLOSED-BUT-HARMFUL.** Not shippable as constructed; delete arm stays blocked; escape/ordering variants indicated. Reported, never spun as closure. |
+| anything else | **AMBIGUOUS.** Escalate per the pre-registered rule below. |
+
+**Mandatory HARM gate (the Q1/IDFUSE AMENDMENT-2 row-1 lesson — off-stratum LEVEL
+contrasts, not Δ′-scale only):** per off-stratum (fresh S-approx, fresh S-prose), paired
+per-query level difference (L+D − L) in_window@10, pooled across tiers, all-n BCa 95% CI.
+HARM-CLEAN = neither CI excludes 0 in the negative direction. Per-tier cells reported.
+The same contrast is reported for S-ident (level, not only D_loss).
+
+**Symmetric consistency triggers:** as amended-IDFUSE, both directions, evaluated on every
+verdict path INCLUDING inert/harm rows (the IDFUSE F-R5 note made conformant-but-unstated;
+here it is stated: triggers are computed and reported on ALL paths, verdict-bearing only on
+CLOSED/SURVIVES rows).
+
+**Escalation (pre-registered):** AMBIGUOUS via CI-width → extend fresh S-ident to n = 300
+via the generator under seed 155, remaining T1 pool; if pool exhausted, T2-resident targets
+with the tier-nesting caveat logged.
+
+#### Gates before scoring
+
+A. Self-check: D disabled → reproduce shipped hybridSearch on 10 fresh probes × 4 tiers ×
+   2 arms at limit 200, 0 mismatches.
+B. Ranker-D known-answer fixtures: dotted Class.method segment match; camelCase full match;
+   case-insensitivity; lowercase token correctly EXCLUDED in primary / INCLUDED under escape
+   with the ≤20 cap enforced; same-name multiplicity ordering; determinism (two runs
+   byte-identical); empty contribution.
+C. Per-call mode + explicit chunkStore, void protocol as before.
+E. pending_embeddings == 0 × 4 tiers.
+F. Fresh-set integrity: committed pre-measurement; zero target overlap with
+   eval/scale-queries.json; generator + seed in the JSON; realized pool size reported.
+G. **CLI gate (new — the twice-recurred defect):** every shipped script's CLI entry point is
+   exercised by an automated test (spawn with --help or a fixture invocation, assert exit 0).
+   No script ships CLI-less; no runner-authored drivers this time. (Verified recurrence: Q1/SCALE's
+   `scale-rank-check.mjs`/`scale-score.mjs` shipped with no CLI entry point — first occurrence,
+   HANDOFF_Q1.md §5; `idfuse-score.mjs` recurred the same defect — second occurrence, the
+   results review's F-R7. Gate G exists to make a third occurrence structurally impossible,
+   not merely caught after the fact.)
+
+#### Costs
+
+~16,000 scored searches + probes, zero embeds, zero agent runs; minutes to ~1 h wall-clock.
+Fresh-set generation: seconds.
+
+#### Design Reserve (pre-thought, NOT commitments)
+
+F18 productization (ranker D in shipped hybridSearch + config flag + regression suite);
+D-ordering variants (BM25-weighted same-name disambiguation); the outcome A/B at scale
+(standing); late-embedding M2 arm (standing); MinHash/LSH (standing, no registered question).
+
+---
+
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
 
 Everything above records *reasoning*. This records *state*, which is otherwise only in
