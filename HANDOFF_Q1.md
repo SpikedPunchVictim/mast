@@ -1,4 +1,4 @@
-# HANDOFF — Q1 / M2 track, as of 2026-08-02 (post Q1/SCALE RESULT, evidence `f40f2bf`)
+# HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/IDFUSE RESULT, evidence `3f8e9f3`)
 
 You are taking over an evidence-first investigation in `packages/mast`. Branch `ui`, tree
 clean, suite green. Read this file first, then `IMPLEMENTATION_PLAN.md`.
@@ -11,18 +11,21 @@ clean, suite green. Read this file first, then `IMPLEMENTATION_PLAN.md`.
 **M2** — Lance+IVF-PQ vs sqlite-vec, or deleting the vector store entirely, which drops a
 91 MB dependency, a ~7 h embed, and 470 MB RAM at the 153k-chunk scale target.
 
-**Q1 is still OPEN/AMBIGUOUS. M2 is still BLOCKED.** What changed this session: the one
-caveat that was previously *unmeasured* — whether lexical degrades with corpus scale where
-hybrid does not — is now **MEASURED AND CONFIRMED, but marginal**. Q1/SCALE (nested-tier
-rank scale-out on vscode@`5ebbe53`, 138,440 chunks) found the decision-bearing S-ident
-stratum's exact Wilcoxon significant (p = 0.0213, 13+/3− of 16 non-zero pairs, lexical
-degrading more) with an all-n BCa 95% CI on Δ of **[+1.3, +11.3] pp** (θ̂ = +6.7 pp) — **below
-the registration's own 10 pp materiality line at the point estimate**, and hit-rule-sensitive
-between CONFIRMED (p=0.021, registered rule) and AMBIGUOUS (p=0.096, pre-amendment rule).
-Both readings route to the same next action (§4). Commits: registration `3e497da` →
-AMENDMENT 1 (design review) `3d17220` → instrument `c15f684` → gates + scored evidence
-`f40f2bf` → this session's RESULT + AMENDMENT 2 write-up (see `IMPLEMENTATION_PLAN.md`,
-"Q1/SCALE RESULT" and the results review at `eval/results/q1-scale-results-review.md`).
+**Q1 is still OPEN. M2 is still BLOCKED.** What changed this session: the cheapest attack on
+the scale caveat — folding `identifier_fts` into RRF fusion (Q1/IDFUSE) — **ran and was
+REJECTED**. The lexical-only lever (L+I) is inert at T4 on the decision-bearing S-ident stratum
+(efficacy CI [−0.67, +4.67] pp, not knife-edge) AND degrades MORE than hybrid on the
+closure-deciding contrast (Δ′ θ̂ = +7.33 pp, CI [+2.0, +12.67], p = 0.0127) — **INERT-LEVER**,
+base row 3 of the pre-registered 2×2. It is also independently disqualified on harm grounds:
+significant off-stratum degradation (−7 to −12 pp) at **every** tier of both non-identifier
+strata, invisible to every registered statistic. F17-as-constructed is dead. The lever landscape
+moved, but the verdict has not: vectors' scale niche survives its first lexical challenger,
+**with the caveat that the challenger failed for reasons that indicate a better one is
+available** (see §2 line 5). Commits: Q1/SCALE registration `3e497da` → AMENDMENT 1 `3d17220`
+→ instrument `c15f684` → gates + scored evidence `f40f2bf` → Q1/IDFUSE registration `9ecceca`
+→ AMENDMENT 1 `bed7d48` → instrument `c726e6f` → gates + scored evidence `3f8e9f3` → this
+session's RESULT + AMENDMENT 2 write-up (see `IMPLEMENTATION_PLAN.md`, "Q1/IDFUSE RESULT" and
+the results review at `eval/results/q1-idfuse-results-review.md`).
 
 Do **not** skip to M2's A-vs-C backend benchmark. That is the expensive step this entire
 investigation exists to gate.
@@ -56,6 +59,18 @@ This is the single most important thing to inherit. Each was pre-registered befo
    (`src/search/fts.ts`) but is consulted only for zero-result suggestions, never for ranking
    — exact identifiers get no exact-token lexical anchor and dilute with scale, while the
    vector arm anchors on the declaration embedding regardless of corpus size.
+5. **Q1/IDFUSE (the identifier_fts fusion lever, this session).** Folding `identifier_fts`
+   into RRF as an OR-bag ranker was the cheapest attack on item (4)'s mechanism finding — it
+   **REJECTED as constructed**: INERT-LEVER (efficacy CI [−0.67, +4.67] pp; Δ′ significant the
+   WRONG way, θ̂ = +7.33 pp, CI [+2.0, +12.67]) and independently harmful off-stratum (−7 to
+   −12 pp, every tier, both non-identifier strata). **Weight it honestly**: this is one
+   lexical construction failing, not lexical-in-general failing — the review's mechanism
+   analysis projects a **declaration-exact** counterfactual (query token == the chunk's own
+   `symbol_name`) at T4 S-ident **.98–.99** with **zero** off-stratum harm, against this run's
+   L+I of .86 and H's .93. That projection is **post-hoc and unregistered** — selection risk
+   applies, it is not evidence yet, only a reason the vector niche should not be treated as
+   settled. Vectors' scale advantage survived its first lexical challenger; whether it survives
+   a better one is untested.
 
 **Joint conclusion: ranking metrics on prose gold sets cannot settle Q1, and the scale-out
 does not settle it either — it narrows the caveat instead of discharging it.** Items (3) and
@@ -98,25 +113,38 @@ moved and outcomes did not.
   hit-rule-sensitive CONFIRMED with an honestly marginal magnitude. The marginal result is
   what it is; treat a request to re-run it as a sign the reader wants a different answer, not
   a more accurate one.
+- **IDFUSE-as-constructed (Q1/IDFUSE, this session).** Pre-registered `9ecceca`, AMENDMENT 1
+  `bed7d48`, instrument `c726e6f`, gates + scored evidence `3f8e9f3`. The OR-bag
+  `identifier_fts` ranker folded into RRF is **REJECTED on measured grounds**: INERT-LEVER on
+  the decision-bearing contrast, AND −7 to −12 pp harm at every tier of both non-identifier
+  strata. **Do not re-propose the bag construction** (whole-identifier-bag OR-join, unicode61,
+  no field boost) — it is a tested and rejected mechanism, not an unexplored one. The
+  mechanism analysis behind the rejection is what motivates the **declaration-exact** variant
+  in §4 — that variant is a different construction (field-boosted to the chunk's own
+  `symbol_name`), not a re-run of this one.
 
 ---
 
 ## 4. YOUR NEXT ACTION — two live lines, in this order
 
-**Item (5) of the old order (the 153k scale-out) is DONE — see §3.** Two lines remain live.
+**Item (5) of the old order (the 153k scale-out) is DONE — see §3. The identifier_fts fusion
+lever (former item (a)) is ALSO DONE and REJECTED — see §3.** Two lines remain live.
 
-### (a) The `identifier_fts` fusion lever — cheapest attack, do this first
+### (a) The declaration-exact ranker experiment — freshly pre-register, do this first
 
-Q1/SCALE's mechanism finding (§2, item 4): hybrid's scale protection exists only when the
-exact identifier is in the query, and the shipped `hybridSearch` (`src/search/hybrid.ts`)
-never folds `identifier_fts` into its RRF ranking — it is wired only into the zero-result
-suggestion path (`gatherSuggestions`, `hybrid.ts:255-301`). Pre-register a ranking experiment
-that adds an `identifier_fts` ranker to the RRF fusion and re-scores the S-ident stratum
-**on the EXISTING T1–T4 tier states** — they are built, embedded, and frozen; this is a
-ranking-code change only, **zero new embed cost**. If the lever closes the S-ident scale gap,
-the delete arm re-opens (lexical-only can match hybrid at scale without vectors). If it does
-not, vectors have a defensible scale niche and Q1 tilts pro-vector at the identifier
-stratum specifically. Either outcome is informative and cheap; do this before spending on (b).
+Q1/IDFUSE's mechanism finding (§2, item 5): the OR-bag construction fails because non-same-
+name bag matches outrank the target ~26:1 inside ranker I's own ordering, and off-stratum harm
+comes from the same bag matching common words. The **declaration-exact** counterfactual —
+a query token counts only when it equals the chunk's own `symbol_name` exactly, OR-ed with a
+whole-query-token escape so all-lowercase identifiers aren't lost to a shape gate — projects
+T4 S-ident **.98–.99** with **zero** measured harm on s_approx/s_prose (post-hoc, same-data,
+unregistered — this is why it must be freshly registered, not assumed). Pre-register a new
+experiment: same frozen T1–T4 tier states (zero new embed cost), same frozen query set. **The
+registration must include off-stratum LEVEL contrasts (L+I-vs-L per stratum, not only the
+Δ′-scale one)** — Q1/IDFUSE's AMENDMENT 2 row 1 finding was that omitting this let real harm
+hide from every registered statistic; do not repeat that gap. The Reserve entry's own
+promotion condition ("if bag-BM25 ranking of declarations proves weak") is met — see
+`IMPLEMENTATION_PLAN.md`'s Q1/IDFUSE RESULT.
 
 ### (b) The outcome test at scale — Reserve, expensive, only if (a) fails or is challenged
 
@@ -177,6 +205,21 @@ multi-seed T1 sensitivity.
   drop the file's chunks.** Found via vscode's two whale fixture files (146,620-line and
   11,190-line). Not fixed in this program — batch the insert before trusting a corpus with
   files anywhere near that size.
+- **`idfuse-score.mjs` ships with no CLI entry point** — the `scale-rank-check.mjs`/
+  `scale-score.mjs` defect class (above), **second occurrence**, despite the builder brief
+  requiring working CLIs. The working invocation is the runner-authored
+  `eval/idfuse-run-score.mjs`, not the instrument file directly (line-level clean per the
+  results review, orchestration only). **Treat this as a class, not a one-off** — fix it
+  before authoring any third scoring instrument.
+- **`scoreIdfuse` does not wire consistency-trigger-3 (monotonicity) into `evaluateVerdict`.**
+  Moot on the INERT-LEVER path (trigger clauses attach only to CLOSED/SURVIVES); latent gap if
+  a future run on this instrument reaches CLOSED or SURVIVES. Fix before reuse.
+- **The probes/probe key mismatch the Q1/IDFUSE builder logged**: `scale-queries.json` keys
+  the probe stratum as `"probes"` (plural) while every `ResultRow`/CLI-facing label uses the
+  singular `"probe"` (`validateResultRow`'s stratum enum). `idfuse-rank-check.mjs` maps this
+  explicitly (`jsonKey = stratum === 'probe' ? 'probes' : stratum`) — any new script reading
+  `scale-queries.json` by naive key needs the same mapping or it silently resolves an empty
+  query list.
 
 ---
 
@@ -216,35 +259,46 @@ multi-seed T1 sensitivity.
 - `MAST_EVAL_STATE` required by nearly every script; `MAST_EVAL_R2=1` required by
   `build-corpus.mjs` or you rebuild the void v1 corpus.
 - **Evidence is committed** under `eval/results/` — all 30 Q1/OUTCOME run outputs, the
-  147-call search log, the sealed arm manifest, all Q1/SCALE gate + measure + score JSON, and
-  the Q1/SCALE results review. `eval/README.md` is STALE.
-- Verification baseline: `pnpm -F mast test` → **455 tests / 36 files** (was 382/34 before
-  Q1/SCALE; the +73 tests / +2 files are the Wilcoxon-exact and scorer instrument tests,
-  gated green before any measurement per Gate 1); `typecheck`; `lint`; `pnpm align:check`.
-  **align reports red at +3 baselined debt (324→327) — PRE-EXISTING**, identical at
-  `c21a199`, self-reported "provisional". Do not attribute it to your changes.
+  147-call search log, the sealed arm manifest, all Q1/SCALE gate + measure + score JSON, the
+  Q1/SCALE results review, and (this session) `idfuse-gateA-selfcheck.json`,
+  `idfuse-gateD-reproducibility.json`, `idfuse-measure-raw.json` (8,000 rows),
+  `idfuse-score-output.json`, `q1-idfuse-design-review.md`, and
+  `q1-idfuse-results-review.md`. `eval/README.md` is STALE.
+- Verification baseline: `pnpm -F mast test` → **505 tests / 38 files** (was 455/36 before
+  Q1/IDFUSE); `typecheck`; `lint`; `pnpm align:check`. **align reports red at +3 baselined
+  debt (324→327) — PRE-EXISTING**, identical at `c21a199`, self-reported "provisional". Do
+  not attribute it to your changes.
 - Session commits: `ad88009` (registration) → `e61008c` (instrument+gates) → `e26a3ca`
   (outcome) → `f75cdc4` (AMENDMENT 3) → `b99db64` / `ed9eb03` (arm V) → `5c6ef80` (prompt
   record + evidence) → `ca768e2` (Q4 + assets) → `77d4f63` (cold-start handoff) → `3e497da`
   (Q1/SCALE registration) → `3d17220` (Q1/SCALE AMENDMENT 1) → `c15f684` (Q1/SCALE instrument)
-  → `f40f2bf` (Q1/SCALE gates + scored evidence) → this session's RESULT + AMENDMENT 2 +
-  handoff update.
+  → `f40f2bf` (Q1/SCALE gates + scored evidence) → `9ecceca` (Q1/IDFUSE registration) →
+  `bed7d48` (Q1/IDFUSE AMENDMENT 1) → `c726e6f` (Q1/IDFUSE instrument) → `3f8e9f3` (Q1/IDFUSE
+  gates + scored evidence) → this session's RESULT + AMENDMENT 2 + handoff update.
 
 ---
 
 ## 8. Two things I would flag about this handoff
 
 It leads with the **converging-lines** section rather than the next task, because the
-biggest risk to you is re-opening Q4, the harvest, or the scale-out hoping for a cleaner
-verdict. All three are retired as verdict sources — Q4 and the harvest structurally, the
-scale-out because it is now measured and its marginality is the honest answer, not an
-artifact to be re-run away. Only the two lines in §4 are live.
+biggest risk to you is re-opening Q4, the harvest, the scale-out, or the identifier_fts
+OR-bag lever hoping for a cleaner verdict. All four are retired as verdict sources — Q4 and
+the harvest structurally, the scale-out because it is now measured and its marginality is the
+honest answer, the OR-bag lever because it is now measured and REJECTED on both efficacy and
+harm grounds. Only the two lines in §4 are live, and (a) is now a *different* construction
+(declaration-exact), not a re-run of the rejected one.
 
 It carries the **counter-evidence prominently** — the LOO-baseline significance loss, the
 fact that the reframe's own premise (Recall@10 = 1.000) did *not* generalise to the outcome
-task set (target chunk in-window 3/12 for both arms), and now Q1/SCALE's own four required
-caveats (hit-rule sensitivity between CONFIRMED and AMBIGUOUS; magnitude below the
-registration's own materiality line; consistency triggers that structurally could not have
-demoted CONFIRMED; sign-test-equivalence with two near-twin pairs). This program's failures
-have all been biases favouring a conclusion someone already held. An inherited summary that
-buried those would recreate exactly that, with the sign flipped.
+task set (target chunk in-window 3/12 for both arms), Q1/SCALE's own four required caveats
+(hit-rule sensitivity between CONFIRMED and AMBIGUOUS; magnitude below the registration's own
+materiality line; consistency triggers that structurally could not have demoted CONFIRMED;
+sign-test-equivalence with two near-twin pairs), and now Q1/IDFUSE's two flags, one on each
+side: the **pro-deletion carry-forward** is the declaration-exact projection (post-hoc,
+unregistered — T4 S-ident .98–.99 with zero measured off-stratum harm), which is the reason
+Q1 stays open rather than tilting decisively pro-vector; the **anti-F17 carry-forward** is the
+measured off-stratum harm itself (−7 to −12 pp, every tier, both non-identifier strata,
+invisible to every registered statistic) — real, mechanism-verified, and an independent
+disqualifier of the OR-bag construction regardless of how the efficacy question had landed.
+This program's failures have all been biases favouring a conclusion someone already held. An
+inherited summary that buried those would recreate exactly that, with the sign flipped.

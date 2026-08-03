@@ -3312,6 +3312,128 @@ from elsewhere; both were gaps this registration's own drafting left open.
 The reviewer's SOUND list and WITHDRAWN items are recorded in full in the committed review
 file, `eval/results/q1-idfuse-design-review.md`.
 
+#### Q1/IDFUSE RESULT (2026-08-03) — INERT-LEVER: the bag ranker fails as a scale rescue and harms off-stratum; the declaration-exact Reserve variant's promotion condition is met
+
+**Gates — all green.** Gate 1 (full suite): **505/505** tests. Gate E (`pending_embeddings ==
+0`, H/H+I arms): **0 × 4** tiers — reused descriptively from the frozen T1–T4 tier states, no
+new embed cost, per registration. Gate A (instrument self-check, ranker I disabled, 10 probes
+× 4 tiers × 2 arms, limit 200): **80/80, 0 mismatches**. Gate C (arm integrity per call): **0
+mode-integrity violations, 0 voided cells** over **8,000** scored searches (5 arms × 400
+queries × 4 tiers, F7's L+Isym sensitivity arm included per the corrected costs line, AMENDMENT
+2 row 2). Gate D (cross-run reproducibility REPORT, descriptive only per AMENDMENT 1 F3 — L/H
+are freshly re-run in full, never reused): **3,200/3,200** per-target ranks identical against
+the archived `f40f2bf` blob; the adversarial results review independently verified
+byte-provenance of both the fresh and archived files (distinct SHA-256s, as expected for two
+runs on the same deterministic pipeline).
+
+**Verdict, mechanically selected: INERT-LEVER.** Efficacy precondition FAILS — L+I vs L @ T4,
+S-ident: θ̂ = **+2 pp**, all-n seeded BCa 95% CI **[−0.67, +4.67]** (excludes neither
+direction), 145/4/1 (zero/positive/negative pairs), exact Wilcoxon **p = 0.375** — not
+knife-edge: net **+3** rescued queries against the **~+5** the CI would need to exclude zero.
+**AND** the decision-bearing contrast Δ′ (= D_loss_{L+I} − D_loss_H, S-ident) independently
+fails the GAP CLOSED criteria — it is significant in the WRONG direction, L+I degrading MORE
+than H: θ̂ = **+7.33 pp**, CI **[+2.0, +12.67]**, exact Wilcoxon **p = 0.0127** (133/14/3
+zero/positive/negative). Both conditions together route to **base row 3** of the pre-registered
+2×2 (efficacy FAILS ∧ Δ′ does not meet closure) → **INERT-LEVER**: the gap trivially "survives"
+but the substantive finding is that ranker I failed as a candidate mechanism, not that vectors
+were newly vindicated.
+
+**Headline cells — `in_window@10`, T1 → T4 (of n):**
+
+| stratum | arm | T1 | T4 |
+|---|---|---|---|
+| S-ident (n=150) | L | .967 | .840 |
+| S-ident (n=150) | H | .993 | .933 |
+| S-ident (n=150) | L+I | .993 | .860 |
+| S-ident (n=150) | H+I | .993 | .953 |
+| S-ident (n=150) | L+Isym | .987 | .880 |
+| S-approx (n=150) | L | .953 | .840 |
+| S-approx (n=150) | L+I | .867 | .767 |
+| S-prose (n=100) | L | .940 | .820 |
+| S-prose (n=100) | L+I | .850 | .730 |
+
+**The four review-mandated caveats, at full strength — this row's survival is conditioned on
+stating them, not on omitting them:**
+
+1. **Off-stratum harm — an independent disqualifier of F17-as-constructed.** L+I vs L is
+   significant at **every tier of both non-identifier strata**: s_approx **−8.7 pp** at T1
+   (p = 0.00098) through **−7.3 pp** at T4; s_prose **−9 pp** to **−12 pp** (p ≤ 0.0117) at
+   every tier. Mechanism-verified: RESERVE-1-style vote dilution — ranker I's OR-bag matches
+   ~800 chunks, the pool cap is hit 18/24 times, and the target is either absent from ranker I's
+   ordering or ranked 24–792 in it — competitors accumulate fts+I double votes and leapfrog a
+   single-vote target. Reproduced 24/24 against the real tier state (not a wiring artifact).
+   **Structurally invisible to every registered statistic**: the harm is tier-flat, so it
+   cancels inside `D_loss`, and Δ′-scale triggers can never fire on a tier-flat pattern. F17-
+   as-constructed would be dead on harm grounds even had efficacy passed.
+2. **"Inert" means failed-as-scale-rescue, not does-nothing.** Ranker I anchored **100%** of
+   S-ident targets (F7 any-match = 1.000 on the decision stratum) and helped at T1–T3 (T3
+   +4.67 pp nominal, p = 0.039; L+I's T1 = .9933, matching H's T1 exactly) — it fails **AT T4
+   SPECIFICALLY**, because bag crowding grows with corpus size (ranker I's pools saturate the
+   800-candidate cap at T4). The lever degrades with scale for the same reason `chunk_fts`
+   does, so it cannot fix a scale problem by construction.
+3. Consistency triggers and monotonicity were not evaluated on the INERT-LEVER path —
+   registration-conformant (the trigger clauses attach only to GAP CLOSED / GAP SURVIVES) and
+   immaterial here (no supporting cell's CI excludes 0; every tier sequence is weakly
+   monotone) — stated, not hidden.
+4. **M2 consequence:** the delete arm stays blocked and the gap trivially survives — but
+   "vectors' defensible niche" must **NOT** be over-read, because of the mechanism finding
+   below.
+
+**The mechanism finding (review-verified, decides the next lever).** Among the **21**
+S-ident/T4 L+I failures, the target's median rank INSIDE ranker I's own ordering is **28** (only
+2/21 in I's top-10), outranked **~26:1** by non-same-name bag matches (call-site/reference
+chunks scoring under bag-BM25 doc-length/IDF). Forcing the target to I-rank 1 rescues only
+**12/21** — a fusion-dilution cap, not a ranking-quality cap alone. The **declaration-exact
+counterfactual** (query token == the chunk's own `symbol_name`, pessimistic worst-case ordering
+among same-name matches) rescues **20/21**: T4 S-ident **.9933**. The **symbol-gated** variant
+(declaration-exact, OR-ed with whole-query-token symbol_name matches to cover all-lowercase
+identifiers) reaches T4 S-ident **.9800** with s_approx/s_prose **EXACTLY = L** — zero
+off-stratum harm — T1 S-ident **1.0000**, and D_loss ≈ **2 pp** against H's **6 pp**:
+closure-shaped. This is a **post-hoc, same-data projection** — selection risk applies, and it
+must be freshly registered before it counts as evidence. The plain declaration-exact shape
+loses the 3 all-lowercase-identifier L+Isym regressions, which is why the variant must OR-in
+whole-query-token `symbol_name` matches rather than rely on shape alone. **The Reserve entry's
+own promotion condition — "if bag-BM25 ranking of declarations proves weak" — is now
+empirically met.**
+
+**Descriptive-only arms (never verdict-bearing).** H+I vs H: θ̂ = **−2 pp**, not significant —
+the identifier ranker doesn't help hybrid either. L+Isym: the 35.5% any-match rate is the
+all-strata aggregate; on s_ident alone L+Isym matches **94%** of targets, and it beats L+I at
+T4 by shedding prose-token votes.
+
+**F7 diagnostic aggregates (the registered prose-channel caveat, borne out numerically).**
+L+I / H+I: any-match **96.5%**, symbol-token match **84.5%**, TSDoc-rare-word match **68.5%** —
+confirming ranker I is a mixed identifier + partial-prose ranker, not a pure identifier-exact
+one, exactly as AMENDMENT 1 (F7) predicted before any data existed.
+
+**What this licenses.** Q1 remains **OPEN**; M2's delete arm remains **BLOCKED**;
+**F17-as-constructed is REJECTED** — inert on-stratum at scale, harmful off-stratum at every
+tier. The registered next candidate is a **freshly pre-registered declaration-exact
+experiment** (the Reserve promotion condition is now met). The outcome-test-at-scale Reserve
+(HANDOFF_Q1.md §4b) stands unchanged.
+
+#### AMENDMENT 2 — 2026-08-03, POST-scoring, after adversarial review of the results
+
+Unlike Amendment 1 (pre-run), these corrections were found **after** seeing results by a
+commissioned adversarial review (committed verbatim at
+`eval/results/q1-idfuse-results-review.md`), not by me. **None flips the verdict row** — the
+review's overall verdict is "INERT-LEVER survives, with required caveats" (see the RESULT
+section above).
+
+| # | Error | Direction it ran |
+|---|---|---|
+| 1 | Off-stratum harm (L+I vs L, S-approx/S-prose) is invisible to every registered statistic — a structural gap in the registration itself: no L+I-vs-L off-stratum contrast was ever registered. | Made the lever look merely inert when it is also harmful. Caveat carried at full strength in the RESULT section; future fusion registrations must include off-stratum LEVEL contrasts, not only Δ′-scale ones. |
+| 2 | The costs line said 6,400 scored searches (4 arms), but the registered F7 sensitivity arm (L+Isym) makes it 5 arms / 8,000 rows. | Drafting slip; corrected here and in the Gates line above. |
+| 3 | `idfuse-score.mjs` shipped with no CLI entry point — the parent (Q1/SCALE)'s defect class, **second occurrence**, despite the builder brief requiring working CLIs. The runner authored `eval/idfuse-run-score.mjs` as the working invocation (review: line-level clean, orchestration only, no scoring/verdict logic of its own). | Process defect, cosmetic for validity this run; recurrence logged — fix the class before any third instrument. |
+| 4 | `scoreIdfuse` does not wire consistency-trigger-3 (monotonicity) into `evaluateVerdict`. | Moot on the INERT-LEVER path this run (trigger clauses attach only to CLOSED/SURVIVES); latent gap if a future run reaches CLOSED or SURVIVES — fix before reuse. |
+| 5 | The W = 27 convention (min rank-sum) initially read as implying \|Δ′\| = 2 for some pairs. | Resolved: all 17 non-zero pairs have \|Δ′\| = 1; p equals the exact sign test. No error in the committed output; recorded here to prevent re-derivation confusion. |
+
+The review's SOUND and WITHDRAWN lists are recorded in full in the committed file,
+`eval/results/q1-idfuse-results-review.md`. The review also independently re-executed the
+fusion (53 queries reconstructed end-to-end, plus three full-cell counterfactual sweeps) — the
+declaration-exact and symbol-gated counterfactual projections in the RESULT section above are
+the **review's own**, labelled post-hoc throughout, not the pre-registered instrument's output.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
