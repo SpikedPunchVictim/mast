@@ -3761,6 +3761,119 @@ reporting, or generator-mechanics amendments, landing entirely before any measur
 The review's SOUND and WITHDRAWN lists are recorded in full in the committed review file,
 `eval/results/q1-declex-design-review.md`.
 
+#### Q1/DECLEX RESULT (2026-08-03) — GAP CLOSED (harm untested): the declaration-exact ranker holds the identifier stratum flat at full scale; the S-ident scale caveat is DISCHARGED; the M2 delete arm RE-OPENS at registered scope
+
+**Gates — all green.** Gate 1 (full suite): **597/597** tests. Gate E (`pending_embeddings ==
+0`, H/H+D arms): **0 × 4** tiers, re-verified live by the adversarial results review (not
+merely reused from the frozen state). Gate F (fresh-set integrity, extended per AMENDMENT 1):
+byte-determinism PASS, **0/260** target overlap with `eval/scale-queries.json`, exclusion set
+≡ the committed 260, and the D-anchor rate — **97.33%** (146/150) — published BEFORE scoring,
+matching the measured fire rate exactly. Gate A (instrument self-check, ranker D disabled, 10
+probes × 4 tiers × 2 arms): **80/80**, 0 mismatches. Gate C (arm integrity per call): **0
+mode-integrity violations, 0 voided cells** over **19,200** scored searches (both query sets ×
+4 tiers × 5 arms, plus the escape-cap sweep's supplementary rows). Gate D (cross-run
+reproducibility against the Q1/IDFUSE run, L/H arms, descriptive): **3,200/3,200** per-target
+ranks identical.
+
+**Verdict, mechanically selected: `DECLEX_GAP_CLOSED_HARM_UNTESTED`.** The efficacy
+precondition PASSES — L+D vs L @ T4, fresh S-ident: θ̂ = **+14.67 pp**, all-n seeded BCa 95%
+CI **[+9.33, +20.0]**, exact Wilcoxon **p = 4.77e-7** (22 positive / 0 negative / 128 zero
+pairs). The decision-bearing contrast Δ′ (= D_loss_{L+D} − D_loss_H, fresh S-ident) is **not
+significant** (exact Wilcoxon degenerate below the registered informative-pairs threshold),
+with all-n seeded BCa 95% CI **[−5.33 pp, 0]** — upper bound exactly **0**, inside the
+registered ≤ 5 pp floor, and seed-invariant (hi = 0.00000 across all 50 alternative seeds).
+`in_window@10` holds **flat** T1 → T4 for L+D: **.9867 → .9867** — the SAME 148 queries
+in-window at both endpoints (0 exits, 0 entries) — against H's **.9867 → .9733** and L's
+**.9400 → .8400**. Both off-strata are **HARM-NULL**: D fires on only **0.67%** (s_approx) and
+**0.50%** (s_prose) of queries, both below the registered 10% exposure floor — the harm gate
+could not fire at the primary construction.
+
+**The four review-mandated caveats, at full strength — this row's survival is conditioned on
+stating them, not on omitting them:**
+
+1. **The esc-arm harm contrast (RF-1).** The registered "reported descriptively in its place"
+   esc-arm harm contrast is **missing from the scorer output** (`declex-score.mjs` emits only
+   fire rates + match counts) — logged as AMENDMENT 2 finding 1, below. Computed by the review
+   with the registered per-query block bootstrap, its content is **adverse at every cell**: cap
+   20 s_approx **−4.83 pp [−9.17, −1.0]**, s_prose **−13.5 pp [−19.75, −8.25]**; cap 5 s_prose
+   **−10.75 pp [−16.5, −6.5]**; cap 50 s_prose **−13.5 pp [−20.0, −8.0]** — every cell excludes
+   0 in the harmful direction. The escape variant is measured **harmful off-stratum** and may
+   not ship without a new registration; **F18 is ranker D WITHOUT escape.**
+2. **Statistical degeneracy (RF-2).** 146/150 pairs are ties; the four nonzero pairs are
+   `[−1, −1, −1, +1]`. The ns leg of the decision-bearing Wilcoxon was **structurally
+   incapable of failing** at this degeneracy (minimum achievable two-sided p at n = 4 is
+   0.125) — closure is carried entirely by the seed-stable BCa upper bound of 0, not by the ns
+   leg. Stated plainly: the experiment contained **~4 informative pairs** on the decision
+   contrast.
+3. **Counterpart-credit composition (RF-3).** **23/148** of L+D's T4 in-window hits are
+   shell-counterpart credits (H: 14/148); 2 of the 3 queries where L+D exceeds H are shell
+   credits, not exact-target retrievals. The dedup-aware hit rule is the registered metric,
+   applied uniformly — legitimate — but "**.9867 > H**" must not be read as exact-hit
+   superiority.
+4. **Prediction miss (RF-5) + near-miss trigger (RF-6).** The registered prediction was Δ′ ≈
+   **−2 to −4 pp**, a-fortiori territory; observed θ̂ = **−1.33 pp**, plain CLOSED — H barely
+   degraded on the fresh draw (D_loss_H = 1.33 pp vs ~6 pp on the old 400). Deflationary
+   surprise, stated. The s_approx supporting Δ′ trended **L+D-worse** (θ̂ = **+5.33 pp**, CI
+   **[−0.67, +10.67]**), one step from the closure-direction consistency trigger. Off-stratum
+   LEVEL deficits vs H, seed-robust: s_approx **−7.67 pp [−13.0, −3.17]**, s_prose **−7.25 pp
+   [−13.5, −2.75]**.
+
+**The mechanism finding (review-verified, decides what "flat T4" actually means).** D-fired ⇒
+in-window at T4 in **290/290** cases across both query sets (full-name/shell ordering puts the
+anchor at D-rank ~1; RRF lands it every time); D-silent ⇒ the L+D row is identical to L. The
+segment channel is live and adds the predicted crowd (candidate counts up to **139**, ≈ the
+~140 `toJSON`-class prediction) but **0 of 70 segment-only reaches fell out of window** — the
+crowd sits below full-name matches by ordering and never displaced a membership. Verified by
+**48/48** end-to-end reconstructions, exact on rank, hit_case, pre-dedup rank, mode, and every
+d_diagnostic field. RF-7's single window-invisible harm micro-instance (original s_prose_4,
+T4, D fired at cc=1, demoted the target rank 1→2 — the only off-stratum D effect in 3,200
+original row-pairs) is footnoted, not folded into the verdict.
+
+##### Projection-provenance data (mined-from, non-evidentiary)
+
+The original-400 re-score exists solely for comparability against SCALE/IDFUSE and carries no
+verdict weight (AMENDMENT 1, F-9). T4 s_ident_L+D = **.9800** exactly, matching the F-R2
+projection with a divergence delta of exactly **0** on all five dimensions the review checked.
+Confirmed **mechanism-explained, not a same-code-path artifact** (RF-4): the scorer compares
+measured rates against hardcoded `F_R2_PROJECTION` constants with no shared code path, and the
+zero delta is reproduced from raw per-row data.
+
+**What this licenses, at full registered scope.** The **S-ident SCALE caveat is DISCHARGED**:
+for queries literally containing the declared name as a symbol-shaped token, lexical +
+declaration-exact (F18, WITHOUT the escape variant, now measured harmful off-stratum) holds
+`in_window@10` flat T1→T4 on a fresh, never-scored 150-query set, with efficacy over plain
+lexical of +14.67 pp [+9.33, +20.0] — so the **M2 delete arm RE-OPENS**, F18 the enabling
+product change, subject to its own regression suite. It licenses **nothing else**: harm on
+identifier-free queries remains **UNTESTED** at the primary construction (the realistic
+shipped-D harm surface — mixed-case prose mentioning non-target identifiers — lies outside
+every stratum); the S-prose T4 LEVEL gap (H 92/100 vs L 82/100) and the kluster-normal H−L
+baseline remain **unconfronted** (fresh-set descriptives point the same way, L+D
+−7.7/−7.25 pp below H off-stratum, seed-robust); closure generalizes only to
+symbol-shaped-token queries from the same TSDoc-rich exported-declaration population on this
+one corpus; **15.5%** of L+D's window hits are shell-counterpart credits; and the
+outcome-at-scale question retains its **Reserve** standing — nothing here measures agent task
+outcomes. Deleting the vector store on this evidence is a bet that these scoped-out gaps don't
+matter; **M2 must confront each explicitly before that bet is placed.**
+
+#### AMENDMENT 2 — 2026-08-03, POST-scoring, after adversarial review of the results
+
+Unlike Amendment 1 (pre-run), these corrections were found **after** seeing results by a
+commissioned adversarial review (committed verbatim at
+`eval/results/q1-declex-results-review.md`), not by me. **None flips the verdict row** — the
+review's overall verdict is "`DECLEX_GAP_CLOSED_HARM_UNTESTED` survives, with required
+caveats" (see the RESULT section above).
+
+| # | Error | Direction it ran |
+|---|---|---|
+| 1 | The registered esc-arm harm contrast was omitted from the scorer output (`declex-score.mjs` emits only fire rates + match counts). | Pro-deletion (under-reported harm story — the direction ALL nine design-review findings ran). Computed by the review with the registered block bootstrap; numbers carried in the RESULT; scorer gap to fix before reuse. |
+| 2 | The escape-cap sweep required 3,200 supplementary measured rows beyond the registered 16,000 (the scorer only reports caps it is given). | Volume deviation, logged by the runner at commit time; no contamination (review: exact union, 0 dup keys, esc parts isolated to the esc arm). |
+| 3 | Registered prediction missed (−2..−4 pp a-fortiori vs observed −1.33 pp plain CLOSED). | Deflationary; recorded per the pre-stated-prediction discipline. |
+| 4 | Determinism-gate hash vs pretty-printed file hash differ (compact-JSON hashing) + `git_head_at_generation` stamps the regeneration HEAD. | Cosmetic provenance nits, pre-explained to prevent false "tampering" discoveries. |
+
+The review committed verbatim is the verification basis: its **48/48** end-to-end
+reconstruction and **50-seed** CI sweep are what the RESULT section's numbers rest on.
+Pre-run prediction scorecard: **6 HIT / 1 MISS**.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)

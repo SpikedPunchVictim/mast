@@ -1,34 +1,47 @@
-# HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/IDFUSE RESULT, evidence `3f8e9f3`)
+# HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/DECLEX RESULT, evidence `beccd52`)
 
 You are taking over an evidence-first investigation in `packages/mast`. Branch `ui`, tree
 clean, suite green. Read this file first, then `IMPLEMENTATION_PLAN.md`.
 
 ---
 
-## 1. The question, and why it is still open
+## 1. The question, and the state change this session
 
 **Q1: is MAST's vector store justified at all, or does lexical BM25 suffice?** It gates
 **M2** — Lance+IVF-PQ vs sqlite-vec, or deleting the vector store entirely, which drops a
 91 MB dependency, a ~7 h embed, and 470 MB RAM at the 153k-chunk scale target.
 
-**Q1 is still OPEN. M2 is still BLOCKED.** What changed this session: the cheapest attack on
-the scale caveat — folding `identifier_fts` into RRF fusion (Q1/IDFUSE) — **ran and was
-REJECTED**. The lexical-only lever (L+I) is inert at T4 on the decision-bearing S-ident stratum
-(efficacy CI [−0.67, +4.67] pp, not knife-edge) AND degrades MORE than hybrid on the
-closure-deciding contrast (Δ′ θ̂ = +7.33 pp, CI [+2.0, +12.67], p = 0.0127) — **INERT-LEVER**,
-base row 3 of the pre-registered 2×2. It is also independently disqualified on harm grounds:
-significant off-stratum degradation (−7 to −12 pp) at **every** tier of both non-identifier
-strata, invisible to every registered statistic. F17-as-constructed is dead. The lever landscape
-moved, but the verdict has not: vectors' scale niche survives its first lexical challenger,
-**with the caveat that the challenger failed for reasons that indicate a better one is
-available** (see §2 line 5). Commits: Q1/SCALE registration `3e497da` → AMENDMENT 1 `3d17220`
-→ instrument `c15f684` → gates + scored evidence `f40f2bf` → Q1/IDFUSE registration `9ecceca`
-→ AMENDMENT 1 `bed7d48` → instrument `c726e6f` → gates + scored evidence `3f8e9f3` → this
-session's RESULT + AMENDMENT 2 write-up (see `IMPLEMENTATION_PLAN.md`, "Q1/IDFUSE RESULT" and
-the results review at `eval/results/q1-idfuse-results-review.md`).
+**Q1's retrieval-level question is now effectively ANSWERED at registered scope.** What
+changed this session: Q1/DECLEX — the declaration-exact ranker, freshly pre-registered after
+Q1/IDFUSE's bag-ranker rejection — **ran and CLOSED the S-ident scale gap** (verdict
+`DECLEX_GAP_CLOSED_HARM_UNTESTED`; see `IMPLEMENTATION_PLAN.md`, "Q1/DECLEX RESULT"). The one
+thing that has kept vectors alive since Q1/SCALE — the S-ident scale caveat — is
+**DISCHARGED**: lexical + declaration-exact (F18, WITHOUT the escape variant, which is measured
+harmful) holds `in_window@10` flat T1→T4 on a fresh, never-scored 150-query set (efficacy over
+plain lexical +14.67 pp [+9.33, +20.0]; decision-contrast Δ′ vs H not significant, all-n BCa CI
+[−5.33 pp, 0]). **The M2 delete arm is RE-OPENED.**
 
-Do **not** skip to M2's A-vs-C backend benchmark. That is the expensive step this entire
-investigation exists to gate.
+**M2 is now the live decision**, and it must confront, explicitly, the gaps DECLEX scoped out
+rather than discharged (§2 item 6, §4a):
+- harm on identifier-free queries — UNTESTED at the primary construction (the realistic
+  shipped-D harm surface, mixed-case prose mentioning non-target identifiers, lies outside
+  every stratum);
+- the S-prose T4 LEVEL gap vs H (92/100 vs 82/100) and the kluster-normal H−L baseline —
+  unconfronted, and fresh-set descriptives point the same way (L+D −7.7/−7.25 pp below H
+  off-stratum, seed-robust);
+- generalization limited to symbol-shaped-token queries on this one corpus;
+- the outcome-at-scale question — still **Reserve**, nothing measured here touches agent
+  outcomes.
+
+Commits: Q1/SCALE registration `3e497da` → AMENDMENT 1 `3d17220` → instrument `c15f684` →
+gates + scored evidence `f40f2bf` → Q1/IDFUSE registration `9ecceca` → AMENDMENT 1 `bed7d48`
+→ instrument `c726e6f` → gates + scored evidence `3f8e9f3` → Q1/IDFUSE RESULT + AMENDMENT 2 +
+handoff update → Q1/DECLEX registration `74c5d96` → AMENDMENT 1 `dd10796` → instrument
+`b148594` → gates + scored evidence `beccd52` → this commit (Q1/DECLEX RESULT + AMENDMENT 2 +
+handoff update).
+
+Do **not** skip to M2's A-vs-C backend benchmark without first writing the M2 decision memo
+(§4a) — confronting the scoped-out gaps is now the gating step, not a benchmark run.
 
 ---
 
@@ -71,6 +84,23 @@ This is the single most important thing to inherit. Each was pre-registered befo
    applies, it is not evidence yet, only a reason the vector niche should not be treated as
    settled. Vectors' scale advantage survived its first lexical challenger; whether it survives
    a better one is untested.
+6. **Q1/DECLEX (the declaration-exact ranker, this session).** Freshly pre-registered per item
+   (5)'s Reserve promotion condition. Verdict `DECLEX_GAP_CLOSED_HARM_UNTESTED` on the FRESH,
+   never-scored 150-query S-ident set (the original 400 re-score is descriptive-only, mined-
+   from data — never verdict-bearing): efficacy PASS +14.67 pp [+9.33, +20.0] vs plain lexical;
+   decision Δ′ vs H not significant, all-n BCa CI [−5.33 pp, 0], seed-invariant across 50
+   alternative seeds; `in_window@10` flat T1→T4 (.9867 → .9867, the same 148 queries in-window
+   at both endpoints). **Weight it honestly**: this closes the S-ident SCALE caveat
+   specifically, not general harm-safety — both off-strata were HARM-NULL (D fire rate < 1%),
+   so harm is UNTESTED, not disproven. Four caveats travel with the result and must not be
+   dropped: (i) the escape variant (D+esc) is measured HARMFUL off-stratum at every cap and is
+   not part of what closed — F18 ships WITHOUT it; (ii) the decision Wilcoxon's ns leg was
+   statistically degenerate (146/150 ties, ~4 informative pairs) — closure rests on the
+   seed-stable BCa upper bound of 0, not on the significance test; (iii) 23/148 (15.5%) of
+   L+D's window hits are shell-counterpart credits, not exact-target retrievals — ".9867 > H"
+   is not exact-hit superiority; (iv) the registered a-fortiori prediction (Δ′ −2..−4 pp)
+   missed — observed −1.33 pp, plain CLOSED, milder than predicted — and the S-prose LEVEL gap
+   vs H (92 vs 82 per 100) remains unconfronted.
 
 **Joint conclusion: ranking metrics on prose gold sets cannot settle Q1, and the scale-out
 does not settle it either — it narrows the caveat instead of discharging it.** Items (3) and
@@ -122,41 +152,60 @@ moved and outcomes did not.
   mechanism analysis behind the rejection is what motivates the **declaration-exact** variant
   in §4 — that variant is a different construction (field-boosted to the chunk's own
   `symbol_name`), not a re-run of this one.
+- **DECLEX-as-constructed (Q1/DECLEX, this session).** Pre-registered `74c5d96`, AMENDMENT 1
+  `dd10796`, instrument `b148594`, gates + scored evidence `beccd52`. Verdict
+  `DECLEX_GAP_CLOSED_HARM_UNTESTED` — the declaration-exact ranker (F18, WITHOUT escape) closes
+  the S-ident scale caveat on the fresh set. **Do not re-run this hoping for the registered
+  a-fortiori prediction** (Δ′ ≈ −2..−4 pp) — the observed −1.33 pp plain CLOSED is the honest,
+  seed-robust result; a request to re-run it is a sign the reader wants a different answer, not
+  a more accurate one. **Do not ship, or re-test, the escape variant (D+esc) without a new
+  registration** — it is measured harmful off-stratum at every cap (cap 20 s_prose
+  −13.5 pp [−19.75, −8.25]; every cell excludes 0 in the harmful direction). **The bag
+  construction (Q1/IDFUSE's OR-bag `identifier_fts` fusion) stays rejected** — DECLEX does not
+  reopen it; DECLEX is a different, symbol-gated declaration-exact construction.
 
 ---
 
-## 4. YOUR NEXT ACTION — two live lines, in this order
+## 4. YOUR NEXT ACTION — the M2 decision memo
 
-**Item (5) of the old order (the 153k scale-out) is DONE — see §3. The identifier_fts fusion
-lever (former item (a)) is ALSO DONE and REJECTED — see §3.** Two lines remain live.
+**Both lines that were live at the top of this file are now resolved as measurement.** The
+153k scale-out (§3) and the identifier_fts fusion lever (§3) were done and rejected last
+session; **Q1/DECLEX (this session) ran and CLOSED** the remaining live line — see §1, §2 item
+6, §3. **Nothing under this heading is a new measurement task.** The next action is a
+decision, not an experiment.
 
-### (a) The declaration-exact ranker experiment — freshly pre-register, do this first
+### (a) Write the M2 decision memo — do this first
 
-Q1/IDFUSE's mechanism finding (§2, item 5): the OR-bag construction fails because non-same-
-name bag matches outrank the target ~26:1 inside ranker I's own ordering, and off-stratum harm
-comes from the same bag matching common words. The **declaration-exact** counterfactual —
-a query token counts only when it equals the chunk's own `symbol_name` exactly, OR-ed with a
-whole-query-token escape so all-lowercase identifiers aren't lost to a shape gate — projects
-T4 S-ident **.98–.99** with **zero** measured harm on s_approx/s_prose (post-hoc, same-data,
-unregistered — this is why it must be freshly registered, not assumed). Pre-register a new
-experiment: same frozen T1–T4 tier states (zero new embed cost), same frozen query set. **The
-registration must include off-stratum LEVEL contrasts (L+I-vs-L per stratum, not only the
-Δ′-scale one)** — Q1/IDFUSE's AMENDMENT 2 row 1 finding was that omitting this let real harm
-hide from every registered statistic; do not repeat that gap. The Reserve entry's own
-promotion condition ("if bag-BM25 ranking of declarations proves weak") is met — see
-`IMPLEMENTATION_PLAN.md`'s Q1/IDFUSE RESULT.
+Confront, explicitly and in writing, each gap DECLEX left scoped out rather than discharged
+(§1's list, §2 item 6's four caveats):
+- the S-prose T4 LEVEL gap vs H (92/100 vs 82/100) and the kluster-normal H−L baseline —
+  unconfronted by DECLEX, which tested D_loss scale only;
+- the harm-untested surface — D fired on < 1% of both off-strata, so identifier-free /
+  mixed-case-prose harm (the realistic shipped-D exposure) has never been measured;
+- the outcome-at-scale question — still Reserve, unmeasured;
+- the 15.5% counterpart-credit composition and the symbol-shaped-token-only generalization
+  limit.
 
-### (b) The outcome test at scale — Reserve, expensive, only if (a) fails or is challenged
+Then choose, on the record:
+- **delete** — ship F18 (ranker D, WITHOUT escape) and remove the vector store, accepting the
+  scoped-out gaps as an explicit bet; or
+- **keep-architecture** — the vector store stays justified, and M2 proceeds to its own
+  question: Lance+IVF-PQ vs sqlite-vec vs a late-embedding architecture (standing Design
+  Reserve entries).
 
-The scale-out measures **retrieval**, not outcomes (registered scope limit, unchanged by the
-result). Q1/OUTCOME already showed rank movement does not imply outcome movement at 14.5k;
-whether that holds at 138k is untested. This is the expensive follow-up — an outcome A/B at
-scale, same shape as Q1/OUTCOME — and it is only warranted if (a) fails to neutralize the
-scale caveat, or if (a)'s result is itself challenged on review.
+### (b) If delete is chosen
+
+F18 productization (ranker D in shipped `hybridSearch` + a config flag) ships with its own
+regression suite — Gate B's fixtures (dotted `Class.method` segment match, camelCase full
+match, case-insensitivity, the high-multiplicity-segment ordering fixture) become the
+regression baseline, not throwaway instrument tests. **Any escape-like extension (the
+lowercase-token recovery variant) requires a fresh pre-registration** — it is measured harmful
+as constructed and does not ship on this evidence.
 
 **The organic harvest remains the only instrument for real-query evidence** (unchanged from
-before this session) — every stratum in this program, including Q1/SCALE's S-ident/S-approx/
-S-prose, is synthetic/TSDoc-derived, not agent-authored.
+before this session) — every stratum in this program, including Q1/SCALE's and Q1/DECLEX's
+S-ident/S-approx/S-prose, is synthetic/TSDoc-derived, not agent-authored. If M2 chooses
+keep-architecture, the harvest is still the standing gap to close on real queries eventually.
 
 **Reserve (pre-thought, NOT commitments, carried from before plus Q1/SCALE's own reserve):**
 a `--no-embeddings` container A/B; shipping D0 (a real `mast search` CLI) so the A/B harness's
@@ -220,6 +269,13 @@ multi-seed T1 sensitivity.
   explicitly (`jsonKey = stratum === 'probe' ? 'probes' : stratum`) — any new script reading
   `scale-queries.json` by naive key needs the same mapping or it silently resolves an empty
   query list.
+- **`declex-score.mjs` omits the registered esc-arm harm contrast from its output** — it emits
+  only fire rates + a match-count distribution for the escape sweep (`computeEscapeCapSweep`,
+  `declex-score.mjs:488-507`), not the registration's promised "reported descriptively in its
+  place" harm contrast for when both off-strata are HARM-NULL. The adversarial results review
+  computed it by hand with the registered per-query block bootstrap — every cell came back
+  harmful (see §2 item 6, caveat i). **Fix the scorer to emit this contrast natively before
+  reusing the instrument.**
 
 ---
 
@@ -260,12 +316,17 @@ multi-seed T1 sensitivity.
   `build-corpus.mjs` or you rebuild the void v1 corpus.
 - **Evidence is committed** under `eval/results/` — all 30 Q1/OUTCOME run outputs, the
   147-call search log, the sealed arm manifest, all Q1/SCALE gate + measure + score JSON, the
-  Q1/SCALE results review, and (this session) `idfuse-gateA-selfcheck.json`,
-  `idfuse-gateD-reproducibility.json`, `idfuse-measure-raw.json` (8,000 rows),
-  `idfuse-score-output.json`, `q1-idfuse-design-review.md`, and
-  `q1-idfuse-results-review.md`. `eval/README.md` is STALE.
-- Verification baseline: `pnpm -F mast test` → **505 tests / 38 files** (was 455/36 before
-  Q1/IDFUSE); `typecheck`; `lint`; `pnpm align:check`. **align reports red at +3 baselined
+  Q1/SCALE results review, `idfuse-gateA-selfcheck.json`, `idfuse-gateD-reproducibility.json`,
+  `idfuse-measure-raw.json` (8,000 rows), `idfuse-score-output.json`,
+  `q1-idfuse-design-review.md`, `q1-idfuse-results-review.md`, and (this session)
+  `declex-gateA-selfcheck.json`, `declex-gateA-smoke-t1.json`, `declex-reproducibility.json`,
+  `declex-measure-raw.json` + its fresh/original/esc-cap variants (19,200 rows total),
+  `declex-score-output.json`, `q1-declex-design-review.md`, and
+  `q1-declex-results-review.md`; the instrument itself lives under `eval/`
+  (`declex-build-queries.mjs`, `declex-queries.json`, `declex-rank-check.mjs`,
+  `declex-ranker.mjs`, `declex-score.mjs`). `eval/README.md` is STALE.
+- Verification baseline: `pnpm -F mast test` → **597 tests / 41 files** (was 505/38 before
+  Q1/DECLEX); `typecheck`; `lint`; `pnpm align:check`. **align reports red at +3 baselined
   debt (324→327) — PRE-EXISTING**, identical at `c21a199`, self-reported "provisional". Do
   not attribute it to your changes.
 - Session commits: `ad88009` (registration) → `e61008c` (instrument+gates) → `e26a3ca`
@@ -274,31 +335,38 @@ multi-seed T1 sensitivity.
   (Q1/SCALE registration) → `3d17220` (Q1/SCALE AMENDMENT 1) → `c15f684` (Q1/SCALE instrument)
   → `f40f2bf` (Q1/SCALE gates + scored evidence) → `9ecceca` (Q1/IDFUSE registration) →
   `bed7d48` (Q1/IDFUSE AMENDMENT 1) → `c726e6f` (Q1/IDFUSE instrument) → `3f8e9f3` (Q1/IDFUSE
-  gates + scored evidence) → this session's RESULT + AMENDMENT 2 + handoff update.
+  gates + scored evidence) → Q1/IDFUSE RESULT + AMENDMENT 2 + handoff update → `74c5d96`
+  (Q1/DECLEX registration) → `dd10796` (Q1/DECLEX AMENDMENT 1) → `b148594` (Q1/DECLEX
+  instrument) → `beccd52` (Q1/DECLEX gates + scored evidence) → this commit (Q1/DECLEX RESULT
+  + AMENDMENT 2 + handoff update).
 
 ---
 
 ## 8. Two things I would flag about this handoff
 
-It leads with the **converging-lines** section rather than the next task, because the
-biggest risk to you is re-opening Q4, the harvest, the scale-out, or the identifier_fts
-OR-bag lever hoping for a cleaner verdict. All four are retired as verdict sources — Q4 and
-the harvest structurally, the scale-out because it is now measured and its marginality is the
-honest answer, the OR-bag lever because it is now measured and REJECTED on both efficacy and
-harm grounds. Only the two lines in §4 are live, and (a) is now a *different* construction
-(declaration-exact), not a re-run of the rejected one.
+It leads with the **state change** section rather than a fresh open question, because the
+biggest risk to you is re-opening Q4, the harvest, the scale-out, the identifier_fts OR-bag
+lever, or DECLEX itself, hoping for a cleaner verdict. All are retired as verdict sources — Q4
+and the harvest structurally, the scale-out and the OR-bag lever because they are measured and
+resolved (marginal-CONFIRMED / REJECTED, §3), and DECLEX because it is now measured and CLOSED
+(harm untested) at registered scope. The only live line left is §4's M2 decision memo — a
+synthesis of what is already measured, not a new experiment.
 
-It carries the **counter-evidence prominently** — the LOO-baseline significance loss, the
-fact that the reframe's own premise (Recall@10 = 1.000) did *not* generalise to the outcome
-task set (target chunk in-window 3/12 for both arms), Q1/SCALE's own four required caveats
-(hit-rule sensitivity between CONFIRMED and AMBIGUOUS; magnitude below the registration's own
-materiality line; consistency triggers that structurally could not have demoted CONFIRMED;
-sign-test-equivalence with two near-twin pairs), and now Q1/IDFUSE's two flags, one on each
-side: the **pro-deletion carry-forward** is the declaration-exact projection (post-hoc,
-unregistered — T4 S-ident .98–.99 with zero measured off-stratum harm), which is the reason
-Q1 stays open rather than tilting decisively pro-vector; the **anti-F17 carry-forward** is the
-measured off-stratum harm itself (−7 to −12 pp, every tier, both non-identifier strata,
-invisible to every registered statistic) — real, mechanism-verified, and an independent
-disqualifier of the OR-bag construction regardless of how the efficacy question had landed.
+It carries the **counter-evidence prominently**, so the memo in §4a does not have to go
+digging for it. Carry-forward flags, one line each:
+- **Pro-delete:** the DECLEX closure itself — efficacy +14.67 pp [+9.33, +20.0],
+  `in_window@10` flat T1→T4 on the fresh set, decision-contrast CI upper bound exactly 0,
+  seed-invariant across 50 alternative seeds — plus the mechanism-verified, review-confirmed
+  construction (48/48 end-to-end reconstructions exact; the F-R2 projection's zero divergence
+  delta on the original-400 re-score is mechanism-explained, not a same-code-path artifact).
+- **Anti-delete:** the S-prose T4 LEVEL deficits vs H, seed-robust (s_approx −7.67 pp
+  [−13.0, −3.17], s_prose −7.25 pp [−13.5, −2.75]); the harm-UNTESTED surface (D fired on
+  < 1% of both off-strata — the realistic shipped-D exposure, mixed-case prose mentioning
+  non-target identifiers, has never been measured); the 15.5% counterpart-credit composition
+  (23/148 of L+D's window hits are shell credits, not exact-target retrievals); and the
+  outcome-at-scale question, which retains its Reserve standing regardless of how DECLEX
+  landed.
+
 This program's failures have all been biases favouring a conclusion someone already held. An
-inherited summary that buried those would recreate exactly that, with the sign flipped.
+inherited summary that buried the anti-delete flags to make the delete decision easier would
+recreate exactly that.
