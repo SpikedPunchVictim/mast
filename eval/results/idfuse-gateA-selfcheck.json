@@ -1,0 +1,1049 @@
+{
+  "ran_at": "2026-08-03T08:41:41.189Z",
+  "tier": null,
+  "mismatches": 0,
+  "full_mismatches": 0,
+  "pass": true,
+  "rows": [
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T1",
+      "arm": "H",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T1",
+      "arm": "L",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T2",
+      "arm": "H",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T2",
+      "arm": "L",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T3",
+      "arm": "H",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T3",
+      "arm": "L",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "supportsTelemetry throughout capable collecting",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "TestContext.uninstallWindowsApp uninstalls installation silently",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "RangeMapping.toTextEdit describes",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "ClaudeMapperState.resetMessage deliberately arrives cleared",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "FetchedValue coalesced fetchtokenfromserver nowseconds",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "RootedEdit.normalize geteditedstate",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "commentBlockAsSingles exactly trailing",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "FoldingRegions.sanitizeAndMerge assumed overlapping overlaps",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "firstNonWhitespaceIndex whitespaces",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    },
+    {
+      "tier": "T4",
+      "arm": "H",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "H",
+        "mode": "hybrid"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "hybrid"
+    },
+    {
+      "tier": "T4",
+      "arm": "L",
+      "query": "extractCdPrefix returning extracts",
+      "wrapper_reproduces_shipped": true,
+      "mode_integrity": {
+        "valid": true,
+        "arm": "L",
+        "mode": "lexical"
+      },
+      "reconstruction_matches_shipped": true,
+      "recon_mode": "lexical"
+    }
+  ]
+}

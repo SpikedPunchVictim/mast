@@ -1,0 +1,57 @@
+{
+  "ran_at": "2026-08-03T09:17:22.345Z",
+  "fresh_source": "eval/results/idfuse-measure-raw.json",
+  "archived_source": "eval/results/scale-measure-raw.json",
+  "note": "Descriptive only (AMENDMENT 1) — does not gate or license row reuse. All decision-bearing rows come from the fresh full re-run.",
+  "identical_rank_fraction_by_arm_tier": {
+    "L": {
+      "T1": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      },
+      "T2": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      },
+      "T3": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      },
+      "T4": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      }
+    },
+    "H": {
+      "T1": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      },
+      "T2": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      },
+      "T3": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      },
+      "T4": {
+        "compared": 400,
+        "identical": 400,
+        "identical_fraction": 1
+      }
+    }
+  },
+  "overall_identical_fraction": 1,
+  "overall_compared": 3200,
+  "overall_identical": 3200,
+  "differing_row_count": 0,
+  "differing_rows": []
+}
