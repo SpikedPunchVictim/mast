@@ -1,0 +1,64 @@
+{
+  "ran_at": "2026-08-03T04:22:34Z",
+  "gate": "Gate 4 - vector coverage (pending_embeddings == 0)",
+  "method": "mast status --json --state-dir <dir>",
+  "tiers": [
+    {
+      "state_dir": "/Users/spikedpunchvictim/.cache/mast-eval/vscode-state-t1",
+      "last_indexed": "2026-08-02T22:02:40.987Z",
+      "indexed_files": 972,
+      "chunk_count": 15003,
+      "stale_files": 1042,
+      "pending_embeddings": 0,
+      "parse_errors": 0,
+      "write_errors": 0,
+      "index_fresh": false,
+      "freshness_cause": "phase1_stale",
+      "model": "jinaai/jina-embeddings-v2-base-code",
+      "tier": "T1"
+    },
+    {
+      "state_dir": "/Users/spikedpunchvictim/.cache/mast-eval/vscode-state-t2",
+      "last_indexed": "2026-08-02T22:05:06.505Z",
+      "indexed_files": 3127,
+      "chunk_count": 49998,
+      "stale_files": 3196,
+      "pending_embeddings": 0,
+      "parse_errors": 0,
+      "write_errors": 0,
+      "index_fresh": false,
+      "freshness_cause": "phase1_stale",
+      "model": "jinaai/jina-embeddings-v2-base-code",
+      "tier": "T2"
+    },
+    {
+      "state_dir": "/Users/spikedpunchvictim/.cache/mast-eval/vscode-state-t3",
+      "last_indexed": "2026-08-02T22:10:17.704Z",
+      "indexed_files": 5537,
+      "chunk_count": 89989,
+      "stale_files": 5606,
+      "pending_embeddings": 0,
+      "parse_errors": 0,
+      "write_errors": 0,
+      "index_fresh": false,
+      "freshness_cause": "phase1_stale",
+      "model": "jinaai/jina-embeddings-v2-base-code",
+      "tier": "T3"
+    },
+    {
+      "state_dir": "/Users/spikedpunchvictim/.cache/mast-eval/vscode-state-full",
+      "last_indexed": "2026-08-02T18:59:21.825Z",
+      "indexed_files": 8653,
+      "chunk_count": 138440,
+      "stale_files": 8722,
+      "pending_embeddings": 0,
+      "parse_errors": 0,
+      "write_errors": 2,
+      "index_fresh": false,
+      "freshness_cause": "phase1_stale",
+      "model": "jinaai/jina-embeddings-v2-base-code",
+      "tier": "T4"
+    }
+  ],
+  "gate4_pass": true
+}

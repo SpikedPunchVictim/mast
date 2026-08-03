@@ -1,0 +1,379 @@
+{
+  "ran_at": "2026-08-03T04:20:05.223Z",
+  "source_raw_file": "/Users/spikedpunchvictim/projects/kluster/packages/mast/eval/results/scale-measure-raw.json",
+  "source_row_count": 3200,
+  "decision_bearing": {
+    "stratum": "s_ident",
+    "n": 150,
+    "zero_count": 134,
+    "wilcoxon": {
+      "n": 16,
+      "nTotal": 150,
+      "W": 25.5,
+      "p": 0.021270751953125,
+      "significant": true,
+      "direction": "positive",
+      "degenerate": false,
+      "underpowered": false
+    },
+    "hodges_lehmann_descriptive_only": {
+      "estimate": 0,
+      "ci": [
+        0,
+        0
+      ]
+    },
+    "bca_delta_ci_all_n": {
+      "thetaHat": 0.06666666666666667,
+      "lo": 0.013333333333333334,
+      "hi": 0.11333333333333333
+    }
+  },
+  "supporting": {
+    "s_approx": {
+      "n": 150,
+      "zero_count": 132,
+      "wilcoxon": {
+        "n": 18,
+        "nTotal": 150,
+        "W": 85.5,
+        "p": 1,
+        "significant": false,
+        "direction": "zero",
+        "degenerate": false,
+        "underpowered": false
+      },
+      "hodges_lehmann_descriptive_only": {
+        "estimate": 0,
+        "ci": [
+          0,
+          0
+        ]
+      },
+      "bca_delta_ci_all_n": {
+        "thetaHat": 0,
+        "lo": -0.06,
+        "hi": 0.05333333333333334
+      }
+    },
+    "s_prose": {
+      "n": 100,
+      "zero_count": 83,
+      "wilcoxon": {
+        "n": 17,
+        "nTotal": 100,
+        "W": 45,
+        "p": 0.143463134765625,
+        "significant": false,
+        "direction": "positive",
+        "degenerate": false,
+        "underpowered": false
+      },
+      "hodges_lehmann_descriptive_only": {
+        "estimate": 0,
+        "ci": [
+          0,
+          0
+        ]
+      },
+      "bca_delta_ci_all_n": {
+        "thetaHat": 0.07,
+        "lo": -0.02,
+        "hi": 0.14
+      }
+    },
+    "delta_log2_rank_co_metric": {
+      "n": 150,
+      "bca_ci_all_n": {
+        "lo": -0.015118015335926582,
+        "hi": 0.28539672936251315
+      },
+      "theta_hat": 0.13283462470994897
+    },
+    "dose_response_in_window_10_by_tier": {
+      "H": {
+        "T1": {
+          "n": 150,
+          "p": 0.9933333333333333,
+          "se": 0.006644407283433823
+        },
+        "T2": {
+          "n": 150,
+          "p": 0.9733333333333334,
+          "se": 0.013154354299509981
+        },
+        "T3": {
+          "n": 150,
+          "p": 0.9333333333333333,
+          "se": 0.02036700308869262
+        },
+        "T4": {
+          "n": 150,
+          "p": 0.9333333333333333,
+          "se": 0.02036700308869262
+        }
+      },
+      "L": {
+        "T1": {
+          "n": 150,
+          "p": 0.9666666666666667,
+          "se": 0.014656562175858798
+        },
+        "T2": {
+          "n": 150,
+          "p": 0.9,
+          "se": 0.02449489742783178
+        },
+        "T3": {
+          "n": 150,
+          "p": 0.8533333333333334,
+          "se": 0.028885469883150078
+        },
+        "T4": {
+          "n": 150,
+          "p": 0.84,
+          "se": 0.029933259094191533
+        }
+      }
+    }
+  },
+  "t4_ceiling_trivial_discharge": {
+    "s_ident": {
+      "stratum": "s_ident",
+      "n": 150,
+      "h_in_window_count": 140,
+      "l_in_window_count": 126,
+      "threshold": 143,
+      "triggers": false
+    },
+    "s_approx": {
+      "stratum": "s_approx",
+      "n": 150,
+      "h_in_window_count": 129,
+      "l_in_window_count": 126,
+      "threshold": 143,
+      "triggers": false
+    },
+    "s_prose": {
+      "stratum": "s_prose",
+      "n": 100,
+      "h_in_window_count": 92,
+      "l_in_window_count": 82,
+      "threshold": 95,
+      "triggers": false
+    }
+  },
+  "consistency_triggers": {
+    "trigger_1_supporting_ci_excludes_zero": [],
+    "trigger_2_delta_log2_ci_excludes_zero": false,
+    "trigger_3_monotonicity_flags": []
+  },
+  "per_cell_counts": {
+    "s_ident": {
+      "T1": {
+        "H": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 12,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 149
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 20,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 145
+        }
+      },
+      "T2": {
+        "H": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 14,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 146
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 20,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 135
+        }
+      },
+      "T3": {
+        "H": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 13,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 140
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 21,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 128
+        }
+      },
+      "T4": {
+        "H": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 12,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 140
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 1,
+          "suppression_event_count": 21,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 126
+        }
+      }
+    },
+    "s_approx": {
+      "T1": {
+        "H": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 22,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 146
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 19,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 143
+        }
+      },
+      "T2": {
+        "H": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 20,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 139
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 0,
+          "suppression_event_count": 19,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 136
+        }
+      },
+      "T3": {
+        "H": {
+          "n": 150,
+          "censored_count": 1,
+          "suppression_event_count": 18,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 135
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 1,
+          "suppression_event_count": 19,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 132
+        }
+      },
+      "T4": {
+        "H": {
+          "n": 150,
+          "censored_count": 2,
+          "suppression_event_count": 19,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 129
+        },
+        "L": {
+          "n": 150,
+          "censored_count": 3,
+          "suppression_event_count": 18,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 126
+        }
+      }
+    },
+    "s_prose": {
+      "T1": {
+        "H": {
+          "n": 100,
+          "censored_count": 0,
+          "suppression_event_count": 10,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 97
+        },
+        "L": {
+          "n": 100,
+          "censored_count": 0,
+          "suppression_event_count": 18,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 94
+        }
+      },
+      "T2": {
+        "H": {
+          "n": 100,
+          "censored_count": 0,
+          "suppression_event_count": 11,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 96
+        },
+        "L": {
+          "n": 100,
+          "censored_count": 1,
+          "suppression_event_count": 18,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 89
+        }
+      },
+      "T3": {
+        "H": {
+          "n": 100,
+          "censored_count": 0,
+          "suppression_event_count": 11,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 93
+        },
+        "L": {
+          "n": 100,
+          "censored_count": 1,
+          "suppression_event_count": 17,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 87
+        }
+      },
+      "T4": {
+        "H": {
+          "n": 100,
+          "censored_count": 0,
+          "suppression_event_count": 11,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 92
+        },
+        "L": {
+          "n": 100,
+          "censored_count": 1,
+          "suppression_event_count": 19,
+          "mode_integrity_bad_count": 0,
+          "in_window_10_count": 82
+        }
+      }
+    }
+  },
+  "verdict": {
+    "row": 1,
+    "verdict": "SCALE_CAVEAT_CONFIRMED",
+    "reasoning": [
+      "Wilcoxon significant (p=0.021270751953125) with Delta direction positive (lexical degrading more)."
+    ],
+    "escalated_to_ambiguous": false
+  }
+}

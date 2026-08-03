@@ -1,0 +1,36 @@
+{
+  "ran_at": "2026-08-03T03:23:26.909Z",
+  "model": "jinaai/jina-embeddings-v2-base-code",
+  "tiers": [
+    {
+      "tier": "T1",
+      "state_dir": "/Users/spikedpunchvictim/.cache/mast-eval/vscode-state-t1",
+      "chunk_count": 15003,
+      "vector_count": 15003,
+      "gate0c_pass": true,
+      "gate0d_pass": true,
+      "out_of_tier_vector_ids": [],
+      "cache_misses_suspected": 0
+    },
+    {
+      "tier": "T2",
+      "state_dir": "/Users/spikedpunchvictim/.cache/mast-eval/vscode-state-t2",
+      "chunk_count": 49998,
+      "vector_count": 49998,
+      "gate0c_pass": true,
+      "gate0d_pass": true,
+      "out_of_tier_vector_ids": [],
+      "cache_misses_suspected": 0
+    },
+    {
+      "tier": "T3",
+      "state_dir": "/Users/spikedpunchvictim/.cache/mast-eval/vscode-state-t3",
+      "chunk_count": 89989,
+      "vector_count": 89989,
+      "gate0c_pass": true,
+      "gate0d_pass": true,
+      "out_of_tier_vector_ids": [],
+      "cache_misses_suspected": 0
+    }
+  ]
+}
