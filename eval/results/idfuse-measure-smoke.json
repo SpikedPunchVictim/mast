@@ -1,0 +1,29 @@
+{
+  "ran_at": "2026-08-03T08:12:55.584Z",
+  "schema_version": "1.0.0-idfuse",
+  "rows": [
+    {
+      "query_id": "probe_0",
+      "stratum": "probe",
+      "tier": "T1",
+      "arm": "L+I",
+      "mode": "lexical",
+      "mode_integrity_valid": true,
+      "rank": 1,
+      "hit_case": "exact",
+      "suppression_event": false,
+      "censored_rank": 1,
+      "in_window_10": true,
+      "pre_dedup_rank": 1,
+      "f7_diagnostic": {
+        "matched_terms": [
+          "supportsTelemetry"
+        ],
+        "symbol_token_terms": [
+          "supportsTelemetry"
+        ],
+        "tsdoc_rare_word_terms": []
+      }
+    }
+  ]
+}
