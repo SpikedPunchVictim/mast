@@ -2840,6 +2840,138 @@ The reviewer's SOUND list and withdrawn items — including the recomputed 497�
 correction — are recorded in full in the committed review file,
 `eval/results/q1-scale-design-review.md`.
 
+#### Q1/SCALE RESULT (2026-08-02) — lexical degrades with scale where hybrid does not; the caveat is real, and it is marginal
+
+**Gates — all green.** Gate 0(a)/(b) pre-satisfied (Phase-1 built, `write_errors == 0` on
+T1–T3, chunk counts match the frozen manifest: 15,003 / 49,998 / 89,989); Gate 0(c)/(d)
+(per-tier `vectors.lance` row count == chunk count, 0 out-of-tier vectors) green on T1–T3 at
+run time. Gate 1: full suite **455/455** (36 files), including the 73 instrument tests
+(Wilcoxon exact known-answer cases, the all-ties and m=12 exact-tail cases, the synthetic
+CONFIRMED-firing scorer test). Gate 2: instrument self-check **80/80** (10 probes × 4 tiers ×
+2 arms), **0 mismatches**, under the AMENDMENT-1-widened criterion (full ordered 200-row
+comparison, H probes asserting `mode: "hybrid"`); `h_mode_assertion_pass: true`. Gate 3: **0
+mode-integrity violations** across all **3,200** core searches (400 queries × 4 tiers × 2
+arms; `mode_integrity_bad_count: 0` in every cell). Gate 4: `pending_embeddings == 0` on all
+four tier states (T1–T4). **Two gate-evidence deviations were found post-hoc by the
+adversarial results review — not by this measurement run — and both are closed; see Section
+B (AMENDMENT 2) for the finding and the closure.**
+
+**Verdict, mechanically selected from the pre-committed table: row 1 — SCALE CAVEAT
+CONFIRMED.** Decision-bearing stratum S-ident, exact Wilcoxon signed-rank on 16 non-zero
+pairs (13 positive / 3 negative), W = 25.5, **p = 0.021270751953125**, direction positive
+(lexical degrading more). All-n seeded BCa bootstrap 95% CI (10,000 resamples) on Δ:
+**θ̂ = +6.7 pp, [+1.3, +11.3]**, excludes zero. No consistency trigger fired (S-approx and
+S-prose supporting CIs both straddle zero; Δlog2(rank) CI [−0.015, +0.285] also straddles
+zero but is directionally consistent; no monotonicity flags). T4-ceiling trivial-discharge
+did not trigger for any stratum (S-ident H = 140/150 < the 143 threshold).
+
+**Headline table — `in_window@10`, per stratum × arm, T1 → T4 (of n):**
+
+| stratum | arm | T1 | T2 | T3 | T4 | T1→T4 loss |
+|---|---|---|---|---|---|---|
+| S-ident (n=150) | H | 149 | 146 | 140 | 140 | −9 |
+| S-ident (n=150) | L | 145 | 135 | 128 | 126 | −19 |
+| S-approx (n=150) | H | 146 | 139 | 135 | 129 | −17 |
+| S-approx (n=150) | L | 143 | 136 | 132 | 126 | −17 |
+| S-prose (n=100) | H | 97 | 96 | 93 | 92 | −5 |
+| S-prose (n=100) | L | 94 | 89 | 87 | 82 | −12 |
+
+**Dose–response shape:** H plateaus T3→T4 (S-ident 140→140 flat, T2→T3 already the steepest H
+drop at −6); L declines monotonically across all four tiers on S-ident, steepest T1→T2
+(145→135, −10) and continuing to erode every tier thereafter (−7, −2). The curve is
+consistent with "more distractor mass keeps eroding lexical's trigram signal" and with
+"hybrid's vector half stops the bleeding once the exact identifier anchors a declaration
+embedding" — see the mechanism finding below.
+
+**The four required caveats from the adversarial results review, at full strength — this
+row's survival is conditioned on stating them, not on omitting them:**
+
+1. **Hit-rule sensitivity.** p = 0.021 under the registered (post-dedup + shell/method
+   counterpart) hit rule; **p = 0.09625 → AMBIGUOUS** under the pre-amendment,
+   target-chunk-only rule (13+/5−, CI [−0.0067, +0.1067]); p = 0.04139 under the pre-dedup
+   chunk-id rank (dedup-free, 15+/5−, CI [+0.0067, +0.1200]). **The AMENDMENT-1 hit-rule
+   extension (F4) is load-bearing for CONFIRMED-vs-AMBIGUOUS.** Its three added positive
+   pairs are corroborated, not manufactured, by the dedup-free pre-dedup ranks: s_ident_95
+   (ScanCodeChord) L degrades T1→T4 8→53 vs H 4→21; s_ident_103 (KeyCodeChord) L 17→138 vs H
+   5→27; s_ident_104 (ModelPickerWidget) L 14→85 vs H 1→6. **No variant discharges** — the CI
+   upper bound is 0.107–0.120, above the 10 pp bound, in all three.
+2. **Magnitude.** θ̂ = +6.7 pp, CI [+1.3, +11.3] pp, is **below the registration's own 10 pp
+   materiality line at the point estimate**. Row 1 fires on statistical significance alone;
+   it has no magnitude gate. "Confirmed" here means direction, not established
+   outcome-relevance.
+3. **The registered consistency triggers guard only the discharge branch** — no supporting
+   result could ever have demoted CONFIRMED (a structural pro-CONFIRMED asymmetry, the mirror
+   image of the pro-DISCHARGE asymmetries AMENDMENT 1 fixed in the design). On the data,
+   support does not corroborate: S-approx Δ is **exactly zero** (9+/9−, CI [−0.06, +0.053]);
+   S-prose is directionally consistent but not significant (12+/5−, p = 0.144, θ̂ = +7 pp, CI
+   [−0.02, +0.14]); Δlog2 CI includes 0. **A symmetric registration would plausibly have read
+   AMBIGUOUS.** Stated plainly: CONFIRMED and AMBIGUOUS route to the same next action here
+   (§ below), so nothing practical rides on which label is used — but the write-up must not
+   claim the cleaner verdict without carrying this note.
+4. **Sign-test equivalence and near-twin dependence.** The "exact Wilcoxon" is, on this data,
+   exactly a two-sided sign test on 16 unit-magnitude ties (W = 3 × 8.5 = 25.5, p = binomial
+   1394/65536). Two of the 13 positives (s_ident_95/103 — ScanCodeChord/KeyCodeChord) share a
+   file (`src/vs/base/common/keybindings.ts`) and an identical rare-word suffix, so they are
+   not fully independent evidence; **collapsing them still gives p = 0.0352** (12+/3− of 15).
+   The 13 positives are otherwise dispersed across 9 distinct top-level directories.
+
+**The mechanism finding (descriptive, verified in code).** Hybrid's scale protection exists
+**only when the exact identifier is in the query.** S-approx (identifier replaced by its
+split words) degrades both arms equally (−17 each); S-ident (exact identifier present)
+degrades H by only −9 against L's −19. Read in code: the shipped `hybridSearch`'s lexical
+path (`src/search/hybrid.ts`) consults only trigram `chunk_fts` for ranking. `identifier_fts`
+exists (`searchIdentifiers` / `searchIdentifierNearMiss` in `src/search/fts.ts`) but is **not
+part of the search ranking** — exact symbol names have no exact-token lexical anchor, and
+their trigram profile dilutes as the corpus grows, while the vector arm anchors on the
+declaration's embedding regardless of corpus size. F6's masking hypothesis (exact-name
+queries are near-unique trigram keys, insensitive to distractor mass) is **empirically
+falsified, not subverted by an artifact** — paired-row inspection confirms the pattern (e.g.
+S-approx s_ident_73: H rank 2→64 T1→T4; s_ident_103: H rank 3→20).
+
+**Consequence — the natural next lexical lever, stated as a Design Reserve addition, NOT a
+commitment.** An `identifier_fts` ranker folded into the RRF fusion could plausibly
+neutralize the S-ident scale degradation without vectors — the F15 lesson ("one lexical line
+more than halved the measured value of vectors") applied at scale. If that lever works, the
+delete arm re-opens; if it fails, vectors have a defensible scale niche. This is queued, not
+committed — see §4 of `HANDOFF_Q1.md`.
+
+**Ceiling-asymmetry channel — checked, runs the OTHER way.** Base-rate asymmetry ≈ −0.3 pp
+toward discharge: L's T1 out-of-window queries all worsened further at T4, a floor D_loss
+cannot see (it is a binary in/out metric) — the measured Δ is therefore conservative, not
+inflated. The rank co-metric agrees in direction: mean log2(rank) shift H +0.584, L +0.717.
+
+**What this licenses, per the registered rule.** The 14.5k null does **not** extend to 138k
+at retrieval level. **Q1 stays OPEN. M2's delete arm stays BLOCKED.** The pro-vector path
+still requires an outcome test at scale (Reserve, expensive) — retrieval-rank movement was
+already shown not to imply outcome movement (Q1/OUTCOME). The pro-deletion path now requires
+**either** that outcome test showing outcome-insensitivity at scale, **or** the
+`identifier_fts` lexical lever neutralizing the degradation (cheap, queued first). External
+validity limits carried from the registration: measured at 138,440 chunks, absent the
+14,529-chunk whale-fixture tail; queries are TSDoc-hot by construction, not agent-authored;
+single corpus, single host.
+
+#### AMENDMENT 2 — 2026-08-02, POST-scoring, after adversarial review of the results
+
+Unlike Amendment 1 (pre-run), these corrections were made **after** seeing results, so each
+states which direction the error ran. All were found by a commissioned Fable review of the
+scored result (committed verbatim at `eval/results/q1-scale-results-review.md`), not by me.
+**None flips the registered row** — the review's overall verdict is "row 1 survives, with
+required caveats" (see the four caveats in the RESULT section above).
+
+| # | Error | Direction it ran |
+|---|---|---|
+| 1 | **Gate 4 ran ~2.5 min AFTER scoring** (04:22:34Z vs scoring at 04:20:05Z); the registration required Gate 4 before scoring. | Toward false DISCHARGED — a coverage gap at scoring time would have depressed H's measured window membership. Closed post-hoc: coverage was in fact `pending_embeddings == 0` on all four tiers at the time scoring ran; the gate result did not change between the two timestamps. |
+| 2 | **Gate 0(c)/(d) never ran on T4**, and T4 reused the pre-registration full index, which carries `write_errors: 2` (the two known whale fixtures) — apparently inconsistent with Gate 0(b)'s exclusion wording. | Toward false DISCHARGED. Closed by the review's direct counts on `vscode-state-full`: **138,440 vectors, 138,440 distinct chunk_ids, 0 duplicates, 0 out-of-tier** by full anti-join; T1–T3 counts match the frozen manifest. The `write_errors: 2` is the pre-registered, arm-symmetric whale-fixture absence (F11), not a new defect — it affects both arms identically. |
+| 3 | **The committed instrument shipped without working CLI entry points** — `scale-rank-check.mjs` and `scale-score.mjs` document a scored-sweep/self-check/scorer invocation in their own header comments but expose no CLI to run it; measurement instead ran through three runner-authored driver scripts (`scale-run-selfcheck.mjs`, `scale-run-measure.mjs`, `scale-run-score.mjs`, committed at `f40f2bf`). | No direction found. The review audited the drivers line-level and found them faithful: `limit=200`, `rrf_k=60`, explicit `chunkStore`, correct embedder wired per arm, seed 1001 pre-committed before any measurement. |
+| 4 | **`runSelfCheck`'s mismatch counter under-counts** — it excludes reconstruction failures and mode-integrity failures from its own tally; the runner computed the AMENDMENT-1-widened criterion externally to get Gate 2's reported 80/80. | Anti-false-pass (the widening is stricter, not looser) — but this is a latent instrument defect: fix `runSelfCheck` to count what Gate 2 actually requires before this instrument is reused. |
+| 5 | **`query_id`, the Δlog2 aggregate, and the monotonicity CI formula were runner constructions**, under-specified by the registration text itself. | Reviewed directly: deterministic, follows the committed F1 sign convention, seed-insensitive (200/200 alternative seeds agree), and zero-flags robust (no CI approximation could change which monotonicity flags fire). No direction found. |
+
+The hit-rule sensitivity (F-R1) and the magnitude framing (F-R2) from the review are carried
+in the RESULT text above, not repeated here. The review's structural finding — **the
+registered consistency triggers guarded only the branch the investigator's own prior
+(deletion) argued against** — is an asymmetry to make symmetric in any future registration on
+this track, the same lesson AMENDMENT 1 already applied to the discharge branch.
+
 ---
 
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)

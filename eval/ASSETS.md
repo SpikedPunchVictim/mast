@@ -46,6 +46,34 @@ Taken via SQLite's backup API, not `cp`: the live `graph.db` held 8.2 MB in a WA
 plain file copy drops silently. That trap previously cost a session a false "the write path
 is broken" conclusion.
 
+### `vscode-state-full` — 4.7 GB
+vscode pinned at `5ebbe53282bd1d5d3453405d9e6a34ee2eb7f42d`. **138,440 chunks, 100%
+embedded** (8,653 files indexed; two whale fixture files absent — see
+`IMPLEMENTATION_PLAN.md`'s Q1/SCALE registration, "Corpus-truth correction"). Breakdown:
+`lance/` 2.0 GB, `embed_cache/` 2.0 GB (shared with the three tier dirs below via symlink),
+`graph.db` 736 MB. Serves Q1/SCALE as **T4** (the full-scale tier) and is the shared
+embed-cache source for T1–T3.
+
+Rebuild: `git worktree add --detach <dir> 5ebbe53282bd1d5d3453405d9e6a34ee2eb7f42d` → Phase-1
+build (**577 s** measured) → `node eval/embed-full-corpus.mjs`. **~7.4 h measured** (embed.log:
+"done in 446.3 min"), not the ~4.0 h projected from a 500-chunk sample — embed rate degrades
+over the run (**9.6–10.5 ch/s at the start, 5.15–5.28 ch/s by the end, 5.2 ch/s effective
+over the full 137,940-chunk run**). The sample-based projection understates full-run cost by
+~1.85×; price future embeds off the measured full-run rate, not a short sample.
+
+### `vscode-state-t1` / `vscode-state-t2` / `vscode-state-t3` — 151 MB / 636 MB / 1.4 GB
+Nested random-file-subset tiers of the same vscode checkout (seed 153, committed manifest):
+**15,003 / 49,998 / 89,989 chunks**, each a strict subset of the next (T1 ⊂ T2 ⊂ T3 ⊂ T4).
+Each has its own `graph.db`/FTS index and its own `lance/vectors.lance`, but all three
+`embed_cache/` dirs are **symlinks into `vscode-state-full/embed_cache`** — no chunk is
+re-embedded across tiers, only re-populated into that tier's Lance table from the cache (0
+cache misses measured, Gate 0(c)/(d)). Serves Q1/SCALE's T1/T2/T3 dose–response points.
+
+Rebuild (cheap once `vscode-state-full`'s embed_cache exists): `eval/scale-build-tiers.mjs` →
+Phase-1 per tier (sub-linear in file count, bounded by the full corpus's 577 s) →
+`eval/scale-embed-tiers.mjs` (cache-populate only — **16.8 s / 220.5 s / 956.3 s** for
+T1/T2/T3, no model calls).
+
 ---
 
 ## Cheap or replaceable
@@ -57,6 +85,8 @@ is broken" conclusion.
 | `corpus-kluster` | 123 MB | git worktree @ `07d705b` | `git worktree add` — seconds |
 | `corpus-nest` | 11 MB | git worktree @ `f7fffd6` | `git worktree add` — seconds |
 | `ab-wt` | 1.5 GB | 12 per-task worktrees, each with that task's source doc deleted | `node eval/ab-run-setup.mjs` — **disposable, safe to remove now** |
+| `scale-corpus-t1` / `-t2` / `-t3` | 12 MB / 38 MB / 69 MB | pinned vscode file-subset worktrees (seed 153) the Q1/SCALE tier states were indexed from | `git worktree add` — seconds |
+| `~/temp/enterprise-apps/vscode` | 1.5 GB | full pinned vscode checkout @ `5ebbe53282bd1d5d3453405d9e6a34ee2eb7f42d`, source for `vscode-state-full` and the tier worktrees above | `git clone` + pin — network-bound, not compute-bound |
 
 ---
 
@@ -72,5 +102,9 @@ is broken" conclusion.
 ## If these are lost
 
 Nothing in the committed record becomes unverifiable — the evidence is in `eval/results/`.
-What is lost is the ability to *re-run* ranking arms without ~45 min of embedding. The
-Q1/OUTCOME conclusions do not depend on these dirs surviving.
+What is lost is the ability to *re-run* ranking arms without ~45 min of embedding (Q1/OUTCOME
+assets) or **~7.4 h of embedding** (the Q1/SCALE `vscode-state-full` corpus, whose cache the
+T1–T3 tiers depend on). The Q1/OUTCOME and Q1/SCALE conclusions do not depend on these dirs
+surviving — but the `identifier_fts`-fusion lever queued next (`HANDOFF_Q1.md` §4a) is
+designed to reuse the frozen T1–T4 tier states at zero re-embed cost, and that plan does
+depend on them surviving.

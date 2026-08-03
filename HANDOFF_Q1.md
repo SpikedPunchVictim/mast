@@ -1,4 +1,4 @@
-# HANDOFF — Q1 / M2 track, as of 2026-08-02 (commit `ca768e2`)
+# HANDOFF — Q1 / M2 track, as of 2026-08-02 (post Q1/SCALE RESULT, evidence `f40f2bf`)
 
 You are taking over an evidence-first investigation in `packages/mast`. Branch `ui`, tree
 clean, suite green. Read this file first, then `IMPLEMENTATION_PLAN.md`.
@@ -11,14 +11,25 @@ clean, suite green. Read this file first, then `IMPLEMENTATION_PLAN.md`.
 **M2** — Lance+IVF-PQ vs sqlite-vec, or deleting the vector store entirely, which drops a
 91 MB dependency, a ~7 h embed, and 470 MB RAM at the 153k-chunk scale target.
 
-**Q1 is AMBIGUOUS. M2 is BLOCKED.** Exactly one open line of attack remains (§4).
+**Q1 is still OPEN/AMBIGUOUS. M2 is still BLOCKED.** What changed this session: the one
+caveat that was previously *unmeasured* — whether lexical degrades with corpus scale where
+hybrid does not — is now **MEASURED AND CONFIRMED, but marginal**. Q1/SCALE (nested-tier
+rank scale-out on vscode@`5ebbe53`, 138,440 chunks) found the decision-bearing S-ident
+stratum's exact Wilcoxon significant (p = 0.0213, 13+/3− of 16 non-zero pairs, lexical
+degrading more) with an all-n BCa 95% CI on Δ of **[+1.3, +11.3] pp** (θ̂ = +6.7 pp) — **below
+the registration's own 10 pp materiality line at the point estimate**, and hit-rule-sensitive
+between CONFIRMED (p=0.021, registered rule) and AMBIGUOUS (p=0.096, pre-amendment rule).
+Both readings route to the same next action (§4). Commits: registration `3e497da` →
+AMENDMENT 1 (design review) `3d17220` → instrument `c15f684` → gates + scored evidence
+`f40f2bf` → this session's RESULT + AMENDMENT 2 write-up (see `IMPLEMENTATION_PLAN.md`,
+"Q1/SCALE RESULT" and the results review at `eval/results/q1-scale-results-review.md`).
 
 Do **not** skip to M2's A-vs-C backend benchmark. That is the expensive step this entire
 investigation exists to gate.
 
 ---
 
-## 2. The state of the argument — three independent lines now converge
+## 2. The state of the argument — four independent lines now converge
 
 This is the single most important thing to inherit. Each was pre-registered before running.
 
@@ -33,9 +44,24 @@ This is the single most important thing to inherit. Each was pre-registered befo
 3. **Q4 (win-class labelling).** Hybrid's advantage is *flat* — no nameable query class
    carries it (short +0.125 vs long +0.130). And **only 2 of 59 gold queries across all
    three sets are identifier-bearing**: 97% of the ranking evidence base is prose.
+4. **Q1/SCALE (the 153k rank scale-out, this session).** On the identifier-bearing stratum
+   ONLY, lexical's `in_window@10` degrades more than hybrid's as the corpus grows 15k → 138k:
+   direction confirmed at retrieval level, **+6.7 pp [+1.3, +11.3] CI**, hit-rule-sensitive
+   between CONFIRMED (p=0.021) and AMBIGUOUS (p=0.096) depending on whether the AMENDMENT-1
+   dedup-counterpart hit rule is applied. State the weight honestly: this is a marginal,
+   identifier-stratum-specific, sub-materiality retrieval effect, not an established
+   outcome-relevant one — S-approx (split-identifier queries) and S-prose show **no**
+   significant scale differential. Mechanism verified in code: `hybridSearch`'s lexical path
+   (`src/search/hybrid.ts`) ranks only via trigram `chunk_fts`; `identifier_fts` exists
+   (`src/search/fts.ts`) but is consulted only for zero-result suggestions, never for ranking
+   — exact identifiers get no exact-token lexical anchor and dilute with scale, while the
+   vector arm anchors on the declaration embedding regardless of corpus size.
 
-**Joint conclusion: ranking metrics on prose gold sets cannot settle Q1.** Items (3) and (4)
-of the old order are retired as sources of a verdict. Do not re-open them hoping for one.
+**Joint conclusion: ranking metrics on prose gold sets cannot settle Q1, and the scale-out
+does not settle it either — it narrows the caveat instead of discharging it.** Items (3) and
+(4) of the old order [Q4, the harvest] are retired as sources of a verdict; the scale-out
+(item 5 of the old order) is now measured and is ALSO retired as a further verdict source —
+see §3. Do not re-open any of them hoping for one.
 
 **The load-bearing mechanism, measured:** agents never search using the question's wording —
 **0 of 147** logged searches did. They rewrite into code-token shorthand first. A reader who
@@ -64,33 +90,51 @@ moved and outcomes did not.
   kluster-normal *loses* significance (t = 2.206 vs crit 2.228). The defensible claim is
   "the home-field result is not robust to the choice of lexical baseline," **not** "vectors
   are dead."
+- **The 153k scale-out (Q1/SCALE, this session).** Pre-registered `3e497da`, adversarial
+  design review `3d17220`, instrument `c15f684`, gates + scored evidence `f40f2bf`. Verdict:
+  row 1, SCALE CAVEAT CONFIRMED (marginal — see §1, §2). **Do not re-run this hoping for a
+  cleaner verdict.** The registered escalation path on an AMBIGUOUS-adjacent result is
+  "increase n," never "reinterpret" or "re-score" — and this result is not AMBIGUOUS, it is a
+  hit-rule-sensitive CONFIRMED with an honestly marginal magnitude. The marginal result is
+  what it is; treat a request to re-run it as a sign the reader wants a different answer, not
+  a more accurate one.
 
 ---
 
-## 4. YOUR NEXT ACTION — item (5), the 153k scale-out
+## 4. YOUR NEXT ACTION — two live lines, in this order
 
-**This is the only remaining attack on the one caveat that blocks M2.**
+**Item (5) of the old order (the 153k scale-out) is DONE — see §3.** Two lines remain live.
 
-The gap: every benefit measurement is at **~14.5k chunks**; the cost (91 MB / ~7 h / 470 MB)
-is priced at **153k**. BM25 over OR'd trigrams plausibly degrades as the corpus grows (more
-distractors sharing trigrams) in a way vectors may not. **A SUPPORTED verdict at 14.5k does
-not license deletion at 153k** — this is registered as verdict-blocking, and it is the
-honest reason Q1 is still open despite three converging lines.
+### (a) The `identifier_fts` fusion lever — cheapest attack, do this first
 
-**Do this, and only this, first:** scale out **Gate 4's rank-delta pre-check** (`eval/ab-rank-check.mjs`)
-onto a ~153k-chunk corpus. It needs **no agent runs and no gold set** — it measures, per
-query, the rank of a known target under hybrid vs lexical. Cheap in tokens; the cost is a
-~7 h embed. Suggested corpus: vscode (the 153k figure came from it).
+Q1/SCALE's mechanism finding (§2, item 4): hybrid's scale protection exists only when the
+exact identifier is in the query, and the shipped `hybridSearch` (`src/search/hybrid.ts`)
+never folds `identifier_fts` into its RRF ranking — it is wired only into the zero-result
+suggestion path (`gatherSuggestions`, `hybrid.ts:255-301`). Pre-register a ranking experiment
+that adds an `identifier_fts` ranker to the RRF fusion and re-scores the S-ident stratum
+**on the EXISTING T1–T4 tier states** — they are built, embedded, and frozen; this is a
+ranking-code change only, **zero new embed cost**. If the lever closes the S-ident scale gap,
+the delete arm re-opens (lexical-only can match hybrid at scale without vectors). If it does
+not, vectors have a defensible scale niche and Q1 tilts pro-vector at the identifier
+stratum specifically. Either outcome is informative and cheap; do this before spending on (b).
 
-Pre-register before running, per §6. In particular pre-state:
-- What result would show lexical *degrading* with scale (the pro-vector outcome), and what
-  would show the 14.5k picture holding.
-- That this measures **retrieval**, not outcomes — it cannot by itself resolve Q1 in the
-  pro-vector direction without an outcome test at that scale.
+### (b) The outcome test at scale — Reserve, expensive, only if (a) fails or is challenged
 
-**Reserve (pre-thought, NOT commitments):** an outcome A/B at 153k; a `--no-embeddings`
-container A/B; shipping D0 (a real `mast search` CLI) so the A/B harness's Bash-surface
-caveat disappears.
+The scale-out measures **retrieval**, not outcomes (registered scope limit, unchanged by the
+result). Q1/OUTCOME already showed rank movement does not imply outcome movement at 14.5k;
+whether that holds at 138k is untested. This is the expensive follow-up — an outcome A/B at
+scale, same shape as Q1/OUTCOME — and it is only warranted if (a) fails to neutralize the
+scale caveat, or if (a)'s result is itself challenged on review.
+
+**The organic harvest remains the only instrument for real-query evidence** (unchanged from
+before this session) — every stratum in this program, including Q1/SCALE's S-ident/S-approx/
+S-prose, is synthetic/TSDoc-derived, not agent-authored.
+
+**Reserve (pre-thought, NOT commitments, carried from before plus Q1/SCALE's own reserve):**
+a `--no-embeddings` container A/B; shipping D0 (a real `mast search` CLI) so the A/B harness's
+Bash-surface caveat disappears; a fifth tier at ~30k if the dose–response curve needs
+resolution between 15k and 50k; the directory-based tier partition as a sensitivity analysis;
+multi-seed T1 sensitivity.
 
 ---
 
@@ -111,6 +155,28 @@ caveat disappears.
   omitting it gets zero results with no error. Always pass it explicitly.
 - **`hybrid.ts:102-104`** swallows embedder failure and silently returns `mode: "lexical"`.
   Any hybrid-arm harness must assert `mode` per call or it can decay mid-experiment.
+- **`runSelfCheck` (Q1/SCALE instrument) under-counts its own mismatch tally** — it excludes
+  reconstruction failures and mode-integrity failures from the count it reports. Gate 2's
+  reported 80/80 relied on a wider criterion computed externally by the runner, not by the
+  instrument itself. Fix `runSelfCheck` to count what Gate 2 actually requires before reuse.
+- **`scale-rank-check.mjs` and `scale-score.mjs` ship with no working CLI entry points** for
+  the scored sweep / self-check / scorer their own header comments document. The working
+  invocation is the three runner-authored driver scripts committed at `f40f2bf`
+  (`scale-run-selfcheck.mjs`, `scale-run-measure.mjs`, `scale-run-score.mjs`) — use those, not
+  the instrument files directly, until CLI entry points are added.
+- **`RESULTS_DIR` in `eval/paths.mjs` resolves to `~/.cache/mast-eval/results/`, not the
+  repo's `eval/results/`.** `scale-embed-tiers.mjs`'s Gate 0(c)/(d) output writes there by
+  default; it was copied into `eval/results/` by hand for the committed record. Any script
+  that imports `RESULTS_DIR` from `paths.mjs` needs its output copied in the same way, or the
+  gate evidence silently lives outside the repo.
+- **`sqliteChunkStore.replaceChunksForFile` (`src/store/sqliteChunkStore.ts:55-70`) issues one
+  unbatched multi-row `INSERT`** for all of a file's chunks. At 11 columns/row, SQLite's
+  32,766-parameter ceiling caps a single file at ~2,979 chunks; a larger file's insert rolls
+  back **entirely** — loud (`write_errors` increments, CLI exit code 1), not silent, but
+  **orchestration that gates only on exit code and not on `write_errors` would still silently
+  drop the file's chunks.** Found via vscode's two whale fixture files (146,620-line and
+  11,190-line). Not fixed in this program — batch the insert before trusting a corpus with
+  files anywhere near that size.
 
 ---
 
@@ -141,31 +207,44 @@ caveat disappears.
 
 - **Run every script from `packages/mast`**, never the repo root.
 - **Off-repo assets: see `eval/ASSETS.md`** — what each contains, which experiment needs it,
-  rebuild cost. ~590 MB of embedded state = ~45 min compute. Remove worktrees with
-  `git worktree remove`, never `rm -rf`. `~/.cache/mast-eval/ab-wt` (1.5 GB) is disposable.
+  rebuild cost. ~590 MB of embedded state (pre-Q1/SCALE assets) = ~45 min compute; the
+  Q1/SCALE vscode assets add substantially more — see `ASSETS.md`'s new entries (~7.4 h embed
+  measured for the full corpus). Remove worktrees with `git worktree remove`, never `rm -rf`.
+  `~/.cache/mast-eval/ab-wt` (1.5 GB) is disposable.
 - **Never** open `graph.db` with `?mode=ro&immutable=1` for metrics reads — WAL-blind,
   reports `metrics` as empty. This cost a session a false conclusion.
 - `MAST_EVAL_STATE` required by nearly every script; `MAST_EVAL_R2=1` required by
   `build-corpus.mjs` or you rebuild the void v1 corpus.
-- **Evidence is committed** under `eval/results/` — all 30 run outputs, the 147-call search
-  log, the sealed arm manifest, every results JSON. `eval/README.md` is STALE.
-- Verification baseline: `pnpm -F mast test` → 382 tests / 34 files; `typecheck`; `lint`;
-  `pnpm align:check`. **align reports red at +3 baselined debt (324→327) — PRE-EXISTING**,
-  identical at `c21a199`, self-reported "provisional". Do not attribute it to your changes.
+- **Evidence is committed** under `eval/results/` — all 30 Q1/OUTCOME run outputs, the
+  147-call search log, the sealed arm manifest, all Q1/SCALE gate + measure + score JSON, and
+  the Q1/SCALE results review. `eval/README.md` is STALE.
+- Verification baseline: `pnpm -F mast test` → **455 tests / 36 files** (was 382/34 before
+  Q1/SCALE; the +73 tests / +2 files are the Wilcoxon-exact and scorer instrument tests,
+  gated green before any measurement per Gate 1); `typecheck`; `lint`; `pnpm align:check`.
+  **align reports red at +3 baselined debt (324→327) — PRE-EXISTING**, identical at
+  `c21a199`, self-reported "provisional". Do not attribute it to your changes.
 - Session commits: `ad88009` (registration) → `e61008c` (instrument+gates) → `e26a3ca`
   (outcome) → `f75cdc4` (AMENDMENT 3) → `b99db64` / `ed9eb03` (arm V) → `5c6ef80` (prompt
-  record + evidence) → `ca768e2` (Q4 + assets).
+  record + evidence) → `ca768e2` (Q4 + assets) → `77d4f63` (cold-start handoff) → `3e497da`
+  (Q1/SCALE registration) → `3d17220` (Q1/SCALE AMENDMENT 1) → `c15f684` (Q1/SCALE instrument)
+  → `f40f2bf` (Q1/SCALE gates + scored evidence) → this session's RESULT + AMENDMENT 2 +
+  handoff update.
 
 ---
 
 ## 8. Two things I would flag about this handoff
 
 It leads with the **converging-lines** section rather than the next task, because the
-biggest risk to you is re-opening Q4 or the harvest hoping for a verdict. They are retired
-as verdict sources; only the scale question is live.
+biggest risk to you is re-opening Q4, the harvest, or the scale-out hoping for a cleaner
+verdict. All three are retired as verdict sources — Q4 and the harvest structurally, the
+scale-out because it is now measured and its marginality is the honest answer, not an
+artifact to be re-run away. Only the two lines in §4 are live.
 
-It carries the **counter-evidence prominently** — the LOO-baseline significance loss, and
-the fact that the reframe's own premise (Recall@10 = 1.000) did *not* generalise to the
-outcome task set (target chunk in-window 3/12 for both arms). This program's failures have
-all been biases favouring a conclusion someone already held. An inherited summary that
+It carries the **counter-evidence prominently** — the LOO-baseline significance loss, the
+fact that the reframe's own premise (Recall@10 = 1.000) did *not* generalise to the outcome
+task set (target chunk in-window 3/12 for both arms), and now Q1/SCALE's own four required
+caveats (hit-rule sensitivity between CONFIRMED and AMBIGUOUS; magnitude below the
+registration's own materiality line; consistency triggers that structurally could not have
+demoted CONFIRMED; sign-test-equivalence with two near-twin pairs). This program's failures
+have all been biases favouring a conclusion someone already held. An inherited summary that
 buried those would recreate exactly that, with the sign flipped.
