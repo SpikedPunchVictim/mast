@@ -1,0 +1,333 @@
+{
+  "ran_at": "2026-08-03T18:47:44.444Z",
+  "source_raw_file": "eval/results/declex-measure-smoke-combined.json",
+  "source_row_count": 3,
+  "source_sha256": "1e20786161c8483442e0c1d0533e5484b34519c13027fa4084177e3ebada3695",
+  "query_set_counts": {
+    "fresh": 3,
+    "original": 0
+  },
+  "efficacy": {
+    "n": 0,
+    "wilcoxon": {
+      "n": 0,
+      "nTotal": 0,
+      "W": null,
+      "p": null,
+      "significant": false,
+      "direction": "zero",
+      "degenerate": true,
+      "underpowered": true
+    },
+    "bca_ci": {
+      "thetaHat": null,
+      "lo": null,
+      "hi": null
+    }
+  },
+  "decision_bearing": {
+    "stratum": "s_ident",
+    "n": 0,
+    "wilcoxon": {
+      "n": 0,
+      "nTotal": 0,
+      "W": null,
+      "p": null,
+      "significant": false,
+      "direction": "zero",
+      "degenerate": true,
+      "underpowered": true
+    },
+    "hodges_lehmann_descriptive_only": {
+      "estimate": null,
+      "ci": [
+        null,
+        null
+      ]
+    },
+    "bca_delta_ci": {
+      "thetaHat": null,
+      "lo": null,
+      "hi": null
+    },
+    "level_contrast_l_plus_d_minus_l": {
+      "pooled": {
+        "theta_hat": null,
+        "lo": null,
+        "hi": null,
+        "n_queries": 0
+      },
+      "per_tier": {
+        "T1": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T2": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T3": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T4": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        }
+      }
+    }
+  },
+  "harm": {
+    "fire_rate_floor": 0.1,
+    "off_stratum": {
+      "s_approx": {
+        "state": "HARM_NULL",
+        "fire_rate": null,
+        "ci": null,
+        "n_queries": 0
+      },
+      "s_prose": {
+        "state": "HARM_NULL",
+        "fire_rate": null,
+        "ci": null,
+        "n_queries": 0
+      }
+    },
+    "fire_rate_aggregate": {
+      "s_ident": {
+        "pooled": null,
+        "T1": null,
+        "T2": null,
+        "T3": null,
+        "T4": null
+      },
+      "s_approx": {
+        "pooled": null,
+        "T1": null,
+        "T2": null,
+        "T3": null,
+        "T4": null
+      },
+      "s_prose": {
+        "pooled": null,
+        "T1": null,
+        "T2": null,
+        "T3": null,
+        "T4": null
+      }
+    }
+  },
+  "supporting": {
+    "s_approx": {
+      "n": 0,
+      "bca_delta_ci": {
+        "thetaHat": null,
+        "lo": null,
+        "hi": null
+      }
+    },
+    "s_prose": {
+      "n": 0,
+      "bca_delta_ci": {
+        "thetaHat": null,
+        "lo": null,
+        "hi": null
+      }
+    },
+    "delta_log2_rank_co_metric": {
+      "n": 0,
+      "bca_ci": {
+        "lo": null,
+        "hi": null
+      },
+      "theta_hat": null
+    }
+  },
+  "off_stratum_level_report_l_plus_d_minus_h": {
+    "s_approx": {
+      "pooled": {
+        "thetaHat": null,
+        "lo": null,
+        "hi": null,
+        "z0": null,
+        "a": null,
+        "B": 10000,
+        "seed": 3201,
+        "alpha": 0.05,
+        "n_queries": 0
+      },
+      "per_tier": {
+        "T1": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T2": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T3": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T4": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        }
+      }
+    },
+    "s_prose": {
+      "pooled": {
+        "thetaHat": null,
+        "lo": null,
+        "hi": null,
+        "z0": null,
+        "a": null,
+        "B": 10000,
+        "seed": 3202,
+        "alpha": 0.05,
+        "n_queries": 0
+      },
+      "per_tier": {
+        "T1": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T2": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T3": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        },
+        "T4": {
+          "n": 0,
+          "theta_hat": null,
+          "lo": null,
+          "hi": null
+        }
+      }
+    }
+  },
+  "descriptive_only": {
+    "h_plus_d": {
+      "arm": "H+D",
+      "n": 0,
+      "wilcoxon": {
+        "n": 0,
+        "nTotal": 0,
+        "W": null,
+        "p": null,
+        "significant": false,
+        "direction": "zero",
+        "degenerate": true,
+        "underpowered": true
+      },
+      "bca_delta_ci": {
+        "thetaHat": null,
+        "lo": null,
+        "hi": null
+      }
+    },
+    "l_plus_d_esc": {
+      "arm": "L+D+esc",
+      "n": 0,
+      "wilcoxon": {
+        "n": 0,
+        "nTotal": 0,
+        "W": null,
+        "p": null,
+        "significant": false,
+        "direction": "zero",
+        "degenerate": true,
+        "underpowered": true
+      },
+      "bca_delta_ci": {
+        "thetaHat": null,
+        "lo": null,
+        "hi": null
+      }
+    }
+  },
+  "escape_cap_sweep": [
+    {
+      "escape_cap": 20,
+      "n_rows": 1,
+      "fire_rate_by_stratum": {
+        "s_ident": {
+          "pooled_fire_rate": null
+        },
+        "s_approx": {
+          "pooled_fire_rate": null
+        },
+        "s_prose": {
+          "pooled_fire_rate": null
+        }
+      },
+      "lowercase_match_count_distribution": [
+        0
+      ]
+    }
+  ],
+  "verdict": {
+    "efficacy": {
+      "passes": false,
+      "reverse_significant": false,
+      "ci": {
+        "lo": null,
+        "hi": null
+      }
+    },
+    "shape": "AMBIGUOUS_SHAPE",
+    "verdict": "DECLEX_INERT_LEVER",
+    "reasoning": [
+      "Efficacy FAILS (ci=[null, null]) AND Δ′ does not meet the GAP CLOSED criteria -> INERT-LEVER."
+    ],
+    "escalated_to_ambiguous": false
+  },
+  "projection_provenance": {
+    "NOTE": "projection-provenance data (mined-from, non-evidentiary) — original-400 re-score, direct test of the F-R2 projection ONLY. Never cited in verdict prose (AMENDMENT 1, F-9).",
+    "n_original_rows": 0,
+    "f_r2_projection": {
+      "t4_s_ident_in_window_rate": 0.98,
+      "t4_s_approx_in_window_rate": 0.84,
+      "t4_s_prose_in_window_rate": 0.82
+    },
+    "original_400_t4_rates": {
+      "s_ident_l_plus_d": null,
+      "s_approx_l_plus_d": null,
+      "s_prose_l_plus_d": null,
+      "s_approx_l": null,
+      "s_prose_l": null
+    },
+    "divergence_delta": {
+      "s_ident": null,
+      "s_approx_vs_projection": null,
+      "s_prose_vs_projection": null,
+      "s_approx_vs_l_exactly": null,
+      "s_prose_vs_l_exactly": null
+    }
+  }
+}

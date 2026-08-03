@@ -1,0 +1,41 @@
+{
+  "ran_at": "2026-08-03T18:47:07.119Z",
+  "schema_version": "1.0.0-declex",
+  "query_set": "fresh",
+  "escape_cap": 20,
+  "rows": [
+    {
+      "query_id": "probe_0",
+      "stratum": "probe",
+      "tier": "T1",
+      "arm": "L+D+esc",
+      "query_set": "fresh",
+      "mode": "lexical",
+      "mode_integrity_valid": true,
+      "rank": 1,
+      "hit_case": "exact",
+      "suppression_event": false,
+      "censored_rank": 1,
+      "in_window_10": true,
+      "pre_dedup_rank": 1,
+      "d_diagnostic": {
+        "fired": true,
+        "top_match_channel": "full",
+        "candidate_count": 1,
+        "target_reach": {
+          "full_name": true,
+          "segment": false,
+          "shell_counterpart": false,
+          "any": true
+        },
+        "escape_eligible_terms": [
+          "emitted"
+        ],
+        "lowercase_token_match_counts": {
+          "emitted": 0
+        }
+      },
+      "escape_cap": 20
+    }
+  ]
+}
