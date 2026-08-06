@@ -306,6 +306,33 @@ describe('mast_search', () => {
     expect(parsedResults[0]).toHaveProperty('file_path');
     expect(parsedResults[0]).toHaveProperty('symbol_name');
   });
+
+  // Stage 6.3 — D-fire telemetry is persisted to `metrics.declex_json` for the
+  // kill-switch/re-entry decision (M2 decision memo condition 3), but must
+  // NEVER leak into the tool's own response payload (only `{mode, results,
+  // suggestions}` is contracted, ast/types.ts's SearchResponse). `Circle` is
+  // D-eligible (uppercase) and matches `models.ts`'s `Circle` class exactly,
+  // so this exercises the D-fired path specifically, not just D-absent.
+  it('records D-fire telemetry into metrics.declex_json without leaking a declex field into the response', async () => {
+    const res = await call('mast_search', { query: 'Circle' }) as Record<string, unknown>;
+    expect(Object.keys(res)).not.toContain('declex');
+    expect(JSON.stringify(res)).not.toContain('declex');
+
+    await flushPendingMetricsWrite();
+
+    const row = await db
+      .selectFrom('metrics')
+      .selectAll()
+      .where('tool_name', '=', 'mast_search')
+      .where('session_id', '=', 'test-session')
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
+    expect(row).toBeDefined();
+    expect(row!.declex_json).not.toBeNull();
+    const parsedDeclex = JSON.parse(row!.declex_json!) as { fired: boolean };
+    expect(parsedDeclex.fired).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -34,6 +34,7 @@ const DEFAULTS: MastConfig = {
   ],
   embedding_model: 'jinaai/jina-embeddings-v2-base-code',
   rrf_k: 60,
+  declaration_exact_ranker: true,
   chunk_split_threshold: 100,
   context_lines: 3,
   markdown_heading_depth: 2,

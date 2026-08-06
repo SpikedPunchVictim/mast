@@ -144,6 +144,13 @@ export interface MastConfig {
   // default exists.
   /** Reciprocal Rank Fusion constant k (default 60). */
   readonly rrf_k: number;
+  /**
+   * F18 kill-switch (M2 decision memo condition 3): fuses the declaration-exact
+   * ranker (ranker D, `src/search/declex.ts`) into `mast_search` ranking as a
+   * third RRF input. Default true. Set false to restore pre-F18 ranking
+   * without a code change.
+   */
+  readonly declaration_exact_ranker: boolean;
   /** Lines above which a declaration is split into overlapping sub-chunks. */
   readonly chunk_split_threshold: number;
   /** Source lines before/after AST boundaries included in stored content. */

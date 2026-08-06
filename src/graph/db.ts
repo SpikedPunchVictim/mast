@@ -94,6 +94,14 @@ interface MetricsTable {
    * not yet record result identity and for pre-migration rows.
    */
   readonly results_json: string | null;
+  /**
+   * JSON of ranker D's (declaration-exact, `../search/declex.ts`) fire
+   * diagnostics and window effects on this `mast_search` call — the input
+   * signal for the F18 kill-switch and re-entry criteria (M2 decision memo
+   * condition 3). Null when D did not fire, or when the
+   * `declaration_exact_ranker` flag was off, and for pre-migration rows.
+   */
+  readonly declex_json: string | null;
 }
 
 /**
@@ -309,7 +317,8 @@ CREATE TABLE IF NOT EXISTS metrics (
   session_id                   TEXT NOT NULL,
   status                       TEXT NOT NULL,
   args_json                    TEXT,
-  results_json                 TEXT
+  results_json                 TEXT,
+  declex_json                  TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(call_timestamp);
@@ -399,6 +408,8 @@ export function openDatabase(stateDir: string): Db {
   for (const [name, ddl] of [
     ['args_json', 'ALTER TABLE metrics ADD COLUMN args_json TEXT'],
     ['results_json', 'ALTER TABLE metrics ADD COLUMN results_json TEXT'],
+    // Stage 6.3 — D-fire telemetry (§ MetricsTable.declex_json above).
+    ['declex_json', 'ALTER TABLE metrics ADD COLUMN declex_json TEXT'],
   ] as const) {
     if (!metricsColumns.has(name)) sqlite.exec(ddl);
   }

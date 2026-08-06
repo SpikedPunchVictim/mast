@@ -13,8 +13,10 @@ import {
   buildToolStats,
   buildArgsJson,
   buildResultsJson,
+  buildDeclexJson,
 } from '../metrics.js';
 import { TOKENIZER_LABEL } from '../tokenizer.js';
+import type { DeclexTelemetry } from '../../search/hybrid.js';
 
 // ---------------------------------------------------------------------------
 // Tokenizer label — honest approximate framing (§14.5)
@@ -149,6 +151,36 @@ describe('recordToolCall', () => {
     const row = await db.selectFrom('metrics').selectAll().executeTakeFirst();
     expect(row!.args_json).toBeNull();
     expect(row!.results_json).toBeNull();
+  });
+
+  // Stage 6.3 — D-fire telemetry (M2 decision memo condition 3).
+  it('stores declex_json when provided', async () => {
+    await recordToolCall(db, {
+      toolName: 'mast_search',
+      tokensReturned: 10,
+      tokensFullFileBound: 0,
+      durationMs: 5,
+      sessionId: 's1',
+      status: 'ok',
+      declexJson: '{"fired":true,"top_match_channel":"full","candidate_count":1,"window_effects":[]}',
+    });
+
+    const row = await db.selectFrom('metrics').selectAll().executeTakeFirst();
+    expect(row!.declex_json).toBe('{"fired":true,"top_match_channel":"full","candidate_count":1,"window_effects":[]}');
+  });
+
+  it('stores NULL for declex_json when omitted (D did not fire or the flag is off)', async () => {
+    await recordToolCall(db, {
+      toolName: 'mast_search',
+      tokensReturned: 10,
+      tokensFullFileBound: 0,
+      durationMs: 5,
+      sessionId: 's1',
+      status: 'ok',
+    });
+
+    const row = await db.selectFrom('metrics').selectAll().executeTakeFirst();
+    expect(row!.declex_json).toBeNull();
   });
 
   it('creates separate daily rows for different tools', async () => {
@@ -414,5 +446,66 @@ describe('buildResultsJson', () => {
 
   it('handles an empty identity list', () => {
     expect(JSON.parse(buildResultsJson([]))).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildDeclexJson — D-fire telemetry for `metrics.declex_json` (Stage 6.3,
+// M2 decision memo condition 3)
+// ---------------------------------------------------------------------------
+
+describe('buildDeclexJson', () => {
+  function makeTelemetry(effectCount: number): DeclexTelemetry {
+    return {
+      fired: true,
+      top_match_channel: 'full',
+      candidate_count: effectCount,
+      window_effects: Array.from({ length: effectCount }, (_, i) => ({
+        chunk_id: `c${i}`,
+        symbol_name: `sym${i}`,
+        rank_with_d: i + 1,
+        rank_without_d: i + 2,
+      })),
+    };
+  }
+
+  it('passes window_effects through untouched when under the cap', () => {
+    const telemetry = makeTelemetry(3);
+    const parsed = JSON.parse(buildDeclexJson(telemetry)) as {
+      fired: boolean;
+      top_match_channel: string | null;
+      candidate_count: number;
+      window_effects: unknown[];
+      _truncated?: number;
+    };
+
+    expect(parsed.fired).toBe(true);
+    expect(parsed.top_match_channel).toBe('full');
+    expect(parsed.candidate_count).toBe(3);
+    expect(parsed.window_effects).toEqual(telemetry.window_effects);
+    expect(parsed._truncated).toBeUndefined();
+  });
+
+  it('caps window_effects at 10 entries and states the drop count honestly at the top level', () => {
+    const telemetry = makeTelemetry(12);
+    const parsed = JSON.parse(buildDeclexJson(telemetry)) as {
+      window_effects: unknown[];
+      _truncated?: number;
+    };
+
+    expect(parsed.window_effects).toHaveLength(10);
+    expect(parsed.window_effects).toEqual(telemetry.window_effects.slice(0, 10));
+    expect(parsed._truncated).toBe(2);
+  });
+
+  it('produces valid JSON', () => {
+    expect(() => JSON.parse(buildDeclexJson(makeTelemetry(15)))).not.toThrow();
+  });
+
+  it('respects a custom capEntries', () => {
+    const telemetry = makeTelemetry(5);
+    const parsed = JSON.parse(buildDeclexJson(telemetry, 2)) as { window_effects: unknown[]; _truncated?: number };
+    expect(parsed.window_effects).toHaveLength(2);
+    expect(parsed._truncated).toBe(3);
   });
 });

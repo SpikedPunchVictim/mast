@@ -1,6 +1,7 @@
 import { sql } from 'kysely';
 import type { Db } from '../graph/db.js';
 import type { ToolStats, SearchMode } from '../ast/types.js';
+import type { DeclexTelemetry } from '../search/hybrid.js';
 
 // ---------------------------------------------------------------------------
 // Metrics persistence
@@ -18,6 +19,8 @@ export interface RecordToolCallOptions {
   readonly argsJson?: string;
   /** Pre-serialised via {@link buildResultsJson}. Omitted for tools that don't yet record result identity. */
   readonly resultsJson?: string;
+  /** Pre-serialised via {@link buildDeclexJson}. Omitted when ranker D did not fire or the flag was off. */
+  readonly declexJson?: string;
 }
 
 /**
@@ -47,6 +50,7 @@ export async function recordToolCall(
       status:                       options.status,
       args_json:                    options.argsJson ?? null,
       results_json:                 options.resultsJson ?? null,
+      declex_json:                  options.declexJson ?? null,
     })
     .execute();
 
@@ -306,4 +310,38 @@ export function buildResultsJson(
   const kept = identities.slice(0, cap);
   const droppedCount = identities.length - cap;
   return JSON.stringify([...kept, { _truncated: droppedCount }]);
+}
+
+// ---------------------------------------------------------------------------
+// D-fire telemetry — `metrics.declex_json` (Stage 6.3, M2 decision memo
+// condition 3: the input signal for the F18 kill-switch and re-entry
+// criteria).
+// ---------------------------------------------------------------------------
+
+const DECLEX_JSON_ENTRY_CAP = 10;
+
+/**
+ * Serialise ranker D's fire telemetry for `metrics.declex_json`, capping
+ * `window_effects` at {@link DECLEX_JSON_ENTRY_CAP} entries.
+ *
+ * Truncation shape: a top-level `_truncated: <dropped count>` field is set
+ * (nothing appended to `window_effects` itself) — {@link buildArgsJson}'s
+ * convention of a top-level marker rather than {@link buildResultsJson}'s
+ * appended-sentinel-element, because `window_effects` here is one field of a
+ * larger diagnostics object (fired/top_match_channel/candidate_count sit
+ * alongside it), not a bare list — a marker mixed into the array would be
+ * indistinguishable from a real (malformed) effect on parse.
+ */
+export function buildDeclexJson(telemetry: DeclexTelemetry, capEntries = DECLEX_JSON_ENTRY_CAP): string {
+  const { window_effects, ...rest } = telemetry;
+  if (window_effects.length <= capEntries) {
+    return JSON.stringify({ ...rest, window_effects });
+  }
+
+  const droppedCount = window_effects.length - capEntries;
+  return JSON.stringify({
+    ...rest,
+    window_effects: window_effects.slice(0, capEntries),
+    _truncated: droppedCount,
+  });
 }

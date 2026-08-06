@@ -140,6 +140,19 @@ describe('SQLite schema initialisation', () => {
       raw.close();
     }
   });
+
+  it('creates the metrics table with declex_json on a fresh database', () => {
+    const raw = new Sqlite(join(tmpDir, 'graph.db'));
+    try {
+      const columns = raw
+        .prepare('PRAGMA table_info(metrics)')
+        .all() as { name: string }[];
+      const names = new Set(columns.map((c) => c.name));
+      expect(names.has('declex_json')).toBe(true);
+    } finally {
+      raw.close();
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -203,6 +216,73 @@ describe('metrics table — additive column migration', () => {
       expect(row.tool_name).toBe('mast_search');
       expect(row.args_json).toBeNull();
       expect(row.results_json).toBeNull();
+    } finally {
+      raw.close();
+      void db.destroy();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// metrics table — declex_json additive column migration (Stage 6.3, same
+// ALTER TABLE ADD COLUMN precedent as args_json/results_json above). A
+// database created before declex_json existed must gain the column on next
+// `openDatabase` without a schema version bump and without losing rows.
+// ---------------------------------------------------------------------------
+
+describe('metrics table — declex_json additive column migration', () => {
+  let declexMigrationTmpDir: string;
+
+  beforeAll(() => {
+    declexMigrationTmpDir = mkdtempSync(join(tmpdir(), 'mast-declex-migration-test-'));
+  });
+
+  afterAll(() => {
+    rmSync(declexMigrationTmpDir, { recursive: true, force: true });
+  });
+
+  it('adds declex_json to a pre-existing metrics table and preserves old rows as NULL', () => {
+    // Simulate a database created before this migration existed: the metrics
+    // table shape WITH args_json/results_json (the prior migration) but
+    // WITHOUT declex_json, plus one row written under that shape.
+    const dbPath = join(declexMigrationTmpDir, 'graph.db');
+    const oldSchemaDb = new Sqlite(dbPath);
+    oldSchemaDb.exec(`
+      CREATE TABLE metrics (
+        id                           INTEGER PRIMARY KEY,
+        tool_name                    TEXT NOT NULL,
+        call_timestamp               REAL NOT NULL,
+        tokens_returned              INTEGER NOT NULL,
+        tokens_full_file_upper_bound INTEGER NOT NULL,
+        duration_ms                  INTEGER NOT NULL,
+        mode                         TEXT,
+        session_id                   TEXT NOT NULL,
+        status                       TEXT NOT NULL,
+        args_json                    TEXT,
+        results_json                 TEXT
+      );
+    `);
+    oldSchemaDb.prepare(`
+      INSERT INTO metrics
+        (tool_name, call_timestamp, tokens_returned, tokens_full_file_upper_bound, duration_ms, mode, session_id, status, args_json, results_json)
+      VALUES ('mast_search', 1700000000, 42, 0, 5, NULL, 'old-session', 'ok', NULL, NULL)
+    `).run();
+    oldSchemaDb.close();
+
+    // Opening via the real code path must migrate the table in place.
+    const db = openDatabase(declexMigrationTmpDir);
+    const raw = new Sqlite(dbPath);
+    try {
+      const columns = raw.prepare('PRAGMA table_info(metrics)').all() as { name: string }[];
+      const names = new Set(columns.map((c) => c.name));
+      expect(names.has('declex_json')).toBe(true);
+
+      const row = raw.prepare('SELECT * FROM metrics WHERE session_id = ?').get('old-session') as {
+        tool_name: string;
+        declex_json: string | null;
+      };
+      expect(row.tool_name).toBe('mast_search');
+      expect(row.declex_json).toBeNull();
     } finally {
       raw.close();
       void db.destroy();

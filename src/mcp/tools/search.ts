@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { SearchResponse } from '../../ast/types.js';
-import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
+import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson, buildDeclexJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { hybridSearch } from '../../search/hybrid.js';
 
@@ -20,12 +20,12 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
     },
     async (args) => {
       const start = Date.now();
-      const { mode, results, suggestions } = await hybridSearch(
+      const { mode, results, suggestions, declex } = await hybridSearch(
         ctx.db,
         ctx.lance,
         ctx.getEmbedder(),
         args,
-        { rrf_k: ctx.config.rrf_k },
+        { rrf_k: ctx.config.rrf_k, declaration_exact_ranker: ctx.config.declaration_exact_ranker },
         ctx.chunkStore,
       );
       const filesReferenced = [...new Set(results.map((r) => r.file_path))];
@@ -46,11 +46,17 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       // target something this search returned?" evidence for the capsule
       // instrumentation decision (IMPLEMENTATION_PLAN_VEXP.md §P, 2026-07-15).
       const resultIdentities = results.map((r) => ({ file_path: r.file_path, symbol_name: r.symbol_name }));
+      // Stage 6.3 — D-fire telemetry (M2 decision memo condition 3). Present
+      // only when ranker D actually fired (hybridSearch's own contract);
+      // never threaded into `response`/`text` above, per this feature's
+      // no-leak requirement.
+      const declexJsonField = declex !== undefined ? { declexJson: buildDeclexJson(declex) } : {};
       void recordToolCall(ctx.db, {
         toolName: 'mast_search', tokensReturned: tokens, tokensFullFileBound,
         durationMs, mode, sessionId: ctx.sessionId, status: 'ok',
         argsJson: buildArgsJson(args),
         resultsJson: buildResultsJson(resultIdentities),
+        ...declexJsonField,
       }).catch(() => {});
       return { content: [{ type: 'text' as const, text: JSON.stringify(response) }] };
     },
