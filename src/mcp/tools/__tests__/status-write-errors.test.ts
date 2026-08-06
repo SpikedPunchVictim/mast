@@ -6,11 +6,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig } from '../../../store/config.js';
 import { runIndex } from '../../../indexer/index.js';
 import { openDatabase, type Db } from '../../../graph/db.js';
-import { LanceStore } from '../../../store/lance.js';
+import { SqliteChunkStore } from '../../../store/sqliteChunkStore.js';
 import type { AppContext } from '../../context.js';
 import { registerStatusTool } from '../status.js';
-import type { ChunkRecord } from '../../../store/lance.js';
-import type { ChunkStore } from '../../../store/sqliteChunkStore.js';
+import type { ChunkRecord, ChunkStore } from '../../../store/sqliteChunkStore.js';
 
 // ---------------------------------------------------------------------------
 // mast_status must surface a persisted write_errors count (not just
@@ -65,16 +64,12 @@ describe('mast_status surfaces a persisted write_errors count', () => {
     await runIndex(config, { incremental: false, chunkStoreOverride: new AlwaysFailingChunkStore() });
 
     const db: Db = openDatabase(config.resolved_state_dir);
-    const lance = await LanceStore.open(config.resolved_state_dir);
     try {
       const ctx: AppContext = {
         db,
-        lance,
-        chunkStore: lance,
+        chunkStore: new SqliteChunkStore(db),
         config,
-        getEmbedder: () => null,
         searchMode: () => 'lexical',
-        embedPending: async () => {},
         sessionId: 'status-write-errors-test',
       };
       const mock = mockServer();

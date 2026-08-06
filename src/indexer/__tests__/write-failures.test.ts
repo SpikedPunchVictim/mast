@@ -6,8 +6,7 @@ import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { openDatabase, type Db } from '../../graph/db.js';
 import type { Chunk } from '../../ast/types.js';
-import type { ChunkRecord } from '../../store/lance.js';
-import type { ChunkStore } from '../../store/sqliteChunkStore.js';
+import type { ChunkRecord, ChunkStore } from '../../store/sqliteChunkStore.js';
 
 // ---------------------------------------------------------------------------
 // A chunk-store write failure must be LOUD and correctly classified

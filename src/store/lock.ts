@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import lockfile from 'proper-lockfile';
 import { createFileLockMetricsSink, type LockMetricsSink } from './lockMetrics.js';
 
-export type LockType = 'structure' | 'vectors';
+// Stage 7.1 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") removed
+// the 'vectors' lock type along with runEmbed, its only acquirer — 'structure'
+// is the only lock type left. Kept as a union of one (rather than a bare
+// string) so call sites' `type: LockType` parameters need no signature change.
+export type LockType = 'structure';
 
 const STALE_MS = 10_000;
 
@@ -18,7 +22,7 @@ function markerPath(stateDir: string, type: LockType): string {
  */
 export function initLockMarkers(stateDir: string): void {
   mkdirSync(stateDir, { recursive: true });
-  for (const type of ['structure', 'vectors'] as const) {
+  for (const type of ['structure'] as const) {
     writeFileSync(markerPath(stateDir, type), '', { flag: 'a' });
   }
 }
@@ -98,8 +102,8 @@ export async function acquireLock(
 }
 
 // Lock directories currently held by this process. A single signal handler
-// removes ALL of them on shutdown — a per-`withLock` handler would race when
-// two locks are held (structure + vectors), because the first handler's
+// removes ALL of them on shutdown — a per-`withLock` handler would race if
+// more than one lock were held at once, because the first handler's
 // `process.exit` pre-empts the others, leaking the second lock until its stale
 // timeout. One registry + one handler also avoids piling up signal listeners.
 const heldLockDirs = new Set<string>();

@@ -1,5 +1,5 @@
 /**
- * Stage 3 integration tests: SQLite graph + LanceDB chunk storage.
+ * Stage 3 integration tests: SQLite graph storage.
  *
  * Each test group creates an isolated temp directory so tests never share
  * state. The temp directory is removed after the group regardless of outcome.
@@ -11,7 +11,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Sqlite from 'better-sqlite3';
 import { openDatabase } from '../db.js';
 import { populateFile, insertEdges, removeDeletedFiles } from '../populate.js';
-import { LanceStore } from '../../store/lance.js';
 import { searchFts, searchIdentifiers } from '../../search/fts.js';
 import { extractFile } from '../../ast/extract.js';
 
@@ -863,79 +862,6 @@ describe('FTS5 population — chunk_fts and identifier_fts', () => {
     } finally {
       await db.destroy();
     }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// LanceDB chunk table
-// ---------------------------------------------------------------------------
-
-describe('LanceStore — chunk table CRUD', () => {
-  let tmpDir: string;
-  let fixtureFile: string;
-
-  beforeAll(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), 'mast-test-'));
-    fixtureFile = join(tmpDir, 'reader.ts');
-    writeFileSync(fixtureFile, FIXTURE_SRC);
-  });
-
-  afterAll(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it('creates the chunks table and inserts rows', async () => {
-    const lance = await LanceStore.open(tmpDir);
-    await lance.ensureChunksTable();
-
-    const result = extractFile(fixtureFile, tmpDir, 0, 100);
-    await lance.replaceChunksForFile('reader.ts', result.chunks);
-
-    const count = await lance.chunkCount();
-    expect(count).toBeGreaterThan(0);
-    expect(count).toBe(result.chunks.length);
-  });
-
-  it('getChunksByFilePath returns all chunks for the file', async () => {
-    const lance = await LanceStore.open(tmpDir);
-    const result = extractFile(fixtureFile, tmpDir, 0, 100);
-    await lance.replaceChunksForFile('reader.ts', result.chunks);
-
-    const rows = await lance.getChunksByFilePath('reader.ts');
-    expect(rows.length).toBe(result.chunks.length);
-    const chunkIds = rows.map((r) => r.chunk_id);
-    for (const chunk of result.chunks) {
-      expect(chunkIds).toContain(chunk.chunk_id);
-    }
-  });
-
-  it('replaceChunksForFile deletes old rows and inserts new ones', async () => {
-    const lance = await LanceStore.open(tmpDir);
-
-    // First write.
-    const r1 = extractFile(fixtureFile, tmpDir, 0, 100);
-    await lance.replaceChunksForFile('reader.ts', r1.chunks);
-    const countAfterFirst = await lance.chunkCount();
-
-    // Second write with updated source.
-    writeFileSync(fixtureFile, FIXTURE_V2_SRC);
-    const r2 = extractFile(fixtureFile, tmpDir, 0, 100);
-    await lance.replaceChunksForFile('reader.ts', r2.chunks);
-
-    const countAfterSecond = await lance.chunkCount();
-    // Chunk count should reflect the new source, not accumulate.
-    expect(countAfterSecond).toBe(r2.chunks.length);
-    expect(countAfterSecond).not.toBe(countAfterFirst + r2.chunks.length);
-  });
-
-  it('deleteChunksForFiles removes all rows for the file', async () => {
-    const lance = await LanceStore.open(tmpDir);
-    const result = extractFile(fixtureFile, tmpDir, 0, 100);
-    await lance.replaceChunksForFile('reader.ts', result.chunks);
-
-    await lance.deleteChunksForFiles(['reader.ts']);
-    const count = await lance.chunkCount();
-    expect(count).toBe(0);
   });
 });
 

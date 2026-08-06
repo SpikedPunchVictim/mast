@@ -1,11 +1,8 @@
-import type { SearchInput, SearchResult, SearchMode, SearchSuggestion, RelatedHint, Chunk, ChunkType } from '../ast/types.js';
+import type { SearchInput, SearchResult, SearchMode, SearchSuggestion, RelatedHint, ChunkType } from '../ast/types.js';
 import type { Db } from '../graph/db.js';
-import type { LanceStore, ChunkRecord } from '../store/lance.js';
-import type { ChunkStore } from '../store/sqliteChunkStore.js';
-import type { EmbedderLike } from '../indexer/embedder.js';
+import type { ChunkStore, ChunkRecord } from '../store/sqliteChunkStore.js';
 import { searchFts, searchIdentifierNearMiss, splitIdentifierTerms } from './fts.js';
 import { querySymbolsBySimilarity } from '../graph/queries.js';
-import { searchVectors } from './vector.js';
 import { searchRankerD, type DeclexDiagnostics } from './declex.js';
 
 // ---------------------------------------------------------------------------
@@ -28,13 +25,14 @@ export interface HybridSearchConfig {
   /**
    * F18 kill-switch (M2 decision memo condition 3) — fuses ranker D
    * (declaration-exact, `./declex.ts`) into RRF as a third input. OPTIONAL,
-   * and absent means OFF: the eval instruments (`eval/*-rank-check.mjs`) call
-   * this function directly to reconstruct measured experiment arms (arm H =
-   * FTS + vectors, no D), so a function-level default-on would silently
-   * contaminate future instrument re-runs against a config shape they never
-   * asked for. The product's default-on lives in `MastConfig` DEFAULTS
-   * (`store/config.ts`) — the config layer a kill-switch belongs to, not the
-   * function signature every caller (including eval) shares.
+   * and absent means OFF: the eval instruments (`eval/*-rank-check.mjs`,
+   * frozen at the `mast-pre-vector-delete` tag per IMPLEMENTATION_PLAN.md
+   * Stage 7) call this function directly to reconstruct measured experiment
+   * arms, so a function-level default-on would silently contaminate future
+   * instrument re-runs against a config shape they never asked for. The
+   * product's default-on lives in `MastConfig` DEFAULTS (`store/config.ts`) —
+   * the config layer a kill-switch belongs to, not the function signature
+   * every caller (including eval) shares.
    */
   readonly declaration_exact_ranker?: boolean;
 }
@@ -90,28 +88,27 @@ export interface DeclexTelemetry {
 // ---------------------------------------------------------------------------
 
 /**
- * Hybrid BM25 + vector search fused via Reciprocal Rank Fusion.
+ * BM25 lexical search fused with ranker D (declaration-exact, `./declex.ts`)
+ * via Reciprocal Rank Fusion.
  *
- * Mode selection:
- * - `lexical` — embedder is null, or the vector search returns no hits
- *   (vectors table empty / Phase 2 not yet run).
- * - `hybrid` — both FTS and vector results are available and fused.
+ * Stage 7.1 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") excised
+ * the vector leg entirely — `mast_search` is FTS + ranker D only now. `mode`
+ * and `similarity_score` stay in the response shape but are frozen (see the
+ * literal at the `mode` assignment below); Stage 7.2 redesigns those surfaces
+ * honestly.
  *
  * Post-filters (`chunk_type`, `only_exported`) are applied after RRF ranking,
- * on the full chunk records fetched from LanceDB. SQL-level filters
+ * on the full chunk records fetched from `chunkStore`. SQL-level filters
  * (`file_pattern`, `language`) are pushed into the FTS query.
  */
 export async function hybridSearch(
   db: Db,
-  lance: LanceStore,
-  embedder: EmbedderLike | null,
   input: SearchInput,
   config: HybridSearchConfig,
-  // SPIKE (eval/GITNEXUS_COMPARISON.md §13.5/§14.1): chunk reads are split
-  // from `lance` so they can be redirected onto SqliteChunkStore while vector
-  // search (`searchVectors(lance, ...)` below) always stays on Lance.
-  // Defaulting to `lance` keeps every existing call site byte-identical.
-  chunkStore: ChunkStore = lance,
+  // Required (Stage 7.1): retires two recorded defects — the retired-Lance
+  // default and the swallowed embedder failure that used to live in this
+  // function's now-deleted vector-search try/catch (HANDOFF_Q1.md §5).
+  chunkStore: ChunkStore,
 ): Promise<{
   mode: SearchMode;
   results: SearchResult[];
@@ -136,38 +133,9 @@ export async function hybridSearch(
     ftsMap.set(r.chunk_id, { rank: i + 1, bm25Score: r.bm25_score, snippet: r.match_snippet });
   });
 
-  // --- Vector search ---
-  let mode: SearchMode = 'lexical';
-  const vecMap = new Map<string, { rank: number; score: number }>();
-
-  if (embedder !== null) {
-    try {
-      await embedder.load();
-      const [queryVec] = await embedder.embed([queryAsChunk(input.query)]);
-      if (queryVec !== undefined) {
-        // Rank-based inclusion (Task 9): every top-candidateLimit vector hit
-        // feeds RRF, regardless of absolute cosine. The old absolute gate
-        // (similarity_threshold: 0.70) was miscalibrated — 0/28 gold-set
-        // conceptual queries produced a jina cosine ≥ 0.70, so shipped hybrid
-        // silently collapsed to lexical on exactly the query class vectors
-        // exist for. No floor replaces it: measured gold top-1 cosines
-        // (0.40–0.66) interleave with junk-query top-1 cosines (0.41–0.54),
-        // so no absolute cutoff separates relevant from junk on this model —
-        // and cosine scales are model-specific anyway. RRF's rank fusion is
-        // the relevance arbiter (§7.3); `similarity_score` is reported so
-        // consumers can judge confidence themselves.
-        const hits = await searchVectors(lance, queryVec.embedding, candidateLimit);
-        if (hits.length > 0) {
-          mode = 'hybrid';
-          hits.forEach((h, i) => {
-            vecMap.set(h.chunkId, { rank: i + 1, score: h.score });
-          });
-        }
-      }
-    } catch {
-      // Embedding failure is non-fatal — fall back to lexical.
-    }
-  }
+  // Stage 7.1 freeze: mode/similarity_score surfaces are redesigned in Stage
+  // 7.2; hardcoded here so the excision diff is pure removal.
+  const mode: SearchMode = 'lexical';
 
   // --- Ranker D (declaration-exact) ---
   // Gated on `=== true` (not truthiness) so `undefined` and `false` behave
@@ -176,8 +144,7 @@ export async function hybridSearch(
   // so a later telemetry stage can lift its diagnostics into the return value
   // without re-plumbing this call. Mirrors the measured reconstruction
   // (eval/declex-rank-check.mjs's `reconstructWithRankerD`): D applies no
-  // file_pattern/language pre-filter, same as the vector list, and never
-  // touches `mode` — mode is decided by the vector leg alone.
+  // file_pattern/language pre-filter.
   const dMap = new Map<string, number>();
   // Lifted out of the `if` block (rather than left local) so the telemetry
   // block below can read `top_match_channel`/`candidate_count` without
@@ -192,16 +159,14 @@ export async function hybridSearch(
   }
 
   // --- RRF fusion ---
-  const allIds = new Set([...ftsMap.keys(), ...vecMap.keys(), ...dMap.keys()]);
+  const allIds = new Set([...ftsMap.keys(), ...dMap.keys()]);
 
   const scored: Array<{ chunk_id: string; rrf: number }> = [];
   for (const id of allIds) {
     let rrf = 0;
     const ftsMeta = ftsMap.get(id);
-    const vecMeta = vecMap.get(id);
     const dRank = dMap.get(id);
     if (ftsMeta !== undefined) rrf += rrfScore(ftsMeta.rank, config.rrf_k);
-    if (vecMeta !== undefined) rrf += rrfScore(vecMeta.rank, config.rrf_k);
     if (dRank !== undefined) rrf += rrfScore(dRank, config.rrf_k);
     scored.push({ chunk_id: id, rrf });
   }
@@ -212,23 +177,21 @@ export async function hybridSearch(
   const chunkRecords = await chunkStore.getChunksByIds(topIds);
 
   // --- Ranker D dual-fusion diff (Stage 6.3 D-fire telemetry) ---
-  // Pure in-memory arithmetic over the already-fetched ftsMap/vecMap lists —
-  // no second FTS/vector/D query, no second chunk fetch. Reconstructs the
-  // RRF sum RRF would have produced with D excluded entirely (not merely
-  // zero-scored — a D-only id has no rank without D, so it cannot appear in
-  // this list at all), to isolate exactly what D changed. Computed against
-  // `chunkRecords` (PRE-dedup, PRE-post-filter) per this feature's contract —
-  // the fused rank a consumer sees is the presentation-independent one.
+  // Pure in-memory arithmetic over the already-fetched ftsMap list — no
+  // second FTS/D query, no second chunk fetch. Reconstructs the RRF sum RRF
+  // would have produced with D excluded entirely (not merely zero-scored — a
+  // D-only id has no rank without D, so it cannot appear in this list at
+  // all), to isolate exactly what D changed. Computed against `chunkRecords`
+  // (PRE-dedup, PRE-post-filter) per this feature's contract — the fused rank
+  // a consumer sees is the presentation-independent one.
   let declexTelemetry: DeclexTelemetry | undefined;
   if (dMap.size > 0 && declexDiagnostics !== undefined) {
-    const idsWithoutD = new Set([...ftsMap.keys(), ...vecMap.keys()]);
+    const idsWithoutD = new Set([...ftsMap.keys()]);
     const scoredWithoutD: Array<{ chunk_id: string; rrf: number }> = [];
     for (const id of idsWithoutD) {
       let rrf = 0;
       const ftsMeta = ftsMap.get(id);
-      const vecMeta = vecMap.get(id);
       if (ftsMeta !== undefined) rrf += rrfScore(ftsMeta.rank, config.rrf_k);
-      if (vecMeta !== undefined) rrf += rrfScore(vecMeta.rank, config.rrf_k);
       scoredWithoutD.push({ chunk_id: id, rrf });
     }
     scoredWithoutD.sort((a, b) => b.rrf - a.rrf);
@@ -293,7 +256,6 @@ export async function hybridSearch(
 
   const results: SearchResult[] = deduped.map(({ chunk: c, related }, i) => {
     const ftsMeta = ftsMap.get(c.chunk_id);
-    const vecMeta = vecMap.get(c.chunk_id);
     return {
       file_path:      c.file_path,
       start_line:     c.start_line,
@@ -303,7 +265,9 @@ export async function hybridSearch(
       symbol_name:    c.symbol_name,
       parent_symbol:  c.parent_symbol,
       is_exported:    c.is_exported,
-      similarity_score: mode === 'hybrid' ? (vecMeta?.score ?? null) : null,
+      // Stage 7.1 freeze: always null now that the vector leg is gone — see
+      // the `mode` assignment above.
+      similarity_score: null,
       match_score:    ftsMeta?.bm25Score ?? null,
       // Re-ranked after dedup so consumers keep contiguous ranks from 1.
       rank:           i + 1,
@@ -312,7 +276,7 @@ export async function hybridSearch(
     };
   });
 
-  // Zero-result assist: when nothing survived (no FTS/vector hit, or filters
+  // Zero-result assist: when nothing survived (no FTS/D hit, or filters
   // emptied the set), gather advisory "did you mean" candidates instead of
   // returning a bare dead end (§9 mast_search). Suggestions never become
   // results — the caller keeps `results: []`.
@@ -453,28 +417,4 @@ async function gatherSuggestions(
   }
 
   return out;
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Wrap a raw query string as a minimal Chunk for the embedder.
- * Only `content` and `chunk_id` are used by the embedding pipeline.
- */
-function queryAsChunk(query: string): Chunk {
-  return {
-    chunk_id:     '__query__',
-    file_path:    '__query__',
-    start_line:   0,
-    end_line:     0,
-    content:      query,
-    chunk_type:   'block',
-    symbol_name:  null,
-    parent_symbol: null,
-    is_exported:  false,
-    language:     'typescript',
-    file_mtime:   0,
-  };
 }

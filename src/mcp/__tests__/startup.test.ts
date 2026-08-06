@@ -5,13 +5,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { runIndex, loadIndexMeta, writeIndexMeta } from '../../indexer/index.js';
 import { bootstrapState, wipeDerivedState } from '../startup.js';
-import { openDatabase } from '../../graph/db.js';
-import { LanceStore } from '../../store/lance.js';
 import { initLockMarkers } from '../../store/lock.js';
-import type { EmbedderLike } from '../../indexer/embedder.js';
-import { JINA_V2_DIM } from '../../indexer/embedder.js';
-import { runEmbed } from '../../indexer/index.js';
-import type { Chunk, VectorEntry } from '../../ast/types.js';
 
 // ---------------------------------------------------------------------------
 // Fixture
@@ -21,20 +15,6 @@ const MATH_SRC = `export function add(a: number, b: number): number {
   return a + b;
 }
 `;
-
-function makeFakeEmbedder(): EmbedderLike {
-  return {
-    async load() {},
-    async embed(chunks: readonly Chunk[]): Promise<VectorEntry[]> {
-      return chunks.map((c, i) => ({
-        chunk_id:      c.chunk_id,
-        embedding:     Array.from({ length: JINA_V2_DIM }, (_, d) => d === i % JINA_V2_DIM ? 1 : 0),
-        model_version: 'fake-1.0',
-      }));
-    },
-    get dimension() { return JINA_V2_DIM; },
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Startup ladder state initialisation
@@ -92,98 +72,6 @@ describe('startup ladder — state initialisation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Search mode transition: lexical → hybrid
-// ---------------------------------------------------------------------------
-
-describe('search mode — lexical to hybrid transition', () => {
-  let tmpDir: string;
-  let db: ReturnType<typeof openDatabase>;
-  let lance: LanceStore;
-
-  beforeAll(async () => {
-    tmpDir = mkdtempSync(join(tmpdir(), 'mast-mode-'));
-    writeFileSync(join(tmpDir, 'math.ts'), MATH_SRC);
-
-    const config = resolveConfig({ projectRoot: tmpDir });
-    await runIndex(config, { incremental: false });
-
-    db = openDatabase(config.resolved_state_dir);
-    lance = await LanceStore.open(config.resolved_state_dir);
-  });
-
-  afterAll(async () => {
-    await db.destroy();
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it('mode starts as lexical (no vectors)', async () => {
-    // Before Phase 2, searchVectors returns nothing — mode stays lexical.
-    const vectors = await lance.searchVectors(
-      Array.from({ length: JINA_V2_DIM }, () => 0),
-      10,
-    );
-    expect(vectors).toHaveLength(0);
-  });
-
-  it('mode becomes hybrid after embedding completes', async () => {
-    const config = resolveConfig({ projectRoot: tmpDir });
-    await runEmbed(config, { embedder: makeFakeEmbedder() });
-
-    // After Phase 2, vector search returns results.
-    const queryVec = Array.from({ length: JINA_V2_DIM }, (_, i) => i === 0 ? 1 : 0);
-    const vectors = await lance.searchVectors(queryVec, 5);
-    expect(vectors.length).toBeGreaterThan(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Dynamic dimension detection — contract via EmbedderLike
-// ---------------------------------------------------------------------------
-
-describe('dynamic dimension detection', () => {
-  it('runEmbed uses EmbedderLike.dimension for the vectors table', async () => {
-    const tmpDir2 = mkdtempSync(join(tmpdir(), 'mast-dim-'));
-    writeFileSync(join(tmpDir2, 'a.ts'), 'export const x = 1;');
-
-    let detectedDimension = -1;
-    const customDim = 128;  // Non-default dimension.
-
-    const fakeEmbedder: EmbedderLike = {
-      async load() {},
-      async embed(chunks: readonly Chunk[]): Promise<VectorEntry[]> {
-        return chunks.map((c) => ({
-          chunk_id:      c.chunk_id,
-          embedding:     Array.from({ length: customDim }, () => 0.1),
-          model_version: 'custom-128',
-        }));
-      },
-      get dimension() { return customDim; },
-    };
-
-    const config = resolveConfig({ projectRoot: tmpDir2 });
-    await runIndex(config, { incremental: false });
-
-    // runEmbed should call embedder.dimension to create the table.
-    // Wrap the embedder to observe the dimension being read.
-    const wrappedEmbedder: EmbedderLike = {
-      ...fakeEmbedder,
-      get dimension() {
-        detectedDimension = customDim;
-        return customDim;
-      },
-    };
-
-    // Should complete without throwing (LanceDB table created with 128 dims).
-    const result = await runEmbed(config, { embedder: wrappedEmbedder });
-    expect(result.chunksEmbedded).toBeGreaterThan(0);
-    // dimension getter was called — confirms runEmbed uses the embedder's dimension.
-    expect(detectedDimension).toBe(customDim);
-
-    rmSync(tmpDir2, { recursive: true, force: true });
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Schema-version guard: wipe derived state on mismatch (§7.4 Step 2 — H3)
 // ---------------------------------------------------------------------------
 
@@ -200,10 +88,13 @@ describe('wipeDerivedState', () => {
       writeFileSync(join(stateDir, 'graph.db-wal'), 'x');
       writeFileSync(join(stateDir, 'graph.db-shm'), 'x');
       writeFileSync(join(stateDir, 'file_manifest.json'), '{}');
-      // Preserved state.
+      // Preserved state. Only 'structure' is a real lock marker post-Stage-7.1
+      // (the 'vectors' lock type was removed with runEmbed, its only
+      // acquirer; IMPLEMENTATION_PLAN.md "Stage 7") — 'lance'/'embed_cache'
+      // stay in DERIVED_STATE_ENTRIES as orphan-cleanup targets per Stage 7
+      // design decision 3, asserted above.
       writeFileSync(join(stateDir, 'config.json'), '{}');
       writeFileSync(join(stateDir, 'structure'), '');
-      writeFileSync(join(stateDir, 'vectors'), '');
 
       wipeDerivedState(stateDir);
 
@@ -216,7 +107,6 @@ describe('wipeDerivedState', () => {
 
       expect(existsSync(join(stateDir, 'config.json'))).toBe(true);
       expect(existsSync(join(stateDir, 'structure'))).toBe(true);
-      expect(existsSync(join(stateDir, 'vectors'))).toBe(true);
     } finally {
       rmSync(stateDir, { recursive: true, force: true });
     }

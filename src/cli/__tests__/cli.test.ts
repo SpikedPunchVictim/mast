@@ -14,14 +14,11 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { initLockMarkers, acquireLock, withLock } from '../../store/lock.js';
-import { runIndex, runEmbed, loadIndexMeta, countPendingEmbeddings, freshnessCause } from '../../indexer/index.js';
+import { runIndex, loadIndexMeta, freshnessCause } from '../../indexer/index.js';
 import { walkProject, diffManifest } from '../../indexer/walker.js';
 import { openDatabase } from '../../graph/db.js';
-import { LanceStore } from '../../store/lance.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { searchFts } from '../../search/fts.js';
-import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
-import type { Chunk, VectorEntry } from '../../ast/types.js';
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -275,63 +272,15 @@ describe('status — staleness detection', () => {
 
 // ---------------------------------------------------------------------------
 // `mast status` — pending embeddings and freshness cause
+//
+// Stage 7.1 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") removed
+// the vector subsystem that produced `pending_embeddings`/`countPendingEmbeddings`
+// (`indexer/index.ts`) — the field is now frozen at 0 (cli/status.ts,
+// mcp/tools/status.ts), so the "embedding backlog" describe block that used to
+// live here no longer has a subject. `freshnessCause` itself is unchanged pure
+// logic (still exercised below with a nonzero second argument, even though no
+// production caller can produce one any more post-excision).
 // ---------------------------------------------------------------------------
-
-function makeFakeEmbedder(): EmbedderLike {
-  return {
-    async load() {},
-    async embed(chunks: readonly Chunk[]): Promise<VectorEntry[]> {
-      return chunks.map((c, i) => ({
-        chunk_id:      c.chunk_id,
-        embedding:     Array.from({ length: JINA_V2_DIM }, (_, d) => d === i % JINA_V2_DIM ? 1 : 0),
-        model_version: 'fake-1.0',
-      }));
-    },
-    get dimension() { return JINA_V2_DIM; },
-  };
-}
-
-describe('status — embedding backlog', () => {
-  let tmpDir: string;
-
-  beforeAll(async () => {
-    tmpDir = mkdtempSync(join(tmpdir(), 'mast-cli-test-'));
-    writeFileSync(join(tmpDir, 'utils.ts'), UTILS_SRC);
-
-    // Phase 1 only — no runEmbed, so every chunk is an embedding backlog.
-    const config = resolveConfig({ projectRoot: tmpDir });
-    await runIndex(config, { incremental: false });
-  });
-
-  afterAll(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it('counts every chunk as pending after Phase 1 only', async () => {
-    const config = resolveConfig({ projectRoot: tmpDir });
-    const lance = await LanceStore.open(config.resolved_state_dir);
-    const db = openDatabase(config.resolved_state_dir);
-    const meta = loadIndexMeta(config.resolved_state_dir);
-
-    const pending = await countPendingEmbeddings(new SqliteChunkStore(db), lance);
-    await db.destroy();
-
-    expect(pending).toBeGreaterThan(0);
-    expect(pending).toBe(meta?.chunk_count);
-  });
-
-  it('counts zero pending once embeddings are current', async () => {
-    const config = resolveConfig({ projectRoot: tmpDir });
-    await runEmbed(config, { embedder: makeFakeEmbedder() });
-    const lance = await LanceStore.open(config.resolved_state_dir);
-    const db = openDatabase(config.resolved_state_dir);
-
-    const pending = await countPendingEmbeddings(new SqliteChunkStore(db), lance);
-    await db.destroy();
-
-    expect(pending).toBe(0);
-  });
-});
 
 describe('freshnessCause', () => {
   it('maps the stale/pending combinations to their cause', () => {
@@ -379,13 +328,6 @@ describe('concurrent write prevention', () => {
     await r1();
 
     const r2 = await acquireLock(tmpDir, 'structure', { maxRetries: 0 });
-    await r2();
-  });
-
-  it('structure and vectors locks are independent', async () => {
-    const r1 = await acquireLock(tmpDir, 'structure', { maxRetries: 0 });
-    const r2 = await acquireLock(tmpDir, 'vectors', { maxRetries: 0 });
-    await r1();
     await r2();
   });
 

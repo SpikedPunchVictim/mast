@@ -25,7 +25,6 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDatabase, type Db } from '../../graph/db.js';
-import { LanceStore } from '../../store/lance.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { hybridSearch } from '../hybrid.js';
 
@@ -37,13 +36,11 @@ import { hybridSearch } from '../hybrid.js';
 
 let tmpDir: string;
 let db: Db;
-let lance: LanceStore;
 let chunkStore: SqliteChunkStore;
 
 beforeEach(async () => {
   tmpDir = mkdtempSync(join(tmpdir(), 'mast-hybrid-declex-'));
   db = openDatabase(tmpDir);
-  lance = await LanceStore.open(tmpDir);
   chunkStore = new SqliteChunkStore(db);
 });
 
@@ -107,9 +104,9 @@ describe('hybridSearch — declaration_exact_ranker OFF (absent/false)', () => {
     await insertChunk({ chunk_id: 'anchor', chunk_type: 'function', symbol_name: 'ScanCodeChord', content: 'handles a keyboard shortcut binding' });
     await insertFts({ chunk_id: 'anchor', symbol_name: 'ScanCodeChord', content: 'handles a keyboard shortcut binding' });
 
-    const absent = await hybridSearch(db, lance, null, { query: 'ScanCodeChord' }, hybridConfig, chunkStore);
+    const absent = await hybridSearch(db, { query: 'ScanCodeChord' }, hybridConfig, chunkStore);
     const explicitFalse = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'ScanCodeChord' },
       { ...hybridConfig, declaration_exact_ranker: false },
       chunkStore,
@@ -132,7 +129,7 @@ describe('hybridSearch — declaration_exact_ranker ON, D fires', () => {
     await insertFts({ chunk_id: 'anchor', symbol_name: 'ScanCodeChord', content: 'handles a keyboard shortcut binding' });
 
     const { results } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'ScanCodeChord' },
       { ...hybridConfig, declaration_exact_ranker: true },
       chunkStore,
@@ -154,9 +151,9 @@ describe('hybridSearch — declaration_exact_ranker ON, D silent (no eligible te
     await insertChunk({ chunk_id: 'prose', chunk_type: 'function', symbol_name: 'handler', content: 'binds a shortcut handler for input events' });
     await insertFts({ chunk_id: 'prose', symbol_name: 'handler', content: 'binds a shortcut handler for input events' });
 
-    const off = await hybridSearch(db, lance, null, { query: 'binds a shortcut handler' }, hybridConfig, chunkStore);
+    const off = await hybridSearch(db, { query: 'binds a shortcut handler' }, hybridConfig, chunkStore);
     const on = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'binds a shortcut handler' },
       { ...hybridConfig, declaration_exact_ranker: true },
       chunkStore,
@@ -182,7 +179,7 @@ describe('hybridSearch — RRF additivity when D and FTS agree', () => {
     await insertFts({ chunk_id: 'donly', symbol_name: 'UniqueTokenBeta', content: 'an unrelated function body' });
 
     const { results } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'UniqueTokenAlpha UniqueTokenBeta' },
       { ...hybridConfig, declaration_exact_ranker: true },
       chunkStore,
@@ -215,7 +212,7 @@ describe('hybridSearch — dedup interplay with D-sourced candidates', () => {
     // alone.
 
     const { results } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'Foo.Bar' },
       { ...hybridConfig, declaration_exact_ranker: true },
       chunkStore,
@@ -240,11 +237,11 @@ describe('hybridSearch — dedup interplay with D-sourced candidates', () => {
 // ---------------------------------------------------------------------------
 
 describe('hybridSearch — mode unaffected by D', () => {
-  it('mode stays lexical with a null embedder even when D fires', async () => {
+  it('mode stays lexical even when D fires', async () => {
     await insertChunk({ chunk_id: 'anchor2', chunk_type: 'function', symbol_name: 'ScanCodeChord', content: 'irrelevant prose' });
 
     const { mode } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'ScanCodeChord' },
       { ...hybridConfig, declaration_exact_ranker: true },
       chunkStore,
@@ -300,7 +297,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('D fired: declex is present with correct diagnostics and a D-only anchor reporting rank_without_d: null', async () => {
     await insertTelemetryFixture();
 
-    const { declex } = await hybridSearch(db, lance, null, telemetryQuery, declexOnConfig, chunkStore);
+    const { declex } = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
 
     expect(declex).toBeDefined();
     expect(declex!.fired).toBe(true);
@@ -317,7 +314,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('a displaced chunk reports both numeric ranks with rank_with_d > rank_without_d', async () => {
     await insertTelemetryFixture();
 
-    const { declex } = await hybridSearch(db, lance, null, telemetryQuery, declexOnConfig, chunkStore);
+    const { declex } = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
 
     const displaced = declex!.window_effects.find((w) => w.chunk_id === 'fts_displaced');
     expect(displaced).toBeDefined();
@@ -331,7 +328,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
     await insertFts({ chunk_id: 'prose2', symbol_name: 'handler', content: 'binds a shortcut handler for input events' });
 
     const { declex } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'binds a shortcut handler' },
       declexOnConfig,
       chunkStore,
@@ -343,7 +340,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('flag off: declex is absent even when the query would otherwise be D-eligible', async () => {
     await insertTelemetryFixture();
 
-    const { declex } = await hybridSearch(db, lance, null, telemetryQuery, hybridConfig, chunkStore);
+    const { declex } = await hybridSearch(db, telemetryQuery, hybridConfig, chunkStore);
 
     expect(declex).toBeUndefined();
   });
@@ -351,8 +348,8 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('is deterministic across two identical calls', async () => {
     await insertTelemetryFixture();
 
-    const first = await hybridSearch(db, lance, null, telemetryQuery, declexOnConfig, chunkStore);
-    const second = await hybridSearch(db, lance, null, telemetryQuery, declexOnConfig, chunkStore);
+    const first = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
+    const second = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
 
     expect(second.declex).toEqual(first.declex);
   });

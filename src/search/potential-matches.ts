@@ -24,13 +24,14 @@ export interface CandidateChunkRecord {
 
 /**
  * Role interface (§4.3) over "fetch chunks by id" — the only capability this
- * module needs from a chunk store. `LanceStore` satisfies it structurally, so
- * `mast_callers`/`mast_rename_impact` pass their `ctx.lance` directly. The
- * `mast index --checker` pass passes an in-memory prefetched source instead:
- * its Phase A runs candidate collection for EVERY indexed symbol, and one
- * LanceDB round-trip per symbol was measured at 50+ CPU-minutes on the
- * kluster monorepo (10,733 symbols) without completing — one full scan up
- * front plus Map lookups keeps identical semantics at a fraction of the cost.
+ * module needs from a chunk store. `SqliteChunkStore` satisfies it
+ * structurally, so `mast_callers`/`mast_rename_impact` pass their
+ * `ctx.chunkStore` directly. The `mast index --checker` pass passes an
+ * in-memory prefetched source instead: its Phase A runs candidate collection
+ * for EVERY indexed symbol, and one round-trip per symbol was measured at
+ * 50+ CPU-minutes on the kluster monorepo (10,733 symbols, against the
+ * pre-M1 LanceDB chunk store) without completing — one full scan up front
+ * plus Map lookups keeps identical semantics at a fraction of the cost.
  */
 export interface ChunkByIdSource {
   getChunksByIds(ids: readonly string[]): Promise<readonly CandidateChunkRecord[]>;

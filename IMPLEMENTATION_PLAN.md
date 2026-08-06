@@ -4241,6 +4241,88 @@ starts at DELETION ship, not at F18 ship.
 
 ---
 
+## Stage 7: Vector-store deletion (2026-08-06, per M2 memo condition 4)
+
+**Goal**: remove the vector subsystem entirely. Post-delete, `mast_search` is L+D exactly
+as measured (FTS BM25 + ranker D under RRF). AST/graph/FTS tools untouched.
+
+**Design decisions (recorded before implementation):**
+
+1. **Re-entry anchor is the git tag `mast-pre-vector-delete`** (= `a966237`, the F18
+   commit). Instrument re-runs of vector arms and H-baseline reconstruction happen from
+   that tag; HEAD does NOT keep the vector-dependent eval imports runnable. The `eval/`
+   files stay in-repo as the record, but at HEAD their `dist/search/vector.js` etc.
+   imports will not resolve — accepted and recorded (§3 says the experiments are settled;
+   re-entry checks out the tag). Archived embedded assets per `eval/ASSETS.md` complete
+   the re-entry kit.
+2. **Never-shipped ⇒ no back-compat.** The `mode` discriminator and `similarity_score`
+   are REMOVED from the search response (not frozen at `"lexical"`/`null`), `mast_status`
+   drops `pending_embeddings`/`embedding_mode`/`model` and the `"embedding_backlog"`
+   freshness cause, and the config keys `embedding_model`/`transformers_cache_dir` go.
+   Sequenced in TWO steps so the excision diff stays pure removal: 7.1 excises the
+   subsystem with the response shape temporarily unchanged (`mode` hardcoded
+   `"lexical"`, `similarity_score` always `null`); 7.2 redesigns the surfaces honestly.
+3. **No `CURRENT_SCHEMA_VERSION` bump**: nothing the new code READS changes shape —
+   chunks/graph/FTS are untouched; `vectors.lance`/`embed_cache`/`vectors.lock` become
+   orphans. Startup best-effort-deletes orphaned vector state from the state dir (logged,
+   never fatal). `metrics.mode` column stays (historical rows); new rows write NULL.
+4. **`hybridSearch` is renamed in 7.2** (the name asserts a vector+lexical hybrid that no
+   longer exists) — target name `fusedSearch`, via `mast_rename_impact` checklist. The
+   `chunkStore` parameter becomes REQUIRED in 7.1, which retires the HANDOFF §5 defect
+   "`hybrid.ts:55` defaults chunkStore to the RETIRED Lance chunk table" and the
+   "`hybrid.ts:102-104` swallows embedder failure" defect (the swallow goes with the
+   embedder).
+5. **Deletion list (memo condition 4, mapped to files):** `@lancedb/lancedb` +
+   `@huggingface/transformers` deps; `src/store/lance.ts`; `src/search/vector.ts`;
+   `src/indexer/embedder.ts` + `background-embedder.ts` (+ fork host wiring in serve);
+   the `vectors.lock` half of `src/store/lock.ts`; embed-cache handling; Phase 2 of the
+   indexer (`runEmbed`/`selectPendingChunks`); the serve ladder's embed half (the Phase 1
+   startup scan STAYS); `--phase1-only` CLI flag (Phase 1 is all there is);
+   Docker model-prewarm / mast-seed Phase 2 references (repo-wide sweep in 7.3).
+
+### Stage 7.1: Excise the vector subsystem (pure removal, surface frozen)
+**Success criteria**: vector/embedder/lance modules deleted; `hybridSearch` is FTS+D only
+with `chunkStore` required; deps removed from package.json + lockfile; suite green with
+the response shape TEMPORARILY unchanged (`mode: "lexical"` literal, `similarity_score:
+null`); no import of deleted modules anywhere in `src/`.
+**Status**: Complete (2026-08-06) — 5 modules + 4 vector-test files deleted;
+`hybridSearch(db, input, config, chunkStore)` with `chunkStore` REQUIRED (retires the
+HANDOFF §5 retired-Lance-default and swallowed-embedder-failure defects); deps removed:
+`@lancedb/lancedb`, `@huggingface/transformers`, plus orphaned `apache-arrow` (logged
+deviation, `pnpm why -r`-verified; no other workspace package declares any of the three);
+lockfile −50 packages. Suite **446/35 green**; tsc + lint clean; zero-hit grep for
+deleted symbols; align **324→324 (+0)** — improved from the +3 baseline (deleted files
+no longer emit unresolved `@lancedb`/`@huggingface` specifiers), the 2 real repo-level
+violations unchanged and unrelated. Other logged deviations: `ChunkRecord` relocated to
+`store/sqliteChunkStore.ts` (its real owner post-Lance); `transformers_cache_dir`
+resolution + `embedding_model` config keys deferred intact to 7.2 (avoid inconsistent
+half-removal); `mast_search` tool description text deferred to 7.2 (frozen surface).
+**Eval-suite resolution (runner decision, not the agent's):** 5 eval instrument test
+files (`declex-cli`, `declex-score`, `scale-score`, `idfuse-score`, `scale-rank-check`)
+fail at HEAD by design — their import chains reach deleted dist modules. Resolved by
+NAMED exclusion in `vitest.config.ts` with the tag pointer (record stays in-repo,
+runnable home is `mast-pre-vector-delete`), not deletion (they are the experiment
+record) and not a red suite (every commit passes). Vector-independent eval tests
+(`declex-ranker`, `idfuse-ranker`, …) still run at HEAD. The stale `@lancedb`
+forks-pool comment in vitest.config.ts updated (pool kept for better-sqlite3 /
+tree-sitter).
+
+### Stage 7.2: Honest surfaces
+**Success criteria**: `mode`/`similarity_score` removed from response + `_stats`;
+`mast_status`/CLI status fields per decision 2; orphan-state cleanup on startup;
+`hybridSearch` → `fusedSearch` rename with callers; config keys removed.
+**Status**: Not Started
+
+### Stage 7.3: Repo sweep + docs + verify
+**Success criteria**: repo-wide grep sweep for transformers-cache/mast-seed/lance
+references outside `packages/mast` resolved; MAST_SPEC.md rewritten where the vector
+subsystem appeared (§2, §3, §4.1, §5, §6.2, §7.1–7.4, §7.6, §8, §9 `mast_search`/
+`mast_status`, §11, §13.1–13.3, §13.8, §13.11, §14); plan + handoff updated; full ladder
+green (suite / tsc / lint / align at pre-existing baseline).
+**Status**: Not Started
+
+---
+
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
 
 Everything above records *reasoning*. This records *state*, which is otherwise only in

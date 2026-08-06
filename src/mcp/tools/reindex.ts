@@ -14,12 +14,6 @@ export function registerReindexTool(server: McpServer, ctx: AppContext): void {
     async (args) => {
       const result = await runIndex(ctx.config, { incremental: !(args.full ?? false) });
 
-      // Phase 2: embed the chunks just written so subsequent mast_search sees
-      // them semantically, not only via FTS (§7.5). Best-effort — Phase 1 is the
-      // guarantee; embedPending swallows embedder failures and is a no-op when
-      // nothing is pending.
-      await ctx.embedPending();
-
       const reindexResult = toReindexResult(result);
       return { content: [{ type: 'text' as const, text: JSON.stringify(reindexResult) }] };
     },

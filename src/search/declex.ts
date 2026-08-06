@@ -27,9 +27,9 @@ import type { Db } from '../graph/db.js';
 /**
  * Ranker D's candidate pool multiplier — 4x the caller's own `limit`, the
  * SAME convention as ranker I (`eval/idfuse-ranker.mjs`, AMENDMENT 1 F8) and
- * `searchVectors`: the caller multiplies by 4 and passes the already-
- * multiplied limit directly; `searchRankerD` applies no further internal
- * multiplication.
+ * the pre-Stage-7 vector search helper: the caller multiplies by 4 and passes
+ * the already-multiplied limit directly; `searchRankerD` applies no further
+ * internal multiplication.
  */
 export const RANKER_D_POOL_MULTIPLIER = 4;
 
@@ -168,7 +168,7 @@ export interface DeclexDiagnostics {
 
 export interface DeclexSearchOptions {
   /** The FINAL SQL limit to apply (the caller's already-multiplied candidate
-   * pool — same convention as ranker I / `searchVectors`; multiply by
+   * pool — same convention as ranker I; multiply by
    * {@link RANKER_D_POOL_MULTIPLIER} before calling). */
   readonly limit: number;
 }

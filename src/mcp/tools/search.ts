@@ -22,8 +22,6 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       const start = Date.now();
       const { mode, results, suggestions, declex } = await hybridSearch(
         ctx.db,
-        ctx.lance,
-        ctx.getEmbedder(),
         args,
         { rrf_k: ctx.config.rrf_k, declaration_exact_ranker: ctx.config.declaration_exact_ranker },
         ctx.chunkStore,

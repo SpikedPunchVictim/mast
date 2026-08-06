@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
-import { runIndex, runEmbed } from '../indexer/index.js';
+import { runIndex } from '../indexer/index.js';
 import { openDatabase } from '../graph/db.js';
 import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
 import { runCheckerPass } from '../graph/checker-resolver.js';
@@ -11,7 +11,6 @@ export function registerIndexCommand(program: Command): void {
     .description('Build or update the index')
     .option('--state-dir <dir>', 'State directory (resolved from config if omitted)')
     .option('--incremental', 'Only reindex files changed since last index run')
-    .option('--phase1-only', 'Parse and chunk only; skip embedding')
     .option('--show-progress', 'Print indexing progress to stderr')
     .option(
       '--checker',
@@ -22,7 +21,6 @@ export function registerIndexCommand(program: Command): void {
     .action(async (projectPath: string | undefined, opts: {
       stateDir?: string;
       incremental?: boolean;
-      phase1Only?: boolean;
       showProgress?: boolean;
       checker?: boolean;
     }) => {
@@ -60,34 +58,12 @@ export function registerIndexCommand(program: Command): void {
       // later steps in this action (Phase 2 embed, checker pass) still run.
       if (result.writeErrors > 0) process.exitCode = 1;
 
-      // Phase 2 embedding. Run in-process here (unlike `mast serve`, which
-      // forks for isolation) — `mast index` is a one-shot process, so there is
-      // no long-lived MCP server to protect from an embedder crash. This is the
-      // path the Docker seed build (§13.8) uses to ship a fully-embedded index.
-      if (!opts.phase1Only) {
-        const embed = await runEmbed(config, {
-          onProgress: opts.showProgress
-            ? (embedded: number, total: number) => {
-                if (total === 0) return;
-                const pct = Math.round((embedded / total) * 100);
-                const line = `  embedding ${embedded}/${total} chunks (${pct}%)`;
-                process.stderr.write(process.stderr.isTTY ? `\r${line}` : `${line}\n`);
-                if (embedded === total && process.stderr.isTTY) process.stderr.write('\n');
-              }
-            : undefined,
-        });
-        process.stdout.write(
-          `embedded: ${embed.chunksEmbedded} chunks, ${embed.chunksSkipped} skipped` +
-          `  duration: ${embed.durationMs}ms\n`,
-        );
-      }
-
-      // Opt-in Stage 1.2 checker pass. Independent of --phase1-only (it needs
-      // no vectors) — runs after Phase 1/2 so it classifies against the
+      // Opt-in Stage 1.2 checker pass — runs after Phase 1 (parse/chunk/graph/
+      // FTS is all there is post-Stage-7.1) so it classifies against the
       // freshest graph.db this invocation just wrote. Opens its own db handle
-      // (chunkStore wraps it, §15.1) and destroys it itself (runIndex/runEmbed
-      // already closed theirs), matching the one-shot-process pattern this
-      // command already uses for Phase 2.
+      // (chunkStore wraps it, §15.1) and destroys it itself (runIndex already
+      // closed its own), matching the one-shot-process pattern this command
+      // already used for the now-removed Phase 2 embed step.
       if (opts.checker) {
         const db = openDatabase(config.resolved_state_dir);
         const chunkStore = new SqliteChunkStore(db);

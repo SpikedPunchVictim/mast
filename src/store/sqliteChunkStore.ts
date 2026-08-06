@@ -1,6 +1,5 @@
 import type { Db } from '../graph/db.js';
 import type { Chunk } from '../ast/types.js';
-import type { ChunkRecord } from './lance.js';
 
 // ---------------------------------------------------------------------------
 // Default (production) chunk store — M1, eval/GITNEXUS_COMPARISON.md §15.1.
@@ -22,12 +21,29 @@ import type { ChunkRecord } from './lance.js';
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Row shape — relocated from the now-deleted `store/lance.ts` (Stage 7.1,
+// vector-store deletion; IMPLEMENTATION_PLAN.md "Stage 7"). `SqliteChunkStore`
+// is the sole `ChunkStore` implementation now, so it owns the row shape every
+// consumer (search/hybrid.ts, mcp/tools/*) reads.
+// ---------------------------------------------------------------------------
+
+export interface ChunkRecord {
+  chunk_id: string;
+  file_path: string;
+  start_line: number;
+  end_line: number;
+  content: string;
+  chunk_type: string;
+  symbol_name: string | null;
+  parent_symbol: string | null;
+  is_exported: boolean;
+  language: string;
+  file_mtime: number;
+}
+
+// ---------------------------------------------------------------------------
 // Role interface (§4.3) — the chunk-store operations real consumers use.
-// Mirrors the existing `ChunkByIdSource` precedent (search/potential-matches.ts)
-// and the `Pick<LanceStore, ...>` precedent (indexer/background-embedder.ts).
-// `LanceStore` still satisfies this structurally (its six chunk-table methods
-// are unchanged) — kept for M2 to decide, but no production path uses it for
-// chunks any more.
+// Mirrors the existing `ChunkByIdSource` precedent (search/potential-matches.ts).
 // ---------------------------------------------------------------------------
 
 export interface ChunkStore {
@@ -36,7 +52,7 @@ export interface ChunkStore {
   /** Delete all chunks for the given files. Returns total rows removed. */
   deleteChunksForFiles(filePaths: readonly string[]): Promise<number>;
   getChunksByFilePath(filePath: string): Promise<ChunkRecord[]>;
-  /** Unrecognised ids are silently skipped (LanceStore parity). */
+  /** Unrecognised ids are silently skipped. */
   getChunksByIds(ids: readonly string[]): Promise<ChunkRecord[]>;
   getAllChunks(): Promise<ChunkRecord[]>;
   chunkCount(): Promise<number>;

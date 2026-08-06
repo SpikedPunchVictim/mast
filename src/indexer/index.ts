@@ -4,13 +4,11 @@ import type { ResolvedConfig } from '../store/config.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
 import type { LockMetricsSink } from '../store/lockMetrics.js';
-import { LanceStore, chunkRecordToChunk, type ChunkRecord } from '../store/lance.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
 import { openDatabase } from '../graph/db.js';
 import { populateFile, insertEdges, insertReExportFiles, removeDeletedFiles } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
-import { createEmbedder, vectorKey, stampVectorHashes, type EmbedderLike } from './embedder.js';
 import type { IndexMeta, FreshnessCause } from '../ast/types.js';
 
 export interface IndexResult {
@@ -473,140 +471,21 @@ function symbolSignature(
 }
 
 // ---------------------------------------------------------------------------
-// Phase 2: Embedding
+// Freshness diagnostics (mast_status, `mast status`)
 // ---------------------------------------------------------------------------
-
-export interface EmbedResult {
-  readonly chunksEmbedded: number;
-  readonly chunksSkipped: number;
-  readonly durationMs: number;
-}
-
-export interface EmbedOptions {
-  /** Chunks per model call. Default 32. */
-  readonly batchSize?: number;
-  /**
-   * Inject a pre-configured embedder. Defaults to the model in `config`.
-   * Pass a fake here in tests to avoid loading the ONNX runtime.
-   */
-  readonly embedder?: EmbedderLike;
-  /** Called after each batch with running and total pending counts. */
-  readonly onProgress?: (embedded: number, total: number) => void;
-}
-
-/**
- * Embed all un-vectorised chunks and store results in LanceDB.
- *
- * Acquires `vectors.lock` for the duration. Idempotent — chunks already in
- * the vectors table are skipped; orphaned vectors (whose chunks were deleted)
- * are cleaned up before new embeddings are inserted.
- */
-export async function runEmbed(
-  config: ResolvedConfig,
-  options: EmbedOptions = {},
-): Promise<EmbedResult> {
-  const startMs = Date.now();
-  const batchSize = options.batchSize ?? 32;
-
-  return withLock(
-    config.resolved_state_dir,
-    'vectors',
-    { maxRetries: 5, retryIntervalMs: 1_000, caller: 'embed-run' },
-    async () => {
-      const lance = await LanceStore.open(config.resolved_state_dir);
-      // Chunks (§15.1) come from graph.db's `chunks` table, not Lance — this
-      // function opens its own `db` handle, mirroring `runIndex`'s pattern,
-      // and closes it before returning (below) since this is a one-shot,
-      // lock-scoped operation, not a long-lived connection.
-      const db = openDatabase(config.resolved_state_dir);
-      const chunkStore = new SqliteChunkStore(db);
-      try {
-        const allChunks = await chunkStore.getAllChunks();
-        const embeddedIds = await lance.getEmbeddedChunkIds();
-        const vectorKeys = await lance.getEmbeddedVectorKeys();
-
-        // Remove vectors whose corresponding chunk no longer exists.
-        const allChunkIds = new Set(allChunks.map((c) => c.chunk_id));
-        const orphanIds = [...embeddedIds].filter((id) => !allChunkIds.has(id));
-        if (orphanIds.length > 0) {
-          await lance.deleteVectorsForChunks(orphanIds);
-        }
-
-        const pending = selectPendingChunks(allChunks, vectorKeys);
-        if (pending.length === 0) {
-          return {
-            chunksEmbedded: 0,
-            chunksSkipped: allChunks.length,
-            durationMs: Date.now() - startMs,
-          };
-        }
-
-        // Load the embedder first so we can detect the model's actual dimension,
-        // then create the vectors table with the correct size.
-        const embedder =
-          options.embedder ?? createEmbedder(config.embedding_model, config.resolved_state_dir, config.resolved_transformers_cache_dir);
-        await embedder.load();
-        await lance.ensureVectorsTable(embedder.dimension);
-
-        let chunksEmbedded = 0;
-        for (let i = 0; i < pending.length; i += batchSize) {
-          const batch = pending.slice(i, i + batchSize).map(chunkRecordToChunk);
-          const vectors = await embedder.embed(batch);
-          // Stamp each vector with its content hash (the embedder doesn't), then
-          // upsert so a re-embed overwrites the stale vector instead of dup'ing it.
-          await lance.upsertVectors(stampVectorHashes(vectors, batch));
-          chunksEmbedded += batch.length;
-          options.onProgress?.(chunksEmbedded, pending.length);
-        }
-
-        return {
-          chunksEmbedded,
-          chunksSkipped: allChunks.length - pending.length,
-          durationMs: Date.now() - startMs,
-        };
-      } finally {
-        await db.destroy();
-      }
-    },
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Freshness diagnostics (shared by runEmbed, mast_status, and `mast status`)
-// ---------------------------------------------------------------------------
-
-/**
- * Chunks whose CURRENT content has no stored vector. A content edit keeps the
- * chunk_id but changes the content hash, so it counts as pending even though
- * the id is unchanged (H1, §6.2). This is THE definition of "needs embedding" —
- * runEmbed's work selection and the status tools' `pending_embeddings` count
- * both call it so the two can never disagree.
- */
-export function selectPendingChunks(
-  allChunks: readonly ChunkRecord[],
-  vectorKeys: ReadonlySet<string>,
-): ChunkRecord[] {
-  return allChunks.filter((c) => !vectorKeys.has(vectorKey(c.chunk_id, c.content)));
-}
-
-/**
- * Count of chunks awaiting (re-)embedding, per `selectPendingChunks`.
- * Chunks come from `chunkStore` (graph.db, §15.1); vector keys still come
- * from `lance` (vectors stay in Lance — M2 decides otherwise).
- */
-export async function countPendingEmbeddings(
-  chunkStore: Pick<ChunkStore, 'getAllChunks'>,
-  lance: Pick<LanceStore, 'getEmbeddedVectorKeys'>,
-): Promise<number> {
-  const allChunks = await chunkStore.getAllChunks();
-  const vectorKeys = await lance.getEmbeddedVectorKeys();
-  return selectPendingChunks(allChunks, vectorKeys).length;
-}
 
 /**
  * Collapse the two staleness signals into the `freshness_cause` discriminator
  * (§9 mast_status). Purely derived — `index_fresh` keeps its Phase 1-only
  * meaning and is not affected by an embedding backlog.
+ *
+ * `pendingEmbeddings` is always 0 post-Stage-7.1 (the vector subsystem that
+ * produced it — `runEmbed`/`selectPendingChunks`/`countPendingEmbeddings` —
+ * was excised; IMPLEMENTATION_PLAN.md "Stage 7"), so this function can no
+ * longer actually return `'embedding_backlog'`/`'both'` in production. Kept
+ * as pure `(number, number) -> FreshnessCause` logic rather than special-cased
+ * so its callers (mcp/tools/status.ts, cli/status.ts) don't need a branch —
+ * Stage 7.2 removes the now-dead cases from `FreshnessCause` itself.
  */
 export function freshnessCause(staleFiles: number, pendingEmbeddings: number): FreshnessCause {
   if (staleFiles > 0 && pendingEmbeddings > 0) return 'both';

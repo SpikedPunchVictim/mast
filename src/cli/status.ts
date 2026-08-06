@@ -1,10 +1,7 @@
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
-import { loadIndexMeta, countPendingEmbeddings, freshnessCause } from '../indexer/index.js';
+import { loadIndexMeta, freshnessCause } from '../indexer/index.js';
 import { walkProject, diffManifest } from '../indexer/walker.js';
-import { LanceStore } from '../store/lance.js';
-import { openDatabase } from '../graph/db.js';
-import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -35,19 +32,10 @@ export function registerStatusCommand(program: Command): void {
       const { stale, added, deleted } = diffManifest(currentFiles, prevManifest);
       const staleCount = stale.length + added.length + deleted.length;
 
-      // Guard on the state dir: LanceStore.open / openDatabase would create it
-      // as a side effect, and `mast status` on a never-indexed project must
-      // not write.
-      let pendingEmbeddings = 0;
-      if (existsSync(config.resolved_state_dir)) {
-        const lance = await LanceStore.open(config.resolved_state_dir);
-        const db = openDatabase(config.resolved_state_dir);
-        try {
-          pendingEmbeddings = await countPendingEmbeddings(new SqliteChunkStore(db), lance);
-        } finally {
-          await db.destroy();
-        }
-      }
+      // Stage 7.2 removes this field — frozen at 0 during excision (the
+      // vector subsystem that produced it, countPendingEmbeddings, was
+      // deleted in Stage 7.1; IMPLEMENTATION_PLAN.md "Stage 7").
+      const pendingEmbeddings = 0;
 
       const status = {
         state_dir:     config.resolved_state_dir,

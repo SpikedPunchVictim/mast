@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -9,18 +9,31 @@ export default defineConfig({
     // eval/ is not part of the tsc build (tsconfig.json only includes src/**/*), so
     // this does not affect typecheck.
     include: ['src/**/*.test.ts', 'eval/**/*.test.mjs'],
+    // Stage 7.1 (vector-store deletion, IMPLEMENTATION_PLAN.md Stage 7 decision 1):
+    // these five files test RETIRED Q1 instruments whose import chains reach modules
+    // deleted at HEAD (dist/search/vector.js, dist/store/lance.js, the embedder).
+    // They stay in-repo as the experiment record; their runnable home is the git tag
+    // `mast-pre-vector-delete`. Do not re-enable at HEAD — a re-entry per the M2
+    // decision memo checks out the tag instead. eval tests with no vector
+    // dependency (declex-ranker, idfuse-ranker, …) still run at HEAD.
+    exclude: [
+      ...configDefaults.exclude,
+      'eval/__tests__/declex-cli.test.mjs',
+      'eval/__tests__/declex-score.test.mjs',
+      'eval/__tests__/scale-score.test.mjs',
+      'eval/__tests__/idfuse-score.test.mjs',
+      'eval/__tests__/scale-rank-check.test.mjs',
+    ],
     environment: 'node',
     clearMocks: true,
     restoreMocks: true,
     // Run each test file in a forked child process rather than a worker thread.
     //
-    // `@lancedb/lancedb` is a native (napi/Rust) addon with its own background
-    // runtime threads. Under vitest's default `threads` pool the napi
-    // environment is finalized during worker-thread teardown while those native
-    // threads can still hold references, which intermittently aborts the
-    // process with a `Reference::Finalize` fault *after* all tests have passed
-    // (see BUG_FIXES.md T2). The `forks` pool defers native finalization to a
-    // normal child-process exit, which the addon handles cleanly.
+    // Originally forced by `@lancedb/lancedb`'s napi runtime threads aborting
+    // during worker-thread teardown (BUG_FIXES.md T2). That addon is deleted
+    // (Stage 7.1), but the pool is kept: better-sqlite3 and tree-sitter are
+    // also native addons, and forked-child teardown remains the conservative
+    // choice over re-litigating thread-pool finalization per addon.
     pool: 'forks',
   },
 });

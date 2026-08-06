@@ -4,13 +4,10 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, type ResolvedConfig } from '../../../store/config.js';
-import { runIndex, runEmbed } from '../../../indexer/index.js';
+import { runIndex } from '../../../indexer/index.js';
 import { openDatabase } from '../../../graph/db.js';
-import { LanceStore } from '../../../store/lance.js';
 import { SqliteChunkStore } from '../../../store/sqliteChunkStore.js';
 import { acquireLock } from '../../../store/lock.js';
-import { JINA_V2_DIM, type EmbedderLike } from '../../../indexer/embedder.js';
-import type { Chunk, VectorEntry } from '../../../ast/types.js';
 import type { AppContext } from '../../context.js';
 import { registerSearchTool } from '../search.js';
 import { registerProjectSkeletonTool } from '../project-skeleton.js';
@@ -78,24 +75,6 @@ export class Circle implements Shape {
 `;
 
 // ---------------------------------------------------------------------------
-// Fake embedder — deterministic, no ONNX runtime
-// ---------------------------------------------------------------------------
-
-function makeFakeEmbedder(): EmbedderLike {
-  return {
-    async load() {},
-    async embed(chunks: readonly Chunk[]): Promise<VectorEntry[]> {
-      return chunks.map((c, i) => ({
-        chunk_id:      c.chunk_id,
-        embedding:     Array.from({ length: JINA_V2_DIM }, (_, d) => d === i % JINA_V2_DIM ? 1 : 0),
-        model_version: 'fake-1.0',
-      }));
-    },
-    get dimension() { return JINA_V2_DIM; },
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Mock McpServer — captures registered tool handlers for direct invocation
 // ---------------------------------------------------------------------------
 
@@ -126,7 +105,6 @@ function createMockServer() {
 
 let tmpDir: string;
 let db: ReturnType<typeof openDatabase>;
-let lance: LanceStore;
 let ctx: AppContext;
 let call: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
 
@@ -143,19 +121,14 @@ beforeAll(async () => {
 
   const config = resolveConfig({ projectRoot: tmpDir });
   await runIndex(config, { incremental: false });
-  await runEmbed(config, { embedder: makeFakeEmbedder() });
 
   db = openDatabase(config.resolved_state_dir);
-  lance = await LanceStore.open(config.resolved_state_dir);
 
   ctx = {
     db,
-    lance,
     chunkStore: new SqliteChunkStore(db),
     config,
-    getEmbedder: () => null,
     searchMode: () => 'lexical',
-    embedPending: async () => {},
     sessionId: 'test-session',
   };
 
@@ -747,27 +720,6 @@ describe('mast_status', () => {
     expect(res.pending_embeddings).toBe(0);
     expect(res.freshness_cause).toBeNull();
   });
-
-  it('reports an embedding backlog after a Phase-1-only index of a new file', async () => {
-    // Runs last in this describe: it grows the corpus (Phase 1 only, no
-    // embed), which is exactly the cold-start state §11.1 describes.
-    writeFileSync(join(tmpDir, 'extra.ts'), 'export function extra(): number { return 42; }\n');
-    const config = resolveConfig({ projectRoot: tmpDir });
-    await runIndex(config, { incremental: true });
-
-    const res = await call('mast_status') as {
-      stale_files: number;
-      pending_embeddings: number;
-      freshness_cause: string | null;
-      index_fresh: boolean;
-    };
-
-    expect(res.stale_files).toBe(0);
-    expect(res.pending_embeddings).toBeGreaterThan(0);
-    expect(res.freshness_cause).toBe('embedding_backlog');
-    // index_fresh keeps its Phase 1 meaning — the backlog does not flip it.
-    expect(res.index_fresh).toBe(true);
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -840,7 +792,6 @@ describe('F2 — file_busy_returning_stale_cache', () => {
   let busyTmpDir: string;
   let busyConfig: ResolvedConfig;
   let busyDb: ReturnType<typeof openDatabase>;
-  let busyLance: LanceStore;
   let busyCall: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
 
   const BUSY_SRC = `export function busyFn(a: number): number {\n  return a;\n}\n`;
@@ -861,19 +812,14 @@ describe('F2 — file_busy_returning_stale_cache', () => {
 
     busyConfig = resolveConfig({ projectRoot: busyTmpDir });
     await runIndex(busyConfig, { incremental: false });
-    await runEmbed(busyConfig, { embedder: makeFakeEmbedder() });
 
     busyDb = openDatabase(busyConfig.resolved_state_dir);
-    busyLance = await LanceStore.open(busyConfig.resolved_state_dir);
 
     const busyCtx: AppContext = {
       db: busyDb,
-      lance: busyLance,
       chunkStore: new SqliteChunkStore(busyDb),
       config: busyConfig,
-      getEmbedder: () => null,
       searchMode: () => 'lexical',
-      embedPending: async () => {},
       sessionId: 'busy-test-session',
     };
 

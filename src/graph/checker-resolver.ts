@@ -365,10 +365,10 @@ export interface CheckerPassResult {
    * Self-sampled peak RSS across the whole pass (`process.memoryUsage().rss`,
    * polled every 250ms). This is an approximation, not the Stage 1.1 spike's
    * external `ps`-on-a-child-process measurement — production runs in-process
-   * (the same one-shot-process reasoning `runEmbed` already uses for Phase 2,
-   * see `index-cmd.ts`), and an in-process sampler can miss a spike inside a
-   * long synchronous stretch that never yields the event loop. Reported
-   * honestly as an approximation, not hidden.
+   * (the same one-shot-process reasoning `index-cmd.ts` uses throughout),
+   * and an in-process sampler can miss a spike inside a long synchronous
+   * stretch that never yields the event loop. Reported honestly as an
+   * approximation, not hidden.
    */
   readonly peakRssBytes: number;
   readonly durationMs: number;

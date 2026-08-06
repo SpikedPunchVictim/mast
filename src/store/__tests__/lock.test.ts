@@ -32,18 +32,6 @@ describe('withLock', () => {
     expect(order).toEqual(['a', 'b']);
   });
 
-  it('holds the two lock types concurrently and releases both', async () => {
-    await withLock(dir, 'structure', OPTS, async () => {
-      await withLock(dir, 'vectors', OPTS, async () => {
-        // both held here
-      });
-    });
-    // Both were released — each type can be re-acquired afterwards.
-    await withLock(dir, 'structure', OPTS, async () => {});
-    await withLock(dir, 'vectors', OPTS, async () => {});
-    expect(true).toBe(true);
-  });
-
   it('releases the lock even when fn throws', async () => {
     await expect(
       withLock(dir, 'structure', OPTS, async () => { throw new Error('boom'); }),

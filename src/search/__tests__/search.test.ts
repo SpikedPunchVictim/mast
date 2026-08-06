@@ -4,16 +4,11 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
-import { runEmbed } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
-import { LanceStore } from '../../store/lance.js';
-import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
+import { SqliteChunkStore, type ChunkRecord } from '../../store/sqliteChunkStore.js';
 import { searchFts, splitIdentifierTerms } from '../fts.js';
 import { hybridSearch, rrfScore, dedupShellMethodCollisions } from '../hybrid.js';
 import { trigramSimilarity } from '../../graph/queries.js';
-import { JINA_V2_DIM, type EmbedderLike } from '../../indexer/embedder.js';
-import type { ChunkRecord } from '../../store/lance.js';
-import type { Chunk, VectorEntry } from '../../ast/types.js';
 
 // ---------------------------------------------------------------------------
 // Fixture sources
@@ -57,31 +52,11 @@ const FORMAT_JS_SRC = `export function formatDate(date) {
 `;
 
 // ---------------------------------------------------------------------------
-// Fake embedder — deterministic, no ONNX runtime
-// ---------------------------------------------------------------------------
-
-function makeFakeEmbedder(): EmbedderLike {
-  return {
-    async load() {},
-    async embed(chunks: readonly Chunk[]): Promise<VectorEntry[]> {
-      return chunks.map((c, i) => ({
-        chunk_id:     c.chunk_id,
-        // Unit vector with 1 at position (i % dim) — each chunk unique
-        embedding:    Array.from({ length: JINA_V2_DIM }, (_, d) => d === i % JINA_V2_DIM ? 1 : 0),
-        model_version: 'fake-1.0',
-      }));
-    },
-    get dimension() { return JINA_V2_DIM; },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Shared setup: Phase 1 + Phase 2 over the fixture corpus
+// Shared setup: Phase 1 over the fixture corpus
 // ---------------------------------------------------------------------------
 
 let tmpDir: string;
 let db: ReturnType<typeof openDatabase>;
-let lance: LanceStore;
 let chunkStore: SqliteChunkStore;
 
 beforeAll(async () => {
@@ -93,10 +68,8 @@ beforeAll(async () => {
 
   const config = resolveConfig({ projectRoot: tmpDir });
   await runIndex(config, { incremental: false });
-  await runEmbed(config, { embedder: makeFakeEmbedder() });
 
   db = openDatabase(config.resolved_state_dir);
-  lance = await LanceStore.open(config.resolved_state_dir);
   chunkStore = new SqliteChunkStore(db);
 });
 
@@ -171,34 +144,34 @@ describe('searchFts', () => {
 describe('hybridSearch — lexical mode', () => {
   const hybridConfig = { rrf_k: 60 };
 
-  it('returns mode: lexical when embedder is null', async () => {
-    const { mode, results } = await hybridSearch(db, lance, null, { query: 'add' }, hybridConfig, chunkStore);
+  it('returns mode: lexical', async () => {
+    const { mode, results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
     expect(mode).toBe('lexical');
     expect(results.length).toBeGreaterThan(0);
   });
 
-  it('similarity_score is null in lexical mode', async () => {
-    const { results } = await hybridSearch(db, lance, null, { query: 'add' }, hybridConfig, chunkStore);
+  it('similarity_score is always null (Stage 7.1: vector leg removed)', async () => {
+    const { results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
     for (const r of results) {
       expect(r.similarity_score).toBeNull();
     }
   });
 
   it('match_score is set from BM25', async () => {
-    const { results } = await hybridSearch(db, lance, null, { query: 'add' }, hybridConfig, chunkStore);
+    const { results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
     const withFtsHit = results.filter((r) => r.match_score !== null);
     expect(withFtsHit.length).toBeGreaterThan(0);
   });
 
   it('only_exported filter excludes non-exported chunks', async () => {
     const allResults = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'Helper', only_exported: false },
       hybridConfig,
       chunkStore,
     );
     const exportedOnly = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'Helper', only_exported: true },
       hybridConfig,
       chunkStore,
@@ -218,7 +191,7 @@ describe('hybridSearch — lexical mode', () => {
 
   it('chunk_type filter restricts to matching type', async () => {
     const { results } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'Shape', chunk_type: 'interface' },
       hybridConfig,
       chunkStore,
@@ -230,7 +203,7 @@ describe('hybridSearch — lexical mode', () => {
 
   it('limit is respected', async () => {
     const { results } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'a', limit: 2 },
       hybridConfig,
       chunkStore,
@@ -239,128 +212,8 @@ describe('hybridSearch — lexical mode', () => {
   });
 
   it('rank field increments from 1', async () => {
-    const { results } = await hybridSearch(db, lance, null, { query: 'function' }, hybridConfig, chunkStore);
+    const { results } = await hybridSearch(db, { query: 'function' }, hybridConfig, chunkStore);
     results.forEach((r, i) => expect(r.rank).toBe(i + 1));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// hybridSearch — hybrid mode (with embedder)
-// ---------------------------------------------------------------------------
-
-describe('hybridSearch — hybrid mode', () => {
-  const hybridConfig = { rrf_k: 60 };
-
-  it('returns mode: hybrid when vectors are available', async () => {
-    const { mode } = await hybridSearch(
-      db, lance, makeFakeEmbedder(),
-      { query: 'add' },
-      hybridConfig,
-      chunkStore,
-    );
-    expect(mode).toBe('hybrid');
-  });
-
-  it('results have similarity_score set for vector-matched chunks', async () => {
-    const { results } = await hybridSearch(
-      db, lance, makeFakeEmbedder(),
-      { query: 'add' },
-      hybridConfig,
-      chunkStore,
-    );
-    // At least one result should have a similarity score.
-    const withScore = results.filter((r) => r.similarity_score !== null);
-    expect(withScore.length).toBeGreaterThan(0);
-  });
-
-  it('chunk in both FTS and vector results scores higher than chunk in one only', async () => {
-    // Run two separate searches and verify the fused ranking is not worse than
-    // either individual leg — a chunk in both lists must rank at least as high
-    // as a chunk that appears in only one.
-    const { results } = await hybridSearch(
-      db, lance, makeFakeEmbedder(),
-      { query: 'add' },
-      hybridConfig,
-      chunkStore,
-    );
-    const dual = results.filter((r) => r.match_score !== null && r.similarity_score !== null);
-    const singleLeg = results.filter(
-      (r) => (r.match_score !== null) !== (r.similarity_score !== null),
-    );
-
-    if (dual.length > 0 && singleLeg.length > 0) {
-      expect(dual[0]!.rank).toBeLessThan(singleLeg[0]!.rank);
-    }
-  });
-
-  it('falls back to lexical when embedder throws', async () => {
-    const brokenEmbedder: EmbedderLike = {
-      async load() {},
-      async embed() { throw new Error('model unavailable'); },
-      get dimension() { return JINA_V2_DIM; },
-    };
-    const { mode, results } = await hybridSearch(
-      db, lance, brokenEmbedder,
-      { query: 'add' },
-      hybridConfig,
-      chunkStore,
-    );
-    expect(mode).toBe('lexical');
-    expect(results.length).toBeGreaterThan(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// hybridSearch — rank-based vector inclusion (Task 9: no absolute cosine gate)
-// ---------------------------------------------------------------------------
-
-describe('hybridSearch — rank-based vector inclusion', () => {
-  const hybridConfig = { rrf_k: 60 };
-
-  it('a query with no FTS hits still returns vector-ranked hybrid results', async () => {
-    // 'zzzzqqqq' matches nothing lexically; the vector leg alone must carry
-    // the response. Under the old absolute 0.70 gate, most of these neighbors
-    // would have been silently discarded.
-    const { mode, results } = await hybridSearch(
-      db, lance, makeFakeEmbedder(),
-      { query: 'zzzzqqqq' },
-      hybridConfig,
-      chunkStore,
-    );
-
-    expect(mode).toBe('hybrid');
-    expect(results.length).toBeGreaterThan(0);
-    expect(results.every((r) => r.match_score === null)).toBe(true);
-    expect(results.every((r) => r.similarity_score !== null)).toBe(true);
-  });
-
-  it('vector candidates enter RRF by rank, regardless of absolute cosine', async () => {
-    // The fake embedder gives orthogonal unit vectors: one chunk at cosine ~1,
-    // the rest at ~0. Rank-based inclusion must return the ~0-cosine neighbors
-    // too — exactly the results an absolute gate at any level would drop.
-    const { results } = await hybridSearch(
-      db, lance, makeFakeEmbedder(),
-      { query: 'zzzzqqqq' },
-      hybridConfig,
-      chunkStore,
-    );
-
-    expect(results.some((r) => (r.similarity_score ?? 1) < 0.70)).toBe(true);
-  });
-
-  it('suggestions do not fire in hybrid mode when vector neighbors exist', async () => {
-    // Task 1 interaction: the zero-result assist triggers on empty results.
-    // With rank-based inclusion the vector leg fills results for near-miss
-    // queries, so the assist naturally scopes to lexical mode / empty indexes.
-    const { results, suggestions } = await hybridSearch(
-      db, lance, makeFakeEmbedder(),
-      { query: 'adddd' },
-      hybridConfig,
-      chunkStore,
-    );
-
-    expect(results.length).toBeGreaterThan(0);
-    expect(suggestions).toBeUndefined();
   });
 });
 
@@ -527,7 +380,7 @@ describe('hybridSearch — shell/method dedup', () => {
   it('never returns both a class shell and one of its methods', async () => {
     // 'perimeter' matches the Circle shell (member signature), the
     // Circle.perimeter method chunk, and the Shape interface.
-    const { results } = await hybridSearch(db, lance, null, { query: 'perimeter' }, hybridConfig, chunkStore);
+    const { results } = await hybridSearch(db, { query: 'perimeter' }, hybridConfig, chunkStore);
 
     const shell = results.find((r) => r.chunk_type === 'class_shell' && r.symbol_name === 'Circle');
     const method = results.find((r) => r.chunk_type === 'method' && r.parent_symbol === 'Circle');
@@ -543,12 +396,12 @@ describe('hybridSearch — shell/method dedup', () => {
   });
 
   it('ranks stay contiguous from 1 after dedup', async () => {
-    const { results } = await hybridSearch(db, lance, null, { query: 'perimeter' }, hybridConfig, chunkStore);
+    const { results } = await hybridSearch(db, { query: 'perimeter' }, hybridConfig, chunkStore);
     results.forEach((r, i) => expect(r.rank).toBe(i + 1));
   });
 
   it('non-colliding results carry no related field', async () => {
-    const { results } = await hybridSearch(db, lance, null, { query: 'add' }, hybridConfig, chunkStore);
+    const { results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(r.related).toBeUndefined();
@@ -567,7 +420,7 @@ describe('hybridSearch — zero-result assist', () => {
 
   it('attaches suggestions when the query matches no chunk', async () => {
     const { results, suggestions } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'adddd' },
       lexicalConfig,
       chunkStore,
@@ -580,7 +433,7 @@ describe('hybridSearch — zero-result assist', () => {
 
   it('each suggestion carries symbol, file_path and reason', async () => {
     const { suggestions } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'adddd' },
       lexicalConfig,
       chunkStore,
@@ -595,7 +448,7 @@ describe('hybridSearch — zero-result assist', () => {
 
   it('never substitutes suggestions for results (results stay empty)', async () => {
     const { results, suggestions } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'adddd' },
       lexicalConfig,
       chunkStore,
@@ -606,7 +459,7 @@ describe('hybridSearch — zero-result assist', () => {
 
   it('omits suggestions when the query returns results', async () => {
     const { results, suggestions } = await hybridSearch(
-      db, lance, null,
+      db,
       { query: 'add' },
       lexicalConfig,
       chunkStore,
