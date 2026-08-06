@@ -4123,6 +4123,124 @@ the memo's overstatements ran predominantly pro-delete — the same direction th
 
 ---
 
+## Stage 6: F18 productization — ranker D in shipped `hybridSearch` (2026-08-06, per M2 memo conditions 1–3)
+
+**Goal**: the declaration-exact ranker ships in the product exactly as measured, behind a
+default-on kill-switch, with D-fire telemetry and the Gate B fixtures as a permanent
+regression suite. The vector-store deletion (memo condition 4) is a SEPARATE later stage —
+this stage adds D to the existing fusion (the measured H+D arm), so post-deletion search
+becomes L+D with no further ranking change.
+
+**Design decisions (recorded before implementation):**
+
+1. **Module**: `src/search/declex.ts` — TypeScript port of `eval/declex-ranker.mjs`,
+   PRIMARY arm only. The escape variant is NOT ported (memo condition 1: measured harmful,
+   requires fresh registration; the instrument file remains the escape record). Function
+   names are preserved (`deriveRankerDTerms`, `isEligiblePrimaryTerm`, `searchRankerD`) so
+   "exactly as measured" is auditable line-against-line with the instrument.
+2. **Fusion**: third RRF map in `hybridSearch`, byte-matching
+   `reconstructWithRankerD` (`eval/declex-rank-check.mjs:161-208`): D queried at
+   `candidateLimit` (= limit × 4), rows ranked 1..n by the registered ordering,
+   `rrfScore(dRank, rrf_k)` added to the sum, same downstream pipeline (top-pool →
+   `getChunksByIds` → RRF sort → shell/method dedup → backfill).
+3. **Kill-switch** (memo condition 3): `MastConfig.declaration_exact_ranker: boolean`,
+   default `true`, resolved through the existing config chain and threaded via
+   `HybridSearchConfig`. Flag off ⇒ `hybridSearch` behaves byte-identically to pre-F18.
+4. **Telemetry** (memo condition 3): when D fired, `hybridSearch` computes the fusion
+   twice — with and without D's map (pure in-memory arithmetic over already-fetched
+   lists; no extra IO) — and reports per-result window effects. Persisted as a new
+   additive `metrics.declex_json` column (`ALTER TABLE` precedent: `args_json`/
+   `results_json`, no `CURRENT_SCHEMA_VERSION` bump):
+   `{fired, top_match_channel, candidate_count, window_effects: [{chunk_id, symbol_name,
+   rank_with_d, rank_without_d}], _truncated?}` — window_effects lists final-window
+   entries whose rank differs between the two fusions plus entries pushed OUT of the
+   window (rank_with_d: null), capped at 10 entries with the stated-honestly cap rule.
+   NULL for queries where D did not fire and for all other tools.
+5. **Regression suite** (memo condition 2): Gate B primary-arm fixtures ported to
+   `src/search/__tests__/declex.test.ts` against the product module (dotted
+   `Class.method` segment match, camelCase full match, case-insensitivity, underscore-
+   literal LIKE escaping, same-name multiplicity ordering, chunk_id tie-break, the
+   140-candidate `toJSON` high-multiplicity fixture, empty/no-eligible-term firing rules,
+   OR semantics, pool cap, two-run determinism). Escape fixtures stay in `eval/`.
+6. **Docs**: MAST_SPEC.md — §4.1 (config key), §7.3 (fusion gains the declaration-exact
+   list + flag semantics), §14.3 (`declex_json` column). `eval/README.md` remains stale
+   (pre-existing, out of scope).
+
+### Stage 6.1: Port ranker D + regression suite
+**Success criteria**: `src/search/declex.ts` ships `searchRankerD` (primary arm only);
+ported Gate B fixtures pass against it; instrument file untouched.
+**Tests**: `src/search/__tests__/declex.test.ts` (ported fixtures, red first against the
+empty module).
+**Status**: Complete (2026-08-06) — 25 fixtures red-first then green; full suite 622/622
+(+25 over the 597 baseline); tsc + lint clean. Port verified line-against-line vs the
+instrument; 4 strict-TS accommodations, all behavior-neutral (type-guard for the SQL
+`IS NOT NULL`, annotated ternary over a cast, unreachable `?? 0` map fallbacks,
+`candidates[0]` bound before branching).
+
+### Stage 6.2: Fusion + kill-switch
+**Success criteria**: D fused as third RRF list behind `declaration_exact_ranker`
+(default on); flag off ⇒ pre-F18 behavior; D-silent ⇒ result set identical to flag-off
+(the measured invariant); D-fired ⇒ anchor participates in RRF exactly per the
+reconstruction.
+**Tests**: `hybrid` test additions — flag off/on equivalence when D silent; anchor
+in-window when D fires; dedup/backfill interplay unchanged.
+**Status**: Complete (2026-08-06) — 8 new tests red-first then green (fusion invariants +
+config default/override); full suite 630/44 (+8 over 622); tsc + lint clean. Fusion diff
+verified against `reconstructWithRankerD` line-for-line. Logged deviations: config tests
+went to a NEW `src/store/__tests__/config.test.ts` (none existed); dedup-interplay fixture
+uses `Foo.Bar` (capitalized segment) because a bare lowercase `bar` never passes D's own
+eligibility gate. `pnpm align:check`: 2 pre-existing repo-level REDs outside
+`packages/mast` (ui root-layout cycle, api fold-build-record repo) — untouched by this
+stage, consistent with the handoff's pre-existing-debt note; 6.4 re-checks for NEW debt.
+**Design note (recorded before implementation):** `HybridSearchConfig.declaration_exact_ranker`
+is OPTIONAL with absent ⇒ OFF, gated `=== true`. Rationale: the eval instruments
+(`declex-rank-check.mjs:304`, idfuse equivalents) call the shipped `hybridSearch` to
+reconstruct measured arms — a function-level default-on would silently turn every future
+instrument H-arm reproduction into H+D, breaking Gate D reproducibility without an error.
+The memo's "default on" lives in `MastConfig` DEFAULTS (the product config chain), which
+is the layer a kill-switch belongs to. D applies no `file_pattern`/`language` pre-filter —
+same as the vector list (pre-existing shipped semantics; the measured construction had no
+filter either); `chunk_type`/`only_exported` post-filters apply downstream unchanged. D
+never affects the `mode` discriminator (matches the reconstruction: mode comes from the
+vector path only).
+
+### Stage 6.3: D-fire telemetry
+**Success criteria**: dual-fusion diff computed only when D fired; `declex_json` written
+via `recordToolCall` for `mast_search`; caps honest; metrics failures still swallowed.
+**Tests**: unit tests for the window-diff builder; integration test asserting the
+persisted row shape.
+**Status**: Complete (2026-08-06) — 14 new tests red-first then green; full suite 644/44
+(+14 over 630); tsc + lint clean; align unchanged vs pre-existing repo debt (verified via
+stash). Dual-fusion diff verified: D-only ids EXCLUDED from the without-D reconstruction
+(not zero-scored), identical RRF arithmetic, union-of-top-`limit`-windows effect set,
+deterministic ordering, `fired: true` rows persisted even with zero window effects
+(exposure data). Design refinements vs decision 4's sketch, recorded: (i) window_effects
+report the ACTUAL fused rank wherever the id is still in a list — null only on true
+absence (D-only ⇒ `rank_without_d: null`); (ii) truncation is a top-level
+`_truncated: <dropped>` field (the `buildArgsJson` convention, not `buildResultsJson`'s
+appended sentinel — a sentinel inside `window_effects` would be indistinguishable from a
+malformed effect); (iii) `DeclexTelemetry`/`DeclexWindowEffect` live in `hybrid.ts`, not
+`declex.ts` — window effects are a property of the fusion, not the ranker.
+
+### Stage 6.4: Verify + document
+**Success criteria**: full suite green (597 baseline + new), `tsc --noEmit` clean, lint
+clean, `pnpm align:check` no new debt vs the 327 baseline; MAST_SPEC.md updated;
+this stage table updated; handoff updated.
+**Status**: Complete (2026-08-06) — suite **644/44** green; `tsc --noEmit` clean; lint
+clean; `pnpm align:check` red at the EXACT pre-existing baseline (324→327 +3,
+"provisional", identical pre-Stage-6 — no new debt). MAST_SPEC.md updated: §4.1
+(`declaration_exact_ranker` key + rationale), §7.3 (ranker D as third RRF input — match
+rule, eligibility gate, ordering, filter/mode semantics, escape-variant exclusion),
+§14.3 (`declex_json` column + dual-fusion diff contract). `mast_reindex` run (10 files,
+0 parse errors). HANDOFF_Q1.md updated with the 2026-08-06 addendum.
+
+**Stage 6 exit state**: F18 is productized per M2 memo conditions 1–3. NOT yet done
+(deliberately out of scope): memo condition 4 — the vector-store deletion — which is the
+next stage of work; and the memo condition 5 review clock (harvest n ≥ 67 or 90 days)
+starts at DELETION ship, not at F18 ship.
+
+---
+
 ## HANDOFF — operational state for the Q1/M2 track (2026-08-01)
 
 Everything above records *reasoning*. This records *state*, which is otherwise only in

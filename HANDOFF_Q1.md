@@ -1,5 +1,42 @@
 # HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/DECLEX RESULT, evidence `beccd52`)
 
+---
+
+## ⚡ UPDATE 2026-08-06 — M2 DECIDED (delete), F18 SHIPPED; read this before the rest
+
+The sections below describe the state as of 2026-08-03 and remain accurate as history.
+What changed since:
+
+1. **The M2 decision memo (§4a below) is WRITTEN, adversarially reviewed
+   (SURVIVES-WITH-REQUIRED-CHANGES, all 7 changes applied; review verbatim at
+   `eval/results/m2-memo-review.md`), COMMITTED, and ratified: arm D — delete the vector
+   store, ship F18.** See IMPLEMENTATION_PLAN.md § "M2 DECISION MEMO (2026-08-04)" for
+   the decision, its five confronted gaps, conditions, and re-entry criteria.
+2. **F18 is productized (IMPLEMENTATION_PLAN.md Stage 6, complete 2026-08-06):**
+   ranker D ported to `src/search/declex.ts` (primary arm only — the escape variant is
+   NOT shipped, measured harmful); fused into `hybridSearch` as a third RRF input behind
+   `MastConfig.declaration_exact_ranker` (default ON in product config; ABSENT-MEANS-OFF
+   at the `HybridSearchConfig` layer so eval instruments reconstructing measured arms
+   stay uncontaminated); D-fire telemetry persisted to the additive
+   `metrics.declex_json` column (dual-fusion window diff — the kill-switch and
+   re-entry-criteria input signal); Gate B fixtures promoted to a permanent regression
+   suite (`src/search/__tests__/declex.test.ts`).
+3. **Verification baseline is now 644 tests / 44 files** (was 597/41). align:check
+   still red at the same pre-existing +3 baseline (324→327, "provisional") — unchanged
+   by Stage 6; still do not attribute it to new changes.
+4. **YOUR NEXT ACTION is the vector-store deletion stage (memo condition 4):** remove
+   `@lancedb/lancedb`, `vectors.lance`, `embedder.ts`/`background-embedder.ts` + fork,
+   `vectors.lock`, embed cache, model-weights Docker layer, seed Phase 2, the `mode`
+   discriminator and cold-start ladder's embed half. AST/graph/FTS tools untouched.
+   Post-delete search = L+D exactly as measured. The honest post-delete `mode` surface
+   is an open product-design point (memo condition 4). The memo condition 5 review
+   clock (organic harvest n ≥ 67 or 90 days, whichever first) **starts when the
+   deletion ships** — schedule it then.
+5. §4b's productization guidance below is now DONE; §5's defect list and §6's rules
+   remain fully in force for any future instrument reuse.
+
+---
+
 You are taking over an evidence-first investigation in `packages/mast`. Branch `ui`, tree
 clean, suite green. Read this file first, then `IMPLEMENTATION_PLAN.md`.
 

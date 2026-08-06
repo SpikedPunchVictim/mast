@@ -70,6 +70,7 @@ Config is resolved in this priority order:
   ],
   "embedding_model": "jinaai/jina-embeddings-v2-base-code",
   "rrf_k": 60,
+  "declaration_exact_ranker": true,
   "chunk_split_threshold": 100,
   "context_lines": 3,
   "markdown_heading_depth": 2
@@ -78,6 +79,13 @@ Config is resolved in this priority order:
 
 `rrf_k` is the constant in the Reciprocal Rank Fusion formula (see §7.3). The default
 of 60 is standard. Higher values reduce the influence of rank differences.
+
+`declaration_exact_ranker` (default `true`) is the F18 kill-switch: it fuses the
+declaration-exact ranker (ranker D — see §7.3) into `mast_search` ranking as an
+additional RRF input. Set `false` to restore pre-F18 ranking without a code change.
+The flag exists because ranker D's harm surface on identifier-free queries is
+monitored, not proven safe (M2 decision memo, condition 3); its D-fire telemetry
+(§14.3 `declex_json`) is the input signal for that monitoring.
 
 There is deliberately **no `similarity_threshold` key**. An earlier revision
 gated vector results by absolute cosine (0.70) before RRF; the N1 bake-off
@@ -476,6 +484,36 @@ for code queries that mix exact identifiers with conceptual descriptions.
 Implementation: run vector search and FTS5 BM25 search independently over a
 candidate pool of **4× `limit` per ranker** (40 for the default `limit: 10`),
 then apply RRF to produce a unified ranked list. Return the top `limit` results.
+
+**Third RRF input — the declaration-exact ranker (ranker D, F18).** When
+`declaration_exact_ranker` is enabled (§4.1, default on), a third ranked list
+joins the fusion. Ranker D (`src/search/declex.ts`, the Q1/DECLEX-measured
+construction) is symbol-gated and purely lexical-structural:
+
+- The raw query is split on `/[A-Za-z0-9_$]+/` (no camelCase decomposition, no
+  lowercasing); only **symbol-shaped** tokens survive the eligibility gate
+  (contains an uppercase letter, `_`, `$`, or a digit adjacent to a letter) —
+  bare lowercase prose words never reach the ranker.
+- Each eligible token matches chunks whose own `symbol_name` **equals the
+  token** (full-name match) or **ends with `.` + token** (final-dot-segment
+  match — reaches `Class.method` chunks by their method name), both
+  case-insensitive, via a direct SQL predicate against `chunks.symbol_name`
+  (not FTS — the rule is a structural string comparison).
+- Ordering is deterministic: full-name matches before segment-only matches,
+  then ascending same-matched-name multiplicity (a uniquely-named match beats
+  one of 140 `toJSON`s), then ascending `chunk_id`. The pool is capped at
+  4× `limit` like the other rankers, and the list enters RRF **by rank** with
+  the same `rrf_k`.
+- Ranker D applies no `file_pattern`/`language` pre-filter (same semantics as
+  the vector list); `chunk_type`/`only_exported` post-filters apply downstream
+  unchanged. It never affects the `mode` discriminator — `mode` is decided by
+  the vector leg alone.
+
+Provenance: pre-registered and measured as Q1/DECLEX (IMPLEMENTATION_PLAN.md);
+shipped per the M2 decision memo as F18. The measured **escape variant**
+(lowercase-token recovery under a match-count cap) is deliberately NOT shipped —
+it is measured harmful off-stratum and requires a fresh pre-registration.
+Per-call firing telemetry is persisted to `metrics.declex_json` (§14.3).
 
 **Rank-based vector inclusion — no absolute cosine gate.** Every top-pool
 vector candidate feeds RRF by rank, regardless of its absolute cosine value.
@@ -2429,7 +2467,8 @@ CREATE TABLE IF NOT EXISTS metrics (
   session_id                      TEXT NOT NULL,           -- uuid set at mast serve startup
   status                          TEXT NOT NULL,           -- "ok" | "stale_returned" | "error"
   args_json                       TEXT,                    -- salient tool arguments, capped at 1,000 chars
-  results_json                    TEXT                     -- {file_path, symbol_name} identity pairs, capped at 20 entries
+  results_json                    TEXT,                    -- {file_path, symbol_name} identity pairs, capped at 20 entries
+  declex_json                     TEXT                     -- ranker D fire telemetry (mast_search only), NULL when D silent
 );
 
 CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(call_timestamp);
@@ -2468,6 +2507,21 @@ when hit (`_truncated`) rather than silently cut. Wired for `mast_search`,
 `mast_signature`, `mast_exports`, and `mast_callers` — the chain-analysis tools the
 capsule decision depends on; both columns are `NULL` for every other tool and for
 rows recorded before this migration.
+
+**`declex_json` (F18 D-fire telemetry — M2 decision memo condition 3).** Added
+via the same additive `ALTER TABLE` precedent (no schema bump). Populated only
+on `mast_search` calls where ranker D (§7.3) actually fired; `NULL` when D was
+silent, when `declaration_exact_ranker` is off, for every other tool, and for
+pre-migration rows. Shape: `{fired: true, top_match_channel: "full"|"segment",
+candidate_count, window_effects: [{chunk_id, symbol_name, rank_with_d,
+rank_without_d}], _truncated?}`. `window_effects` is a dual-fusion diff computed
+in-memory per call — the fused (pre-dedup) rank of each affected chunk with D's
+list included vs excluded from RRF; ranks are the actual positions in each list
+(`null` only when the chunk is absent from that list entirely, e.g. a D-only
+anchor has `rank_without_d: null`), capped at 10 entries with a top-level
+`_truncated` count. This column is the input signal for the F18 kill-switch and
+the M2 re-entry criteria: fire rate on real queries, and whether D demotes
+in-window targets, are both answerable from it without re-instrumenting.
 
 ### 14.4 Rotation Policy
 
