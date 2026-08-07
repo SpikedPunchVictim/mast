@@ -60,20 +60,6 @@ export interface ChunkHashes {
   readonly body_hash: string;
 }
 
-export interface VectorEntry {
-  readonly chunk_id: string;
-  readonly embedding: readonly number[];
-  readonly model_version: string;
-  /**
-   * sha256 of the chunk content this vector was computed from. Set by the embed
-   * orchestration (not the model) so freshness can be checked on reindex: a
-   * chunk whose content changed has a new hash and is re-embedded even though
-   * its `chunk_id` (file_path:start_line) is unchanged. Optional on the wire;
-   * always populated before insert.
-   */
-  readonly content_hash?: string;
-}
-
 // ---------------------------------------------------------------------------
 // Graph population records (produced by AST extraction, consumed by populate.ts)
 // ---------------------------------------------------------------------------
@@ -130,11 +116,6 @@ export interface MastConfig {
   readonly project_root: string;
   readonly file_extensions: readonly string[];
   readonly exclude_patterns: readonly string[];
-  // similarity_threshold was removed (Task 9): the absolute cosine gate was
-  // miscalibrated for the shipped model (0/28 gold conceptual queries cleared
-  // 0.70) and cosine scales are model-specific. Vector candidates now enter
-  // RRF by rank (§7.3); no knob replaced it because no honest cross-model
-  // default exists.
   /** Reciprocal Rank Fusion constant k (default 60). */
   readonly rrf_k: number;
   /**
