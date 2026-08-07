@@ -788,6 +788,102 @@ silently absent from the index for any orchestration that gates only on exit cod
 Found via vscode's whale fixture files. This is the known write-path correctness
 defect at the 150k-chunk target; fix = chunked inserts inside the same transaction.
 
+**S1 result (2026-08-07):** fixed the whole defect class, not just the named site —
+a survey of every multi-row write in `store/` and `graph/` found 8 sites sharing the
+same SQLite `MAX_VARIABLE_NUMBER=32,766` ceiling (better-sqlite3 12.11.1 / SQLite
+3.53.2):
+
+| # | site | file:region | cols/row | rows/batch (`⌊32766/cols⌋`) |
+|---|---|---|---|---|
+| 1 | `chunks` insert | `store/sqliteChunkStore.ts` `replaceChunksForFile` | 11 | 2,978 |
+| 2 | `chunks` insert (production path) | `graph/populate.ts` `replaceChunksInline` (`populateFile`'s default, no-override path) | 11 | 2,978 |
+| 3 | `symbols` insert | `graph/populate.ts` `populateFile` | 7 | 4,680 |
+| 4 | `imports` insert | `graph/populate.ts` `populateFile` | 5 | 6,553 |
+| 5 | `chunk_fts` insert | `graph/populate.ts` `populateFile` | 4 | 8,191 |
+| 6 | `identifier_fts` insert | `graph/populate.ts` `populateFile` | 3 | 10,922 |
+| 7 | `edges` insert (`onConflict(doNothing())`) | `graph/populate.ts` `insertEdges` | 6 | 5,461 |
+| 8 | two `IN`-list SELECTs (`fromNames`, `structuralToNames`) | `graph/populate.ts` `insertEdges` | 1 param/name | 32,766 |
+
+Site 2, not site 1, is the one that actually fired on vscode — `populateFile`'s
+default path writes `chunks` inline via `replaceChunksInline`, not through
+`SqliteChunkStore`; `SqliteChunkStore.replaceChunksForFile` is a parallel write path
+(used directly, and as the write-failure test injection point) with the identical bug.
+
+**Design.** One shared, pure, unit-tested helper pair in a new module,
+`src/graph/sqliteBatch.ts`: `SQLITE_MAX_VARIABLES = 32_766` (exported constant, WHY
+sourced from better-sqlite3/SQLite's `MAX_VARIABLE_NUMBER` default) plus
+`chunkRowsForSqlite<T extends object>(rows)`, which computes batch size as
+`Math.floor(SQLITE_MAX_VARIABLES / columnsPerRow)` with `columnsPerRow` read from
+`Object.keys(rows[0]).length` (every call site builds rows through one fixed-shape
+mapper, so row 0's key count is authoritative — documented as an explicit assumption
+in the TSDoc), and a sibling `chunkValuesForSqlite<T>(values, paramsPerValue = 1)` for
+the bare-scalar `IN`-list sites (site 8). Both return `[]` for empty input, not `[[]]`.
+Placed in `graph/` (not `store/`) because `store/sqliteChunkStore.ts` already imports
+`Db` from `../graph/db.js` — `store -> graph` is the existing dependency direction, and
+`graph/` importing from `store/` would add a new one; mast is one flat align component
+so this is a placement choice, not a conformance requirement, but the existing edge
+direction is the more legible default. `pnpm align:check` was re-run post-fix to
+confirm no new edge was introduced (see Verification below).
+
+**Atomicity preserved.** Every batch runs inside the SAME `db.transaction()`/`trx` the
+unbatched call used — batching is applied to the STATEMENT, not the transaction
+boundary. A whale file's chunks still commit or roll back atomically together with its
+symbols/edges/imports/FTS rows; see the WHY-comment at `store/sqliteChunkStore.ts`'s
+`replaceChunksForFile` (first fixed site) and the fuller one at `graph/populate.ts`'s
+`replaceChunksInline` (the production path). Site 7's `.onConflict((oc) =>
+oc.doNothing())` is re-applied per batch (each batch is its own statement). Site 8's
+`structuralToMap` first-row-wins dedup is preserved exactly: `structuralToNames` is
+already deduped via `Set` before batching, so each name lands in exactly one
+`IN`-list batch — cross-batch collisions are structurally impossible, and the
+within-batch dedup loop (`if (!structuralToMap.has(row.name))`) runs unchanged,
+processing batches in their original order.
+
+**Red-first evidence (§5).** Unit spec `src/graph/__tests__/sqliteBatch.test.ts` (10
+tests: empty input, single row, exactly-at-ceiling batch boundary, ceiling+1 spill, a
+1-column max-batch-size shape, content/order preservation, plus the `chunkValuesForSqlite`
+equivalents) was written against a stub that threw `not implemented` — confirmed RED
+(10/10 failing) before the helper was implemented, then green after.
+Integration red: `src/graph/__tests__/whale-file.test.ts` calls `populateFile` directly
+with a synthesized extraction (3,000 chunks × 11 cols = 33,000 params; 5,000 symbols ×
+7 cols = 35,000 params; matching identifier rows) — on unfixed code this failed with:
+
+```
+SqliteError: too many SQL variables
+  at replaceChunksInline (src/graph/populate.ts:254:8)
+```
+
+Sibling red test added to `src/store/__tests__/sqliteChunkStore.test.ts`
+("`replaceChunksForFile` writes a whale-scale chunk set past the SQLite
+bound-parameter ceiling", 3,000 chunks) failed identically on unfixed code:
+
+```
+SqliteError: too many SQL variables
+  at src/store/sqliteChunkStore.ts:82:71
+```
+
+Both became green after the fix, asserting `written: true` / exact DB row counts for
+chunks and symbols, and the removed-count contract (`chunksRemoved` /
+`replaceChunksForFile`'s return value) held across a whale-scale replace.
+
+**Deliberate test-budget call (§5.5).** Sites 7 (edges) and 8 (the two `IN`-list
+SELECTs) are covered by the shared helper's unit tests plus code review, not a
+dedicated whale-scale integration fixture — building a fixture with >5,461
+RESOLVABLE edges (site 7's cap) requires thousands of cross-referencing symbols with
+real POTENTIAL_CALL/IMPLEMENTS/EXTENDS resolution, which is disproportionate effort
+for a mechanical batching change already proven correct by the shared helper's tests
+and by sites 3–6 (which use the identical `chunkRowsForSqlite` call) landing 5,000
+symbols correctly in the whale-file integration test.
+
+**Verification (2026-08-07):**
+- `pnpm -F mast test`: **483 passed (37 files)** — baseline 471/35 plus 12 new
+  (10 helper unit tests, 1 whale-file integration test, 1 sibling
+  `SqliteChunkStore` whale test).
+- `pnpm -F mast typecheck`: clean.
+- `pnpm -F mast lint`: clean.
+- `pnpm align:check` (repo root): `baselined debt: 324 → 324 (0)`; red only on the 2
+  pre-existing non-mast violations (`application/ui` import cycle,
+  `apiDomain -> apiDb`) — no new debt introduced by this change.
+
 **Measured chunk counts** (mast defaults, `.ts/.tsx/.js/.jsx/.md`, test/spec excluded):
 
 | corpus | files | chunks |

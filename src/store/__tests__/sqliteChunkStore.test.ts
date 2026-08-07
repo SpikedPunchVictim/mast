@@ -104,4 +104,33 @@ describe('SqliteChunkStore', () => {
     const all = await store.getAllChunks();
     expect(all.map((c) => c.chunk_id).sort()).toEqual(['a1', 'b1', 'b2']);
   });
+
+  // Stage 4.5 S1 (IMPLEMENTATION_PLAN.md, added 2026-08-07) — sibling of
+  // graph/__tests__/whale-file.test.ts for the OTHER `chunks`-table write
+  // path. `chunkToRow` produces an 11-column row; 3,000 rows × 11 = 33,000
+  // bound parameters, past SQLite's 32,766 `MAX_VARIABLE_NUMBER`. On unfixed
+  // code this throws `SqliteError: too many SQL variables` from the single
+  // multi-row INSERT at `sqliteChunkStore.ts:82`.
+  it('replaceChunksForFile writes a whale-scale chunk set past the SQLite bound-parameter ceiling', async () => {
+    const WHALE_COUNT = 3_000;
+    const whaleChunks = Array.from({ length: WHALE_COUNT }, (_, i) =>
+      makeChunk({
+        chunk_id: `w${i}`,
+        file_path: 'whale.ts',
+        symbol_name: `f${i}`,
+        content: `function f${i}() { return ${i}; }`,
+      }));
+
+    const firstRemoved = await store.replaceChunksForFile('whale.ts', whaleChunks);
+    expect(firstRemoved).toBe(0);
+
+    const all = await store.getChunksByFilePath('whale.ts');
+    expect(all).toHaveLength(WHALE_COUNT);
+    expect(all.map((c) => c.chunk_id).sort()).toEqual(whaleChunks.map((c) => c.chunk_id).sort());
+
+    // Removed-count contract still holds post-batching: replacing the
+    // whale set reports exactly how many prior rows were removed.
+    const secondRemoved = await store.replaceChunksForFile('whale.ts', [makeChunk({ chunk_id: 'v2', file_path: 'whale.ts' })]);
+    expect(secondRemoved).toBe(WHALE_COUNT);
+  });
 });

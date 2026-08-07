@@ -1,6 +1,7 @@
 import type { Db } from './db.js';
 import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../ast/types.js';
 import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
+import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -150,38 +151,60 @@ export async function populateFile(
       ? await chunkWriter(data.filePath, data.chunks)
       : await replaceChunksInline(trx, data.filePath, data.chunks);
 
-    // Insert symbols.
+    // Insert symbols. Batched under SQLite's 32,766 bound-parameter ceiling
+    // (Stage 4.5 S1, IMPLEMENTATION_PLAN.md — see `replaceChunksInline`'s
+    // WHY-comment below for the full defect and why batching the statement
+    // rather than the transaction preserves atomicity).
     if (data.symbols.length > 0) {
-      await trx
-        .insertInto('symbols')
-        .values(
-          data.symbols.map((s) => ({
-            name: s.name,
-            kind: s.kind,
-            file_id: fileId,
-            line: s.line,
-            is_exported: s.isExported ? 1 : 0,
-            declaration_hash: s.declarationHash,
-            body_hash: s.bodyHash,
-          })),
-        )
-        .execute();
+      // Explicit row-type annotation (`is_exported: 0 | 1`, not `number`) —
+      // extracting this `.map()` into its own `const` (needed so the same
+      // array can be both batched and, in principle, inspected) loses the
+      // contextual typing `.values(data.symbols.map(...))` got for free when
+      // the ternary's result fed straight into Kysely's `InsertObject`;
+      // without this annotation, `s.isExported ? 1 : 0` widens to `number`
+      // and fails `symbols`'s `BoolCol` (`0 | 1`) column type.
+      const symbolRows: {
+        name: string;
+        kind: string;
+        file_id: number;
+        line: number;
+        is_exported: 0 | 1;
+        declaration_hash: string | null;
+        body_hash: string | null;
+      }[] = data.symbols.map((s) => ({
+        name: s.name,
+        kind: s.kind,
+        file_id: fileId,
+        line: s.line,
+        is_exported: s.isExported ? 1 : 0,
+        declaration_hash: s.declarationHash,
+        body_hash: s.bodyHash,
+      }));
+      for (const batch of chunkRowsForSqlite(symbolRows)) {
+        await trx.insertInto('symbols').values(batch).execute();
+      }
     }
 
-    // Insert imports.
+    // Insert imports. Same batching as symbols above.
     if (data.imports.length > 0) {
-      await trx
-        .insertInto('imports')
-        .values(
-          data.imports.map((imp) => ({
-            file_id: fileId,
-            module: imp.module,
-            symbols: JSON.stringify(imp.symbols),
-            is_external: imp.isExternal ? 1 : 0,
-            resolved_path: imp.resolvedPath,
-          })),
-        )
-        .execute();
+      // Same widening issue and fix as `symbolRows` above (`is_external` is
+      // also a `BoolCol`).
+      const importRows: {
+        file_id: number;
+        module: string;
+        symbols: string;
+        is_external: 0 | 1;
+        resolved_path: string | null;
+      }[] = data.imports.map((imp) => ({
+        file_id: fileId,
+        module: imp.module,
+        symbols: JSON.stringify(imp.symbols),
+        is_external: imp.isExternal ? 1 : 0,
+        resolved_path: imp.resolvedPath,
+      }));
+      for (const batch of chunkRowsForSqlite(importRows)) {
+        await trx.insertInto('imports').values(batch).execute();
+      }
     }
 
     // FTS5 updates — same transaction as graph writes (§7.1 step 5).
@@ -189,28 +212,29 @@ export async function populateFile(
     await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
     await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
 
-    // Batch-insert all chunks in one statement instead of one INSERT per chunk.
+    // Batch-insert all chunks in one statement instead of one INSERT per chunk
+    // — further batched under the parameter ceiling, same as above.
     if (data.chunks.length > 0) {
-      await trx
-        .insertInto('chunk_fts')
-        .values(data.chunks.map((chunk) => ({
-          content: chunk.content,
-          symbol_name: chunk.symbol_name,
-          chunk_id: chunk.chunk_id,
-          file_path: data.filePath,
-        })))
-        .execute();
+      const chunkFtsRows = data.chunks.map((chunk) => ({
+        content: chunk.content,
+        symbol_name: chunk.symbol_name,
+        chunk_id: chunk.chunk_id,
+        file_path: data.filePath,
+      }));
+      for (const batch of chunkRowsForSqlite(chunkFtsRows)) {
+        await trx.insertInto('chunk_fts').values(batch).execute();
+      }
     }
 
     if (data.identifierRows.length > 0) {
-      await trx
-        .insertInto('identifier_fts')
-        .values(data.identifierRows.map((row) => ({
-          identifiers: row.identifiers,
-          chunk_id: row.chunk_id,
-          file_path: data.filePath,
-        })))
-        .execute();
+      const identifierFtsRows = data.identifierRows.map((row) => ({
+        identifiers: row.identifiers,
+        chunk_id: row.chunk_id,
+        file_path: data.filePath,
+      }));
+      for (const batch of chunkRowsForSqlite(identifierFtsRows)) {
+        await trx.insertInto('identifier_fts').values(batch).execute();
+      }
     }
 
     return { fileId, chunksRemoved, written: true };
@@ -236,22 +260,54 @@ async function replaceChunksInline(
 
   await trx.deleteFrom('chunks').where('file_path', '=', filePath).execute();
   if (chunks.length > 0) {
-    await trx
-      .insertInto('chunks')
-      .values(chunks.map((c) => ({
-        chunk_id:      c.chunk_id,
-        file_path:     c.file_path,
-        start_line:    c.start_line,
-        end_line:      c.end_line,
-        content:       c.content,
-        chunk_type:    c.chunk_type,
-        symbol_name:   c.symbol_name,
-        parent_symbol: c.parent_symbol,
-        is_exported:   c.is_exported ? 1 : 0,
-        language:      c.language,
-        file_mtime:    c.file_mtime,
-      })))
-      .execute();
+    // Batched under SQLite's 32,766 bound-parameter ceiling (Stage 4.5 S1,
+    // IMPLEMENTATION_PLAN.md "batch `replaceChunksForFile`'s insert", added
+    // 2026-08-07). This is the PRODUCTION per-file chunk write (`populateFile`'s
+    // default path, no `chunkWriter` override) — an 11-column row shape caps a
+    // single unbatched INSERT at ~2,978 rows; a whale file's chunks (e.g.
+    // vscode's 146,620-line fixtures) otherwise throw `SqliteError: too many
+    // SQL variables`, rolling back this WHOLE transaction (symbols/edges/
+    // imports/FTS along with it) and silently dropping the file from the
+    // index for orchestration that gates only on exit code. `chunkRowsForSqlite`
+    // (graph/sqliteBatch.ts) computes a batch size that stays under the
+    // ceiling for any row shape. Every batch below runs INSIDE the SAME `trx`
+    // this function was handed — batching the STATEMENT, not the transaction,
+    // so a whale file's chunks still land atomically (all rows or none) with
+    // its symbols/edges/imports/FTS rows, exactly as before. This same pattern
+    // (batch inside the existing transaction) is applied at every other
+    // multi-row insert in this file and in `store/sqliteChunkStore.ts`'s
+    // `replaceChunksForFile` — see IMPLEMENTATION_PLAN.md's Stage 4.5 S1
+    // result block for the full class survey.
+    // Same widening issue and fix as `populateFile`'s `symbolRows` — an
+    // explicit row type keeps `is_exported` narrowed to `0 | 1`.
+    const chunkRows: {
+      chunk_id: string;
+      file_path: string;
+      start_line: number;
+      end_line: number;
+      content: string;
+      chunk_type: Chunk['chunk_type'];
+      symbol_name: string | null;
+      parent_symbol: string | null;
+      is_exported: 0 | 1;
+      language: Language;
+      file_mtime: number;
+    }[] = chunks.map((c) => ({
+      chunk_id:      c.chunk_id,
+      file_path:     c.file_path,
+      start_line:    c.start_line,
+      end_line:      c.end_line,
+      content:       c.content,
+      chunk_type:    c.chunk_type,
+      symbol_name:   c.symbol_name,
+      parent_symbol: c.parent_symbol,
+      is_exported:   c.is_exported ? 1 : 0,
+      language:      c.language,
+      file_mtime:    c.file_mtime,
+    }));
+    for (const batch of chunkRowsForSqlite(chunkRows)) {
+      await trx.insertInto('chunks').values(batch).execute();
+    }
   }
   return removed;
 }
@@ -268,14 +324,25 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
 
   const fromNames = [...new Set(edges.map((e) => e.fromName))];
 
-  // Batch-resolve "from" IDs — must belong to filePath.
-  const fromRows = await db
-    .selectFrom('symbols as s')
-    .innerJoin('files as f', 'f.id', 's.file_id')
-    .select(['s.id', 's.name'])
-    .where('s.name', 'in', fromNames)
-    .where('f.path', '=', filePath)
-    .execute();
+  // Batch-resolve "from" IDs — must belong to filePath. `fromNames` is
+  // deduped via `Set` above, so splitting it into `IN`-list-sized chunks
+  // (`chunkValuesForSqlite`, graph/sqliteBatch.ts — 1 bound parameter per
+  // name) and merging the results cannot introduce duplicate-name collisions:
+  // each name appears in exactly one chunk, so `fromMap` ends up identical to
+  // what the single unbatched query would have produced. A whale file's
+  // unique symbol-name list can sit close to the 32,766 parameter ceiling
+  // (§ Stage 4.5 S1's class survey site 8), so this stays correct at any size.
+  const fromRows: { id: number; name: string }[] = [];
+  for (const nameBatch of chunkValuesForSqlite(fromNames)) {
+    const rows = await db
+      .selectFrom('symbols as s')
+      .innerJoin('files as f', 'f.id', 's.file_id')
+      .select(['s.id', 's.name'])
+      .where('s.name', 'in', nameBatch)
+      .where('f.path', '=', filePath)
+      .execute();
+    fromRows.push(...rows);
+  }
   const fromMap = new Map(fromRows.map((r) => [r.name, r.id]));
 
   // Structural edges (IMPLEMENTS/EXTENDS/PARENT_OF) carry no file evidence at
@@ -286,17 +353,28 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
   // batch, which is exactly the sibling false-green this fix closes.
   const structuralEdges = edges.filter((e) => e.edgeType !== 'POTENTIAL_CALL' && e.edgeType !== 'RE_EXPORTS');
   const structuralToNames = [...new Set(structuralEdges.map((e) => e.toName))];
-  const structuralToRows = structuralToNames.length > 0
-    ? await db
-      .selectFrom('symbols')
-      .select(['id', 'name'])
-      .where('name', 'in', structuralToNames)
-      .where('kind', '!=', 'export')
-      .execute()
-    : [];
+  // Same `IN`-list batching as `fromNames` above. Unlike `fromMap`,
+  // `structuralToMap` dedups on a real ambiguity — the SAME name can be
+  // declared in multiple files, so more than one row can come back for one
+  // `toName` even within a single query, and "first row wins" picks among
+  // them. `structuralToNames` is deduped (`Set`), so each name lands in
+  // exactly ONE batch; the dedup loop below therefore sees each name's
+  // candidate rows in the same relative order a single unbatched query would
+  // have returned them, batch-by-batch, preserving `if (!has(name))`'s
+  // first-row-wins semantics exactly.
   const structuralToMap = new Map<string, number>();
-  for (const row of structuralToRows) {
-    if (!structuralToMap.has(row.name)) structuralToMap.set(row.name, row.id);
+  if (structuralToNames.length > 0) {
+    for (const nameBatch of chunkValuesForSqlite(structuralToNames)) {
+      const rows = await db
+        .selectFrom('symbols')
+        .select(['id', 'name'])
+        .where('name', 'in', nameBatch)
+        .where('kind', '!=', 'export')
+        .execute();
+      for (const row of rows) {
+        if (!structuralToMap.has(row.name)) structuralToMap.set(row.name, row.id);
+      }
+    }
   }
 
   // POTENTIAL_CALL edges: resolve each unique (toName) once, file-scoped by
@@ -370,12 +448,19 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
 
   if (edgeValues.length === 0) return;
 
-  // Composite PK on (from_id, to_id, edge_type) — ignore duplicates.
-  await db
-    .insertInto('edges')
-    .values(edgeValues)
-    .onConflict((oc) => oc.doNothing())
-    .execute();
+  // Composite PK on (from_id, to_id, edge_type) — ignore duplicates. Batched
+  // under the parameter ceiling (Stage 4.5 S1 class survey site 7); a
+  // 6-column row shape caps a single unbatched INSERT at ~5,461 rows.
+  // `.onConflict(doNothing())` is re-applied per batch — each batch is its
+  // own statement, so the conflict clause must be present on every one, not
+  // just the first.
+  for (const batch of chunkRowsForSqlite(edgeValues)) {
+    await db
+      .insertInto('edges')
+      .values(batch)
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+  }
 }
 
 // ---------------------------------------------------------------------------

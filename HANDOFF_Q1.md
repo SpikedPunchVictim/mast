@@ -11,8 +11,10 @@ unblocked). Priorities:
 
 **P0 — staleness honesty gaps (Stage 1, In Progress):**
 - **F14**: `mast_signature` drops the busy flag when the symbol query returns 0 results
-  (`signature.ts:55` vs `:76`) — a stale index reads as "symbol doesn't exist". Small.
-- **F7**: staleness stat-and-flag for `mast_search` / `mast_implementors`.
+  (`signature.ts:55` vs `:76`) — a stale index reads as "symbol doesn't exist". Small. —
+  **DONE 2026-08-07**
+- **F7**: staleness stat-and-flag for `mast_search` / `mast_implementors`. —
+  **DONE 2026-08-07**
 - **F11**: advisory-locking redesign — E7 FALSIFIED fail-fast per-batch locking (X2:
   pure reader-vs-reader JIT traffic hits 35%/70%/88.5% JIT failure at N=2/4/8);
   urgency downgraded by E7-r2, design verdict unchanged. Read both E7 results in the
@@ -21,11 +23,11 @@ unblocked). Priorities:
 **P0-adjacent — scale write correctness (Stage 4.5 S1, added 2026-08-07):** batch
 `replaceChunksForFile`'s single multi-row INSERT (`sqliteChunkStore.ts:82`) —
 SQLite's 32,766-parameter ceiling silently caps a file at ~2,979 chunks for
-orchestration that gates on exit code only.
+orchestration that gates on exit code only. — **DONE 2026-08-07**
 
 **P1 — force multiplier first (Stage 4 sequencing note): D0**, the CLI query surface
 (`mast query <tool> <json>`) — do it BEFORE Stage 3; it multiplies every verification
-task and removes the A/B Bash-surface caveat. Then **Stage 3.5** (F8: skeleton call
+task and removes the A/B Bash-surface caveat. — **DONE 2026-08-07**. Then **Stage 3.5** (F8: skeleton call
 costs ~28 s, 99% in the telemetry counterfactual; F9: init flags parsed-and-ignored;
 M6: empty-state serve answers `[]` instead of failing fast; C1: unify confidence
 signals) and **Stage 3** (call-graph: F3 await-unwrap, F4 `this.`/`super.` resolution,
@@ -362,7 +364,9 @@ multi-seed T1 sensitivity.
   **orchestration that gates only on exit code and not on `write_errors` would still silently
   drop the file's chunks.** Found via vscode's two whale fixture files (146,620-line and
   11,190-line). Not fixed in this program — batch the insert before trusting a corpus with
-  files anywhere near that size.
+  files anywhere near that size. [FIXED 2026-08-07 — Stage 4.5 S1; batched under the
+  parameter ceiling, whole class: chunks/symbols/imports/fts/edges + insertEdges
+  IN-lists]
 - **`idfuse-score.mjs` ships with no CLI entry point** — the `scale-rank-check.mjs`/
   `scale-score.mjs` defect class (above), **second occurrence**, despite the builder brief
   requiring working CLIs. The working invocation is the runner-authored

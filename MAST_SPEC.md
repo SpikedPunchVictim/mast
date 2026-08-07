@@ -381,7 +381,11 @@ Indexing is a single phase — there is no separate embedding step. `runIndex`:
    same `file_path`. Update `chunk_fts`: `DELETE FROM chunk_fts WHERE chunk_id = ?`
    for removed chunks, `INSERT INTO chunk_fts(content, symbol_name, chunk_id) VALUES
    (?, ?, ?)` for new/changed chunks. No external table or trigger is needed — FTS5
-   built-in content handles everything.
+   built-in content handles everything. Multi-row inserts here (and for `symbols`,
+   `imports`, `identifier_fts`, and `edges`) are batched under SQLite's 32,766
+   bound-parameter ceiling, batch-by-batch inside the same per-file transaction
+   (`graph/sqliteBatch.ts`), so file size never caps how many chunks get indexed
+   (Stage 4.5 S1, IMPLEMENTATION_PLAN.md).
 6. Populate `graph.db` from AST imports and relationships, wrapped in a single
    transaction per file (delete-and-replace). Record `RE_EXPORTS` edges from
    `export { x }` clauses and `re_export_files` rows from `export * from '...'`

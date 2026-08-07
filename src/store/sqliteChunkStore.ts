@@ -1,5 +1,6 @@
 import type { Db } from '../graph/db.js';
 import type { Chunk } from '../ast/types.js';
+import { chunkRowsForSqlite } from '../graph/sqliteBatch.js';
 
 // ---------------------------------------------------------------------------
 // Default (production) chunk store — M1, eval/GITNEXUS_COMPARISON.md §15.1.
@@ -79,7 +80,17 @@ export class SqliteChunkStore implements ChunkStore {
 
       await trx.deleteFrom('chunks').where('file_path', '=', filePath).execute();
       if (chunks.length > 0) {
-        await trx.insertInto('chunks').values(chunks.map(chunkToRow)).execute();
+        // Batched to stay under SQLite's 32,766 bound-parameter ceiling
+        // (Stage 4.5 S1, IMPLEMENTATION_PLAN.md) — an 11-column row caps a
+        // single unbatched INSERT at ~2,978 rows; a whale file's chunks
+        // otherwise throw `SqliteError: too many SQL variables` and roll
+        // back this whole transaction. Batching the STATEMENT, not the
+        // transaction, keeps every batch inside the same `trx`, so the
+        // file's chunks still land atomically (all-or-nothing) with each
+        // other — same as before, just as multiple INSERTs instead of one.
+        for (const batch of chunkRowsForSqlite(chunks.map(chunkToRow))) {
+          await trx.insertInto('chunks').values(batch).execute();
+        }
       }
       return removed;
     });
