@@ -314,6 +314,16 @@ export interface SignatureResult {
 
 export interface SignatureResponse {
   readonly results: readonly SignatureResult[];
+  /**
+   * §9.0 TOCTOU policy, empty-result case (F14). The busy signal normally
+   * rides on each {@link SignatureResult}; with zero results it has no
+   * carrier, and "no results" from a stale, un-refreshable file would read
+   * as "symbol doesn't exist". Present (`true`) only when a
+   * `file_path`-narrowed query returned no results AND that file's JIT
+   * re-parse could not acquire `structure.lock`; omitted otherwise —
+   * non-empty responses carry the flag per-result, never here.
+   */
+  readonly file_busy_returning_stale_cache?: true;
   readonly _stats: ToolStats;
 }
 

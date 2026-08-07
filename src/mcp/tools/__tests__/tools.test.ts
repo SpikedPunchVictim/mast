@@ -917,4 +917,51 @@ describe('F2 — file_busy_returning_stale_cache', () => {
       }
     });
   });
+
+  // F14 — with zero results there is no per-result carrier for the busy
+  // signal, so "no results" + stale index would read as "symbol doesn't
+  // exist". The envelope must carry the flag in exactly that case.
+  describe('mast_signature — F14 empty-result envelope flag', () => {
+    it('sets the envelope flag when file_path narrows to a stale+locked file and no symbol matches', async () => {
+      makeStale('busy.ts', BUSY_SRC + '// touched for F14\n');
+      const release = await holdStructureLock();
+      let res: { results: unknown[]; file_busy_returning_stale_cache?: true };
+      try {
+        res = (await busyCall('mast_signature', { symbol: 'noSuchSymbolF14', file_path: 'busy.ts' })) as typeof res;
+      } finally {
+        await release();
+      }
+
+      expect(res.results).toEqual([]);
+      expect(res.file_busy_returning_stale_cache).toBe(true);
+    });
+
+    it('omits the envelope flag on an empty result once the lock is free (not merely false)', async () => {
+      // busy.ts is still stale from the previous test, but this call's own
+      // JIT refresh succeeds now the lock is free — a genuinely-missing
+      // symbol must come back as a clean empty result, no flag.
+      const res = (await busyCall('mast_signature', { symbol: 'noSuchSymbolF14', file_path: 'busy.ts' })) as {
+        results: unknown[];
+      };
+      expect(res.results).toEqual([]);
+      expect(res).not.toHaveProperty('file_busy_returning_stale_cache');
+    });
+
+    it('does not duplicate the busy signal onto the envelope when results exist to carry it', async () => {
+      makeStale('busy.ts', BUSY_SRC + '// touched again for F14\n');
+      const release = await holdStructureLock();
+      let res: { results: Array<Record<string, unknown>> };
+      try {
+        res = (await busyCall('mast_signature', { symbol: 'busyFn', file_path: 'busy.ts' })) as typeof res;
+      } finally {
+        await release();
+      }
+
+      expect(res.results.length).toBeGreaterThan(0);
+      for (const r of res.results) {
+        expect(r['file_busy_returning_stale_cache']).toBe(true);
+      }
+      expect(res).not.toHaveProperty('file_busy_returning_stale_cache');
+    });
+  });
 });

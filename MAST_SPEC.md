@@ -759,7 +759,14 @@ and bounded: lock holding is per-file-parse (10–50ms), not per-tool-call.
 **Result shape.** Every read tool's result objects MAY include
 `file_busy_returning_stale_cache: true` (omitted when false). Result schemas
 in the per-tool sections below document only the steady-state shape; this flag
-is implicit on all of them.
+is implicit on all of them. Tools whose response is a single-file envelope
+(`mast_exports`, `mast_dependencies`) or whose staleness taints the whole
+answer (`mast_callers`, `mast_rename_impact`) carry the flag at the envelope
+level instead of per-entry. `mast_signature` carries it per-result — except
+when a `file_path`-narrowed query returns **zero** results while that file's
+JIT re-parse could not acquire the lock: with no result objects to carry the
+signal, the flag appears on the response envelope (F14), so "no results" from
+a stale, un-refreshable file never reads as "symbol doesn't exist".
 
 ---
 

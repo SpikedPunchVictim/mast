@@ -31,7 +31,7 @@ is also pre-existing, confirmed by re-running with new files removed.
 | **F12** | **🔴 SILENT-CORRUPTION BUG INTRODUCED BY F1 — stamp/content ordering inverted. Fix first, ~5 lines** | **Complete** |
 | **F13** | ✅ `SQLITE_BUSY_SNAPSHOT` in `populateFile` escapes `checkAndRefreshIfStale` uncaught — bypasses F2's flag and violates §9.0's "do not throw". Fired 52× in real runs | **Complete** |
 | **F11** | **Replace fail-fast advisory locking** — E7 falsified the current design. **Urgency downgraded by E7-r2**, design verdict unchanged | **Not Started** |
-| **F14** | **`mast_signature` drops the busy flag when the symbol query returns 0 results** — `topLevelBusy` (`signature.ts:55`) is only consumed inside the per-result loop (`:76`), so an empty result set discards it. Worst case: "no results" + stale index reads as "symbol doesn't exist" | **Not Started** |
+| **F14** | **`mast_signature` drops the busy flag when the symbol query returns 0 results** — `topLevelBusy` (`signature.ts:55`) is only consumed inside the per-result loop (`:76`), so an empty result set discards it. Worst case: "no results" + stale index reads as "symbol doesn't exist" | **Complete** |
 | F7 | Staleness for `mast_search` / `mast_implementors` (stat-and-flag, not refresh) | Not Started |
 
 **Success criteria**: max `structure` hold drops from **280,782 ms** (baseline,
@@ -108,6 +108,23 @@ stamp (`fileRow.mtime + 1_000`) since the guard now — correctly — rejects it
 377/33 (baseline 374/32 + 3 new tests, 1 new file), `tsc --noEmit` clean, `eslint` clean,
 `align check` unchanged (still red on the same pre-existing 2 violations, neither
 naming `mast`).
+
+### F14 result (2026-08-07) — empty-result busy flag shipped
+
+The dropped signal now surfaces on the response envelope: `SignatureResponse`
+gains `file_busy_returning_stale_cache?: true`, set **only** when a
+`file_path`-narrowed query returns zero results AND that file's JIT re-parse
+could not acquire `structure.lock` (`topLevelBusy && results.length === 0` in
+`signature.ts`). Non-empty responses are unchanged — the flag stays per-result,
+never duplicated onto the envelope (same envelope-vs-per-entry reasoning as
+`CallersResponse`). The `file_path`-omitted empty case has no JIT and therefore
+no busy state to report — correct by construction, out of scope. Reproduced RED
+first (`tools.test.ts`, "F14 empty-result envelope flag": envelope flag
+`undefined` on unfixed code), plus omitted-when-lock-free and
+no-envelope-duplication guards. Suite 451/35 (448 + 3 new, same files), tsc
+clean, lint clean, `pnpm align:check` 324→324 (+0), same 2 pre-existing
+non-mast violations. MAST_SPEC §9.0 result-shape note updated to name the
+empty-result envelope carrier.
 
 ### 🔴 HARD CONSTRAINT ON F11 — `busy_timeout` IS the process-freeze window
 

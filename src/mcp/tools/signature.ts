@@ -116,6 +116,12 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
 
       const response: SignatureResponse = {
         results,
+        // F14: with zero results the per-result busy carrier vanishes, and a
+        // stale index would read as "symbol doesn't exist" — surface the
+        // top-level busy signal on the envelope in exactly that case.
+        ...(topLevelBusy && results.length === 0
+          ? { file_busy_returning_stale_cache: true as const }
+          : {}),
         _stats: buildToolStats('mast_signature', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       // Identity pairs — the "did this signature call target a symbol/file
