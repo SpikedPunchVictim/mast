@@ -319,7 +319,9 @@ versions / 444 MB — Stage 2's O(n²), not an F1 regression.
 
 ## Stage 2: Chunk store migration (Lance → SQLite)
 **Goal**: Remove the O(n²) write path at its root.
-**Status**: In Progress (M1 complete; M2 not started)
+**Status**: Complete (2026-08-07) — M1 shipped earlier; M2 resolved as **arm D (delete)**
+via the M2 DECISION MEMO (2026-08-04, below) and executed as Stage 7. The A-vs-C backend
+benchmark was cancelled, not deferred (memo condition 6).
 
 | # | Task | Status |
 |---|---|---|
@@ -632,6 +634,15 @@ instalments; D6 is generalizing them into a repeatable suite rather than one-off
 because it changes several decisions already taken.
 **Status**: Not Started
 
+**S1 (added 2026-08-07, promoted from HANDOFF §5's defect list): batch
+`replaceChunksForFile`'s insert.** `src/store/sqliteChunkStore.ts:82` issues ONE
+multi-row `INSERT` for all of a file's chunks; at 11 columns/row, SQLite's
+32,766-parameter ceiling caps a single file at ~2,979 chunks, and a larger file's
+insert rolls back entirely — loud (`write_errors` + CLI exit 1) but the file is then
+silently absent from the index for any orchestration that gates only on exit code.
+Found via vscode's whale fixture files. This is the known write-path correctness
+defect at the 150k-chunk target; fix = chunked inserts inside the same transaction.
+
 **Measured chunk counts** (mast defaults, `.ts/.tsx/.js/.jsx/.md`, test/spec excluded):
 
 | corpus | files | chunks |
@@ -771,11 +782,11 @@ quality problem.
 
 | # | Question | Status |
 |---|---|---|
-| **Q1** | **Is the vector store justified at all?** E4 is one-directional by design and the harness is rotted (§14.3). **Gates M2.** Pre-registered design below | **In Progress** |
+| **Q1** | **Is the vector store justified at all?** E4 is one-directional by design and the harness is rotted (§14.3). **Gates M2.** Pre-registered design below | **ANSWERED (2026-08-04): delete** — M2 memo + Stage 7 |
 | Q2 | Should generated/minified files be chunked at all? (451 KB single-line file → 232 `block` chunks) | Not Started |
 | Q3 | `populateFile` FTS insert cost grows with index size (0.37→1.35 ms/KB *within* one run, order-independent) — survives the migration, matters at n8n scale | Not Started |
-| Q4 | Live index is **83% unembedded** (`pending_embeddings: 4166`/5,030) — wire embedder completion, or stop reporting `mode: "hybrid"` | Not Started |
-| Q5 | Result diversification in `mast_search` — no per-file dedup exists (`hybrid.ts:133` dedups shell↔method only). Held at P2: evidence was n=1 and confounded by lexical-only mode. **Re-test after Q1/Q4** | Not Started |
+| Q4 | ~~Live index is 83% unembedded — wire embedder completion, or stop reporting `mode: "hybrid"`~~ | **Moot** — Stage 7 deleted the embedder and the `mode` surface |
+| Q5 | Result diversification in `mast_search` — no per-file dedup exists (shell↔method dedup only, now in `fused.ts`). Held at P2: evidence was n=1 and confounded by lexical-only mode. Re-test — **unblocked** (Q1 answered, Q4 moot) | Not Started |
 | **Q6** | **SQLite WAL auto-checkpoint stall on `graph.db` — periodic 1.7–3 s freeze, present even at N=1** (E7 secondary finding, previously unknown; unrelated to locking). Investigate `wal_autocheckpoint` / explicit checkpointing | Not Started |
 | E5 | `mast index --checker` — untested. Does it convert enough truncated potentials into verified edges to justify §10.3.2's complexity? | Not Started |
 | E6 | Cross-language: index `vscode`/`pulumi`; are non-TS files dropped **silently**, making `mast_project_skeleton` present a partial map as complete? (same false-green class as F5) | Not Started |

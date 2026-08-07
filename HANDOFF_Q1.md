@@ -2,6 +2,48 @@
 
 ---
 
+## ⚡ WORK QUEUE (2026-08-07) — the remaining work, prioritized; start here
+
+The Q1/M2 program is CLOSED (memo → F18 → deletion, Stages 6–7 complete). What remains
+is the pre-M2 remediation backlog plus the memo's standing obligations. Plan stage
+statuses were refreshed 2026-08-07 (Stage 2 complete; Q1 answered; Q4 moot; Q5
+unblocked). Priorities:
+
+**P0 — staleness honesty gaps (Stage 1, In Progress):**
+- **F14**: `mast_signature` drops the busy flag when the symbol query returns 0 results
+  (`signature.ts:55` vs `:76`) — a stale index reads as "symbol doesn't exist". Small.
+- **F7**: staleness stat-and-flag for `mast_search` / `mast_implementors`.
+- **F11**: advisory-locking redesign — E7 FALSIFIED fail-fast per-batch locking (X2:
+  pure reader-vs-reader JIT traffic hits 35%/70%/88.5% JIT failure at N=2/4/8);
+  urgency downgraded by E7-r2, design verdict unchanged. Read both E7 results in the
+  plan before designing.
+
+**P0-adjacent — scale write correctness (Stage 4.5 S1, added 2026-08-07):** batch
+`replaceChunksForFile`'s single multi-row INSERT (`sqliteChunkStore.ts:82`) —
+SQLite's 32,766-parameter ceiling silently caps a file at ~2,979 chunks for
+orchestration that gates on exit code only.
+
+**P1 — force multiplier first (Stage 4 sequencing note): D0**, the CLI query surface
+(`mast query <tool> <json>`) — do it BEFORE Stage 3; it multiplies every verification
+task and removes the A/B Bash-surface caveat. Then **Stage 3.5** (F8: skeleton call
+costs ~28 s, 99% in the telemetry counterfactual; F9: init flags parsed-and-ignored;
+M6: empty-state serve answers `[]` instead of failing fast; C1: unify confidence
+signals) and **Stage 3** (call-graph: F3 await-unwrap, F4 `this.`/`super.` resolution,
+F5 qualified names in `identifier_fts`, F10 `potential_truncated`).
+
+**P2 — Stage 4 hygiene (D1, D6, D7, E1, D3–D5), Stage 4.5 scale levers, Stage 5 open
+questions** (Q6 — the 1.7–3 s WAL auto-checkpoint stall — is the most user-visible;
+Q2, Q3, Q5 unblocked, E5 `--checker` value, E6 cross-language silent drop).
+
+**Standing obligations (do not let these pass):** the M2 condition-5 review —
+organic harvest **n ≥ 67** or **2026-11-05**, whichever first (n = 0 then is itself a
+finding forcing a monitoring re-decision); `metrics.declex_json` is the accumulating
+signal. Any instrument reuse must first fix the §5 defects below. Do NOT reopen the
+settled questions in §3 or the retired experiments — re-entry to vectors goes through
+the tag + a fresh A-vs-C benchmark, per the memo.
+
+---
+
 ## ⚡ UPDATE 2026-08-07 — VECTOR STORE DELETED; the M2 review clock is LIVE
 
 Stage 7 (IMPLEMENTATION_PLAN.md) is complete and committed. The vector subsystem no
