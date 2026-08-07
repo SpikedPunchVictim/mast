@@ -12,6 +12,7 @@ import { mkdtempSync, writeFileSync, rmSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { initLockMarkers, acquireLock, withLock } from '../../store/lock.js';
 import { runIndex, loadIndexMeta, freshnessCause } from '../../indexer/index.js';
@@ -19,6 +20,9 @@ import { walkProject, diffManifest } from '../../indexer/walker.js';
 import { openDatabase } from '../../graph/db.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { searchFts } from '../../search/fts.js';
+import type { AppContext } from '../../mcp/context.js';
+import { registerAllTools } from '../../mcp/register-tools.js';
+import { runQuery, QueryError } from '../query.js';
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -434,6 +438,247 @@ describe('deleted file cleanup', () => {
       expect(sym).toBeDefined();
     } finally {
       await db.destroy();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// `mast query <tool> <json>` — D0 (IMPLEMENTATION_PLAN.md "### D0 — CLI query
+// surface"). These tests assert DISPATCH and SERIALIZATION parity only — that
+// `runQuery` reaches the exact same registered MCP handler an MCP client would
+// invoke, and returns its exact response text. Per-tool behavioral coverage
+// already lives in mcp/tools/__tests__/tools.test.ts (§5.5 test budget) and is
+// deliberately not duplicated here.
+// ---------------------------------------------------------------------------
+
+const QUERY_MATH_SRC = `export function add(a: number, b: number): number {
+  return a + b;
+}
+
+export function multiply(a: number, b: number): number {
+  return a * b;
+}
+`;
+
+// Verified caller of \`add\` — gives mast_rename_impact/mast_callers a
+// POTENTIAL_CALL edge, same fixture shape mcp/tools/__tests__/tools.test.ts
+// uses for the same purpose.
+const QUERY_CALC_SRC = `import { add } from './math';
+
+export function double(n: number): number {
+  return add(n, n);
+}
+`;
+
+const QUERY_MODELS_SRC = `export interface Shape {
+  area(): number;
+}
+
+export class Circle implements Shape {
+  constructor(private radius: number) {}
+
+  area(): number {
+    return Math.PI * this.radius * this.radius;
+  }
+}
+`;
+
+/**
+ * Recursively zero every `duration_ms` field. `_stats.duration_ms` is wall-
+ * clock timing captured independently by the CLI's own `runQuery` call and by
+ * this suite's comparison call through a directly-registered handler — it
+ * WILL differ between the two even when every other field is identical, so
+ * comparing it would make the parity assertion flaky rather than meaningful
+ * (task brief: "solve this honestly, compare after JSON.parse with duration
+ * fields normalized").
+ */
+function normalizeDurations(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeDurations);
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(value)) {
+      out[key] = key === 'duration_ms' ? 0 : normalizeDurations(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+describe('mast query — dispatch/serialization parity', () => {
+  let tmpDir: string;
+
+  // The comparison path: register every tool against a real AppContext with a
+  // capture object, exactly like mcp/tools/__tests__/tools.test.ts's
+  // createMockServer — this is the independent "what would the MCP transport
+  // have returned" oracle runQuery's output is checked against.
+  let compareHandlers: Map<string, (args: Record<string, unknown>) => Promise<{ content: readonly [{ type: string; text: string }] }>>;
+  let compareDb: ReturnType<typeof openDatabase>;
+
+  async function compareCall(name: string, args: Record<string, unknown>): Promise<string> {
+    const handler = compareHandlers.get(name);
+    if (handler === undefined) throw new Error(`Tool "${name}" not registered`);
+    const result = await handler(args);
+    return result.content[0].text;
+  }
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-query-cli-test-'));
+    writeFileSync(join(tmpDir, 'math.ts'), QUERY_MATH_SRC);
+    writeFileSync(join(tmpDir, 'calc.ts'), QUERY_CALC_SRC);
+    writeFileSync(join(tmpDir, 'models.ts'), QUERY_MODELS_SRC);
+
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+
+    compareDb = openDatabase(config.resolved_state_dir);
+    const compareCtx: AppContext = {
+      db: compareDb,
+      chunkStore: new SqliteChunkStore(compareDb),
+      config,
+      sessionId: 'query-parity-comparison-session',
+    };
+
+    compareHandlers = new Map();
+    const captureServer = {
+      tool(name: string, _description: string, _schema: unknown, handler: (args: Record<string, unknown>) => Promise<{ content: readonly [{ type: string; text: string }] }>) {
+        compareHandlers.set(name, handler);
+      },
+      // WHY `as unknown as McpServer`: registerAllTools's parameter type is the
+      // real McpServer; `captureServer` only implements the one `tool(...)`
+      // method every registerXTool call actually uses (verified across all 11
+      // src/mcp/tools/*.ts call sites) — the same structural narrowing
+      // mcp/tools/__tests__/tools.test.ts's createMockServer already relies on
+      // to unit test handlers without a real MCP transport.
+    } as unknown as McpServer;
+    registerAllTools(captureServer, compareCtx);
+  });
+
+  afterAll(async () => {
+    await compareDb.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  describe.each([
+    { tool: 'mast_search', args: { query: 'add', limit: 5 } },
+    { tool: 'mast_project_skeleton', args: {} },
+    { tool: 'mast_exports', args: { file_path: 'math.ts' } },
+    { tool: 'mast_signature', args: { symbol: 'add', file_path: 'math.ts' } },
+    { tool: 'mast_callers', args: { symbol: 'add' } },
+    { tool: 'mast_dependencies', args: { file_path: 'calc.ts' } },
+    { tool: 'mast_implementors', args: { interface_name: 'Shape' } },
+    { tool: 'mast_rename_impact', args: { symbol: 'add', file_path: 'math.ts' } },
+    { tool: 'mast_status', args: {} },
+  ])('$tool', ({ tool, args }) => {
+    it('CLI --json output structurally matches the registered MCP handler output (duration_ms normalized)', async () => {
+      const cliText = await runQuery(tool, JSON.stringify(args), { path: tmpDir });
+      const expectedText = await compareCall(tool, args);
+
+      expect(normalizeDurations(JSON.parse(cliText))).toEqual(
+        normalizeDurations(JSON.parse(expectedText)),
+      );
+    });
+  });
+
+  // mast_efficiency is deliberately NOT in the describe.each above: every row
+  // there fires an async, unawaited `recordToolCall` write (search/exports/
+  // signature/callers/rename_impact all call it) against this SAME fixture's
+  // metrics table, and `mast_efficiency`'s own response reads that table —
+  // comparing it here would race those in-flight writes non-deterministically.
+  // It gets its own isolated fixture below instead.
+  it('mast_efficiency: CLI --json output matches the MCP handler output (isolated fixture, scope=global)', async () => {
+    const isolatedDir = mkdtempSync(join(tmpdir(), 'mast-query-efficiency-test-'));
+    try {
+      writeFileSync(join(isolatedDir, 'math.ts'), QUERY_MATH_SRC);
+      const config = resolveConfig({ projectRoot: isolatedDir });
+      await runIndex(config, { incremental: false });
+
+      const db = openDatabase(config.resolved_state_dir);
+      try {
+        const ctx: AppContext = {
+          db,
+          chunkStore: new SqliteChunkStore(db),
+          config,
+          sessionId: 'query-efficiency-comparison-session',
+        };
+        const handlers = new Map<string, (args: Record<string, unknown>) => Promise<{ content: readonly [{ type: string; text: string }] }>>();
+        const captureServer = {
+          tool(name: string, _description: string, _schema: unknown, handler: (args: Record<string, unknown>) => Promise<{ content: readonly [{ type: string; text: string }] }>) {
+            handlers.set(name, handler);
+          },
+        } as unknown as McpServer;
+        registerAllTools(captureServer, ctx);
+
+        // scope: 'global' with no since_minutes is timing-safe here — neither
+        // call path writes a metrics row for mast_efficiency itself
+        // (efficiency.ts never calls recordToolCall), and window_started_at
+        // for that combination is the fixed epoch constant, not wall-clock
+        // time, so no normalization is even needed for this one.
+        const args = { scope: 'global' as const };
+        const cliText = await runQuery('mast_efficiency', JSON.stringify(args), { path: isolatedDir });
+        const expectedHandler = handlers.get('mast_efficiency');
+        if (expectedHandler === undefined) throw new Error('mast_efficiency not registered');
+        const expectedResult = await expectedHandler(args);
+
+        expect(JSON.parse(cliText)).toEqual(JSON.parse(expectedResult.content[0].text));
+      } finally {
+        await db.destroy();
+      }
+    } finally {
+      rmSync(isolatedDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// `mast query` — error paths
+// ---------------------------------------------------------------------------
+
+describe('mast query — error paths', () => {
+  let tmpDir: string;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-query-errors-test-'));
+    writeFileSync(join(tmpDir, 'math.ts'), QUERY_MATH_SRC);
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('rejects an unknown tool name and lists the available tools', async () => {
+    await expect(runQuery('mast_does_not_exist', '{}', { path: tmpDir })).rejects.toThrow(QueryError);
+    await expect(runQuery('mast_does_not_exist', '{}', { path: tmpDir })).rejects.toThrow(
+      /unknown tool "mast_does_not_exist".*mast_search/s,
+    );
+  });
+
+  it('rejects malformed JSON with a message naming the parse failure', async () => {
+    await expect(runQuery('mast_status', '{not valid json', { path: tmpDir })).rejects.toThrow(QueryError);
+    await expect(runQuery('mast_status', '{not valid json', { path: tmpDir })).rejects.toThrow(
+      /malformed JSON argument/,
+    );
+  });
+
+  it('rejects args that fail the tool\'s zod schema with the zod issues', async () => {
+    await expect(
+      runQuery('mast_search', JSON.stringify({ query: 42 }), { path: tmpDir }),
+    ).rejects.toThrow(QueryError);
+    await expect(
+      runQuery('mast_search', JSON.stringify({ query: 42 }), { path: tmpDir }),
+    ).rejects.toThrow(/invalid arguments for "mast_search"/);
+  });
+
+  it('rejects a state dir with no graph.db (never-indexed project)', async () => {
+    const neverIndexedDir = mkdtempSync(join(tmpdir(), 'mast-query-never-indexed-test-'));
+    try {
+      await expect(runQuery('mast_status', '{}', { path: neverIndexedDir })).rejects.toThrow(QueryError);
+      await expect(runQuery('mast_status', '{}', { path: neverIndexedDir })).rejects.toThrow(
+        /no index found at/,
+      );
+    } finally {
+      rmSync(neverIndexedDir, { recursive: true, force: true });
     }
   });
 });

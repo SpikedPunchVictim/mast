@@ -683,6 +683,49 @@ state directory is not created as a side effect of running `status`.
 
 ---
 
+### `mast query <tool> [json] [path]`
+
+Invoke any MCP tool (§9) directly from the CLI — the read tools (`mast_search`,
+`mast_project_skeleton`, `mast_exports`, `mast_signature`, `mast_callers`,
+`mast_dependencies`, `mast_implementors`, `mast_rename_impact`, `mast_status`,
+`mast_efficiency`) and `mast_reindex`, by their exact MCP names.
+
+```
+Options:
+  --state-dir <dir>    State directory
+  --json                Emit the exact single-line MCP response text (machine
+                        use); default pretty-prints the parsed response with
+                        2-space indent for humans
+```
+
+`json` (positional, default `'{}'`) is the tool's argument object as a JSON
+string; `path` is the project root (same resolution as every other command's
+`[path]`).
+
+Identical-output-by-construction: `mast query` dispatches through the exact
+same registered tool handler an MCP client's call would invoke — the same
+schema validation, the same JIT/staleness handling, the same `_stats`
+block — so CLI output can never drift from the MCP transport's, by
+construction rather than by keeping two implementations in sync.
+
+Examples:
+```
+mast query mast_status '{}' /path/to/project
+mast query mast_search '{"query":"add","limit":5}' /path/to/project --json
+mast query mast_exports '{"file_path":"src/math.ts"}'
+```
+
+Error behavior (all exit 1, message to stderr):
+- **Unknown tool** — lists every registered tool name.
+- **Malformed JSON argument** — names the parse failure.
+- **Args that fail the tool's own zod schema** — the zod issues.
+- **State dir with no `graph.db`** (never-indexed project) —
+  ``no index found at <state_dir>; run `mast init` / `mast index` first``.
+  This is a fail-fast guard only; it does not implement the broader
+  empty-state serve semantics tracked separately (IMPLEMENTATION_PLAN.md M6).
+
+---
+
 ### `mast install-hooks [path]`
 
 Write git hooks into `<path>/.git/hooks/`:

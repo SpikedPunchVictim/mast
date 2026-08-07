@@ -573,7 +573,7 @@ counterfactual. F9/M6 are both "the tool lies about what it did".
 
 | # | Task | Status |
 |---|---|---|
-| **D0** | **CLI query surface — parity with the MCP read tools (`mast query <tool> <json>`)** | **Not Started** |
+| **D0** | **CLI query surface — parity with the MCP read tools (`mast query <tool> <json>`)** | **Complete** |
 | D1 | Sort `walkProject` output (`indexer/walker.ts:43`) — kills ±4/3,940 edge nondeterminism | Not Started |
 | D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
 | **D6** | **Build the stats/regression suite** — the metric set below, with a baseline captured before each fix | Not Started |
@@ -688,6 +688,68 @@ the three throwaway harness scripts become deletable; `--json` for machine use.
 **Tests**: `cli/__tests__/cli.test.ts` — one `describe.each` over `(tool, args)` rows
 asserting CLI output matches the tool's own result shape. Do **not** duplicate each
 tool's behavioral tests at the CLI layer (§5.5) — assert dispatch and serialization only.
+
+**D0 result (2026-08-07):** Shipped as designed — no re-implementation of tool logic
+in the CLI.
+
+- **Shared-registry refactor.** Extracted `mcp/register-tools.ts` exporting
+  `registerAllTools(server, ctx)`, containing the 11 `registerXTool(server, ctx)` calls
+  (search, project-skeleton, exports, signature, callers, dependencies, implementors,
+  reindex, status, efficiency, rename-impact) that previously lived inline in
+  `mcp/server.ts:77-87`. `server.ts` now calls `registerAllTools` — registration order
+  preserved, behavior-preserving (verified: full suite green before/after with no test
+  changes needed in `mcp/tools/__tests__/*`).
+- **Capture-dispatch design.** `cli/query.ts`'s `createCaptureServer()` builds a
+  structural `{ tool(name, description, schemaShape, handler) }` object, narrowed via
+  one pre-approved `as unknown as McpServer` (the same seam
+  `mcp/tools/__tests__/tools.test.ts`'s `createMockServer` already uses), passed to
+  `registerAllTools`. `runQuery` looks up the captured `(schemaShape, handler)` pair by
+  tool name, and invokes the handler directly — the exact function an MCP client's call
+  would have invoked, so JIT/staleness/`_stats` behavior can never drift between the two
+  transports.
+- **Zod validation at the CLI edge.** The parsed JSON argument is validated with
+  `z.object(tool.schemaShape).parse(...)` — the identical per-tool zod shape the MCP
+  layer validates with (project CLAUDE.md §3.2: validate at the trust boundary) — before
+  the handler ever sees it.
+- **Red-first evidence.** `cli/query.ts` was stubbed with `runQuery` throwing
+  `new Error('not implemented')` and `registerQueryCommand` throwing likewise; the 14
+  new tests in `cli/__tests__/cli.test.ts` were run against the stub first. All 14 failed
+  on assertion/behavior grounds, not import or syntax errors:
+  `mast query — dispatch/serialization parity > '<tool>' > CLI --json output
+  structurally matches...` (9 rows: mast_search, mast_project_skeleton, mast_exports,
+  mast_signature, mast_callers, mast_dependencies, mast_implementors,
+  mast_rename_impact, mast_status) plus the isolated `mast_efficiency` case all failed
+  with `Error: not implemented`; the 4 error-path tests (`rejects an unknown tool name`,
+  `rejects malformed JSON`, `rejects args that fail the tool's zod schema`, `rejects a
+  state dir with no graph.db`) failed with `AssertionError: expected error to be
+  instance of QueryError` (the stub threw plain `Error`, not `QueryError`). Real
+  implementation turned all 14 green with no test changes.
+- **Verification.** `pnpm -F mast test`: 471 tests / 35 files green (baseline 457/35 +
+  14 new — no regressions, no skips). `pnpm -F mast typecheck`: clean. `pnpm -F mast
+  lint`: clean. `pnpm align:check` (repo root): `baselined debt: 324 → 324 (0)`, red only
+  on the same 2 pre-existing violations (`root-layout.tsx`, `fold-build-record-
+  repository.ts`) — no new violation from `register-tools.ts` or `query.ts` (mast is a
+  single flat align component, `packages/mast/**`, so neither file's placement could
+  trip a dependency-direction rule).
+- **Manual smoke test** (built `dist/`, ran against a throwaway single-file project):
+  `mast query mast_status '{}' <path>` pretty-prints; `mast query mast_search
+  '{"query":"add"}' <path> --json` emits the single-line MCP text with a populated
+  `_stats` block; `mast query mast_bogus '{}' <path>` prints `unknown tool "mast_bogus";
+  available tools: mast_callers, mast_dependencies, mast_efficiency, mast_exports,
+  mast_implementors, mast_project_skeleton, mast_reindex, mast_rename_impact,
+  mast_search, mast_signature, mast_status` to stderr and exits 1.
+- **Success criterion met**: the three throwaway harness scripts under
+  `~/temp/mast-bench/` (`mcp-call.mjs`, `mcp-call2.mjs`, `jit-probe.mjs`) are now
+  deletable — `mast query <tool> <json>` replaces what they hand-rolled over stdio.
+  Deletion itself left to whoever owns that scratch directory; it is outside
+  `packages/mast/`.
+- **Deviations**: none from the brief's mandated architecture or CLI contract.
+  `mast_reindex` was included in `registerAllTools` (preserving the original 11-tool
+  registration list, per instruction 1) and is reachable via `mast query mast_reindex`,
+  but — per the brief's explicit test list — has no dedicated dispatch-parity test row;
+  it is a write op, not a read tool, and duplicating its own coverage (already exercised
+  in `mcp/tools/__tests__/reindex.test.ts`) was out of scope for this stage's §5.5
+  budget.
 
 ### D6 — the metric set (capture a baseline BEFORE each fix)
 

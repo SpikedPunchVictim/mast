@@ -8,17 +8,7 @@ import { runIndex } from '../indexer/index.js';
 import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
 import { bootstrapState } from './startup.js';
 import type { AppContext } from './context.js';
-import { registerSearchTool }           from './tools/search.js';
-import { registerProjectSkeletonTool }  from './tools/project-skeleton.js';
-import { registerExportsTool }          from './tools/exports.js';
-import { registerSignatureTool }        from './tools/signature.js';
-import { registerCallersTool }          from './tools/callers.js';
-import { registerDependenciesTool }     from './tools/dependencies.js';
-import { registerImplementorsTool }     from './tools/implementors.js';
-import { registerReindexTool }          from './tools/reindex.js';
-import { registerStatusTool }           from './tools/status.js';
-import { registerEfficiencyTool }       from './tools/efficiency.js';
-import { registerRenameImpactTool }     from './tools/rename-impact.js';
+import { registerAllTools } from './register-tools.js';
 
 // ---------------------------------------------------------------------------
 // Startup ladder (§7.4)
@@ -74,17 +64,7 @@ export async function serve(options: ServeOptions): Promise<void> {
 
   const server = new McpServer({ name: 'mast', version: '0.1.0' });
 
-  registerSearchTool(server, ctx);
-  registerProjectSkeletonTool(server, ctx);
-  registerExportsTool(server, ctx);
-  registerSignatureTool(server, ctx);
-  registerCallersTool(server, ctx);
-  registerDependenciesTool(server, ctx);
-  registerImplementorsTool(server, ctx);
-  registerReindexTool(server, ctx);
-  registerStatusTool(server, ctx);
-  registerEfficiencyTool(server, ctx);
-  registerRenameImpactTool(server, ctx);
+  registerAllTools(server, ctx);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
