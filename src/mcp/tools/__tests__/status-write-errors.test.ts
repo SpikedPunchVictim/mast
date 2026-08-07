@@ -69,7 +69,6 @@ describe('mast_status surfaces a persisted write_errors count', () => {
         db,
         chunkStore: new SqliteChunkStore(db),
         config,
-        searchMode: () => 'lexical',
         sessionId: 'status-write-errors-test',
       };
       const mock = mockServer();

@@ -271,23 +271,20 @@ describe('status — staleness detection', () => {
 });
 
 // ---------------------------------------------------------------------------
-// `mast status` — pending embeddings and freshness cause
+// `mast status` — freshness cause
 //
-// Stage 7.1 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") removed
-// the vector subsystem that produced `pending_embeddings`/`countPendingEmbeddings`
-// (`indexer/index.ts`) — the field is now frozen at 0 (cli/status.ts,
-// mcp/tools/status.ts), so the "embedding backlog" describe block that used to
-// live here no longer has a subject. `freshnessCause` itself is unchanged pure
-// logic (still exercised below with a nonzero second argument, even though no
-// production caller can produce one any more post-excision).
+// Stage 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") removed
+// the pending-embeddings count and, with it, `freshnessCause`'s second
+// parameter and the `'embedding_backlog'`/`'both'` cases — the vector
+// subsystem that could produce a distinct Phase 2 backlog was excised in
+// Stage 7.1, so a two-cause signature asserted a distinction the code could
+// no longer draw.
 // ---------------------------------------------------------------------------
 
 describe('freshnessCause', () => {
-  it('maps the stale/pending combinations to their cause', () => {
-    expect(freshnessCause(0, 0)).toBeNull();
-    expect(freshnessCause(3, 0)).toBe('phase1_stale');
-    expect(freshnessCause(0, 5)).toBe('embedding_backlog');
-    expect(freshnessCause(3, 5)).toBe('both');
+  it('maps the stale-file count to its cause', () => {
+    expect(freshnessCause(0)).toBeNull();
+    expect(freshnessCause(3)).toBe('phase1_stale');
   });
 });
 

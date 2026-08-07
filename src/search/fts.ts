@@ -38,7 +38,7 @@ export async function searchFts(
   // Sanitise the user query into a safe FTS5 expression. Passing the raw string
   // to MATCH lets FTS5 interpret `(`, `:`, `"`, `OR`, etc. as query syntax — a
   // query like `handleLogin(req` would throw "fts5: syntax error" and (because
-  // this runs outside hybridSearch's try/catch) fail the whole search.
+  // this runs outside fusedSearch's try/catch) fail the whole search.
   const matchExpr = toFtsMatch(query);
   if (matchExpr === null) return [];
 

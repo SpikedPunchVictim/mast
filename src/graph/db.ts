@@ -77,7 +77,10 @@ interface MetricsTable {
   readonly tokens_returned: number;
   readonly tokens_full_file_upper_bound: number;
   readonly duration_ms: number;
-  readonly mode: string | null;     // 'hybrid' | 'lexical' | null
+  // Pre-Stage-7 rows (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store
+  // deletion") carry 'hybrid' | 'lexical'; every row written at or after
+  // Stage 7.2 is NULL — no code produces a search mode any more.
+  readonly mode: string | null;
   readonly session_id: string;
   readonly status: string;          // 'ok' | 'stale_returned' | 'error'
   /**
@@ -313,7 +316,7 @@ CREATE TABLE IF NOT EXISTS metrics (
   tokens_returned              INTEGER NOT NULL,
   tokens_full_file_upper_bound INTEGER NOT NULL,
   duration_ms                  INTEGER NOT NULL,
-  mode                         TEXT,
+  mode                         TEXT,  -- pre-Stage-7 rows only; see MetricsTable.mode
   session_id                   TEXT NOT NULL,
   status                       TEXT NOT NULL,
   args_json                    TEXT,

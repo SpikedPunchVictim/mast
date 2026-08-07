@@ -128,7 +128,6 @@ beforeAll(async () => {
     db,
     chunkStore: new SqliteChunkStore(db),
     config,
-    searchMode: () => 'lexical',
     sessionId: 'test-session',
   };
 
@@ -168,9 +167,8 @@ async function flushPendingMetricsWrite(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 describe('mast_search', () => {
-  it('returns results and mode', async () => {
-    const res = await call('mast_search', { query: 'add' }) as { mode: string; results: unknown[]; _stats: unknown };
-    expect(res.mode).toBe('lexical');
+  it('returns results', async () => {
+    const res = await call('mast_search', { query: 'add' }) as { results: unknown[]; _stats: unknown };
     expect(res.results.length).toBeGreaterThan(0);
     expect(res._stats).toMatchObject({ tool: 'mast_search' });
   });
@@ -195,7 +193,7 @@ describe('mast_search', () => {
   // 0|1 (BoolCol convention, graph/db.ts). SqliteChunkStore.getChunksByIds
   // converts back to `boolean` at the store boundary (store/sqliteChunkStore.ts)
   // — this asserts that conversion actually survives the full round trip
-  // through hybridSearch, JSON.stringify in the tool handler, and JSON.parse
+  // through fusedSearch, JSON.stringify in the tool handler, and JSON.parse
   // on the way back, not just at the store's own unit-test layer
   // (store/__tests__/sqliteChunkStore.test.ts covers that layer directly).
   it('is_exported round-trips as a real boolean, not 0|1, through the tool response', async () => {
@@ -703,21 +701,17 @@ describe('mast_status', () => {
       chunk_count: number;
       stale_files: number;
       index_fresh: boolean;
-      embedding_mode: string;
     };
     expect(res.indexed_files).toBeGreaterThan(0);
     expect(res.chunk_count).toBeGreaterThan(0);
     expect(res.stale_files).toBe(0);
     expect(res.index_fresh).toBe(true);
-    expect(res.embedding_mode).toBe('lexical');
   });
 
-  it('reports no pending embeddings and a null freshness_cause when fully fresh', async () => {
+  it('reports a null freshness_cause when fully fresh', async () => {
     const res = await call('mast_status') as {
-      pending_embeddings: number;
       freshness_cause: string | null;
     };
-    expect(res.pending_embeddings).toBe(0);
     expect(res.freshness_cause).toBeNull();
   });
 });
@@ -819,7 +813,6 @@ describe('F2 — file_busy_returning_stale_cache', () => {
       db: busyDb,
       chunkStore: new SqliteChunkStore(busyDb),
       config: busyConfig,
-      searchMode: () => 'lexical',
       sessionId: 'busy-test-session',
     };
 

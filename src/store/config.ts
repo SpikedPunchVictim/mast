@@ -1,5 +1,4 @@
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
@@ -32,7 +31,6 @@ const DEFAULTS: MastConfig = {
     '**/*.test.ts',
     '**/*.spec.ts',
   ],
-  embedding_model: 'jinaai/jina-embeddings-v2-base-code',
   rrf_k: 60,
   declaration_exact_ranker: true,
   chunk_split_threshold: 100,
@@ -45,28 +43,6 @@ export interface ResolvedConfig extends MastConfig {
   readonly resolved_state_dir: string;
   /** Absolute path to the project root. */
   readonly resolved_project_root: string;
-  /** Resolved absolute path for the Transformers.js model weight cache. */
-  readonly resolved_transformers_cache_dir: string;
-}
-
-/**
- * Resolve the Transformers.js model weight cache directory.
- *
- * Priority:
- * 1. Explicit `transformers_cache_dir` from config.
- * 2. `/opt/transformers-cache` if it exists and is writable (Docker pre-warmed).
- * 3. `~/.cache/mast/transformers` as the local-dev fallback.
- */
-export function resolveTransformersCacheDir(configured?: string): string {
-  if (configured) return resolve(configured);
-  const dockerPath = '/opt/transformers-cache';
-  try {
-    accessSync(dockerPath, constants.W_OK);
-    return dockerPath;
-  } catch {
-    // Not writable — fall through to local path.
-  }
-  return join(homedir(), '.cache', 'mast', 'transformers');
 }
 
 export interface ResolveConfigOptions {
@@ -92,6 +68,13 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
   const resolvedProjectRoot = resolve(options.projectRoot ?? process.cwd());
   const configFile = join(resolvedProjectRoot, 'mast.config.json');
 
+  // Never-shipped ⇒ no back-compat (IMPLEMENTATION_PLAN.md Stage 7 decision
+  // 2): a `mast.config.json` written before Stage 7.2 may still carry the
+  // removed embedding-model / Transformers.js cache-dir config keys. Nothing
+  // here validates the parsed shape (plain JSON.parse + cast, no zod), so
+  // those extra keys just ride along on `fileConfig`/`merged` unread — the
+  // spread below never looks them up, and `writeStateConfig` re-persisting
+  // `merged` via `JSON.stringify` carries them along harmlessly too.
   let fileConfig: Partial<MastConfig> = {};
   if (existsSync(configFile)) {
     const raw = readFileSync(configFile, 'utf-8');
@@ -109,7 +92,6 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
     project_root: resolvedProjectRoot,
     resolved_state_dir: resolve(resolvedProjectRoot, stateDir),
     resolved_project_root: resolvedProjectRoot,
-    resolved_transformers_cache_dir: resolveTransformersCacheDir(merged.transformers_cache_dir),
   };
 }
 

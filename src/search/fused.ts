@@ -1,4 +1,4 @@
-import type { SearchInput, SearchResult, SearchMode, SearchSuggestion, RelatedHint, ChunkType } from '../ast/types.js';
+import type { SearchInput, SearchResult, SearchSuggestion, RelatedHint, ChunkType } from '../ast/types.js';
 import type { Db } from '../graph/db.js';
 import type { ChunkStore, ChunkRecord } from '../store/sqliteChunkStore.js';
 import { searchFts, searchIdentifierNearMiss, splitIdentifierTerms } from './fts.js';
@@ -20,7 +20,7 @@ export function rrfScore(rank: number, k: number): number {
   return 1 / (k + rank);
 }
 
-export interface HybridSearchConfig {
+export interface FusedSearchConfig {
   readonly rrf_k: number;
   /**
    * F18 kill-switch (M2 decision memo condition 3) — fuses ranker D
@@ -45,7 +45,7 @@ export interface HybridSearchConfig {
 // fused ranking? Types live here (not declex.ts) because `window_effects` is
 // a property of the FUSION, not of ranker D itself — it compares the shipped
 // with-D result against an in-memory reconstruction of what RRF would have
-// produced without D, which only `hybridSearch` has enough context to build.
+// produced without D, which only `fusedSearch` has enough context to build.
 // ---------------------------------------------------------------------------
 
 /**
@@ -71,7 +71,7 @@ export interface DeclexWindowEffect {
 }
 
 /**
- * D-fire telemetry attached to `hybridSearch`'s return, present ONLY when
+ * D-fire telemetry attached to `fusedSearch`'s return, present ONLY when
  * ranker D actually fired (`fired` is always `true` here by construction —
  * the field itself is omitted, not set to `{fired: false}`, when D was
  * silent or the flag was off).
@@ -84,33 +84,34 @@ export interface DeclexTelemetry {
 }
 
 // ---------------------------------------------------------------------------
-// Hybrid search
+// Fused search
 // ---------------------------------------------------------------------------
 
 /**
  * BM25 lexical search fused with ranker D (declaration-exact, `./declex.ts`)
  * via Reciprocal Rank Fusion.
  *
- * Stage 7.1 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") excised
- * the vector leg entirely — `mast_search` is FTS + ranker D only now. `mode`
- * and `similarity_score` stay in the response shape but are frozen (see the
- * literal at the `mode` assignment below); Stage 7.2 redesigns those surfaces
- * honestly.
+ * Stage 7 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") excised
+ * the vector leg entirely — `mast_search` is FTS + ranker D only now, and
+ * Stage 7.2 renamed this function (decision 4): its old name asserted a
+ * vector-plus-lexical fusion that no longer exists. The response no longer
+ * carries a search-mode discriminator or a per-result similarity score —
+ * both described the retired vector leg and have no honest value to report
+ * now that it's gone.
  *
  * Post-filters (`chunk_type`, `only_exported`) are applied after RRF ranking,
  * on the full chunk records fetched from `chunkStore`. SQL-level filters
  * (`file_pattern`, `language`) are pushed into the FTS query.
  */
-export async function hybridSearch(
+export async function fusedSearch(
   db: Db,
   input: SearchInput,
-  config: HybridSearchConfig,
+  config: FusedSearchConfig,
   // Required (Stage 7.1): retires two recorded defects — the retired-Lance
   // default and the swallowed embedder failure that used to live in this
   // function's now-deleted vector-search try/catch (HANDOFF_Q1.md §5).
   chunkStore: ChunkStore,
 ): Promise<{
-  mode: SearchMode;
   results: SearchResult[];
   suggestions?: SearchSuggestion[];
   /** Present only when ranker D fired — Stage 6.3 telemetry, see {@link DeclexTelemetry}. */
@@ -133,13 +134,9 @@ export async function hybridSearch(
     ftsMap.set(r.chunk_id, { rank: i + 1, bm25Score: r.bm25_score, snippet: r.match_snippet });
   });
 
-  // Stage 7.1 freeze: mode/similarity_score surfaces are redesigned in Stage
-  // 7.2; hardcoded here so the excision diff is pure removal.
-  const mode: SearchMode = 'lexical';
-
   // --- Ranker D (declaration-exact) ---
   // Gated on `=== true` (not truthiness) so `undefined` and `false` behave
-  // identically — the absent-means-OFF contract `HybridSearchConfig`
+  // identically — the absent-means-OFF contract `FusedSearchConfig`
   // documents above. `declex` is kept as the full result (not just its rows)
   // so a later telemetry stage can lift its diagnostics into the return value
   // without re-plumbing this call. Mirrors the measured reconstruction
@@ -265,9 +262,6 @@ export async function hybridSearch(
       symbol_name:    c.symbol_name,
       parent_symbol:  c.parent_symbol,
       is_exported:    c.is_exported,
-      // Stage 7.1 freeze: always null now that the vector leg is gone — see
-      // the `mode` assignment above.
-      similarity_score: null,
       match_score:    ftsMeta?.bm25Score ?? null,
       // Re-ranked after dedup so consumers keep contiguous ranks from 1.
       rank:           i + 1,
@@ -284,10 +278,10 @@ export async function hybridSearch(
 
   if (results.length === 0) {
     const suggestions = await gatherSuggestions(db, chunkStore, input.query, limit);
-    return { mode, results, suggestions, ...declexField };
+    return { results, suggestions, ...declexField };
   }
 
-  return { mode, results, ...declexField };
+  return { results, ...declexField };
 }
 
 // ---------------------------------------------------------------------------

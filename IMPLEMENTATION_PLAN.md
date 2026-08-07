@@ -4311,7 +4311,17 @@ tree-sitter).
 **Success criteria**: `mode`/`similarity_score` removed from response + `_stats`;
 `mast_status`/CLI status fields per decision 2; orphan-state cleanup on startup;
 `hybridSearch` → `fusedSearch` rename with callers; config keys removed.
-**Status**: Not Started
+**Status**: Complete (2026-08-06) — suite **448/35** green (+2 net: −6 removed-field tests,
++8 new: config/index.json old-key tolerance, orphan cleanup incl. EACCES no-throw,
+unconditional-cleanup bootstrap); tsc + lint clean; all greps zero-hit except the
+tolerance test's own fixture literals (intentional); align 324→324 (+0). Renames done as
+git moves (`hybrid.ts`→`fused.ts`, `hybrid-declex.test.ts`→`fused-declex.test.ts`).
+Logged judgment calls, ratified: `AppContext.searchMode` deleted (only consumer was the
+removed `embedding_mode` field); `freshnessCause(staleFiles)` signature narrowed with its
+dead parameter, not just its type; `metrics.mode` column retained for historical rows,
+new rows NULL. **Carried finding → 7.3 scope: `packages/mast/README.md` is badly stale**
+(documents LanceDB/transformers/mode/similarity_score/embedding config keys) — rewrite
+in 7.3 alongside MAST_SPEC.md.
 
 ### Stage 7.3: Repo sweep + docs + verify
 **Success criteria**: repo-wide grep sweep for transformers-cache/mast-seed/lance

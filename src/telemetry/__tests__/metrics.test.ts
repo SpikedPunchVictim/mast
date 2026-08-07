@@ -16,7 +16,7 @@ import {
   buildDeclexJson,
 } from '../metrics.js';
 import { TOKENIZER_LABEL } from '../tokenizer.js';
-import type { DeclexTelemetry } from '../../search/hybrid.js';
+import type { DeclexTelemetry } from '../../search/fused.js';
 
 // ---------------------------------------------------------------------------
 // Tokenizer label — honest approximate framing (§14.5)
@@ -78,22 +78,10 @@ describe('recordToolCall', () => {
     expect(rows[0]!.duration_ms).toBe(42);
     expect(rows[0]!.session_id).toBe('session-1');
     expect(rows[0]!.status).toBe('ok');
+    // Stage 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion"):
+    // `RecordToolCallOptions` no longer accepts a `mode` — every new row
+    // writes NULL, unconditionally. The COLUMN stays for historical rows.
     expect(rows[0]!.mode).toBeNull();
-  });
-
-  it('stores mode when provided', async () => {
-    await recordToolCall(db, {
-      toolName: 'mast_search',
-      tokensReturned: 50,
-      tokensFullFileBound: 0,
-      durationMs: 10,
-      mode: 'hybrid',
-      sessionId: 's1',
-      status: 'ok',
-    });
-
-    const row = await db.selectFrom('metrics').selectAll().executeTakeFirst();
-    expect(row!.mode).toBe('hybrid');
   });
 
   it('upserts metrics_daily row for today', async () => {
@@ -353,11 +341,6 @@ describe('buildToolStats', () => {
   it('sets efficiency_ratio to 0 when full_file_bound = 0', () => {
     const stats = buildToolStats('mast_exports', 50, 0, [], 10);
     expect(stats.efficiency_ratio).toBe(0);
-  });
-
-  it('includes mode when provided', () => {
-    const stats = buildToolStats('mast_search', 50, 0, [], 5, 'hybrid');
-    expect(stats.mode).toBe('hybrid');
   });
 });
 

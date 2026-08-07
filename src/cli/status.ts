@@ -32,23 +32,16 @@ export function registerStatusCommand(program: Command): void {
       const { stale, added, deleted } = diffManifest(currentFiles, prevManifest);
       const staleCount = stale.length + added.length + deleted.length;
 
-      // Stage 7.2 removes this field — frozen at 0 during excision (the
-      // vector subsystem that produced it, countPendingEmbeddings, was
-      // deleted in Stage 7.1; IMPLEMENTATION_PLAN.md "Stage 7").
-      const pendingEmbeddings = 0;
-
       const status = {
         state_dir:     config.resolved_state_dir,
         last_indexed:  meta?.last_indexed ?? null,
         indexed_files: meta?.file_count ?? 0,
         chunk_count:   meta?.chunk_count ?? 0,
         stale_files:   staleCount,
-        pending_embeddings: pendingEmbeddings,
         parse_errors:  meta?.parse_errors ?? 0,
         write_errors:  meta?.write_errors ?? 0,
         index_fresh:   staleCount === 0 && meta !== null,
-        freshness_cause: freshnessCause(staleCount, pendingEmbeddings),
-        model:         meta?.model ?? config.embedding_model,
+        freshness_cause: freshnessCause(staleCount),
         seed_commit:   meta?.seed_commit,
       };
 
@@ -67,12 +60,10 @@ export function registerStatusCommand(program: Command): void {
         `indexed_files:  ${status.indexed_files}`,
         `chunk_count:    ${status.chunk_count}`,
         `stale_files:    ${status.stale_files}`,
-        `pending_embeddings: ${status.pending_embeddings}`,
         `parse_errors:   ${status.parse_errors}`,
         `write_errors:   ${status.write_errors}`,
         `index_fresh:    ${String(status.index_fresh)}`,
         `freshness_cause: ${status.freshness_cause ?? 'none'}`,
-        `model:          ${status.model}`,
         ...(status.seed_commit != null ? [`seed_commit:    ${status.seed_commit}`] : []),
       ].join('\n') + '\n');
     });

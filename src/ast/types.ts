@@ -130,13 +130,6 @@ export interface MastConfig {
   readonly project_root: string;
   readonly file_extensions: readonly string[];
   readonly exclude_patterns: readonly string[];
-  readonly embedding_model: string;
-  /**
-   * Directory where Transformers.js caches ONNX model weights.
-   * When omitted, resolved at runtime: `/opt/transformers-cache` if writable
-   * (Docker pre-warmed), otherwise `~/.cache/mast/transformers`.
-   */
-  readonly transformers_cache_dir?: string;
   // similarity_threshold was removed (Task 9): the absolute cosine gate was
   // miscalibrated for the shipped model (0/28 gold conceptual queries cleared
   // 0.70) and cosine scales are model-specific. Vector candidates now enter
@@ -172,7 +165,6 @@ export interface IndexMeta {
   last_indexed: string | null;   // ISO 8601, null when never indexed
   file_count: number;
   chunk_count: number;
-  model: string;
   parse_errors?: number;         // files skipped in the last index run due to parse failures
   write_errors?: number;         // files skipped in the last index run due to chunk-store write failures — never conflated with parse_errors (GITNEXUS_COMPARISON.md §15.3 item 3)
   seed_commit?: string;          // git rev baked into Docker seed layer
@@ -181,8 +173,6 @@ export interface IndexMeta {
 // ---------------------------------------------------------------------------
 // Telemetry
 // ---------------------------------------------------------------------------
-
-export type SearchMode = 'hybrid' | 'lexical';
 
 /** Attached to every read-tool response to track token savings. */
 export interface ToolStats {
@@ -193,7 +183,6 @@ export interface ToolStats {
   /** 1 - (tokens_returned / tokens_full_file_upper_bound) */
   readonly efficiency_ratio: number;
   readonly duration_ms: number;
-  readonly mode?: SearchMode;    // present only on mast_search
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +221,6 @@ export interface SearchResult {
   readonly symbol_name: string | null;
   readonly parent_symbol: string | null;
   readonly is_exported: boolean;
-  readonly similarity_score: number | null;  // null in lexical mode
   readonly match_score: number | null;       // BM25 score (negative); null when no FTS hit
   readonly rank: number;
   readonly match_snippet: string | null;
@@ -256,7 +244,6 @@ export interface SearchSuggestion {
 }
 
 export interface SearchResponse {
-  readonly mode: SearchMode;
   readonly results: readonly SearchResult[];
   /**
    * Present (possibly empty) only when `results` is empty — the zero-result
@@ -534,12 +521,14 @@ export interface ReindexResult {
 // --- mast_status ---
 
 /**
- * Why the index is not fully fresh (null when it is). Distinguishes Phase 1
- * staleness (chunk line coordinates lag disk — corrected by JIT on read) from
- * a Phase 2 backlog (parsing current, embeddings lagging — semantic ranking
- * degraded until the background embedder catches up).
+ * Why the index is not fully fresh (null when it is). Stage 7.2
+ * (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") removed
+ * `'embedding_backlog'`/`'both'` — the Phase 2 embedder that could produce a
+ * backlog distinct from Phase 1 (chunk line coordinates lagging disk,
+ * corrected by JIT on read) no longer exists, so a two-cause union asserted a
+ * distinction the code can no longer draw.
  */
-export type FreshnessCause = 'phase1_stale' | 'embedding_backlog' | 'both' | null;
+export type FreshnessCause = 'phase1_stale' | null;
 
 export interface StatusResult {
   readonly state_dir: string;
@@ -547,16 +536,11 @@ export interface StatusResult {
   readonly indexed_files: number;
   readonly chunk_count: number;
   readonly stale_files: number;
-  /** Chunks whose current content has no stored vector (§6.2 freshness rule). */
-  readonly pending_embeddings: number;
   readonly parse_errors: number;
   readonly write_errors: number;
-  /** Phase 1 freshness only — an embedding backlog does not flip this. */
   readonly index_fresh: boolean;
   readonly freshness_cause: FreshnessCause;
-  readonly model: string;
   readonly seed_commit?: string;
-  readonly embedding_mode: SearchMode;
 }
 
 // --- mast_efficiency ---

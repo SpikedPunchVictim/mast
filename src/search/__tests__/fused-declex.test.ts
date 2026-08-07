@@ -1,7 +1,7 @@
 // Stage 6.2 — fuses ranker D (`../declex.ts`, declaration-exact) into
-// `hybridSearch` as a third RRF input, behind the `declaration_exact_ranker`
-// kill-switch (absent/false at the function layer = OFF; see hybrid.ts's
-// `HybridSearchConfig.declaration_exact_ranker` for why the function default
+// `fusedSearch` as a third RRF input, behind the `declaration_exact_ranker`
+// kill-switch (absent/false at the function layer = OFF; see fused.ts's
+// `FusedSearchConfig.declaration_exact_ranker` for why the function default
 // is OFF even though the product default in `MastConfig` is ON).
 //
 // The fusion under test must byte-match the measured reconstruction in
@@ -26,7 +26,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDatabase, type Db } from '../../graph/db.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
-import { hybridSearch } from '../hybrid.js';
+import { fusedSearch } from '../fused.js';
 
 // ---------------------------------------------------------------------------
 // Fixture (fresh temp db per test — each test's fixture controls exactly
@@ -96,7 +96,7 @@ const hybridConfig = { rrf_k: 60 };
 // 1. FLAG OFF (absent) — D never fires, absent === explicit false
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — declaration_exact_ranker OFF (absent/false)', () => {
+describe('fusedSearch — declaration_exact_ranker OFF (absent/false)', () => {
   it('a symbol-name-matched, content-missed chunk stays out of the window; absent and explicit-false runs are identical', async () => {
     // "ScanCodeChord" is D-eligible (contains an uppercase letter) and would
     // full-match this chunk's own symbol_name, but the indexed CONTENT never
@@ -104,8 +104,8 @@ describe('hybridSearch — declaration_exact_ranker OFF (absent/false)', () => {
     await insertChunk({ chunk_id: 'anchor', chunk_type: 'function', symbol_name: 'ScanCodeChord', content: 'handles a keyboard shortcut binding' });
     await insertFts({ chunk_id: 'anchor', symbol_name: 'ScanCodeChord', content: 'handles a keyboard shortcut binding' });
 
-    const absent = await hybridSearch(db, { query: 'ScanCodeChord' }, hybridConfig, chunkStore);
-    const explicitFalse = await hybridSearch(
+    const absent = await fusedSearch(db, { query: 'ScanCodeChord' }, hybridConfig, chunkStore);
+    const explicitFalse = await fusedSearch(
       db,
       { query: 'ScanCodeChord' },
       { ...hybridConfig, declaration_exact_ranker: false },
@@ -115,7 +115,6 @@ describe('hybridSearch — declaration_exact_ranker OFF (absent/false)', () => {
     expect(absent.results.some((r) => r.symbol_name === 'ScanCodeChord')).toBe(false);
     expect(absent.results).toHaveLength(0);
     expect(explicitFalse.results).toEqual(absent.results);
-    expect(explicitFalse.mode).toBe(absent.mode);
   });
 });
 
@@ -123,12 +122,12 @@ describe('hybridSearch — declaration_exact_ranker OFF (absent/false)', () => {
 // 2. FLAG ON — D fires and the anchor enters the window
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — declaration_exact_ranker ON, D fires', () => {
+describe('fusedSearch — declaration_exact_ranker ON, D fires', () => {
   it('the same symbol-name-matched chunk enters the window through RRF', async () => {
     await insertChunk({ chunk_id: 'anchor', chunk_type: 'function', symbol_name: 'ScanCodeChord', content: 'handles a keyboard shortcut binding' });
     await insertFts({ chunk_id: 'anchor', symbol_name: 'ScanCodeChord', content: 'handles a keyboard shortcut binding' });
 
-    const { results } = await hybridSearch(
+    const { results } = await fusedSearch(
       db,
       { query: 'ScanCodeChord' },
       { ...hybridConfig, declaration_exact_ranker: true },
@@ -143,7 +142,7 @@ describe('hybridSearch — declaration_exact_ranker ON, D fires', () => {
 // 3. FLAG ON, D silent — no eligible terms in the query
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — declaration_exact_ranker ON, D silent (no eligible terms)', () => {
+describe('fusedSearch — declaration_exact_ranker ON, D silent (no eligible terms)', () => {
   it('an all-lowercase prose query produces results identical to the flag-off run', async () => {
     // deriveEligiblePrimaryTerms finds nothing in an all-lowercase query, so D
     // contributes zero rows regardless of the flag — the measured invariant
@@ -151,8 +150,8 @@ describe('hybridSearch — declaration_exact_ranker ON, D silent (no eligible te
     await insertChunk({ chunk_id: 'prose', chunk_type: 'function', symbol_name: 'handler', content: 'binds a shortcut handler for input events' });
     await insertFts({ chunk_id: 'prose', symbol_name: 'handler', content: 'binds a shortcut handler for input events' });
 
-    const off = await hybridSearch(db, { query: 'binds a shortcut handler' }, hybridConfig, chunkStore);
-    const on = await hybridSearch(
+    const off = await fusedSearch(db, { query: 'binds a shortcut handler' }, hybridConfig, chunkStore);
+    const on = await fusedSearch(
       db,
       { query: 'binds a shortcut handler' },
       { ...hybridConfig, declaration_exact_ranker: true },
@@ -160,7 +159,6 @@ describe('hybridSearch — declaration_exact_ranker ON, D silent (no eligible te
     );
 
     expect(on.results).toEqual(off.results);
-    expect(on.mode).toBe(off.mode);
   });
 });
 
@@ -168,7 +166,7 @@ describe('hybridSearch — declaration_exact_ranker ON, D silent (no eligible te
 // 4. RRF additivity — a chunk in both FTS and D outranks a D-only chunk
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — RRF additivity when D and FTS agree', () => {
+describe('fusedSearch — RRF additivity when D and FTS agree', () => {
   it('a chunk present in both FTS and D ranks above an otherwise-equal chunk present in D only', async () => {
     await insertChunk({ chunk_id: 'both', chunk_type: 'function', symbol_name: 'UniqueTokenAlpha', content: 'function UniqueTokenAlpha() { return 1; }' });
     await insertFts({ chunk_id: 'both', symbol_name: 'UniqueTokenAlpha', content: 'function UniqueTokenAlpha() { return 1; }' });
@@ -178,7 +176,7 @@ describe('hybridSearch — RRF additivity when D and FTS agree', () => {
     await insertChunk({ chunk_id: 'donly', chunk_type: 'function', symbol_name: 'UniqueTokenBeta', content: 'an unrelated function body' });
     await insertFts({ chunk_id: 'donly', symbol_name: 'UniqueTokenBeta', content: 'an unrelated function body' });
 
-    const { results } = await hybridSearch(
+    const { results } = await fusedSearch(
       db,
       { query: 'UniqueTokenAlpha UniqueTokenBeta' },
       { ...hybridConfig, declaration_exact_ranker: true },
@@ -197,7 +195,7 @@ describe('hybridSearch — RRF additivity when D and FTS agree', () => {
 // 5. Dedup interplay — shell/method collapse still applies to D-sourced pairs
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — dedup interplay with D-sourced candidates', () => {
+describe('fusedSearch — dedup interplay with D-sourced candidates', () => {
   it('shell/method dedup still collapses a class shell and its method when both are reached only through D', async () => {
     // 'Bar' (not the task's literal lowercase 'bar') because ranker D's
     // primary-arm eligibility gate requires an uppercase letter, underscore,
@@ -211,7 +209,7 @@ describe('hybridSearch — dedup interplay with D-sourced candidates', () => {
     // Neither chunk is indexed into chunk_fts — both reach the window via D
     // alone.
 
-    const { results } = await hybridSearch(
+    const { results } = await fusedSearch(
       db,
       { query: 'Foo.Bar' },
       { ...hybridConfig, declaration_exact_ranker: true },
@@ -233,26 +231,7 @@ describe('hybridSearch — dedup interplay with D-sourced candidates', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. mode is unaffected by D
-// ---------------------------------------------------------------------------
-
-describe('hybridSearch — mode unaffected by D', () => {
-  it('mode stays lexical even when D fires', async () => {
-    await insertChunk({ chunk_id: 'anchor2', chunk_type: 'function', symbol_name: 'ScanCodeChord', content: 'irrelevant prose' });
-
-    const { mode } = await hybridSearch(
-      db,
-      { query: 'ScanCodeChord' },
-      { ...hybridConfig, declaration_exact_ranker: true },
-      chunkStore,
-    );
-
-    expect(mode).toBe('lexical');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 7. Stage 6.3 — D-fire telemetry (`declex` field on hybridSearch's return)
+// 6. Stage 6.3 — D-fire telemetry (`declex` field on fusedSearch's return)
 //
 // Fixture: 3 FTS-only chunks sharing one lowercase (D-ineligible) term at
 // different repetition counts inside `chunk_fts.content` — trigram BM25
@@ -272,7 +251,7 @@ describe('hybridSearch — mode unaffected by D', () => {
 // entering above it, and fts_top ties (1 -> 1, no diff, excluded).
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
+describe('fusedSearch — declex telemetry (Stage 6.3)', () => {
   async function insertTelemetryFixture(): Promise<void> {
     const term = (n: number): string => Array.from({ length: n }, () => 'matchterm').join(' ');
 
@@ -297,7 +276,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('D fired: declex is present with correct diagnostics and a D-only anchor reporting rank_without_d: null', async () => {
     await insertTelemetryFixture();
 
-    const { declex } = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
+    const { declex } = await fusedSearch(db, telemetryQuery, declexOnConfig, chunkStore);
 
     expect(declex).toBeDefined();
     expect(declex!.fired).toBe(true);
@@ -314,7 +293,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('a displaced chunk reports both numeric ranks with rank_with_d > rank_without_d', async () => {
     await insertTelemetryFixture();
 
-    const { declex } = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
+    const { declex } = await fusedSearch(db, telemetryQuery, declexOnConfig, chunkStore);
 
     const displaced = declex!.window_effects.find((w) => w.chunk_id === 'fts_displaced');
     expect(displaced).toBeDefined();
@@ -327,7 +306,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
     await insertChunk({ chunk_id: 'prose2', chunk_type: 'function', symbol_name: 'handler', content: 'binds a shortcut handler for input events' });
     await insertFts({ chunk_id: 'prose2', symbol_name: 'handler', content: 'binds a shortcut handler for input events' });
 
-    const { declex } = await hybridSearch(
+    const { declex } = await fusedSearch(
       db,
       { query: 'binds a shortcut handler' },
       declexOnConfig,
@@ -340,7 +319,7 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('flag off: declex is absent even when the query would otherwise be D-eligible', async () => {
     await insertTelemetryFixture();
 
-    const { declex } = await hybridSearch(db, telemetryQuery, hybridConfig, chunkStore);
+    const { declex } = await fusedSearch(db, telemetryQuery, hybridConfig, chunkStore);
 
     expect(declex).toBeUndefined();
   });
@@ -348,8 +327,8 @@ describe('hybridSearch — declex telemetry (Stage 6.3)', () => {
   it('is deterministic across two identical calls', async () => {
     await insertTelemetryFixture();
 
-    const first = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
-    const second = await hybridSearch(db, telemetryQuery, declexOnConfig, chunkStore);
+    const first = await fusedSearch(db, telemetryQuery, declexOnConfig, chunkStore);
+    const second = await fusedSearch(db, telemetryQuery, declexOnConfig, chunkStore);
 
     expect(second.declex).toEqual(first.declex);
   });

@@ -7,7 +7,7 @@ import { runIndex } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
 import { SqliteChunkStore, type ChunkRecord } from '../../store/sqliteChunkStore.js';
 import { searchFts, splitIdentifierTerms } from '../fts.js';
-import { hybridSearch, rrfScore, dedupShellMethodCollisions } from '../hybrid.js';
+import { fusedSearch, rrfScore, dedupShellMethodCollisions } from '../fused.js';
 import { trigramSimilarity } from '../../graph/queries.js';
 
 // ---------------------------------------------------------------------------
@@ -138,39 +138,31 @@ describe('searchFts', () => {
 });
 
 // ---------------------------------------------------------------------------
-// hybridSearch — lexical mode (no embedder)
+// fusedSearch — lexical mode (no embedder)
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — lexical mode', () => {
+describe('fusedSearch — lexical mode', () => {
   const hybridConfig = { rrf_k: 60 };
 
-  it('returns mode: lexical', async () => {
-    const { mode, results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
-    expect(mode).toBe('lexical');
+  it('returns results', async () => {
+    const { results } = await fusedSearch(db, { query: 'add' }, hybridConfig, chunkStore);
     expect(results.length).toBeGreaterThan(0);
   });
 
-  it('similarity_score is always null (Stage 7.1: vector leg removed)', async () => {
-    const { results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
-    for (const r of results) {
-      expect(r.similarity_score).toBeNull();
-    }
-  });
-
   it('match_score is set from BM25', async () => {
-    const { results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
+    const { results } = await fusedSearch(db, { query: 'add' }, hybridConfig, chunkStore);
     const withFtsHit = results.filter((r) => r.match_score !== null);
     expect(withFtsHit.length).toBeGreaterThan(0);
   });
 
   it('only_exported filter excludes non-exported chunks', async () => {
-    const allResults = await hybridSearch(
+    const allResults = await fusedSearch(
       db,
       { query: 'Helper', only_exported: false },
       hybridConfig,
       chunkStore,
     );
-    const exportedOnly = await hybridSearch(
+    const exportedOnly = await fusedSearch(
       db,
       { query: 'Helper', only_exported: true },
       hybridConfig,
@@ -190,7 +182,7 @@ describe('hybridSearch — lexical mode', () => {
   });
 
   it('chunk_type filter restricts to matching type', async () => {
-    const { results } = await hybridSearch(
+    const { results } = await fusedSearch(
       db,
       { query: 'Shape', chunk_type: 'interface' },
       hybridConfig,
@@ -202,7 +194,7 @@ describe('hybridSearch — lexical mode', () => {
   });
 
   it('limit is respected', async () => {
-    const { results } = await hybridSearch(
+    const { results } = await fusedSearch(
       db,
       { query: 'a', limit: 2 },
       hybridConfig,
@@ -212,7 +204,7 @@ describe('hybridSearch — lexical mode', () => {
   });
 
   it('rank field increments from 1', async () => {
-    const { results } = await hybridSearch(db, { query: 'function' }, hybridConfig, chunkStore);
+    const { results } = await fusedSearch(db, { query: 'function' }, hybridConfig, chunkStore);
     results.forEach((r, i) => expect(r.rank).toBe(i + 1));
   });
 });
@@ -371,16 +363,16 @@ describe('dedupShellMethodCollisions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// hybridSearch — shell/method dedup end to end
+// fusedSearch — shell/method dedup end to end
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — shell/method dedup', () => {
+describe('fusedSearch — shell/method dedup', () => {
   const hybridConfig = { rrf_k: 60 };
 
   it('never returns both a class shell and one of its methods', async () => {
     // 'perimeter' matches the Circle shell (member signature), the
     // Circle.perimeter method chunk, and the Shape interface.
-    const { results } = await hybridSearch(db, { query: 'perimeter' }, hybridConfig, chunkStore);
+    const { results } = await fusedSearch(db, { query: 'perimeter' }, hybridConfig, chunkStore);
 
     const shell = results.find((r) => r.chunk_type === 'class_shell' && r.symbol_name === 'Circle');
     const method = results.find((r) => r.chunk_type === 'method' && r.parent_symbol === 'Circle');
@@ -396,12 +388,12 @@ describe('hybridSearch — shell/method dedup', () => {
   });
 
   it('ranks stay contiguous from 1 after dedup', async () => {
-    const { results } = await hybridSearch(db, { query: 'perimeter' }, hybridConfig, chunkStore);
+    const { results } = await fusedSearch(db, { query: 'perimeter' }, hybridConfig, chunkStore);
     results.forEach((r, i) => expect(r.rank).toBe(i + 1));
   });
 
   it('non-colliding results carry no related field', async () => {
-    const { results } = await hybridSearch(db, { query: 'add' }, hybridConfig, chunkStore);
+    const { results } = await fusedSearch(db, { query: 'add' }, hybridConfig, chunkStore);
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(r.related).toBeUndefined();
@@ -410,16 +402,16 @@ describe('hybridSearch — shell/method dedup', () => {
 });
 
 // ---------------------------------------------------------------------------
-// hybridSearch — zero-result assist (suggestions)
+// fusedSearch — zero-result assist (suggestions)
 // ---------------------------------------------------------------------------
 
-describe('hybridSearch — zero-result assist', () => {
+describe('fusedSearch — zero-result assist', () => {
   // Threshold high enough that the fake embedder's vector hits never survive,
   // and embedder null, so a no-FTS-hit query genuinely returns zero results.
   const lexicalConfig = { rrf_k: 60 };
 
   it('attaches suggestions when the query matches no chunk', async () => {
-    const { results, suggestions } = await hybridSearch(
+    const { results, suggestions } = await fusedSearch(
       db,
       { query: 'adddd' },
       lexicalConfig,
@@ -432,7 +424,7 @@ describe('hybridSearch — zero-result assist', () => {
   });
 
   it('each suggestion carries symbol, file_path and reason', async () => {
-    const { suggestions } = await hybridSearch(
+    const { suggestions } = await fusedSearch(
       db,
       { query: 'adddd' },
       lexicalConfig,
@@ -447,7 +439,7 @@ describe('hybridSearch — zero-result assist', () => {
   });
 
   it('never substitutes suggestions for results (results stay empty)', async () => {
-    const { results, suggestions } = await hybridSearch(
+    const { results, suggestions } = await fusedSearch(
       db,
       { query: 'adddd' },
       lexicalConfig,
@@ -458,7 +450,7 @@ describe('hybridSearch — zero-result assist', () => {
   });
 
   it('omits suggestions when the query returns results', async () => {
-    const { results, suggestions } = await hybridSearch(
+    const { results, suggestions } = await fusedSearch(
       db,
       { query: 'add' },
       lexicalConfig,

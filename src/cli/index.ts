@@ -9,7 +9,7 @@ import { registerMetricsCommand }       from './metrics-cmd.js';
 
 const program = new Command()
   .name('mast')
-  .description('Monorepo AST Search Tool — semantic code search over an MCP or CLI surface')
+  .description('Monorepo AST Search Tool — lexical + declaration-exact code search over an MCP or CLI surface')
   .version('0.1.0');
 
 registerInitCommand(program);

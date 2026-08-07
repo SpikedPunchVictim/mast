@@ -388,7 +388,6 @@ export async function runIndex(
       last_indexed: new Date().toISOString(),
       file_count: currentFiles.length,
       chunk_count: chunkCount,
-      model: config.embedding_model,
       parse_errors: parseErrors > 0 ? parseErrors : undefined,
       write_errors: writeErrors > 0 ? writeErrors : undefined,
     };
@@ -475,26 +474,26 @@ function symbolSignature(
 // ---------------------------------------------------------------------------
 
 /**
- * Collapse the two staleness signals into the `freshness_cause` discriminator
- * (§9 mast_status). Purely derived — `index_fresh` keeps its Phase 1-only
- * meaning and is not affected by an embedding backlog.
- *
- * `pendingEmbeddings` is always 0 post-Stage-7.1 (the vector subsystem that
- * produced it — `runEmbed`/`selectPendingChunks`/`countPendingEmbeddings` —
- * was excised; IMPLEMENTATION_PLAN.md "Stage 7"), so this function can no
- * longer actually return `'embedding_backlog'`/`'both'` in production. Kept
- * as pure `(number, number) -> FreshnessCause` logic rather than special-cased
- * so its callers (mcp/tools/status.ts, cli/status.ts) don't need a branch —
- * Stage 7.2 removes the now-dead cases from `FreshnessCause` itself.
+ * Derive the `freshness_cause` discriminator (§9 mast_status) from the stale
+ * file count. Stage 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store
+ * deletion") dropped the second parameter this used to take
+ * (`pendingEmbeddings`) along with the `'embedding_backlog'`/`'both'` cases —
+ * the Phase 2 embedder that could produce a backlog distinct from Phase 1
+ * staleness was excised in Stage 7.1, so a two-cause signature asserted a
+ * distinction the code could no longer draw.
  */
-export function freshnessCause(staleFiles: number, pendingEmbeddings: number): FreshnessCause {
-  if (staleFiles > 0 && pendingEmbeddings > 0) return 'both';
-  if (staleFiles > 0) return 'phase1_stale';
-  if (pendingEmbeddings > 0) return 'embedding_backlog';
-  return null;
+export function freshnessCause(staleFiles: number): FreshnessCause {
+  return staleFiles > 0 ? 'phase1_stale' : null;
 }
 
-/** Load `index.json` from the state directory, or return null if absent. */
+/**
+ * Load `index.json` from the state directory, or return null if absent.
+ *
+ * Unvalidated cast, not a zod parse — an `index.json` written before Stage
+ * 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") may still
+ * carry the removed `model` field; it rides along as an untyped extra key
+ * and is simply never read, so old files load without error.
+ */
 export function loadIndexMeta(stateDir: string): IndexMeta | null {
   const metaPath = join(stateDir, 'index.json');
   if (!existsSync(metaPath)) return null;

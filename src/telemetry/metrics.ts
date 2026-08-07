@@ -1,7 +1,7 @@
 import { sql } from 'kysely';
 import type { Db } from '../graph/db.js';
-import type { ToolStats, SearchMode } from '../ast/types.js';
-import type { DeclexTelemetry } from '../search/hybrid.js';
+import type { ToolStats } from '../ast/types.js';
+import type { DeclexTelemetry } from '../search/fused.js';
 
 // ---------------------------------------------------------------------------
 // Metrics persistence
@@ -12,7 +12,6 @@ export interface RecordToolCallOptions {
   readonly tokensReturned: number;
   readonly tokensFullFileBound: number;
   readonly durationMs: number;
-  readonly mode?: SearchMode;
   readonly sessionId: string;
   readonly status: 'ok' | 'stale_returned' | 'error';
   /** Pre-serialised via {@link buildArgsJson}. Omitted for tools that don't yet record argument identity. */
@@ -45,7 +44,12 @@ export async function recordToolCall(
       tokens_returned:              options.tokensReturned,
       tokens_full_file_upper_bound: options.tokensFullFileBound,
       duration_ms:                  options.durationMs,
-      mode:                         options.mode ?? null,
+      // Stage 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion"):
+      // no code produces a search mode any more (the vector leg it used to
+      // distinguish from lexical is gone), so every new row writes NULL. The
+      // COLUMN stays — pre-Stage-7 rows carry 'hybrid'/'lexical' and remain
+      // readable for historical queries.
+      mode:                         null,
       session_id:                   options.sessionId,
       status:                       options.status,
       args_json:                    options.argsJson ?? null,
@@ -218,7 +222,6 @@ export function buildToolStats(
   tokensFullFileBound: number,
   filesReferenced: readonly string[],
   durationMs: number,
-  mode?: SearchMode,
 ): ToolStats {
   const efficiency =
     tokensFullFileBound > 0
@@ -232,7 +235,6 @@ export function buildToolStats(
     files_referenced: filesReferenced,
     efficiency_ratio: efficiency,
     duration_ms: durationMs,
-    mode,
   };
 }
 

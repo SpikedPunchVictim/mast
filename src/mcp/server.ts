@@ -7,7 +7,6 @@ import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js'
 import { runIndex } from '../indexer/index.js';
 import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
 import { bootstrapState } from './startup.js';
-import type { SearchMode } from '../ast/types.js';
 import type { AppContext } from './context.js';
 import { registerSearchTool }           from './tools/search.js';
 import { registerProjectSkeletonTool }  from './tools/project-skeleton.js';
@@ -66,17 +65,10 @@ export async function serve(options: ServeOptions): Promise<void> {
 
   // ── Step 3: open MCP transport and register tools ─────────────────────────
 
-  // Frozen at 'lexical' (Stage 7.1) — nothing mutates it any more now that the
-  // embed step that used to flip it to 'hybrid' is gone. Kept as a function on
-  // AppContext (not a plain field) so mcp/tools/status.ts's `embedding_mode`
-  // read stays a normal ctx call; Stage 7.2 redesigns the surface.
-  const currentMode: SearchMode = 'lexical';
-
   const ctx: AppContext = {
     db,
     chunkStore,
     config,
-    searchMode: () => currentMode,
     sessionId: randomUUID(),
   };
 
