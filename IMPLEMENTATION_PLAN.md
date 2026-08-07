@@ -4329,7 +4329,27 @@ references outside `packages/mast` resolved; MAST_SPEC.md rewritten where the ve
 subsystem appeared (§2, §3, §4.1, §5, §6.2, §7.1–7.4, §7.6, §8, §9 `mast_search`/
 `mast_status`, §11, §13.1–13.3, §13.8, §13.11, §14); plan + handoff updated; full ladder
 green (suite / tsc / lint / align at pre-existing baseline).
-**Status**: Not Started
+**Status**: Complete (2026-08-07) — README fully rewritten; MAST_SPEC.md rewritten
+per-checklist with every post-edit grep survivor justified (section numbers kept stable
+on deletion to preserve cross-references); repo sweep fixed a GENUINELY BUILD-BREAKING
+issue (claude-runner + fold-runner Dockerfiles ran `warm-model.mjs`, which imports the
+dependency Stage 7.1 removed — model-prewarm steps deleted, both orphaned scripts
+deleted, fold-runner README fixed, CURRENT_STATE.md annotated per its correction
+convention); historical records (MAINTENANCE.md, .specify plans, foldv2's own embedder
+docs) intentionally untouched and named. Ladder: 448/35 green, tsc + lint clean, align
+324→324 (+0). **Runner-executed follow-up to the agent's out-of-scope finding:** the
+orphaned `VectorEntry` interface and the stale cosine-gate comment in `ast/types.ts`
+(survived 7.1/7.2 — nothing imported them, so no grep tripped) excised; re-verified.
+**Open item, user-owned:** `.claude/CLAUDE.md` still describes `mast_search` as
+"semantic + keyword discovery" — one-line fix proposed to the project owner (agent
+correctly declined to edit an instruction file).
+
+**Stage 7 exit state**: the vector store is fully deleted. `mast_search` is lexical
+BM25 + declaration-exact (F18) under RRF — L+D exactly as measured. The M2 memo's
+condition-5 monitoring clock is LIVE as of the deletion ship (2026-08-07): the re-entry
+review fires at organic harvest **n ≥ 67** or **2026-11-05**, whichever comes first;
+organic n = 0 at that review is itself a finding forcing a re-decision of the monitoring
+plan. `metrics.declex_json` is the accumulating input signal.
 
 ---
 

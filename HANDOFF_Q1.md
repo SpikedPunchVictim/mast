@@ -2,6 +2,36 @@
 
 ---
 
+## ⚡ UPDATE 2026-08-07 — VECTOR STORE DELETED; the M2 review clock is LIVE
+
+Stage 7 (IMPLEMENTATION_PLAN.md) is complete and committed. The vector subsystem no
+longer exists at HEAD: `mast_search` is lexical BM25 + declaration-exact (F18) under
+RRF — L+D exactly as measured. `@lancedb/lancedb` / `@huggingface/transformers` /
+`apache-arrow` removed; `mode` / `similarity_score` / embedding config keys / embedding
+status fields removed; `hybridSearch` renamed `fusedSearch`; startup cleans orphaned
+vector state; Docker model-prewarm steps (which would have BROKEN the image build
+post-deletion) removed from claude-runner and fold-runner.
+
+**Operational facts for any future session:**
+- Verification baseline: **448 tests / 35 files**; align at 324→324 (+0 — the old +3
+  was the deleted files' own unresolved specifiers).
+- The pre-deletion system — vector arms, instruments, the H baseline — lives at git tag
+  **`mast-pre-vector-delete`**. Five eval instrument test files are excluded by name in
+  `vitest.config.ts` because their import chains reach deleted modules; do NOT re-enable
+  them at HEAD, and do NOT "fix" their imports — re-entry checks out the tag.
+- **The M2 memo condition-5 review clock started 2026-08-07 (deletion ship):** the
+  re-entry review fires at organic harvest **n ≥ 67** or on **2026-11-05**, whichever
+  comes first. Organic n = 0 at that review is itself a finding — the standing
+  instrument has no data source — and forces an explicit re-decision of the monitoring
+  plan. Do not let that date pass silently.
+- `metrics.declex_json` is live and accumulating: D fire rate and window-displacement
+  effects on real queries are queryable from `graph.db` (never open it
+  `?mode=ro&immutable=1` — WAL-blind, §7 below).
+- Known open item (user-owned): `.claude/CLAUDE.md` still calls `mast_search`
+  "semantic + keyword discovery" — awaiting the project owner's one-line fix.
+
+---
+
 ## ⚡ UPDATE 2026-08-06 — M2 DECIDED (delete), F18 SHIPPED; read this before the rest
 
 The sections below describe the state as of 2026-08-03 and remain accurate as history.

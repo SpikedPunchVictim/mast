@@ -1,6 +1,6 @@
 # MAST — Monorepo AST Search Tool
 
-MAST is a semantic code-search engine that runs as either an MCP server (for AI assistants) or a standalone CLI. It parses TypeScript and JavaScript source files with a real AST parser, stores the resulting symbol graph and code chunks in SQLite and LanceDB, and answers queries using hybrid BM25 + vector search fused via Reciprocal Rank Fusion.
+MAST is a code-search engine that runs as either an MCP server (for AI assistants) or a standalone CLI. It parses TypeScript and JavaScript source files with a real AST parser (`tree-sitter`), stores the resulting symbol graph and code chunks in SQLite, and answers queries with lexical BM25 search fused against a declaration-exact ranker via Reciprocal Rank Fusion.
 
 The core design principle: **return exactly the code an assistant needs, nothing more**. Rather than reading entire files, MAST returns the specific function, interface, or type declaration that matches a query — saving tokens, reducing context noise, and letting AI tools navigate large codebases without drowning in irrelevant content.
 
@@ -17,6 +17,7 @@ The core design principle: **return exactly the code an assistant needs, nothing
 - [Configuration](#configuration)
 - [How It Works](#how-it-works)
 - [Token Efficiency](#token-efficiency)
+- [History](#history)
 
 ---
 
@@ -27,7 +28,7 @@ When an AI assistant needs to understand code, the naive approach is to read ful
 MAST takes a different approach:
 
 - **AST-level chunking** — every function, class, interface, and type alias is its own chunk. The assistant gets the exact declaration it needs, not the file it happens to live in.
-- **Hybrid search** — BM25 handles identifier names and keyword queries; vector search handles semantic similarity. Both are fused via Reciprocal Rank Fusion so neither signal drowns out the other.
+- **Ranked search** — BM25 (FTS5) handles keyword and identifier queries; a declaration-exact ranker ("ranker D") catches exact-symbol-name queries that BM25's trigram tokenizer can rank inconsistently. Both are fused via Reciprocal Rank Fusion so a chunk that both rankers agree on outranks one that only one of them found.
 - **Structural queries** — "who calls this function?", "what implements this interface?", "what does this file import?" are answered from a pre-built symbol graph, not by grepping source. Answers are instantaneous and structurally correct.
 - **JIT staleness detection** — on every read, MAST checks whether the file on disk has changed since it was last indexed. If it has, the file is transparently re-parsed in the background before the result is returned. The index never goes stale without the assistant knowing.
 - **Token accounting** — every tool response includes `_stats` with the token count returned and the counterfactual "what would a naive full-file read have cost?", giving a concrete measure of efficiency over time.
@@ -36,10 +37,9 @@ MAST takes a different approach:
 
 ## Requirements
 
-- **Node.js** ≥ 24.0.0
+- **Node.js** ≥ 22.0.0
 - **pnpm** (this package is part of a pnpm workspace)
 - The `tree-sitter` native addon requires a C++ build toolchain (`node-gyp`)
-- **Embedding model** — `jinaai/jina-embeddings-v2-base-code` (~300 MB ONNX weights) is downloaded automatically by `@huggingface/transformers` on the first `mast index` or `mast serve` run. The weights are cached to `~/.cache/huggingface/hub` (HuggingFace default) unless overridden. In Docker, the path `/opt/transformers-cache` is used instead — pre-bake the weights into the image to avoid a download on every container start. Vector search is not available until the download completes; the server serves BM25-only (`"lexical"` mode) in the meantime.
 
 ---
 
@@ -86,7 +86,7 @@ mast status                       # check freshness
 mast metrics --since 7d           # token-efficiency report
 ```
 
-After `mast init`, the state directory (`.mast/` by default) contains the SQLite graph database, LanceDB vector tables, embedding cache, and lock markers. Everything is local — no external services required.
+After `mast init`, the state directory (`.mast/` by default) contains the SQLite graph database and lock markers. Everything is local — no external services required.
 
 ---
 
@@ -116,7 +116,10 @@ Build or update the index.
 Options:
   --state-dir <dir>    State directory
   --incremental        Only reindex files changed since last run
-  --phase1-only        Parse and chunk only; skip embedding
+  --show-progress      Print indexing progress to stderr
+  --checker            Opt-in TypeScript-checker pass: upgrades heuristic potential_matches
+                        into verified caller edges (or drops non-call-site noise). Can take
+                        tens of seconds on a large monorepo — not part of the default path.
 ```
 
 **Why incremental:** The incremental path diffs the current file manifest against stored mtimes. Only stale, added, or deleted files are processed — for a large codebase this cuts index time from seconds to milliseconds on most runs.
@@ -131,6 +134,8 @@ Start the MCP server over stdio.
 Options:
   --state-dir <dir>         State directory
   --no-startup-reindex      Skip the startup staleness check (not recommended)
+  --watch                   Watch source files and incrementally reindex on change
+                             (interactive use; not needed in the container ladder)
 ```
 
 The server implements a four-step startup ladder so MCP clients get a usable server in under a second even for large projects. See [Startup Ladder](#startup-ladder) for details.
@@ -147,7 +152,7 @@ Options:
   --json               Output as JSON
 ```
 
-Reports `last_indexed`, `indexed_files`, `chunk_count`, `stale_files`, and the active embedding model. Use this to diagnose why search results look outdated.
+Reports `last_indexed`, `indexed_files`, `chunk_count`, `stale_files`, `parse_errors`, `write_errors`, `index_fresh`, and `freshness_cause`. Use this to diagnose why search results look outdated.
 
 ---
 
@@ -168,9 +173,15 @@ Prints a column-aligned table: tool name, call count, tokens returned, average d
 
 ---
 
+### `mast install-hooks [path]`
+
+Install git `post-commit` / `post-checkout` hooks that run `mast index --incremental` automatically, so the index stays fresh across commits and branch switches without a manual step.
+
+---
+
 ## MCP Tool Reference
 
-MAST registers 10 tools with the MCP server. Every read tool includes a `_stats` block:
+MAST registers 11 tools with the MCP server. Every read tool includes a `_stats` block:
 
 ```typescript
 {
@@ -180,7 +191,6 @@ MAST registers 10 tools with the MCP server. Every read tool includes a `_stats`
   files_referenced: string[],
   efficiency_ratio: number,           // 1 - (returned / full_file)
   duration_ms: number,
-  mode?: "hybrid" | "lexical"         // present on mast_search only
 }
 ```
 
@@ -188,24 +198,27 @@ MAST registers 10 tools with the MCP server. Every read tool includes a `_stats`
 
 ### `mast_search`
 
-Hybrid semantic + BM25 search over the indexed codebase.
+Lexical BM25 + declaration-exact search over the indexed codebase.
 
 ```typescript
 {
   query:         string,              // natural language or identifier
   limit?:        number,              // max results (default 10, max 50)
-  language?:     "typescript" | "javascript" | null,
+  language?:     "typescript" | "javascript" | "markdown" | null,
   file_pattern?: string | null,       // glob: "src/api/**"
-  chunk_type?:   "function" | "method" | "class_shell" | "interface" | "type" | "export" | "block" | null,
+  chunk_type?:   "function" | "method" | "class_shell" | "interface" | "type" | "export" | "block" | "doc" | null,
   only_exported?: boolean
 }
 ```
 
-**Returns:** `{ mode, results[], _stats }`. Each result includes `file_path`, `start_line`, `end_line`, `content`, `symbol_name`, `similarity_score`, `match_score`, `rank`, and `match_snippet`.
+**Returns:** `{ results[], suggestions?, _stats }`. Each result includes `file_path`, `start_line`, `end_line`, `content`, `chunk_type`, `symbol_name`, `parent_symbol`, `is_exported`, `match_score` (BM25 score, negative; `null` when the hit came only from ranker D), `rank`, `match_snippet`, and an optional `related` hint when a method and its class shell both matched (only the higher-ranked one is returned). `suggestions` is present, possibly empty, only when `results` is empty — a zero-result "did you mean" assist.
 
-**Why:** `grep` and `glob` find exact strings. `mast_search` finds *meaning*. A query like `"handle authentication middleware"` returns the relevant function even if the identifier is `verifyJwt`. In hybrid mode, the BM25 and vector rankings are fused with RRF so that a symbol appearing in both lists ranks higher than one appearing in only one — a document with both a strong keyword match and strong semantic similarity beats either alone.
+**Why:** `grep` and `glob` find exact strings and require the caller to already know the pattern. `mast_search` ranks by relevance across two signals fused with Reciprocal Rank Fusion:
 
-The `mode` field tells the caller whether vector search is active. During server startup, while the embedding worker is still running, `mode` is `"lexical"` so callers know to interpret scores accordingly.
+- **BM25 (FTS5, trigram-tokenized)** — the general-purpose lexical ranker; handles keyword queries and sub-token/camelCase matches.
+- **Ranker D (declaration-exact)** — a direct match against a chunk's own `symbol_name` (full name or final dot-segment, case-insensitive). Catches exact-symbol queries BM25's trigram scoring can under-rank. Gated by the `declaration_exact_ranker` config key (default on); when off, `mast_search` is BM25-only.
+
+A chunk both rankers agree on outranks one only one of them found.
 
 ---
 
@@ -256,7 +269,7 @@ Declaration, TSDoc, and resolved parameter type context for a named symbol.
 }
 ```
 
-**Returns:** An array of `SignatureResult`, each with `symbol`, `file_path`, `line`, `signature`, `doc`, and `type_context`.
+**Returns:** An array of `SignatureResult`, each with `symbol`, `file_path`, `line`, `signature`, `doc`, `params`, `return_type`, and `type_context`.
 
 `type_context` is automatically populated: user-defined PascalCase type names appearing in the signature are resolved to their own signatures via a three-priority lookup — same file first, then named imports, then a global exported-type fallback. Long signatures are truncated at 500 characters. This means a single `mast_signature` call gives the assistant the full type picture for a function without needing separate lookups.
 
@@ -277,9 +290,9 @@ Who calls a given symbol, split into verified callers (from the symbol graph) an
 }
 ```
 
-**Returns:** `{ verified_callers[], potential_matches[], summary: { verified_count, potential_count, transitive }, _stats }`.
+**Returns:** `{ verified_callers[], potential_matches[], summary: { verified_count, potential_count, transitive, checker_classified_non_call_site, checker_classified_different_declaration }, _stats }`.
 
-**Why:** Impact analysis before a refactor requires knowing who depends on a symbol. Verified callers are graph-resolved (definitive, no false positives from name collisions). Potential matches are identifier-FTS hits where the call wasn't statically resolvable — they may be false positives but are worth reviewing. Separating the two lets the assistant reason about confidence: if `verified_count` is 3 and `potential_count` is 0, the refactor scope is well-understood. If `potential_count` is 15, there's more uncertainty.
+**Why:** Impact analysis before a refactor requires knowing who depends on a symbol. Verified callers are graph-resolved (definitive, no false positives from name collisions). Potential matches are identifier-FTS hits where the call wasn't statically resolvable — they may be false positives but are worth reviewing. Separating the two lets the assistant reason about confidence: if `verified_count` is 3 and `potential_count` is 0, the refactor scope is well-understood. If `potential_count` is 15, there's more uncertainty. Running `mast index --checker` upgrades some potential matches to verified edges (or drops non-call-site noise) — the `checker_classified_*` counts report how many, and are 0 when the checker pass has never run.
 
 ---
 
@@ -315,6 +328,23 @@ All concrete classes that implement a given interface, with their method lists.
 
 ---
 
+### `mast_rename_impact`
+
+Composed refactor checklist for renaming a symbol: declaration sites, verified callers, potential matches, and barrel re-exports, in one call.
+
+```typescript
+{
+  symbol:     string,
+  file_path?: string | null
+}
+```
+
+**Returns:** `{ symbol, declaration_sites[], verified_callers[], potential_matches[], barrel_exports[], summary: { declaration_count, verified_count, potential_count, barrel_count, checklist, checker_classified_non_call_site, checker_classified_different_declaration }, _stats }`.
+
+**Why:** A rename touches more than call sites — barrel re-exports (`export { Foo } from './foo'`, possibly aliased) also need updating, and are easy to miss with a plain caller search. `mast_rename_impact` composes `mast_callers`' machinery with barrel-export detection so the assistant gets one checklist instead of three separate queries.
+
+---
+
 ### `mast_reindex`
 
 Trigger a synchronous reindex from within an MCP session.
@@ -325,9 +355,9 @@ Trigger a synchronous reindex from within an MCP session.
 }
 ```
 
-**Returns:** `{ files_indexed, files_skipped, chunks_added, chunks_removed, parse_errors, duration_ms }`.
+**Returns:** `{ files_indexed, files_skipped, chunks_added, chunks_removed, parse_errors, write_errors, duration_ms }`.
 
-**Why:** Long-running editing sessions accumulate staleness. `mast_reindex` lets the assistant refresh the index on demand — for example, after a large refactor — without leaving the MCP session. The `full` flag is available when incremental state is suspected to be corrupt.
+**Why:** Long-running editing sessions accumulate staleness — new symbols and files won't be found by `mast_search` until they're indexed (JIT staleness handling keeps *already-indexed* files' line coordinates correct on read, but can't discover a brand-new file or symbol). `mast_reindex` lets the assistant refresh the index on demand — for example, after a large refactor — without leaving the MCP session. The `full` flag is available when incremental state is suspected to be corrupt.
 
 ---
 
@@ -339,9 +369,9 @@ Health snapshot of the index.
 // no inputs
 ```
 
-**Returns:** `{ state_dir, last_indexed, indexed_files, chunk_count, stale_files, parse_errors, index_fresh, model, embedding_mode }`.
+**Returns:** `{ state_dir, last_indexed, indexed_files, chunk_count, stale_files, parse_errors, write_errors, index_fresh, freshness_cause, seed_commit? }`.
 
-`index_fresh` is `true` only when `stale_files = 0` and the index has been run at least once. `embedding_mode` reports `"hybrid"` or `"lexical"` — the current search mode of the running server.
+`index_fresh` is `true` only when `stale_files = 0` and the index has been run at least once. `freshness_cause` is `"phase1_stale"` when stale files remain, `null` when fresh.
 
 **Why:** Before a long agentic workflow that depends on accurate code navigation, an assistant can call `mast_status` to confirm the index is fresh, or surface the number of stale files to the user if not.
 
@@ -370,16 +400,16 @@ The `counterfactual` field is a human-readable sentence: *"Would have cost ~14,2
 
 MAST reads configuration from `mast.config.json` in the project root, environment variables, or CLI flags. Priority order (highest to lowest): CLI flag → `MAST_STATE_DIR` env var → `mast.config.json` → built-in defaults.
 
-| Key                     | Default                                                                     | Description                                                          |
-| ----------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `state_dir`             | `.mast`                                                                     | Directory for all index state (relative to project root)             |
-| `file_extensions`       | `.ts,.tsx,.js,.jsx`                                                         | Source file extensions to index                                      |
-| `exclude_patterns`      | `node_modules/**`, `dist/**`, `coverage/**`, `**/*.test.ts`, `**/*.spec.ts` | Glob patterns to skip                                                |
-| `embedding_model`       | `jinaai/jina-embeddings-v2-base-code`                                       | HuggingFace model ID for vector embeddings                           |
-| `similarity_threshold`  | `0.70`                                                                      | Minimum cosine similarity for a vector hit to count                  |
-| `rrf_k`                 | `60`                                                                        | Reciprocal Rank Fusion constant (higher = flatter ranking)           |
-| `chunk_split_threshold` | `100`                                                                       | Lines above which a declaration is split into overlapping sub-chunks |
-| `context_lines`         | `3`                                                                         | Source lines before/after AST boundaries included in stored content  |
+| Key                       | Default                                                                     | Description                                                                 |
+| -------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------|
+| `state_dir`                | `.mast`                                                                     | Directory for all index state (relative to project root)                   |
+| `file_extensions`          | `.ts,.tsx,.js,.jsx,.md`                                                     | Source file extensions to index                                            |
+| `exclude_patterns`         | `node_modules/**`, `dist/**`, `coverage/**`, `.kluster/**`, `**/*.test.ts`, `**/*.spec.ts` | Glob patterns to skip                                     |
+| `rrf_k`                    | `60`                                                                        | Reciprocal Rank Fusion constant (higher = flatter ranking)                 |
+| `declaration_exact_ranker` | `true`                                                                      | Fuse ranker D (declaration-exact match) into `mast_search`. Set `false` to restore BM25-only ranking without a code change. |
+| `chunk_split_threshold`    | `100`                                                                       | Lines above which a declaration is split into overlapping sub-chunks       |
+| `context_lines`            | `3`                                                                         | Source lines before/after AST boundaries included in stored content        |
+| `markdown_heading_depth`   | `2`                                                                         | Maximum ATX heading level (`##`) that starts a new markdown doc chunk      |
 
 **`mast.config.json` example:**
 
@@ -387,7 +417,7 @@ MAST reads configuration from `mast.config.json` in the project root, environmen
 {
   "state_dir": ".mast",
   "exclude_patterns": ["node_modules/**", "dist/**", "**/*.test.ts"],
-  "similarity_threshold": 0.65,
+  "declaration_exact_ranker": true,
   "context_lines": 5
 }
 ```
@@ -398,29 +428,25 @@ MAST reads configuration from `mast.config.json` in the project root, environmen
 
 ## How It Works
 
-### Indexing (Phase 1)
+### Indexing
 
 `runIndex` walks the project with `fast-glob`, computes an mtime-based manifest, and diffs it against the stored manifest to find stale, added, and deleted files. For each file that needs processing:
 
-1. **Parse** — `tree-sitter` parses the file into a concrete syntax tree. The TypeScript grammar is used for `.ts` and `.tsx`; the JavaScript grammar for `.js` and `.jsx`.
-2. **Chunk** — the extractor decomposes the CST into typed chunks: `function`, `class_shell` (the class declaration plus member signatures, without bodies), `method` (individual methods), `interface`, `type`, `export`, and `block`. Classes are always decomposed so that a search for a single method doesn't return the entire class body.
-3. **Sub-chunk** — declarations longer than `chunk_split_threshold` lines are split into overlapping segments so that no single chunk is too large for an embedding model's context window.
+1. **Parse** — `tree-sitter` parses the file into a concrete syntax tree. The TypeScript grammar is used for `.ts` and `.tsx`; the JavaScript grammar for `.js` and `.jsx`. Markdown files are chunked by heading (`markdown_heading_depth`), not parsed with tree-sitter.
+2. **Chunk** — the extractor decomposes the CST into typed chunks: `function`, `class_shell` (the class declaration plus member signatures, without bodies), `method` (individual methods), `interface`, `type`, `export`, `block`, and `doc` (markdown sections). Classes are always decomposed so that a search for a single method doesn't return the entire class body.
+3. **Sub-chunk** — declarations longer than `chunk_split_threshold` lines are split into overlapping segments so no single chunk is too large to be a useful, self-contained search result.
 4. **Symbol graph** — symbols, imports, and edges (IMPLEMENTS, PARENT_OF, POTENTIAL_CALL) are written to SQLite. The two-pass write strategy (all files first, then edges) ensures edges can reference symbols that may be defined in a file parsed later in the same run.
 5. **FTS** — chunk content is written to an FTS5 virtual table with a trigram tokeniser, enabling sub-token and camelCase searches. An `identifier_fts` table with a unicode61 tokeniser handles exact-identifier lookups for `mast_callers` potential matches.
 
-### Embedding (Phase 2)
+Indexing is a single phase — chunk/graph/FTS all update together in one `runIndex` pass; there is no separate embedding step.
 
-After Phase 1, a background worker process loads the `jinaai/jina-embeddings-v2-base-code` ONNX model via `@huggingface/transformers`. It embeds all un-vectorised chunks in batches and writes results to a LanceDB table. The embedding dimension is detected dynamically at runtime rather than hardcoded — the worker probes the model after loading by embedding an empty string, so swapping embedding models requires no code changes.
+### Ranked Search (BM25 + Ranker D via RRF)
 
-Embedding is decoupled from indexing: Phase 1 completes in seconds; Phase 2 runs asynchronously in the background. During Phase 2, `mast_search` operates in `"lexical"` mode (BM25 only). When Phase 2 completes, the server flips to `"hybrid"` mode transparently.
+A query goes through two rankers:
 
-### Hybrid Search
+**BM25 (FTS5):** The query is matched against `chunk_fts` using SQLite's built-in BM25 ranking, over a trigram tokeniser. File-pattern and language filters are pushed into this query as SQL predicates against the `files` table (not as FTS MATCH predicates, because SQLite FTS5 LIKE on UNINDEXED columns is unreliable with MATCH). BM25 scores in SQLite's convention are negative — more negative is a stronger match; `mast_search`'s `match_score` preserves that sign.
 
-A query goes through two parallel paths:
-
-**BM25 (FTS5):** The query is matched against `chunk_fts` using SQLite's built-in BM25 ranking. File-pattern and language filters are pushed into this query as SQL predicates against the `files` table (not as FTS MATCH predicates, because SQLite FTS5 LIKE on UNINDEXED columns is unreliable with MATCH).
-
-**Vector search:** The query is embedded by the in-process embedder, and the resulting vector is compared against all chunk embeddings in LanceDB using cosine distance. Hits below `similarity_threshold` are discarded.
+**Ranker D (declaration-exact):** A direct SQL predicate against `chunks.symbol_name` — full-name match or final-dot-segment match, case-insensitive, deterministically ordered. Gated by the `declaration_exact_ranker` config key (default on).
 
 **RRF fusion:** The two ranked lists are combined using Reciprocal Rank Fusion:
 
@@ -428,7 +454,7 @@ A query goes through two parallel paths:
 score(chunk) = Σ 1 / (k + rank(chunk))
 ```
 
-with default `k = 60`. A chunk appearing at rank 1 in FTS and rank 1 in vector search scores twice as high as a chunk appearing in only one list. Chunks appearing in only one list still score well — neither signal dominates.
+with default `k = 60`. A chunk appearing at rank 1 in both lists scores twice as high as a chunk appearing in only one. Chunks appearing in only one list still score well — neither signal dominates.
 
 ### JIT Staleness Checks
 
@@ -438,44 +464,39 @@ Every read tool (search, exports, signature, callers, dependencies, implementors
 2. Calls `stat()` on the file on disk.
 3. If the disk mtime is newer, acquires the `structure.lock` and re-parses the file immediately.
 
-This means an assistant editing a file and immediately querying it will always see the current version, without waiting for a scheduled reindex.
+This means an assistant editing a file and immediately querying it will always see the current version, without waiting for a scheduled reindex. (JIT staleness handles files already known to the index; a brand-new file or symbol still needs `mast_reindex` or the next scheduled/watch reindex to be discoverable.)
 
 ### Startup Ladder
 
 `mast serve` starts accepting MCP connections in under 1 second via a four-step ladder:
 
 ```
-Step 1  Bootstrap state directory and copy Docker seed layer if present   < 500ms
-Step 2  Schema version check; open SQLite and LanceDB                     < 1s
-Step 3  Register all 10 MCP tools; open stdio transport                   < 500ms
-Step 4  Background incremental reindex + embedding worker fork            async
+Step 1  Bootstrap state directory; copy Docker seed layer if present;
+        best-effort remove orphaned pre-vector-store state              < 500ms
+Step 2  Schema version check; open SQLite                               < 1s
+Step 3  Register all 11 MCP tools; open stdio transport                 < 500ms
+Step 4  Background incremental reindex                                  async
 ```
 
-The server is usable (in `"lexical"` mode) before Step 4 finishes. This matters for Docker deployments where the container may be responding to requests while the embedding worker is still catching up. When a pre-built seed index is available at `/opt/mast-seed`, it is copied to the state directory in Step 1 — the background reindex then only needs to process files changed since the seed was built.
+All tools are ready to serve as soon as Step 3 completes — there is no reduced-capability startup window. When a pre-built seed index is available at `/opt/mast-seed`, it is copied to the state directory in Step 1 — the background reindex in Step 4 then only needs to process files changed since the seed was built.
 
 ### Concurrency Model
 
-Two advisory locks coordinate concurrent writers:
+One advisory lock coordinates concurrent writers:
 
 - **`structure.lock`** — held by `runIndex` and JIT re-parses. Prevents two writers from modifying the SQLite graph simultaneously.
-- **`vectors.lock`** — held by `runEmbed`. Prevents two embedding passes from running concurrently.
 
-The locks use `proper-lockfile` (POSIX advisory locks via `.lock` marker files). A 10-second stale lock timeout prevents a crashed process from blocking the system indefinitely. Read tools never acquire a write lock — they may see a briefly inconsistent state during a concurrent reindex, and return `file_busy_returning_stale_cache: true` in that case.
+The lock uses `proper-lockfile` (POSIX advisory locks via a `.lock` marker file). A 10-second stale lock timeout prevents a crashed process from blocking the system indefinitely. Read tools never acquire a write lock — they may see a briefly inconsistent state during a concurrent reindex, and return `file_busy_returning_stale_cache: true` in that case.
 
 ### Storage Layout
 
 ```
 .mast/
-  graph.db              SQLite — symbols, edges, imports, FTS5 tables, metrics
-  file_manifest.json    mtime snapshot from last Phase 1 run
+  graph.db              SQLite — symbols, edges, imports, chunks, FTS5 tables, metrics
+  file_manifest.json    mtime snapshot from the last index run
   index.json            schema version, file count, chunk count, last_indexed
   config.json           resolved config written at init/serve time
-  structure             lock marker (proper-lockfile target)
-  vectors               lock marker (proper-lockfile target)
-  lance/
-    chunks.lance        LanceDB table — all chunks with metadata
-    vectors.lance       LanceDB table — chunk embeddings
-  embed_cache/          content-hash-keyed JSON embedding cache (avoids re-embedding identical content)
+  structure              lock marker (proper-lockfile target)
 ```
 
 ---
@@ -486,7 +507,7 @@ Every tool call records its token count to `metrics` asynchronously. The record 
 
 - `tokens_returned` — actual tokens in the response (Anthropic CL100k tokenizer)
 - `tokens_full_file_upper_bound` — what a naive full-file read would have cost (when calculable)
-- `duration_ms`, `session_id`, `status`, and `mode`
+- `duration_ms`, `session_id`, and `status`
 
 `metrics_daily` rolls these up by `(day, tool_name)` with a running average for duration and running totals for token counts. The rollup upsert uses an incremental average formula to avoid storing all raw rows indefinitely:
 
@@ -496,14 +517,8 @@ avg_duration_ms = (old_avg * old_n + new_val) / (old_n + 1)
 
 Use `mast metrics --since 7d` for a human-readable table, or `mast_efficiency` from within an MCP session for a machine-readable JSON summary with a `counterfactual` narrative.
 
+---
 
--- 
+## History
 
-## Storage
-
-| Component       | Storage Type | Technology                          |
-| --------------- | ------------ | ----------------------------------- |
-| Code Chunks     | Disk         | LanceDB (chunks.lance)              |
-| Vectors         | Disk         | LanceDB (vectors.lance)             |
-| Knowledge Graph | Disk         | SQLite (graph.db)                   |
-| Embedding Model | Memory       | Transformers.js / ONNX (during use) |
+MAST originally fused BM25 with a vector-embedding search leg (LanceDB + a local ONNX embedding model). Measurement did not support keeping it: the vector store was removed 2026-08-06 per the M2 decision (see `IMPLEMENTATION_PLAN.md`, "Stage 7: Vector-store deletion"). The pre-deletion system — including the embedding pipeline and the eval instruments that measured it — is preserved at the git tag `mast-pre-vector-delete` for anyone re-running that evidence.

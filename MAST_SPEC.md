@@ -5,15 +5,21 @@
 
 ## 1. Overview
 
-**mast** is a semantic code search engine exposed over two surfaces: an MCP server
-(used by the agent inside the claude-runner container) and a CLI (used by humans and
-hooks outside the container). It replaces ad-hoc `Grep`, `Glob`, and whole-file `Read`
-calls with targeted, index-backed queries that return structured subsets of code rather
-than full file contents.
+**mast** is a lexical + declaration-exact code search engine exposed over two surfaces:
+an MCP server (used by the agent inside the claude-runner container) and a CLI (used by
+humans and hooks outside the container). It replaces ad-hoc `Grep`, `Glob`, and
+whole-file `Read` calls with targeted, index-backed queries that return structured
+subsets of code rather than full file contents.
 
 A single on-disk index — written to a configurable state directory — is shared by both
 surfaces. The index persists on the mounted workspace volume across container runs,
 so each new container inherits the index built by previous tasks.
+
+**Note on prior discussions of a semantic/vector search leg:** an earlier revision of
+this system fused BM25 with a vector-embedding ranker (LanceDB + a local ONNX model).
+That subsystem was removed 2026-08-06 per the M2 decision (IMPLEMENTATION_PLAN.md,
+"Stage 7: Vector-store deletion"); the pre-deletion system is preserved at the git tag
+`mast-pre-vector-delete`. Everything below describes the system as it exists today.
 
 ---
 
@@ -38,8 +44,10 @@ so each new container inherits the index built by previous tasks.
   `mast_reindex`. *Narrow carve-out:* `mast serve --watch` (§11.4) is an opt-in
   file watcher for **interactive, non-container** use only. It is scoped to the
   serve process lifetime (not a daemon), the SDD pipeline never uses it, and it
-  is a semantic-ranking-freshness optimization — JIT staleness handling (§9.0)
-  already guarantees read correctness without it.
+  is a discovery-freshness optimization — it lets new files and symbols become
+  searchable sooner than waiting for an explicit `mast_reindex`. JIT staleness
+  handling (§9.0) already guarantees line-coordinate and content correctness for
+  already-indexed files without it.
 - Support for non-TypeScript/JavaScript projects in v1 (AST layer is extensible but
   v1 targets the SDD stack).
 
@@ -68,7 +76,6 @@ Config is resolved in this priority order:
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
-  "embedding_model": "jinaai/jina-embeddings-v2-base-code",
   "rrf_k": 60,
   "declaration_exact_ranker": true,
   "chunk_split_threshold": 100,
@@ -87,12 +94,8 @@ The flag exists because ranker D's harm surface on identifier-free queries is
 monitored, not proven safe (M2 decision memo, condition 3); its D-fire telemetry
 (§14.3 `declex_json`) is the input signal for that monitoring.
 
-There is deliberately **no `similarity_threshold` key**. An earlier revision
-gated vector results by absolute cosine (0.70) before RRF; the N1 bake-off
-showed that gate discarded the entire vector side on conceptual queries (0/28
-gold queries cleared 0.70 with the shipped model) and that absolute cosine
-scales are model-specific. Vector candidates now enter RRF by rank (§7.3), and
-no replacement knob exists because no honest cross-model default does.
+There is deliberately **no `similarity_threshold` key** — it gated a vector-search leg
+that no longer exists (removed 2026-08-06, §1); no replacement config key was needed.
 
 `chunk_split_threshold` is the line count above which a single declaration is split
 into overlapping sub-chunks. Below this threshold, a declaration is always one chunk
@@ -143,25 +146,17 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 ├── config.json              # Resolved active config (written at init)
 ├── index.json               # Index metadata: last_indexed, file_count, schema_version
 ├── file_manifest.json       # {path: mtime} snapshot from last index run
-├── structure.lock              # Advisory write lock for chunks/graph/FTS (Phase 1 + JIT re-parse)
-├── vectors.lock              # Advisory write lock for vectors (Phase 2 background embedding)
-├── lance/
-│   ├── chunks.lance/        # Phase 1: parsed code chunks (LanceDB table)
-│   └── vectors.lance/       # Phase 2: embedded vectors (LanceDB table)
-├── graph.db                 # Knowledge graph + FTS5 index (SQLite, WAL mode)
-└── embed_cache/             # Per-content-hash embedding cache
-    └── <model_id>/
-        └── <sha256>.npy
+├── structure.lock              # Advisory write lock for chunks/graph/FTS (index + JIT re-parse)
+└── graph.db                 # Knowledge graph, chunks, and FTS5 index (SQLite, WAL mode)
 ```
 
 `index.json` example:
 ```json
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "last_indexed": "2026-05-13T14:22:00Z",
   "file_count": 142,
-  "chunk_count": 1840,
-  "model": "jinaai/jina-embeddings-v2-base-code"
+  "chunk_count": 1840
 }
 ```
 
@@ -169,7 +164,7 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 
 ## 6. Data Model
 
-### 6.1 Chunk (Phase 1 — `chunks.lance`)
+### 6.1 Chunk (`chunks` table — `graph.db`)
 
 | Field | Type | Description |
 |---|---|---|
@@ -180,7 +175,7 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 | `content` | `str` | Raw source text of the chunk |
 | `chunk_type` | `str` | `function` \| `method` \| `class_shell` \| `interface` \| `type` \| `export` \| `block` \| `doc` |
 | `symbol_name` | `str \| None` | Top-level symbol name if applicable. For `method` chunks, qualified as `ClassName.methodName`. For `doc` chunks, the heading path (§10.1). |
-| `parent_symbol` | `str \| None` | For `method` chunks, the enclosing class name (unqualified). `None` for all other chunk types. Enables fast "find all methods of class X" queries against `chunks.lance` without joining the graph. |
+| `parent_symbol` | `str \| None` | For `method` chunks, the enclosing class name (unqualified). `None` for all other chunk types. Enables fast "find all methods of class X" queries against the `chunks` table without joining the graph. |
 | `is_exported` | `bool` | True if the declaration carries an `export` modifier. For `method` chunks, inherited from the enclosing `class_shell`'s `is_exported` *and* the method's accessibility (anything not `private` is treated as exported when the class is exported). |
 | `language` | `str` | `typescript` \| `javascript` \| `markdown` |
 | `file_mtime` | `float` | File mtime at index time — used for staleness detection |
@@ -195,16 +190,7 @@ signature (with TSDoc comments), ordered as they appear in source — but with m
 bodies stripped. This is the "outline" view used for orientation and for
 `mast_signature` calls that target a class rather than a specific method. The raw
 class body source is *not* stored as a single chunk; it is decomposed into N
-`method` chunks, each with its own embedding (see §10.1).
-
-### 6.2 Vector Entry (Phase 2 — `vectors.lance`)
-
-| Field | Type | Description |
-|---|---|---|
-| `chunk_id` | `str` | FK → `chunks.chunk_id` |
-| `embedding` | `list[float]` | Dense vector from embedding model |
-| `model_version` | `str` | Identifies the embedding model used |
-| `content_hash` | `str` | `sha256` of the chunk content this vector was computed from. Set by the embed orchestration (not the model). A chunk is "already embedded" only when a stored vector matches BOTH its `chunk_id` AND its current `content_hash` — so an in-place edit (same `chunk_id`, new content) is re-embedded. See §7.1. |
+`method` chunks, each its own row in the `chunks` table (see §10.1).
 
 ### 6.3 Knowledge Graph (SQLite — `graph.db`)
 
@@ -236,7 +222,7 @@ CREATE TABLE IF NOT EXISTS symbols (
   declaration_hash TEXT,            -- sha256 of signature text only (excludes body)
   body_hash        TEXT             -- sha256 of body text only (excludes signature)
   -- If both declaration_hash and body_hash are unchanged on incremental reindex:
-  -- skip KG rebuild (Phase 1) AND skip re-embedding (Phase 2) for this symbol.
+  -- skip the KG rebuild for this symbol (§7.1's file-level stability-hash skip).
 );
 
 CREATE TABLE IF NOT EXISTS edges (
@@ -280,9 +266,10 @@ CREATE TABLE IF NOT EXISTS imports (
 );
 
 -- FTS5 with built-in content: stores content directly alongside the index structures.
--- snippet() works without any external table. Phase 1 inserts/updates/deletes directly
--- on chunk_fts; no sync logic required. Content duplication vs LanceDB is acceptable
--- at monorepo scale (~1-2 GB of source) and eliminates a whole class of consistency bugs.
+-- snippet() works without any external table. Indexing inserts/updates/deletes directly
+-- on chunk_fts; no sync logic required. Content duplication vs the `chunks` table is
+-- acceptable at monorepo scale (~1-2 GB of source) and eliminates a whole class of
+-- consistency bugs.
 -- trigram tokenizer: substring matching for camelCase identifiers, prose, and partial
 -- queries. Used by mast_search BM25 ranking via bm25(chunk_fts) (returns negative scores).
 CREATE VIRTUAL TABLE IF NOT EXISTS chunk_fts USING fts5(
@@ -372,24 +359,25 @@ LIMIT 1;
 
 ## 7. Index Lifecycle
 
-### 7.1 Two-Phase Indexing
+### 7.1 Indexing (Single Phase — Parse → Chunks → Graph → FTS)
 
-**Phase 1 — Parse → Chunks**
-1. Acquire write lock (`.mast.lock`) — see §7.6. Exit with error if lock cannot be
+Indexing is a single phase — there is no separate embedding step. `runIndex`:
+
+1. Acquire `structure.lock` — see §7.6. Exit with error if lock cannot be
    acquired within the configured timeout.
 2. Walk project files matching `file_extensions`, respecting `exclude_patterns`.
    Collect `{ path, mtime }` for every file found.
 3. **Deleted file cleanup:** load `file_manifest.json` (previous scan's path set).
    Any path present in the manifest but absent from the current walk has been deleted.
    Remove its rows from `graph.db` `files` table (cascade deletes symbols, edges, and
-   imports), and delete all matching chunks from `chunks.lance` and `vectors.lance`.
+   imports), and delete all matching rows from the `chunks` table.
 4. For each file to index (all files on full run; only files where
    `mtime > manifest[path]` on incremental run): wrap the parse in try/catch. On
    tree-sitter error, log at `warn` level with the file path and error message,
    increment `parse_errors`, and skip to the next file. Never abort the full run.
    On success: run the two-pass walk and extract chunks with type, symbol, `is_exported`,
    and `declaration_hash` metadata.
-5. Write chunks to `chunks.lance`. Delete and replace all existing chunks for the
+5. Write chunks to the `chunks` table. Delete and replace all existing chunks for the
    same `file_path`. Update `chunk_fts`: `DELETE FROM chunk_fts WHERE chunk_id = ?`
    for removed chunks, `INSERT INTO chunk_fts(content, symbol_name, chunk_id) VALUES
    (?, ?, ?)` for new/changed chunks. No external table or trigger is needed — FTS5
@@ -402,21 +390,13 @@ LIMIT 1;
    (signature) and `body_hash` are computed from the AST (signature node vs body
    node), not by splitting chunk text.
 
-   **Implementation note (deviates from the original per-symbol design):** the
-   skip is applied at *file* granularity, and re-embedding is keyed on a separate
-   vector content hash rather than `body_hash`:
-   - **Re-embedding** is keyed on `vectors.content_hash` = `sha256(chunk content)`
-     (see §6.2). A chunk is re-embedded iff its current content hash is not already
-     stored — this captures any signature *or* body change and is strictly more
-     correct for embeddings (which cover the whole chunk, not just the body). This
-     supersedes the `body_hash`-driven re-embed skip described above.
-   - **File-level skip:** a file whose mtime changed but whose chunked content is
-     byte-identical (same chunk-id set AND same per-symbol `declaration_hash`/
-     `body_hash` signature, and no `block` chunks) is not re-written at all. A
-     true *per-symbol* KG-rebuild skip was rejected: under the per-file
-     delete-and-replace model (step 6), symbols are re-inserted with new ids, so
-     edges must be rebuilt — preserving them per-symbol would be invasive surgery
-     on the hot path for marginal gain.
+   **File-level skip:** a file whose mtime changed but whose chunked content is
+   byte-identical (same chunk-id set AND same per-symbol `declaration_hash`/
+   `body_hash` signature, and no `block` chunks) is not re-written at all. A
+   true *per-symbol* KG-rebuild skip was rejected: under the per-file
+   delete-and-replace model (step 6), symbols are re-inserted with new ids, so
+   edges must be rebuilt — preserving them per-symbol would be invasive surgery
+   on the hot path for marginal gain.
 
    **Class shells use a member-signature hash, not a body hash.** A `class_shell`
    chunk's content is the synthesized outline (declaration + member signatures + TSDoc;
@@ -424,11 +404,11 @@ LIMIT 1;
    `sha256(sorted(member_signature_text + member_doc_text).join("\n"))`, where each
    `member_signature_text` is the method's signature line stripped of body. This means:
    - Renaming a method → shell content changes → shell `body_hash` changes → shell
-     re-embedded. Correct: the outline visible to the agent now lists a new name.
+     is rewritten. Correct: the outline visible to the agent now lists a new name.
    - Editing a method body without changing its signature → shell `body_hash`
-     **unchanged** → shell NOT re-embedded; only the affected `method` chunk is.
+     **unchanged** → shell content is NOT rewritten; only the affected `method` chunk is.
      Correct: the class's public interface didn't change, only its internals.
-   - Adding or removing a method → shell content changes → shell re-embedded, plus
+   - Adding or removing a method → shell content changes → shell is rewritten, plus
      the new/removed `method` chunk is added/deleted.
 
    Without this rule, the shell silently drifts out of sync with its members, and
@@ -440,53 +420,28 @@ LIMIT 1;
 Incremental variant: step 4 skips files where `mtime === manifest[path]`. Steps 3
 (deleted file cleanup) and 8–9 always run.
 
-**Phase 2 — Embed → Vectors**
-1. Load embedding model (loaded once per `mast serve` session; loaded fresh per CLI call).
-2. For each chunk in `chunks.lance` without a corresponding `vectors.lance` entry:
-   a. Check embed cache (`<sha256(content)>.npy`) — use cached embedding if present.
-   b. Otherwise, call model. Write to cache and to `vectors.lance`.
-Phase 2 is resumable: a partial run (e.g. container killed) leaves Phase 1 intact and
-resumes embedding from where it left off on next start. The write lock is released at
-the end of Phase 2.
-
 BM25 search is handled by the `chunk_fts` FTS5 virtual table in `graph.db`, populated
-incrementally during Phase 1 (step 5). There is no separate serialization step.
+incrementally during indexing (step 5). There is no separate serialization step.
 
-### 7.2 Embedding Model
+### 7.3 Ranked Search with RRF
 
-**`jinaai/jina-embeddings-v2-base-code`**
-
-Chosen over general-purpose NLP models for three reasons:
-- Code-specific training corpus — better semantic alignment for identifiers,
-  type signatures, and programming patterns.
-- 8,192-token context window — entire small files and large functions embed without
-  truncation. General-purpose models (e.g. `all-MiniLM-L6-v2`) truncate at 256-512
-  tokens, losing the tail of any non-trivial function.
-- Currently top-tier on the CodeSearchNet benchmark for code retrieval tasks.
-
-The 8k context window makes the chunk split threshold less critical — a 200-line
-function still embeds in a single pass.
-
-### 7.3 Hybrid Search with RRF
-
-Search combines vector similarity (dense) and BM25 (sparse) using
-**Reciprocal Rank Fusion**:
+Search combines two rankers — FTS5 BM25 (lexical) and the declaration-exact
+ranker (ranker D, structural) — using **Reciprocal Rank Fusion**:
 
 $$Score(d) = \sum_{r \in R} \frac{1}{k + r(d)}$$
 
 Where $r(d)$ is the rank of document $d$ in ranker $R$, and $k$ is `rrf_k` (default 60).
 
-RRF is used instead of weighted score addition because BM25 and vector similarity
-scores are on incomparable scales. A document ranked #1 in BM25 (exact symbol match)
-and #40 in vector search still scores well under RRF — which is the correct behaviour
-for code queries that mix exact identifiers with conceptual descriptions.
+RRF is used instead of weighted score addition because the two rankers' scores are on
+incomparable scales (a BM25 score and a structural match are not directly comparable).
+Rank position, not the underlying score magnitude, is what RRF fuses.
 
-Implementation: run vector search and FTS5 BM25 search independently over a
+Implementation: run FTS5 BM25 search (and, when enabled, ranker D) independently over a
 candidate pool of **4× `limit` per ranker** (40 for the default `limit: 10`),
 then apply RRF to produce a unified ranked list. Return the top `limit` results.
 
-**Third RRF input — the declaration-exact ranker (ranker D, F18).** When
-`declaration_exact_ranker` is enabled (§4.1, default on), a third ranked list
+**Second RRF input — the declaration-exact ranker (ranker D, F18).** When
+`declaration_exact_ranker` is enabled (§4.1, default on), a second ranked list
 joins the fusion. Ranker D (`src/search/declex.ts`, the Q1/DECLEX-measured
 construction) is symbol-gated and purely lexical-structural:
 
@@ -502,37 +457,17 @@ construction) is symbol-gated and purely lexical-structural:
 - Ordering is deterministic: full-name matches before segment-only matches,
   then ascending same-matched-name multiplicity (a uniquely-named match beats
   one of 140 `toJSON`s), then ascending `chunk_id`. The pool is capped at
-  4× `limit` like the other rankers, and the list enters RRF **by rank** with
-  the same `rrf_k`.
+  4× `limit` like BM25, and the list enters RRF **by rank** with the same
+  `rrf_k`.
 - Ranker D applies no `file_pattern`/`language` pre-filter (same semantics as
-  the vector list); `chunk_type`/`only_exported` post-filters apply downstream
-  unchanged. It never affects the `mode` discriminator — `mode` is decided by
-  the vector leg alone.
+  BM25); `chunk_type`/`only_exported` post-filters apply downstream unchanged.
+  When `declaration_exact_ranker` is off, `mast_search` is BM25-only.
 
 Provenance: pre-registered and measured as Q1/DECLEX (IMPLEMENTATION_PLAN.md);
 shipped per the M2 decision memo as F18. The measured **escape variant**
 (lowercase-token recovery under a match-count cap) is deliberately NOT shipped —
 it is measured harmful off-stratum and requires a fresh pre-registration.
 Per-call firing telemetry is persisted to `metrics.declex_json` (§14.3).
-
-**Rank-based vector inclusion — no absolute cosine gate.** Every top-pool
-vector candidate feeds RRF by rank, regardless of its absolute cosine value.
-An earlier revision filtered vector hits by `similarity_threshold: 0.70`
-before fusion; the N1 bake-off (FABLE_FEEDBAK, run 2026-07-10) showed this was
-wrong twice over:
-
-1. **Miscalibrated:** 0/28 gold-set conceptual queries produced a jina cosine
-   ≥ 0.70, so shipped hybrid silently discarded the entire vector side and
-   collapsed to lexical — on exactly the query class embeddings exist to serve
-   (hybrid NDCG@10 on the gold set: 0.000 gated vs 0.580 ungated).
-2. **Unfloorable:** measured top-1 cosines for relevant (gold) queries span
-   0.40–0.66 and *interleave* with top-1 cosines for nonsense junk queries
-   (0.41–0.54), so no absolute floor separates relevant from junk on this
-   model — and cosine scales shift per model, so any fixed gate breaks
-   differently under a future swap.
-
-Rank position is all RRF uses; `similarity_score` is still reported per result
-so consumers can judge confidence, but it never gates inclusion.
 
 **FTS5 sign convention:** SQLite's `bm25(chunk_fts)` returns negative scores — more
 negative means a better match. When sorting the FTS5 result set, sort ascending
@@ -542,11 +477,11 @@ position is all that RRF uses.
 ### 7.4 Startup Reindex (Primary Pipeline Hook)
 
 When `mast serve` starts, the goal is **time-to-first-query in single-digit
-seconds**, not a fully warm semantic layer. The discovery layer (graph + FTS) is
-loaded synchronously; the semantic layer (embeddings) warms in a background
-process while MCP connections are already being served. Cold-start dead time is
-the single biggest UX risk to MAST adoption — see Failure 4 in the design
-review — so this ladder is structured to eliminate it.
+seconds**. All 11 tools are registered and ready to serve as soon as Step 3
+completes — there is no reduced-capability window and no discriminator on tool
+responses to track. Cold-start dead time is the single biggest UX risk to MAST
+adoption — see Failure 4 in the design review — so this ladder is structured to
+eliminate it.
 
 ```
 startup
@@ -556,77 +491,62 @@ startup
   │    │         copy /opt/mast-seed → <state_dir>
   │    │    └─ else:
   │    │         run `mast init --no-index` to create config + empty state
-  │    └─ load index.json (or create with schema_version + empty fields if missing)
+  │    ├─ ensure lock markers exist; persist the resolved config
+  │    └─ best-effort remove orphaned pre-vector-store state (`lance/`,
+  │       `embed_cache/`, `vectors.lock`) left behind by a pre-2026-08-06
+  │       install — logged, never fatal, runs on every startup
   │
-  ├─ STEP 2 (sync, < 2s): schema version + state load
+  ├─ STEP 2 (sync, < 2s): schema version + open database
   │    ├─ if index.json.schema_version != CURRENT_SCHEMA_VERSION:
-  │    │    delete <state_dir>/lance/, graph.db, file_manifest.json, embed_cache/
+  │    │    wipe all derived state (graph.db, file_manifest.json, and any
+  │    │    remaining orphaned state)
   │    │    set needs_full_reindex = true
   │    │    write new index.json with updated schema_version
   │    ├─ open graph.db (better-sqlite3, WAL mode)
   │    └─ verify chunk_fts and identifier_fts tables exist (created on first init)
   │
-  ├─ STEP 3 (sync, < 1s): open MCP transport — DISCOVERY LAYER READY
-  │    ├─ register all read tools (mast_search, mast_signature, mast_exports,
-  │    │  mast_project_skeleton, mast_callers, mast_dependencies,
-  │    │  mast_implementors, mast_rename_impact, mast_status, mast_efficiency)
-  │    ├─ register write tools (mast_reindex)
-  │    ├─ initial mode = "lexical" (mast_search returns mode: "lexical" until
-  │    │  vectors are ready — see §9 mast_search)
+  ├─ STEP 3 (sync, < 1s): open MCP transport — SERVER READY
+  │    ├─ register all 11 tools (mast_search, mast_project_skeleton,
+  │    │  mast_exports, mast_signature, mast_callers, mast_dependencies,
+  │    │  mast_implementors, mast_reindex, mast_status, mast_efficiency,
+  │    │  mast_rename_impact)
   │    └─ accept incoming MCP connections
   │
-  └─ STEP 4 (async, in forked child process): warm semantic layer
+  └─ STEP 4 (async): background incremental reindex
        ├─ scan filesystem: collect {path, mtime} for all matched files
        ├─ deleted_files = manifest_paths - scanned_paths
-       │    └─ for each: delete chunks/symbols/vectors (acquire structure.lock + vectors.lock briefly)
+       │    └─ for each: delete chunks/symbols (acquire structure.lock briefly)
        ├─ stale_files = [f for f in scanned if f.mtime > index.last_indexed
        │                 OR needs_full_reindex]
        ├─ acquire structure.lock
-       │    ├─ run Phase 1 (parse) for stale_files
+       │    ├─ run the indexer (§7.1) for stale_files
        │    ├─ update file_manifest.json + index.json.last_indexed
        │    └─ release structure.lock
-       │    └─ FROM THIS POINT: discovery layer is up-to-date for stale files
-       │       (mast_search lexical, mast_callers verified+potential, etc.)
-       ├─ acquire vectors.lock
-       │    ├─ load embedding model into the forked process (Transformers.js + ONNX)
-       │    ├─ run Phase 2 (embed) for new/changed chunks, batched
-       │    │    ├─ batch size: 32 chunks, with cache check per §7.1
-       │    │    └─ post IPC progress message to parent every 100 chunks
-       │    ├─ on completion: signal parent process; parent flips mast_search mode
-       │    │  to "hybrid" for subsequent calls
-       │    └─ release vectors.lock
-       └─ keep child alive for future mast_reindex Phase 2 work; parent IPCs requests
+       └─ FROM THIS POINT: the index is up-to-date for stale files
+          (mast_search, mast_callers verified+potential, etc.)
 ```
 
-**Forked process for the embedder.** Phase 2 runs in a `child_process.fork()`'d
-Node process, not a worker thread or the main process. Rationale:
-- Native ONNX runtime allocations are isolated; an OOM or segfault in the embedder
-  cannot kill the MCP server. The agent's "brain" stays connected.
-- The main MCP process keeps a small memory footprint (no model weights loaded
-  in-process), so it can serve discovery-layer queries with low latency.
-- IPC is well-defined: parent sends `embed(chunk_ids[])` requests; child responds
-  with completion + per-chunk vector references. No shared memory complexity.
+If `--watch` was passed to `mast serve`, the file watcher (§11.4) starts
+immediately after Step 3's transport opens, independent of Step 4.
 
-`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.1.0"` —
-bumped from `1.0.0` when `vectors.lance` gained `content_hash`; see §6.2/§7.1). A version
-bump is required any time the SQLite schema, LanceDB table shape, or `index.json`
-fields change. Incrementing without a state wipe causes a corrupt or partial index;
-wiping without incrementing loses the protection. Both are bugs — treat the version
-as a migration guard, not a display string.
+`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.2.0"`). A
+version bump is required any time the SQLite schema or `index.json` fields change
+in a way that makes old on-disk state unreadable by the new code. Incrementing
+without a state wipe causes a corrupt or partial index; wiping without
+incrementing loses the protection. Both are bugs — treat the version as a
+migration guard, not a display string.
 
 (Backward-compatible additions that do not break reading an old table — e.g. the
 `edges.resolution`/`call_line`/`context` columns added via `ALTER TABLE … ADD
-COLUMN` — do NOT require a bump, since `openDatabase` migrates them in place.) On schema bump the seed index in
-`/opt/mast-seed` is also invalidated and a full reindex runs in the background; the
-discovery layer will be in `mode: "lexical"` until it completes.
+COLUMN` — do NOT require a bump, since `openDatabase` migrates them in place.) On
+schema bump the seed index in `/opt/mast-seed` is also invalidated and a full
+reindex runs in the background.
 
 **Fast first-task latency.** With a baked seed (§13.8), Steps 1–3 typically complete
-in **2–4 seconds** on a cold container. Step 4 then warms in the background — for a
-5K-file class-heavy repo (~20–30K chunks, see §10.1), this takes 20–30 minutes if
-the seed itself needs to be rebuilt (e.g., schema bump), or under 2 minutes for the
-incremental case (only files changed since the seed commit). The agent can begin
-useful work as soon as Step 3 completes; the only restriction is that
-`mast_search` results are FTS5-only until Step 4 finishes embedding.
+in **2–4 seconds** on a cold container. Step 4 then catches up any files changed
+since the seed was built in the background — the agent can begin useful work as
+soon as Step 3 completes; JIT staleness handling (§9.0) guarantees any individual
+file it queries is correct even before Step 4 reaches it.
 
 This is the **only hook required for the SDD pipeline**. The BT orchestrator needs no
 reindex calls. Files committed by the previous task are picked up by Step 4's
@@ -637,28 +557,18 @@ Step 4 has caught up to them.
 
 The agent calls `mast_reindex` immediately after writing files, before querying for
 symbols it just created. This is synchronous — the tool does not return until the index
-is updated. Phase 1 only touches files with changed mtimes; Phase 2 only embeds new
-chunks. For a typical single-file write this completes in <500ms.
+is updated. Incremental by default — only files with changed mtimes are touched. For a
+typical single-file write this completes in <500ms.
 
 ### 7.6 Write Locking
 
-Writes are split across **two advisory file locks**, both managed by `proper-lockfile`:
+Writes are coordinated by **one advisory file lock**, managed by `proper-lockfile`:
 
 - **`<state_dir>/structure.lock`** — held during chunk parsing, graph population, and
-  FTS index writes (`chunks.lance`, `graph.db`, `chunk_fts`, `identifier_fts`).
+  FTS index writes (`chunks` table, `graph.db`, `chunk_fts`, `identifier_fts`).
   Acquired by `mast index`, the startup full/incremental reindex, `mast_reindex`,
   and (importantly) the JIT re-parse triggered by stale-file detection inside any
   read tool — see §9 staleness handling.
-- **`<state_dir>/vectors.lock`** — held during vector embedding writes
-  (`vectors.lance`). Acquired by Phase 2, including the background embedder forked
-  by `mast serve` (see §11.1).
-
-**Why split?** A single global lock would force every JIT read-tool re-parse to wait
-for the background embedder to finish — which can take minutes during cold start or
-after a large `mast_reindex`. Phase 1 writes touch chunks/graph/FTS; Phase 2 writes
-touch vectors. They modify disjoint files and can safely proceed in parallel. Splitting
-the lock is what makes the "lexical-ready immediately, semantic warming in background"
-model in §11.1 work without sacrificing read latency.
 
 **Why `proper-lockfile`:** it writes the acquiring process's PID into the lock file and
 checks liveness on encounter. If a container is killed mid-index and a `.lock` file is
@@ -680,17 +590,8 @@ live PID, and ensures clean recovery from abrupt container exits on shared volum
   (§9 staleness handling) and return the stale chunk with a `file_busy_returning_stale_cache`
   flag rather than blocking the agent indefinitely.
 
-**Behaviour by caller (vectors.lock):**
-- **Background embedder** (forked by `mast serve`, see §11.1): blocking, single
-  long-lived holder for the duration of a batch.
-- **`mast_reindex` MCP tool**: when invoked synchronously, acquires vectors.lock after
-  releasing structure.lock. If the background embedder is mid-batch, waits with the same
-  5×1s retry policy as structure.lock.
-
-Only one writer runs at a time *per lock*. The two locks are independent: a JIT
-re-parse holding structure.lock does not block a background embedder holding vectors.lock,
-and vice versa. Concurrent readers (all MCP query tools) acquire neither lock — they
-only `stat()` files for staleness detection (§9).
+Only one writer runs at a time. Concurrent readers (all MCP query tools) acquire no
+lock — they only `stat()` files for staleness detection (§9).
 
 ---
 
@@ -708,7 +609,7 @@ Options:
   --no-index                Create config only, skip initial indexing
 ```
 
-Creates `<state_dir>/`, writes `config.json`, runs full index (Phase 1 + 2).
+Creates `<state_dir>/`, writes `config.json`, runs a full index.
 
 ---
 
@@ -720,13 +621,13 @@ Build or update the index.
 Options:
   --state-dir <dir>    State directory (resolved from config if omitted)
   --incremental        Only reindex files changed since last index run
-  --phase1-only        Parse and chunk only, skip embedding
+  --show-progress      Print indexing progress to stderr
   --checker            Opt-in TypeScript-checker enrichment pass (§10.3.2) —
                         upgrades potential_matches into verified 'checker'
                         edges or drops non-call-site/wrong-declaration noise.
-                        Independent of --phase1-only (needs no vectors). Holds
-                        one ts.Program at a time; can take tens of seconds on
-                        a large monorepo — not part of the default index path.
+                        Holds one ts.Program at a time; can take tens of
+                        seconds on a large monorepo — not part of the default
+                        index path.
 ```
 
 ---
@@ -743,9 +644,7 @@ Options:
                           (interactive use — see §11.4)
 ```
 
-The server runs until the parent process (Claude CLI) closes stdin. The embedding
-model is loaded once at startup and reused for all `mast_search` calls within the
-session.
+The server runs until the parent process (Claude CLI) closes stdin.
 
 `--watch` is opt-in and intended for interactive local development; the SDD
 container does not use it (§3, §11.4). The watcher is closed on stdin close,
@@ -771,18 +670,16 @@ last_indexed:   2026-05-13T14:22:00Z (3 minutes ago)
 indexed_files:  142
 chunk_count:    1840
 stale_files:    0
-pending_embeddings: 0
 parse_errors:   0
+write_errors:   0
 index_fresh:    true
 freshness_cause: none
-model:          jinaai/jina-embeddings-v2-base-code
 ```
 
-`pending_embeddings` and `freshness_cause` carry the same semantics as the
-`mast_status` MCP tool (§9) — `freshness_cause` prints `none` in human output
-when the JSON value would be `null`. Both fields are included in `--json`
-output. On a never-indexed project the state directory is not created as a
-side effect of running `status`; `pending_embeddings` reports 0.
+`freshness_cause` carries the same semantics as the `mast_status` MCP tool (§9) —
+it prints `none` in human output when the JSON value would be `null`; the JSON
+value is `"phase1_stale"` when `stale_files > 0`. On a never-indexed project the
+state directory is not created as a side effect of running `status`.
 
 ---
 
@@ -819,26 +716,24 @@ agent-assisted corruption: the agent issues an `Edit` against the stale range
 and overwrites unrelated logic. This class of failure does not surface as an
 error — it surfaces as silent, hard-to-attribute breakage downstream.
 
-**Just-In-Time (JIT) Phase 1 re-parse.** For every result a tool is about to
-return:
+**Just-In-Time (JIT) re-parse.** For every result a tool is about to return:
 
 1. `fs.stat()` the `file_path`. Compare disk `mtime` against the chunk's stored
    `file_mtime`.
 2. If `disk_mtime <= stored_mtime` → return the result unchanged. Fast path.
 3. If `disk_mtime > stored_mtime` → the chunk is stale. Acquire `structure.lock`
-   (see §7.6), re-run Phase 1 for **this file only** (one tree-sitter parse,
-   one transactional delete-and-replace against `chunks.lance`, `graph.db`,
+   (see §7.6), re-index **this file only** (one tree-sitter parse,
+   one transactional delete-and-replace against the `chunks` table, `graph.db`,
    `chunk_fts`, `identifier_fts`), release `structure.lock`. Re-resolve the
-   tool's result against the refreshed chunks. A single-file Phase 1 typically
+   tool's result against the refreshed chunks. A single-file re-parse typically
    completes in 10–50ms.
 
-The vector store (`vectors.lance`) is **not** updated by JIT. The refreshed
-chunks may not have matching vectors until the next `mast_reindex` or
-background embedder pass. Implication: *line coordinates and content are
-always accurate; semantic search ranking may be slightly stale between an edit
-and a `mast_reindex` call.* The agent prompt should still recommend
-`mast_reindex` after substantive edits — not for safety (JIT covers it) but
-for semantic relevance.
+JIT re-parse covers files already known to the index. It does not discover a
+brand-new file or a newly-created symbol — those become searchable via the next
+`mast_reindex` call or the background/`--watch` reindex (§7.4/§11.4) reaching
+them. The agent prompt should still recommend `mast_reindex` after writing new
+files or symbols — not because JIT leaves existing files stale (it doesn't), but
+because discovery of new ones requires an actual indexing pass.
 
 **TOCTOU Policy (file mid-write).** Between `stat()` and `parse()`, the file
 may be in the middle of being written by another process (e.g., the agent's
@@ -859,9 +754,7 @@ rewrite. There is no separate sync step.
 
 **Concurrency.** Two simultaneous read tools targeting different stale files
 each acquire `structure.lock` briefly and serialize on it. This is intentional
-and bounded: lock holding is per-file-parse (10–50ms), not per-tool-call. The
-background embedder holds `vectors.lock`, which is independent — JIT never
-blocks on embedding.
+and bounded: lock holding is per-file-parse (10–50ms), not per-tool-call.
 
 **Result shape.** Every read tool's result objects MAY include
 `file_busy_returning_stale_cache: true` (omitted when false). Result schemas
@@ -872,7 +765,7 @@ is implicit on all of them.
 
 ### `mast_search`
 
-Hybrid semantic + BM25 search via RRF. Returns chunks, not full files.
+Lexical BM25 + declaration-exact search via RRF (§7.3). Returns chunks, not full files.
 
 **Input:**
 ```json
@@ -881,7 +774,7 @@ Hybrid semantic + BM25 search via RRF. Returns chunks, not full files.
   "limit": 10,
   "language": "typescript | javascript | markdown | null",
   "file_pattern": "glob pattern | null",
-  "chunk_type": "function | method | class_shell | interface | type | doc | null",
+  "chunk_type": "function | method | class_shell | interface | type | export | block | doc | null",
   "only_exported": false
 }
 ```
@@ -893,7 +786,6 @@ implementation details from results.
 **Output:** `SearchResponse`
 ```json
 {
-  "mode": "hybrid",
   "results": [
   {
     "file_path": "api/services/auth/src/handler.ts",
@@ -904,7 +796,6 @@ implementation details from results.
     "symbol_name": "handleLogin",
     "parent_symbol": null,
     "is_exported": true,
-    "similarity_score": 0.91,
     "match_score": -4.21,
     "rank": 1,
     "match_snippet": "...async function [1mhandleLogin[0m(req: [1mLoginRequest[0m..."
@@ -918,40 +809,22 @@ function. It returns a short fragment of the chunk content with matched terms ma
 so the agent can see immediately why the result was returned without reading the full
 `content` field. The fragment length (12 tokens) is configurable.
 
-**`mode` discriminator.** During the cold-start window described in §11.1, the
-background embedder may not have finished populating `vectors.lance`. `mast_search`
-adapts:
-
-- `mode: "hybrid"` — both vector search and FTS5 BM25 ran; results are RRF-fused
-  with rank-based vector inclusion (§7.3 — no absolute cosine gate).
-  `similarity_score` is populated (cosine similarity of the vector hit),
-  `match_score` carries the BM25 score (negative — see §7.3).
-- `mode: "lexical"` — vector store is not yet ready or has been intentionally
-  disabled (`--no-embeddings` install flag, §13.11). Results are FTS5-only.
-  `similarity_score` is `null`; `match_score` carries the ranking signal.
-
-The agent SHOULD NOT compare `similarity_score` values across modes — they are
-not on a shared scale. `similarity_score` is advisory (absolute cosine values
-are model-specific and never gate inclusion, §7.3); consumers that care about
-uniform ranking should use the `rank` field, which is always present and
-starts at 1.
+`match_score` carries the BM25 score (negative — §7.3's FTS5 sign convention) when the
+FTS ranker produced a hit for this chunk, and `null` when the chunk reached the result
+set only through ranker D (declaration-exact, §7.3). `rank` is the chunk's position in
+the RRF-fused list and is always present, starting at 1.
 
 `parent_symbol` is populated only on `method` chunks (carries the enclosing
 class name); `null` for all other chunk types.
 
 **Zero-result assist (`suggestions`).** When a search returns no results — no
-FTS or vector hit at all, or the `chunk_type` / `only_exported` filters emptied
+FTS or ranker-D hit at all, or the `chunk_type` / `only_exported` filters emptied
 the set — the tool does not return a bare dead end. It runs a relaxation pass
 and attaches a `suggestions` array of `{ symbol, file_path, reason }` "did you
-mean" candidates. (With rank-based vector inclusion, §7.3, a warm hybrid index
-almost always returns *something* for any query — so in practice the assist
-fires in `lexical` mode, on cold/empty indexes, and when post-filters empty the
-set; that is by design, since the vector neighbors themselves are the hybrid
-answer to a near-miss query.)
+mean" candidates.
 
 ```json
 {
-  "mode": "lexical",
   "results": [],
   "suggestions": [
     { "symbol": "handleLogin", "file_path": "api/services/auth/src/handler.ts", "reason": "similar symbol name" },
@@ -1037,7 +910,7 @@ omitting both returns the full project skeleton.
 ]
 ```
 
-Sourced entirely from `chunks.lance` where `is_exported = true` — no tree-sitter
+Sourced entirely from the `chunks` table where `is_exported = true` — no tree-sitter
 reparsing at query time.
 
 **When used:** early in a task for orientation — "what services exist and what do they
@@ -1444,11 +1317,12 @@ state of the filesystem.
   "chunks_added": 24,
   "chunks_removed": 18,
   "parse_errors": 0,
+  "write_errors": 0,
   "duration_ms": 380
 }
 ```
 
-`parse_errors > 0` means one or more files were skipped due to tree-sitter parse failures. The agent should call `mast_status` for details, or check the mast server log for the specific file paths.
+`parse_errors > 0` means one or more files were skipped due to tree-sitter parse failures. `write_errors > 0` means a file parsed successfully but its chunk/graph/FTS write failed — a distinct failure mode from a parse error (a chunk-store write failure must never be conflated with an unparseable file). The agent should call `mast_status` for details, or check the mast server log for the specific file paths.
 
 **When used:** immediately after the agent writes or edits files, before querying for
 symbols it just created. Called explicitly by the agent — not automatic.
@@ -1469,43 +1343,28 @@ Index health snapshot.
   "indexed_files": 142,
   "chunk_count": 1840,
   "stale_files": 0,
-  "pending_embeddings": 0,
   "parse_errors": 0,
+  "write_errors": 0,
   "index_fresh": true,
   "freshness_cause": null,
-  "model": "jinaai/jina-embeddings-v2-base-code"
+  "seed_commit": "abc1234"
 }
 ```
 
-`parse_errors` is the count of files skipped during the last index run due to tree-sitter parse failures. Non-zero here indicates files the agent should investigate.
+`parse_errors` is the count of files skipped during the last index run due to tree-sitter
+parse failures; `write_errors` is the count skipped due to a chunk/graph/FTS write
+failure after a successful parse (see `mast_reindex`, above — the two are never
+conflated). Non-zero in either indicates files the agent should investigate.
+`seed_commit` is present only when the state directory was bootstrapped from a
+Docker-baked seed (§13.8) and reports the git revision the seed was built from.
 
-**Freshness diagnostics.** `stale_files` and `index_fresh` alone conflate two
-very different states, so the snapshot separates them:
-
-- `pending_embeddings` — chunks in `chunks.lance` whose **current** content has
-  no stored vector, using §6.2's freshness rule (a chunk counts as embedded
-  only when a stored vector matches BOTH its `chunk_id` AND its current
-  `content_hash`). This is the same selection `runEmbed` uses to pick work, so
-  the count and the embedder can never disagree. `doc` chunks (§10.1) are
-  counted like any other chunk.
-- `freshness_cause` — `"phase1_stale" | "embedding_backlog" | "both" | null`:
-  - `"phase1_stale"` — `stale_files > 0`: chunk line coordinates lag disk;
-    corrected by JIT re-parse on read (§9.0), or run `mast_reindex`.
-  - `"embedding_backlog"` — `pending_embeddings > 0`: parsing is current but
-    embeddings lag (the §11.1 cold-start window), so semantic ranking is
-    degraded and `mast_search` may run in `lexical` mode until the background
-    embedder catches up.
-  - `"both"` — both conditions hold.
-  - `null` — fully fresh.
-
-`index_fresh` keeps its Phase 1-only meaning (no stale files, index exists);
-an embedding backlog does **not** flip it — `freshness_cause` is additive
-context.
+**Freshness diagnostics.** `freshness_cause` is `"phase1_stale"` when `stale_files > 0`
+(chunk line coordinates lag disk — corrected by JIT re-parse on read, §9.0, or by
+running `mast_reindex`) and `null` when the index is fully fresh. `index_fresh` is
+`true` only when `stale_files === 0` and the index has been run at least once.
 
 **When used:** diagnostic — agent checks this when search returns unexpected
-results. `freshness_cause` answers "why does search feel off?" directly:
-`phase1_stale` → reindex; `embedding_backlog` → expect lexical-quality
-ranking until Phase 2 completes.
+results, or before a long agentic workflow to confirm the index is current.
 
 ---
 
@@ -1613,22 +1472,21 @@ become one chunk. The chunker emits:
      the class is exported. This mirrors how callers from outside the class can reach
      them; `private` members are intentionally hidden from `only_exported: true`
      queries.)
-   - Its own embedding, computed from the full method source (signature + body).
+   - Its own `content`, the full method source (signature + body).
    - A `PARENT_OF` edge from the class's `symbols` row to the method's `symbols` row
      in `graph.db` (see §6.3).
 
 3. **A `body_hash` for the class_shell** computed over the sorted concatenation of
    member signatures + member TSDoc (see §7.1 stability hash rule). This ensures
-   the shell is re-embedded when methods are renamed, added, or removed — but **not**
-   when method bodies change.
+   the shell content is rewritten when methods are renamed, added, or removed — but
+   **not** when method bodies change.
 
 **Why this matters.** A 400-line service class becomes one ~30-line outline chunk
 plus ~12 small method chunks (~30 lines each). `mast_search "validate session"`
 returns the matching `method` chunk (~30 lines) instead of the whole class (400
 lines). For class-heavy codebases the token savings move from "marginal" to
 "material." Chunk count for a class-heavy 5K-file repo grows from ~6K to ~20–30K;
-LanceDB handles this fine at sub-100MB index size, but the cold-start full-embed
-math in §11.1 / §13.8 assumes the larger figure.
+SQLite (chunks table + FTS5) handles this fine at sub-100MB index size.
 
 **Interfaces and type aliases are NOT decomposed.** Their members are signatures
 already (no bodies to split), so the interface or type alias remains a single chunk.
@@ -1685,13 +1543,14 @@ walk:
 sub-chunk always includes the full declaration header so signature extraction is
 always possible from sub-chunk 0.
 
-For the `jina-embeddings-v2-base-code` model with its 8k context window, most
-functions will not trigger this split. The threshold exists for edge cases (large
-generated files, data-heavy switch statements).
+Most functions will not trigger this split — the default of 100 lines comfortably
+covers ordinary function and method bodies. The threshold exists for edge cases
+(large generated files, data-heavy switch statements) where a single chunk would
+otherwise be too large to be a useful, self-contained search result.
 
 **Markdown documents (`chunk_type: "doc"`).** `.md` files are chunked by ATX
 heading, not by AST — one chunk per heading of level ≤ `markdown_heading_depth`
-(default 2: one chunk per `##` section). Doc chunks get embeddings and
+(default 2: one chunk per `##` section). Doc chunks get
 `chunk_fts` rows like any other chunk, but **no graph presence**: no `symbols`
 rows, no `imports`, no `edges`, and no `identifier_fts` rows (that index feeds
 `mast_callers` potential_matches, where a doc that merely *mentions* a symbol
@@ -1946,17 +1805,20 @@ candidates out of `potential_matches` and report honest counts in
 
 ### 11.1 Primary Hook — `mast serve` Startup
 
-Defined in full in §7.4. Summary: a four-step ladder that brings the discovery
-layer (graph + FTS) online in 2–4 seconds via a Docker-baked seed index (§13.8),
-then warms the semantic layer (embeddings) in a forked child process while MCP
-connections are already being served. `mast_search` reports `mode: "lexical"`
-during the warm-up window and `mode: "hybrid"` once embeddings complete.
+Defined in full in §7.4. Summary: a four-step ladder that brings the whole index
+(graph + FTS) online in 2–4 seconds via a Docker-baked seed index (§13.8), with all
+11 tools registered and ready to serve as soon as Step 3 completes — there is no
+reduced-capability warm-up window. Step 4 then catches up any files changed since
+the seed was built, in the background.
 
 This is the **only hook required for the SDD pipeline**.
 
 ### 11.2 Mid-Task Hook — `mast_reindex` (agent-controlled)
 
-The agent calls this explicitly after writes. The implement prompt instructs:
+The agent calls this explicitly after writes. JIT staleness handling (§9.0) already
+keeps already-indexed files correct on read; `mast_reindex` is what makes a
+**brand-new** file or symbol discoverable by `mast_search`/`mast_callers`/etc. before
+the next scheduled or `--watch` reindex reaches it. The implement prompt instructs:
 
 > After writing or editing files, call `mast_reindex` before any search query that
 > depends on symbols you just created. This is the only way to guarantee the index
@@ -1985,11 +1847,12 @@ scenario (files changed since last index).
 
 Local interactive development has no equivalent of the container's startup
 ladder: git hooks are opt-in and fire only on commit/checkout, so a long-lived
-interactive session accumulates Phase 2 backlog (embeddings lag the working
-tree) even though JIT re-parse (§9.0) keeps every read correct. `--watch`
-closes that gap as an **opt-in** flag — it is a semantic-ranking-freshness
-optimization, never a correctness mechanism, and it does not reopen the §3
-no-daemon non-goal (it lives and dies with the serve process).
+interactive session can leave newly-created files and symbols undiscoverable
+between explicit `mast_reindex` calls, even though JIT re-parse (§9.0) keeps
+every already-indexed file correct on read. `--watch` closes that gap as an
+**opt-in** flag — it is a discovery-freshness optimization, never a correctness
+mechanism, and it does not reopen the §3 no-daemon non-goal (it lives and dies
+with the serve process).
 
 Behaviour:
 
@@ -1998,16 +1861,16 @@ Behaviour:
   the state dir would self-trigger on every index write.
 - Events are debounced (~500ms) and coalesced: rapid saves of one file collapse
   to a single entry; distinct files within the window share one batch.
-- Each batch runs the existing **incremental Phase 1** (acquiring
+- Each batch runs the existing **incremental indexer** (§7.1) (acquiring
   `structure.lock` exactly as `mast_reindex` does — deleted files are cleaned
-  up by the manifest diff) and then hands pending chunks to the shared
-  serialised background embedder (`vectors.lock`).
+  up by the manifest diff).
 - **Single-flight:** events arriving during an in-flight run queue a follow-up
   run; runs never overlap.
 - **Lock contention:** a failed run (e.g. `structure.lock` held by
   `mast_reindex`) is logged and the batch requeued for the next debounce tick;
   after 3 consecutive failures the batch is dropped **with a warning** (JIT
-  keeps reads correct, so a drop only delays ranking freshness).
+  keeps existing-file reads correct, so a drop only delays discovery of new
+  files/symbols).
 - **Degradation:** watcher construction failure (EMFILE, permissions) or
   runtime watcher errors log a warning and the server keeps serving without
   watch. `--watch` can never take down MCP serving.
@@ -2069,8 +1932,6 @@ TypeScript (Node.js LTS). Rationale:
 - Fits the existing monorepo stack — no second language in the container.
 - The MCP TypeScript SDK (`@modelcontextprotocol/sdk`) is Anthropic's primary SDK
   and has the best type safety and first-class support.
-- Eliminates `torch` from the Docker image — ONNX runtime + Jina model weights is
-  ~300MB vs ~3GB for Python + torch.
 - `better-sqlite3`'s synchronous API removes async complexity from graph queries;
   the recursive CTEs are blocking operations anyway.
 
@@ -2079,28 +1940,18 @@ TypeScript (Node.js LTS). Rationale:
 | Concern | Package | Notes |
 |---|---|---|
 | MCP server | `@modelcontextprotocol/sdk` | Official TS SDK, stdio transport |
-| Vector storage | `@lancedb/lancedb` | Official JS SDK |
-| Embeddings | `@huggingface/transformers` | Transformers.js v3 — runs models via ONNX in Node.js, no torch required |
 | BM25 | SQLite FTS5 (built-in) | Replaces external BM25 dependency entirely; `trigram` tokenizer for code identifiers |
 | Knowledge graph | `better-sqlite3` + `@types/better-sqlite3` | Synchronous API, WAL mode, recursive CTEs |
+| Query builder | `kysely` | Typed SQL query builder over the `better-sqlite3` connection |
 | AST parsing | `tree-sitter` + `tree-sitter-typescript` | Official Node.js bindings + TypeScript grammar |
 | Path resolution | `tsconfig-paths` | Resolves tsconfig `paths` aliases at index time |
 | Validation | `zod` | MCP tool inputs cross a trust boundary; validate `symbol`, `file_path`, `max_depth`, etc. before hitting the DB |
 | Locking | `proper-lockfile` | PID-based advisory lock; set `stale: 10000` (10s) to handle abrupt container exits |
 | CLI | `commander` | Standard TS CLI |
 | File walking | `fast-glob` | Glob pattern support for `exclude_patterns` |
-
-### 13.3 Embedding Model Verification
-
-Before implementation, confirm that `jinaai/jina-embeddings-v2-base-code` runs
-correctly through Transformers.js at the full 8k context window. Jina publishes ONNX
-weights on the Hub which is what Transformers.js consumes, but the 8k context
-behaviour needs to be validated.
-
-Fallback options if the primary model has issues:
-1. `Xenova/jina-embeddings-v2-base-code` — community-converted ONNX version
-2. `nomic-ai/nomic-embed-code` — confirmed Transformers.js compatible, strong code
-   retrieval performance
+| File watching | `chokidar` | Powers `mast serve --watch` (§11.4) |
+| Token counting | `@anthropic-ai/tokenizer` | Counts `tokens_returned`/`tokens_full_file_upper_bound` for `_stats` (§14.5) |
+| Identifiers | `uuid` | Per-`mast serve`-session `session_id` for metrics attribution |
 
 ### 13.4 Project Structure
 
@@ -2113,49 +1964,54 @@ packages/mast/
 │   │   ├── index-cmd.ts             # `mast index` (avoids conflict with src/index.ts)
 │   │   ├── serve.ts
 │   │   ├── status.ts
-│   │   ├── metrics.ts               # `mast metrics --session|--global|--rollup` (§14)
+│   │   ├── metrics-cmd.ts           # `mast metrics --since|--rollup|--vacuum` (§14)
 │   │   └── install-hooks.ts
 │   ├── mcp/
-│   │   ├── server.ts                # MCP server setup, tool registration
+│   │   ├── server.ts                # MCP server setup, tool registration (§7.4 Steps 3-4)
+│   │   ├── startup.ts               # bootstrap + schema-version guard + orphan-state cleanup (§7.4 Steps 1-2)
 │   │   ├── staleness.ts             # stat-and-sync wrapper for all read tools (§9.0)
+│   │   ├── context.ts               # AppContext (db, chunkStore, config, sessionId) shared by every tool
 │   │   └── tools/
-│   │       ├── search.ts            # hybrid/lexical mode-aware (§9 mast_search)
+│   │       ├── search.ts            # §9 mast_search — fused BM25 + ranker D
 │   │       ├── project-skeleton.ts
 │   │       ├── exports.ts
 │   │       ├── signature.ts
 │   │       ├── callers.ts           # verified + potential partition (§9 mast_callers)
 │   │       ├── dependencies.ts
 │   │       ├── implementors.ts
+│   │       ├── rename-impact.ts     # §9 mast_rename_impact
 │   │       ├── reindex.ts
 │   │       ├── status.ts
 │   │       └── efficiency.ts        # mast_efficiency telemetry tool (§9, §14)
 │   ├── indexer/
-│   │   ├── index.ts                 # orchestrates Phase 1 + Phase 2
-│   │   ├── walker.ts                # file discovery, exclude pattern matching
-│   │   ├── chunker.ts               # tree-sitter AST → Chunk[] incl. class decomposition (§10.1)
-│   │   ├── embedder.ts              # Chunk[] → vectors (in-process implementation)
-│   │   └── background-embedder.ts   # child_process.fork() host for Phase 2 (§7.4, §11.1)
+│   │   ├── index.ts                 # orchestrates the single indexing pass (§7.1)
+│   │   ├── walker.ts                # file discovery, exclude pattern matching, manifest diff
+│   │   ├── watcher.ts               # chokidar-backed `mast serve --watch` (§11.4)
+│   │   └── import-resolver.ts       # tsconfig paths + pnpm workspace resolution (§13.7)
 │   ├── graph/
-│   │   ├── db.ts                    # better-sqlite3 connection + schema init
+│   │   ├── db.ts                    # better-sqlite3 + Kysely connection, schema init
 │   │   ├── populate.ts              # AST → graph.db inserts (two-pass edge insertion, §10.3)
 │   │   ├── queries.ts               # callers, implementors, dependencies, type-context
-│   │   └── local-type-env.ts        # POTENTIAL_CALL resolver heuristics (§10.3.1)
+│   │   ├── local-type-env.ts        # POTENTIAL_CALL resolver heuristics (§10.3.1)
+│   │   └── checker-resolver.ts      # opt-in `mast index --checker` pass (§10.3.2)
 │   ├── ast/
 │   │   ├── parser.ts                # tree-sitter setup, parse file → AST
 │   │   ├── extractor.ts             # LanguageExtractor contract + FileExtraction types
 │   │   ├── extract.ts               # extension dispatch → per-language extractor
 │   │   ├── extractors/
-│   │   │   ├── typescript.ts       # TS/JS: class-shell synth, method walk, hashes
+│   │   │   ├── typescript.ts       # TS/JS: class-shell synth, method walk, hashes, splitting (§10.1)
 │   │   │   └── markdown.ts         # heading-based doc chunking (§10.1)
-│   │   └── types.ts                 # Chunk, Export, SignatureResult shared types
+│   │   └── types.ts                 # Chunk, Export, SignatureResult, config, MCP I/O shared types
 │   ├── store/
-│   │   ├── lance.ts                 # LanceDB connection, chunks + vectors table ops
+│   │   ├── sqliteChunkStore.ts      # ChunkStore: chunk CRUD against graph.db's `chunks` table
 │   │   ├── config.ts                # config resolution, index.json read/write
-│   │   └── lock.ts                  # structure.lock + vectors.lock manager (§7.6)
+│   │   ├── lock.ts                  # structure.lock manager (§7.6)
+│   │   └── lockMetrics.ts           # JSONL lock-hold telemetry sink
 │   ├── search/
-│   │   ├── hybrid.ts                # RRF fusion (mode: "hybrid"); falls through to FTS-only when mode: "lexical"
-│   │   ├── vector.ts                # LanceDB vector search
-│   │   └── fts.ts                   # FTS5 queries (chunk_fts BM25 + identifier_fts exact match)
+│   │   ├── fused.ts                 # RRF fusion of BM25 + ranker D (§7.3); D-fire telemetry
+│   │   ├── declex.ts                # ranker D — declaration-exact match (§7.3)
+│   │   ├── fts.ts                   # FTS5 queries (chunk_fts BM25 + identifier_fts exact match)
+│   │   └── potential-matches.ts     # shared candidate collection for mast_callers/mast_rename_impact
 │   └── telemetry/
 │       ├── metrics.ts               # metrics table writes, _stats meta builder (§14)
 │       └── tokenizer.ts             # @anthropic-ai/tokenizer wrapper for counterfactuals
@@ -2260,43 +2116,17 @@ This resolver is initialised once at `mast serve` startup and at the start of ea
 
 ### 13.8 Dockerfile Pre-Warming
 
-Two assets are pre-warmed during `docker build` to eliminate cold-start dead
-time on the first container run. Without these, the first task can stall for
-10+ minutes while model weights download and the index builds from scratch —
-the single biggest UX risk identified in the design review (Failure 4).
+The index is pre-warmed during `docker build` to eliminate cold-start dead time on
+the first container run. Without this, the first task can stall for minutes while
+the index builds from scratch — a UX risk identified in the design review
+(Failure 4).
 
-#### 13.8.1 Model Weights Pre-Warm
+#### 13.8.1 Seed Index Pre-Warm
 
-Transformers.js downloads model weights to a local cache on first use. Without
-pre-warming, the first task container stalls for 30–60 seconds while the 140MB Jina
-model downloads. Pre-warm during `docker build`.
-
-**Important:** Transformers.js does not read `HF_HOME` or `TRANSFORMERS_CACHE`.
-Cache location is controlled via `env.cacheDir` — a runtime JavaScript property, not
-an environment variable (verified against Transformers.js docs). The pre-warm script
-must set this property explicitly:
-
-```dockerfile
-RUN node --input-type=module << 'EOF'
-import { pipeline, env } from '@huggingface/transformers';
-env.cacheDir = '/opt/transformers-cache';
-await pipeline('feature-extraction', 'jinaai/jina-embeddings-v2-base-code');
-process.exit(0);
-EOF
-```
-
-The same `env.cacheDir = '/opt/transformers-cache'` assignment must appear in
-`embedder.ts` and `background-embedder.ts` at module initialisation time, before
-the first `pipeline()` call. Otherwise Transformers.js defaults to
-`./node_modules/@huggingface/transformers/.cache/` and misses the baked layer
-entirely.
-
-#### 13.8.2 Seed Index Pre-Warm
-
-For a 5K-file class-heavy repo, Phase 1 + Phase 2 from scratch is 10–30 minutes.
-During that window the agent has no semantic search and limited graph data. The
-seed index moves this work into the Docker build, so the runtime container
-starts with a fully-warmed index for the build-time commit.
+For a 5K-file class-heavy repo, indexing from scratch takes on the order of a
+minute or more. During that window the agent has a cold, empty index. The seed
+index moves this work into the Docker build, so the runtime container starts with
+a fully-warmed index for the build-time commit.
 
 ```dockerfile
 # After the application source is copied into the image and dependencies installed:
@@ -2306,9 +2136,9 @@ RUN mast init /workspace --state-dir /opt/mast-seed --no-index \
 
 Two important properties of the seed:
 
-1. **Phase 1 + Phase 2 both run at build time.** The seed contains a fully-populated
-   `chunks.lance`, `vectors.lance`, `graph.db`, `chunk_fts`, and `identifier_fts`. The
-   runtime container starts in `mode: "hybrid"` immediately (Step 3 of §7.4) — no
+1. **The index runs fully at build time.** The seed contains a fully-populated
+   `graph.db` (chunks, symbols, edges, `chunk_fts`, `identifier_fts`). The runtime
+   container is ready to serve at full capability immediately (Step 3 of §7.4) — no
    warm-up window.
 2. **Frozen at build commit.** The seed reflects whatever code was in the image at
    `docker build` time. Files modified since the build commit are picked up by
@@ -2352,10 +2182,8 @@ that's the next image build's job — but it is ignored on this run.
 mcp-vector-search is a Python codebase — nothing is reused directly. It serves as a
 reference for:
 
-- LanceDB two-phase table schema (chunks + vectors)
 - RRF fusion logic
 - Incremental indexing strategy (mtime-based staleness)
-- Embedding cache design (content-hash keyed)
 
 ### 13.11 Distribution
 
@@ -2364,9 +2192,9 @@ pip install          # not applicable
 npm install -g mast-search    # installs CLI + MCP server
 ```
 
-For the SDD pipeline, mast is installed into the claude-runner Docker image. The Jina
-ONNX model weights (~140MB) are pre-downloaded into the image layer to avoid first-use
-download latency inside a task container.
+For the SDD pipeline, mast is installed into the claude-runner Docker image. The
+Docker-baked seed index (§13.8) is pre-built into the image layer to avoid a
+from-scratch index build inside a task container.
 
 For external developers:
 
@@ -2376,18 +2204,16 @@ mast init .                      # initialise index
 claude mcp add mast -- mast serve   # wire into Claude Code
 ```
 
-A `--no-embeddings` install flag (omits `@huggingface/transformers` and ONNX runtime)
-enables a lightweight mode where `mast_search` falls back to BM25-only. All AST tools
-(`mast_exports`, `mast_signature`, `mast_project_skeleton`, `mast_callers`) work
-without embeddings since they are pure tree-sitter + SQLite operations.
+There is only one install shape — lexical + declaration-exact search is the whole
+product, so no `--no-embeddings`-style variant is needed.
 
 ---
 
 ## 14. Telemetry & Measurement
 
 The MAST thesis is **chunks not files → fewer tokens per task**. If that claim is
-not measurable, the index, the embedder, the model weights, and the Docker layers
-that support them are a complexity budget the project cannot defend. This section
+not measurable, the index and the Docker layers that support it are a complexity
+budget the project cannot defend. This section
 specifies the instrumentation that makes the savings legible to humans (`mast metrics`),
 visible to the agent (`mast_efficiency`), and persistent across sessions (the SQLite
 `metrics` table).
@@ -2418,8 +2244,7 @@ attaches a `_stats` object to its response:
     "tokens_full_file_upper_bound": 3187,
     "files_referenced": ["api/services/auth/src/handler.ts", "api/services/auth/src/repository.ts"],
     "efficiency_ratio": 0.871,
-    "duration_ms": 38,
-    "mode": "hybrid"
+    "duration_ms": 38
   }
 }
 ```
@@ -2433,7 +2258,6 @@ attaches a `_stats` object to its response:
   in `[0, 1]`. Higher is better.
 - `duration_ms` — wall-clock time for the tool call, including JIT staleness
   re-parse if triggered.
-- `mode` — present only on `mast_search`; mirrors the top-level `mode` field.
 
 **Honest framing.** `tokens_full_file_upper_bound` is explicitly labelled as an upper
 bound. A smart agent using `Grep -A 10 -B 10` would have used fewer tokens than the
@@ -2463,7 +2287,7 @@ CREATE TABLE IF NOT EXISTS metrics (
   tokens_returned                 INTEGER NOT NULL,
   tokens_full_file_upper_bound    INTEGER NOT NULL,
   duration_ms                     INTEGER NOT NULL,
-  mode                            TEXT,                    -- "hybrid" | "lexical" | NULL
+  mode                            TEXT,                    -- historical: pre-2026-08-06 rows only ("hybrid"|"lexical"); new rows NULL
   session_id                      TEXT NOT NULL,           -- uuid set at mast serve startup
   status                          TEXT NOT NULL,           -- "ok" | "stale_returned" | "error"
   args_json                       TEXT,                    -- salient tool arguments, capped at 1,000 chars
@@ -2641,7 +2465,5 @@ consumer inside the agent loop**, or it rots from disuse.
 
 - **Latency p99.** Tool call duration is captured per-row, but no SLA is asserted
   on it. Latency optimisation comes after the savings thesis is validated.
-- **Cache hit rate on embeddings.** Useful for indexer tuning but not for the
-  savings question; deferred to v2.
 - **Per-user / per-agent attribution.** v1 has one agent per `mast serve` session;
   multi-tenancy is out of scope.
