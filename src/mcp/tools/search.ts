@@ -5,6 +5,7 @@ import type { SearchResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson, buildDeclexJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { fusedSearch } from '../../search/fused.js';
+import { findStaleFiles } from '../staleness.js';
 
 export function registerSearchTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -27,15 +28,25 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
         ctx.chunkStore,
       );
       const filesReferenced = [...new Set(results.map((r) => r.file_path))];
+      // F7: stat-and-flag, not JIT refresh — see staleness.ts's `findStaleFiles`
+      // WHY-comment. Computed against the ranking fusedSearch already produced;
+      // flagged results are what gets token-counted and returned below.
+      const staleFiles = await findStaleFiles(ctx.db, ctx.config, filesReferenced);
+      const flaggedResults = staleFiles.size === 0
+        ? results
+        : results.map((r) => ({
+            ...r,
+            ...(staleFiles.has(r.file_path) ? { file_busy_returning_stale_cache: true as const } : {}),
+          }));
       // `suggestions` is present (possibly empty) only on the zero-result assist
       // path; conditional spread keeps it out of the payload otherwise.
       const suggestionsField = suggestions !== undefined ? { suggestions } : {};
-      const text = JSON.stringify({ results, ...suggestionsField });
+      const text = JSON.stringify({ results: flaggedResults, ...suggestionsField });
       const tokens = countTokens(text);
       const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
       const response: SearchResponse = {
-        results,
+        results: flaggedResults,
         ...suggestionsField,
         _stats: buildToolStats('mast_search', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };

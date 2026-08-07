@@ -32,7 +32,7 @@ is also pre-existing, confirmed by re-running with new files removed.
 | **F13** | ✅ `SQLITE_BUSY_SNAPSHOT` in `populateFile` escapes `checkAndRefreshIfStale` uncaught — bypasses F2's flag and violates §9.0's "do not throw". Fired 52× in real runs | **Complete** |
 | **F11** | **Replace fail-fast advisory locking** — E7 falsified the current design. **Urgency downgraded by E7-r2**, design verdict unchanged | **Not Started** |
 | **F14** | **`mast_signature` drops the busy flag when the symbol query returns 0 results** — `topLevelBusy` (`signature.ts:55`) is only consumed inside the per-result loop (`:76`), so an empty result set discards it. Worst case: "no results" + stale index reads as "symbol doesn't exist" | **Complete** |
-| F7 | Staleness for `mast_search` / `mast_implementors` (stat-and-flag, not refresh) | Not Started |
+| F7 | Staleness for `mast_search` / `mast_implementors` (stat-and-flag, not refresh) | **Complete** |
 
 **Success criteria**: max `structure` hold drops from **280,782 ms** (baseline,
 `eval/baseline-locks.json`) to bounded per-batch; a JIT re-parse succeeds while an
@@ -125,6 +125,72 @@ no-envelope-duplication guards. Suite 451/35 (448 + 3 new, same files), tsc
 clean, lint clean, `pnpm align:check` 324→324 (+0), same 2 pre-existing
 non-mast violations. MAST_SPEC §9.0 result-shape note updated to name the
 empty-result envelope carrier.
+
+### F7 result (2026-08-07) — stat-and-flag staleness shipped
+
+`mast_search` and `mast_implementors` were the last two read tools performing
+**no** staleness check at all — the exact P0 class Stage 1 exists to
+eliminate (`eval/GITNEXUS_COMPARISON.md` §13.3: a 20-lines-stale file
+returned `start_line 161` vs ground truth 181, unflagged).
+
+**Design: stat-and-flag, not JIT-refresh.** `mast_signature` / `mast_exports`
+/ etc. re-parse a stale single file under `structure.lock` (§9.0's original
+JIT policy). That doesn't generalize to `mast_search` / `mast_implementors`:
+both can return results spanning dozens of files, so a naive per-result JIT
+refresh would mean up to ~50 `structure.lock` acquisitions on one call, AND
+re-parsing a result file mid-response could shift its rank, gain/lose a
+match, or change its chunk boundaries — invalidating the very ranking that
+selected the result being "refreshed" (§13.7). So for these two tools only:
+after results are computed, `statSync` each **unique** result `file_path`
+(no lock, no re-parse, no DB write) and compare disk mtime against the
+`files` table's stored mtime. Newer-on-disk or a failed stat (deleted/
+renamed file — coordinates are definitely untrustworthy) sets
+`file_busy_returning_stale_cache: true` on that result; a path absent from
+`files` (nothing indexed to be stale against) is left unflagged.
+
+**Shared helper**: `findStaleFiles(db, config, filePaths)` in
+`src/mcp/staleness.ts`, returning a `ReadonlySet<string>` of paths to flag.
+Both tools call it once with their deduplicated `filesReferenced` list (one
+batched `where('path', 'in', ...)` query, guarded for the empty-array case
+per the codebase's existing convention — `store/sqliteChunkStore.ts`,
+`search/fts.ts`, `graph/queries.ts` all early-return before an empty `in`).
+`search.ts` and `implementors.ts` map their results to spread the flag on
+*before* `JSON.stringify` for token counting, so `_stats.tokens_returned`
+reflects the flagged payload actually returned — `fusedSearch` itself is
+untouched; flagging happens at the tool layer only, per the eval
+instrumentation's no-contamination rule.
+
+**Type change**: `ImplementorResult` (`ast/types.ts`) gains
+`file_busy_returning_stale_cache?: true` with a WHY-comment explaining the
+stat-and-flag (not re-parse) semantics; `SearchResult` already declared the
+field (F2, never previously set).
+
+**Red-first evidence**: 6 new tests in a new `F7 — stat-and-flag staleness
+(mast_search / mast_implementors)` describe block in `tools.test.ts`
+(isolated tmpdir/db/ctx, same reasoning as the F2 suite — forcing on-disk
+mtimes to the future would leak into other describe blocks' line-number
+assertions). With `staleness.ts`/`types.ts`/`search.ts`/`implementors.ts`
+reverted, 4 of the 6 failed with `AssertionError: expected undefined to be
+true` (the two happy-path tests passed trivially, as they assert *absence*
+of the flag) — a genuine assertion failure, not an import/syntax break.
+Tests cover: stale file flagged / fresh file not (two-file search), a
+second call still flags the same file (proves no refresh happened), a
+deleted-after-indexing file's results flagged, an all-fresh happy path with
+no flags anywhere, and the `mast_implementors` equivalents (one stale
+implementor flagged, the other not; happy path unflagged).
+
+**Verification**: full suite 457/35 (451 baseline + 6 new, same file count),
+`tsc --noEmit` clean, `eslint` clean, `pnpm align:check` `baselined debt: 324
+→ 324 (+0)`, red on the same 2 pre-existing violations (`root-layout.tsx`
+cycle, `fold-build-record-repository.ts`), neither naming `mast`.
+
+**Known naming tension, deferred to C1**: this reuses
+`file_busy_returning_stale_cache` for a signal that is not actually about
+`structure.lock` contention — `mast_search`/`mast_implementors` never
+attempt to acquire the lock, so nothing is ever "busy" in the sense the
+other tools' flag means. Per the task brief, inventing a second field name
+here was explicitly out of scope; C1 ("unify confidence signals") is where
+`stale`/`file_busy` get properly split apart.
 
 ### 🔴 HARD CONSTRAINT ON F11 — `busy_timeout` IS the process-freeze window
 

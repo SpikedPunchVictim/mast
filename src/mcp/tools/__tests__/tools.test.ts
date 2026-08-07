@@ -965,3 +965,197 @@ describe('F2 — file_busy_returning_stale_cache', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// F7 — stat-and-flag staleness for mast_search / mast_implementors
+// (GITNEXUS_COMPARISON.md §13.3, §13.7)
+//
+// Unlike mast_signature's JIT re-parse (F2/F14 above), mast_search and
+// mast_implementors can return results spanning dozens of files, so instead
+// of re-parsing (which would mean up to ~50 structure.lock acquisitions per
+// call and could invalidate the ranking that already selected these
+// results) they only `statSync` each unique result file and flag it — no
+// lock, no re-parse, no DB write. That means:
+//   - no `holdStructureLock` needed anywhere in this suite (nothing ever
+//     tries to acquire the lock for these two tools);
+//   - staleness, once introduced, is NOT self-healing across calls — a
+//     second call sees the same stale mtime and flags again (asserted
+//     directly below), which is the "flag, don't refresh" contract.
+//
+// Runs in its own isolated project/db/ctx for the same reason as the F2
+// suite above: forcing on-disk mtimes to the future would leak into other
+// describe blocks' line-number assertions if they shared a fixture.
+// ---------------------------------------------------------------------------
+
+describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () => {
+  let staleTmpDir: string;
+  let staleConfig: ResolvedConfig;
+  let staleDb: ReturnType<typeof openDatabase>;
+  let staleCall: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+
+  // Distinctive shared substring so a single lexical query hits both files
+  // via the trigram FTS tokenizer (search/fts.ts) without also matching
+  // unrelated fixture content from this file's other describe blocks.
+  const ZORB_A_SRC = `export function zorbAlpha(a: number): number {\n  return a;\n}\n`;
+  const ZORB_B_SRC = `export function zorbBeta(b: number): number {\n  return b;\n}\n`;
+
+  const TWICE_SRC = `export function twiceQuark(n: number): number {\n  return n;\n}\n`;
+
+  const HAPPY_SRC = `export function happyGlint(n: number): number {\n  return n;\n}\n`;
+
+  const DELETED_SRC = `export function vanishSprocket(n: number): number {\n  return n;\n}\n`;
+
+  const WIDGET_IFACE_SRC = `export interface Widget {\n  render(): string;\n}\n`;
+  const WIDGET_ALPHA_SRC = `import type { Widget } from './widget-iface';\n\nexport class WidgetAlpha implements Widget {\n  render(): string {\n    return 'alpha';\n  }\n}\n`;
+  const WIDGET_BETA_SRC = `import type { Widget } from './widget-iface';\n\nexport class WidgetBeta implements Widget {\n  render(): string {\n    return 'beta';\n  }\n}\n`;
+
+  const GADGET_IFACE_SRC = `export interface Gadget {\n  spin(): string;\n}\n`;
+  const GADGET_ALPHA_SRC = `import type { Gadget } from './gadget-iface';\n\nexport class GadgetAlpha implements Gadget {\n  spin(): string {\n    return 'alpha';\n  }\n}\n`;
+  const GADGET_BETA_SRC = `import type { Gadget } from './gadget-iface';\n\nexport class GadgetBeta implements Gadget {\n  spin(): string {\n    return 'beta';\n  }\n}\n`;
+
+  beforeAll(async () => {
+    staleTmpDir = mkdtempSync(join(tmpdir(), 'mast-stale-f7-test-'));
+    writeFileSync(join(staleTmpDir, 'zorb-a.ts'), ZORB_A_SRC);
+    writeFileSync(join(staleTmpDir, 'zorb-b.ts'), ZORB_B_SRC);
+    writeFileSync(join(staleTmpDir, 'twice-src.ts'), TWICE_SRC);
+    writeFileSync(join(staleTmpDir, 'happy-src.ts'), HAPPY_SRC);
+    writeFileSync(join(staleTmpDir, 'deleted-src.ts'), DELETED_SRC);
+    writeFileSync(join(staleTmpDir, 'widget-iface.ts'), WIDGET_IFACE_SRC);
+    writeFileSync(join(staleTmpDir, 'widget-alpha.ts'), WIDGET_ALPHA_SRC);
+    writeFileSync(join(staleTmpDir, 'widget-beta.ts'), WIDGET_BETA_SRC);
+    writeFileSync(join(staleTmpDir, 'gadget-iface.ts'), GADGET_IFACE_SRC);
+    writeFileSync(join(staleTmpDir, 'gadget-alpha.ts'), GADGET_ALPHA_SRC);
+    writeFileSync(join(staleTmpDir, 'gadget-beta.ts'), GADGET_BETA_SRC);
+
+    staleConfig = resolveConfig({ projectRoot: staleTmpDir });
+    await runIndex(staleConfig, { incremental: false });
+
+    staleDb = openDatabase(staleConfig.resolved_state_dir);
+
+    const staleCtx: AppContext = {
+      db: staleDb,
+      chunkStore: new SqliteChunkStore(staleDb),
+      config: staleConfig,
+      sessionId: 'stale-f7-test-session',
+    };
+
+    const mock = createMockServer();
+    registerSearchTool(mock.server, staleCtx);
+    registerImplementorsTool(mock.server, staleCtx);
+    staleCall = mock.call;
+  });
+
+  afterAll(async () => {
+    await staleDb.destroy();
+    rmSync(staleTmpDir, { recursive: true, force: true });
+  });
+
+  /**
+   * Rewrite `relPath` and force its disk mtime strictly past the indexed
+   * mtime, so `findStaleFiles` sees it as stale regardless of the
+   * filesystem's mtime resolution.
+   */
+  function makeStale(relPath: string, newContent: string): void {
+    writeFileSync(join(staleTmpDir, relPath), newContent);
+    const future = new Date(Date.now() + 10_000);
+    utimesSync(join(staleTmpDir, relPath), future, future);
+  }
+
+  describe('mast_search', () => {
+    it('flags results from the stale file only, leaving the fresh file\'s results untouched', async () => {
+      makeStale('zorb-a.ts', ZORB_A_SRC + '// touched\n');
+
+      const res = (await staleCall('mast_search', { query: 'zorb' })) as {
+        results: Array<{ file_path: string; symbol_name: string | null; file_busy_returning_stale_cache?: true }>;
+      };
+
+      const fromA = res.results.find((r) => r.file_path === 'zorb-a.ts');
+      const fromB = res.results.find((r) => r.file_path === 'zorb-b.ts');
+      expect(fromA).toBeDefined();
+      expect(fromB).toBeDefined();
+      expect(fromA!.symbol_name).toBe('zorbAlpha');
+      expect(fromB!.symbol_name).toBe('zorbBeta');
+      expect(fromA!.file_busy_returning_stale_cache).toBe(true);
+      expect(fromB).not.toHaveProperty('file_busy_returning_stale_cache');
+    });
+
+    it('flags again on a second call — stat-and-flag does not refresh the index', async () => {
+      makeStale('twice-src.ts', TWICE_SRC + '// touched once\n');
+
+      const first = (await staleCall('mast_search', { query: 'twiceQuark' })) as {
+        results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }>;
+      };
+      const second = (await staleCall('mast_search', { query: 'twiceQuark' })) as {
+        results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }>;
+      };
+
+      const firstMatch = first.results.find((r) => r.file_path === 'twice-src.ts');
+      const secondMatch = second.results.find((r) => r.file_path === 'twice-src.ts');
+      expect(firstMatch).toBeDefined();
+      expect(secondMatch).toBeDefined();
+      expect(firstMatch!.file_busy_returning_stale_cache).toBe(true);
+      // Still flagged, not refreshed — if the JIT-refresh path had fired
+      // instead, this second call's flag would have vanished.
+      expect(secondMatch!.file_busy_returning_stale_cache).toBe(true);
+    });
+
+    it('flags nothing on the happy path', async () => {
+      const res = (await staleCall('mast_search', { query: 'happyGlint' })) as {
+        results: Array<{ file_path: string; symbol_name: string | null }>;
+      };
+
+      const match = res.results.find((r) => r.file_path === 'happy-src.ts');
+      expect(match).toBeDefined();
+      expect(match!.symbol_name).toBe('happyGlint');
+      for (const r of res.results) {
+        expect(r).not.toHaveProperty('file_busy_returning_stale_cache');
+      }
+    });
+
+    it('flags results from a file deleted after indexing', async () => {
+      rmSync(join(staleTmpDir, 'deleted-src.ts'));
+
+      const res = (await staleCall('mast_search', { query: 'vanishSprocket' })) as {
+        results: Array<{ file_path: string; symbol_name: string | null; file_busy_returning_stale_cache?: true }>;
+      };
+
+      const match = res.results.find((r) => r.file_path === 'deleted-src.ts');
+      expect(match).toBeDefined();
+      expect(match!.symbol_name).toBe('vanishSprocket');
+      expect(match!.file_busy_returning_stale_cache).toBe(true);
+    });
+  });
+
+  describe('mast_implementors', () => {
+    it('flags only the implementor whose file is stale, leaving the other implementor untouched', async () => {
+      makeStale('widget-alpha.ts', WIDGET_ALPHA_SRC + '// touched\n');
+
+      const res = (await staleCall('mast_implementors', { interface_name: 'Widget' })) as {
+        results: Array<{ class_name: string; file_path: string; file_busy_returning_stale_cache?: true }>;
+      };
+
+      const alpha = res.results.find((r) => r.class_name === 'WidgetAlpha');
+      const beta = res.results.find((r) => r.class_name === 'WidgetBeta');
+      expect(alpha).toBeDefined();
+      expect(beta).toBeDefined();
+      expect(alpha!.file_path).toBe('widget-alpha.ts');
+      expect(beta!.file_path).toBe('widget-beta.ts');
+      expect(alpha!.file_busy_returning_stale_cache).toBe(true);
+      expect(beta).not.toHaveProperty('file_busy_returning_stale_cache');
+    });
+
+    it('flags nothing on the happy path', async () => {
+      const res = (await staleCall('mast_implementors', { interface_name: 'Gadget' })) as {
+        results: Array<{ class_name: string; file_path: string }>;
+      };
+
+      const alpha = res.results.find((r) => r.class_name === 'GadgetAlpha');
+      const beta = res.results.find((r) => r.class_name === 'GadgetBeta');
+      expect(alpha).toBeDefined();
+      expect(beta).toBeDefined();
+      for (const r of res.results) {
+        expect(r).not.toHaveProperty('file_busy_returning_stale_cache');
+      }
+    });
+  });
+});

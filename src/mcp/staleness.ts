@@ -52,6 +52,61 @@ function isRetryableBusySnapshot(err: unknown): boolean {
 const MAX_POPULATE_RETRIES = 1;
 
 // ---------------------------------------------------------------------------
+// F7 — stat-and-flag staleness for mast_search / mast_implementors (§9.0)
+// ---------------------------------------------------------------------------
+
+/**
+ * Stat each of `filePaths` (deduplicated by the caller — see below) and
+ * compare disk mtime against the `files` table's stored mtime, WITHOUT
+ * acquiring `structure.lock` or re-parsing anything.
+ *
+ * `mast_search` and `mast_implementors` deliberately do NOT get the
+ * JIT-refresh treatment `checkAndRefreshIfStale` gives single-file tools
+ * (`mast_signature`, `mast_exports`, ...): both can return results spanning
+ * dozens of files, and a naive per-result JIT refresh would mean up to ~50
+ * `structure.lock` acquisitions on one call PLUS re-parsing files whose
+ * content change could invalidate the ranking that already selected these
+ * results (a result re-parsed mid-response could shift rank, gain/lose a
+ * match, or change chunk boundaries entirely — `eval/GITNEXUS_COMPARISON.md`
+ * §13.7). Stat-and-flag reports the discrepancy honestly without paying
+ * that cost or contaminating the ranking: the agent is told the coordinates
+ * may be off and can decide whether to re-verify.
+ *
+ * Returns the subset of `filePaths` to flag with
+ * `file_busy_returning_stale_cache: true`: disk mtime newer than the
+ * indexed mtime, OR the stat failed (file deleted/renamed — its coordinates
+ * are definitely untrustworthy). A path absent from the `files` table is
+ * left out of the returned set entirely — there is nothing indexed to be
+ * stale against, so no signal is invented.
+ */
+export async function findStaleFiles(
+  db: Db,
+  config: ResolvedConfig,
+  filePaths: readonly string[],
+): Promise<ReadonlySet<string>> {
+  if (filePaths.length === 0) return new Set();
+
+  const rows = await db
+    .selectFrom('files')
+    .select(['path', 'mtime'])
+    .where('path', 'in', filePaths)
+    .execute();
+
+  const stale = new Set<string>();
+  for (const row of rows) {
+    try {
+      const stat = statSync(join(config.resolved_project_root, row.path));
+      if (stat.mtimeMs / 1_000 > row.mtime) stale.add(row.path);
+    } catch {
+      // File deleted/renamed since indexing — coordinates are definitely
+      // untrustworthy, flag rather than silently omit.
+      stale.add(row.path);
+    }
+  }
+  return stale;
+}
+
+// ---------------------------------------------------------------------------
 // JIT staleness detection and re-parse (§9.0)
 // ---------------------------------------------------------------------------
 

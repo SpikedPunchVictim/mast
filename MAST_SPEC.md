@@ -703,20 +703,45 @@ All tools are exposed on the `mast` MCP server. Tool names follow the convention
 
 ### 9.0 Staleness Handling (All Read Tools)
 
-Every read tool (`mast_search`, `mast_signature`, `mast_exports`,
-`mast_project_skeleton`, `mast_callers`, `mast_dependencies`, `mast_implementors`,
+Every read tool that returns line coordinates (`mast_search`, `mast_signature`,
+`mast_exports`, `mast_callers`, `mast_dependencies`, `mast_implementors`,
 `mast_rename_impact`) performs a **mandatory server-side staleness check**
 before returning. This is
 not optional and is not controlled by the caller — the index is responsible for
-its own consistency, not the agent.
+its own consistency, not the agent. `mast_project_skeleton` is exempt: its
+response is a directory map of exported symbol names with no line coordinates
+to go stale (P3).
 
 **The agent must never see a chunk whose line coordinates do not match the
-current file on disk.** Returning stale line numbers leads directly to
-agent-assisted corruption: the agent issues an `Edit` against the stale range
-and overwrites unrelated logic. This class of failure does not surface as an
-error — it surfaces as silent, hard-to-attribute breakage downstream.
+current file on disk without being told.** Returning stale line numbers
+unflagged leads directly to agent-assisted corruption: the agent issues an
+`Edit` against the stale range and overwrites unrelated logic. This class of
+failure does not surface as an error — it surfaces as silent, hard-to-attribute
+breakage downstream. Two different mechanisms enforce this, chosen per tool by
+how many files a single call's results can span:
 
-**Just-In-Time (JIT) re-parse.** For every result a tool is about to return:
+- **Just-In-Time (JIT) re-parse** (`mast_signature`, `mast_exports`,
+  `mast_callers`, `mast_dependencies`, `mast_rename_impact`) — these tools'
+  results are scoped to one file, or a small, explicitly-named set, so a
+  stale result can be transparently refreshed in place. See below.
+- **Stat-and-flag** (`mast_search`, `mast_implementors`) — these tools can
+  return results spanning dozens of files in one call, so JIT re-parsing
+  every result file would mean up to ~50 `structure.lock` acquisitions per
+  call, and re-parsing a result file mid-response could shift its rank,
+  gain or lose a match, or change its chunk boundaries — invalidating the
+  ranking/query that already selected the result being "refreshed". Instead,
+  after results are computed, each **unique** result `file_path` is
+  `statSync`'d (no lock, no re-parse, no DB write) and its disk mtime
+  compared against the indexed `files.mtime`. Newer-on-disk, or a failed
+  stat (file deleted/renamed since indexing — its coordinates are
+  definitely untrustworthy), sets `file_busy_returning_stale_cache: true`
+  on that result; a file absent from the `files` table (nothing indexed to
+  be stale against) is left unflagged. The flag name is reused from the
+  JIT-refresh tools' TOCTOU signal below even though no lock is ever
+  involved here — a known naming tension, deferred to the confidence-signal
+  unification tracked as C1 in `IMPLEMENTATION_PLAN.md`.
+
+**Just-In-Time (JIT) re-parse.** For every result a JIT-refresh tool is about to return:
 
 1. `fs.stat()` the `file_path`. Compare disk `mtime` against the chunk's stored
    `file_mtime`.
@@ -767,6 +792,11 @@ when a `file_path`-narrowed query returns **zero** results while that file's
 JIT re-parse could not acquire the lock: with no result objects to carry the
 signal, the flag appears on the response envelope (F14), so "no results" from
 a stale, un-refreshable file never reads as "symbol doesn't exist".
+`mast_search` and `mast_implementors` also carry the flag per-result, but via
+stat-and-flag rather than JIT re-parse (F7, see above) — each result's
+`file_busy_returning_stale_cache` reflects that result's own `file_path`
+statting newer-on-disk or failing to stat, independent of every other
+result in the same response.
 
 ---
 

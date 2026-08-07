@@ -486,6 +486,17 @@ export interface ImplementorResult {
   readonly file_path: string;
   readonly line: number;
   readonly methods: readonly string[];
+  /**
+   * F7: set when this result's `file_path` stat'd newer than its indexed
+   * mtime, or the stat failed (file deleted/renamed) — `mast_implementors`
+   * can return implementors spanning many files, so unlike the single-file
+   * JIT-refresh tools this is a stat-and-flag signal, not a re-parse: no
+   * lock is taken and the line coordinates are not refreshed, only flagged.
+   * Refreshing here would mean up to ~50 `structure.lock` acquisitions per
+   * call and could invalidate the graph query that already selected these
+   * results (§9.0; `eval/GITNEXUS_COMPARISON.md` §13.7). Omitted when false.
+   */
+  readonly file_busy_returning_stale_cache?: true;
 }
 
 export interface ImplementorsResponse {
