@@ -21,7 +21,11 @@ is also pre-existing, confirmed by re-running with new files removed.
 
 ## Stage 1: Staleness correctness (the P0)
 **Goal**: An agent can never be served stale line coordinates without knowing.
-**Status**: In Progress
+**Status**: Complete (2026-08-07) — all eight items shipped; F11 closed the stage
+(narrow-role locking; option (d)'s overlay half deferred per E7-r2, see the F11
+result block). Success criteria met: every read tool either JIT-refreshes or
+stat-and-flags (F7), no busy signal is droppable (F2/F13/F14), and the E7
+reader-vs-reader contention class is dissolved by construction (F11).
 
 | # | Task | Status |
 |---|---|---|
