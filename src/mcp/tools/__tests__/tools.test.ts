@@ -1,6 +1,7 @@
 import { mkdtempSync, writeFileSync, rmSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import Sqlite from 'better-sqlite3';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, type ResolvedConfig } from '../../../store/config.js';
@@ -770,12 +771,23 @@ describe('mast_efficiency', () => {
 // F2 — file_busy_returning_stale_cache wiring (GITNEXUS_COMPARISON.md §13.7)
 //
 // checkAndRefreshIfStale's `busy` result must reach the agent: when a file is
-// stale AND structure.lock is genuinely held by someone else, the tool is
-// about to hand back stale line coordinates and must say so. This suite
-// forces the real condition — a genuinely stale file plus a genuinely held
-// lock (see src/store/__tests__/lock.test.ts's `maxRetries: 0` pattern) —
+// stale AND the JIT write is genuinely contended, the tool is about to hand
+// back stale line coordinates and must say so. This suite forces the real
+// condition — a genuinely stale file plus a genuinely contended write —
 // rather than stubbing checkAndRefreshIfStale, so it proves the wiring, not
 // a mock of it.
+//
+// F11 (`IMPLEMENTATION_PLAN.md` "Replace fail-fast advisory locking") removed
+// `structure.lock` from the JIT path entirely, so holding that advisory lock
+// (this suite's pre-F11 forcing mechanism, `holdStructureLock` below) no
+// longer contends with anything here — see the "F11 inversion" describe
+// block for the regression test that proves exactly that. The busy-forcing
+// mechanism for the F2/F14 suites below is now `holdWriteLock`: a second raw
+// better-sqlite3 connection to the SAME `graph.db` holding a genuine
+// `BEGIN IMMEDIATE` write reservation, which `populateFile`'s own
+// `BEGIN IMMEDIATE` transaction (`graph/populate.ts`) now contends against
+// directly. Mirrors `mcp/__tests__/staleness.test.ts`'s second-real-connection
+// technique for F13.
 //
 // Runs in its own isolated project/db/ctx (not the shared `tmpDir` fixture
 // above): forcing staleness mutates on-disk mtimes and DB rows, which would
@@ -796,6 +808,11 @@ describe('F2 — file_busy_returning_stale_cache', () => {
   // values, not shape).
   const TWIN_A_SRC = `export function twinFn(x: number): number {\n  return x;\n}\n`;
   const TWIN_B_SRC = `export function twinFn(y: number): number {\n  return y;\n}\n`;
+  // Dedicated fixture for the F11 inversion test below — kept separate from
+  // busy.ts/twin-*.ts so that test's assertion on a NEWLY-added export name
+  // cannot collide with mutations the other tests in this suite make to
+  // their own fixtures.
+  const INVERSION_SRC = `export function invertedFn(x: number): number {\n  return x;\n}\n`;
 
   beforeAll(async () => {
     busyTmpDir = mkdtempSync(join(tmpdir(), 'mast-busy-test-'));
@@ -803,6 +820,7 @@ describe('F2 — file_busy_returning_stale_cache', () => {
     writeFileSync(join(busyTmpDir, 'busy-caller.ts'), BUSY_CALLER_SRC);
     writeFileSync(join(busyTmpDir, 'twin-a.ts'), TWIN_A_SRC);
     writeFileSync(join(busyTmpDir, 'twin-b.ts'), TWIN_B_SRC);
+    writeFileSync(join(busyTmpDir, 'inversion.ts'), INVERSION_SRC);
 
     busyConfig = resolveConfig({ projectRoot: busyTmpDir });
     await runIndex(busyConfig, { incremental: false });
@@ -841,9 +859,34 @@ describe('F2 — file_busy_returning_stale_cache', () => {
     utimesSync(join(busyTmpDir, relPath), future, future);
   }
 
-  /** Hold structure.lock so the JIT re-parse this test triggers cannot acquire it. */
+  /**
+   * Hold `structure.lock` — the PRE-F11 forcing mechanism. Kept only for the
+   * "F11 inversion" regression test below, which exists specifically to
+   * prove this advisory lock no longer gates the JIT path at all. Every
+   * other test in this suite uses {@link holdWriteLock} instead, which
+   * forces the condition that actually matters post-F11.
+   */
   async function holdStructureLock(): Promise<() => Promise<void>> {
     return acquireLock(busyConfig.resolved_state_dir, 'structure', { maxRetries: 0 });
+  }
+
+  /**
+   * Hold a REAL SQLite write reservation against `busyConfig`'s `graph.db`
+   * via a second raw better-sqlite3 connection — the genuine contention
+   * `populateFile`'s own `BEGIN IMMEDIATE` transaction (`graph/populate.ts`)
+   * now loses to when this suite forces a busy outcome (F11). Synchronous,
+   * unlike `holdStructureLock`: `better-sqlite3`'s `BEGIN IMMEDIATE` either
+   * acquires the write reservation immediately or throws — there is no
+   * retry/backoff to await.
+   */
+  function holdWriteLock(): () => void {
+    const raw = new Sqlite(join(busyConfig.resolved_state_dir, 'graph.db'));
+    raw.pragma('journal_mode = WAL');
+    raw.exec('begin immediate');
+    return () => {
+      raw.exec('rollback');
+      raw.close();
+    };
   }
 
   describe.each([
@@ -852,20 +895,20 @@ describe('F2 — file_busy_returning_stale_cache', () => {
     { tool: 'mast_callers', args: { symbol: 'busyFn', file_path: 'busy.ts' } },
     { tool: 'mast_rename_impact', args: { symbol: 'busyFn', file_path: 'busy.ts' } },
   ])('$tool — envelope-level flag', ({ tool, args }) => {
-    it('sets file_busy_returning_stale_cache: true when the file is stale and the lock is genuinely held', async () => {
+    it('sets file_busy_returning_stale_cache: true when the file is stale and the write is genuinely contended', async () => {
       makeStale('busy.ts', BUSY_SRC + '// touched\n');
-      const release = await holdStructureLock();
+      const release = holdWriteLock();
       try {
         const res = (await busyCall(tool, args)) as Record<string, unknown>;
         expect(res.file_busy_returning_stale_cache).toBe(true);
       } finally {
-        await release();
+        release();
       }
     });
 
-    it('omits file_busy_returning_stale_cache entirely once the lock is free (not merely false)', async () => {
-      // The previous test left busy.ts stale but released the lock — this
-      // call's own JIT refresh succeeds, so the flag must be absent, not
+    it('omits file_busy_returning_stale_cache entirely once the write is free (not merely false)', async () => {
+      // The previous test left busy.ts stale but released the write lock —
+      // this call's own JIT refresh succeeds, so the flag must be absent, not
       // present-and-false.
       const res = (await busyCall(tool, args)) as Record<string, unknown>;
       expect(res).not.toHaveProperty('file_busy_returning_stale_cache');
@@ -873,14 +916,14 @@ describe('F2 — file_busy_returning_stale_cache', () => {
   });
 
   describe('mast_signature — per-result flag', () => {
-    it('flags only the result whose file is stale+locked, leaving the other result untouched', async () => {
+    it('flags only the result whose file is stale+contended, leaving the other result untouched', async () => {
       makeStale('twin-a.ts', TWIN_A_SRC + '// touched\n');
-      const release = await holdStructureLock();
+      const release = holdWriteLock();
       let res: { results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }> };
       try {
         res = (await busyCall('mast_signature', { symbol: 'twinFn' })) as typeof res;
       } finally {
-        await release();
+        release();
       }
 
       const fromA = res.results.find((r) => r.file_path === 'twin-a.ts');
@@ -891,14 +934,14 @@ describe('F2 — file_busy_returning_stale_cache', () => {
       expect(fromB).not.toHaveProperty('file_busy_returning_stale_cache');
     });
 
-    it('flags every result when file_path narrows to the stale+locked file', async () => {
+    it('flags every result when file_path narrows to the stale+contended file', async () => {
       makeStale('busy.ts', BUSY_SRC + '// touched again\n');
-      const release = await holdStructureLock();
+      const release = holdWriteLock();
       let res: { results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }> };
       try {
         res = (await busyCall('mast_signature', { symbol: 'busyFn', file_path: 'busy.ts' })) as typeof res;
       } finally {
-        await release();
+        release();
       }
 
       expect(res.results.length).toBeGreaterThan(0);
@@ -922,23 +965,23 @@ describe('F2 — file_busy_returning_stale_cache', () => {
   // signal, so "no results" + stale index would read as "symbol doesn't
   // exist". The envelope must carry the flag in exactly that case.
   describe('mast_signature — F14 empty-result envelope flag', () => {
-    it('sets the envelope flag when file_path narrows to a stale+locked file and no symbol matches', async () => {
+    it('sets the envelope flag when file_path narrows to a stale+contended file and no symbol matches', async () => {
       makeStale('busy.ts', BUSY_SRC + '// touched for F14\n');
-      const release = await holdStructureLock();
+      const release = holdWriteLock();
       let res: { results: unknown[]; file_busy_returning_stale_cache?: true };
       try {
         res = (await busyCall('mast_signature', { symbol: 'noSuchSymbolF14', file_path: 'busy.ts' })) as typeof res;
       } finally {
-        await release();
+        release();
       }
 
       expect(res.results).toEqual([]);
       expect(res.file_busy_returning_stale_cache).toBe(true);
     });
 
-    it('omits the envelope flag on an empty result once the lock is free (not merely false)', async () => {
+    it('omits the envelope flag on an empty result once the write is free (not merely false)', async () => {
       // busy.ts is still stale from the previous test, but this call's own
-      // JIT refresh succeeds now the lock is free — a genuinely-missing
+      // JIT refresh succeeds now the write is free — a genuinely-missing
       // symbol must come back as a clean empty result, no flag.
       const res = (await busyCall('mast_signature', { symbol: 'noSuchSymbolF14', file_path: 'busy.ts' })) as {
         results: unknown[];
@@ -949,12 +992,12 @@ describe('F2 — file_busy_returning_stale_cache', () => {
 
     it('does not duplicate the busy signal onto the envelope when results exist to carry it', async () => {
       makeStale('busy.ts', BUSY_SRC + '// touched again for F14\n');
-      const release = await holdStructureLock();
+      const release = holdWriteLock();
       let res: { results: Array<Record<string, unknown>> };
       try {
         res = (await busyCall('mast_signature', { symbol: 'busyFn', file_path: 'busy.ts' })) as typeof res;
       } finally {
-        await release();
+        release();
       }
 
       expect(res.results.length).toBeGreaterThan(0);
@@ -962,6 +1005,59 @@ describe('F2 — file_busy_returning_stale_cache', () => {
         expect(r['file_busy_returning_stale_cache']).toBe(true);
       }
       expect(res).not.toHaveProperty('file_busy_returning_stale_cache');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // F11 inversion — the behavioral proof that structure.lock no longer gates
+  // the JIT path (IMPLEMENTATION_PLAN.md "Replace fail-fast advisory
+  // locking"). Pre-F11, holding structure.lock while a file was stale forced
+  // `busy: true` (exactly what the F2/F14 tests above used to assert via
+  // `holdStructureLock`). Post-F11, `checkAndRefreshIfStale` never calls
+  // `acquireLock` at all, so holding that SAME advisory lock must have NO
+  // effect on the JIT refresh: it should succeed outright, with no busy flag.
+  // Asserting on a newly-added export name (not just "flag absent") proves a
+  // real re-parse happened, rather than the weaker "staleness merely wasn't
+  // detected" explanation for the same absent-flag observation.
+  // ---------------------------------------------------------------------------
+  describe('F11 inversion — holding the old structure.lock no longer gates JIT', () => {
+    it('returns a REFRESHED result with no busy flag while structure.lock is held by another caller', async () => {
+      makeStale('inversion.ts', INVERSION_SRC + 'export function invertedFnV2(x: number): number {\n  return x + 1;\n}\n');
+      const release = await holdStructureLock();
+      let res: { exports: Array<{ name: string }>; file_busy_returning_stale_cache?: true };
+      try {
+        res = (await busyCall('mast_exports', { file_path: 'inversion.ts' })) as typeof res;
+      } finally {
+        await release();
+      }
+
+      expect(res).not.toHaveProperty('file_busy_returning_stale_cache');
+      expect(res.exports.some((e) => e.name === 'invertedFnV2')).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // F11 bounded freeze — the hard-constraint proof (IMPLEMENTATION_PLAN.md's
+  // "HARD CONSTRAINT ON F11 — busy_timeout IS the process-freeze window"):
+  // populateFile's dedicated 200ms busy_timeout, not the inherited 5000ms
+  // connection default, governs a genuinely contended JIT write. A 2000ms
+  // ceiling is generous relative to the ~400-460ms worst case (F13's bounded
+  // retry: 2 attempts x ~200ms busy_timeout each) while staying far below the
+  // 5000ms default this test exists to prove is NOT in play.
+  // ---------------------------------------------------------------------------
+  describe('F11 bounded freeze — busy path resolves well under the old 5s inherited timeout', () => {
+    it('returns busy-flagged in well under 2000ms wall-clock against a genuinely contended write', async () => {
+      makeStale('busy.ts', BUSY_SRC + '// touched for bounded-freeze\n');
+      const release = holdWriteLock();
+      const startedAtMs = Date.now();
+      try {
+        const res = (await busyCall('mast_exports', { file_path: 'busy.ts' })) as Record<string, unknown>;
+        const elapsedMs = Date.now() - startedAtMs;
+        expect(res.file_busy_returning_stale_cache).toBe(true);
+        expect(elapsedMs).toBeLessThan(2_000);
+      } finally {
+        release();
+      }
     });
   });
 });

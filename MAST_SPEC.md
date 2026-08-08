@@ -146,7 +146,7 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 ├── config.json              # Resolved active config (written at init)
 ├── index.json               # Index metadata: last_indexed, file_count, schema_version
 ├── file_manifest.json       # {path: mtime} snapshot from last index run
-├── structure.lock              # Advisory write lock for chunks/graph/FTS (index + JIT re-parse)
+├── structure.lock              # Advisory write lock for coarse writers (index, mast_reindex, manifest)
 └── graph.db                 # Knowledge graph, chunks, and FTS5 index (SQLite, WAL mode)
 ```
 
@@ -566,13 +566,13 @@ typical single-file write this completes in <500ms.
 
 ### 7.6 Write Locking
 
-Writes are coordinated by **one advisory file lock**, managed by `proper-lockfile`:
+Coarse writes are coordinated by **one advisory file lock**, managed by `proper-lockfile`:
 
 - **`<state_dir>/structure.lock`** — held during chunk parsing, graph population, and
-  FTS index writes (`chunks` table, `graph.db`, `chunk_fts`, `identifier_fts`).
-  Acquired by `mast index`, the startup full/incremental reindex, `mast_reindex`,
-  and (importantly) the JIT re-parse triggered by stale-file detection inside any
-  read tool — see §9 staleness handling.
+  FTS index writes (`chunks` table, `graph.db`, `chunk_fts`, `identifier_fts`) for
+  **coarse writers only**: `mast index`, the startup full/incremental reindex, and
+  `mast_reindex`. It also coordinates the manifest/`index.json` phase, which SQLite
+  itself can never protect (plain `writeFileSync`, not a database write).
 
 **Why `proper-lockfile`:** it writes the acquiring process's PID into the lock file and
 checks liveness on encounter. If a container is killed mid-index and a `.lock` file is
@@ -589,13 +589,33 @@ live PID, and ensures clean recovery from abrupt container exits on shared volum
   times with 1-second backoff, then return an error to the agent with the suggestion
   to retry after the current index run completes.
 - **`mast serve` startup reindex**: blocking, same retry policy as `mast_reindex`.
-- **JIT re-parse from a read tool**: blocking with short retries — attempt acquisition
-  up to 3 times with 100ms backoff. On exhaustion, fall through to the TOCTOU policy
-  (§9 staleness handling) and return the stale chunk with a `file_busy_returning_stale_cache`
-  flag rather than blocking the agent indefinitely.
 
-Only one writer runs at a time. Concurrent readers (all MCP query tools) acquire no
-lock — they only `stat()` files for staleness detection (§9).
+**JIT re-parse from a read tool does NOT acquire `structure.lock`.** `structure.lock`
+is one global lock per state dir with no per-file component, so — measured directly
+(`eval/e7-concurrency.json`) — it made a JIT re-parse of file A block a JIT re-parse of
+file B despite the two touching disjoint rows, driving JIT failure rates as high as
+88.5% under pure reader-vs-reader concurrency. Instead, the JIT write goes straight to
+`populateFile` (§9.0), which opens its own transaction with `BEGIN IMMEDIATE` and a
+**dedicated, short `busy_timeout` of 200ms** (`IMMEDIATE_WRITE_BUSY_TIMEOUT_MS`,
+`graph/populate.ts`) — distinct from `graph.db`'s shared 5000ms connection default
+(set once at `openDatabase`, `graph/db.ts`) — set immediately before the transaction and restored immediately after, so no
+other statement on the connection ever inherits the short value. `BEGIN IMMEDIATE`
+takes the write reservation up front instead of discovering contention on commit (the
+`SQLITE_BUSY_SNAPSHOT` failure mode a plain deferred `BEGIN` is prone to), and its
+`busy_timeout` wait — capped at 200ms rather than inheriting the shared 5000ms default
+— is what bounds how long a genuinely contended write can hold up the calling tool. On
+exhaustion (`SQLITE_BUSY`/`SQLITE_BUSY_SNAPSHOT`), fall through to the TOCTOU policy
+below and return the stale chunk with a `file_busy_returning_stale_cache` flag rather
+than blocking the agent indefinitely — the same contract the old lock-retry exhaustion
+path used to produce, just reached by a different mechanism.
+
+Coarse writers serialize against each other and against the manifest phase on
+`structure.lock`. JIT writes serialize against each other cheaply within one `mast
+serve` process (Kysely's SQLite dialect guards every connection acquisition on a `Db`
+instance with an in-process mutex) and against coarse writers or other processes via
+`BEGIN IMMEDIATE`'s own write-reservation semantics — not via `structure.lock`.
+Concurrent readers (all MCP query tools) acquire no lock and take no part in either
+mechanism — they only `stat()` files for staleness detection (§9).
 
 ---
 
@@ -773,10 +793,11 @@ how many files a single call's results can span:
   stale result can be transparently refreshed in place. See below.
 - **Stat-and-flag** (`mast_search`, `mast_implementors`) — these tools can
   return results spanning dozens of files in one call, so JIT re-parsing
-  every result file would mean up to ~50 `structure.lock` acquisitions per
-  call, and re-parsing a result file mid-response could shift its rank,
-  gain or lose a match, or change its chunk boundaries — invalidating the
-  ranking/query that already selected the result being "refreshed". Instead,
+  every result file would mean up to ~50 tree-sitter re-parses and write
+  transactions per call, and re-parsing a result file mid-response could
+  shift its rank, gain or lose a match, or change its chunk boundaries —
+  invalidating the ranking/query that already selected the result being
+  "refreshed". Instead,
   after results are computed, each **unique** result `file_path` is
   `statSync`'d (no lock, no re-parse, no DB write) and its disk mtime
   compared against the indexed `files.mtime`. Newer-on-disk, or a failed
@@ -793,12 +814,15 @@ how many files a single call's results can span:
 1. `fs.stat()` the `file_path`. Compare disk `mtime` against the chunk's stored
    `file_mtime`.
 2. If `disk_mtime <= stored_mtime` → return the result unchanged. Fast path.
-3. If `disk_mtime > stored_mtime` → the chunk is stale. Acquire `structure.lock`
-   (see §7.6), re-index **this file only** (one tree-sitter parse,
-   one transactional delete-and-replace against the `chunks` table, `graph.db`,
-   `chunk_fts`, `identifier_fts`), release `structure.lock`. Re-resolve the
-   tool's result against the refreshed chunks. A single-file re-parse typically
-   completes in 10–50ms.
+3. If `disk_mtime > stored_mtime` → the chunk is stale. Re-index **this file
+   only** (one tree-sitter parse, one `BEGIN IMMEDIATE` transactional
+   delete-and-replace against the `chunks` table, `graph.db`, `chunk_fts`,
+   `identifier_fts` — see §7.6; no `structure.lock` acquisition on this path).
+   Re-resolve the tool's result against the refreshed chunks. A single-file
+   re-parse typically completes in 10–50ms; the transactional write itself is
+   bounded by a dedicated 200ms `busy_timeout` (§7.6), not the connection's
+   shared 5000ms default a genuinely contended write would otherwise wait
+   out.
 
 JIT re-parse covers files already known to the index. It does not discover a
 brand-new file or a newly-created symbol — those become searchable via the next
@@ -825,8 +849,17 @@ FTS5 rows for the affected file in the same transaction as the chunk/graph
 rewrite. There is no separate sync step.
 
 **Concurrency.** Two simultaneous read tools targeting different stale files
-each acquire `structure.lock` briefly and serialize on it. This is intentional
-and bounded: lock holding is per-file-parse (10–50ms), not per-tool-call.
+no longer serialize on any lock (§7.6) — each parses its own file fully in
+parallel, and only briefly contends on the transactional write. That write
+is bounded by the dedicated 200ms `busy_timeout`
+(`IMMEDIATE_WRITE_BUSY_TIMEOUT_MS`, §7.6): under real contention, `BEGIN
+IMMEDIATE`'s `busy_timeout` wait is a **synchronous** hold on the whole
+`mast serve` process's event loop (better-sqlite3's busy-wait is native and
+blocks the process, not just the calling request) — 200ms is the accepted
+trade at this magnitude, comparable to the 3×100ms lock-retry budget the
+pre-F11 JIT path used to pay, and far below the connection's shared 5000ms
+default, which would otherwise freeze the entire process for up to 5 seconds
+per contended write.
 
 **Result shape.** Every read tool's result objects MAY include
 `file_busy_returning_stale_cache: true` (omitted when false). Result schemas
@@ -1872,9 +1905,11 @@ reindex, assert the verdict no longer applies) in
 **Persistence.** `checker_verdicts` is a brand-new, additive table (§7.4 — no
 `CURRENT_SCHEMA_VERSION` bump). Writes are flushed one tsconfig project at a
 time under `structure.lock` (§7.6), kept as a short batch strictly separate
-from the compiler-heavy classification loop (which holds no lock) so a JIT
-re-parse from a concurrent read tool is never starved behind a multi-second
-classification pass.
+from the compiler-heavy classification loop (which holds no lock). A JIT
+re-parse from a concurrent read tool is never starved behind either phase —
+it no longer acquires `structure.lock` at all (§7.6, §9.0), so this
+separation now matters only for coarse-writer-vs-coarse-writer contention
+(e.g. a concurrent `mast_reindex`).
 
 **Consumption.** `mast_callers` and `mast_rename_impact` (via the shared
 `collectPotentialMatches`) filter `non_call_site`/`resolves_to_different`

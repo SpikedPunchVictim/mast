@@ -30,7 +30,7 @@ is also pre-existing, confirmed by re-running with new files removed.
 | F1 | `withLock` scope: whole-run → per-batch (`indexer/index.ts:46`) | **Complete** |
 | **F12** | **🔴 SILENT-CORRUPTION BUG INTRODUCED BY F1 — stamp/content ordering inverted. Fix first, ~5 lines** | **Complete** |
 | **F13** | ✅ `SQLITE_BUSY_SNAPSHOT` in `populateFile` escapes `checkAndRefreshIfStale` uncaught — bypasses F2's flag and violates §9.0's "do not throw". Fired 52× in real runs | **Complete** |
-| **F11** | **Replace fail-fast advisory locking** — E7 falsified the current design. **Urgency downgraded by E7-r2**, design verdict unchanged | **Not Started** |
+| **F11** | **Replace fail-fast advisory locking** — E7 falsified the current design. **Urgency downgraded by E7-r2**, design verdict unchanged | **Complete** |
 | **F14** | **`mast_signature` drops the busy flag when the symbol query returns 0 results** — `topLevelBusy` (`signature.ts:55`) is only consumed inside the per-result loop (`:76`), so an empty result set discards it. Worst case: "no results" + stale index reads as "symbol doesn't exist" | **Complete** |
 | F7 | Staleness for `mast_search` / `mast_implementors` (stat-and-flag, not refresh) | **Complete** |
 
@@ -191,6 +191,185 @@ attempt to acquire the lock, so nothing is ever "busy" in the sense the
 other tools' flag means. Per the task brief, inventing a second field name
 here was explicitly out of scope; C1 ("unify confidence signals") is where
 `stale`/`file_busy` get properly split apart.
+
+### F11 result (2026-08-07) — narrow-role locking shipped
+
+Shipped the plan's own "minimum viable outcome" (R5 review verdict, this
+section above): **`structure.lock` narrows to a coarse-writer role; the JIT
+path stops using it entirely.** Not option (d)'s full lock-free-read +
+write-behind overlay — that half stays deferred, see the last paragraph
+below.
+
+**Design implemented**:
+1. **JIT path** (`mcp/staleness.ts`'s `checkAndRefreshIfStale`): the
+   `acquireLock` call is gone. Staleness detection (`stat()` vs stored
+   mtime) and the TOCTOU parse-retry are unchanged; once a re-parse
+   succeeds, the write goes straight to `populateFile` with no lock
+   acquisition attempt at all.
+2. **`populateFile`** (`graph/populate.ts`, shared by JIT and reindex) now
+   opens its transaction with `BEGIN IMMEDIATE` instead of Kysely's
+   deferred `BEGIN`, wrapped in a dedicated `busy_timeout` of
+   **`IMMEDIATE_WRITE_BUSY_TIMEOUT_MS = 200`** (an exported constant with a
+   full WHY-comment on-site) — set before `BEGIN IMMEDIATE`, restored to the
+   connection's shared 5000ms default (`DEFAULT_BUSY_TIMEOUT_MS`) in every
+   exit path (success, body error, and the `BEGIN IMMEDIATE` failure itself,
+   which has nothing to roll back). On `SQLITE_BUSY`/`SQLITE_BUSY_SNAPSHOT`
+   exhaustion, `checkAndRefreshIfStale`'s existing F13 retry-then-map loop
+   (unchanged, `MAX_POPULATE_RETRIES = 1`) still returns
+   `{ refreshed: false, busy: true }` — never a throw.
+3. **Coarse writers are untouched**: `mast index` / the startup reindex,
+   `mast_reindex`, the manifest/`index.json` phase (`writeFileSync`, which
+   SQLite can never coordinate), and the checker-resolver flush all still
+   acquire `structure.lock` with their existing retry policies.
+   `insertEdges`'s transactionless RMW still runs only inside reindex pass 2
+   under that same lock. `removeDeletedFiles` and `SqliteChunkStore`'s
+   write methods (test-only `ChunkWriter` seam, unused in the production
+   path) were deliberately left on Kysely's plain `db.transaction()` —
+   neither participates in JIT, so F11's scope does not reach them.
+   **`structure.lock`'s narrowed role**: the ONLY thing it still protects is
+   what §"What structure.lock genuinely protects" above identified —
+   coordinating the plain-JSON manifest phase against everything else, plus
+   giving reindex batches a coarse, bounded-wait queue among themselves and
+   against the CLI. It no longer participates in JIT at all.
+
+**`BEGIN IMMEDIATE` mechanism chosen: option (a), `db.connection()` +
+raw statements — and why**. Kysely's better-sqlite3 driver hardcodes a
+plain `BEGIN` (`sqlite-driver.js`'s `beginTransaction`,
+`CompiledQuery.raw('begin')`) with no config knob for `IMMEDIATE`. Option
+(b) (a custom driver subclass overriding `beginTransaction` globally) was
+rejected: `IMPLEMENTATION_PLAN.md`'s own audit requirement — "verify no
+read-only transaction path exists that would newly take write locks" — held
+up under inspection (every `db.transaction()` call site in `src/` is a
+write: `populateFile` x1 remaining caller, `removeDeletedFiles`,
+`SqliteChunkStore.replaceChunksForFile`/`deleteChunksForFiles`), so (b)
+would have been *safe*, but it would also have made every one of those
+OTHER writers immediate for no reason this task asked for, and it offers no
+way to scope the short `busy_timeout` to JUST `populateFile`'s window
+without a pragma toggle around every transaction, not only this one. Option
+(a) — `db.connection().execute(async (conn) => { ...raw 'begin immediate' /
+'commit' / 'rollback'... })` — scopes both the `IMMEDIATE` semantics and the
+short `busy_timeout` to exactly this one transaction, so it was chosen.
+
+**Race-freedom of the busy_timeout toggle and the raw-statement sequence**:
+the pragma set/restore and the `begin immediate`/`commit`/`rollback`
+statements all run inside the SAME `db.connection().execute()` callback,
+against the SAME checked-out connection, so nothing external can interleave
+a statement into that window — this was not just asserted from the plan
+brief's phrasing but independently verified two ways: (1) reading
+`kysely`'s `RuntimeDriver` (`runtime-driver.js`) shows that because the
+SQLite adapter reports `supportsMultipleConnections: false`, EVERY
+connection acquisition on a given `Db` instance — via `db.transaction()`,
+`db.connection()`, or a plain query — is serialized through one
+`ConnectionMutex`; (2) empirically, a throwaway script ran 20
+independently-staggered (random 0–30ms start delay, random 0–20ms
+in-transaction delay via real `setTimeout`, not just back-to-back
+synchronous calls) concurrent `db.connection().execute()` transactions
+against one shared `Db` — zero interleaving errors, all 20 rows landed. A
+second script confirmed the contended path directly: a real second
+better-sqlite3 connection holding `BEGIN IMMEDIATE` made a
+`db.connection()`-based transaction wait ~229ms (matching the 200ms
+`busy_timeout` plus overhead) and then fail with `SQLITE_BUSY`, with the
+pragma correctly restored to 5000 afterward and the shared connection left
+in a clean, reusable state (verified via a follow-up successful insert). A
+third script confirmed rollback-then-restore on a genuine mid-transaction
+error (`SQLITE_CONSTRAINT_UNIQUE`) behaves the same way. This closes the gap
+between "Kysely says `SingleConnectionProvider` serializes checkouts" (true
+only for NESTED calls reusing an already-checked-out connection) and the
+actual mechanism that matters here (`ConnectionMutex`, guarding the
+OUTERMOST acquisition too) — both had to hold for the design to be safe
+against same-process concurrent JIT writes, and both were verified rather
+than assumed.
+
+**E7 contention class dissolved by construction**: E7's root cause was
+`structure.lock` being one global, no-file-component lock
+(`store/lock.ts`'s `markerPath`), so a JIT re-parse of file A blocked a JIT
+re-parse of file B despite disjoint rows — 35–88.5% JIT failure rates under
+pure reader-vs-reader concurrency with zero reindex running. Removing the
+lock from this path entirely means two JIT refreshes of different files
+now run their parse step (the dominant cost per E7-r2: hold p95 15–47ms,
+chunk writes ~0.4ms mean) fully in parallel, with no shared resource to
+contend over until each reaches its own `populateFile` write — which
+serializes same-process siblings cheaply via `ConnectionMutex` (no I/O, no
+real wait) and governs genuine cross-connection contention (a concurrent
+reindex batch, or another `mast serve` process) via `BEGIN IMMEDIATE`'s
+honest bounded wait instead of a fail-fast lock retry.
+
+**Test migration**: the F2/F14 busy-flag suites in
+`src/mcp/tools/__tests__/tools.test.ts` used to force `busy` by holding
+`structure.lock` (`holdStructureLock` + `makeStale`) — with JIT no longer
+touching that lock, this forcing mechanism now produces a successful
+refresh instead, breaking 8 of the suite's existing assertions. Replaced
+with `holdWriteLock`: a second raw better-sqlite3 connection to the SAME
+`graph.db` holding a genuine `BEGIN IMMEDIATE` write reservation — the
+condition `populateFile`'s own transaction now actually contends against.
+All 8 migrated tests kept their exact `busy`-flag expectations (F2's
+envelope-level cases across `mast_exports`/`mast_dependencies`/
+`mast_callers`/`mast_rename_impact`, `mast_signature`'s per-result case, and
+F14's three empty-result-envelope cases), renamed only where "lock" language
+needed to become "contended write" language. `holdStructureLock` itself was
+KEPT (not deleted) — it is now used by exactly one test, described next.
+Two new tests were added:
+- **`F11 inversion`** (`describe('F11 inversion — holding the old
+  structure.lock no longer gates JIT')`) — the behavioral proof of F11: make
+  a dedicated `inversion.ts` fixture stale, hold the OLD advisory lock via
+  `holdStructureLock`, call `mast_exports`, and assert BOTH that the
+  response carries no `file_busy_returning_stale_cache` flag AND that its
+  `exports` array contains a symbol only present in the NEW file content —
+  the stronger assertion proves a real re-parse happened, not merely that
+  staleness went undetected.
+- **`F11 bounded freeze`** — with a `holdWriteLock` holder genuinely
+  contending, a `mast_exports` call against a stale file returns
+  busy-flagged in asserted `< 2000ms` wall-clock, proving the dedicated
+  200ms `busy_timeout` — not the inherited 5000ms connection default — governs
+  this path, per the HARD CONSTRAINT section below.
+
+**Red-first evidence** (both runs done by temporarily reverting only
+`graph/populate.ts`, `mcp/staleness.ts`, and `store/lock.ts` via `git
+stash`, keeping the already-updated test file, then restoring): (1) the
+full pre-migration suite run (updated production code, unmigrated tests)
+showed exactly the predicted 8 failures, all `AssertionError: expected
+undefined to be true` at the `file_busy_returning_stale_cache` assertions —
+475 passed / 8 failed, same file count. (2) Running the NEW/migrated tests
+against REVERTED (pre-F11) production code: the `F11 inversion` test failed
+for precisely the intended reason — `expected ... to not have property
+"file_busy_returning_stale_cache"` / received `true`, i.e. the OLD advisory
+lock still forced busy on old code, which is exactly the behavior F11
+removes. The migrated F2/F14 tests and the bounded-freeze test, run against
+the SAME reverted code, all PASSED — worth recording precisely rather than
+glossing over: `holdWriteLock` bypasses `structure.lock` entirely (it never
+touches it), so on old code the JIT path still acquired the now-irrelevant
+advisory lock for free, reached `populateFile`'s pre-F11 deferred-`BEGIN`
+read-then-write, and hit the SAME `SQLITE_BUSY_SNAPSHOT`/`SQLITE_BUSY`
+condition the already-shipped F13 retry-then-map already classifies as
+`{ busy: true }` — just via the 1–2ms fast-fail path (per the HARD
+CONSTRAINT section's Phase 2/3 finding) instead of a lock-acquisition
+failure. That both mechanisms independently converge on the same observed
+contract is a genuine finding, not a shortcoming of the red-phase check: it
+confirms F2/F14's `busy`-flag contract survived the redesign unbroken, while
+the `F11 inversion` test is the one assertion in this suite that actually
+depends on WHICH mechanism is doing the gating, which is exactly why it
+was written.
+
+**Verification**: full suite 485/37 (483 baseline + 2 new tests, same file
+count — the F11 inversion and bounded-freeze tests; no test was deleted,
+only migrated), `tsc --noEmit` clean, `eslint` clean, root `pnpm
+align:check` unchanged: `baselined debt: 324 → 324 (0)`, red only on the
+same 2 pre-existing non-mast violations (`application/ui/.../root-layout.tsx`
+import cycle, `application/api/.../fold-build-record-repository.ts`'s
+`apiDomain`→`apiDb` dependency violation).
+
+**Deferred, on the record**: option (d)'s in-memory overlay / lock-free-read
+half — decoupling response freshness from index persistence entirely,
+threading an overlay through 8 tools' result assembly — is explicitly NOT
+implemented here. It remains deferred per the E7-r2 sizing verdict (Stage 4
+above) until scale evidence from a larger corpus (E1's n8n rung, 12,641
+files) shows the contention M1 incidentally fixed at nest's ~1,338-file
+scale reappears. Nothing shipped in F11 forecloses building it later: the
+overlay would sit in front of `checkAndRefreshIfStale`'s existing
+stat-then-refresh call, which is unchanged in shape (still synchronous
+staleness detection, still a bounded write attempt, still a `busy` signal on
+failure) — only the write mechanism underneath it (advisory lock → `BEGIN
+IMMEDIATE`) changed.
 
 ### 🔴 HARD CONSTRAINT ON F11 — `busy_timeout` IS the process-freeze window
 

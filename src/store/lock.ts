@@ -52,13 +52,22 @@ export interface AcquireOptions {
  *
  * Returns a release function. Always `await release()` in a finally block.
  * The returned function is wrapped to record hold-duration lock metrics on
- * release — this covers direct callers (e.g. the JIT re-parse path in
- * `mcp/staleness.ts`) as well as callers that go through {@link withLock}.
+ * release — this covers direct callers as well as callers that go through
+ * {@link withLock}.
  *
  * Per spec §7.6:
  * - CLI commands: maxRetries=1, retryIntervalMs=2000 (2s total)
  * - mast_reindex / mast serve startup: maxRetries=5, retryIntervalMs=1000
- * - JIT re-parse from read tools: maxRetries=3, retryIntervalMs=100
+ *
+ * **F11 (`IMPLEMENTATION_PLAN.md` "Replace fail-fast advisory locking")
+ * narrowed this lock's role**: the JIT re-parse path (`mcp/staleness.ts`'s
+ * `checkAndRefreshIfStale`) no longer calls `acquireLock` at all — it relies
+ * on `populateFile`'s own `BEGIN IMMEDIATE` transaction
+ * (`graph/populate.ts`) plus a dedicated short `busy_timeout` instead. This
+ * lock is now acquired only by coarse writers: `mast index` / the startup
+ * reindex, `mast_reindex`, and the manifest/`index.json` phase (plain-JSON
+ * `writeFileSync`, which SQLite can never coordinate) — see `populateFile`'s
+ * doc comment for the full design rationale.
  *
  * @throws if the lock cannot be acquired after all retries.
  */

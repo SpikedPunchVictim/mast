@@ -1,4 +1,4 @@
-import type { Db } from './db.js';
+import { sql, type Db } from './db.js';
 import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../ast/types.js';
 import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
@@ -55,8 +55,8 @@ export interface PopulateFileResult {
  * this instead of writing the `chunks` table inline. Lets write-failure tests
  * (`indexer/__tests__/write-failures.test.ts`) inject a chunk-store failure
  * with an in-memory fake — since the call happens INSIDE this function's own
- * `db.transaction()`, a rejection here still rolls back everything else the
- * transaction already wrote (symbols/imports/chunk_fts/identifier_fts),
+ * `BEGIN IMMEDIATE` transaction, a rejection here still rolls back everything
+ * else the transaction already wrote (symbols/imports/chunk_fts/identifier_fts),
  * proving the same atomicity the production (no-override) path gets from
  * writing straight to the shared `chunks` table. Structurally compatible with
  * `ChunkStore.replaceChunksForFile` (store/sqliteChunkStore.js) without this
@@ -64,6 +64,34 @@ export interface PopulateFileResult {
  * only its method shape.
  */
 export type ChunkWriter = (filePath: string, chunks: readonly Chunk[]) => Promise<number>;
+
+/**
+ * Dedicated `busy_timeout` (ms) for {@link populateFile}'s own transaction —
+ * distinct from `graph.db`'s shared 5000ms connection default
+ * (`openDatabase`, `graph/db.ts`).
+ *
+ * F11 (`IMPLEMENTATION_PLAN.md` "Replace fail-fast advisory locking") moves
+ * this transaction from Kysely's deferred `BEGIN` to `BEGIN IMMEDIATE` (see
+ * `populateFile`'s doc comment for why) so it takes the write reservation up
+ * front instead of discovering contention via `SQLITE_BUSY_SNAPSHOT` on its
+ * own commit (F13). That makes the busy_timeout wait live for the first time
+ * on this path — under the inherited 5000ms default, ANY genuine contention
+ * would block better-sqlite3's synchronous busy-wait for up to 5 seconds,
+ * freezing the ENTIRE `mast serve` process (its native busy-wait blocks the
+ * whole event loop, not just the calling promise chain — measured directly in
+ * `eval/eventloop-probe.json`, see IMPLEMENTATION_PLAN.md's "HARD CONSTRAINT
+ * ON F11"). 200ms keeps that freeze window in the same neighbourhood as the
+ * 3x100ms `structure.lock` retry budget the JIT path used to pay instead of
+ * ever reaching SQLite's own wait (`mcp/staleness.ts`, pre-F11), rather than
+ * inheriting the 25x-longer 5000ms shared default. Set and restored only
+ * around this transaction's own exclusive connection window (see
+ * `populateFile`) so no unrelated statement on the shared connection ever
+ * inherits the short value.
+ */
+export const IMMEDIATE_WRITE_BUSY_TIMEOUT_MS = 200;
+
+/** `graph.db`'s shared connection-wide default (`openDatabase`, `graph/db.ts`) — restored after {@link populateFile}'s short window closes. */
+const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
 
 /**
  * Delete all rows for `filePath` from files, symbols, edges, imports,
@@ -83,162 +111,239 @@ export type ChunkWriter = (filePath: string, chunks: readonly Chunk[]) => Promis
  * **Monotonic write-guard (F12, `GITNEXUS_COMPARISON.md` Stage 1)**: refuses
  * to replace a row whose stored `mtime` already exceeds `data.mtime`. Two
  * writers can legitimately race to write the same file — a reindex batch and
- * a concurrent JIT refresh (`mcp/staleness.ts`) both call this function, and
- * `structure.lock` only serializes the two writes, it does not order them by
- * freshness. Without this guard, whichever writer happens to acquire the lock
- * LAST wins even if it parsed OLDER content — silently regressing the row.
- * With it, the write carrying the NEWER stamp always wins, independent of
- * arrival order, which is what actually makes the ordering guarantee in
- * `runIndex`'s WHY-comment (`indexer/index.ts`) hold. This is strictly
- * subject to mtime-granularity blindness (see that WHY-comment) — two writes
- * landing in the same tick compare equal, not ordered, and whichever call
- * happens second wins; that is a known, documented limitation, not something
- * this guard claims to solve.
+ * a concurrent JIT refresh (`mcp/staleness.ts`) both call this function.
+ * Without this guard, whichever writer commits LAST wins even if it parsed
+ * OLDER content — silently regressing the row. With it, the write carrying
+ * the NEWER stamp always wins, independent of arrival order, which is what
+ * actually makes the ordering guarantee in `runIndex`'s WHY-comment
+ * (`indexer/index.ts`) hold. This is strictly subject to mtime-granularity
+ * blindness (see that WHY-comment) — two writes landing in the same tick
+ * compare equal, not ordered, and whichever call happens second wins; that is
+ * a known, documented limitation, not something this guard claims to solve.
+ *
+ * **`BEGIN IMMEDIATE`, not a plain `db.transaction()` (F11)**: Kysely's
+ * better-sqlite3 driver only ever issues a deferred `BEGIN`
+ * (`sqlite-driver.js`'s `beginTransaction` — `CompiledQuery.raw('begin')`,
+ * hardcoded), and there is no config knob to change that. A deferred-BEGIN
+ * read-then-write (this function's own monotonic-guard SELECT, followed by
+ * its writes) can fail `SQLITE_BUSY_SNAPSHOT` in 1-2ms against ANY competing
+ * holder — even one that never commits — which `busy_timeout` cannot wait
+ * out, because the snapshot is already stale, not merely locked (F13,
+ * `eval/e7-round2.json`, 52 real occurrences). `BEGIN IMMEDIATE` takes the
+ * write reservation up front instead, eliminating that failure class and
+ * falling back to an honest bounded `busy_timeout` wait when genuinely
+ * contended (`eval/eventloop-probe.json` Phase 2/3). Since Kysely cannot be
+ * asked for `BEGIN IMMEDIATE` via `db.transaction()`, this function instead
+ * checks out the underlying connection exclusively via `db.connection()` and
+ * issues `begin immediate` / `commit` / `rollback` as raw statements around
+ * the same statement sequence a `db.transaction()` callback would have run.
+ * Kysely's SQLite adapter reports `supportsMultipleConnections: false`, so
+ * `RuntimeDriver` (`runtime-driver.js`) guards every connection acquisition
+ * on a given `Db` instance with one `ConnectionMutex` — verified by reading
+ * that source AND empirically (20 independently-staggered concurrent
+ * `db.connection().execute()` calls against one shared `Db`: zero
+ * interleaving errors, all 20 rows landed, in submission order). That means
+ * no OTHER statement issued through the SAME `Db` instance — chiefly a
+ * same-process concurrent JIT refresh of a different file, now that F11
+ * removes `structure.lock` from that path — can interleave into this
+ * transaction's raw `begin immediate` / ... / `commit` window. A genuinely
+ * different connection (reindex's own `openDatabase()` call in
+ * `indexer/index.ts`, or another `mast serve` process) is real SQLite-level
+ * concurrency, correctly governed by `BEGIN IMMEDIATE`'s write-reservation
+ * semantics and this transaction's own short `busy_timeout`
+ * ({@link IMMEDIATE_WRITE_BUSY_TIMEOUT_MS}), not by this in-process mutex.
  */
 export async function populateFile(
   db: Db,
   data: Omit<FileIndexData, 'edges'>,
   chunkWriter?: ChunkWriter,
 ): Promise<PopulateFileResult> {
-  return db.transaction().execute(async (trx) => {
-    // Monotonic write-guard — see the F12 paragraph in this function's doc
-    // comment above. Reading the existing row's mtime and deciding whether to
-    // proceed inside the SAME transaction that performs the delete-and-replace
-    // keeps the check-then-act pair atomic relative to any other populateFile
-    // call, exactly as invariant 1's read-then-write pair is kept atomic
-    // relative to other `structure.lock` holders (indexer/index.ts).
-    const existing = await trx
-      .selectFrom('files')
-      .select(['id', 'mtime'])
-      .where('path', '=', data.filePath)
-      .executeTakeFirst();
+  return db.connection().execute(async (conn) => {
+    // The busy_timeout toggle must happen INSIDE this exclusive connection
+    // window (see the doc comment above) so no unrelated statement on the
+    // shared connection ever runs with the short value — pragmas are cheap
+    // and synchronous, so bracketing the transaction with them costs nothing
+    // measurable.
+    await sql.raw(`pragma busy_timeout = ${IMMEDIATE_WRITE_BUSY_TIMEOUT_MS}`).execute(conn);
 
-    if (existing !== undefined && existing.mtime > data.mtime) {
-      // Logged at WARN, not ERROR — this is a correctly-refused stale write,
-      // not a failure (contrast the write-failure ERROR log below). Still
-      // never silent: a caller that ignored this row's `written: false`
-      // would see a normal-looking `PopulateFileResult` and never learn its
-      // parse was discarded.
-      process.stderr.write(
-        `[mast] WARN: monotonic write-guard rejected a stale write for ${data.filePath} ` +
-        `(stored mtime ${existing.mtime} > incoming ${data.mtime}) — existing row left unchanged\n`,
-      );
-      return { fileId: existing.id, chunksRemoved: 0, written: false };
+    try {
+      await sql`begin immediate`.execute(conn);
+    } catch (err) {
+      // BEGIN IMMEDIATE itself lost the busy_timeout wait — no transaction
+      // was ever opened, so there is nothing to roll back. Restore the
+      // shared default before propagating.
+      await sql.raw(`pragma busy_timeout = ${DEFAULT_BUSY_TIMEOUT_MS}`).execute(conn);
+      throw err;
     }
 
-    // Delete-and-replace: FK cascades remove symbols, edges, imports.
-    await trx.deleteFrom('files').where('path', '=', data.filePath).execute();
-
-    const [file] = await trx
-      .insertInto('files')
-      .values({
-        path: data.filePath,
-        language: data.language,
-        mtime: data.mtime,
-      })
-      .returning('id')
-      .execute();
-
-    if (file === undefined) throw new Error(`Insert into files returned no id for ${data.filePath}`);
-
-    const fileId = file.id;
-
-    // Chunks — same transaction as the rest of this file's derived state
-    // (§15.1). Default path writes the shared `chunks` table directly;
-    // `chunkWriter` (test-only) substitutes an injected implementation, see
-    // its docstring above for why that stays atomic too.
-    const chunksRemoved = chunkWriter !== undefined
-      ? await chunkWriter(data.filePath, data.chunks)
-      : await replaceChunksInline(trx, data.filePath, data.chunks);
-
-    // Insert symbols. Batched under SQLite's 32,766 bound-parameter ceiling
-    // (Stage 4.5 S1, IMPLEMENTATION_PLAN.md — see `replaceChunksInline`'s
-    // WHY-comment below for the full defect and why batching the statement
-    // rather than the transaction preserves atomicity).
-    if (data.symbols.length > 0) {
-      // Explicit row-type annotation (`is_exported: 0 | 1`, not `number`) —
-      // extracting this `.map()` into its own `const` (needed so the same
-      // array can be both batched and, in principle, inspected) loses the
-      // contextual typing `.values(data.symbols.map(...))` got for free when
-      // the ternary's result fed straight into Kysely's `InsertObject`;
-      // without this annotation, `s.isExported ? 1 : 0` widens to `number`
-      // and fails `symbols`'s `BoolCol` (`0 | 1`) column type.
-      const symbolRows: {
-        name: string;
-        kind: string;
-        file_id: number;
-        line: number;
-        is_exported: 0 | 1;
-        declaration_hash: string | null;
-        body_hash: string | null;
-      }[] = data.symbols.map((s) => ({
-        name: s.name,
-        kind: s.kind,
-        file_id: fileId,
-        line: s.line,
-        is_exported: s.isExported ? 1 : 0,
-        declaration_hash: s.declarationHash,
-        body_hash: s.bodyHash,
-      }));
-      for (const batch of chunkRowsForSqlite(symbolRows)) {
-        await trx.insertInto('symbols').values(batch).execute();
-      }
+    try {
+      const result = await writePopulatedFileRows(conn, data, chunkWriter);
+      await sql`commit`.execute(conn);
+      return result;
+    } catch (err) {
+      await sql`rollback`.execute(conn);
+      throw err;
+    } finally {
+      // Runs after both the commit and the rollback branches above — see the
+      // doc comment's "checks out the underlying connection exclusively"
+      // paragraph for why this must land before the connection is released.
+      await sql.raw(`pragma busy_timeout = ${DEFAULT_BUSY_TIMEOUT_MS}`).execute(conn);
     }
-
-    // Insert imports. Same batching as symbols above.
-    if (data.imports.length > 0) {
-      // Same widening issue and fix as `symbolRows` above (`is_external` is
-      // also a `BoolCol`).
-      const importRows: {
-        file_id: number;
-        module: string;
-        symbols: string;
-        is_external: 0 | 1;
-        resolved_path: string | null;
-      }[] = data.imports.map((imp) => ({
-        file_id: fileId,
-        module: imp.module,
-        symbols: JSON.stringify(imp.symbols),
-        is_external: imp.isExternal ? 1 : 0,
-        resolved_path: imp.resolvedPath,
-      }));
-      for (const batch of chunkRowsForSqlite(importRows)) {
-        await trx.insertInto('imports').values(batch).execute();
-      }
-    }
-
-    // FTS5 updates — same transaction as graph writes (§7.1 step 5).
-    // Delete existing rows by file_path (UNINDEXED column, supported by FTS5).
-    await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
-    await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
-
-    // Batch-insert all chunks in one statement instead of one INSERT per chunk
-    // — further batched under the parameter ceiling, same as above.
-    if (data.chunks.length > 0) {
-      const chunkFtsRows = data.chunks.map((chunk) => ({
-        content: chunk.content,
-        symbol_name: chunk.symbol_name,
-        chunk_id: chunk.chunk_id,
-        file_path: data.filePath,
-      }));
-      for (const batch of chunkRowsForSqlite(chunkFtsRows)) {
-        await trx.insertInto('chunk_fts').values(batch).execute();
-      }
-    }
-
-    if (data.identifierRows.length > 0) {
-      const identifierFtsRows = data.identifierRows.map((row) => ({
-        identifiers: row.identifiers,
-        chunk_id: row.chunk_id,
-        file_path: data.filePath,
-      }));
-      for (const batch of chunkRowsForSqlite(identifierFtsRows)) {
-        await trx.insertInto('identifier_fts').values(batch).execute();
-      }
-    }
-
-    return { fileId, chunksRemoved, written: true };
   });
+}
+
+/**
+ * The actual delete-and-replace statement sequence, run against `trx` — a
+ * `db.connection()`-bound `Db` sitting inside {@link populateFile}'s
+ * already-open `BEGIN IMMEDIATE`. Split out of `populateFile` so that
+ * function's `BEGIN IMMEDIATE` / `COMMIT` / `ROLLBACK` bracketing has a
+ * single call to wrap, including the monotonic write-guard's early "nothing
+ * to write" return — that path still needs the transaction committed
+ * (nothing was mutated, but the write reservation `BEGIN IMMEDIATE` took
+ * must still be released), not treated as an error.
+ */
+async function writePopulatedFileRows(
+  trx: Db,
+  data: Omit<FileIndexData, 'edges'>,
+  chunkWriter?: ChunkWriter,
+): Promise<PopulateFileResult> {
+  // Monotonic write-guard — see the F12 paragraph in populateFile's doc
+  // comment above. Reading the existing row's mtime and deciding whether to
+  // proceed inside the SAME transaction that performs the delete-and-replace
+  // keeps the check-then-act pair atomic relative to any other populateFile
+  // call, exactly as invariant 1's read-then-write pair is kept atomic
+  // relative to other `structure.lock` holders (indexer/index.ts).
+  const existing = await trx
+    .selectFrom('files')
+    .select(['id', 'mtime'])
+    .where('path', '=', data.filePath)
+    .executeTakeFirst();
+
+  if (existing !== undefined && existing.mtime > data.mtime) {
+    // Logged at WARN, not ERROR — this is a correctly-refused stale write,
+    // not a failure (contrast the write-failure ERROR log below). Still
+    // never silent: a caller that ignored this row's `written: false`
+    // would see a normal-looking `PopulateFileResult` and never learn its
+    // parse was discarded.
+    process.stderr.write(
+      `[mast] WARN: monotonic write-guard rejected a stale write for ${data.filePath} ` +
+      `(stored mtime ${existing.mtime} > incoming ${data.mtime}) — existing row left unchanged\n`,
+    );
+    return { fileId: existing.id, chunksRemoved: 0, written: false };
+  }
+
+  // Delete-and-replace: FK cascades remove symbols, edges, imports.
+  await trx.deleteFrom('files').where('path', '=', data.filePath).execute();
+
+  const [file] = await trx
+    .insertInto('files')
+    .values({
+      path: data.filePath,
+      language: data.language,
+      mtime: data.mtime,
+    })
+    .returning('id')
+    .execute();
+
+  if (file === undefined) throw new Error(`Insert into files returned no id for ${data.filePath}`);
+
+  const fileId = file.id;
+
+  // Chunks — same transaction as the rest of this file's derived state
+  // (§15.1). Default path writes the shared `chunks` table directly;
+  // `chunkWriter` (test-only) substitutes an injected implementation, see
+  // its docstring above for why that stays atomic too.
+  const chunksRemoved = chunkWriter !== undefined
+    ? await chunkWriter(data.filePath, data.chunks)
+    : await replaceChunksInline(trx, data.filePath, data.chunks);
+
+  // Insert symbols. Batched under SQLite's 32,766 bound-parameter ceiling
+  // (Stage 4.5 S1, IMPLEMENTATION_PLAN.md — see `replaceChunksInline`'s
+  // WHY-comment below for the full defect and why batching the statement
+  // rather than the transaction preserves atomicity).
+  if (data.symbols.length > 0) {
+    // Explicit row-type annotation (`is_exported: 0 | 1`, not `number`) —
+    // extracting this `.map()` into its own `const` (needed so the same
+    // array can be both batched and, in principle, inspected) loses the
+    // contextual typing `.values(data.symbols.map(...))` got for free when
+    // the ternary's result fed straight into Kysely's `InsertObject`;
+    // without this annotation, `s.isExported ? 1 : 0` widens to `number`
+    // and fails `symbols`'s `BoolCol` (`0 | 1`) column type.
+    const symbolRows: {
+      name: string;
+      kind: string;
+      file_id: number;
+      line: number;
+      is_exported: 0 | 1;
+      declaration_hash: string | null;
+      body_hash: string | null;
+    }[] = data.symbols.map((s) => ({
+      name: s.name,
+      kind: s.kind,
+      file_id: fileId,
+      line: s.line,
+      is_exported: s.isExported ? 1 : 0,
+      declaration_hash: s.declarationHash,
+      body_hash: s.bodyHash,
+    }));
+    for (const batch of chunkRowsForSqlite(symbolRows)) {
+      await trx.insertInto('symbols').values(batch).execute();
+    }
+  }
+
+  // Insert imports. Same batching as symbols above.
+  if (data.imports.length > 0) {
+    // Same widening issue and fix as `symbolRows` above (`is_external` is
+    // also a `BoolCol`).
+    const importRows: {
+      file_id: number;
+      module: string;
+      symbols: string;
+      is_external: 0 | 1;
+      resolved_path: string | null;
+    }[] = data.imports.map((imp) => ({
+      file_id: fileId,
+      module: imp.module,
+      symbols: JSON.stringify(imp.symbols),
+      is_external: imp.isExternal ? 1 : 0,
+      resolved_path: imp.resolvedPath,
+    }));
+    for (const batch of chunkRowsForSqlite(importRows)) {
+      await trx.insertInto('imports').values(batch).execute();
+    }
+  }
+
+  // FTS5 updates — same transaction as graph writes (§7.1 step 5).
+  // Delete existing rows by file_path (UNINDEXED column, supported by FTS5).
+  await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
+  await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
+
+  // Batch-insert all chunks in one statement instead of one INSERT per chunk
+  // — further batched under the parameter ceiling, same as above.
+  if (data.chunks.length > 0) {
+    const chunkFtsRows = data.chunks.map((chunk) => ({
+      content: chunk.content,
+      symbol_name: chunk.symbol_name,
+      chunk_id: chunk.chunk_id,
+      file_path: data.filePath,
+    }));
+    for (const batch of chunkRowsForSqlite(chunkFtsRows)) {
+      await trx.insertInto('chunk_fts').values(batch).execute();
+    }
+  }
+
+  if (data.identifierRows.length > 0) {
+    const identifierFtsRows = data.identifierRows.map((row) => ({
+      identifiers: row.identifiers,
+      chunk_id: row.chunk_id,
+      file_path: data.filePath,
+    }));
+    for (const batch of chunkRowsForSqlite(identifierFtsRows)) {
+      await trx.insertInto('identifier_fts').values(batch).execute();
+    }
+  }
+
+  return { fileId, chunksRemoved, written: true };
 }
 
 /**

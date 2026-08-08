@@ -18,7 +18,7 @@ unblocked). Priorities:
 - **F11**: advisory-locking redesign — E7 FALSIFIED fail-fast per-batch locking (X2:
   pure reader-vs-reader JIT traffic hits 35%/70%/88.5% JIT failure at N=2/4/8);
   urgency downgraded by E7-r2, design verdict unchanged. Read both E7 results in the
-  plan before designing.
+  plan before designing. — **DONE 2026-08-07**
 
 **P0-adjacent — scale write correctness (Stage 4.5 S1, added 2026-08-07):** batch
 `replaceChunksForFile`'s single multi-row INSERT (`sqliteChunkStore.ts:82`) —
