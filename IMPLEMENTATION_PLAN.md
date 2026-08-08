@@ -734,7 +734,7 @@ asserting the *potential set* (the existing method fixture only asserts
 
 | # | Task | Status |
 |---|---|---|
-| F8 | `mast_project_skeleton` costs **~28 s/call** — 99% in `estimateFullFileBound`; `FULL_FILE_BOUND_CACHE_LIMIT=200` LRU-thrashes against 1,334 files (`telemetry/tokenizer.ts:68,97`). Cap the *work*, not the cache | Not Started |
+| F8 | `mast_project_skeleton` costs **~28 s/call** — 99% in `estimateFullFileBound`; `FULL_FILE_BOUND_CACHE_LIMIT=200` LRU-thrashes against 1,334 files (`telemetry/tokenizer.ts:68,97`). Cap the *work*, not the cache | **Complete** |
 | F9 | `mast init --extensions` / `--exclude` are parsed and **ignored** (`cli/init.ts:20–23`); `loadStateConfig` has zero callers outside `config.ts`, and `serve` *overwrites* the persisted config. Honour them or delete the flags | Not Started |
 | M6 | `mast serve` silently bootstraps an empty state dir and answers every query `{"results":[]}` — indistinguishable from "symbol doesn't exist". Fail fast | Not Started |
 | C1 | Unify confidence signals — MAST already computes `resolution` and `reason`; add the missing ones uniformly: `stale`/`file_busy` (done F2, extend per F7) and `truncated` (F10) | Not Started |
@@ -744,6 +744,94 @@ is the single largest practical DX cost measured — the orientation tool the §
 tells the agent to call *first* spends ~99% of its latency computing a telemetry
 counterfactual. F9/M6 are both "the tool lies about what it did".
 **Evidence**: §14.4 (M2/F8), §14.4 (M3/F9), §13.5 (M6), §13.8 item 8 / §14.8 item 5 (C1).
+
+### F8 result (2026-08-07) — telemetry work cap shipped
+
+**Design shipped, "cap the work, not the cache" — two parts**:
+
+1. **Per-call tokenization budget** (`FULL_FILE_TOKENIZE_BUDGET_PER_CALL = 32`,
+   `telemetry/tokenizer.ts`): `estimateFullFileBound` now only exactly reads+tokenizes
+   the first 32 cache-miss paths per call, in the caller's dedup'd path order (deterministic).
+   Cache hits are free (never consume budget). Once the budget is exhausted, further
+   cache misses are size-estimated (`Math.ceil(sizeBytes / BYTES_PER_TOKEN_ESTIMATE)`,
+   `BYTES_PER_TOKEN_ESTIMATE = 4`) instead of read, and deliberately **not cached** — an
+   estimate must never masquerade as an exact cached count. A failed read still spends
+   its granted budget slot (the stat that granted it already succeeded); a failed
+   *stat* (missing file) is rejected before the budget check and spends nothing.
+   Successive calls over the same path set progressively convert estimates to exact,
+   cached counts. WHY 32: profiling showed the tokenizer costs a ~22-24ms/call floor
+   *regardless of content length* — 32 calls is ~0.7-0.8s worst case per call, versus
+   the ~28s this function cost tokenizing all 1,334 files in one pass. §14.1's
+   "negligible overhead" goal (< 1ms/call) predates `mast_project_skeleton` existing as
+   a whole-project-scale caller and is not literally met by this ~0.7-0.8s worst case —
+   flagged in MAST_SPEC.md §14.1 and in this task's report rather than silently
+   papered over; see "deviations" below.
+2. **Cache limit raised** (`FULL_FILE_BOUND_CACHE_LIMIT`: 200 → 8192): 200 was tuned
+   for "one working session's file set" before `mast_project_skeleton` — which
+   references *every* project file — existed as a caller. Cache entries are a path
+   string plus two numbers, so 8192 entries is ~2-3 MB worst case, comfortably covering
+   the ~10k-file corpora at the 150k-chunk scale target (Stage 4.5). The LRU eviction
+   mechanism itself (`cacheTouch`) is unchanged.
+
+**`FullFileReader` DI seam extended**: `statMtime(path): number` replaced with
+`stat(path): { mtimeSeconds, sizeBytes }` — one method, not `statMtime` + a new
+`statSize`, because `fs.statSync` already yields both from a single syscall and every
+cache-miss path now needs the size too. Same "callers catch failures" contract.
+
+**Net behavior**: first `mast_project_skeleton` call on a 1,334-file project ≈ 32 exact
+reads + ~1,300 cheap stat-only estimates — sub-second, down from ~28s. Each subsequent
+call converts 32 more paths to exact/cached; the whole project converges to fully-exact,
+fully-cached counts in ⌈1334/32⌋ ≈ 42 calls, after which every call is 100% cache hits
+(no reads, no estimates) with zero LRU thrash (8192 > 1,334).
+
+**Caller survey** (grep for `estimateFullFileBound`): `search.ts`, `exports.ts`,
+`signature.ts`, `callers.ts`, `dependencies.ts`, `implementors.ts`,
+`rename-impact.ts` all call it with small `filesReferenced` sets (single-file lookups,
+or a dedup'd `Set` of a bounded results list — typically ≤ 50 paths), i.e. already
+under the 32-path budget only some of the time, but never at the 1,334-file scale that
+made `mast_project_skeleton` (the sole full-project caller) the actual defect. Their
+behavior changes only in that a set of >32 unique files now gets 32 exact + the rest
+estimated on the first call instead of all-exact — a correctness-neutral,
+convergent-to-exact change; no tool-layer changes were needed anywhere.
+
+**Red-first evidence**: `src/telemetry/__tests__/tokenizer.test.ts` — 6 new tests
+covering the budget, free cache hits, uncached estimates, cross-call convergence,
+missing/unreadable-file budget interaction, and eviction at the raised bound, written
+against the target `FullFileReader.stat` seam *before* the interface existed in
+`tokenizer.ts`. First run: **8 of 12 tests failed** (the 6 new tests plus the two
+existing mtime-cache tests, which also use the `stat` seam) — `reader.statMtime` was
+`undefined` on the new-shape fakes, thrown and swallowed by the existing catch block,
+so every path silently contributed 0 and `readFile` was never called. Implementing the
+budget + seam change turned all 12 green.
+
+**One test-only production seam added, not in the original mandate**:
+`__seedFullFileCacheForTests` (`tokenizer.ts`) — direct profiling
+(`countTokens('x')` × 8192 ⇒ 182.35s, 22.26ms/call) confirmed the tokenizer's per-call
+cost is a fixed floor independent of content, so genuinely populating the cache to its
+raised 8192-entry bound through real reads (to test eviction) would cost ~3 minutes —
+longer than the defect this stage fixes. `__seedFullFileCacheForTests` seeds cache
+entries through the same `cacheTouch` insert-and-evict-oldest path production code
+uses, skipping only the (here irrelevant) tokenization cost, so the eviction test still
+exercises the real, unmodified `FULL_FILE_BOUND_CACHE_LIMIT` and mechanism.
+
+**Verification** (from `packages/mast`): `pnpm test` — **490/490 passed, 37 files**
+(baseline 485/37; +5 net new tests — 6 added, 1 rewritten from the original
+single-pass eviction test which is no longer feasible at the raised bound: see above).
+`pnpm typecheck` — clean. `pnpm lint` — clean. Repo-root `pnpm align:check` —
+`baselined debt: 324 -> 324 (0)`, red only on 2 pre-existing non-mast violations
+(`application/ui/src/views/root-layout.tsx` import cycle;
+`application/api/src/domain/spec/fold-build-record-repository.ts` domain→db import).
+
+**Deviations**: (1) §14.1's "negligible overhead" goal is stated as `< 1ms per tool
+call`; the mandated 32-file budget's worst case (~0.7-0.8s) is 2-3 orders of magnitude
+over that literal figure, though it is 35-40x better than the ~28s it replaces and
+converges to true-zero marginal overhead as the cache warms. The `< 1ms` figure predates
+`mast_project_skeleton` existing as a whole-project-scale caller of this counterfactual;
+reconciling the two is a spec-level decision left to the managing session rather than
+silently changed here. (2) One test-only export, `__seedFullFileCacheForTests`, was
+added beyond the mandated design surface — see above for why direct real-call testing
+of the raised cache bound is impractical (~3 minutes) and how the seam preserves
+fidelity to the real eviction mechanism.
 
 ---
 

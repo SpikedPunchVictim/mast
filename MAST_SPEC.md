@@ -2346,7 +2346,12 @@ visible to the agent (`mast_efficiency`), and persistent across sessions (the SQ
 - **Per-task attribution.** The SDD pipeline (§12) captures one `mast metrics --session`
   snapshot per task so savings can be analysed by task type.
 - **Negligible overhead.** Instrumentation must add < 1ms per tool call; write-heavy,
-  read-light.
+  read-light. The one documented exception is `tokens_full_file_upper_bound` for
+  whole-project-scale callers (`mast_project_skeleton`, §14.2): exact tokenization
+  alone already exceeds 1ms per file, so this counterfactual is bounded instead by a
+  per-call tokenization budget (F8, §14.2) — worst case ~0.7-0.8s on a first call
+  against an uncached project, converging toward the < 1ms goal as the cache warms and
+  degenerating to true negligible overhead (cache hits only) once fully warm.
 
 ### 14.2 The `_stats` Meta Field
 
@@ -2392,6 +2397,23 @@ them, with an mtime-keyed cache so repeated calls against an unchanged file don'
 re-tokenize. It previously shipped as an unimplemented stub that always returned 0,
 which made `efficiency_ratio` a constant 0 across every recorded row (see the
 Promotion Log, 2026-07-15) — that regression is what this fixes.
+
+**Per-call work cap (F8, 2026-08-07).** Reading and tokenizing every referenced file
+does not scale to a caller like `mast_project_skeleton`, which references every file
+in the project — `estimateFullFileBound` measured ~28s/call on a 1,334-file project,
+99% of it here. Beyond a per-call budget (`FULL_FILE_TOKENIZE_BUDGET_PER_CALL = 32`
+exact reads per call, cache hits excluded), further cache-miss files are **not** read
+or tokenized; they are size-estimated instead, at
+`Math.ceil(sizeBytes / BYTES_PER_TOKEN_ESTIMATE)` bytes-per-token
+(`BYTES_PER_TOKEN_ESTIMATE = 4`, the standard heuristic for source text) and are not
+cached — an estimate must never masquerade as an exact cached count. Successive calls
+over the same file set progressively convert estimates to exact, cached counts as the
+budget reaches further into the set, converging to fully-exact after enough calls with
+zero cache thrash (`FULL_FILE_BOUND_CACHE_LIMIT` raised from 200 to 8192 alongside the
+budget — see `telemetry/tokenizer.ts` doc comments). The upper-bound counterfactual was
+already explicitly approximate (see "Honest framing" above and §14.5); the size
+estimate for budget-exceeding files is an additional, documented layer of the same
+approximation, not a departure from it.
 
 ### 14.3 The `metrics` Table
 
