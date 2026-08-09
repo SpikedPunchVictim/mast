@@ -231,6 +231,22 @@ export interface SearchResponse {
    * assist path ran. Omitted entirely when results were found.
    */
   readonly suggestions?: readonly SearchSuggestion[];
+  /**
+   * M6 (`eval/GITNEXUS_COMPARISON.md` §13.8 item 4, MAST_SPEC.md §9.0 "Empty-index
+   * signal"). Present (`true`) only when the primary result set (`results`
+   * here) came back empty AND the `chunks` table has zero rows at that
+   * moment — i.e. this response's emptiness is explained (at least in part)
+   * by "nothing is indexed yet, or you pointed at the wrong state dir", not
+   * merely "no match". An ordinary zero-result query against a populated
+   * index never carries this flag. Independent of `suggestions` — a truly
+   * empty index yields no suggestions either, but the two fields are not
+   * coupled; either may be present without the other. Omitted entirely when
+   * false, never present-and-false (the `file_busy_returning_stale_cache`
+   * convention, §9.0). Computed by `mcp/tools/_helpers.ts`'s `isIndexEmpty`,
+   * called only on the empty-result path so a non-empty response pays
+   * nothing extra.
+   */
+  readonly index_empty?: true;
   readonly _stats: ToolStats;
 }
 
@@ -249,6 +265,8 @@ export interface FileSkeleton {
 
 export interface ProjectSkeletonResponse {
   readonly files: readonly FileSkeleton[];
+  /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `files`. */
+  readonly index_empty?: true;
   readonly _stats: ToolStats;
 }
 
@@ -277,6 +295,8 @@ export interface ExportsResponse {
    * JIT re-parse could not acquire `structure.lock`; omitted otherwise.
    */
   readonly file_busy_returning_stale_cache?: true;
+  /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `exports`. */
+  readonly index_empty?: true;
   readonly _stats: ToolStats;
 }
 
@@ -324,6 +344,8 @@ export interface SignatureResponse {
    * non-empty responses carry the flag per-result, never here.
    */
   readonly file_busy_returning_stale_cache?: true;
+  /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `results`. Independent of the `file_busy_returning_stale_cache` envelope flag above; either, both, or neither may be present. */
+  readonly index_empty?: true;
   readonly _stats: ToolStats;
 }
 
@@ -382,6 +404,8 @@ export interface CallersResponse {
    * when that JIT re-parse could not acquire `structure.lock`.
    */
   readonly file_busy_returning_stale_cache?: true;
+  /** @see {@link SearchResponse.index_empty} — same empty-index signal; set only when BOTH `verified_callers` and `potential_matches` are empty. */
+  readonly index_empty?: true;
   readonly summary: {
     readonly verified_count: number;
     readonly potential_count: number;
@@ -439,6 +463,8 @@ export interface RenameImpactResponse {
   readonly barrel_exports: readonly BarrelExportSite[];
   /** See {@link CallersResponse.file_busy_returning_stale_cache} — same envelope-vs-per-entry reasoning; `mast_rename_impact` shares `mast_callers`' JIT policy. */
   readonly file_busy_returning_stale_cache?: true;
+  /** @see {@link SearchResponse.index_empty} — same empty-index signal; set only when ALL FOUR of `declaration_sites`, `verified_callers`, `potential_matches`, and `barrel_exports` are empty. */
+  readonly index_empty?: true;
   readonly summary: {
     readonly declaration_count: number;
     readonly verified_count: number;
@@ -472,6 +498,8 @@ export interface DependenciesResponse {
   readonly imports: readonly DependencyEntry[];
   /** See {@link ExportsResponse.file_busy_returning_stale_cache} — same single-file envelope reasoning. */
   readonly file_busy_returning_stale_cache?: true;
+  /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `imports`. */
+  readonly index_empty?: true;
   readonly _stats: ToolStats;
 }
 
@@ -501,6 +529,8 @@ export interface ImplementorResult {
 
 export interface ImplementorsResponse {
   readonly results: readonly ImplementorResult[];
+  /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `results`. */
+  readonly index_empty?: true;
   readonly _stats: ToolStats;
 }
 

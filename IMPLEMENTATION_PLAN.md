@@ -736,7 +736,7 @@ asserting the *potential set* (the existing method fixture only asserts
 |---|---|---|
 | F8 | `mast_project_skeleton` costs **~28 s/call** — 99% in `estimateFullFileBound`; `FULL_FILE_BOUND_CACHE_LIMIT=200` LRU-thrashes against 1,334 files (`telemetry/tokenizer.ts:68,97`). Cap the *work*, not the cache | **Complete** |
 | F9 | `mast init --extensions` / `--exclude` are parsed and **ignored** (`cli/init.ts:20–23`); `loadStateConfig` has zero callers outside `config.ts`, and `serve` *overwrites* the persisted config. Honour them or delete the flags | **Complete** |
-| M6 | `mast serve` silently bootstraps an empty state dir and answers every query `{"results":[]}` — indistinguishable from "symbol doesn't exist". Fail fast | Not Started |
+| M6 | `mast serve` silently bootstraps an empty state dir and answers every query `{"results":[]}` — indistinguishable from "symbol doesn't exist". Fail fast | **Complete** |
 | C1 | Unify confidence signals — MAST already computes `resolution` and `reason`; add the missing ones uniformly: `stale`/`file_busy` (done F2, extend per F7) and `truncated` (F10) | Not Started |
 
 **Why this is its own stage**: F8 was ranked the **#2 betterment** of the R3 review and
@@ -941,6 +941,111 @@ non-mast violations (`application/ui/src/views/root-layout.tsx` import cycle;
 boundary got the minimal shape validation the F9 mandate asked for; retrofitting
 `mast.config.json` itself with the same validation is a separate, unscoped decision
 left to the managing session.
+
+### M6 result (2026-08-09) — empty-state honesty shipped
+
+**Why a blanket refuse-on-empty was wrong.** `eval/GITNEXUS_COMPARISON.md` §13.8 item 4
+names the defect precisely: `mast serve` on an empty/never-indexed state dir answers every
+query `{"results":[]}`, indistinguishable from "symbol doesn't exist". The naive fix —
+refuse to serve whenever the state dir is empty — breaks the §7.4 startup ladder by
+design: Step 3 opens the MCP transport and accepts queries *before* Step 4's background
+reindex has filled the index, specifically so time-to-first-query stays in single-digit
+seconds on a cold container (§7.4's whole reason for existing). An empty state dir during
+that window is not a bug to refuse; it is the designed SDD container flow, and Step 4
+converges it to correct within seconds. A blanket refusal would have broken every cold
+start. The shipped design instead splits the defect into the one case that is genuinely
+unrecoverable (Part A) and the one that is a legitimate, transient window needing only an
+honest signal (Part B).
+
+**Part A — fail fast only where nothing can ever fill the index** (`mcp/server.ts`).
+`assertServableIndex(config, options)` is a new, directly-testable, pure function
+extracted out of `serve()` — called after Step 1 (`bootstrapState`) and *before*
+`openDatabase` (Step 2). Ordering is load-bearing: `openDatabase` creates `graph.db` with
+an empty schema as a side effect of opening a missing file (`graph/db.ts`), which would
+make a post-`openDatabase` "is graph.db absent" check see a false negative a moment later
+— the same hazard `cli/query.ts`'s `runQuery` already documents for its own graph.db
+check, which `isNeverIndexed` (the function's internal predicate) mirrors. The refusal
+fires only when BOTH: (a) `--no-startup-reindex` was passed (the one flag that disables
+the mechanism that would otherwise fill the index), AND (b) the state dir is
+never-indexed — `graph.db` absent, OR (`index.json`'s `chunk_count === 0` AND
+`last_indexed` is null/absent, read via `loadIndexMeta`). Deliberately NOT
+"chunk_count === 0" alone: a state dir indexed over a genuinely empty file set still
+writes a live `graph.db` and a `last_indexed` timestamp — that is an honestly-answerable
+index (Part B's territory), not a permanently-stuck one. With the startup reindex enabled
+(the default), `assertServableIndex` is a no-op via its first line — the §7.4 ladder is
+untouched, exactly as the "do not gate or delay the default path" prohibition required.
+Throws `NeverIndexedError` (extends `Error`, mirrors `cli/query.ts`'s `QueryError`
+precedent) naming the state dir, explaining every query would return empty forever, and
+suggesting `mast init` / `mast index` or dropping `--no-startup-reindex`.
+
+**Part B — honest signal during the legitimate empty window** (`mcp/tools/_helpers.ts`,
+`ast/types.ts`, all 8 result-bearing read-tool handlers). One helper,
+`isIndexEmpty(ctx): Promise<boolean>`, wraps a single `ctx.chunkStore.chunkCount() === 0`
+check. Every read tool with a primary result array — `mast_search` (`results`),
+`mast_project_skeleton` (`files`), `mast_exports` (`exports`), `mast_signature`
+(`results`), `mast_callers` (`verified_callers` AND `potential_matches` both empty —
+checked at BOTH of its two return points, the zero-symbol early return and the normal
+path), `mast_dependencies` (`imports`), `mast_implementors` (`results`),
+`mast_rename_impact` (all FOUR sections: `declaration_sites`, `verified_callers`,
+`potential_matches`, `barrel_exports`) — attaches `index_empty: true` to its response
+envelope, called ONLY on the already-empty-result path via `&&`-short-circuit (`results.length
+=== 0 && await isIndexEmpty(ctx)`), so a populated response never pays the `chunkCount()`
+query. `ast/types.ts` gained `readonly index_empty?: true` on all 8 response interfaces —
+one full TSDoc on `SearchResponse` (the semantics: "empty because nothing indexed" vs
+"empty because no match", composes independently with `suggestions`/
+`file_busy_returning_stale_cache`, omitted-when-false per the existing convention), the
+other 7 carry a one-line `@see`-style pointer back to it plus the tool-specific "which
+field(s) must be empty" note. `mast_status` was left untouched (it already reports
+`chunk_count`/`index_fresh` — it IS the diagnostic surface); `mast_efficiency` and
+`mast_reindex` are not result-bearing and were untouched.
+
+**Red-first evidence.** Both parts' tests were written against the UNFIXED code before any
+implementation, then verified red via `git stash push` on the 11 production files (keeping
+only the 2 test files on disk), a targeted `vitest run` against that reverted tree, then
+`git stash pop` to restore the implementation. First run (targeted):
+**12 failed / 97 passed** (109 total) — 4 Part A failures in `mcp/__tests__/startup.test.ts`
+(`assertServableIndex is not a function` / `toBeInstanceOf` on `undefined`) and 8 Part B
+failures in `mcp/tools/__tests__/tools.test.ts` (`expected undefined to be true` on
+`res.index_empty` for each of the 8 tools' empty-index fixture). All failures were
+assertion-level, not import/compile errors, confirming the tests exercise real behavior
+gaps rather than broken imports. Implementing `assertServableIndex`/`NeverIndexedError`
+(`mcp/server.ts`) and `isIndexEmpty` + the 8 per-tool `index_empty` attachments turned all
+12 green with no other test regressions.
+
+**Test design.** Part A is tested by calling `assertServableIndex` directly against a
+`ResolvedConfig` — no MCP transport, no `serve()` call, no stdio — covering: never-indexed
++ `--no-startup-reindex` → throws with the state dir, `mast init`, `mast index`, and
+`--no-startup-reindex` all present in the message; never-indexed + startup reindex enabled
+(default, and explicit `false`) → no throw; an already-INDEXED dir + `--no-startup-reindex`
+→ no throw; and the Part-A/Part-B boundary case — a dir indexed over zero files
+(`last_indexed` set, `chunk_count` 0) + `--no-startup-reindex` → no throw, proving Part A
+does not encroach on Part B's territory. Part B uses two fixtures in `tools.test.ts`: a
+genuinely empty index (`runIndex` over a tmpdir with zero source files — the same
+"indexed but nothing in it" state that stands in for the §7.4 ladder's transient window,
+since a read tool cannot distinguish "never indexed, reindex pending" from "indexed,
+nothing there"), asserting `index_empty: true` on all 8 tools' empty-query responses; and
+the file's SHARED, already-populated fixture, asserting `index_empty` is ABSENT (not
+present-and-false) on both a no-match query (`zzzNoSuchThing`/`zzzNoSuchSymbol`/unknown
+interface, per tool) and a with-results query, for every tool that has a natural
+with-results case in that fixture (all 8).
+
+**Verification** (from `packages/mast`): `pnpm test` — **527/527 passed, 37 files**
+(baseline 501/37; +26 net new tests — 12 red-phase-proving tests [4 Part A + 8 Part B
+empty-fixture] plus 14 Part-B no-carry tests against the populated fixture). `pnpm
+typecheck` — clean. `pnpm lint` — clean. Repo-root `pnpm align:check` — `baselined debt:
+324 -> 324 (0)`, red only on the 2 pre-existing non-mast violations (`application/ui/src/
+views/root-layout.tsx` import cycle; `application/api/src/domain/spec/
+fold-build-record-repository.ts` domain→db import) — unchanged from F9's verification,
+confirming M6 introduced no new architecture drift.
+
+**Deviations**: none from the mandated design. **Noticed but not done**: `mast query`'s
+CLI error-surface docs (MAST_SPEC.md §8, the "State dir with no `graph.db`" bullet) still
+say the never-indexed guard "does not implement the broader empty-state serve semantics
+tracked separately (IMPLEMENTATION_PLAN.md M6)" — now stale phrasing (M6 is done), but
+`cli/query.ts`'s `runQuery` guard is a genuinely separate code path from `mast serve`
+(no `assertServableIndex`/`isIndexEmpty` wiring) and was out of this task's file scope;
+left for the managing session to decide whether `mast query` should gain the same
+`index_empty` signal or just have its doc comment's cross-reference updated.
 
 ---
 

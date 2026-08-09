@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { extractFileSignatures } from '../../ast/extract.js';
-import { extractDoc, jitRefreshFile } from './_helpers.js';
+import { extractDoc, jitRefreshFile, isIndexEmpty } from './_helpers.js';
 
 export function registerExportsTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -48,11 +48,16 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
       const tokensFullFileBound = estimateFullFileBound([args.file_path], ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
+      // M6 (§13.8 item 4): checked ONLY on the empty-result path.
+      const indexEmptyField = exports.length === 0 && await isIndexEmpty(ctx)
+        ? { index_empty: true as const }
+        : {};
       const response: ExportsResponse = {
         file_path: args.file_path,
         exports,
         // §9.0 TOCTOU policy: omitted when false, never present-and-false.
         ...(busy ? { file_busy_returning_stale_cache: true as const } : {}),
+        ...indexEmptyField,
         _stats: buildToolStats('mast_exports', tokens, tokensFullFileBound, [args.file_path], durationMs),
       };
       const resultIdentities = exports.map((e) => ({ file_path: args.file_path, symbol_name: e.name }));

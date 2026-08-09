@@ -6,6 +6,7 @@ import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson, buildD
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { fusedSearch } from '../../search/fused.js';
 import { findStaleFiles } from '../staleness.js';
+import { isIndexEmpty } from './_helpers.js';
 
 export function registerSearchTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -45,9 +46,15 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       const tokens = countTokens(text);
       const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
+      // M6 (§13.8 item 4): checked ONLY on the empty-result path — a
+      // populated response never pays the chunkCount() query.
+      const indexEmptyField = flaggedResults.length === 0 && await isIndexEmpty(ctx)
+        ? { index_empty: true as const }
+        : {};
       const response: SearchResponse = {
         results: flaggedResults,
         ...suggestionsField,
+        ...indexEmptyField,
         _stats: buildToolStats('mast_search', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       // Identity pairs in rank order — the "did a later chain-analysis call

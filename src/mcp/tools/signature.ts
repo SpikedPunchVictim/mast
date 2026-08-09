@@ -7,7 +7,7 @@ import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from 
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, resolveTypeContext } from '../../graph/queries.js';
 import { extractFileSignatures, type ExtractedSignature } from '../../ast/extract.js';
-import { jitRefreshFile } from './_helpers.js';
+import { jitRefreshFile, isIndexEmpty } from './_helpers.js';
 
 // TypeScript built-in types that are never worth resolving as user-defined types.
 const BUILTIN_TYPES = new Set([
@@ -114,6 +114,13 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
       const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
+      // M6 (§13.8 item 4): checked ONLY on the empty-result path. Independent
+      // of the F14 busy-envelope flag above — both name different failure
+      // modes ("busy, can't tell you" vs "nothing indexed") and either, both,
+      // or neither may fire on the same empty response.
+      const indexEmptyField = results.length === 0 && await isIndexEmpty(ctx)
+        ? { index_empty: true as const }
+        : {};
       const response: SignatureResponse = {
         results,
         // F14: with zero results the per-result busy carrier vanishes, and a
@@ -122,6 +129,7 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
         ...(topLevelBusy && results.length === 0
           ? { file_busy_returning_stale_cache: true as const }
           : {}),
+        ...indexEmptyField,
         _stats: buildToolStats('mast_signature', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       // Identity pairs — the "did this signature call target a symbol/file

@@ -560,6 +560,23 @@ startup
 If `--watch` was passed to `mast serve`, the file watcher (§11.4) starts
 immediately after Step 3's transport opens, independent of Step 4.
 
+**`--no-startup-reindex` refusal (M6 Part A).** The empty-during-Step-4 window
+above is legitimate and by design — but `--no-startup-reindex` disables Step 4
+entirely, and a state dir that has never completed an index run under that
+flag would then answer every query `{"results":[]}` forever, with nothing
+left to ever fill it in (`eval/GITNEXUS_COMPARISON.md` §13.8 item 4). To catch
+only that unrecoverable case, `mast serve` calls `assertServableIndex`
+(`mcp/server.ts`) after Step 1 and before Step 2 opens `graph.db`: if
+`--no-startup-reindex` was passed AND the state dir is never-indexed
+(`graph.db` absent, or `index.json` reports `chunk_count: 0` with
+`last_indexed` null/absent), the process exits with an error naming the state
+dir and suggesting `mast init`/`mast index` or dropping the flag. A state dir
+indexed over a genuinely empty file set (`last_indexed` set, `chunk_count: 0`)
+is NOT refused — see §9.0's "Empty-index signal" for how that legitimate
+empty-index case is surfaced to callers instead. With the startup reindex
+enabled (the default), this check is a no-op and Step 3 opens the transport
+exactly as described above.
+
 `CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.2.0"`). A
 version bump is required any time the SQLite schema or `index.json` fields change
 in a way that makes old on-disk state unreadable by the new code. Incrementing
@@ -707,6 +724,14 @@ Options:
 
 The server runs until the parent process (Claude CLI) closes stdin.
 
+`--no-startup-reindex` combined with a never-indexed state dir is refused at
+startup (M6 Part A, §7.4) — that combination disables the one mechanism that
+would ever fill the index, so `mast serve` exits with an error instead of
+silently answering every query `{"results":[]}` forever. A never-indexed
+state dir with the startup reindex left enabled (the default) is unaffected
+and starts normally, as does `--no-startup-reindex` against an already-indexed
+state dir (including one indexed over a genuinely empty file set).
+
 `--watch` is opt-in and intended for interactive local development; the SDD
 container does not use it (§3, §11.4). The watcher is closed on stdin close,
 SIGTERM, and SIGINT; a watcher startup failure logs a warning and the server
@@ -782,8 +807,11 @@ Error behavior (all exit 1, message to stderr):
 - **Args that fail the tool's own zod schema** — the zod issues.
 - **State dir with no `graph.db`** (never-indexed project) —
   ``no index found at <state_dir>; run `mast init` / `mast index` first``.
-  This is a fail-fast guard only; it does not implement the broader
-  empty-state serve semantics tracked separately (IMPLEMENTATION_PLAN.md M6).
+  This is `mast query`'s own fail-fast guard, parallel to `mast serve`'s
+  `--no-startup-reindex` refusal (M6 Part A, §7.4). Because `mast query`
+  dispatches through the same registered tool handlers, the M6 Part B
+  `index_empty` signal (§9.0) appears on its responses automatically — an
+  indexed-but-empty corpus queries fine and says so.
 
 ---
 
@@ -914,6 +942,30 @@ stat-and-flag rather than JIT re-parse (F7, see above) — each result's
 `file_busy_returning_stale_cache` reflects that result's own `file_path`
 statting newer-on-disk or failing to stat, independent of every other
 result in the same response.
+
+**Empty-index signal (M6 Part B).** Every read tool with a primary result
+array — `mast_search`, `mast_project_skeleton`, `mast_exports`,
+`mast_signature`, `mast_callers`, `mast_dependencies`, `mast_implementors`,
+`mast_rename_impact` — MAY attach `index_empty: true` to its response
+envelope. Present only when BOTH (a) that tool's primary result set came back
+empty (for `mast_callers`, both `verified_callers` AND `potential_matches`;
+for `mast_rename_impact`, all four of `declaration_sites`, `verified_callers`,
+`potential_matches`, and `barrel_exports`) AND (b) the `chunks` table has zero
+rows at that moment (`mcp/tools/_helpers.ts`'s `isIndexEmpty`, checked only on
+the already-empty-result path — a populated response never pays for this
+check). Distinguishes "`[]` because nothing is indexed yet, or you pointed at
+the wrong state dir" from "`[]` because no match" — the exact ambiguity M6
+(`eval/GITNEXUS_COMPARISON.md` §13.8 item 4) names, and the legitimate empty
+window §7.4's startup ladder deliberately leaves servable (see the
+`--no-startup-reindex` refusal note in §7.4, which catches only the
+never-recoverable case, not this one). Omitted entirely when false, same
+present-only-when-true convention as `file_busy_returning_stale_cache` above
+— never present-and-false. Independent of `mast_search`'s `suggestions` field:
+a truly empty index yields no suggestions either, but the two are not
+coupled — either may be present without the other. `mast_status` is
+unaffected (it already reports `chunk_count`/`index_fresh` directly — it IS
+the diagnostic surface); `mast_efficiency` and `mast_reindex` have no primary
+result array and never carry this flag.
 
 ---
 

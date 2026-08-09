@@ -2,6 +2,7 @@ import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db } from '../../graph/db.js';
 import type { ResolvedConfig } from '../../store/config.js';
+import type { AppContext } from '../context.js';
 import { checkAndRefreshIfStale, type StalenessCheckResult } from '../staleness.js';
 
 // collectPotentialMatches/collectPotentialMatchCandidates moved to
@@ -18,6 +19,24 @@ export {
   type PotentialMatchCandidate,
   type PotentialMatchesResult,
 } from '../../search/potential-matches.js';
+
+// ---------------------------------------------------------------------------
+// M6 Part B (eval/GITNEXUS_COMPARISON.md §13.8 item 4): empty-index signal.
+// ---------------------------------------------------------------------------
+
+/**
+ * True when the `chunks` table has zero rows — i.e. nothing is indexed yet,
+ * whether that's a never-indexed state dir mid-background-reindex (the
+ * legitimate §7.4 startup-ladder window Part A deliberately leaves alone) or
+ * a genuinely empty corpus. Every read tool with a primary result array
+ * calls this ONLY on its empty-result path (`ast/types.ts`'s `index_empty`
+ * field) to distinguish "empty because nothing indexed" from "empty because
+ * no match" — never called when results were found, so a populated index
+ * pays nothing extra per call.
+ */
+export async function isIndexEmpty(ctx: AppContext): Promise<boolean> {
+  return (await ctx.chunkStore.chunkCount()) === 0;
+}
 
 /** Extract the first JSDoc comment block from chunk content, if present. */
 export function extractDoc(content: string): string | null {

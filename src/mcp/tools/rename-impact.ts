@@ -12,7 +12,7 @@ import type {
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers, queryBarrelExports } from '../../graph/queries.js';
-import { jitRefreshFile, collectPotentialMatches } from './_helpers.js';
+import { jitRefreshFile, collectPotentialMatches, isIndexEmpty } from './_helpers.js';
 
 /**
  * Compose the "N verified sites, M review-required sites, K barrel exports"
@@ -109,11 +109,21 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
+      // M6 (§13.8 item 4): checked ONLY when ALL FOUR sections came back empty.
+      const indexEmptyField =
+        declaration_sites.length === 0 &&
+        verified_callers.length === 0 &&
+        potential_matches.length === 0 &&
+        barrel_exports.length === 0 &&
+        (await isIndexEmpty(ctx))
+          ? { index_empty: true as const }
+          : {};
       const response: RenameImpactResponse = {
         symbol: args.symbol,
         ...body,
         // §9.0 TOCTOU policy: omitted when false, never present-and-false.
         ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
+        ...indexEmptyField,
         summary: {
           declaration_count: declaration_sites.length,
           verified_count: verified_callers.length,

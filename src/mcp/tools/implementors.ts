@@ -6,6 +6,7 @@ import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { queryImplementors } from '../../graph/queries.js';
 import { findStaleFiles } from '../staleness.js';
+import { isIndexEmpty } from './_helpers.js';
 
 export function registerImplementorsTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -35,8 +36,13 @@ export function registerImplementorsTool(server: McpServer, ctx: AppContext): vo
       const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
+      // M6 (§13.8 item 4): checked ONLY on the empty-result path.
+      const indexEmptyField = flaggedResults.length === 0 && await isIndexEmpty(ctx)
+        ? { index_empty: true as const }
+        : {};
       const response: ImplementorsResponse = {
         results: flaggedResults,
+        ...indexEmptyField,
         _stats: buildToolStats('mast_implementors', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       void recordToolCall(ctx.db, {

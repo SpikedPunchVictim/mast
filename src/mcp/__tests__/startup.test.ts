@@ -5,6 +5,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { runIndex, loadIndexMeta, writeIndexMeta } from '../../indexer/index.js';
 import { bootstrapState, wipeDerivedState, cleanupOrphanedVectorState } from '../startup.js';
+import { assertServableIndex, NeverIndexedError } from '../server.js';
 import { initLockMarkers } from '../../store/lock.js';
 
 // ---------------------------------------------------------------------------
@@ -279,6 +280,92 @@ describe('bootstrapState — orphaned vector-store cleanup runs every startup', 
       expect(existsSync(join(stateDir, 'embed_cache'))).toBe(false);
       expect(existsSync(join(stateDir, 'vectors.lock'))).toBe(false);
       expect(existsSync(join(stateDir, 'graph.db'))).toBe(true); // untouched
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M6 Part A (eval/GITNEXUS_COMPARISON.md §13.8 item 4): `assertServableIndex`
+// — refuse `mast serve --no-startup-reindex` ONLY when nothing can ever fill
+// the index. Extracted out of `serve()` (mcp/server.ts) specifically so this
+// refusal decision is testable without spawning a real MCP transport — every
+// test below calls the pure function directly against a `ResolvedConfig`.
+// ---------------------------------------------------------------------------
+
+describe('assertServableIndex — M6 Part A', () => {
+  it('throws NeverIndexedError for a never-indexed state dir when --no-startup-reindex is set', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'mast-never-indexed-'));
+    try {
+      const config = resolveConfig({ projectRoot: tmpDir });
+      // Step 1 only (bootstrapState) — no index run ever happens, so
+      // graph.db never comes into existence. This is the exact never-filled
+      // state the refusal exists to catch.
+      await bootstrapState(config, NO_SEED);
+
+      expect(() => assertServableIndex(config, { noStartupReindex: true })).toThrow(NeverIndexedError);
+
+      let thrown: unknown;
+      try {
+        assertServableIndex(config, { noStartupReindex: true });
+      } catch (err) {
+        thrown = err;
+      }
+      expect(thrown).toBeInstanceOf(NeverIndexedError);
+      const message = (thrown as Error).message;
+      // Names the state dir, explains why every query would come back
+      // empty forever, and suggests both remedies (mandate: name the state
+      // dir, say the index is empty + reindex disabled, suggest `mast init`/
+      // `mast index` or dropping the flag).
+      expect(message).toContain(config.resolved_state_dir);
+      expect(message).toContain('mast init');
+      expect(message).toContain('mast index');
+      expect(message).toContain('--no-startup-reindex');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not refuse a never-indexed state dir when the startup reindex is enabled (default) — the §7.4 ladder fills it', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'mast-never-indexed-default-'));
+    try {
+      const config = resolveConfig({ projectRoot: tmpDir });
+      await bootstrapState(config, NO_SEED);
+
+      expect(() => assertServableIndex(config, {})).not.toThrow();
+      expect(() => assertServableIndex(config, { noStartupReindex: false })).not.toThrow();
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not refuse an INDEXED state dir even with --no-startup-reindex', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'mast-already-indexed-'));
+    try {
+      writeFileSync(join(tmpDir, 'math.ts'), MATH_SRC);
+      const config = resolveConfig({ projectRoot: tmpDir });
+      await runIndex(config, { incremental: false });
+
+      expect(() => assertServableIndex(config, { noStartupReindex: true })).not.toThrow();
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not refuse a state dir indexed over a genuinely empty file set (last_indexed set, chunk_count 0) — that is Part B territory, not Part A', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'mast-indexed-empty-corpus-'));
+    try {
+      // No indexable files written — runIndex still completes a real index
+      // run and stamps last_indexed, distinct from "never indexed".
+      const config = resolveConfig({ projectRoot: tmpDir });
+      await runIndex(config, { incremental: false });
+
+      const meta = loadIndexMeta(config.resolved_state_dir)!;
+      expect(meta.chunk_count).toBe(0);
+      expect(meta.last_indexed).not.toBeNull();
+
+      expect(() => assertServableIndex(config, { noStartupReindex: true })).not.toThrow();
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }

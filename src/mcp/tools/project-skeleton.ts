@@ -5,7 +5,7 @@ import type { ProjectSkeletonResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { queryProjectSkeleton } from '../../graph/queries.js';
-import { globToRegex } from './_helpers.js';
+import { globToRegex, isIndexEmpty } from './_helpers.js';
 
 export function registerProjectSkeletonTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -57,8 +57,13 @@ export function registerProjectSkeletonTool(server: McpServer, ctx: AppContext):
       const filesReferenced = files.map((f) => f.file_path);
       const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
 
+      // M6 (§13.8 item 4): checked ONLY on the empty-result path.
+      const indexEmptyField = files.length === 0 && await isIndexEmpty(ctx)
+        ? { index_empty: true as const }
+        : {};
       const response: ProjectSkeletonResponse = {
         files,
+        ...indexEmptyField,
         _stats: buildToolStats('mast_project_skeleton', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       void recordToolCall(ctx.db, {

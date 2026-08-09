@@ -1255,3 +1255,215 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// M6 Part B (eval/GITNEXUS_COMPARISON.md §13.8 item 4): `index_empty` — every
+// read tool with a primary result array attaches `index_empty: true` when
+// (a) that result set came back empty AND (b) the `chunks` table has zero
+// rows at that moment. Distinguishes "[] because nothing is indexed yet" from
+// "[] because no match" — the exact ambiguity M6 names. Two fixtures:
+//   - a genuinely empty index (indexed over zero files) — every empty-query
+//     response below must carry `index_empty: true`.
+//   - the SHARED, populated fixture from the top of this file (`call`) — a
+//     no-match query must return empty results WITHOUT the flag, and a
+//     with-results query must never carry it either.
+// ---------------------------------------------------------------------------
+
+describe('index_empty — M6 Part B', () => {
+  describe('genuinely empty index (indexed over zero files)', () => {
+    let emptyTmpDir: string;
+    let emptyDb: ReturnType<typeof openDatabase>;
+    let emptyCall: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+
+    beforeAll(async () => {
+      emptyTmpDir = mkdtempSync(join(tmpdir(), 'mast-empty-index-test-'));
+      // No source files written. `runIndex` still completes a real (empty)
+      // index run — `chunks` has zero rows, which is exactly the condition
+      // `isIndexEmpty` (mcp/tools/_helpers.ts) checks, and stands in for the
+      // legitimate §7.4 startup-ladder window (a never-indexed dir mid
+      // background-reindex looks identical to a read tool: zero chunks).
+      const emptyConfig = resolveConfig({ projectRoot: emptyTmpDir });
+      await runIndex(emptyConfig, { incremental: false });
+
+      emptyDb = openDatabase(emptyConfig.resolved_state_dir);
+      const emptyCtx: AppContext = {
+        db: emptyDb,
+        chunkStore: new SqliteChunkStore(emptyDb),
+        config: emptyConfig,
+        sessionId: 'empty-index-test-session',
+      };
+
+      const mock = createMockServer();
+      registerSearchTool(mock.server, emptyCtx);
+      registerProjectSkeletonTool(mock.server, emptyCtx);
+      registerExportsTool(mock.server, emptyCtx);
+      registerSignatureTool(mock.server, emptyCtx);
+      registerCallersTool(mock.server, emptyCtx);
+      registerDependenciesTool(mock.server, emptyCtx);
+      registerImplementorsTool(mock.server, emptyCtx);
+      registerRenameImpactTool(mock.server, emptyCtx);
+      emptyCall = mock.call;
+    });
+
+    afterAll(async () => {
+      await emptyDb.destroy();
+      rmSync(emptyTmpDir, { recursive: true, force: true });
+    });
+
+    it('mast_search sets index_empty: true on a zero-result query', async () => {
+      const res = await emptyCall('mast_search', { query: 'anything' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+
+    it('mast_project_skeleton sets index_empty: true when files is empty', async () => {
+      const res = await emptyCall('mast_project_skeleton', {}) as { files: unknown[]; index_empty?: true };
+      expect(res.files).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+
+    it('mast_exports sets index_empty: true for a file with no chunks', async () => {
+      const res = await emptyCall('mast_exports', { file_path: 'nope.ts' }) as { exports: unknown[]; index_empty?: true };
+      expect(res.exports).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+
+    it('mast_signature sets index_empty: true on a zero-result query', async () => {
+      const res = await emptyCall('mast_signature', { symbol: 'anything' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+
+    it('mast_callers sets index_empty: true when both verified and potential sets are empty', async () => {
+      const res = await emptyCall('mast_callers', { symbol: 'anything' }) as {
+        verified_callers: unknown[];
+        potential_matches: unknown[];
+        index_empty?: true;
+      };
+      expect(res.verified_callers).toHaveLength(0);
+      expect(res.potential_matches).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+
+    it('mast_dependencies sets index_empty: true for a file with no imports', async () => {
+      const res = await emptyCall('mast_dependencies', { file_path: 'nope.ts' }) as { imports: unknown[]; index_empty?: true };
+      expect(res.imports).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+
+    it('mast_implementors sets index_empty: true on a zero-result query', async () => {
+      const res = await emptyCall('mast_implementors', { interface_name: 'Anything' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+
+    it('mast_rename_impact sets index_empty: true when all four sections are empty', async () => {
+      const res = await emptyCall('mast_rename_impact', { symbol: 'anything' }) as {
+        declaration_sites: unknown[];
+        verified_callers: unknown[];
+        potential_matches: unknown[];
+        barrel_exports: unknown[];
+        index_empty?: true;
+      };
+      expect(res.declaration_sites).toHaveLength(0);
+      expect(res.verified_callers).toHaveLength(0);
+      expect(res.potential_matches).toHaveLength(0);
+      expect(res.barrel_exports).toHaveLength(0);
+      expect(res.index_empty).toBe(true);
+    });
+  });
+
+  describe('populated index (shared fixture) — no-match and with-results queries never carry index_empty', () => {
+    it('mast_search: a no-match query returns empty results without index_empty', async () => {
+      const res = await call('mast_search', { query: 'zzzNoSuchThing' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results).toHaveLength(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_search: a with-results query never carries index_empty', async () => {
+      const res = await call('mast_search', { query: 'add' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_project_skeleton never carries index_empty against a populated index', async () => {
+      const res = await call('mast_project_skeleton', {}) as { files: unknown[]; index_empty?: true };
+      expect(res.files.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_exports: a known file with exports never carries index_empty', async () => {
+      const res = await call('mast_exports', { file_path: 'math.ts' }) as { exports: unknown[]; index_empty?: true };
+      expect(res.exports.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_signature: an unknown symbol returns empty results without index_empty', async () => {
+      const res = await call('mast_signature', { symbol: 'zzzNoSuchSymbol' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results).toHaveLength(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_signature: a known symbol never carries index_empty', async () => {
+      const res = await call('mast_signature', { symbol: 'add' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_callers: an unknown symbol returns empty sets without index_empty', async () => {
+      const res = await call('mast_callers', { symbol: 'zzzNoSuchSymbol' }) as {
+        verified_callers: unknown[];
+        potential_matches: unknown[];
+        index_empty?: true;
+      };
+      expect(res.verified_callers).toHaveLength(0);
+      expect(res.potential_matches).toHaveLength(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_callers: a with-results query never carries index_empty', async () => {
+      const res = await call('mast_callers', { symbol: 'add' }) as { verified_callers: unknown[]; index_empty?: true };
+      expect(res.verified_callers.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_dependencies: a file with no imports omits index_empty (non-empty index)', async () => {
+      const res = await call('mast_dependencies', { file_path: 'math.ts' }) as { imports: unknown[]; index_empty?: true };
+      expect(res.imports).toHaveLength(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_dependencies: a file with imports never carries index_empty', async () => {
+      const res = await call('mast_dependencies', { file_path: 'calc.ts' }) as { imports: unknown[]; index_empty?: true };
+      expect(res.imports.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_implementors: an unknown interface returns empty results without index_empty', async () => {
+      const res = await call('mast_implementors', { interface_name: 'NoSuchInterfaceM6' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results).toHaveLength(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_implementors: a with-results query never carries index_empty', async () => {
+      const res = await call('mast_implementors', { interface_name: 'Shape' }) as { results: unknown[]; index_empty?: true };
+      expect(res.results.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_rename_impact: an unknown symbol returns empty sections without index_empty', async () => {
+      const res = await call('mast_rename_impact', { symbol: 'zzzNoSuchSymbol' }) as {
+        declaration_sites: unknown[];
+        index_empty?: true;
+      };
+      expect(res.declaration_sites).toHaveLength(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+
+    it('mast_rename_impact: a with-results query never carries index_empty', async () => {
+      const res = await call('mast_rename_impact', { symbol: 'add' }) as { declaration_sites: unknown[]; index_empty?: true };
+      expect(res.declaration_sites.length).toBeGreaterThan(0);
+      expect(res).not.toHaveProperty('index_empty');
+    });
+  });
+});

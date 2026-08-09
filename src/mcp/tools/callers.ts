@@ -10,7 +10,7 @@ import type {
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
-import { jitRefreshFile, collectPotentialMatches } from './_helpers.js';
+import { jitRefreshFile, collectPotentialMatches, isIndexEmpty } from './_helpers.js';
 
 export function registerCallersTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -39,11 +39,16 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
 
       if (symbols.length === 0) {
         const noSymbolFiles = filePath != null ? [filePath] : [];
+        // M6 (§13.8 item 4): both sets are unconditionally empty on this
+        // branch (no symbol to look up callers of), so the only question is
+        // whether the index itself is empty.
+        const indexEmptyField = await isIndexEmpty(ctx) ? { index_empty: true as const } : {};
         const response: CallersResponse = {
           verified_callers: [],
           potential_matches: [],
           // §9.0 TOCTOU policy: omitted when false, never present-and-false.
           ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
+          ...indexEmptyField,
           summary: {
             verified_count: 0,
             potential_count: 0,
@@ -94,11 +99,16 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       const tokensFullFileBound = estimateFullFileBound(filesReferenced, ctx.config.resolved_project_root);
       const durationMs = Date.now() - start;
 
+      // M6 (§13.8 item 4): checked ONLY when BOTH sets came back empty.
+      const indexEmptyField = verified_callers.length === 0 && potential_matches.length === 0 && await isIndexEmpty(ctx)
+        ? { index_empty: true as const }
+        : {};
       const response: CallersResponse = {
         verified_callers,
         potential_matches,
         // §9.0 TOCTOU policy: omitted when false, never present-and-false.
         ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
+        ...indexEmptyField,
         summary: {
           verified_count: verified_callers.length,
           potential_count: potential_matches.length,

@@ -29,7 +29,7 @@ orchestration that gates on exit code only. — **DONE 2026-08-07**
 (`mast query <tool> <json>`) — do it BEFORE Stage 3; it multiplies every verification
 task and removes the A/B Bash-surface caveat. — **DONE 2026-08-07**. Then **Stage 3.5** (F8: skeleton call
 costs ~28 s, 99% in the telemetry counterfactual — **DONE 2026-08-07**; F9: init flags parsed-and-ignored — **DONE 2026-08-08**;
-M6: empty-state serve answers `[]` instead of failing fast; C1: unify confidence
+M6: empty-state serve answers `[]` instead of failing fast — **DONE 2026-08-09**; C1: unify confidence
 signals) and **Stage 3** (call-graph: F3 await-unwrap, F4 `this.`/`super.` resolution,
 F5 qualified names in `identifier_fts`, F10 `potential_truncated`).
 
