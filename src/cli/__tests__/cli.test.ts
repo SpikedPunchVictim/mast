@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
+import { resolveConfig, writeStateConfig, loadStateConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { initLockMarkers, acquireLock, withLock } from '../../store/lock.js';
 import { runIndex, loadIndexMeta, freshnessCause } from '../../indexer/index.js';
 import { walkProject, diffManifest } from '../../indexer/walker.js';
@@ -23,6 +23,8 @@ import { searchFts } from '../../search/fts.js';
 import type { AppContext } from '../../mcp/context.js';
 import { registerAllTools } from '../../mcp/register-tools.js';
 import { runQuery, QueryError } from '../query.js';
+import { parseExtensionsFlag, parseExcludeFlag } from '../init.js';
+import { bootstrapState } from '../../mcp/startup.js';
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -680,5 +682,96 @@ describe('mast query — error paths', () => {
     } finally {
       rmSync(neverIndexedDir, { recursive: true, force: true });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F9 (Stage 3.5, eval/GITNEXUS_COMPARISON.md M3): `mast init --extensions` /
+// `--exclude` are parsed and honoured — previously they were parsed and
+// silently ignored, and `serve`'s bootstrap overwrote the persisted
+// config.json with fresh defaults on every startup.
+// ---------------------------------------------------------------------------
+
+describe('mast init — --extensions/--exclude flag parsing (F9)', () => {
+  it('parses a comma-separated extensions list, normalizing bare names to leading-dot form', () => {
+    expect(parseExtensionsFlag('.py,ts')).toEqual(['.py', '.ts']);
+  });
+
+  it('parses a comma-separated exclude-pattern list without dot normalization', () => {
+    expect(parseExcludeFlag('**/skipme.ts,**/fixtures/**')).toEqual(['**/skipme.ts', '**/fixtures/**']);
+  });
+
+  it('trims whitespace and drops empty entries for both flags', () => {
+    expect(parseExtensionsFlag(' a , ,b ')).toEqual(['.a', '.b']);
+    expect(parseExcludeFlag(' a , ,b ')).toEqual(['a', 'b']);
+  });
+
+  it('returns undefined when the flag is absent — flag absence keeps resolveConfig behavior byte-identical', () => {
+    expect(parseExtensionsFlag(undefined)).toBeUndefined();
+    expect(parseExcludeFlag(undefined)).toBeUndefined();
+  });
+});
+
+describe('mast init — --extensions/--exclude end-to-end (F9, M3 repro inverted)', () => {
+  let tmpDir: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-init-flags-e2e-'));
+    // Indexed: matches the custom `--extensions .js` scope.
+    writeFileSync(join(tmpDir, 'ok.js'), 'export function ok() { return 1; }\n');
+    // NOT indexed: a `.ts` file would be indexed under DEFAULTS.file_extensions,
+    // but the custom `--extensions .js` narrows the scope to `.js` only — this
+    // is what proves the flag is honoured, not just parsed.
+    writeFileSync(join(tmpDir, 'ignored.ts'), 'export function ignored(): number { return 2; }\n');
+    // NOT indexed: matches `--exclude '**/skipme.js'` despite being in scope.
+    writeFileSync(join(tmpDir, 'skipme.js'), 'export function skip() { return 3; }\n');
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('indexes only the custom extension, honours the exclude pattern, and survives a serve-style bootstrap', async () => {
+    // Equivalent of `mast init --extensions .js --exclude '**/skipme.js'`.
+    const config = resolveConfig({
+      projectRoot: tmpDir,
+      extensions: parseExtensionsFlag('.js'),
+      excludePatterns: parseExcludeFlag('**/skipme.js'),
+    });
+
+    initLockMarkers(config.resolved_state_dir);
+    writeStateConfig(config.resolved_state_dir, config);
+    const result = await runIndex(config, { incremental: false });
+
+    // Only ok.js: ignored.ts is out of the custom extension scope, skipme.js
+    // is excluded despite being in scope.
+    expect(result.filesIndexed).toBe(1);
+
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      const symbols = await db.selectFrom('symbols').select('name').execute();
+      const names = new Set(symbols.map((s) => s.name));
+      expect(names.has('ok')).toBe(true);
+      expect(names.has('ignored')).toBe(false);
+      expect(names.has('skip')).toBe(false);
+    } finally {
+      await db.destroy();
+    }
+
+    // Simulate `mast serve`'s bootstrap path (mcp/startup.ts's bootstrapState,
+    // via cli/serve.ts:17's `resolveConfig({ stateDirOverride })` — no
+    // projectRoot, so this re-resolution against the same state dir mirrors
+    // what serve actually does). A nonexistent seed path is passed, same as
+    // mcp/__tests__/startup.test.ts's `NO_SEED` convention, so the Docker-seed
+    // copy step is a no-op in this test environment.
+    const serveConfig = resolveConfig({ stateDirOverride: config.resolved_state_dir });
+    await bootstrapState(serveConfig, join(tmpdir(), 'mast-no-such-seed-dir'));
+
+    // The regression this proves: before F9, bootstrapState's writeStateConfig
+    // call persisted a FRESH default resolution over the customization every
+    // time `mast serve` started, silently discarding `--extensions`/`--exclude`.
+    const persisted = loadStateConfig(config.resolved_state_dir);
+    expect(persisted?.file_extensions).toEqual(['.js']);
+    expect(persisted?.exclude_patterns).toEqual(['**/skipme.js']);
   });
 });

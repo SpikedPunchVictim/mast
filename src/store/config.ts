@@ -53,15 +53,115 @@ export interface ResolveConfigOptions {
    * Falls back to MAST_STATE_DIR env var, then mast.config.json, then default.
    */
   stateDirOverride?: string;
+  /**
+   * Explicit override for `file_extensions` (F9, `mast init --extensions`).
+   * Highest priority in the config merge — wins over `mast.config.json` and
+   * any persisted `<state_dir>/config.json`.
+   */
+  extensions?: readonly string[];
+  /**
+   * Explicit override for `exclude_patterns` (F9, `mast init --exclude`).
+   * Same priority as `extensions`.
+   */
+  excludePatterns?: readonly string[];
+}
+
+// F9 (Stage 3.5, eval/GITNEXUS_COMPARISON.md M3): the keys a caller may
+// customise, as opposed to the path keys (`state_dir`, `project_root`,
+// `resolved_state_dir`, `resolved_project_root`) that describe WHERE this
+// resolution is running, not WHAT it configures. Used by
+// `pickStateConfigCustomization` below to build an explicit picked-keys
+// merge — never a spread-minus-deletes — so a path key can never leak in
+// through this list by omission.
+const CUSTOMIZATION_KEYS = [
+  'file_extensions',
+  'exclude_patterns',
+  'rrf_k',
+  'declaration_exact_ranker',
+  'chunk_split_threshold',
+  'context_lines',
+  'markdown_heading_depth',
+] as const;
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+/**
+ * Picks ONLY the customisation keys out of a persisted `<state_dir>/config.json`
+ * — never `state_dir`/`project_root`/`resolved_state_dir`/`resolved_project_root`.
+ *
+ * WHY this matters (path-portability hazard): `writeStateConfig` persists a
+ * full `ResolvedConfig`, including ABSOLUTE paths resolved in a PREVIOUS
+ * process. The SDD pipeline mounts the same workspace volume at different
+ * container paths across runs, so an absolute path loaded back from a
+ * previous container would silently resolve `resolved_state_dir` /
+ * `resolved_project_root` to a location that doesn't exist (or worse, exists
+ * but belongs to an unrelated project) in THIS container. Every path field
+ * in the returned `ResolvedConfig` must always come from the CURRENT
+ * resolution — never from disk.
+ *
+ * Unlike `mast.config.json` (see the precedent comment on `resolveConfig`
+ * below, which trusts a plain `JSON.parse` cast because that file is
+ * developer-authored and colocated with source control), a state
+ * config.json is machine-written but crosses a trust boundary of its own —
+ * an arbitrary file on disk that could be stale, foreign, or hand-edited.
+ * Each picked key is minimally validated by shape (string array / number /
+ * boolean) rather than trusted on cast; a key that fails validation is
+ * dropped so DEFAULTS (or a lower-priority layer) fills it in instead of a
+ * malformed value silently propagating.
+ */
+function pickStateConfigCustomization(source: Partial<MastConfig> | null): Partial<MastConfig> {
+  if (source === null) return {};
+
+  // `MastConfig`'s fields are `readonly` (immutable once constructed), but
+  // this function BUILDS one field at a time — a mutable local view keeps
+  // the assignments below straightforward. The returned value still exposes
+  // the standard `Partial<MastConfig>` (readonly) shape to callers.
+  const picked: { -readonly [K in keyof MastConfig]?: MastConfig[K] } = {};
+  if (isStringArray(source.file_extensions)) picked.file_extensions = source.file_extensions;
+  if (isStringArray(source.exclude_patterns)) picked.exclude_patterns = source.exclude_patterns;
+  if (typeof source.rrf_k === 'number') picked.rrf_k = source.rrf_k;
+  if (typeof source.declaration_exact_ranker === 'boolean') {
+    picked.declaration_exact_ranker = source.declaration_exact_ranker;
+  }
+  if (typeof source.chunk_split_threshold === 'number') picked.chunk_split_threshold = source.chunk_split_threshold;
+  if (typeof source.context_lines === 'number') picked.context_lines = source.context_lines;
+  if (typeof source.markdown_heading_depth === 'number') {
+    picked.markdown_heading_depth = source.markdown_heading_depth;
+  }
+
+  // Safety net for the path-portability rule above: fails loudly if a future
+  // edit to this function ever assigns a key outside CUSTOMIZATION_KEYS (e.g.
+  // a path key re-added by accident) instead of silently reintroducing the
+  // shared-volume hazard this function exists to prevent.
+  for (const key of Object.keys(picked)) {
+    if (!(CUSTOMIZATION_KEYS as readonly string[]).includes(key)) {
+      throw new Error(`pickStateConfigCustomization: unexpected key "${key}" outside CUSTOMIZATION_KEYS`);
+    }
+  }
+
+  return picked;
 }
 
 /**
  * Resolve the active MAST configuration.
  *
- * Priority order (highest to lowest):
- * 1. `stateDirOverride` (CLI `--state-dir` flag) for the state directory
- * 2. `MAST_STATE_DIR` environment variable for the state directory
- * 3. `mast.config.json` in `projectRoot`
+ * State-directory priority order (highest to lowest) — unchanged by F9,
+ * because the state dir must be resolved BEFORE the persisted state config
+ * can be loaded from inside it:
+ * 1. `stateDirOverride` (CLI `--state-dir` flag)
+ * 2. `MAST_STATE_DIR` environment variable
+ * 3. `state_dir` key in `mast.config.json`
+ * 4. Built-in default (`.mast`)
+ *
+ * Priority order for every other config key (highest to lowest):
+ * 1. Explicit overrides passed to this function (`extensions`/`excludePatterns`
+ *    — CLI `mast init --extensions`/`--exclude`, F9)
+ * 2. `mast.config.json` in `projectRoot`
+ * 3. Persisted `<resolved_state_dir>/config.json` (F9 — previously write-only
+ *    dead state; see `pickStateConfigCustomization` for why only the
+ *    customisation keys are taken from it, never the path keys)
  * 4. Built-in defaults
  */
 export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfig {
@@ -71,26 +171,39 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
   // Never-shipped ⇒ no back-compat (IMPLEMENTATION_PLAN.md Stage 7 decision
   // 2): a `mast.config.json` written before Stage 7.2 may still carry the
   // removed embedding-model / Transformers.js cache-dir config keys. Nothing
-  // here validates the parsed shape (plain JSON.parse + cast, no zod), so
-  // those extra keys just ride along on `fileConfig`/`merged` unread — the
-  // spread below never looks them up, and `writeStateConfig` re-persisting
-  // `merged` via `JSON.stringify` carries them along harmlessly too.
+  // here validates the parsed shape (plain JSON.parse + cast, no zod) — this
+  // file is developer-authored and colocated with source control, unlike the
+  // machine-written state config.json below which DOES get minimal shape
+  // validation (see `pickStateConfigCustomization`). Those extra keys just
+  // ride along on `fileConfig`/`merged` unread — the spread below never looks
+  // them up, and `writeStateConfig` re-persisting `merged` via
+  // `JSON.stringify` carries them along harmlessly too.
   let fileConfig: Partial<MastConfig> = {};
   if (existsSync(configFile)) {
     const raw = readFileSync(configFile, 'utf-8');
     fileConfig = JSON.parse(raw) as Partial<MastConfig>;
   }
 
-  const merged: MastConfig = { ...DEFAULTS, ...fileConfig };
-
+  // State dir chain is resolved first and independently of the customisation
+  // merge below — see the priority-order doc comment above.
   const { MAST_STATE_DIR: envStateDir } = ConfigEnvSchema.parse(process.env);
-  const stateDir = options.stateDirOverride ?? envStateDir ?? merged.state_dir;
+  const stateDir = options.stateDirOverride ?? envStateDir ?? fileConfig.state_dir ?? DEFAULTS.state_dir;
+  const resolvedStateDir = resolve(resolvedProjectRoot, stateDir);
+
+  const stateConfig = pickStateConfigCustomization(loadStateConfig(resolvedStateDir));
+
+  const cliOverrides: Partial<MastConfig> = {
+    ...(options.extensions !== undefined ? { file_extensions: options.extensions } : {}),
+    ...(options.excludePatterns !== undefined ? { exclude_patterns: options.excludePatterns } : {}),
+  };
+
+  const merged: MastConfig = { ...DEFAULTS, ...stateConfig, ...fileConfig, ...cliOverrides };
 
   return {
     ...merged,
     state_dir: stateDir,
     project_root: resolvedProjectRoot,
-    resolved_state_dir: resolve(resolvedProjectRoot, stateDir),
+    resolved_state_dir: resolvedStateDir,
     resolved_project_root: resolvedProjectRoot,
   };
 }

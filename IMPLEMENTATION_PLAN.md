@@ -735,7 +735,7 @@ asserting the *potential set* (the existing method fixture only asserts
 | # | Task | Status |
 |---|---|---|
 | F8 | `mast_project_skeleton` costs **~28 s/call** — 99% in `estimateFullFileBound`; `FULL_FILE_BOUND_CACHE_LIMIT=200` LRU-thrashes against 1,334 files (`telemetry/tokenizer.ts:68,97`). Cap the *work*, not the cache | **Complete** |
-| F9 | `mast init --extensions` / `--exclude` are parsed and **ignored** (`cli/init.ts:20–23`); `loadStateConfig` has zero callers outside `config.ts`, and `serve` *overwrites* the persisted config. Honour them or delete the flags | Not Started |
+| F9 | `mast init --extensions` / `--exclude` are parsed and **ignored** (`cli/init.ts:20–23`); `loadStateConfig` has zero callers outside `config.ts`, and `serve` *overwrites* the persisted config. Honour them or delete the flags | **Complete** |
 | M6 | `mast serve` silently bootstraps an empty state dir and answers every query `{"results":[]}` — indistinguishable from "symbol doesn't exist". Fail fast | Not Started |
 | C1 | Unify confidence signals — MAST already computes `resolution` and `reason`; add the missing ones uniformly: `stale`/`file_busy` (done F2, extend per F7) and `truncated` (F10) | Not Started |
 
@@ -832,6 +832,115 @@ silently changed here. (2) One test-only export, `__seedFullFileCacheForTests`, 
 added beyond the mandated design surface — see above for why direct real-call testing
 of the raised cache bound is impractical (~3 minutes) and how the seam preserves
 fidelity to the real eviction mechanism.
+
+### F9 result (2026-08-08) — init flags honoured, persisted config read
+
+**Decision: honour, not delete.** §8's `mast init` docs already advertise
+`--extensions`/`--exclude`, and the persistence machinery (`writeStateConfig` /
+`loadStateConfig`, `store/config.ts`) already existed as dead code — `loadStateConfig`
+had zero callers, so `<state_dir>/config.json` was write-only. Connecting the two was
+the evident design intent; deleting the flags would have been the smaller diff but
+would have thrown away working machinery and a documented CLI surface for no reason
+other than that nothing had wired it up yet.
+
+**Priority chain shipped** (`resolveConfig`, `store/config.ts`):
+
+- **State directory** (unchanged — must resolve before the state dir's config.json can
+  be loaded from inside it): `stateDirOverride` (CLI `--state-dir`) > `MAST_STATE_DIR`
+  env > `state_dir` key in `mast.config.json` > built-in default (`.mast`).
+- **Every other config key** (new, highest priority first): explicit `resolveConfig`
+  overrides (`extensions`/`excludePatterns` — `mast init --extensions`/`--exclude`) >
+  `mast.config.json` in `projectRoot` > persisted `<resolved_state_dir>/config.json`
+  (via `loadStateConfig`, now actually called) > built-in defaults.
+
+**Path-portability rule (CRITICAL, enforced)**: `pickStateConfigCustomization`
+(`store/config.ts`) takes ONLY the 7 customisation keys —
+`file_extensions`, `exclude_patterns`, `rrf_k`, `declaration_exact_ranker`,
+`chunk_split_threshold`, `context_lines`, `markdown_heading_depth` — off a loaded state
+config.json, via an explicit picked-keys merge (per-field `if` checks, not a
+spread-minus-deletes), plus a runtime safety net that throws if a future edit ever
+assigns a key outside that list. **`state_dir`/`project_root`/`resolved_state_dir`/
+`resolved_project_root` are never read back.** WHY: `writeStateConfig` persists a full
+`ResolvedConfig` including ABSOLUTE paths resolved in the process that wrote it; the SDD
+pipeline mounts the same workspace volume at different container paths across runs, so
+an absolute path loaded back from a previous container would silently point the
+resolver at a location that doesn't exist (or, worse, exists but belongs to an
+unrelated project) in the current container. Every path field in the returned
+`ResolvedConfig` always comes from the CURRENT resolution — verified by
+`store/__tests__/config.test.ts`'s dedicated path-portability test, which persists a
+state config whose path fields point at
+`/nonexistent-container-mount/from-a-different-container/.mast` and asserts the
+resolved paths never contain that string. The picked customisation keys are also
+minimally shape-validated (string array / number / boolean) rather than trusted on
+cast — unlike `mast.config.json`, which stays an unvalidated `JSON.parse` cast per the
+existing precedent comment (developer-authored, colocated with source control) — because
+a state config.json is machine-written but still crosses a trust boundary (an arbitrary
+file on disk that could be stale, foreign, or hand-edited); a key that fails validation
+is silently dropped so a lower-priority layer fills it in, rather than propagating a
+malformed value.
+
+**`cli/init.ts` flag parsing**: `parseExtensionsFlag`/`parseExcludeFlag` split on `,`,
+trim each entry, and drop empties; `parseExtensionsFlag` additionally normalises bare
+names to leading-dot form (`'py'` and `'.py'` both accepted — `MastConfig.file_extensions`
+internally always stores the dotted form `walkProject` globs on). Both return `undefined`
+when the flag is absent, so flag-absent `mast init` calls `resolveConfig` exactly as
+before (byte-identical behavior) — the `extensions`/`excludePatterns` options only enter
+the merge when the CLI flag was actually passed.
+
+**`bootstrapState` idempotency, traced**: `cli/serve.ts:17` calls
+`resolveConfig({ stateDirOverride: opts.stateDir })` — no `projectRoot`, so `project_root`
+resolves to `cwd`, but `resolved_state_dir` is driven entirely by `stateDirOverride` (or
+the `MAST_STATE_DIR`/default fallback). Since F9 wires `resolveConfig` to call
+`loadStateConfig(resolvedStateDir)` internally, this `serve`-time resolution ALREADY
+picks up the persisted customisation keys before `bootstrapState` ever runs. `startup.ts`'s
+`bootstrapState` then calls `writeStateConfig(config.resolved_state_dir, config)` —
+`config` is the same already-customised resolution, so this write re-persists the
+customisation instead of overwriting it with fresh defaults (the pre-F9 bug). No changes
+were needed inside `bootstrapState`/`startup.ts` itself — the fix is entirely in
+`resolveConfig` reading the layer that `writeStateConfig` was already writing. Proven by
+`cli/__tests__/cli.test.ts`'s end-to-end regression test (see below), which calls
+`bootstrapState` directly against a `serve`-style resolution and asserts the persisted
+config.json still carries the custom `--extensions`/`--exclude` values afterward.
+
+**Call-site survey** (per the mandate): `cli/serve.ts`, `cli/index-cmd.ts`,
+`cli/status.ts`, `cli/metrics-cmd.ts`, `cli/query.ts`, and `mcp/startup.ts` all resolve
+config via a plain `resolveConfig({ projectRoot, stateDirOverride })` call with no other
+config manipulation — none needed changes. The persisted-config read-back falls out of
+the `resolveConfig` change automatically at every call site; no deviation to record here.
+
+**Red-first evidence**: interface fields (`ResolveConfigOptions.extensions`/
+`excludePatterns`) and `cli/init.ts`'s parse-function stubs (naive `raw.split(',')`, no
+trim/normalize) were added first so the full test suite below would compile and fail on
+assertions, not imports. First run (`store/__tests__/config.test.ts` +
+`cli/__tests__/cli.test.ts`): **7 failed / 42 passed** —
+`resolveConfig — explicit extensions/excludePatterns overrides` (2 tests: override
+ignored, DEFAULTS/mast.config.json values returned instead), `resolveConfig — persisted
+state config layer` → "picks up custom file_extensions..." (state config never read) and
+"explicit overrides win..." (overrides not applied), `mast init — flag parsing` → the
+whitespace/normalization test (`' a , ,b '` returned untrimmed with empty entries and no
+dot-prefix), and the end-to-end init/serve-bootstrap test (`result.filesIndexed` was 3,
+not 1 — extensions/exclude both ignored). Two tests in the same red run passed
+"for free" before any implementation existed: `mast.config.json` already won over
+`DEFAULTS` pre-F9 (no state-config layer needed to observe that), and the
+path-portability test held trivially because nothing was read from the persisted file
+at all yet. Implementing `pickStateConfigCustomization` + the new merge order in
+`resolveConfig`, and the real `parseCommaSeparatedList`/`normalizeExtension` logic in
+`cli/init.ts`, turned all of it green.
+
+**Verification** (from `packages/mast`): `pnpm test` — **501/501 passed, 37 files**
+(baseline 490/37; +11 net new tests — 2 explicit-override tests, 3 persisted-state-layer
+tests, 1 path-portability test, 4 flag-parsing tests, 1 end-to-end init+serve-bootstrap
+regression test). `pnpm typecheck` — clean. `pnpm lint` — clean. Repo-root
+`pnpm align:check` — `baselined debt: 324 -> 324 (0)`, red only on the 2 pre-existing
+non-mast violations (`application/ui/src/views/root-layout.tsx` import cycle;
+`application/api/src/domain/spec/fold-build-record-repository.ts` domain→db import).
+
+**Deviations**: none from the mandated design. **Noticed but not done**: the
+`mast.config.json` boundary (config.ts:71-88 comment) remains an unvalidated
+`JSON.parse` cast per its documented precedent — only the NEW persisted-state-config
+boundary got the minimal shape validation the F9 mandate asked for; retrofitting
+`mast.config.json` itself with the same validation is a separate, unscoped decision
+left to the managing session.
 
 ---
 

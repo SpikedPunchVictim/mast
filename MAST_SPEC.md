@@ -55,11 +55,33 @@ That subsystem was removed 2026-08-06 per the M2 decision (IMPLEMENTATION_PLAN.m
 
 ## 4. Configuration
 
-Config is resolved in this priority order:
+The state directory itself is resolved first, independent of everything else (it must
+be known before its own persisted config can be loaded from inside it):
 
 1. CLI flag `--state-dir <path>` (or env `MAST_STATE_DIR`)
-2. `mast.config.json` in the project root
+2. `state_dir` key in `mast.config.json` in the project root
 3. Default: `<project_root>/.mast`
+
+Every other config key (`file_extensions`, `exclude_patterns`, `rrf_k`,
+`declaration_exact_ranker`, `chunk_split_threshold`, `context_lines`,
+`markdown_heading_depth`) is then resolved in this priority order, highest first:
+
+1. Explicit CLI overrides — `mast init --extensions <ext,...>` / `--exclude <pattern,...>`
+   (F9, Stage 3.5)
+2. `mast.config.json` in the project root
+3. The persisted `<state_dir>/config.json` from a previous `mast init` / `mast serve`
+   in this state directory (F9 — previously write-only; now read back on every
+   resolution)
+4. Built-in defaults
+
+**Path keys are never taken from the persisted state config.** `<state_dir>/config.json`
+stores a full resolved config, including the ABSOLUTE `state_dir`/`project_root`/
+`resolved_state_dir`/`resolved_project_root` from whichever process last wrote it. The
+SDD pipeline mounts the same workspace volume at different container paths across runs,
+so an absolute path loaded back from a previous container could silently point the
+resolver at a path that doesn't exist (or belongs to an unrelated project) in the
+current one. Only the customisation keys are read from the persisted file; the four
+path keys always come from the current resolution.
 
 ### 4.1 `mast.config.json`
 
@@ -118,6 +140,10 @@ Vendored markdown noise (dependency READMEs and the like) is handled by the
 existing `exclude_patterns` — `node_modules/**` is authoritative; there is no
 markdown-specific exclusion logic.
 
+Every field above except `state_dir`/`project_root` is also read back from
+`<state_dir>/config.json` when `mast.config.json` and CLI flags don't override it (§4,
+F9) — see §5 for the file's read/write semantics.
+
 ### 4.2 SDD Pipeline Configuration
 
 The claude-runner passes `--state-dir` at serve time:
@@ -143,7 +169,8 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 
 ```
 <state_dir>/
-├── config.json              # Resolved active config (written at init)
+├── config.json              # Resolved active config (written at init/serve; read back
+                             # on every resolution — §4, F9)
 ├── index.json               # Index metadata: last_indexed, file_count, schema_version
 ├── file_manifest.json       # {path: mtime} snapshot from last index run
 ├── structure.lock              # Advisory write lock for coarse writers (index, mast_reindex, manifest)
@@ -633,7 +660,17 @@ Options:
   --no-index                Create config only, skip initial indexing
 ```
 
-Creates `<state_dir>/`, writes `config.json`, runs a full index.
+`--extensions` and `--exclude` are honoured (F9, Stage 3.5): each is a comma-separated
+list, trimmed and with empty entries dropped; `--extensions` additionally normalizes
+bare names to leading-dot form (`py` and `.py` are both accepted). They take priority
+over `mast.config.json` and any previously-persisted `<state_dir>/config.json` — see §4
+for the full priority chain.
+
+Creates `<state_dir>/`, writes `config.json`, runs a full index. On every subsequent
+`mast init`/`mast index`/`mast serve`/`mast status`/`mast query`/`mast metrics` call
+against the same state directory, the customisation keys in `config.json` are read back
+and applied unless a higher-priority source (CLI flags, `mast.config.json`) overrides
+them (§4).
 
 ---
 

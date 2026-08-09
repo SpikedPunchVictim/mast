@@ -3,6 +3,42 @@ import { resolveConfig, writeStateConfig } from '../store/config.js';
 import { initLockMarkers } from '../store/lock.js';
 import { runIndex } from '../indexer/index.js';
 
+/** Splits a comma-separated CLI flag value, trimming entries and dropping empties. */
+function parseCommaSeparatedList(raw: string): readonly string[] {
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+/**
+ * Normalizes a user-supplied extension to the leading-dot form `MastConfig.file_extensions`
+ * expects (`indexer/walker.ts`'s `walkProject` builds glob patterns as `**\/*${ext}`) — both
+ * '.py' and 'py' are accepted on the CLI so users don't have to remember the internal form.
+ */
+function normalizeExtension(ext: string): string {
+  return ext.startsWith('.') ? ext : `.${ext}`;
+}
+
+/**
+ * Parses `mast init --extensions <ext,...>` into `resolveConfig`'s `extensions` override.
+ * Returns `undefined` when the flag is absent, so flag absence keeps `resolveConfig`'s
+ * default-priority behavior byte-identical (F9, Stage 3.5).
+ */
+export function parseExtensionsFlag(raw: string | undefined): readonly string[] | undefined {
+  if (raw === undefined) return undefined;
+  return parseCommaSeparatedList(raw).map(normalizeExtension);
+}
+
+/**
+ * Parses `mast init --exclude <pattern,...>` into `resolveConfig`'s `excludePatterns` override.
+ * Returns `undefined` when the flag is absent, same rationale as `parseExtensionsFlag`.
+ */
+export function parseExcludeFlag(raw: string | undefined): readonly string[] | undefined {
+  if (raw === undefined) return undefined;
+  return parseCommaSeparatedList(raw);
+}
+
 export function registerInitCommand(program: Command): void {
   program
     .command('init [path]')
@@ -20,6 +56,8 @@ export function registerInitCommand(program: Command): void {
       const config = resolveConfig({
         projectRoot: projectPath,
         stateDirOverride: opts.stateDir,
+        extensions: parseExtensionsFlag(opts.extensions),
+        excludePatterns: parseExcludeFlag(opts.exclude),
       });
 
       initLockMarkers(config.resolved_state_dir);
