@@ -594,18 +594,18 @@ async function resolveCallTarget(
   toName: string,
 ): Promise<number | null> {
   switch (resolution) {
-    case 'same_file': {
+    case 'same_file':
       // The call target must be declared in this exact file — the file
       // itself is the evidence, no lookup needed to establish it.
-      const row = await db
-        .selectFrom('symbols')
-        .select('id')
-        .where('name', '=', toName)
-        .where('file_id', '=', fromFileId)
-        .where('kind', '!=', 'export')
-        .executeTakeFirst();
-      return row?.id ?? null;
-    }
+      return resolveSameFileScoped(db, fromFileId, toName);
+
+    // F4: `this.foo()` — the enclosing class is declared IN the calling
+    // file by construction (`emitClassEdges` seeds the `this` binding from
+    // the class node it is currently walking), so this is the identical
+    // file-scoped lookup `same_file` uses, keyed on the qualified
+    // `ClassName.methodName` toName instead of a bare name.
+    case 'this_method':
+      return resolveSameFileScoped(db, fromFileId, toName);
 
     case 'import': {
       const lookup = await importResolvedPathFor(db, fromFileId, toName);
@@ -622,46 +622,25 @@ async function resolveCallTarget(
 
     case 'field_type':
     case 'parameter_type':
-    case 'new_expression': {
+    case 'new_expression':
       // toName is `TypeName.methodName` — the receiver's type must be
       // file-scoped first, then the qualified method name resolved within
-      // that file (or its re-export chain).
-      const dot = toName.indexOf('.');
-      const typeName = dot === -1 ? toName : toName.slice(0, dot);
+      // that file (or its re-export chain). Falls back to a global
+      // bare-name match when `typeName` has no file evidence at all (a
+      // known, narrow coverage gap — MAST_SPEC §10.3.1).
+      return resolveQualifiedNameScoped(db, fromFileId, toName, legacyGlobalFirstMatch);
 
-      const lookup = await importResolvedPathFor(db, fromFileId, typeName);
-      if (lookup !== null) {
-        if (lookup.resolvedPath === null) return null; // imported but unresolved — no edge
-        return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName);
-      }
-
-      const sameFileType = await db
-        .selectFrom('symbols')
-        .select('id')
-        .where('name', '=', typeName)
-        .where('file_id', '=', fromFileId)
-        .where('kind', '!=', 'export')
-        .executeTakeFirst();
-      if (sameFileType !== undefined) {
-        const row = await db
-          .selectFrom('symbols')
-          .select('id')
-          .where('name', '=', toName)
-          .where('file_id', '=', fromFileId)
-          .where('kind', '!=', 'export')
-          .executeTakeFirst();
-        return row?.id ?? null;
-      }
-
-      // Neither an import nor a same-file declaration names `typeName` —
-      // e.g. a default/namespace import (not tracked as a named import, see
-      // `extractEdges`' `importedNames` collection) or an ambient/global
-      // type. No file evidence exists to scope this edge; preserve the
-      // pre-fix global-first-match behaviour rather than silently dropping
-      // a potentially-correct edge (MAST_SPEC §10.3.1 documents this as a
-      // known coverage gap, not a correctness guarantee).
-      return legacyGlobalFirstMatch(db, toName);
-    }
+    // F4: `super.foo()` — toName is `ParentName.methodName`, traced exactly
+    // like a field_type receiver's type (import first, then same-file
+    // declaration). Unlike field_type/parameter_type/new_expression, an
+    // unresolvable parent name produces NO edge rather than a global
+    // bare-name guess: `emitClassEdges` only seeds this binding when a real
+    // `extends` clause named a parent, so "no file evidence for the parent"
+    // here means the parent is an ambient/global/unresolvable type, not a
+    // missing binding — and a wrong "verified" super-call edge would poison
+    // `verified_callers`' safe-to-act-on contract more than a missing one.
+    case 'super_method':
+      return resolveQualifiedNameScoped(db, fromFileId, toName, async () => null);
 
     default:
       // A POTENTIAL_CALL edge always carries a resolution (`emitCallEdges`
@@ -669,6 +648,68 @@ async function resolveCallTarget(
       // branch only guards an unexpected shape defensively.
       return legacyGlobalFirstMatch(db, toName);
   }
+}
+
+/**
+ * The call target must be declared in exactly `fromFileId` — the file
+ * itself is the evidence, no lookup needed to establish it. Shared by
+ * `same_file` (bare name) and F4's `this_method` (qualified
+ * `ClassName.methodName` name) — both resolve identically once the toName
+ * is fixed, since the enclosing class is always declared in the same file
+ * as the `this`-call site that names it.
+ */
+async function resolveSameFileScoped(db: Db, fromFileId: number, toName: string): Promise<number | null> {
+  const row = await db
+    .selectFrom('symbols')
+    .select('id')
+    .where('name', '=', toName)
+    .where('file_id', '=', fromFileId)
+    .where('kind', '!=', 'export')
+    .executeTakeFirst();
+  return row?.id ?? null;
+}
+
+/**
+ * Resolve a `TypeName.methodName` toName using the receiver type's own file
+ * evidence: `typeName` against this file's own imports first, then its
+ * same-file declarations, following the re-export chain into a barrel when
+ * needed (§10.3.1). `onUnresolved` is invoked only when NEITHER source names
+ * `typeName` at all — callers choose whether that falls back to a global
+ * bare-name match (the historical field_type/parameter_type/new_expression
+ * behaviour) or drops the edge (super_method, which has no legacy fallback
+ * to preserve).
+ */
+async function resolveQualifiedNameScoped(
+  db: Db,
+  fromFileId: number,
+  toName: string,
+  onUnresolved: (db: Db, toName: string) => Promise<number | null>,
+): Promise<number | null> {
+  const dot = toName.indexOf('.');
+  const typeName = dot === -1 ? toName : toName.slice(0, dot);
+
+  const lookup = await importResolvedPathFor(db, fromFileId, typeName);
+  if (lookup !== null) {
+    if (lookup.resolvedPath === null) return null; // imported but unresolved — no edge
+    return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName);
+  }
+
+  const sameFileType = await db
+    .selectFrom('symbols')
+    .select('id')
+    .where('name', '=', typeName)
+    .where('file_id', '=', fromFileId)
+    .where('kind', '!=', 'export')
+    .executeTakeFirst();
+  if (sameFileType !== undefined) {
+    return resolveSameFileScoped(db, fromFileId, toName);
+  }
+
+  // Neither an import nor a same-file declaration names `typeName` — e.g. a
+  // default/namespace import (not tracked as a named import, see
+  // `extractEdges`' `importedNames` collection) or an ambient/global type.
+  // No file evidence exists to scope this edge.
+  return onUnresolved(db, toName);
 }
 
 /**

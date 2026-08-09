@@ -444,3 +444,52 @@ describe('verified_callers — heuristic and checker edges coexist and dedupe', 
     expect(await countRows()).toBe(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// F4 — `this_method` resolution scoping (Stage 3). Proves the new resolution
+// label reaches `resolveCallTarget`'s file-scoped switch through the real
+// populateFile → insertEdges pipeline, not just the pure extractor layer
+// covered by call-edges.test.ts. Single focused test per §5.5's test budget —
+// `super_method`'s scoping reuses the identical `resolveQualifiedNameScoped`
+// helper `field_type` already exercises end-to-end in the Q4b/barrel-chain
+// tests above, so a second full-pipeline test would not add coverage no unit
+// test already provides.
+// ---------------------------------------------------------------------------
+
+describe('verified_callers — this_method resolution scopes to the calling file (F4)', () => {
+  let tmpDir: string;
+  let db: Db;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-this-method-'));
+    writeFileSync(
+      join(tmpDir, 'service.ts'),
+      `export class Service {
+  caller(): void {
+    this.helper();
+  }
+  helper(): void {}
+}
+`,
+    );
+
+    db = openDatabase(tmpDir);
+    const service = await populateFixture(db, tmpDir, 'service.ts');
+    await insertEdges(db, 'service.ts', service.edges);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('resolves the this-called method scoped to the class declared in the calling file', async () => {
+    const [target] = await querySymbolByName(db, 'Service.helper', 'service.ts');
+    expect(target).toBeDefined();
+
+    const callers = await queryVerifiedCallers(db, target!.id, false);
+    const caller = callers.find((c) => c.caller_symbol === 'Service.caller');
+    expect(caller).toBeDefined();
+    expect(caller!.resolution).toBe('this_method');
+  });
+});

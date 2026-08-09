@@ -257,10 +257,14 @@ CREATE TABLE IF NOT EXISTS edges (
   to_id      INTEGER NOT NULL REFERENCES symbols(id) ON DELETE CASCADE,
   edge_type  TEXT NOT NULL,
   resolution TEXT,    -- POTENTIAL_CALL only: which §10.3.1 rule matched
-                      -- (import | field_type | parameter_type | new_expression | same_file)
+                      -- (import | field_type | parameter_type | new_expression | same_file
+                      -- | this_method | super_method)
                       -- or 'checker' (§10.3.2) — the opt-in `mast index --checker`
                       -- pass upgraded a heuristic-unresolved potential match via
-                      -- the real TypeScript checker. Additive value, no schema change.
+                      -- the real TypeScript checker. 'this_method'/'super_method' (F4,
+                      -- Stage 3) are additive values for `this.foo()`/`super.foo()`
+                      -- call sites — see §10.3.1's "Method calls on super and this".
+                      -- Additive values, no schema change.
   call_line  INTEGER, -- POTENTIAL_CALL only: 1-indexed source line of the call site
   context    TEXT,    -- POTENTIAL_CALL only: trimmed source text of the call-site line
   -- POTENTIAL_CALL | IMPLEMENTS | EXTENDS | RE_EXPORTS | PARENT_OF
@@ -983,7 +987,7 @@ across all MCP tools, and what to do with each one:
 
 | Field | Carried by | Meaning | Agent action |
 |---|---|---|---|
-| `resolution` | `VerifiedCaller` entries (`mast_callers`, `mast_rename_impact`) | How this call site was statically resolved to the queried declaration — one of six values (`import`, `field_type`, `parameter_type`, `new_expression`, `same_file`, `checker`). | High confidence. Safe to act on directly (e.g. as a rename/refactor site) without further verification. |
+| `resolution` | `VerifiedCaller` entries (`mast_callers`, `mast_rename_impact`) | How this call site was statically resolved to the queried declaration — one of eight values (`import`, `field_type`, `parameter_type`, `new_expression`, `same_file`, `checker`, `this_method`, `super_method` — the last two added by F4, Stage 3, for `this.foo()`/`super.foo()` call sites). | High confidence. Safe to act on directly (e.g. as a rename/refactor site) without further verification. |
 | `reason` | `PotentialMatch` entries (`mast_callers`, `mast_rename_impact`) | Why this call site could **not** be statically resolved — currently always `identifier_match_no_resolved_edge`. | Mandatory review. This is a name-match, not a verified edge; confirm it is a real call site before acting on it. |
 | `file_busy_returning_stale_cache` | JIT-refresh tools' results/envelopes (`mast_signature`, `mast_exports`, `mast_callers`, `mast_dependencies`, `mast_rename_impact`) | A refresh **was attempted** (this file's JIT re-parse) and lost to genuine write contention (`populateFile`'s `BEGIN IMMEDIATE` exhausted its `busy_timeout`), so the previous, possibly-stale chunk was returned instead. | Contended, not wrong-by-design. Retry shortly — the contention is expected to clear (§7.6). |
 | `stale` | `mast_search` / `mast_implementors` per-result (F7) | This result's `file_path` stat'd newer-on-disk than its indexed mtime, or the stat failed — **no refresh was attempted by design** (stat-and-flag, not JIT re-parse; see above). | Treat this result's line coordinates as untrustworthy. A `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it. |
@@ -1921,7 +1925,18 @@ file references resolve correctly.
 
 **Method calls on `super` and `this` without receiver.** `this.foo()` resolves to
 the enclosing class's `foo` method via the qualified `symbols` row. `super.foo()`
-resolves to the parent class via the `EXTENDS` edge.
+resolves to the parent class via the `EXTENDS` edge. Implemented as ordinary
+receiver bindings (F4, Stage 3): `emitClassEdges` seeds `this` → the enclosing
+class name and, only when an `extends` clause names a parent, `super` → that
+parent's name, riding the same `LocalTypeEnvironment` receiver-binding path
+`field_type` etc. use — no parallel resolution mechanism. The resulting
+`resolution` values are `this_method` and `super_method` respectively (see the
+`edges` table comment above and §9.0's confidence-signals table); a class with
+no `extends` clause never produces a `super_method` edge — an unresolvable
+`super.foo()` call falls through to the `identifier_fts` potential set instead
+of guessing. `this.foo()` inside a nested non-arrow function/method/generator
+body is NOT the class instance and is excluded before it ever reaches the
+resolver — arrow functions inherit the enclosing `this` and are not excluded.
 
 **Name resolution is file-scoped, not name-only.** When two files export a
 same-named symbol, `insertEdges`' name→id resolution (§10.3) uses the

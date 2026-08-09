@@ -90,6 +90,130 @@ export function run(): void {
 });
 
 // ---------------------------------------------------------------------------
+// F3 — await unwrapping
+// ---------------------------------------------------------------------------
+
+describe('extractEdges — POTENTIAL_CALL await unwrapping (F3)', () => {
+  it('resolves `(await x).m()` — parenthesized await wrapping an annotated-parameter receiver', () => {
+    const edges = potentialCalls(edgesOf(`
+      export async function run(repo: UserRepository): Promise<void> {
+        (await repo).findById(id);
+      }
+    `));
+    const edge = edges.find((e) => e.toName === 'UserRepository.findById');
+    expect(edge).toBeDefined();
+    expect(edge!.resolution).toBe('parameter_type');
+  });
+
+  it('resolves `await this.users.create(x)` — await wrapping a field-typed call already reached by collectCalls', () => {
+    const edges = potentialCalls(edgesOf(`
+      export class Service {
+        constructor(private readonly users: UserRepository) {}
+        async run(x: unknown): Promise<void> {
+          await this.users.create(x);
+        }
+      }
+    `));
+    const edge = edges.find((e) => e.toName === 'UserRepository.create');
+    expect(edge).toBeDefined();
+    expect(edge!.resolution).toBe('field_type');
+  });
+
+  it('resolves a call with explicit type arguments — `x.m<T>()`', () => {
+    const edges = potentialCalls(edgesOf(`
+      export function run(repo: UserRepository): void {
+        repo.findById<string>(id);
+      }
+    `));
+    const edge = edges.find((e) => e.toName === 'UserRepository.findById');
+    expect(edge).toBeDefined();
+    expect(edge!.resolution).toBe('parameter_type');
+  });
+
+  it('does NOT infer through an unannotated await binding (no promise-unwrapped type inference)', () => {
+    const edges = potentialCalls(edgesOf(`
+      export async function run(): Promise<void> {
+        const y = await makeFoo();
+        y.bar();
+      }
+    `));
+    expect(edges.find((e) => e.toName.endsWith('.bar'))).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F4 — this./super. resolution
+// ---------------------------------------------------------------------------
+
+describe('extractEdges — POTENTIAL_CALL this./super. resolution (F4)', () => {
+  it('resolves `this.helper()` inside a method to the enclosing class', () => {
+    const edges = potentialCalls(edgesOf(`
+      export class Klass {
+        caller(): void { this.helper(); }
+        helper(): void {}
+      }
+    `));
+    const edge = edges.find((e) => e.toName === 'Klass.helper');
+    expect(edge).toBeDefined();
+    expect(edge!.fromName).toBe('Klass.caller');
+    expect(edge!.resolution).toBe('this_method');
+  });
+
+  it('resolves `super.base()` to the parent class named in the extends clause', () => {
+    const edges = potentialCalls(edgesOf(`
+      export class Base {
+        base(): void {}
+      }
+      export class Klass extends Base {
+        caller(): void { super.base(); }
+      }
+    `));
+    const edge = edges.find((e) => e.toName === 'Base.base');
+    expect(edge).toBeDefined();
+    expect(edge!.fromName).toBe('Klass.caller');
+    expect(edge!.resolution).toBe('super_method');
+  });
+
+  it('emits no super edge when the class has no extends clause', () => {
+    const edges = potentialCalls(edgesOf(`
+      export class Klass {
+        caller(): void { super.base(); }
+      }
+    `));
+    expect(edges.find((e) => e.toName.endsWith('.base'))).toBeUndefined();
+  });
+
+  it('does NOT resolve `this.helper()` inside a nested function_expression (this is not the class instance there)', () => {
+    const edges = potentialCalls(edgesOf(`
+      export class Klass {
+        caller(): void {
+          const inner = function () { this.helper(); };
+          inner();
+        }
+        helper(): void {}
+      }
+    `));
+    expect(edges.find((e) => e.toName === 'Klass.helper')).toBeUndefined();
+  });
+
+  it('resolves `this.helper()` inside an arrow function within the method (arrows inherit `this`)', () => {
+    const edges = potentialCalls(edgesOf(`
+      export class Klass {
+        caller(): void {
+          const inner = () => { this.helper(); };
+          inner();
+        }
+        helper(): void {}
+      }
+    `));
+    const edge = edges.find((e) => e.toName === 'Klass.helper');
+    expect(edge).toBeDefined();
+    expect(edge!.fromName).toBe('Klass.caller');
+    expect(edge!.resolution).toBe('this_method');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // EXTENDS
 // ---------------------------------------------------------------------------
 

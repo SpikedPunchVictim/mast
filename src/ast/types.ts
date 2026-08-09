@@ -386,7 +386,24 @@ export type CallerResolution =
    * queried declaration via `ts.TypeChecker.getSymbolAtLocation` (following
    * alias chains). See MAST_SPEC §10.3.2.
    */
-  | 'checker';
+  | 'checker'
+  /**
+   * Additive (F4, Stage 3): `this.foo()` inside a class method body,
+   * resolved to the enclosing class's qualified method via a receiver
+   * binding seeded per method (`emitClassEdges`), not inference. Excludes
+   * calls inside a nested non-arrow function/generator body — those have
+   * their own dynamic `this` and are never seeded (§10.3.1). See
+   * MAST_SPEC.md §10.3.1 "Method calls on super and this".
+   */
+  | 'this_method'
+  /**
+   * Additive (F4, Stage 3): `super.foo()` inside a class method body,
+   * resolved to the parent class named in the `extends` clause. Only seeded
+   * when an `extends` clause exists; a class with no parent never produces
+   * this resolution (falls to the `identifier_fts` potential set instead).
+   * See MAST_SPEC.md §10.3.1 "Method calls on super and this".
+   */
+  | 'super_method';
 
 export interface VerifiedCaller {
   readonly file_path: string;

@@ -707,12 +707,12 @@ justifies the subsystem.
 
 ## Stage 3: Call-graph correctness
 **Goal**: `mast_callers` stops returning confidently-empty answers.
-**Status**: Not Started
+**Status**: In Progress — F3/F4 complete (2026-08-09); F5/F10 remaining.
 
 | # | Task | Status |
 |---|---|---|
-| F3 | `parseCallee`: unwrap `await_expression` (`typescript.ts:1360`) — one line | Not Started |
-| F4 | Implement `this.` / `super.` resolution (documented in §10.3.1, never built) | Not Started |
+| F3 | `parseCallee`: unwrap `await_expression` (`typescript.ts:1360`) — one line | **Complete** |
+| F4 | Implement `this.` / `super.` resolution (documented in §10.3.1, never built) | **Complete** |
 | F5 | `mast_callers` potential set for methods — **design change**, see below | Not Started |
 | F10 | Surface `potential_truncated` (silent cap at 50; real count was 71) | Not Started |
 
@@ -727,6 +727,161 @@ unqualified leaf name, which widens the set ambiguously across classes.
 nested-`function` shadowing guard for F4. `tools.test.ts` with a **method** fixture
 asserting the *potential set* (the existing method fixture only asserts
 `declaration_sites`).
+
+### F3+F4 result (2026-08-09) — await unwrap + this/super resolution
+
+**Design: ride the existing receiver-binding machinery, no parallel mechanism.**
+Both tasks extend `LocalTypeEnvironment`'s existing typed-receiver path
+(`local-type-env.ts`) rather than adding a second resolution mechanism — F4 in
+particular seeds `this`/`super` as ordinary receiver bindings the same way
+`field_type`/`parameter_type` already work, so `resolveCall` and
+`resolveCallTarget`'s per-rule file-scoping needed no new *kind* of machinery,
+only two new resolution-rule branches.
+
+**F3 — await unwrapping, three shapes verified via a tree-sitter S-expression
+dump against the current `tree-sitter-typescript` grammar** (a throwaway probe
+test, deleted before commit):
+- `(await x).m()`: the member_expression's `object` field is
+  `parenthesized_expression(await_expression(identifier))` — three levels deep.
+  `receiverString` (`typescript.ts`) now unwraps this specific shape via a new
+  `unwrapAwaitedReceiver` helper, applied before the existing
+  identifier/`this.field`/`this`/`super` dispatch, so `x`'s existing binding
+  (parameter, field, etc.) applies unchanged.
+- `await x.m()`: `await_expression` wraps the whole `call_expression` directly
+  (not the receiver) — `collectCalls`'s recursive visit already reaches the
+  inner `call_expression` (it does not skip `await_expression`), and
+  `parseCallee` already read its `function` field correctly. This shape needed
+  no code change; only a pinning test (`await this.users.create(x)`, asserting
+  `field_type`).
+- `x.m<T>()`: `call_expression`'s `function` field is unaffected by an
+  intervening `type_arguments` node — `childForFieldName('function')` returns
+  the `member_expression` regardless. No code change; pinning test only.
+- Confirmed unchanged: `const y = await makeFoo(); y.bar()` still produces no
+  edge — F3 unwraps syntax around an *already-bound* receiver, it does not run
+  type inference through an assignment. §10.3.1's "does NOT catch" list is
+  unchanged.
+
+**F4 — this./super. resolution, two new `CallerResolution` values**
+(`ast/types.ts`): `'this_method'` and `'super_method'`, additive TEXT values
+in the `edges.resolution` column — no schema bump, same precedent as
+`'checker'` (MAST_SPEC.md §6.3's comment already documents `'checker'` as
+schema-free-additive; grepped `packages/mast/src` and `graph/db.ts`'s schema
+DDL for any `CHECK`/enum constraint on the column — none exists, so nothing at
+the DB layer needed updating).
+1. `receiverString` gained two branches: a bare `this` node (tree-sitter type
+   `'this'`) → the literal string `"this"`; a bare `super` node (type
+   `'super'`) → `"super"`. Verified via the same S-expression dump: in
+   `this.helper()`, the member_expression's `object` field is the `this` node
+   itself (not a nested member_expression), so this sits alongside — not
+   inside — the pre-existing `this.field` special case (which handles
+   `this.repo.findByEmail()`, an unrelated shape where `this` is the *inner*
+   node of a nested member_expression).
+2. `emitClassEdges` (`typescript.ts`) now builds one `classScopeBindings` array
+   per class — the renamed `fieldBindings` plus `{ receiver: 'this', type:
+   className, resolution: 'this_method' }`, and, only when the class's
+   `extends_clause` named a parent (`baseClassName`, captured at the same site
+   that already emits the `EXTENDS` edge, so the binding and the edge can never
+   disagree), `{ receiver: 'super', type: baseClassName, resolution:
+   'super_method' }`. Passed to `emitCallEdges` for every method in the class,
+   which seeds them into that method's `LocalTypeEnvironment` alongside the
+   field bindings — `resolveCall('this', 'foo')` then yields
+   `{ callee: 'ClassName.foo', resolution: 'this_method' }` through the
+   unmodified generic receiver-type path. No extends clause → no `super`
+   binding seeded → `super.foo()` calls fall through to `identifier_fts`'s
+   `potential_matches` set, exactly as the mandate requires (never guess).
+3. **Nested-function shadowing guard.** `collectCalls` already skipped
+   `function_declaration`/`method_definition`/`class_declaration`/
+   `abstract_class_declaration` (their calls belong to their own scope, per
+   the pre-existing comment). Verified via the S-expression dump that this
+   list was incomplete for `this`-shadowing purposes: `function_expression`
+   (anonymous `function(){}` and named-expression forms) and the two
+   generator forms (`generator_function_declaration`,
+   `generator_function`) are distinct tree-sitter node types not covered by
+   the existing list, and each introduces its own dynamic `this` exactly like
+   `function_declaration` does. All three were added to the skip list with a
+   WHY-comment. **Arrow functions were confirmed absent from the skip list
+   (unchanged)** — they inherit the enclosing scope's `this` by JS semantics,
+   confirmed via the dump that `collectCalls`'s visit descends into
+   `arrow_function` bodies normally, so a `this.helper()` call inside an arrow
+   nested in a method still reaches the same shared `LocalTypeEnvironment` and
+   resolves to `this_method`.
+
+**`resolveCallTarget` file-scoping for the two new labels** (`populate.ts`):
+- `'this_method'`: resolved by a new `resolveSameFileScoped` helper — the
+  identical file-scoped lookup `'same_file'` already used (extracted out, not
+  duplicated), keyed on the qualified `ClassName.methodName` toName instead of
+  a bare name. Correct because `emitClassEdges` only ever seeds the `this`
+  binding from the class node it is currently walking — the class is
+  guaranteed declared in the calling file.
+- `'super_method'`: resolved by a new `resolveQualifiedNameScoped` helper —
+  the identical two-step lookup `'field_type'`/`'parameter_type'`/
+  `'new_expression'` already used (import's `resolved_path` first, following
+  the re-export chain; then same-file declaration), also extracted out of
+  those three cases rather than duplicated a fourth time. The one behavioral
+  difference: `onUnresolved` is a caller-supplied continuation —
+  `field_type`/`parameter_type`/`new_expression` still pass
+  `legacyGlobalFirstMatch` (unchanged, pre-existing coverage-gap fallback);
+  `super_method` passes `async () => null`, so an unresolvable parent class
+  name (ambient/global type, or a shape the resolver doesn't track) drops the
+  edge instead of guessing across the whole graph — the mandate's "no bare-name
+  global fallback for these new rules."
+
+**Red-first evidence.** New tests were written against the unfixed code first
+and run via `pnpm exec vitest run` (not a stash/pop — no production file
+needed reverting since the F3/F4 code did not exist yet at test-writing time).
+First run: **5 failed / 20 passed** (25 total in the two touched files) — all
+5 failures were `expected undefined not to be undefined` (assertion-level,
+proving each test exercises a real, then-missing behavior, not a broken
+import): `(await repo).findById(id)` (F3 receiver unwrap), `this.helper()`
+resolution, `super.base()` resolution, and `this.helper()` inside an arrow
+(F4, three failures). Four tests in the same red run passed "for free" before
+any F3/F4 implementation existed — `await x.m()` and `x.m<T>()` (already-working
+shapes, F3 pinning only), no-super-without-extends, and no-`this`-inside-a-
+nested-`function_declaration` (the pre-existing skip already covered that one
+shadowing case) — confirming those assertions describe already-correct
+behavior rather than untested gaps. Implementing `unwrapAwaitedReceiver`, the
+`this`/`super` `receiverString` branches, `classScopeBindings` seeding, the
+three-form skip-list extension, and the two `resolveCallTarget` branches
+turned all 5 green with no regressions elsewhere.
+
+**Test design.** Pure-layer coverage
+(`ast/extractors/__tests__/call-edges.test.ts`, +9 tests: 4 F3 + 5 F4) follows
+the file's existing `edgesOf`/`potentialCalls` fixture pattern exactly. One
+integration test (`graph/__tests__/verified-callers.test.ts`, +1 test) drives
+`populateFile` + `insertEdges` directly (the file's established
+`populateFixture` helper) and asserts `queryVerifiedCallers` returns a
+`this_method`-resolved caller — proving `resolveCallTarget`'s new branch is
+actually wired into the real pipeline, not just reachable in the pure
+extractor. `super_method` was deliberately NOT given a second full-pipeline
+test: `resolveQualifiedNameScoped` is the identical helper `field_type`
+already exercises end-to-end via the Q4b/barrel-chain/ambiguity-fallback
+tests in the same file, so a second integration test would duplicate coverage
+those already provide (§5.5 test budget) — the `super_method`-specific
+behavior (the `async () => null` fallback and the binding-seeding condition on
+`extends`) is fully covered at the pure layer instead.
+
+**What is explicitly NOT claimed here.** No corpus-level before/after
+`POTENTIAL_CALL` edge count was measured against a real external corpus — the
+Stage 3 "Success criteria" above (1,038 → toward 1,124 `this.` + 20 `super.`
+call sites) is E2's registered measurement, a separate experiment requiring
+pre-registration per the project's methodological rules (HANDOFF §6). This
+task's evidence is unit-level only: the resolver now produces `this_method`/
+`super_method` edges where it previously produced none, proven by the tests
+above; whether that closes the corpus-measured gap awaits E2.
+
+**Verification** (from `packages/mast`): `pnpm test` — **538/538 passed, 37
+files** (baseline 528/37; +10 net new tests — 9 pure-layer + 1 integration).
+`pnpm typecheck` — clean. `pnpm lint` — clean. Repo-root `pnpm align:check` —
+`baselined debt: 324 -> 324 (0)`, red only on the 2 pre-existing non-mast
+violations (`application/ui/src/views/root-layout.tsx` import cycle;
+`application/api/src/domain/spec/fold-build-record-repository.ts` domain→db
+import) — unchanged from C1's verification, confirming F3/F4 introduced no
+new architecture drift.
+
+**Deviations**: none from the mandated design. **Noticed but not done**: F5
+(qualified names in `identifier_fts`) and F10 (`potential_truncated`) remain
+unimplemented — explicitly out of scope per the task brief; Stage 3's overall
+`Status` is left as "In Progress" rather than "Complete" to reflect this.
 
 ---
 

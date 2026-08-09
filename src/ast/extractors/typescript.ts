@@ -1194,15 +1194,19 @@ function emitClassEdges(
     }
   }
 
-  // EXTENDS: the `extends` clause names the base class.
+  // EXTENDS: the `extends` clause names the base class. `baseClassName` is
+  // also the F4 `super_method` receiver binding's type below — captured here
+  // rather than re-derived so the binding and the edge agree by construction.
   const extendsClause = heritage !== null
     ? findChildByType(heritage, 'extends_clause')
     : findChildByType(classNode, 'extends_clause');
+  let baseClassName: string | null = null;
   if (extendsClause !== null) {
     for (const typeRef of nodeNamedChildren(extendsClause)) {
-      const baseName = typeRefName(typeRef);
-      if (baseName !== null) {
-        edges.push({ fromName: className, toName: baseName, edgeType: 'EXTENDS' });
+      const name = typeRefName(typeRef);
+      if (name !== null) {
+        baseClassName = name;
+        edges.push({ fromName: className, toName: name, edgeType: 'EXTENDS' });
         break; // a class extends at most one base
       }
     }
@@ -1211,8 +1215,19 @@ function emitClassEdges(
   const bodyNode = classNode.childForFieldName('body') ?? findChildByType(classNode, 'class_body');
   if (bodyNode === null) return;
 
-  // Class-wide receiver bindings: constructor parameter properties + fields.
-  const fieldBindings = collectClassFieldBindings(bodyNode);
+  // Class-wide receiver bindings: constructor parameter properties + fields,
+  // plus F4's `this`/`super` bindings — riding the same receiver-binding
+  // machinery LocalTypeEnvironment already provides for `field_type` etc.,
+  // per §10.3.1 "Method calls on super and this". No `super` binding when
+  // there is no parent class: an unresolvable super-call must fall through
+  // to the identifier_fts potential set, never guess a target.
+  const classScopeBindings: ReceiverBinding[] = [
+    ...collectClassFieldBindings(bodyNode),
+    { receiver: 'this', type: className, resolution: 'this_method' },
+  ];
+  if (baseClassName !== null) {
+    classScopeBindings.push({ receiver: 'super', type: baseClassName, resolution: 'super_method' });
+  }
 
   for (const member of nodeNamedChildren(bodyNode)) {
     const mt = nodeType(member);
@@ -1231,7 +1246,7 @@ function emitClassEdges(
       edges,
       seedFileScope,
       lines,
-      fieldBindings,
+      classScopeBindings,
     );
   }
 }
@@ -1260,11 +1275,14 @@ function emitCallEdges(
   edges: EdgeRecord[],
   seedFileScope: (env: LocalTypeEnvironment) => void,
   lines: readonly string[],
-  classFieldBindings: readonly ReceiverBinding[] = [],
+  // Class-wide bindings for a method scope: field/constructor-parameter
+  // types (`this.x`) plus F4's `this`/`super` bindings. Empty for top-level
+  // function/arrow scopes, which have no enclosing class.
+  classScopeBindings: readonly ReceiverBinding[] = [],
 ): void {
   const env = new LocalTypeEnvironment();
   seedFileScope(env);
-  for (const b of classFieldBindings) env.recordReceiverType(b.receiver, b.type, b.resolution);
+  for (const b of classScopeBindings) env.recordReceiverType(b.receiver, b.type, b.resolution);
   if (paramsNode !== null) {
     for (const b of collectParamBindings(paramsNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
   }
@@ -1352,14 +1370,21 @@ function collectNewBindings(bodyNode: SyntaxNode): ReceiverBinding[] {
 }
 
 /** Collect call_expression nodes within a body, not descending into nested
- *  named functions/methods/classes (their calls belong to their own scope). */
+ *  named/anonymous functions, generators, methods, or classes (their bodies
+ *  are their own scope — non-arrow functions also get their own dynamic
+ *  `this`, so a `this.foo()` inside one is never the enclosing class
+ *  instance; F4's `this_method`/`super_method` bindings must not leak in.
+ *  Arrow functions are deliberately NOT in this list — they inherit the
+ *  enclosing scope's `this` and calls inside them must still resolve). */
 function collectCalls(bodyNode: SyntaxNode): SyntaxNode[] {
   const calls: SyntaxNode[] = [];
   const visit = (node: SyntaxNode): void => {
     for (const child of nodeNamedChildren(node)) {
       const t = nodeType(child);
       if (t === 'function_declaration' || t === 'method_definition' ||
-          t === 'class_declaration' || t === 'abstract_class_declaration') {
+          t === 'class_declaration' || t === 'abstract_class_declaration' ||
+          t === 'function_expression' || t === 'generator_function' ||
+          t === 'generator_function_declaration') {
         continue;
       }
       if (t === 'call_expression') calls.push(child);
@@ -1389,13 +1414,38 @@ function parseCallee(call: SyntaxNode): { receiver: string | null; method: strin
   return null;
 }
 
+/**
+ * Unwrap `(await x)` down to `x` for the receiver position (F3). Tree-sitter
+ * parses `(await x).m()`'s object as `parenthesized_expression(
+ * await_expression(x))` — verified via a tree-sitter S-expression dump
+ * against `tree-sitter-typescript`'s current grammar. Only unwraps an
+ * await specifically (not parens in general) — this is syntax unwrapping,
+ * not type inference: `const y = await makeFoo(); y.bar()` still does not
+ * resolve, per §10.3.1's "does NOT catch" list.
+ */
+function unwrapAwaitedReceiver(node: SyntaxNode): SyntaxNode {
+  if (nodeType(node) !== 'parenthesized_expression') return node;
+  const inner = node.namedChildren[0];
+  if (inner === undefined || nodeType(inner) !== 'await_expression') return node;
+  const awaited = inner.namedChildren[0];
+  return awaited ?? node;
+}
+
 /** Stringify a member-expression receiver for the conservative resolver. */
 function receiverString(objectNode: SyntaxNode): string | null {
-  const t = nodeType(objectNode);
-  if (t === 'identifier') return objectNode.text;
+  const node = unwrapAwaitedReceiver(objectNode);
+  const t = nodeType(node);
+  if (t === 'identifier') return node.text;
+  // F4: bare `this`/`super` as the receiver — `this.foo()`/`super.foo()`.
+  // The env bindings for these two literal strings are seeded per-method by
+  // `emitClassEdges`; outside a class scope (or inside a nested function
+  // that shadows `this`, per collectCalls above) no binding exists and
+  // `resolveCall` returns null, same as any other unbound receiver.
+  if (t === 'this') return 'this';
+  if (t === 'super') return 'super';
   if (t === 'member_expression') {
-    const inner = objectNode.childForFieldName('object');
-    const prop = objectNode.childForFieldName('property')?.text ?? null;
+    const inner = node.childForFieldName('object');
+    const prop = node.childForFieldName('property')?.text ?? null;
     if (inner !== null && prop !== null && nodeType(inner) === 'this') return `this.${prop}`;
   }
   return null;
