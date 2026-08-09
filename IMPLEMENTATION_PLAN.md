@@ -196,6 +196,8 @@ other tools' flag means. Per the task brief, inventing a second field name
 here was explicitly out of scope; C1 ("unify confidence signals") is where
 `stale`/`file_busy` get properly split apart.
 
+**[renamed to `stale` by C1, 2026-08-09]**
+
 ### F11 result (2026-08-07) — narrow-role locking shipped
 
 Shipped the plan's own "minimum viable outcome" (R5 review verdict, this
@@ -730,14 +732,14 @@ asserting the *potential set* (the existing method fixture only asserts
 
 ## Stage 3.5: Tool defects and honest surfaces
 **Goal**: Fix tools that are slow, silently lying, or advertising things they don't do.
-**Status**: Not Started
+**Status**: Complete (2026-08-09) — F8/F9/M6/C1 all shipped.
 
 | # | Task | Status |
 |---|---|---|
 | F8 | `mast_project_skeleton` costs **~28 s/call** — 99% in `estimateFullFileBound`; `FULL_FILE_BOUND_CACHE_LIMIT=200` LRU-thrashes against 1,334 files (`telemetry/tokenizer.ts:68,97`). Cap the *work*, not the cache | **Complete** |
 | F9 | `mast init --extensions` / `--exclude` are parsed and **ignored** (`cli/init.ts:20–23`); `loadStateConfig` has zero callers outside `config.ts`, and `serve` *overwrites* the persisted config. Honour them or delete the flags | **Complete** |
 | M6 | `mast serve` silently bootstraps an empty state dir and answers every query `{"results":[]}` — indistinguishable from "symbol doesn't exist". Fail fast | **Complete** |
-| C1 | Unify confidence signals — MAST already computes `resolution` and `reason`; add the missing ones uniformly: `stale`/`file_busy` (done F2, extend per F7) and `truncated` (F10) | Not Started |
+| C1 | Unify confidence signals — MAST already computes `resolution` and `reason`; add the missing ones uniformly: `stale`/`file_busy` (done F2, extend per F7) and `truncated` (F10) | **Complete** |
 
 **Why this is its own stage**: F8 was ranked the **#2 betterment** of the R3 review and
 is the single largest practical DX cost measured — the orientation tool the §12 prompt
@@ -1046,6 +1048,115 @@ tracked separately (IMPLEMENTATION_PLAN.md M6)" — now stale phrasing (M6 is do
 (no `assertServableIndex`/`isIndexEmpty` wiring) and was out of this task's file scope;
 left for the managing session to decide whether `mast query` should gain the same
 `index_empty` signal or just have its doc comment's cross-reference updated.
+
+### C1 result (2026-08-09) — confidence signals unified
+
+**The split decision, and why.** F7 (above) reused `file_busy_returning_stale_cache`
+for `mast_search`/`mast_implementors`'s stat-and-flag staleness signal — a decision
+the F7 result explicitly flagged as a "known naming tension, deferred to C1". The
+name is a misnomer there: `mast_search`/`mast_implementors` never attempt to acquire
+`structure.lock` or re-parse anything, so nothing is ever "busy" in the sense the
+JIT-refresh tools' flag means. The two signals also demand **different agent
+actions** — the exact reason the misnomer was worth fixing, not merely cosmetic:
+- `file_busy_returning_stale_cache` (JIT tools): a refresh **was attempted** and lost
+  to genuine write contention. The correct response is to **retry shortly** — the
+  contention is expected to clear (§7.6's 200ms `busy_timeout`).
+- `stale` (the new C1 name, `mast_search`/`mast_implementors`): **no refresh was ever
+  attempted**, by design (re-parsing a result file mid-response could invalidate the
+  ranking that already selected it, per F7's stat-and-flag design). The correct
+  response is to treat the result's coordinates as untrustworthy until a
+  `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it —
+  retrying the same `mast_search` call will NOT clear the flag on its own.
+Conflating these under one field name meant an agent (or a future maintainer) reading
+`file_busy_returning_stale_cache: true` on a `mast_search` result had no way to tell
+"retry" from "reindex" apart from re-deriving it from which tool it came from. The
+project is never-shipped (no consumers, no back-compat obligation — see
+`IMPLEMENTATION_PLAN.md`'s recurring "never shipped" framing), so the rename carried
+zero migration cost — the only reason it was deferred to its own task instead of done
+inline in F7 was scope discipline (per F7's task brief, inventing a second field name
+was explicitly out of scope for that task).
+
+**What changed — a rename plus documentation, no new machinery.** Per
+`eval/GITNEXUS_COMPARISON.md` §13.8 item 5 / §14.8 item 5 ("frame as unification, not
+a new feature") and this project's CLAUDE.md §4.2 (no premature abstraction): no
+confidence enum, no wrapper object, no field beyond the rename.
+1. `SearchResult.file_busy_returning_stale_cache` → `SearchResult.stale?: true`
+   (`ast/types.ts`), TSDoc rewritten to state the stat-and-flag semantics and the
+   agent action (treat coordinates as untrustworthy; `mast_reindex`/JIT-tool-call
+   heals it).
+2. `ImplementorResult.file_busy_returning_stale_cache` → `ImplementorResult.stale?:
+   true` (`ast/types.ts`), same TSDoc treatment.
+3. `search.ts`/`implementors.ts`'s flag-spreading sites updated to spread
+   `{ stale: true as const }` instead of the old field name; their F7 WHY-comments
+   gained a one-line note that `stale`, not `file_busy_returning_stale_cache`, is the
+   name used here (that name is reserved for the JIT tools, where a refresh really is
+   attempted).
+4. `staleness.ts`'s `findStaleFiles` TSDoc updated to describe the `stale` output
+   contract and note the C1 split; `checkAndRefreshIfStale`'s own JIT-side
+   `file_busy_returning_stale_cache` documentation is UNCHANGED (JIT tools keep the
+   old name — it is accurate there).
+5. **JIT tools (`mast_signature`, `mast_exports`, `mast_callers`, `mast_dependencies`,
+   `mast_rename_impact`) are completely untouched** — their `file_busy_returning_
+   stale_cache` field, behavior, and tests (the F2/F14 blocks in `tools.test.ts`) are
+   byte-for-byte what F11 left them.
+
+**MAST_SPEC.md §9.0 unification.** Added a new "Confidence signals (C1)" table (new
+`#### Confidence signals (C1)` subsection, placed after the existing "Empty-index
+signal (M6 Part B)" paragraph and before the `mast_search` tool section) — one table,
+columns `field | carried by | meaning | agent action`, rows for `resolution`
+(`VerifiedCaller`, six values, high confidence/safe to act), `reason`
+(`PotentialMatch`, mandatory review), `file_busy_returning_stale_cache` (JIT tools,
+refresh attempted and contended, retry shortly), `stale` (`mast_search`/
+`mast_implementors`, no refresh attempted by design, reindex/JIT-call heals it),
+`index_empty` (all primary-result read tools, nothing indexed at all), `truncated`
+(`TypeContextEntry`, declaration clipped at 50 lines — the one row that is an
+always-present `boolean`, not an omitted-when-false flag, called out explicitly so the
+table doesn't overstate a uniform convention that doesn't hold), and a reserved final
+row, `potential_truncated` — **not implemented here**, ships with F10 (Stage 3);
+documented now purely so F10 lands into an agreed vocabulary instead of inventing one.
+The two pre-existing §9.0 paragraphs that named the old F7 field
+(the stat-and-flag bullet and the "Result shape" paragraph) were updated to say
+`stale` and point at the new table; every other §9.0 paragraph (TOCTOU Policy,
+Empty-index signal) describes the JIT tools' `file_busy_returning_stale_cache` or
+`index_empty` and was left unchanged, since C1 does not touch either.
+
+**Grep sweep for the old field name** (`file_busy_returning_stale_cache`, across
+`src/`, `MAST_SPEC.md`, `IMPLEMENTATION_PLAN.md`, `README.md`; `eval/` and `dist/`
+excluded from scope per the task's hard prohibitions): every occurrence that
+DESCRIBES the F7 stat-and-flag signal specifically was updated (the sites listed
+above); every occurrence describing the JIT tools' own busy flag (F1/F2/F11/F13/F14
+narrative in this file, `MAST_SPEC.md` §7.6/§9.0's JIT paragraphs, `README.md`'s
+general locking-and-busy-flag paragraph, `mtime-stamp-ordering.test.ts`,
+`staleness.test.ts`) was left untouched — those describe a signal that did not change.
+Historical result blocks (F2, F7, F11 above) were left as history rather than
+rewritten; the F7 result's "Known naming tension, deferred to C1" paragraph gained a
+one-line `[renamed to `stale` by C1, 2026-08-09]` note rather than being rewritten.
+
+**Red-first evidence.** The F7 describe block in `tools.test.ts` (renamed
+`F7/C1 — stat-and-flag staleness, \`stale\` field (mast_search / mast_implementors)`)
+was updated to assert `.stale`/`not.toHaveProperty('stale')` FIRST, plus one new
+regression test (`never carries the old file_busy_returning_stale_cache name on a
+stale result`), then run against the unrenamed production code. **5 of 7 tests failed**
+with `AssertionError: expected undefined to be true` (the 2 happy-path tests, which
+assert absence, passed trivially against either field name) — a genuine assertion
+failure proving the tests exercised the real rename, not an import/syntax break.
+Applying the `ast/types.ts`/`search.ts`/`implementors.ts`/`staleness.ts` rename turned
+all 7 green with no other regressions.
+
+**Verification** (from `packages/mast`): `pnpm test` — **528/528 passed, 37 files**
+(baseline 527/37; +1 net new test — the C1 regression guard). `pnpm typecheck` —
+clean. `pnpm lint` — clean. Repo-root `pnpm align:check` — `baselined debt: 324 -> 324
+(0)`, red only on the 2 pre-existing non-mast violations (`application/ui/src/
+views/root-layout.tsx` import cycle; `application/api/src/domain/spec/
+fold-build-record-repository.ts` domain→db import) — unchanged from M6's verification.
+
+**Deviations**: none from the mandated design. **Noticed but not done**: F10's
+`potential_truncated` remains unimplemented (Stage 3's scope, only its vocabulary is
+reserved in the new MAST_SPEC.md table, per the task's explicit "No new machinery"
+instruction); the `README.md` line describing read tools returning
+`file_busy_returning_stale_cache: true` under concurrent-reindex contention was left
+as-is since it describes the JIT tools' general locking behavior, not `mast_search`/
+`mast_implementors` specifically, and is still accurate.
 
 ---
 

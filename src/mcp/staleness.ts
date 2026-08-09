@@ -83,12 +83,13 @@ const MAX_POPULATE_RETRIES = 1;
  * that cost or contaminating the ranking: the agent is told the coordinates
  * may be off and can decide whether to re-verify.
  *
- * Returns the subset of `filePaths` to flag with
- * `file_busy_returning_stale_cache: true`: disk mtime newer than the
- * indexed mtime, OR the stat failed (file deleted/renamed — its coordinates
- * are definitely untrustworthy). A path absent from the `files` table is
- * left out of the returned set entirely — there is nothing indexed to be
- * stale against, so no signal is invented.
+ * Returns the subset of `filePaths` to flag with `stale: true` (C1 split
+ * this signal off the JIT-refresh tools' `file_busy_returning_stale_cache`
+ * — no lock is ever taken here, so nothing is ever "busy" in that sense):
+ * disk mtime newer than the indexed mtime, OR the stat failed (file
+ * deleted/renamed — its coordinates are definitely untrustworthy). A path
+ * absent from the `files` table is left out of the returned set entirely —
+ * there is nothing indexed to be stale against, so no signal is invented.
  */
 export async function findStaleFiles(
   db: Db,

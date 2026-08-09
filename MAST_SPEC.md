@@ -867,12 +867,13 @@ how many files a single call's results can span:
   `statSync`'d (no lock, no re-parse, no DB write) and its disk mtime
   compared against the indexed `files.mtime`. Newer-on-disk, or a failed
   stat (file deleted/renamed since indexing — its coordinates are
-  definitely untrustworthy), sets `file_busy_returning_stale_cache: true`
-  on that result; a file absent from the `files` table (nothing indexed to
-  be stale against) is left unflagged. The flag name is reused from the
-  JIT-refresh tools' TOCTOU signal below even though no lock is ever
-  involved here — a known naming tension, deferred to the confidence-signal
-  unification tracked as C1 in `IMPLEMENTATION_PLAN.md`.
+  definitely untrustworthy), sets `stale: true` on that result; a file
+  absent from the `files` table (nothing indexed to be stale against) is
+  left unflagged. **C1** split this signal into its own `stale` field,
+  distinct from the JIT-refresh tools' `file_busy_returning_stale_cache`
+  below — no lock is ever taken here, so nothing is ever "busy" in that
+  sense; see the "Confidence signals (C1)" table below for the full
+  picture.
 
 **Just-In-Time (JIT) re-parse.** For every result a JIT-refresh tool is about to return:
 
@@ -926,7 +927,7 @@ pre-F11 JIT path used to pay, and far below the connection's shared 5000ms
 default, which would otherwise freeze the entire process for up to 5 seconds
 per contended write.
 
-**Result shape.** Every read tool's result objects MAY include
+**Result shape.** Every JIT-refresh read tool's result objects MAY include
 `file_busy_returning_stale_cache: true` (omitted when false). Result schemas
 in the per-tool sections below document only the steady-state shape; this flag
 is implicit on all of them. Tools whose response is a single-file envelope
@@ -937,11 +938,11 @@ when a `file_path`-narrowed query returns **zero** results while that file's
 JIT re-parse could not acquire the lock: with no result objects to carry the
 signal, the flag appears on the response envelope (F14), so "no results" from
 a stale, un-refreshable file never reads as "symbol doesn't exist".
-`mast_search` and `mast_implementors` also carry the flag per-result, but via
-stat-and-flag rather than JIT re-parse (F7, see above) — each result's
-`file_busy_returning_stale_cache` reflects that result's own `file_path`
-statting newer-on-disk or failing to stat, independent of every other
-result in the same response.
+`mast_search` and `mast_implementors` carry a **different** field, `stale`,
+per-result — via stat-and-flag rather than JIT re-parse (F7, see above; split
+into its own field by C1, see the table below) — each result's `stale`
+reflects that result's own `file_path` statting newer-on-disk or failing to
+stat, independent of every other result in the same response.
 
 **Empty-index signal (M6 Part B).** Every read tool with a primary result
 array — `mast_search`, `mast_project_skeleton`, `mast_exports`,
@@ -966,6 +967,37 @@ coupled — either may be present without the other. `mast_status` is
 unaffected (it already reports `chunk_count`/`index_fresh` directly — it IS
 the diagnostic surface); `mast_efficiency` and `mast_reindex` have no primary
 result array and never carry this flag.
+
+#### Confidence signals (C1)
+
+MAST does not compute a single scalar "confidence score" for a result — it
+never has, and C1 does not introduce one (`eval/GITNEXUS_COMPARISON.md`
+§13.8 item 5 / §14.8 item 5: "frame as unification, not a new feature").
+What existed before C1 was a set of independently-evolved signals, computed
+in different tools for different reasons, some sharing one misleading field
+name. C1's only change is documentation and one field split — no new enum,
+no wrapper object, no field beyond the rename (see the F7 result's
+"Known naming tension" note above, and IMPLEMENTATION_PLAN.md's C1 result).
+This table is the single place that lists every signal an agent may see
+across all MCP tools, and what to do with each one:
+
+| Field | Carried by | Meaning | Agent action |
+|---|---|---|---|
+| `resolution` | `VerifiedCaller` entries (`mast_callers`, `mast_rename_impact`) | How this call site was statically resolved to the queried declaration — one of six values (`import`, `field_type`, `parameter_type`, `new_expression`, `same_file`, `checker`). | High confidence. Safe to act on directly (e.g. as a rename/refactor site) without further verification. |
+| `reason` | `PotentialMatch` entries (`mast_callers`, `mast_rename_impact`) | Why this call site could **not** be statically resolved — currently always `identifier_match_no_resolved_edge`. | Mandatory review. This is a name-match, not a verified edge; confirm it is a real call site before acting on it. |
+| `file_busy_returning_stale_cache` | JIT-refresh tools' results/envelopes (`mast_signature`, `mast_exports`, `mast_callers`, `mast_dependencies`, `mast_rename_impact`) | A refresh **was attempted** (this file's JIT re-parse) and lost to genuine write contention (`populateFile`'s `BEGIN IMMEDIATE` exhausted its `busy_timeout`), so the previous, possibly-stale chunk was returned instead. | Contended, not wrong-by-design. Retry shortly — the contention is expected to clear (§7.6). |
+| `stale` | `mast_search` / `mast_implementors` per-result (F7) | This result's `file_path` stat'd newer-on-disk than its indexed mtime, or the stat failed — **no refresh was attempted by design** (stat-and-flag, not JIT re-parse; see above). | Treat this result's line coordinates as untrustworthy. A `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it. |
+| `index_empty` | Every primary-result read tool's envelope (M6) | Nothing is indexed at all — the empty result set is not "no match", it is "no index (yet)". | Run `mast init`/`mast index`, or — if a startup reindex is in progress — wait and retry. |
+| `truncated` | `TypeContextEntry` (`mast_signature`'s `type_context`) | This referenced type's declaration was clipped at the 50-line cap. | Re-read the file directly (or call `mast_exports`/a narrower `mast_signature` query) for the full declaration if the clipped portion matters. |
+| `potential_truncated` | **Reserved** — ships with F10 (Stage 3) | `potential_matches` is capped at 50 entries; this will carry the real, uncapped match count when the cap is hit. | Not implemented yet. Documented here so F10 lands into this agreed vocabulary instead of inventing a new one. |
+
+`file_busy_returning_stale_cache`, `stale`, and `index_empty` all follow the
+same **omitted-when-false / present-only-when-true** convention (never
+present-and-false) established above. `resolution` and `reason` are always
+present on their respective entry types (a `VerifiedCaller`/`PotentialMatch`
+without one would be meaningless). `truncated` is the one exception: it is
+an always-present `boolean` on every `TypeContextEntry`, not an optional
+flag — callers check its value rather than its presence.
 
 ---
 

@@ -29,15 +29,18 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
         ctx.chunkStore,
       );
       const filesReferenced = [...new Set(results.map((r) => r.file_path))];
-      // F7: stat-and-flag, not JIT refresh — see staleness.ts's `findStaleFiles`
-      // WHY-comment. Computed against the ranking fusedSearch already produced;
-      // flagged results are what gets token-counted and returned below.
+      // F7/C1: stat-and-flag, not JIT refresh — surfaced as `stale`, not
+      // `file_busy_returning_stale_cache` (that name is reserved for the
+      // JIT-refresh tools, where a refresh is actually attempted). See
+      // staleness.ts's `findStaleFiles` WHY-comment. Computed against the
+      // ranking fusedSearch already produced; flagged results are what gets
+      // token-counted and returned below.
       const staleFiles = await findStaleFiles(ctx.db, ctx.config, filesReferenced);
       const flaggedResults = staleFiles.size === 0
         ? results
         : results.map((r) => ({
             ...r,
-            ...(staleFiles.has(r.file_path) ? { file_busy_returning_stale_cache: true as const } : {}),
+            ...(staleFiles.has(r.file_path) ? { stale: true as const } : {}),
           }));
       // `suggestions` is present (possibly empty) only on the zero-result assist
       // path; conditional spread keeps it out of the payload otherwise.

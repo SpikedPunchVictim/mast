@@ -207,7 +207,22 @@ export interface SearchResult {
   readonly match_snippet: string | null;
   /** Present only when the shell/method dedup pass suppressed a counterpart. */
   readonly related?: RelatedHint;
-  readonly file_busy_returning_stale_cache?: true;
+  /**
+   * Stat-and-flag staleness (F7, split into its own field by C1). Set when
+   * this result's `file_path` stat'd newer-on-disk than its indexed mtime,
+   * or the stat failed (file deleted/renamed) — `mast_search` can return
+   * results spanning dozens of files, so unlike the single-file JIT-refresh
+   * tools (whose `file_busy_returning_stale_cache` field means a refresh was
+   * ATTEMPTED and lost to contention) no refresh is ever attempted here: no
+   * lock is taken, no re-parse happens, only a `statSync`. Treat this
+   * result's line coordinates as untrustworthy until a `mast_reindex` call,
+   * or any JIT-refreshing tool call against the file, heals it — staleness
+   * is NOT self-healing across repeated `mast_search` calls on its own.
+   * Omitted when false, never present-and-false. See MAST_SPEC.md §9.0's
+   * "Confidence signals (C1)" table for how this relates to the other
+   * confidence fields.
+   */
+  readonly stale?: true;
 }
 
 /**
@@ -241,7 +256,7 @@ export interface SearchResponse {
    * index never carries this flag. Independent of `suggestions` — a truly
    * empty index yields no suggestions either, but the two fields are not
    * coupled; either may be present without the other. Omitted entirely when
-   * false, never present-and-false (the `file_busy_returning_stale_cache`
+   * false, never present-and-false (the `stale` field's omitted-when-false
    * convention, §9.0). Computed by `mcp/tools/_helpers.ts`'s `isIndexEmpty`,
    * called only on the empty-result path so a non-empty response pays
    * nothing extra.
@@ -515,16 +530,23 @@ export interface ImplementorResult {
   readonly line: number;
   readonly methods: readonly string[];
   /**
-   * F7: set when this result's `file_path` stat'd newer than its indexed
-   * mtime, or the stat failed (file deleted/renamed) — `mast_implementors`
-   * can return implementors spanning many files, so unlike the single-file
-   * JIT-refresh tools this is a stat-and-flag signal, not a re-parse: no
-   * lock is taken and the line coordinates are not refreshed, only flagged.
-   * Refreshing here would mean up to ~50 `structure.lock` acquisitions per
-   * call and could invalidate the graph query that already selected these
-   * results (§9.0; `eval/GITNEXUS_COMPARISON.md` §13.7). Omitted when false.
+   * Stat-and-flag staleness (F7, split into its own field by C1). Set when
+   * this result's `file_path` stat'd newer-on-disk than its indexed mtime,
+   * or the stat failed (file deleted/renamed) — `mast_implementors` can
+   * return implementors spanning many files, so unlike the single-file
+   * JIT-refresh tools (whose `file_busy_returning_stale_cache` field means a
+   * refresh was ATTEMPTED and lost to contention) no refresh is ever
+   * attempted here: no lock is taken and the line coordinates are not
+   * re-parsed, only flagged via `statSync`. Refreshing here would mean up to
+   * ~50 `structure.lock` acquisitions per call and could invalidate the
+   * graph query that already selected these results (§9.0;
+   * `eval/GITNEXUS_COMPARISON.md` §13.7). Treat this result's coordinates as
+   * untrustworthy until a `mast_reindex` call, or any JIT-refreshing tool
+   * call against the file, heals it. Omitted when false, never
+   * present-and-false. See MAST_SPEC.md §9.0's "Confidence signals (C1)"
+   * table.
    */
-  readonly file_busy_returning_stale_cache?: true;
+  readonly stale?: true;
 }
 
 export interface ImplementorsResponse {

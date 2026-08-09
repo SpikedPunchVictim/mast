@@ -1063,15 +1063,19 @@ describe('F2 — file_busy_returning_stale_cache', () => {
 });
 
 // ---------------------------------------------------------------------------
-// F7 — stat-and-flag staleness for mast_search / mast_implementors
-// (GITNEXUS_COMPARISON.md §13.3, §13.7)
+// F7/C1 — stat-and-flag staleness for mast_search / mast_implementors,
+// surfaced as the `stale` field (GITNEXUS_COMPARISON.md §13.3, §13.7). C1
+// split this off `file_busy_returning_stale_cache` — see MAST_SPEC.md §9.0's
+// "Confidence signals (C1)" table.
 //
-// Unlike mast_signature's JIT re-parse (F2/F14 above), mast_search and
-// mast_implementors can return results spanning dozens of files, so instead
-// of re-parsing (which would mean up to ~50 structure.lock acquisitions per
-// call and could invalidate the ranking that already selected these
-// results) they only `statSync` each unique result file and flag it — no
-// lock, no re-parse, no DB write. That means:
+// Unlike mast_signature's JIT re-parse (F2/F14 above, which keeps the
+// `file_busy_returning_stale_cache` name — a refresh IS attempted there),
+// mast_search and mast_implementors can return results spanning dozens of
+// files, so instead of re-parsing (which would mean up to ~50
+// structure.lock acquisitions per call and could invalidate the ranking
+// that already selected these results) they only `statSync` each unique
+// result file and flag it — no lock, no re-parse, no DB write, and
+// therefore never actually "busy" in the other tools' sense. That means:
 //   - no `holdStructureLock` needed anywhere in this suite (nothing ever
 //     tries to acquire the lock for these two tools);
 //   - staleness, once introduced, is NOT self-healing across calls — a
@@ -1083,7 +1087,7 @@ describe('F2 — file_busy_returning_stale_cache', () => {
 // describe blocks' line-number assertions if they shared a fixture.
 // ---------------------------------------------------------------------------
 
-describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () => {
+describe('F7/C1 — stat-and-flag staleness, `stale` field (mast_search / mast_implementors)', () => {
   let staleTmpDir: string;
   let staleConfig: ResolvedConfig;
   let staleDb: ReturnType<typeof openDatabase>;
@@ -1101,6 +1105,10 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
 
   const DELETED_SRC = `export function vanishSprocket(n: number): number {\n  return n;\n}\n`;
 
+  // C1 regression fixture — a dedicated file so the "old field name is gone"
+  // guard test doesn't couple to another test's stale-mtime state.
+  const REGRESSION_SRC = `export function regressionWisp(n: number): number {\n  return n;\n}\n`;
+
   const WIDGET_IFACE_SRC = `export interface Widget {\n  render(): string;\n}\n`;
   const WIDGET_ALPHA_SRC = `import type { Widget } from './widget-iface';\n\nexport class WidgetAlpha implements Widget {\n  render(): string {\n    return 'alpha';\n  }\n}\n`;
   const WIDGET_BETA_SRC = `import type { Widget } from './widget-iface';\n\nexport class WidgetBeta implements Widget {\n  render(): string {\n    return 'beta';\n  }\n}\n`;
@@ -1116,6 +1124,7 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
     writeFileSync(join(staleTmpDir, 'twice-src.ts'), TWICE_SRC);
     writeFileSync(join(staleTmpDir, 'happy-src.ts'), HAPPY_SRC);
     writeFileSync(join(staleTmpDir, 'deleted-src.ts'), DELETED_SRC);
+    writeFileSync(join(staleTmpDir, 'regression-src.ts'), REGRESSION_SRC);
     writeFileSync(join(staleTmpDir, 'widget-iface.ts'), WIDGET_IFACE_SRC);
     writeFileSync(join(staleTmpDir, 'widget-alpha.ts'), WIDGET_ALPHA_SRC);
     writeFileSync(join(staleTmpDir, 'widget-beta.ts'), WIDGET_BETA_SRC);
@@ -1162,7 +1171,7 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
       makeStale('zorb-a.ts', ZORB_A_SRC + '// touched\n');
 
       const res = (await staleCall('mast_search', { query: 'zorb' })) as {
-        results: Array<{ file_path: string; symbol_name: string | null; file_busy_returning_stale_cache?: true }>;
+        results: Array<{ file_path: string; symbol_name: string | null; stale?: true }>;
       };
 
       const fromA = res.results.find((r) => r.file_path === 'zorb-a.ts');
@@ -1171,28 +1180,28 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
       expect(fromB).toBeDefined();
       expect(fromA!.symbol_name).toBe('zorbAlpha');
       expect(fromB!.symbol_name).toBe('zorbBeta');
-      expect(fromA!.file_busy_returning_stale_cache).toBe(true);
-      expect(fromB).not.toHaveProperty('file_busy_returning_stale_cache');
+      expect(fromA!.stale).toBe(true);
+      expect(fromB).not.toHaveProperty('stale');
     });
 
     it('flags again on a second call — stat-and-flag does not refresh the index', async () => {
       makeStale('twice-src.ts', TWICE_SRC + '// touched once\n');
 
       const first = (await staleCall('mast_search', { query: 'twiceQuark' })) as {
-        results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }>;
+        results: Array<{ file_path: string; stale?: true }>;
       };
       const second = (await staleCall('mast_search', { query: 'twiceQuark' })) as {
-        results: Array<{ file_path: string; file_busy_returning_stale_cache?: true }>;
+        results: Array<{ file_path: string; stale?: true }>;
       };
 
       const firstMatch = first.results.find((r) => r.file_path === 'twice-src.ts');
       const secondMatch = second.results.find((r) => r.file_path === 'twice-src.ts');
       expect(firstMatch).toBeDefined();
       expect(secondMatch).toBeDefined();
-      expect(firstMatch!.file_busy_returning_stale_cache).toBe(true);
+      expect(firstMatch!.stale).toBe(true);
       // Still flagged, not refreshed — if the JIT-refresh path had fired
       // instead, this second call's flag would have vanished.
-      expect(secondMatch!.file_busy_returning_stale_cache).toBe(true);
+      expect(secondMatch!.stale).toBe(true);
     });
 
     it('flags nothing on the happy path', async () => {
@@ -1204,7 +1213,7 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
       expect(match).toBeDefined();
       expect(match!.symbol_name).toBe('happyGlint');
       for (const r of res.results) {
-        expect(r).not.toHaveProperty('file_busy_returning_stale_cache');
+        expect(r).not.toHaveProperty('stale');
       }
     });
 
@@ -1212,13 +1221,30 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
       rmSync(join(staleTmpDir, 'deleted-src.ts'));
 
       const res = (await staleCall('mast_search', { query: 'vanishSprocket' })) as {
-        results: Array<{ file_path: string; symbol_name: string | null; file_busy_returning_stale_cache?: true }>;
+        results: Array<{ file_path: string; symbol_name: string | null; stale?: true }>;
       };
 
       const match = res.results.find((r) => r.file_path === 'deleted-src.ts');
       expect(match).toBeDefined();
       expect(match!.symbol_name).toBe('vanishSprocket');
-      expect(match!.file_busy_returning_stale_cache).toBe(true);
+      expect(match!.stale).toBe(true);
+    });
+
+    // C1 regression guard: the split must stick. A stat-and-flag stale
+    // result carries ONLY the new `stale` field — the old
+    // `file_busy_returning_stale_cache` name (still live on the JIT tools,
+    // F2/F14 above) must never reappear on a mast_search result.
+    it('never carries the old file_busy_returning_stale_cache name on a stale result', async () => {
+      makeStale('regression-src.ts', REGRESSION_SRC + '// touched\n');
+
+      const res = (await staleCall('mast_search', { query: 'regressionWisp' })) as {
+        results: Array<{ file_path: string; stale?: true; file_busy_returning_stale_cache?: true }>;
+      };
+
+      const match = res.results.find((r) => r.file_path === 'regression-src.ts');
+      expect(match).toBeDefined();
+      expect(match!.stale).toBe(true);
+      expect(match).not.toHaveProperty('file_busy_returning_stale_cache');
     });
   });
 
@@ -1227,7 +1253,7 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
       makeStale('widget-alpha.ts', WIDGET_ALPHA_SRC + '// touched\n');
 
       const res = (await staleCall('mast_implementors', { interface_name: 'Widget' })) as {
-        results: Array<{ class_name: string; file_path: string; file_busy_returning_stale_cache?: true }>;
+        results: Array<{ class_name: string; file_path: string; stale?: true }>;
       };
 
       const alpha = res.results.find((r) => r.class_name === 'WidgetAlpha');
@@ -1236,8 +1262,8 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
       expect(beta).toBeDefined();
       expect(alpha!.file_path).toBe('widget-alpha.ts');
       expect(beta!.file_path).toBe('widget-beta.ts');
-      expect(alpha!.file_busy_returning_stale_cache).toBe(true);
-      expect(beta).not.toHaveProperty('file_busy_returning_stale_cache');
+      expect(alpha!.stale).toBe(true);
+      expect(beta).not.toHaveProperty('stale');
     });
 
     it('flags nothing on the happy path', async () => {
@@ -1250,7 +1276,7 @@ describe('F7 — stat-and-flag staleness (mast_search / mast_implementors)', () 
       expect(alpha).toBeDefined();
       expect(beta).toBeDefined();
       for (const r of res.results) {
-        expect(r).not.toHaveProperty('file_busy_returning_stale_cache');
+        expect(r).not.toHaveProperty('stale');
       }
     });
   });
