@@ -140,6 +140,92 @@ export async function queryMetricsSummary(
   }));
 }
 
+// ---------------------------------------------------------------------------
+// Duration percentiles (D6, IMPLEMENTATION_PLAN.md Stage 4 "D6 RESCOPE"
+// deliverable 1) — `mast metrics --by-tool` shows only `avg_duration_ms`
+// today, which hides tail latency (would have caught F8's 28s outlier, per
+// the rescope's per-row verdict).
+// ---------------------------------------------------------------------------
+
+/** A tool's p50/p95 call duration, in milliseconds. */
+export interface DurationPercentiles {
+  readonly p50: number;
+  readonly p95: number;
+}
+
+/**
+ * Nearest-rank percentile (no interpolation): sort ascending, then for
+ * percentile P take the value at rank `ceil(P/100 * N)` (1-indexed).
+ *
+ * Chosen over interpolated definitions (linear/R-7 etc.) because §14.9
+ * explicitly declines to assert an SLA on this data — the interpolation
+ * precision those methods buy is not needed for a human-readable CLI table,
+ * and nearest-rank is the simplest definition that avoids an
+ * interpolation-method debate. Returns `{p50: 0, p95: 0}` for an empty input
+ * rather than throwing — matches this module's fire-and-forget discipline
+ * (a metrics computation must never crash a caller).
+ */
+export function computeDurationPercentiles(durationsMs: readonly number[]): DurationPercentiles {
+  if (durationsMs.length === 0) return { p50: 0, p95: 0 };
+
+  const sorted = [...durationsMs].sort((a, b) => a - b);
+  const rankValue = (percentile: number): number => {
+    const rank = Math.ceil((percentile / 100) * sorted.length);
+    const index = Math.min(Math.max(rank - 1, 0), sorted.length - 1);
+    return sorted[index]!;
+  };
+
+  return { p50: rankValue(50), p95: rankValue(95) };
+}
+
+export interface MetricsSummaryWithPercentiles extends MetricsSummary {
+  readonly p50_duration_ms: number;
+  readonly p95_duration_ms: number;
+}
+
+/**
+ * Same aggregation as {@link queryMetricsSummary}, plus per-tool p50/p95
+ * duration percentiles.
+ *
+ * better-sqlite3's default build has no SQL percentile aggregate, so this
+ * fetches the window's raw `duration_ms` values (one extra query) and
+ * computes percentiles in JS per tool group via
+ * {@link computeDurationPercentiles}. Safe at the row counts this table
+ * actually holds: §14.4's rotation policy bounds the raw `metrics` table to
+ * roughly 1,500 rows/day pre-rollup, i.e. thousands of rows at most for any
+ * realistic `--since` window — well within "fetch and sort in JS" territory.
+ */
+export async function queryMetricsSummaryWithPercentiles(
+  db: Db,
+  sinceMs: number,
+  toolName?: string,
+): Promise<readonly MetricsSummaryWithPercentiles[]> {
+  const base = await queryMetricsSummary(db, sinceMs, toolName);
+  if (base.length === 0) return [];
+
+  const sinceEpochSec = sinceMs / 1000;
+  let durationQuery = db
+    .selectFrom('metrics')
+    .select(['tool_name', 'duration_ms'])
+    .where('call_timestamp', '>=', sinceEpochSec);
+  if (toolName !== undefined) {
+    durationQuery = durationQuery.where('tool_name', '=', toolName);
+  }
+  const durationRows = await durationQuery.execute();
+
+  const durationsByTool = new Map<string, number[]>();
+  for (const row of durationRows) {
+    const existing = durationsByTool.get(row.tool_name);
+    if (existing !== undefined) existing.push(row.duration_ms);
+    else durationsByTool.set(row.tool_name, [row.duration_ms]);
+  }
+
+  return base.map((summary) => {
+    const { p50, p95 } = computeDurationPercentiles(durationsByTool.get(summary.tool_name) ?? []);
+    return { ...summary, p50_duration_ms: p50, p95_duration_ms: p95 };
+  });
+}
+
 /**
  * Aggregate `metrics` rows for a single session.
  */

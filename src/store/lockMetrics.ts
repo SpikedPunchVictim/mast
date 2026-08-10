@@ -70,7 +70,10 @@ export interface LockMetricsSink {
   record(event: LockEvent): void;
 }
 
-const LOCK_METRICS_FILENAME = 'lock-metrics.jsonl';
+// Exported so telemetry/lockMetricsSummary.ts (D6, `mast metrics --locks`)
+// reads the same sink file this module writes, without duplicating the
+// literal filename.
+export const LOCK_METRICS_FILENAME = 'lock-metrics.jsonl';
 
 /**
  * Default sink: appends one JSON line per event to `<stateDir>/lock-metrics.jsonl`.

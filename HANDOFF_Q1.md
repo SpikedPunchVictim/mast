@@ -33,7 +33,7 @@ M6: empty-state serve answers `[]` instead of failing fast — **DONE 2026-08-09
 signals — **DONE 2026-08-09**) (Stage 3.5 complete) and **Stage 3** (call-graph: F3 await-unwrap — DONE 2026-08-09, F4 `this.`/`super.` resolution — DONE 2026-08-09,
 F5 qualified names in `identifier_fts` — DONE 2026-08-09, F10 `potential_truncated` — DONE 2026-08-09) (Stage 3 complete).
 
-**P2 — Stage 4 hygiene (D1, D6, D7, E1, D3–D5), Stage 4.5 scale levers, Stage 5 open
+**P2 — Stage 4 hygiene (D1, D6 — DONE 2026-08-10, D7, E1, D3–D5), Stage 4.5 scale levers, Stage 5 open
 questions** (Q6 — the 1.7–3 s WAL auto-checkpoint stall — is the most user-visible;
 Q2, Q3, Q5 unblocked, E5 `--checker` value, E6 cross-language silent drop).
 

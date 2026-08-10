@@ -685,6 +685,10 @@ instance with an in-process mutex) and against coarse writers or other processes
 Concurrent readers (all MCP query tools) acquire no lock and take no part in either
 mechanism — they only `stat()` files for staleness detection (§9).
 
+`store/lockMetrics.ts`'s JSONL sink (`<state_dir>/lock-metrics.jsonl`) is the standing
+instrument for this section's timing claims; `mast metrics --locks` (§14.6) summarizes
+it into per-caller hold/wait percentiles and failed-acquisition counts.
+
 ---
 
 ## 8. CLI Interface
@@ -2774,35 +2778,58 @@ match the active counter.
 Usage: mast metrics [options]
 
 Options:
-  --session            Aggregate only this `mast serve` session (in-memory + table for current session_id)
-  --global             Aggregate the persistent table (default)
-  --since <duration>   e.g. "1h", "24h", "7d", "30d" (default: 24h for --global)
-  --by-tool            Break down by tool_name
-  --rollup             Aggregate rows older than 30 days into metrics_daily, then delete raw rows
-  --vacuum             Run VACUUM after rollup
+  --since <duration>   e.g. "1h", "24h", "7d", "30d" (default: 7d)
+  --by-tool            Break down by tool_name (default: true)
+  --rollup             Aggregate rows older than --keep-days into metrics_daily, then delete raw rows
+  --vacuum             Delete daily roll-up rows older than --keep-days
+  --keep-days <n>      Retention days for --rollup / --vacuum (default: 7 for rollup, 90 for vacuum)
+  --locks              Summarize structure-lock hold/wait timing by caller (D6) — reads
+                        store/lockMetrics.ts's `<state_dir>/lock-metrics.jsonl`; does not
+                        touch graph.db. Prints "No lock metrics recorded." (exit 0) when
+                        the file is missing or empty; malformed lines are skipped and
+                        counted, never fatal.
   --json               Machine-readable output
+  --state-dir <dir>    State directory override
 ```
 
 Sample output (`mast metrics --since 7d --by-tool`):
 
 ```
-MAST efficiency report — 7 days ending 2026-05-13T14:22:00Z
+Tool                    Calls   Tokens    Avg ms   p50 ms   p95 ms   Efficiency
+──────────────────────────────────────────────────────────────────────────────
+mast_search              1,847   742,103    41.2      32       89        87.4%
+mast_signature             912    91,820    18.7      15       47        95.6%
+mast_exports               408    33,041    12.4      10       31        96.3%
+mast_project_skeleton      127     8,209     9.1        8       22        98.0%
+mast_callers               321    42,118    22.5       19       58        95.7%
+mast_dependencies          156    12,047    14.0       11       35        97.6%
+mast_implementors           88     6,213    10.8        9       26        96.9%
+
 Tokenizer: @anthropic-ai/tokenizer (claude-2 era, approximate for current models)
-
-Tool                    Calls   Returned    Counterfactual   Efficiency
-─────────────────────────────────────────────────────────────────────────
-mast_search              1,847   742,103     5,891,204         87.4%
-mast_signature             912    91,820     2,104,447         95.6%
-mast_exports               408    33,041       891,228         96.3%
-mast_project_skeleton      127     8,209       412,005         98.0%
-mast_callers               321    42,118       984,217         95.7%
-mast_dependencies          156    12,047       512,180         97.6%
-mast_implementors           88     6,213       198,402         96.9%
-─────────────────────────────────────────────────────────────────────────
-TOTAL                    3,859   935,551    11,003,683         91.5%
-
-Counterfactual = "Saved vs. full file Read" (upper bound — see §14.2)
 ```
+
+`p50`/`p95` (D6, IMPLEMENTATION_PLAN.md Stage 4) are nearest-rank percentiles (sort
+ascending, take the value at rank `ceil(P/100 * N)`, no interpolation) computed in JS
+over the window's raw `duration_ms` values — `--by-tool`'s existing `Avg ms` column
+alone hides tail latency (this is the column that would have caught F8's 28 s
+outlier). `--json` emits the same rows as an array, each carrying
+`p50_duration_ms`/`p95_duration_ms` alongside the existing `avg_duration_ms`.
+
+Sample output (`mast metrics --locks`):
+
+```
+Caller          Count  Hold p50  Hold p95  Hold max  Wait p50  Wait p95  Wait max  Failed
+────────────────────────────────────────────────────────────────────────────────────────
+index-run          42        18        47        61         2         6         9       0
+jit-staleness      301        1         4         9         0         1         3       2
+
+Warning: skipped 1 malformed line(s) in lock-metrics.jsonl.
+```
+
+`Hold *` comes from `LockEvent`'s `released.holdMs`; `Wait *` from `acquired.waitMs`;
+`Failed` counts `failed` events (acquisition attempts that exhausted retries). The
+malformed-line warning only appears when at least one JSONL line failed to parse or
+didn't match the `LockEvent` shape — those lines are skipped, never fatal.
 
 ### 14.7 SDD Pipeline Integration
 

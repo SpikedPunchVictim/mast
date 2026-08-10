@@ -7,6 +7,7 @@ import type { Db } from '../../graph/db.js';
 import {
   recordToolCall,
   queryMetricsSummary,
+  queryMetricsSummaryWithPercentiles,
   querySessionSummary,
   rollupMetrics,
   vacuumMetrics,
@@ -14,6 +15,7 @@ import {
   buildArgsJson,
   buildResultsJson,
   buildDeclexJson,
+  computeDurationPercentiles,
 } from '../metrics.js';
 import { TOKENIZER_LABEL } from '../tokenizer.js';
 import type { DeclexTelemetry, DeclexWindowEffect } from '../../search/fused.js';
@@ -233,6 +235,111 @@ describe('queryMetricsSummary', () => {
 
     const rows = await queryMetricsSummary(db, 0);
     expect(rows[0]!.efficiency_ratio).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeDurationPercentiles — D6 (IMPLEMENTATION_PLAN.md Stage 4, "D6
+// RESCOPE" deliverable 1). Nearest-rank method: sort ascending, take the
+// value at rank ceil(P/100 * N) (1-indexed) — no interpolation. Pure
+// function, tested against known arrays with hand-computed expected values.
+// ---------------------------------------------------------------------------
+
+describe('computeDurationPercentiles', () => {
+  it('returns the single value for a one-element array', () => {
+    expect(computeDurationPercentiles([100])).toEqual({ p50: 100, p95: 100 });
+  });
+
+  it('computes nearest-rank p50/p95 for a 4-element sorted array', () => {
+    // N=4: p50 rank = ceil(0.5*4) = 2 -> index 1 -> 20.
+    //      p95 rank = ceil(0.95*4) = 4 -> index 3 -> 40.
+    expect(computeDurationPercentiles([10, 20, 30, 40])).toEqual({ p50: 20, p95: 40 });
+  });
+
+  it('sorts unordered input before computing (order-independent)', () => {
+    // N=10, values 1..10 shuffled: p50 rank = ceil(0.5*10) = 5 -> index 4 -> 5.
+    //                               p95 rank = ceil(0.95*10) = 10 -> index 9 -> 10.
+    const shuffled = [5, 3, 1, 9, 7, 2, 8, 4, 10, 6];
+    expect(computeDurationPercentiles(shuffled)).toEqual({ p50: 5, p95: 10 });
+  });
+
+  it('returns {p50: 0, p95: 0} for an empty array rather than throwing', () => {
+    expect(computeDurationPercentiles([])).toEqual({ p50: 0, p95: 0 });
+  });
+
+  it('does not mutate the input array', () => {
+    const input = [30, 10, 20];
+    computeDurationPercentiles(input);
+    expect(input).toEqual([30, 10, 20]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// queryMetricsSummaryWithPercentiles — D6 deliverable 1, `mast metrics
+// --by-tool`'s new p50/p95 columns. duration_ms has no SQL percentile
+// aggregate in better-sqlite3's default build, so this fetches the window's
+// raw durations (bounded by §14.4's rotation policy) and computes
+// percentiles in JS via computeDurationPercentiles.
+// ---------------------------------------------------------------------------
+
+describe('queryMetricsSummaryWithPercentiles', () => {
+  it('computes exact p50/p95 per tool alongside the existing avg/calls/tokens fields', async () => {
+    const durations = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    for (const d of durations) {
+      await recordToolCall(db, {
+        toolName: 'mast_search', tokensReturned: 10, tokensFullFileBound: 100,
+        durationMs: d, sessionId: 's1', status: 'ok',
+      });
+    }
+
+    const rows = await queryMetricsSummaryWithPercentiles(db, 0);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.tool_name).toBe('mast_search');
+    expect(rows[0]!.calls).toBe(10);
+    // N=10: p50 rank = ceil(0.5*10) = 5 -> index 4 -> 50; p95 rank = ceil(0.95*10) = 10 -> index 9 -> 100.
+    expect(rows[0]!.p50_duration_ms).toBe(50);
+    expect(rows[0]!.p95_duration_ms).toBe(100);
+  });
+
+  it('computes percentiles independently per tool', async () => {
+    await recordToolCall(db, {
+      toolName: 'mast_search', tokensReturned: 1, tokensFullFileBound: 0,
+      durationMs: 10, sessionId: 's1', status: 'ok',
+    });
+    await recordToolCall(db, {
+      toolName: 'mast_search', tokensReturned: 1, tokensFullFileBound: 0,
+      durationMs: 20, sessionId: 's1', status: 'ok',
+    });
+    await recordToolCall(db, {
+      toolName: 'mast_exports', tokensReturned: 1, tokensFullFileBound: 0,
+      durationMs: 1000, sessionId: 's1', status: 'ok',
+    });
+
+    const rows = await queryMetricsSummaryWithPercentiles(db, 0);
+    const byTool = new Map(rows.map((r) => [r.tool_name, r]));
+    expect(byTool.get('mast_search')!.p95_duration_ms).toBe(20);
+    expect(byTool.get('mast_exports')!.p95_duration_ms).toBe(1000);
+  });
+
+  it('returns an empty array when no rows are in the window', async () => {
+    const futureMs = Date.now() + 60_000;
+    const rows = await queryMetricsSummaryWithPercentiles(db, futureMs);
+    expect(rows).toEqual([]);
+  });
+
+  it('restricts to one tool when toolName is provided', async () => {
+    await recordToolCall(db, {
+      toolName: 'mast_search', tokensReturned: 1, tokensFullFileBound: 0,
+      durationMs: 5, sessionId: 's1', status: 'ok',
+    });
+    await recordToolCall(db, {
+      toolName: 'mast_exports', tokensReturned: 1, tokensFullFileBound: 0,
+      durationMs: 15, sessionId: 's1', status: 'ok',
+    });
+
+    const rows = await queryMetricsSummaryWithPercentiles(db, 0, 'mast_search');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.tool_name).toBe('mast_search');
   });
 });
 

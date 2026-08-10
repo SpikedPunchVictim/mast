@@ -1612,7 +1612,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | **D0** | **CLI query surface — parity with the MCP read tools (`mast query <tool> <json>`)** | **Complete** |
 | D1 | Sort `walkProject` output (`indexer/walker.ts:43`) — kills ±4/3,940 edge nondeterminism | **Complete** — see D1 result below |
 | D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
-| **D6** | **Build the stats/regression suite** — RESCOPED 2026-08-10 (see the D6 RESCOPE block): 5 of 10 rows retired/served by shipped instruments, 3 moved to E1/E2; remaining scope = latency percentiles, lock summarizer, config invariant test | In Progress |
+| **D6** | **Build the stats/regression suite** — RESCOPED 2026-08-10 (see the D6 RESCOPE block): 5 of 10 rows retired/served by shipped instruments, 3 moved to E1/E2; remaining scope = latency percentiles, lock summarizer, config invariant test | **Complete** — see D6 result below |
 | D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | **Complete** — see D7 result below |
 | E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration | Not Started |
 | E7 | JIT under real agent concurrency (4 concurrent MCP clients + in-flight reindex) — **can falsify F1**: if contention degrades non-linearly, per-batch locking made it worse and the answer is a single-writer queue | **Complete — FALSIFIED** |
@@ -2264,6 +2264,101 @@ E1/E2 where the methodology rules govern it):
 The "Blocked on: D2" note above is stale for the re-decided scope — none of the three
 deliverables needs a pinned corpus. E1 inherits the corpus-pinning requirement along
 with the rows moved to it.
+
+### D6 result (2026-08-10) — latency percentiles, lock summarizer, config invariant test shipped
+
+All three re-decided deliverables ship, red-first per §5.1 where red was honestly
+obtainable.
+
+**1. p50/p95 latency columns.** `computeDurationPercentiles` (`telemetry/metrics.ts`)
+implements **nearest-rank, no interpolation**: sort ascending, take the value at rank
+`ceil(P/100 * N)` (1-indexed); returns `{p50: 0, p95: 0}` for an empty array rather
+than throwing. Chosen over interpolated definitions (linear/R-7) because §14.9
+declines to assert an SLA on this data — nearest-rank is the simplest definition that
+avoids an interpolation-method debate. `queryMetricsSummaryWithPercentiles` wraps the
+existing `queryMetricsSummary` and fetches the window's raw `duration_ms` values in one
+extra query (no SQL percentile aggregate in better-sqlite3's default build), computing
+percentiles in JS per tool group — safe at the row counts §14.4 bounds the `metrics`
+table to (~1,500 rows/day pre-rollup, thousands at most for any realistic `--since`
+window). `mast metrics --by-tool` gained `p50 ms`/`p95 ms` columns in the human table;
+`--json` did not previously exist on this command at all (a pre-existing spec/code
+drift — MAST_SPEC.md documented it, the code didn't implement it) and is added now,
+serializing the percentile-augmented rows directly.
+
+**2. Lock-hold summarizer, `mast metrics --locks`.** Read `store/lockMetrics.ts`
+first per instruction — its `LockEvent` union (unchanged by this task) is `'acquired'
+{type, caller, waitMs, timestamp}`, `'released' {type, caller, holdMs, timestamp}`,
+`'failed' {type, caller, waitMs, timestamp}`, written as one JSON line per event to
+`<stateDir>/lock-metrics.jsonl` (`LOCK_METRICS_FILENAME`, now exported for reuse
+instead of duplicating the literal). New module `telemetry/lockMetricsSummary.ts`:
+`summarizeLockMetricsJsonl` (pure — takes JSONL text, not a path) validates each line
+against a zod `discriminatedUnion('kind', …)` schema (zod is an existing dependency —
+no new one added) and groups by `caller`, computing `count` (number of completed
+`released` cycles), `hold_p50/p95/max_ms` (from `released.holdMs`), `wait_p50/p95/
+max_ms` (from `acquired.waitMs`), and `failed_count` (from `failed` events) — reusing
+`computeDurationPercentiles` from deliverable 1 for both hold and wait percentiles
+(same nearest-rank method, one definition). Malformed lines (bad JSON or a shape that
+doesn't match any `LockEvent` variant) are skipped and counted in
+`malformed_line_count`, never thrown. `readLockMetricsSummary(stateDir)` is the thin
+filesystem wrapper: returns `null` when the file is missing or empty, which the CLI
+renders as "No lock metrics recorded." (human) or `{callers: [], malformed_line_count:
+0}` (`--json`), exit 0 in both cases — never a crash. The CLI branch short-circuits
+before `openDatabase` is ever called (`--locks` never touches `graph.db`).
+
+**3. Config-honoured index-run invariant test**
+(`cli/__tests__/cli.test.ts`, describe block "D6 — config-honoured index-run
+invariant"). Fixture tree: `.ts`/`.js` files (configured extensions), `.py`/`.txt`
+files (unconfigured), a nested `node_modules/` file, and a `**/skipme/**`-pattern
+file (both matching a configured extension but an exclude pattern). Runs a real
+`runIndex`, reads `files.path` back out of `graph.db`, and asserts — using
+`walker.ts`'s exported `globToRegex`, the same glob-matching primitive production
+code uses for `file_pattern` filters — that every indexed path ends with a configured
+extension AND matches no exclude pattern, plus the positive assertion that both
+includable files (`good.ts`, `nested/deep/another.js`) are present. **Outcome: GREEN
+as a regression floor, no defect found** — F9's config plumbing (Stage 3.5) holds at
+the one point that actually matters, a real index run, not just at `resolveConfig`
+in isolation.
+
+**Red-first evidence.** Deliverable 3 was run first, per §5.1, and was expected/found
+GREEN (a floor, not a bug fix — reported here per the "stop and report prominently"
+instruction for a RED outcome, which did not occur). Deliverables 1 and 2's pure
+functions were TDD'd properly: `computeDurationPercentiles` and
+`queryMetricsSummaryWithPercentiles`'s tests were written and run against the
+pre-implementation code first — `queryMetricsSummaryWithPercentiles is not a function`
+(9 failing assertions) — then implemented to green. `summarizeLockMetricsJsonl` and
+`readLockMetricsSummary`'s tests were likewise run first against a nonexistent module
+(`Failed to load url ../lockMetricsSummary.js` — 0 tests collected, hard failure) then
+implemented to green (9/9). CLI wiring (`--json` on `--by-tool`, `--locks`) got three
+thin tests in a new `cli/__tests__/metrics-cmd.test.ts`, exercising
+`registerMetricsCommand` via a fresh `commander.Command` + `parseAsync` with captured
+stdout — no existing precedent tested a `metrics-cmd`/`status` action handler
+directly, so these are new coverage, not a duplicate of the pure-function unit tests
+(§5.4a: they catch flag-wiring bugs — wrong option name, `--json` not actually
+serializing, `--locks` accidentally still opening `graph.db` — that no unit test on
+the underlying functions can).
+
+**Verification.** `pnpm -F mast test`: **627 tests / 45 files** (605/43 baseline + 22
+tests / +2 files — 9 in `metrics.test.ts`, 9 in the new `lockMetricsSummary.test.ts`,
+3 in the new `metrics-cmd.test.ts`, 1 in `cli.test.ts`). `pnpm -F mast typecheck`:
+clean. `pnpm -F mast lint`: clean. `pnpm align:check` (repo root): `baselined debt: 324
+→ 324 (0)`, red only on the same 2 pre-existing non-mast violations (`application/ui`
+import cycle, `apiDomain`→`apiDb` layering) — no new mast violations.
+
+**Deviations from the task brief.** None load-bearing. `--json` did not exist at all
+on `mast metrics` before this change (MAST_SPEC.md §14.6 claimed it did — pre-existing
+spec/code drift, not introduced here); this task adds it, since deliverable 1
+explicitly requires percentile columns "in both the human table and the `--json`
+shape." `failed_count` on the lock summary's per-caller rows is one field beyond the
+brief's literal list ("count, p50, p95, max hold ms — and wait/acquire duration") —
+kept because it falls directly out of the sink's third `LockEvent` variant with no
+extra parsing, and a failed acquisition is arguably the most operationally important
+signal in this data; flagged here rather than silently added.
+
+**Noticed, not done (out of scope for this task).** MAST_SPEC.md's `mast metrics`
+usage block also lists `--session`/`--global` options that do not exist in
+`metrics-cmd.ts` — a second pre-existing spec/code drift, left as found (only the
+`--locks`/percentile-column additions specified by this task's rescope were made to
+the spec; the `--session`/`--global` drift is a separate, unscoped defect).
 
 ---
 

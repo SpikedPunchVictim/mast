@@ -16,7 +16,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, writeStateConfig, loadStateConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { initLockMarkers, acquireLock, withLock } from '../../store/lock.js';
 import { runIndex, loadIndexMeta, freshnessCause } from '../../indexer/index.js';
-import { walkProject, diffManifest } from '../../indexer/walker.js';
+import { walkProject, diffManifest, globToRegex } from '../../indexer/walker.js';
 import { openDatabase } from '../../graph/db.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { searchFts } from '../../search/fts.js';
@@ -820,5 +820,93 @@ describe('D1 — walkProject deterministic ordering', () => {
     const second = (await walkProject(config)).map((e) => e.relativePath);
     expect(second).toEqual(first);
     expect(first.length).toBe(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D6 — config-honoured index-run invariant (IMPLEMENTATION_PLAN.md Stage 4,
+// "D6 RESCOPE" deliverable 3)
+//
+// F9 (Stage 3.5) fixed the config plumbing so `file_extensions`/
+// `exclude_patterns` reach `resolveConfig`; D3 pins the DEFAULTS values. But
+// neither proves the RUNTIME property: that a real `runIndex` run only ever
+// writes `files` rows honouring those two settings. This test is that
+// end-to-end proof — it runs a real index over a fixture tree mixing
+// configured/unconfigured extensions and included/excluded paths, then reads
+// `files.path` back out of graph.db and checks it against `globToRegex`
+// (indexer/walker.ts), the same glob-matching primitive production code
+// exports for this purpose (MCP tools' `file_pattern` filters, watch mode).
+//
+// Per §5.1's red-first discipline: this is expected to pass against current
+// code (F9 already shipped the plumbing this exercises) — it is a regression
+// floor, not a bug-fixing test. A failure here would mean F9's plumbing does
+// not actually hold at the one point that matters — an index run — and is
+// reported as a defect rather than silently patched.
+// ---------------------------------------------------------------------------
+
+describe('D6 — config-honoured index-run invariant', () => {
+  let tmpDir: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-config-invariant-'));
+
+    // Configured extensions (.ts, .js) — included.
+    writeFileSync(join(tmpDir, 'good.ts'), 'export const good = 1;\n');
+    mkdirSync(join(tmpDir, 'nested', 'deep'), { recursive: true });
+    writeFileSync(join(tmpDir, 'nested', 'deep', 'another.js'), 'export const deep = 1;\n');
+
+    // Unconfigured extensions — excluded despite otherwise being in scope.
+    writeFileSync(join(tmpDir, 'ignored.py'), 'x = 1\n');
+    writeFileSync(join(tmpDir, 'ignored.txt'), 'not code\n');
+
+    // Nested node_modules/ — matches exclude_patterns despite a configured extension.
+    mkdirSync(join(tmpDir, 'node_modules', 'vendor'), { recursive: true });
+    writeFileSync(join(tmpDir, 'node_modules', 'vendor', 'lib.ts'), 'export const lib = 1;\n');
+
+    // A **/skipme/** exclude pattern — matches despite a configured extension.
+    mkdirSync(join(tmpDir, 'skipme'), { recursive: true });
+    writeFileSync(join(tmpDir, 'skipme', 'inside.ts'), 'export const inside = 1;\n');
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('every indexed file matches a configured extension and no exclude pattern; every includable file is present', async () => {
+    const config = resolveConfig({
+      projectRoot: tmpDir,
+      extensions: ['.ts', '.js'],
+      excludePatterns: ['**/node_modules/**', '**/skipme/**'],
+    });
+    initLockMarkers(config.resolved_state_dir);
+    writeStateConfig(config.resolved_state_dir, config);
+
+    const result = await runIndex(config, { incremental: false });
+    expect(result.filesIndexed).toBe(2); // good.ts, nested/deep/another.js only
+
+    const db = openDatabase(config.resolved_state_dir);
+    let indexedPaths: string[];
+    try {
+      const rows = await db.selectFrom('files').select('path').execute();
+      indexedPaths = rows.map((r) => r.path);
+    } finally {
+      await db.destroy();
+    }
+
+    const excludeRegexes = config.exclude_patterns.map((p) => globToRegex(p));
+
+    for (const path of indexedPaths) {
+      // Negative invariant 1: every indexed path ends with a configured extension.
+      expect(config.file_extensions.some((ext) => path.endsWith(ext))).toBe(true);
+      // Negative invariant 2: no indexed path matches any exclude pattern.
+      for (const rx of excludeRegexes) {
+        expect(rx.test(path)).toBe(false);
+      }
+    }
+
+    // Positive invariant: every includable file IS present (config honoured
+    // both directions — it doesn't just fail to over-include, it also
+    // doesn't under-include the files that should be there).
+    expect(indexedPaths.sort()).toEqual(['good.ts', 'nested/deep/another.js']);
   });
 });
