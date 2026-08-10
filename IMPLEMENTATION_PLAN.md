@@ -1619,7 +1619,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | E7-r2 | Re-measure E7 against the post-M1/post-F12 build, to size F11 — same harness/arms, three new probes (hold decomposition, event-loop freeze, `SQLITE_BUSY_SNAPSHOT` repro) | **Complete** |
 | D3 | Spec conformance: quarantine mechanism prose; add `spec-conformance.test.ts` with `// MAST_SPEC.md:NNN` citations | **Complete** — see D3 result below |
 | D4 | Test-assertion rule: no `unknown[]` in response type annotations; every returned array gets a content assertion | **Complete** — see D4 result below |
-| D5 | Adopt ADR directory (`.history` → numbered ADRs, `002-2026-07-22-name.md`, zero-padded) | Not Started |
+| D5 | Adopt ADR directory (`.history` → numbered ADRs, `002-2026-07-22-name.md`, zero-padded) | **Complete** — see D5 result below |
 
 **Success criteria**: two identical index runs produce identical edge sets; `eval/`
 runs against a pinned corpus; the three known false spec claims are either true,
@@ -2103,6 +2103,22 @@ construction (it's now part of the oracle's own scanned corpus and will re-fail 
 the fix regresses). No MAST_SPEC.md changes beyond the one-sentence non-normative
 mention of the diagnostics seam in §10.3.1 (below) — the seam is deliberately not a
 documented tool-facing contract.
+
+### D5 result (2026-08-10) — numbered archive convention adopted
+
+`.history/`'s mixed naming (`MM.DD.YY` directories alongside ISO-stamped files —
+which breaks lexicographic ordering across year boundaries, §14.5's closing note)
+is replaced by flat, zero-padded `NNN-YYYY-MM-DD-slug.md` records: 001 (2026-05-14
+session log), 002 (archived v1 plan), 003 (bug fixes), 004
+(IMPLEMENTATION_PLAN_VEXP, archived), 005 (Fable feedback). A `.history/README.md`
+documents the convention (number orders, date documents; append-only; records are
+historical, never normative, never conformance-tested) and carries an
+original-name index so the many code comments citing `IMPLEMENTATION_PLAN_VEXP.md`
+etc. remain resolvable — citations in code and result blocks are history and were
+deliberately NOT rewritten. Renames done with `git mv` (history preserved).
+Implemented directly by the managing session (file housekeeping, below the
+managed-agent threshold). Verification: full suite/typecheck/lint unaffected
+(no source changes), align 324→324 (+0).
 
 ### D0 — CLI query surface (raised P2 → P1 by the R3 review, §14.8 item 3)
 
