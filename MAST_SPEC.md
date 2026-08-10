@@ -91,9 +91,9 @@ path keys always come from the current resolution.
   "project_root": ".",
   "file_extensions": [".ts", ".tsx", ".js", ".jsx", ".md"],
   "exclude_patterns": [
-    "node_modules/**",
-    "dist/**",
-    "coverage/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
     ".kluster/**",
     "**/*.test.ts",
     "**/*.spec.ts"

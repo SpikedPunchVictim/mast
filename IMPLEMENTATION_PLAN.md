@@ -1617,7 +1617,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration | Not Started |
 | E7 | JIT under real agent concurrency (4 concurrent MCP clients + in-flight reindex) — **can falsify F1**: if contention degrades non-linearly, per-batch locking made it worse and the answer is a single-writer queue | **Complete — FALSIFIED** |
 | E7-r2 | Re-measure E7 against the post-M1/post-F12 build, to size F11 — same harness/arms, three new probes (hold decomposition, event-loop freeze, `SQLITE_BUSY_SNAPSHOT` repro) | **Complete** |
-| D3 | Spec conformance: quarantine mechanism prose; add `spec-conformance.test.ts` with `// MAST_SPEC.md:NNN` citations | Not Started |
+| D3 | Spec conformance: quarantine mechanism prose; add `spec-conformance.test.ts` with `// MAST_SPEC.md:NNN` citations | **Complete** — see D3 result below |
 | D4 | Test-assertion rule: no `unknown[]` in response type annotations; every returned array gets a content assertion | **Complete** — see D4 result below |
 | D5 | Adopt ADR directory (`.history` → numbered ADRs, `002-2026-07-22-name.md`, zero-padded) | Not Started |
 
@@ -1822,6 +1822,116 @@ baselined debt 324 → 324 (0), red only on the 2 pre-existing non-mast violatio
 (`application/ui/src/views/root-layout.tsx` import cycle,
 `application/api/src/domain/spec/fold-build-record-repository.ts` layer violation —
 both unrelated to this change).
+
+### D3 result (2026-08-10) — audit found the claims already fixed; one live config-example drift caught red
+
+**Three-claim audit (the task's actual mandate — not a rewrite).** Independently
+re-verified each of the three historical false claims cited by
+`eval/GITNEXUS_COMPARISON.md` §14.5 against the current spec text and current code:
+
+1. **Lock granularity (§7.6).** TRUE. §7.6 states JIT re-parse "does NOT acquire
+   `structure.lock`" and instead goes through `populateFile`'s own `BEGIN IMMEDIATE` +
+   dedicated 200ms `busy_timeout`. `graph/populate.ts:91`
+   (`IMMEDIATE_WRITE_BUSY_TIMEOUT_MS = 200`) and `mcp/staleness.ts`'s doc comment
+   ("F11 removed `structure.lock` from this path entirely") confirm it exactly — no
+   `structure.lock` acquisition anywhere on the JIT path. F11's rewrite (cited in the
+   task brief) holds.
+2. **Process model (§7.4).** TRUE. The 4-step startup ladder (bootstrap → schema
+   check → open transport with all 11 tools registered, SERVER READY → async
+   background reindex) matches `mcp/server.ts` line for line: `registerAllTools`
+   completes and `await server.connect(transport)` returns BEFORE Step 4's
+   `void (async () => { await runIndex(...) })()` fires — the `void` prefix and
+   post-connect placement prove the background reindex cannot delay tool
+   registration or transport readiness.
+3. **this/super resolution (§10.3.1).** TRUE. `emitClassEdges`
+   (`ast/extractors/typescript.ts`) seeds `this` → the enclosing class name
+   (`resolution: 'this_method'`) and, only when an `extends` clause is present,
+   `super` → the parent class name (`resolution: 'super_method'`) — exactly as
+   documented. The nested-scope exclusion claim also holds: `collectCalls`'
+   skip-list (`function_declaration`, `method_definition`, `class_declaration`,
+   `generator_function`, etc.) excludes `this.foo()` inside those bodies but has no
+   `arrow_function` entry, matching the spec's "arrow functions inherit the
+   enclosing `this` and are not excluded" claim precisely. F4's fix holds.
+
+**Quarantine result: nothing moved to Appendix A.** All three claims are TRUE,
+testable-in-principle, and contract-relevant — the brief's own instruction is "do NOT
+quarantine text that is true, testable, and contract-relevant." No mechanism prose in
+§7.4/§7.6/§10.3.1 needed deletion; no Appendix A section was added to MAST_SPEC.md
+because there is nothing non-normative to file into it. This matches the task's own
+expectation ("Expect this to be a SMALL diff — most drift is already fixed").
+
+**Conformance suite shipped — `src/__tests__/spec-conformance.test.ts` (new, 17
+assertions across 12 `it` blocks).** Each assertion extracts a targeted value from
+`MAST_SPEC.md`'s own text (anchored to a distinctive section phrase, never a line
+number) and compares it against the corresponding code constant or behavior, so a
+drift on *either* side goes red:
+
+- §4.1's `mast.config.json` example (`rrf_k`, `chunk_split_threshold`, `context_lines`,
+  `markdown_heading_depth`, `declaration_exact_ranker`, `file_extensions`,
+  `exclude_patterns`) ↔ `resolveConfig()`'s resolved defaults against a fresh project
+  root (the real resolution path, not a re-declared expectation that could drift
+  independently of `DEFAULTS` the same way the spec's own copy did).
+- §8's `mast init --state-dir` documented default (`<path>/.mast`) ↔
+  `resolveConfig()`'s `state_dir`.
+- §5's `index.json` example `schema_version` ↔ `CURRENT_SCHEMA_VERSION`.
+- §7.4's "currently `"1.3.0"`" constant prose ↔ `CURRENT_SCHEMA_VERSION`.
+- §7.4 Step 3's "all 11 tools" enumeration (count AND names) ↔ `registerAllTools`'s
+  actual registrations, captured via the same capture-server trick `cli/query.ts`'s
+  `createCaptureServer` uses, built against a real (if empty) on-disk database rather
+  than a synthetic `AppContext` double.
+- §7.6's dedicated JIT-write `busy_timeout` (200ms) ↔ `IMMEDIATE_WRITE_BUSY_TIMEOUT_MS`.
+- §7.6's `proper-lockfile` stale threshold (10 seconds / `10000`) ↔ `store/lock.ts`'s
+  `STALE_MS` (read from source text rather than exported, to avoid widening
+  `lock.ts`'s public API for one test-only value — same technique used for the next
+  item).
+- §9's `mast_callers`/`mast_rename_impact` potential-match cap (50) ↔
+  `collectPotentialMatchCandidates`'s default `limit` parameter (also a source-text
+  read — it is a default parameter value, not a named export).
+- §14.2's per-call tokenize budget (32) ↔ `FULL_FILE_TOKENIZE_BUDGET_PER_CALL`.
+- §14.5's tokenizer label ↔ `TOKENIZER_LABEL`, compared as an exact string.
+
+Per the task brief, no timing claims (§9.0's "10–50ms" JIT figure, §7.4's cold-start
+"2–4 seconds") are asserted — stated explicitly in the test file's header comment as
+deliberately out of scope for CI (flake risk), remaining verified by the `eval/`
+measurement harness (E7/E7-r2, D6) instead. Extraction failure is fail-loud by design:
+every anchor lookup throws naming the missing anchor rather than silently passing.
+
+**Red-phase finding — real drift caught on first run.** 16/17 assertions passed
+immediately; `exclude_patterns matches` failed:
+```
+- Expected
++ Received
+  Array [
+-   "**/node_modules/**",
+-   "**/dist/**",
+-   "**/coverage/**",
++   "node_modules/**",
++   "dist/**",
++   "coverage/**",
+    ".kluster/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+  ]
+```
+§4.1's `mast.config.json` example was missing the `**/` prefix `store/config.ts`'s
+`DEFAULTS.exclude_patterns` actually carries on the `node_modules`/`dist`/`coverage`
+entries (needed to match those directories at any depth in a monorepo, not just at
+the project root) — a genuine, previously-undetected spec/code drift, distinct from
+the three historical claims this stage was scoped to re-audit. Fixed in the spec per
+the task's process rule (code wins): `MAST_SPEC.md` §4.1's example now reads
+`"**/node_modules/**"`, `"**/dist/**"`, `"**/coverage/**"`. Re-run after the fix: 17/17
+green. No production `src/` constant was touched.
+
+**Verification**: 572 tests / 41 files (was 555/40 — 17 net-new assertions in one new
+file), `tsc --noEmit` clean, `eslint src` clean, `pnpm align:check` from repo root:
+baselined debt 324 → 324 (0), red only on the same 2 pre-existing non-mast violations
+(`application/ui/src/views/root-layout.tsx` import cycle,
+`application/api/src/domain/spec/fold-build-record-repository.ts` layer violation).
+
+**Deviations**: none from the mandated scope. The task's example numbers (F5's
+schema-version bump to 1.3.0) were pre-verified true rather than found drifting — the
+red phase's one finding was the `exclude_patterns` prefix mismatch instead, reported
+per process rule 1 exactly as the schema-version scenario would have been.
 
 ### D0 — CLI query surface (raised P2 → P1 by the R3 review, §14.8 item 3)
 
