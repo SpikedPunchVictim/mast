@@ -1610,7 +1610,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | # | Task | Status |
 |---|---|---|
 | **D0** | **CLI query surface — parity with the MCP read tools (`mast query <tool> <json>`)** | **Complete** |
-| D1 | Sort `walkProject` output (`indexer/walker.ts:43`) — kills ±4/3,940 edge nondeterminism | Not Started |
+| D1 | Sort `walkProject` output (`indexer/walker.ts:43`) — kills ±4/3,940 edge nondeterminism | **Complete** — see D1 result below |
 | D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
 | **D6** | **Build the stats/regression suite** — the metric set below, with a baseline captured before each fix | Not Started |
 | D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | Not Started |
@@ -1626,6 +1626,28 @@ runs against a pinned corpus; the three known false spec claims are either true,
 tested, or moved to a non-normative appendix.
 **Evidence**: §15.5 (nondeterminism), §14.2 (harness rot), §14.5 (spec drift), §14.6
 (assertion strength).
+
+### D1 result (2026-08-10) — deterministic walk order shipped
+
+`walkProject` now sorts entries lexicographically by `relativePath` before
+returning (plain code-unit comparison, deliberately not `localeCompare` —
+locale-sensitive collation would make "deterministic" depend on the host
+locale). fast-glob's filesystem-order results fed edge insertion in varying
+order, and `insertEdges`' bare-name fallback resolution is
+insertion-order-sensitive, producing the measured ±4/3,940 edge
+nondeterminism (§15.5); sorting at the source makes index order, manifest
+order, and edge insertion reproducible in one place. The stale docstring
+("results are in an arbitrary order") is corrected; the contract is
+reproducibility, not semantic priority. Two tests in `cli.test.ts` ("D1 —
+walkProject deterministic ordering"): exact lexicographic order over a
+multi-directory fixture created in non-lexicographic order, and
+identical-orderings-across-consecutive-walks. **Honest red-phase note**: the
+pre-fix order was arbitrary, not reliably unsorted, so a guaranteed-red test
+does not exist for this defect — the tests are the executable spec of the new
+contract (§5.4a structural-protection clause), and the nondeterminism
+evidence lives in §15.5's measurement. Implemented directly by the managing
+session (two-line fix below the managed-agent threshold). Verification:
+554/39 tests, tsc clean, lint clean, align 324→324 (+0).
 
 **E7 result** (`eval/e7-concurrency.json`): all three pre-committed falsification
 criteria **FIRED**. X2 is the headline — with **zero reindex running anywhere**, pure

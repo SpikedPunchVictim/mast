@@ -8,7 +8,7 @@
  * than shelling out to the binary — this avoids a build step and gives
  * accurate error messages.
  */
-import { mkdtempSync, writeFileSync, rmSync, unlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -773,5 +773,52 @@ describe('mast init — --extensions/--exclude end-to-end (F9, M3 repro inverted
     const persisted = loadStateConfig(config.resolved_state_dir);
     expect(persisted?.file_extensions).toEqual(['.js']);
     expect(persisted?.exclude_patterns).toEqual(['**/skipme.js']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D1 — deterministic walk order (IMPLEMENTATION_PLAN.md Stage 4)
+//
+// fast-glob returns filesystem order, which varies between identical runs;
+// edge insertion order feeds insertEdges' bare-name fallback resolution, so
+// two identical index runs produced edge sets differing by ±4/3,940 (§15.5).
+// walkProject now sorts by relativePath at the source. Honest red-phase note:
+// the pre-fix order was ARBITRARY, not reliably unsorted, so this test cannot
+// be guaranteed to fail on unfixed code — it is the executable spec of the
+// new ordering contract, and the nondeterminism evidence lives in §15.5.
+// ---------------------------------------------------------------------------
+
+describe('D1 — walkProject deterministic ordering', () => {
+  let tmpDir: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-walk-order-'));
+    // Created in deliberately non-lexicographic order, across nested dirs.
+    mkdirSync(join(tmpDir, 'zeta'), { recursive: true });
+    mkdirSync(join(tmpDir, 'alpha', 'nested'), { recursive: true });
+    writeFileSync(join(tmpDir, 'zeta', 'z.ts'), 'export const z = 1;\n');
+    writeFileSync(join(tmpDir, 'mid.ts'), 'export const m = 1;\n');
+    writeFileSync(join(tmpDir, 'alpha', 'nested', 'deep.ts'), 'export const d = 1;\n');
+    writeFileSync(join(tmpDir, 'alpha', 'a.ts'), 'export const a = 1;\n');
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns entries sorted lexicographically by relativePath', async () => {
+    const config = resolveConfig({ projectRoot: tmpDir });
+    const entries = await walkProject(config);
+
+    const paths = entries.map((e) => e.relativePath);
+    expect(paths).toEqual(['alpha/a.ts', 'alpha/nested/deep.ts', 'mid.ts', 'zeta/z.ts']);
+  });
+
+  it('two consecutive walks return identical orderings', async () => {
+    const config = resolveConfig({ projectRoot: tmpDir });
+    const first = (await walkProject(config)).map((e) => e.relativePath);
+    const second = (await walkProject(config)).map((e) => e.relativePath);
+    expect(second).toEqual(first);
+    expect(first.length).toBe(4);
   });
 });

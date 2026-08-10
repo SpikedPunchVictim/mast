@@ -34,8 +34,14 @@ export function globToRegex(pattern: string): RegExp {
  * Walk the project and return all indexable files.
  *
  * Applies `file_extensions` allowlist and `exclude_patterns` denylist from
- * config. Results are in an arbitrary order — callers must not depend on
- * ordering for correctness.
+ * config. Results are sorted lexicographically by `relativePath` (D1,
+ * IMPLEMENTATION_PLAN.md Stage 4): fast-glob returns filesystem order, which
+ * varies between identical runs — and because edge insertion order feeds the
+ * bare-name fallback in `insertEdges`' name resolution, two identical index
+ * runs produced edge sets differing by ±4/3,940 (§15.5). Sorting here makes
+ * every downstream consumer (index order, manifest, edge insertion)
+ * deterministic at the source. Callers still must not attach SEMANTIC meaning
+ * to the order — the guarantee is reproducibility, not priority.
  */
 export async function walkProject(config: MastConfig): Promise<FileEntry[]> {
   const patterns = config.file_extensions.map((ext) => `**/*${ext}`);
@@ -65,6 +71,9 @@ export async function walkProject(config: MastConfig): Promise<FileEntry[]> {
     }
   }
 
+  // D1: localeCompare is locale-sensitive and would make "deterministic"
+  // depend on the host locale — plain code-unit comparison does not.
+  entries.sort((a, b) => (a.relativePath < b.relativePath ? -1 : a.relativePath > b.relativePath ? 1 : 0));
   return entries;
 }
 
