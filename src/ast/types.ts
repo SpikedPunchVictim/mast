@@ -454,6 +454,23 @@ export interface CallersResponse {
      * always 0 when `mast index --checker` has never run.
      */
     readonly checker_classified_different_declaration: number;
+    /**
+     * F10 (Stage 3): present ONLY when the raw `identifier_fts` match count
+     * for this symbol exceeded the capped fetch (50 entries) — carries the
+     * real, uncapped count. See MAST_SPEC.md §9.0's Confidence signals (C1)
+     * table.
+     *
+     * **Precision note**: this reports RAW FTS-match truncation only.
+     * `potential_matches` itself may still be smaller than the fetch cap even
+     * when this field is present — verified-overlap exclusion and
+     * checker-verdict filtering both run AFTER the capped fetch. Those are
+     * *filtering*, not truncation, and are already visible via
+     * `checker_classified_non_call_site` / `checker_classified_different_declaration`
+     * above. Omitted when the fetch came back under the cap (the fetch count
+     * already IS the real count) — same omitted-when-false convention as
+     * `file_busy_returning_stale_cache` / `index_empty` above.
+     */
+    readonly potential_truncated?: number;
   };
   readonly _stats: ToolStats;
 }
@@ -508,6 +525,8 @@ export interface RenameImpactResponse {
     readonly checker_classified_non_call_site: number;
     /** See {@link CallersResponse.summary.checker_classified_different_declaration}. */
     readonly checker_classified_different_declaration: number;
+    /** See {@link CallersResponse.summary.potential_truncated} — same signal, same precision note. */
+    readonly potential_truncated?: number;
   };
   readonly _stats: ToolStats;
 }

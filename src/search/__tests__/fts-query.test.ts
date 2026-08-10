@@ -5,7 +5,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { openDatabase, type Db } from '../../graph/db.js';
-import { searchFts, searchIdentifiers } from '../fts.js';
+import { searchFts, searchIdentifiers, countIdentifierMatches } from '../fts.js';
 
 const SRC = `export function handleLogin(req: LoginRequest): void {
   validateSession(req);
@@ -69,6 +69,21 @@ describe('FTS query sanitisation (L2)', () => {
   it('searchIdentifiers does not throw on a qualified name', async () => {
     await expect(searchIdentifiers(db, 'AuthService.check', 50)).resolves.toBeInstanceOf(Array);
     expect(await searchIdentifiers(db, '', 50)).toEqual([]);
+  });
+
+  // F10 (Stage 3): countIdentifierMatches shares searchIdentifiers' phrase-quoted
+  // MATCH expression (via a private helper, no duplicated quoting logic) but
+  // returns an uncapped count(*) — the raw number collectPotentialMatchCandidates
+  // reports when the capped fetch comes back full.
+  it('countIdentifierMatches returns the uncapped match count for a real identifier', async () => {
+    // SRC's one chunk (the handleLogin function) is the only row whose
+    // identifier bag contains 'handleLogin'.
+    expect(await countIdentifierMatches(db, 'handleLogin')).toBe(1);
+  });
+
+  it('countIdentifierMatches returns 0 for an empty term or a term with no matches', async () => {
+    expect(await countIdentifierMatches(db, '')).toBe(0);
+    expect(await countIdentifierMatches(db, 'zzzNoSuchIdentifier')).toBe(0);
   });
 });
 

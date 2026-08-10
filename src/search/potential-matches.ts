@@ -1,6 +1,6 @@
 import type { Db } from '../graph/db.js';
 import type { VerifiedCaller, PotentialMatch } from '../ast/types.js';
-import { searchIdentifiers } from './fts.js';
+import { searchIdentifiers, countIdentifierMatches } from './fts.js';
 import { queryCheckerVerdicts } from '../graph/queries.js';
 
 // ---------------------------------------------------------------------------
@@ -54,6 +54,22 @@ export interface PotentialMatchCandidate {
   readonly chunk_symbol_name: string | null;
 }
 
+export interface PotentialMatchCandidatesResult {
+  readonly candidates: readonly PotentialMatchCandidate[];
+  /**
+   * F10 (Stage 3, IMPLEMENTATION_PLAN.md): the real, uncapped `identifier_fts`
+   * match count for `symbolName` — present ONLY when the capped fetch
+   * (`limit`) came back full AND the true count exceeds it (an exactly-full
+   * fetch with no more real matches is not truncation). `mast_callers` /
+   * `mast_rename_impact` surface this as `summary.potential_truncated`
+   * (MAST_SPEC.md §9.0's Confidence signals table). Omitted whenever the
+   * fetch returned fewer rows than `limit` — the fetch count already IS the
+   * real count on that path, so the extra `COUNT(*)` query
+   * ({@link countIdentifierMatches}) is never run and would be pure waste.
+   */
+  readonly truncatedMatchCount?: number;
+}
+
 /**
  * Identifier-FTS hits for `symbolName` that are NOT already covered by a
  * verified caller — the raw candidate pool behind `potential_matches` (§9
@@ -65,7 +81,7 @@ export async function collectPotentialMatchCandidates(
   symbolName: string,
   verified: readonly VerifiedCaller[],
   limit = 50,
-): Promise<PotentialMatchCandidate[]> {
+): Promise<PotentialMatchCandidatesResult> {
   const identRows = await searchIdentifiers(db, symbolName, limit);
   const chunks = await chunkSource.getChunksByIds(identRows.map((r) => r.chunk_id));
 
@@ -81,7 +97,17 @@ export async function collectPotentialMatchCandidates(
       chunk_symbol_name: chunk.symbol_name,
     });
   }
-  return candidates;
+
+  // The capped fetch hides how many real matches exist. Only worth paying
+  // for an uncapped COUNT(*) when the fetch actually came back full — under
+  // the cap, identRows.length already IS the real count (see F10 note above).
+  let truncatedMatchCount: number | undefined;
+  if (identRows.length === limit) {
+    const rawCount = await countIdentifierMatches(db, symbolName);
+    if (rawCount > limit) truncatedMatchCount = rawCount;
+  }
+
+  return truncatedMatchCount !== undefined ? { candidates, truncatedMatchCount } : { candidates };
 }
 
 export interface PotentialMatchesResult {
@@ -90,6 +116,8 @@ export interface PotentialMatchesResult {
   readonly checkerClassifiedNonCallSite: number;
   /** Candidates the checker pass resolved to a DIFFERENT declaration, dropped from `matches`. */
   readonly checkerClassifiedDifferentDeclaration: number;
+  /** @see {@link PotentialMatchCandidatesResult.truncatedMatchCount} — same signal, passed through unchanged. */
+  readonly truncatedMatchCount?: number;
 }
 
 /**
@@ -116,7 +144,7 @@ export async function collectPotentialMatches(
   verified: readonly VerifiedCaller[],
   limit = 50,
 ): Promise<PotentialMatchesResult> {
-  const candidates = await collectPotentialMatchCandidates(db, chunkSource, symbolName, verified, limit);
+  const { candidates, truncatedMatchCount } = await collectPotentialMatchCandidates(db, chunkSource, symbolName, verified, limit);
   const verdicts = await queryCheckerVerdicts(db, symbolId);
   const verdictByKey = new Map<string, string>();
   for (const v of verdicts) verdictByKey.set(`${v.file_path}:${v.call_site_line}`, v.verdict);
@@ -136,5 +164,7 @@ export async function collectPotentialMatches(
       reason: 'identifier_match_no_resolved_edge',
     });
   }
-  return { matches, checkerClassifiedNonCallSite, checkerClassifiedDifferentDeclaration };
+  return truncatedMatchCount !== undefined
+    ? { matches, checkerClassifiedNonCallSite, checkerClassifiedDifferentDeclaration, truncatedMatchCount }
+    : { matches, checkerClassifiedNonCallSite, checkerClassifiedDifferentDeclaration };
 }

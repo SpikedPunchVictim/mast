@@ -113,17 +113,37 @@ export async function searchIdentifiers(
   symbolName: string,
   limit = 50,
 ): Promise<IdentifierFtsRow[]> {
-  const term = symbolName.trim();
-  if (term === '') return [];
-  // Quote as a phrase so any separator chars (e.g. `Class.method`) are matched
-  // literally rather than parsed as FTS5 query operators.
-  const matchExpr = `"${term.replace(/"/g, '""')}"`;
+  const matchExpr = buildIdentifierMatchExpr(symbolName);
+  if (matchExpr === null) return [];
   return db
     .selectFrom('identifier_fts')
     .select('chunk_id')
     .where(sql<SqlBool>`identifier_fts MATCH ${matchExpr}`)
     .limit(limit)
     .execute();
+}
+
+/**
+ * Uncapped match count for `symbolName` over `identifier_fts` — same
+ * phrase-quoted MATCH expression as {@link searchIdentifiers} (via the shared
+ * {@link buildIdentifierMatchExpr} helper, never duplicated), no `LIMIT`.
+ *
+ * F10 (Stage 3, IMPLEMENTATION_PLAN.md): `searchIdentifiers`' cap silently
+ * dropped real matches with no signal the cap was hit
+ * (`eval/GITNEXUS_COMPARISON.md` M4 — `isUndefined` reported 50 candidates
+ * when the real count was 71). Callers should run this ONLY when the capped
+ * fetch came back full (`identRows.length === limit`) — below the cap, the
+ * fetch count already IS the real count, and this query would be pure waste.
+ */
+export async function countIdentifierMatches(db: Db, symbolName: string): Promise<number> {
+  const matchExpr = buildIdentifierMatchExpr(symbolName);
+  if (matchExpr === null) return 0;
+  const row = await db
+    .selectFrom('identifier_fts')
+    .select((eb) => eb.fn.count<number>('chunk_id').as('count'))
+    .where(sql<SqlBool>`identifier_fts MATCH ${matchExpr}`)
+    .executeTakeFirst();
+  return row?.count ?? 0;
 }
 
 /**
@@ -186,6 +206,22 @@ export function splitIdentifierTerms(query: string): string[] {
 /** Convert a glob pattern to a SQL LIKE pattern (`*` → `%`, `?` → `_`). */
 function globToLike(pattern: string): string {
   return pattern.replace(/\*/g, '%').replace(/\?/g, '_');
+}
+
+/**
+ * Build the phrase-quoted FTS5 MATCH expression shared by
+ * {@link searchIdentifiers} and {@link countIdentifierMatches} — the two must
+ * agree on exactly which rows count as a match, or the "real count" F10
+ * reports could disagree with what the capped fetch actually returned.
+ * Quoting as a phrase means any separator char (e.g. `Class.method`) is
+ * matched literally rather than parsed as FTS5 query syntax. Returns null for
+ * an empty/whitespace-only name, so callers can short-circuit instead of
+ * running an invalid MATCH query.
+ */
+function buildIdentifierMatchExpr(symbolName: string): string | null {
+  const term = symbolName.trim();
+  if (term === '') return null;
+  return `"${term.replace(/"/g, '""')}"`;
 }
 
 /**

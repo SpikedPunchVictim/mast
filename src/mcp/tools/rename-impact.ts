@@ -69,6 +69,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       let barrel_exports: BarrelExportSite[] = [];
       let checkerClassifiedNonCallSite = 0;
       let checkerClassifiedDifferentDeclaration = 0;
+      let potentialTruncated: number | undefined;
 
       if (target !== undefined) {
         // Direct callers only — a rename edits call sites, and every call site
@@ -86,6 +87,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
         potential_matches = potentialResult.matches;
         checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
         checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;
+        potentialTruncated = potentialResult.truncatedMatchCount;
 
         const barrelRows = await queryBarrelExports(ctx.db, target.id, args.symbol, target.file_id);
         barrel_exports = barrelRows.map((b) => ({
@@ -135,6 +137,8 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
               : buildChecklist(verified_callers.length, potential_matches.length, barrel_exports.length),
           checker_classified_non_call_site: checkerClassifiedNonCallSite,
           checker_classified_different_declaration: checkerClassifiedDifferentDeclaration,
+          // F10: omitted-when-false — present only when the identifier-FTS cap was hit.
+          ...(potentialTruncated !== undefined ? { potential_truncated: potentialTruncated } : {}),
         },
         _stats: buildToolStats('mast_rename_impact', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };

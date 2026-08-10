@@ -458,7 +458,10 @@ export async function runCheckerPass(
         context: r.context,
         resolution: r.resolution as CallerResolution,
       }));
-      const candidates = await collectPotentialMatchCandidates(db, chunkSource, sym.name, verified);
+      // F10 (Stage 3): collectPotentialMatchCandidates now also returns an
+      // optional truncatedMatchCount — Phase A has no use for it (it isn't a
+      // tool-response summary), so it's destructured away and ignored here.
+      const { candidates } = await collectPotentialMatchCandidates(db, chunkSource, sym.name, verified);
       for (const c of candidates) {
         const project = fileToProject.get(c.file_path);
         if (project === undefined) {

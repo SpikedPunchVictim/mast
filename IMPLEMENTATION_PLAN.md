@@ -707,14 +707,17 @@ justifies the subsystem.
 
 ## Stage 3: Call-graph correctness
 **Goal**: `mast_callers` stops returning confidently-empty answers.
-**Status**: In Progress — F3/F4/F5 complete (2026-08-09); F10 remaining.
+**Status**: Complete (2026-08-09) — F3/F4/F5/F10 all shipped. The corpus
+edge-count success criterion below (1,038 → toward 1,124 `this.` + 20
+`super.`) remains E2's registered measurement — Stage completion does not
+claim it; see each result's "What is explicitly NOT claimed" note.
 
 | # | Task | Status |
 |---|---|---|
 | F3 | `parseCallee`: unwrap `await_expression` (`typescript.ts:1360`) — one line | **Complete** |
 | F4 | Implement `this.` / `super.` resolution (documented in §10.3.1, never built) | **Complete** |
 | F5 | `mast_callers` potential set for methods — **design change**, see below | **Complete** |
-| F10 | Surface `potential_truncated` (silent cap at 50; real count was 71) | Not Started |
+| F10 | Surface `potential_truncated` (silent cap at 50; real count was 71) | **Complete** |
 
 **Success criteria**: `POTENTIAL_CALL` edges rise from **1,038** toward the
 **1,124 `this.` + 20 `super.`** call sites the corpus contains (E2 acceptance
@@ -1064,6 +1067,106 @@ worth naming as a boundary. No corpus-level before/after `potential_matches`
 count was measured against a real external corpus — same E2 scope boundary
 F3/F4 recorded; this task's evidence is unit/integration-level, proving the
 mechanism works, not corpus-scale recall improvement.
+
+### F10 result (2026-08-09) — potential_truncated shipped
+
+**The defect.** `collectPotentialMatchCandidates` (`search/potential-matches.ts`)
+fetched `identifier_fts` hits with `limit = 50` and nothing surfaced that the cap
+was hit — `eval/GITNEXUS_COMPARISON.md` M4: the `isUndefined` query reported 50
+candidates when the real `identifier_fts` match count was 71, silently dropping 21
+candidates and invalidating a recall claim built on the output. `CallersResponse`/
+`RenameImpactResponse` had no truncation field. MAST_SPEC.md §9.0's Confidence
+signals (C1) table had already reserved the vocabulary — `potential_truncated` —
+against exactly this task (F5's result, above, and C1's result both name it as
+deliberately out of scope).
+
+**Design: count-only-when-full, share the match-expression construction.**
+`fts.ts` gained `countIdentifierMatches(db, symbolName)` — same phrase-quoted FTS5
+MATCH expression as `searchIdentifiers`, `count(*)`, no `LIMIT` — built via a new
+private `buildIdentifierMatchExpr` helper both functions call, so the two can never
+disagree about which rows count as a match (duplicating the quoting logic was
+rejected: a drift between the two would make the "real count" lie in the opposite
+direction of the original bug). `collectPotentialMatchCandidates` now runs
+`countIdentifierMatches` ONLY when the capped fetch came back full
+(`identRows.length === limit`) — under the cap, the fetch count already IS the real
+count, and the extra query would be pure waste on the overwhelming majority of
+calls (most symbols have far fewer than 50 identifier mentions). The function's
+return type changed from `PotentialMatchCandidate[]` to
+`{ candidates, truncatedMatchCount? }` — `truncatedMatchCount` is set only when the
+fetch was full AND the real count exceeds `limit` (an exactly-full fetch with no
+more real matches is not truncation). `collectPotentialMatches` passes the field
+through unchanged to its own `PotentialMatchesResult`; `mast_callers`/
+`mast_rename_impact` surface it as `summary.potential_truncated` (omitted-when-false,
+same convention as `file_busy_returning_stale_cache`/`index_empty`).
+
+**Raw-truncation vs. filtering — the precision the task brief called out
+explicitly.** `potential_truncated` is computed at the RAW `identifier_fts` fetch,
+before verified-overlap exclusion and checker-verdict filtering (both of which run
+afterward, inside `collectPotentialMatches`/the tool handlers). So
+`potential_matches`/`summary.potential_count` can still be smaller than the fetch
+cap even when `potential_truncated` is present — that is filtering doing its job
+(already visible via `checker_classified_non_call_site`/
+`checker_classified_different_declaration`), not evidence the truncation signal is
+wrong. Documented in the TSDoc on `CallersResponse.summary.potential_truncated`
+(`ast/types.ts`), in `PotentialMatchCandidatesResult.truncatedMatchCount`'s TSDoc, and
+in MAST_SPEC.md's C1 table row and §9 `mast_callers` prose.
+
+**Checker pass consumes the collector unchanged.** `graph/checker-resolver.ts`'s
+Phase A calls `collectPotentialMatchCandidates` for every indexed symbol and only
+ever used the candidates array, never a truncation count — its call site needed
+exactly the one-line destructuring touch the task brief anticipated
+(`const candidates = await ...` → `const { candidates } = await ...`), with a
+WHY-comment noting Phase A has no summary surface to carry the field to and
+deliberately ignores it. `checker-resolver.test.ts`'s existing 16 tests pass
+unchanged, confirming Phase A's classification semantics were not touched.
+
+**Test budget call (§5.5).** The positive (cap-hit) case is covered at the collector
+layer with an injected `limit = 5` against 7 real matching chunks
+(`search/__tests__/potential-matches.test.ts`, new file, 3 tests: capped +
+truncation-count-reported; under-cap + no signal; zero-match + no signal) — the
+single shared definition every consumer (`mast_callers`, `mast_rename_impact`, the
+checker pass) goes through. A production-cap-exceeded (51+ mention chunks) fixture
+at the tool layer was judged disproportionate for one field's coverage: `tools.test.ts`
+gets one negative test instead (`add`'s potential set, nowhere near the cap ⇒
+`summary` must NOT carry `potential_truncated`) plus a comment stating the budget
+call explicitly, per the task brief's own guidance. `fts.ts`'s new
+`countIdentifierMatches` also got 2 direct unit tests in `fts-query.test.ts` (uncapped
+count for a real identifier; 0 for an empty/unmatched term) — the natural home for a
+new exported function in the file that already tests its sibling `searchIdentifiers`.
+
+**Red-first evidence.** All 5 new positive/shape-asserting tests were written and run
+against the unfixed code first (`pnpm exec vitest run` on the two touched test
+files). Result: **5 failed / 8 passed** (13 total across the two files) — the 5
+failures were `TypeError: countIdentifierMatches is not a function` (2, proving the
+export didn't exist yet) and `AssertionError: Target cannot be null or undefined`
+(3, `result.candidates` on what was then a bare array — proving the collector's
+return shape hadn't changed yet), all assertion/type-level failures, not import or
+syntax breaks. The tool-layer negative test (`tools.test.ts`) was NOT expected to be
+red — it asserts the ABSENCE of a property that also doesn't exist pre-fix, so it
+passes trivially both before and after; it is a regression guard, not evidence of
+the fix, and is called out as such rather than mis-described as a red test.
+Implementing `buildIdentifierMatchExpr`/`countIdentifierMatches` (`fts.ts`) and the
+`{ candidates, truncatedMatchCount? }` return shape + count-only-when-full gating
+(`potential-matches.ts`) turned all 5 green with no regressions elsewhere.
+
+**Verification** (from `packages/mast`): `pnpm test` — **552/552 passed, 39 files**
+(baseline 546/38; +6 net new tests — 3 collector-level + 2 `countIdentifierMatches`
+unit tests + 1 tool-level negative test; +1 file — the new
+`potential-matches.test.ts`). `pnpm typecheck` — clean. `pnpm lint` — clean.
+Repo-root `pnpm align:check` — `baselined debt: 324 -> 324 (0)`, red only on the 2
+pre-existing non-mast violations (`application/ui/src/views/root-layout.tsx` import
+cycle; `application/api/src/domain/spec/fold-build-record-repository.ts` domain→db
+import) — unchanged from F5's verification, confirming F10 introduced no new
+architecture drift.
+
+**Deviations**: none from the mandated design — the 50 cap itself was not changed
+or made configurable; `fused.ts`, `declex.ts`, `eval/`, `vitest.config.ts`
+exclusions, and `checker-resolver.ts`'s Phase A classification semantics are
+untouched (only the one destructuring touch its collector call site needed).
+**Noticed but not done**: no corpus-level measurement of how often the 50-entry cap
+is actually hit in a real external corpus — same E2 scope boundary F3/F4/F5
+recorded; this task's evidence is unit/integration-level, proving the signal fires
+correctly on a controlled fixture, not how often it fires in practice.
 
 ---
 

@@ -1013,11 +1013,14 @@ across all MCP tools, and what to do with each one:
 | `stale` | `mast_search` / `mast_implementors` per-result (F7) | This result's `file_path` stat'd newer-on-disk than its indexed mtime, or the stat failed — **no refresh was attempted by design** (stat-and-flag, not JIT re-parse; see above). | Treat this result's line coordinates as untrustworthy. A `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it. |
 | `index_empty` | Every primary-result read tool's envelope (M6) | Nothing is indexed at all — the empty result set is not "no match", it is "no index (yet)". | Run `mast init`/`mast index`, or — if a startup reindex is in progress — wait and retry. |
 | `truncated` | `TypeContextEntry` (`mast_signature`'s `type_context`) | This referenced type's declaration was clipped at the 50-line cap. | Re-read the file directly (or call `mast_exports`/a narrower `mast_signature` query) for the full declaration if the clipped portion matters. |
-| `potential_truncated` | **Reserved** — ships with F10 (Stage 3) | `potential_matches` is capped at 50 entries; this will carry the real, uncapped match count when the cap is hit. | Not implemented yet. Documented here so F10 lands into this agreed vocabulary instead of inventing a new one. |
+| `potential_truncated` | `CallersResponse.summary` / `RenameImpactResponse.summary` (`mast_callers`, `mast_rename_impact`) | The `identifier_fts` fetch behind `potential_matches` is capped at 50 entries; this carries the real, uncapped match count when the cap is hit (F10, Stage 3). Reports RAW fetch truncation only — `potential_matches` may still be smaller than the cap even when this field is present, because verified-overlap exclusion and checker-verdict filtering run AFTER the capped fetch (already visible via `checker_classified_*`). | The potential set is incomplete — narrow the query, or run `mast index --checker` to classify candidates away. |
 
-`file_busy_returning_stale_cache`, `stale`, and `index_empty` all follow the
-same **omitted-when-false / present-only-when-true** convention (never
-present-and-false) established above. `resolution` and `reason` are always
+`file_busy_returning_stale_cache`, `stale`, `index_empty`, and
+`potential_truncated` all follow the same **omitted-when-false /
+present-only-when-true** convention (never present-and-false) established
+above — `potential_truncated`'s "false" case is "the fetch came back under
+the cap," where the fetch count already IS the real count. `resolution` and
+`reason` are always
 present on their respective entry types (a `VerifiedCaller`/`PotentialMatch`
 without one would be meaningless). `truncated` is the one exception: it is
 an always-present `boolean` on every `TypeContextEntry`, not an optional
@@ -1370,6 +1373,19 @@ The split is fundamental to the tool's contract — see §10.3 for why.
 }
 ```
 
+`summary.potential_truncated` is omitted above because this query's `identifier_fts`
+fetch came back under the 50-entry cap. When it doesn't — e.g. the `isUndefined`
+query that motivated F10, which had 71 real matches — the fetch is capped at 50 and
+`summary` instead carries:
+```json
+{
+  "potential_count": 50,
+  "potential_truncated": 71
+}
+```
+`potential_count` (50, capped) and `potential_truncated` (71, real) diverging is the
+signal: the potential set is known-incomplete, not merely large.
+
 **The two sets have different meanings.** Tools and prompts must treat them
 differently:
 
@@ -1404,6 +1420,15 @@ string, type position) or a same-name collision resolving to a different declara
 — that would otherwise still be sitting in `potential_matches` as unresolved review
 noise. Both are `0` when `mast index --checker` has never run against this index; a
 nonzero value is direct evidence the pass ran and is doing its job (§10.3.2).
+
+**`summary.potential_truncated`** (F10, Stage 3) carries the real, uncapped
+`identifier_fts` match count — present only when that fetch (capped at 50 entries)
+came back full and the true count exceeds it. It is a **raw fetch** signal, computed
+BEFORE the verified-overlap exclusion and checker-verdict filtering that produce
+`potential_matches`/`potential_count` — so `potential_matches` can still be smaller
+than 50 even when `potential_truncated` is present; that's filtering (already visible
+via `checker_classified_*` above), not truncation. See the Confidence signals (C1)
+table (§9.0) for the full contract.
 
 **Why partition rather than merge?** Mixing the two sets would force the agent to
 treat every result as low-confidence, defeating the value of the verified set. Mixing
@@ -1533,6 +1558,10 @@ resolution logic.
 }
 ```
 
+`summary.potential_truncated` is omitted above for the same reason as in
+`mast_callers` (this query's `identifier_fts` fetch came back under the cap) — see
+§9 `mast_callers`' `potential_truncated` example for what it looks like when present.
+
 Section sources and semantics:
 
 - `declaration_sites` — the `symbols` table (multiple entries when the name is
@@ -1550,7 +1579,11 @@ Section sources and semantics:
   must check each before declaring the rename complete. The declaration chunk
   itself typically appears here — correctly, since it must be edited.
   `summary.checker_classified_non_call_site`/`checker_classified_different_declaration`
-  carry the same meaning as in `mast_callers`.
+  carry the same meaning as in `mast_callers`, as does `summary.potential_truncated`
+  (F10) — the real, uncapped `identifier_fts` match count, present only when the
+  capped fetch came back full; a raw-fetch signal, not a `potential_matches` size
+  guarantee (§9 `mast_callers`'s `potential_truncated` paragraph has the full
+  precision note).
 - `barrel_exports` — files that re-export the symbol: `via: "named"` rows come
   from `RE_EXPORTS` edges (the export statement names the symbol —
   `exported_as` carries the alias — and must be edited); `via: "star"` rows

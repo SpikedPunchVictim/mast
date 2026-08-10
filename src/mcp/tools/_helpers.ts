@@ -17,6 +17,7 @@ export {
   collectPotentialMatchCandidates,
   type ChunkByIdSource,
   type PotentialMatchCandidate,
+  type PotentialMatchCandidatesResult,
   type PotentialMatchesResult,
 } from '../../search/potential-matches.js';
 

@@ -81,11 +81,13 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       let potential_matches: readonly PotentialMatch[] = [];
       let checkerClassifiedNonCallSite = 0;
       let checkerClassifiedDifferentDeclaration = 0;
+      let potentialTruncated: number | undefined;
       if (args.include_potential !== false) {
         const potentialResult = await collectPotentialMatches(ctx.db, ctx.chunkStore, target.id, args.symbol, verified_callers);
         potential_matches = potentialResult.matches;
         checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
         checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;
+        potentialTruncated = potentialResult.truncatedMatchCount;
       }
 
       const filesReferenced = [
@@ -115,6 +117,8 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
           transitive: args.transitive ?? false,
           checker_classified_non_call_site: checkerClassifiedNonCallSite,
           checker_classified_different_declaration: checkerClassifiedDifferentDeclaration,
+          // F10: omitted-when-false — present only when the identifier-FTS cap was hit.
+          ...(potentialTruncated !== undefined ? { potential_truncated: potentialTruncated } : {}),
         },
         _stats: buildToolStats('mast_callers', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };

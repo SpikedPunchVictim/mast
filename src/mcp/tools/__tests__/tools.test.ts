@@ -488,6 +488,21 @@ describe('mast_callers', () => {
     };
     expect(res.potential_matches).toHaveLength(0);
   });
+
+  // F10 (Stage 3): summary.potential_truncated is omitted-when-false — present
+  // ONLY when the capped identifier_fts fetch (50 entries) came back full. This
+  // fixture's `add` symbol has a handful of potential matches, nowhere near the
+  // cap, so the field must be absent. The positive (cap-hit) case needs 51+
+  // matching chunks to exercise the production cap — disproportionate for this
+  // suite; it is covered at the collector layer instead with an injected small
+  // limit (search/__tests__/potential-matches.test.ts), which is the single
+  // shared definition this tool's `collectPotentialMatches` call delegates to.
+  it('summary has no potential_truncated property when the identifier-FTS cap was not hit', async () => {
+    const res = await call('mast_callers', { symbol: 'add' }) as {
+      summary: Record<string, unknown>;
+    };
+    expect(res.summary).not.toHaveProperty('potential_truncated');
+  });
 });
 
 // ---------------------------------------------------------------------------
