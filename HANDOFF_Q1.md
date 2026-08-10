@@ -2,7 +2,102 @@
 
 ---
 
-## ⚡ WORK QUEUE (2026-08-07) — the remaining work, prioritized; start here
+## ⚡ WORK QUEUE (2026-08-10) — refreshed after the remediation sweep; start here
+
+The remediation backlog is CLOSED except E1. Stages 1, 2, 3, 3.5, 4.5-S1 and all of
+Stage 4 except E1 are Complete (20 commits, `6913ba4..252be45`; per-item result
+blocks with red-first evidence live in IMPLEMENTATION_PLAN.md — that file is the
+detailed record; this queue is only the pointer). What remains, prioritized:
+
+**P1 — E1, the scaling ladder (Stage 4)** — the only open Stage 4 item, and the
+only remaining item with a formal ceremony: it is a MEASUREMENT, so per §6 it
+requires pre-registration in IMPLEMENTATION_PLAN.md (hypothesis, tiers,
+falsification criteria) committed BEFORE running, an adversarial design review AND
+results review (Agent tool, model "fable" — verify the reviewer's claims), and
+external corpora (otel 902 / langchainjs 2,047 / strapi 3,600 / backstage 7,021;
+n8n 12,641 now unblocked post-M1). It inherits the corpus-pinning requirement and
+the rows the D6 RESCOPE moved to it (ms/file growth law, parse-vs-index ratio,
+state-size linearity). D7's `onCallSite` seam is the ready-made call-site
+instrumentation hook; E2 (call-graph denominators) can ride the same registration.
+
+**P2 — Stage 4.5 scale levers and Stage 5 open questions**: Q6 — the 1.7–3 s WAL
+auto-checkpoint stall — is the most user-visible (E7-r2's P3 REFUTED it got worse,
+and suspects Lance was the real round-1 contributor; re-scope before designing);
+Q2, Q3, Q5 unblocked; E5 (`--checker` value); E6 (cross-language silent drop).
+
+**P3 — small recorded decisions awaiting an owner**: MAST_SPEC §14.6 documents
+`--session`/`--global` options `mast metrics` never implemented (found by D6,
+recorded not fixed — implement or trim the spec); the D7 corpus oracle's
+self-corpus distribution (866/2,155 ≈ 40% edge yield) is a baseline worth
+re-recording after any extractor change.
+
+**Standing obligations (do not let these pass):** the M2 condition-5 review —
+organic harvest **n ≥ 67** or **2026-11-05**, whichever first (n = 0 then is itself
+a finding forcing a monitoring re-decision); `metrics.declex_json` is the
+accumulating signal. Any instrument reuse must first fix the §5 defects below. Do
+NOT reopen the settled questions in §3 or the retired experiments — re-entry to
+vectors goes through the tag + a fresh A-vs-C benchmark, per the memo. The
+2026-08-07 note about `.claude/CLAUDE.md`'s stale "semantic + keyword" wording is
+RESOLVED — the owner fixed it.
+
+---
+
+## ⚡ UPDATE 2026-08-10 — REMEDIATION SWEEP COMPLETE; what changed and what to know
+
+Twenty commits (`6913ba4..252be45`, 2026-08-07 → 2026-08-10) closed the backlog.
+Verification baseline is now **627 tests / 45 files**, tsc clean, lint clean,
+`pnpm align:check` **324→324 (+0)** (same 2 pre-existing non-mast violations —
+still do not attribute them). **`CURRENT_SCHEMA_VERSION` is now `1.3.0`** (F5) —
+any pre-existing state dir wipes and reindexes on first serve.
+
+**Product-surface changes an agent will notice:**
+- `mast query <tool> [json] [path]` exists (D0) — CLI parity with every MCP tool by
+  construction (shared handlers via `registerAllTools`); the old throwaway MCP
+  harness scripts under `~/temp/mast-bench/` are obsolete.
+- Confidence signals are unified (C1; spec §9.0 table is the single reference):
+  `stale` (stat-and-flag, mast_search/mast_implementors),
+  `file_busy_returning_stale_cache` (JIT tools only), `index_empty` (M6),
+  `potential_truncated` (F10), plus `resolution` gained `this_method`/`super_method`
+  (F4). `mast metrics` gained `--json`, `--locks`, and p50/p95 columns (D6).
+- JIT no longer touches `structure.lock` (F11): `populateFile` runs BEGIN IMMEDIATE
+  with a dedicated 200ms busy_timeout; coarse writers keep proper-lockfile. The
+  full option-(d) overlay remains DEFERRED per E7-r2 — do not build it without
+  scale evidence (E1's n8n rung).
+- Multi-row SQL is batched under the 32,766-parameter ceiling everywhere (S1,
+  8 sites) — whale files index correctly now.
+
+**Load-bearing decisions, briefly (full reasoning in the plan's result blocks):**
+stat-and-flag (not refresh) for multi-file tools; identical-output-by-construction
+for the CLI; whole-class fixes over named-site fixes (S1); narrow-role locking with
+the overlay deferred on the record; honour-not-delete for init flags with a
+path-portability picked-keys rule (persisted absolute paths must never merge back —
+shared-volume hazard); two-part empty-state honesty (refuse only the
+never-fillable combination); qualified identifier compounds derived from
+already-computed edges (no parallel resolution mechanism); drop-don't-guess for
+super_method resolution.
+
+**Standing instruments added this sweep (use them, don't rebuild them):**
+- D7's `onCallSite` diagnostics seam + self-corpus oracle (closed 4-outcome union;
+  2,155 call sites / 866 edges baseline on mast's own src) — E2's hook.
+- D3's `spec-conformance.test.ts` — spec↔code drift fails the suite; add one
+  assertion per future finding.
+- D4's `assertion-rule.test.ts` — `unknown[]`/bare-`unknown` response annotations
+  in tests fail the suite unless allowlisted with a written reason.
+- D6's `mast metrics --locks` + percentiles — the lock-hold and latency
+  observability rows of the rescoped metric table.
+
+**Process note for whoever manages sub-agents:** implementation was done by managed
+sonnet agents with designs fixed up front by the managing session; every diff was
+reviewed and independently verified before commit. Two agents stalled mid-task with
+an off-topic final message while their working tree was fine (S1, F9) — inspect
+`git status` before trusting a completion report, and resume the same agent with a
+remaining-work checklist; both completed cleanly on resume. Red-first was enforced
+on every behavioral change; where an honest red was impossible (D1's arbitrary
+pre-fix ordering), the plan says so explicitly rather than claiming one.
+
+---
+
+## ⚡ WORK QUEUE (2026-08-07) — SUPERSEDED by the 2026-08-10 queue above; kept as the completion ledger
 
 The Q1/M2 program is CLOSED (memo → F18 → deletion, Stages 6–7 complete). What remains
 is the pre-M2 remediation backlog plus the memo's standing obligations. Plan stage
