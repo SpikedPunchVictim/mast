@@ -49,6 +49,10 @@ async function induceRealBusySnapshot(db: Db, stateDir: string): Promise<Error &
     });
     throw new Error('induceRealBusySnapshot: transaction committed instead of hitting SQLITE_BUSY_SNAPSHOT — test setup is broken');
   } catch (err) {
+    // mast-assertion-rule-allow: `unknown` here narrows a genuinely-unknown
+    // caught error's `code` property before the `typeof` guard proves it's a
+    // string — this is a type-narrowing idiom on driver errors, not a
+    // parsed tool/CLI response annotation the D4 rule targets.
     if (err instanceof Error && 'code' in err && typeof (err as { code: unknown }).code === 'string') {
       return err as Error & { code: string };
     }
@@ -65,6 +69,7 @@ function induceRealConstraintViolation(stateDir: string, existingPath: string): 
     raw.prepare("INSERT INTO files (path, language, mtime) VALUES (?, 'typescript', 0)").run(existingPath);
     throw new Error('induceRealConstraintViolation: insert succeeded — test setup is broken');
   } catch (err) {
+    // mast-assertion-rule-allow: same narrowing idiom as induceRealBusySnapshot above.
     if (err instanceof Error && 'code' in err && typeof (err as { code: unknown }).code === 'string') {
       return err as Error & { code: string };
     }

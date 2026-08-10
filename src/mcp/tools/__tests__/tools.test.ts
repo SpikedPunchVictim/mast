@@ -169,13 +169,28 @@ async function flushPendingMetricsWrite(): Promise<void> {
 
 describe('mast_search', () => {
   it('returns results', async () => {
-    const res = await call('mast_search', { query: 'add' }) as { results: unknown[]; _stats: unknown };
-    expect(res.results.length).toBeGreaterThan(0);
+    const res = await call('mast_search', { query: 'add' }) as {
+      results: Array<{ file_path: string; symbol_name: string | null }>;
+      _stats: { tool: string };
+    };
+    // Both the declaration (math.ts's `add`) and a call site that mentions it
+    // in its content (calc.ts's `double`, whose body is `return add(n, n);`)
+    // are genuine, expected matches for a lexical search on "add" — pinning
+    // both (as a sorted set, since result ORDER is a relevance-ranking detail
+    // this smoke test makes no claim about) proves the query actually found
+    // real content, not just "some results, count unknown" (§14.6).
+    const identities = res.results
+      .map((r) => ({ file_path: r.file_path, symbol_name: r.symbol_name }))
+      .sort((a, b) => a.file_path.localeCompare(b.file_path));
+    expect(identities).toEqual([
+      { file_path: 'calc.ts', symbol_name: 'double' },
+      { file_path: 'math.ts', symbol_name: 'add' },
+    ]);
     expect(res._stats).toMatchObject({ tool: 'mast_search' });
   });
 
   it('returns empty results for empty query', async () => {
-    const res = await call('mast_search', { query: '' }) as { results: unknown[] };
+    const res = await call('mast_search', { query: '' }) as { results: Array<{ file_path: string }> };
     expect(res.results).toHaveLength(0);
   });
 
@@ -198,6 +213,15 @@ describe('mast_search', () => {
   // on the way back, not just at the store's own unit-test layer
   // (store/__tests__/sqliteChunkStore.test.ts covers that layer directly).
   it('is_exported round-trips as a real boolean, not 0|1, through the tool response', async () => {
+    // mast-assertion-rule-allow: `is_exported` is deliberately typed `unknown`
+    // here, not `boolean` — the whole point of this test is verifying the
+    // RUNTIME type survives the SQLite 0|1 -> JSON round trip, which a
+    // `boolean` annotation would paper over (TypeScript wouldn't stop a
+    // `typeof` check from being vacuously true if the annotation just
+    // asserted the type without the test verifying it). This is the opposite
+    // of the shape-only anti-pattern: it's a real content assertion (`.toBe(true)`
+    // / `.toBe(false)`) PLUS a runtime-type assertion `unknown` exists to make
+    // legible.
     const exportedRes = await call('mast_search', { query: 'add' }) as {
       results: Array<{ symbol_name: string | null; is_exported: unknown }>;
     };
@@ -206,6 +230,7 @@ describe('mast_search', () => {
     expect(addResult!.is_exported).toBe(true);
     expect(typeof addResult!.is_exported).toBe('boolean');
 
+    // mast-assertion-rule-allow: same reasoning as above — the negative case.
     const privateRes = await call('mast_search', { query: 'internalHelper' }) as {
       results: Array<{ symbol_name: string | null; is_exported: unknown }>;
     };
@@ -216,27 +241,33 @@ describe('mast_search', () => {
   });
 
   it('limit is respected', async () => {
-    const res = await call('mast_search', { query: 'a', limit: 2 }) as { results: unknown[] };
-    expect(res.results.length).toBeLessThanOrEqual(2);
+    // `large.ts` has 60 `helperN` functions, so an unbounded query for
+    // "helper" returns far more than 2 matches (the default limit alone
+    // already caps it at 10) — this proves `limit: 2` actually truncates a
+    // real surplus, not just that a 0-or-1-result query happens to fit under
+    // the cap (the previous `query: 'a'` fixture matched nothing at all,
+    // making this assertion pass vacuously regardless of whether limiting
+    // worked — see D4 sweep result in IMPLEMENTATION_PLAN.md).
+    const unlimited = await call('mast_search', { query: 'helper' }) as { results: Array<{ symbol_name: string | null }> };
+    expect(unlimited.results.length).toBeGreaterThan(2);
+
+    const limited = await call('mast_search', { query: 'helper', limit: 2 }) as { results: Array<{ symbol_name: string | null }> };
+    expect(limited.results.map((r) => r.symbol_name)).toEqual(['helper0', 'helper1']);
   });
 
   it('returns advisory suggestions on a zero-result query', async () => {
     const res = await call('mast_search', { query: 'adddd' }) as {
-      results: unknown[];
+      results: Array<{ file_path: string }>;
       suggestions?: Array<{ symbol: string; file_path: string; reason: string }>;
     };
     expect(res.results).toHaveLength(0);
-    expect(res.suggestions).toBeDefined();
-    expect(res.suggestions!.length).toBeGreaterThan(0);
-    expect(res.suggestions![0]).toMatchObject({
-      symbol: expect.any(String),
-      file_path: expect.any(String),
-      reason: expect.any(String),
-    });
+    expect(res.suggestions).toEqual([
+      { symbol: 'add', file_path: 'math.ts', reason: 'similar symbol name' },
+    ]);
   });
 
   it('omits the suggestions field when results are present', async () => {
-    const res = await call('mast_search', { query: 'add' }) as { suggestions?: unknown };
+    const res = await call('mast_search', { query: 'add' }) as { suggestions?: Array<{ symbol: string }> };
     expect(res.suggestions).toBeUndefined();
   });
 
@@ -252,6 +283,11 @@ describe('mast_search', () => {
     const res = await call('mast_search', { query: 'helper42', file_pattern: 'large.ts' }) as {
       _stats: { tokens_full_file_upper_bound: number; efficiency_ratio: number };
     };
+    // Bound, not exact: tokens_full_file_upper_bound comes from the real
+    // @anthropic-ai/tokenizer BPE table, not a hand-computed formula — pinning
+    // an exact count would just re-encode whatever the library happens to
+    // output today as "correct" rather than testing the behavior this
+    // regression guards (nonzero, bounded ratio).
     expect(res._stats.tokens_full_file_upper_bound).toBeGreaterThan(0);
     expect(res._stats.efficiency_ratio).toBeGreaterThan(0);
     expect(res._stats.efficiency_ratio).toBeLessThanOrEqual(1);
@@ -274,9 +310,14 @@ describe('mast_search', () => {
     expect(parsedArgs).toMatchObject({ query: 'add', limit: 3 });
 
     const parsedResults = JSON.parse(row!.results_json!) as Array<{ file_path: string; symbol_name: string | null }>;
-    expect(parsedResults.length).toBeGreaterThan(0);
-    expect(parsedResults[0]).toHaveProperty('file_path');
-    expect(parsedResults[0]).toHaveProperty('symbol_name');
+    // Sorted copy: identity pairs, not rank order, are the contract this
+    // capsule exists to prove (§14.3) — see the "returns results" test above
+    // for why result order isn't asserted on.
+    const sorted = [...parsedResults].sort((a, b) => a.file_path.localeCompare(b.file_path));
+    expect(sorted).toEqual([
+      { file_path: 'calc.ts', symbol_name: 'double' },
+      { file_path: 'math.ts', symbol_name: 'add' },
+    ]);
   });
 
   // Stage 6.3 — D-fire telemetry is persisted to `metrics.declex_json` for the
@@ -322,7 +363,7 @@ describe('mast_project_skeleton', () => {
   });
 
   it('directory scoping restricts to prefix', async () => {
-    const res = await call('mast_project_skeleton', { directory: 'nonexistent' }) as { files: unknown[] };
+    const res = await call('mast_project_skeleton', { directory: 'nonexistent' }) as { files: Array<{ file_path: string }> };
     expect(res.files).toHaveLength(0);
   });
 
@@ -397,7 +438,7 @@ describe('mast_signature', () => {
   });
 
   it('returns empty results for unknown symbol', async () => {
-    const res = await call('mast_signature', { symbol: 'doesNotExist' }) as { results: unknown[] };
+    const res = await call('mast_signature', { symbol: 'doesNotExist' }) as { results: Array<{ symbol: string }> };
     expect(res.results).toHaveLength(0);
   });
 
@@ -428,6 +469,8 @@ describe('mast_signature', () => {
   it('computes a real, nonzero full-file token bound and a bounded efficiency ratio', async () => {
     // Targets large.ts for the same reason as the mast_search variant above —
     // a single signature's response is small relative to a 60-function file.
+    // Bound, not exact, for the same reason as that variant: real tokenizer
+    // output, not a hand-computed formula.
     const res = await call('mast_signature', { symbol: 'helper42', file_path: 'large.ts' }) as {
       _stats: { tokens_full_file_upper_bound: number; efficiency_ratio: number };
     };
@@ -464,19 +507,30 @@ describe('mast_signature', () => {
 describe('mast_callers', () => {
   it('returns summary with verified and potential counts', async () => {
     const res = await call('mast_callers', { symbol: 'add' }) as {
-      verified_callers: unknown[];
-      potential_matches: unknown[];
+      verified_callers: Array<{ file_path: string; line: number; caller_symbol: string; context: string; resolution: string }>;
+      potential_matches: Array<{ file_path: string; line: number; context: string; reason: string }>;
       summary: { verified_count: number; potential_count: number; transitive: boolean };
     };
-    expect(typeof res.summary.verified_count).toBe('number');
-    expect(typeof res.summary.potential_count).toBe('number');
-    expect(res.summary.transitive).toBe(false);
+    expect(res.summary).toEqual({
+      verified_count: 1,
+      potential_count: 2,
+      transitive: false,
+      checker_classified_non_call_site: 0,
+      checker_classified_different_declaration: 0,
+    });
+    expect(res.verified_callers).toEqual([
+      { file_path: 'calc.ts', line: 4, caller_symbol: 'double', context: 'return add(n, n);', resolution: 'import' },
+    ]);
+    expect(res.potential_matches).toEqual([
+      { file_path: 'math.ts', line: 1, context: 'add', reason: 'identifier_match_no_resolved_edge' },
+      { file_path: 'calc.ts', line: 3, context: 'double', reason: 'identifier_match_no_resolved_edge' },
+    ]);
   });
 
   it('returns empty result for unknown symbol', async () => {
     const res = await call('mast_callers', { symbol: 'neverDefined' }) as {
-      verified_callers: unknown[];
-      potential_matches: unknown[];
+      verified_callers: Array<{ caller_symbol: string }>;
+      potential_matches: Array<{ context: string }>;
     };
     expect(res.verified_callers).toHaveLength(0);
     expect(res.potential_matches).toHaveLength(0);
@@ -484,7 +538,7 @@ describe('mast_callers', () => {
 
   it('include_potential: false returns no potential_matches', async () => {
     const res = await call('mast_callers', { symbol: 'add', include_potential: false }) as {
-      potential_matches: unknown[];
+      potential_matches: Array<{ context: string }>;
     };
     expect(res.potential_matches).toHaveLength(0);
   });
@@ -662,15 +716,18 @@ describe('mast_dependencies', () => {
   it('returns file_path and imports array', async () => {
     const res = await call('mast_dependencies', { file_path: 'math.ts' }) as {
       file_path: string;
-      imports: unknown[];
+      imports: Array<{ module: string }>;
     };
     expect(res.file_path).toBe('math.ts');
-    expect(Array.isArray(res.imports)).toBe(true);
+    // math.ts fixture has no imports — an exact empty array, not merely "is
+    // an array" (Array.isArray passes identically whether imports actually
+    // resolved or the field silently came back wrong-shaped).
+    expect(res.imports).toEqual([]);
   });
 
   it('returns empty imports for a file with no imports', async () => {
     const res = await call('mast_dependencies', { file_path: 'math.ts' }) as {
-      imports: unknown[];
+      imports: Array<{ module: string }>;
     };
     // math.ts fixture has no imports.
     expect(res.imports).toHaveLength(0);
@@ -686,16 +743,17 @@ describe('mast_implementors', () => {
     const res = await call('mast_implementors', { interface_name: 'Shape' }) as {
       results: Array<{ class_name: string; file_path: string; methods: string[] }>;
     };
-    expect(res.results.length).toBeGreaterThan(0);
     const circle = res.results.find((r) => r.class_name === 'Circle');
     expect(circle).toBeDefined();
     expect(circle!.file_path).toBe('models.ts');
-    expect(circle!.methods.length).toBeGreaterThan(0);
+    // MODELS_SRC's Circle declares a constructor plus area()/perimeter() —
+    // methods are qualified (`Circle.foo`), and the constructor counts too.
+    expect([...circle!.methods].sort()).toEqual(['Circle.area', 'Circle.constructor', 'Circle.perimeter']);
   });
 
   it('returns empty for unknown interface', async () => {
     const res = await call('mast_implementors', { interface_name: 'NoSuchInterface' }) as {
-      results: unknown[];
+      results: Array<{ class_name: string }>;
     };
     expect(res.results).toHaveLength(0);
   });
@@ -740,7 +798,13 @@ describe('mast_rename_impact', () => {
     const res = await call('mast_rename_impact', { symbol: 'add' }) as RenameImpactResult;
     // The declaration chunk itself mentions `add` without a resolved edge —
     // on a rename it genuinely needs editing, so it belongs in the checklist.
-    expect(res.potential_matches.length).toBeGreaterThan(0);
+    // Same two matches mast_callers finds for `add` (see the "returns summary
+    // with verified and potential counts" test above) — both tools share
+    // `collectPotentialMatches`.
+    expect(res.potential_matches).toEqual([
+      { file_path: 'math.ts', line: 1, context: 'add', reason: 'identifier_match_no_resolved_edge' },
+      { file_path: 'calc.ts', line: 3, context: 'double', reason: 'identifier_match_no_resolved_edge' },
+    ]);
     expect(res.summary.potential_count).toBe(res.potential_matches.length);
   });
 
@@ -793,8 +857,12 @@ describe('mast_status', () => {
       stale_files: number;
       index_fresh: boolean;
     };
-    expect(res.indexed_files).toBeGreaterThan(0);
-    expect(res.chunk_count).toBeGreaterThan(0);
+    // Fixed fixture (6 files: math.ts, models.ts, calc.ts, barrel.ts, star.ts,
+    // large.ts) — both counts are deterministic outputs of the chunker, not
+    // wall-clock or environment-dependent, so they are pinned exactly rather
+    // than merely bounded.
+    expect(res.indexed_files).toBe(6);
+    expect(res.chunk_count).toBe(70);
     expect(res.stale_files).toBe(0);
     expect(res.index_fresh).toBe(true);
   });
@@ -812,48 +880,85 @@ describe('mast_status', () => {
 // ---------------------------------------------------------------------------
 
 describe('mast_efficiency', () => {
+  // D4 sweep finding (IMPLEMENTATION_PLAN.md Stage 4): this test's own name
+  // claimed "(empty session)", but it originally called `mast_efficiency`
+  // through the file-shared `ctx` (sessionId 'test-session') — the same
+  // session every preceding describe block in this file had already been
+  // recording calls under. By the time this test ran it was NOT empty (48
+  // accumulated calls, verified empirically while sweeping this file for
+  // §14.6 shape-only assertions); the four `typeof x === 'number'` checks
+  // that used to be here passed identically whether the session was empty or
+  // not, which is exactly the shape-vs-value gap the sweep targets. Not a
+  // production defect — `querySessionSummary` correctly aggregates
+  // everything recorded under a session id, which is the intended contract.
+  // Fixed by giving this one assertion its own genuinely-unused session id
+  // (same shared `db`, no new fixture needed) so "empty" is actually true.
   it('returns a valid session efficiency result (empty session)', async () => {
-    const res = await call('mast_efficiency', { scope: 'session' }) as {
+    const isolated = createMockServer();
+    registerEfficiencyTool(isolated.server, { ...ctx, sessionId: 'd4-genuinely-empty-session' });
+
+    const res = await isolated.call('mast_efficiency', { scope: 'session' }) as {
       scope: string;
+      window_started_at: string;
       calls_total: number;
       tokens_returned: number;
+      tokens_full_file_upper_bound: number;
       efficiency_ratio: number;
       calls_by_tool: Record<string, number>;
       counterfactual: string;
       tokenizer: string;
     };
-    expect(res.scope).toBe('session');
-    expect(typeof res.calls_total).toBe('number');
-    expect(typeof res.tokens_returned).toBe('number');
-    expect(typeof res.efficiency_ratio).toBe('number');
-    // Single source of truth: the tool must report exactly the shared label.
-    expect(res.tokenizer).toBe(TOKENIZER_LABEL);
-    expect(typeof res.counterfactual).toBe('string');
+    expect(res).toEqual({
+      scope: 'session',
+      window_started_at: new Date(0).toISOString(),
+      calls_total: 0,
+      tokens_returned: 0,
+      tokens_full_file_upper_bound: 0,
+      efficiency_ratio: 0,
+      calls_by_tool: {},
+      counterfactual: 'No tool calls recorded yet.',
+      tokenizer: TOKENIZER_LABEL,
+    });
   });
 
   it('returns a valid global efficiency result', async () => {
-    // Run a search so there is at least one metric row to aggregate.
+    // Run a search so there is at least one metric row to aggregate, and wait
+    // for its fire-and-forget recordToolCall write to land (deterministic
+    // macrotask-boundary technique, see flushPendingMetricsWrite above) —
+    // eliminates what used to be a genuine race disclaimed in a comment here.
     await call('mast_search', { query: 'add' });
+    await flushPendingMetricsWrite();
 
     const res = await call('mast_efficiency', { scope: 'global' }) as {
       scope: string;
       calls_total: number;
+      calls_by_tool: Record<string, number>;
     };
     expect(res.scope).toBe('global');
-    // The recordToolCall from mast_search is fire-and-forget; it may not have
-    // completed before this call, so we only assert on shape, not count.
-    expect(typeof res.calls_total).toBe('number');
+    // `global` aggregates every metrics row ever written in this test file's
+    // shared fixture, so an exact calls_total would couple this assertion to
+    // the call count of every other describe block above — a bound plus a
+    // real per-tool content check (mast_search definitely ran at least once,
+    // just above) is the honest, non-brittle version of "results present".
+    expect(res.calls_total).toBeGreaterThan(0);
+    expect(res.calls_by_tool['mast_search']).toBeGreaterThan(0);
   });
 
   it('since_minutes limits the global window', async () => {
+    // window_started_at is `Date.now() - since_minutes*60_000` at call time —
+    // a wall-clock-derived value, so it cannot be pinned to a single exact
+    // timestamp; bracket it tightly (call-time window, not a full extra hour
+    // of slack) rather than a bare shape check.
+    const beforeMs = Date.now();
     const res = await call('mast_efficiency', { scope: 'global', since_minutes: 60 }) as {
       scope: string;
       window_started_at: string;
     };
+    const afterMs = Date.now();
     expect(res.scope).toBe('global');
-    // window_started_at should be within the last hour
     const windowTs = new Date(res.window_started_at).getTime();
-    expect(windowTs).toBeGreaterThan(Date.now() - 61 * 60_000);
+    expect(windowTs).toBeGreaterThanOrEqual(beforeMs - 60 * 60_000);
+    expect(windowTs).toBeLessThanOrEqual(afterMs - 60 * 60_000);
   });
 });
 
@@ -1058,7 +1163,7 @@ describe('F2 — file_busy_returning_stale_cache', () => {
     it('sets the envelope flag when file_path narrows to a stale+contended file and no symbol matches', async () => {
       makeStale('busy.ts', BUSY_SRC + '// touched for F14\n');
       const release = holdWriteLock();
-      let res: { results: unknown[]; file_busy_returning_stale_cache?: true };
+      let res: { results: Array<{ symbol: string }>; file_busy_returning_stale_cache?: true };
       try {
         res = (await busyCall('mast_signature', { symbol: 'noSuchSymbolF14', file_path: 'busy.ts' })) as typeof res;
       } finally {
@@ -1074,7 +1179,7 @@ describe('F2 — file_busy_returning_stale_cache', () => {
       // JIT refresh succeeds now the write is free — a genuinely-missing
       // symbol must come back as a clean empty result, no flag.
       const res = (await busyCall('mast_signature', { symbol: 'noSuchSymbolF14', file_path: 'busy.ts' })) as {
-        results: unknown[];
+        results: Array<{ symbol: string }>;
       };
       expect(res.results).toEqual([]);
       expect(res).not.toHaveProperty('file_busy_returning_stale_cache');
@@ -1427,33 +1532,33 @@ describe('index_empty — M6 Part B', () => {
     });
 
     it('mast_search sets index_empty: true on a zero-result query', async () => {
-      const res = await emptyCall('mast_search', { query: 'anything' }) as { results: unknown[]; index_empty?: true };
+      const res = await emptyCall('mast_search', { query: 'anything' }) as { results: Array<{ file_path: string }>; index_empty?: true };
       expect(res.results).toHaveLength(0);
       expect(res.index_empty).toBe(true);
     });
 
     it('mast_project_skeleton sets index_empty: true when files is empty', async () => {
-      const res = await emptyCall('mast_project_skeleton', {}) as { files: unknown[]; index_empty?: true };
+      const res = await emptyCall('mast_project_skeleton', {}) as { files: Array<{ file_path: string }>; index_empty?: true };
       expect(res.files).toHaveLength(0);
       expect(res.index_empty).toBe(true);
     });
 
     it('mast_exports sets index_empty: true for a file with no chunks', async () => {
-      const res = await emptyCall('mast_exports', { file_path: 'nope.ts' }) as { exports: unknown[]; index_empty?: true };
+      const res = await emptyCall('mast_exports', { file_path: 'nope.ts' }) as { exports: Array<{ name: string }>; index_empty?: true };
       expect(res.exports).toHaveLength(0);
       expect(res.index_empty).toBe(true);
     });
 
     it('mast_signature sets index_empty: true on a zero-result query', async () => {
-      const res = await emptyCall('mast_signature', { symbol: 'anything' }) as { results: unknown[]; index_empty?: true };
+      const res = await emptyCall('mast_signature', { symbol: 'anything' }) as { results: Array<{ symbol: string }>; index_empty?: true };
       expect(res.results).toHaveLength(0);
       expect(res.index_empty).toBe(true);
     });
 
     it('mast_callers sets index_empty: true when both verified and potential sets are empty', async () => {
       const res = await emptyCall('mast_callers', { symbol: 'anything' }) as {
-        verified_callers: unknown[];
-        potential_matches: unknown[];
+        verified_callers: Array<{ caller_symbol: string }>;
+        potential_matches: Array<{ context: string }>;
         index_empty?: true;
       };
       expect(res.verified_callers).toHaveLength(0);
@@ -1462,23 +1567,23 @@ describe('index_empty — M6 Part B', () => {
     });
 
     it('mast_dependencies sets index_empty: true for a file with no imports', async () => {
-      const res = await emptyCall('mast_dependencies', { file_path: 'nope.ts' }) as { imports: unknown[]; index_empty?: true };
+      const res = await emptyCall('mast_dependencies', { file_path: 'nope.ts' }) as { imports: Array<{ module: string }>; index_empty?: true };
       expect(res.imports).toHaveLength(0);
       expect(res.index_empty).toBe(true);
     });
 
     it('mast_implementors sets index_empty: true on a zero-result query', async () => {
-      const res = await emptyCall('mast_implementors', { interface_name: 'Anything' }) as { results: unknown[]; index_empty?: true };
+      const res = await emptyCall('mast_implementors', { interface_name: 'Anything' }) as { results: Array<{ class_name: string }>; index_empty?: true };
       expect(res.results).toHaveLength(0);
       expect(res.index_empty).toBe(true);
     });
 
     it('mast_rename_impact sets index_empty: true when all four sections are empty', async () => {
       const res = await emptyCall('mast_rename_impact', { symbol: 'anything' }) as {
-        declaration_sites: unknown[];
-        verified_callers: unknown[];
-        potential_matches: unknown[];
-        barrel_exports: unknown[];
+        declaration_sites: Array<{ file_path: string }>;
+        verified_callers: Array<{ caller_symbol: string }>;
+        potential_matches: Array<{ context: string }>;
+        barrel_exports: Array<{ file_path: string }>;
         index_empty?: true;
       };
       expect(res.declaration_sites).toHaveLength(0);
@@ -1491,45 +1596,45 @@ describe('index_empty — M6 Part B', () => {
 
   describe('populated index (shared fixture) — no-match and with-results queries never carry index_empty', () => {
     it('mast_search: a no-match query returns empty results without index_empty', async () => {
-      const res = await call('mast_search', { query: 'zzzNoSuchThing' }) as { results: unknown[]; index_empty?: true };
+      const res = await call('mast_search', { query: 'zzzNoSuchThing' }) as { results: Array<{ file_path: string }>; index_empty?: true };
       expect(res.results).toHaveLength(0);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_search: a with-results query never carries index_empty', async () => {
-      const res = await call('mast_search', { query: 'add' }) as { results: unknown[]; index_empty?: true };
-      expect(res.results.length).toBeGreaterThan(0);
+      const res = await call('mast_search', { query: 'add' }) as { results: Array<{ symbol_name: string | null }>; index_empty?: true };
+      expect(res.results.some((r) => r.symbol_name === 'add')).toBe(true);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_project_skeleton never carries index_empty against a populated index', async () => {
-      const res = await call('mast_project_skeleton', {}) as { files: unknown[]; index_empty?: true };
-      expect(res.files.length).toBeGreaterThan(0);
+      const res = await call('mast_project_skeleton', {}) as { files: Array<{ file_path: string }>; index_empty?: true };
+      expect(res.files.some((f) => f.file_path === 'math.ts')).toBe(true);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_exports: a known file with exports never carries index_empty', async () => {
-      const res = await call('mast_exports', { file_path: 'math.ts' }) as { exports: unknown[]; index_empty?: true };
-      expect(res.exports.length).toBeGreaterThan(0);
+      const res = await call('mast_exports', { file_path: 'math.ts' }) as { exports: Array<{ name: string }>; index_empty?: true };
+      expect(res.exports.some((e) => e.name === 'add')).toBe(true);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_signature: an unknown symbol returns empty results without index_empty', async () => {
-      const res = await call('mast_signature', { symbol: 'zzzNoSuchSymbol' }) as { results: unknown[]; index_empty?: true };
+      const res = await call('mast_signature', { symbol: 'zzzNoSuchSymbol' }) as { results: Array<{ symbol: string }>; index_empty?: true };
       expect(res.results).toHaveLength(0);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_signature: a known symbol never carries index_empty', async () => {
-      const res = await call('mast_signature', { symbol: 'add' }) as { results: unknown[]; index_empty?: true };
-      expect(res.results.length).toBeGreaterThan(0);
+      const res = await call('mast_signature', { symbol: 'add' }) as { results: Array<{ symbol: string }>; index_empty?: true };
+      expect(res.results.some((r) => r.symbol === 'add')).toBe(true);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_callers: an unknown symbol returns empty sets without index_empty', async () => {
       const res = await call('mast_callers', { symbol: 'zzzNoSuchSymbol' }) as {
-        verified_callers: unknown[];
-        potential_matches: unknown[];
+        verified_callers: Array<{ caller_symbol: string }>;
+        potential_matches: Array<{ context: string }>;
         index_empty?: true;
       };
       expect(res.verified_callers).toHaveLength(0);
@@ -1538,38 +1643,38 @@ describe('index_empty — M6 Part B', () => {
     });
 
     it('mast_callers: a with-results query never carries index_empty', async () => {
-      const res = await call('mast_callers', { symbol: 'add' }) as { verified_callers: unknown[]; index_empty?: true };
-      expect(res.verified_callers.length).toBeGreaterThan(0);
+      const res = await call('mast_callers', { symbol: 'add' }) as { verified_callers: Array<{ caller_symbol: string }>; index_empty?: true };
+      expect(res.verified_callers).toEqual([expect.objectContaining({ caller_symbol: 'double' })]);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_dependencies: a file with no imports omits index_empty (non-empty index)', async () => {
-      const res = await call('mast_dependencies', { file_path: 'math.ts' }) as { imports: unknown[]; index_empty?: true };
+      const res = await call('mast_dependencies', { file_path: 'math.ts' }) as { imports: Array<{ module: string }>; index_empty?: true };
       expect(res.imports).toHaveLength(0);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_dependencies: a file with imports never carries index_empty', async () => {
-      const res = await call('mast_dependencies', { file_path: 'calc.ts' }) as { imports: unknown[]; index_empty?: true };
-      expect(res.imports.length).toBeGreaterThan(0);
+      const res = await call('mast_dependencies', { file_path: 'calc.ts' }) as { imports: Array<{ module: string }>; index_empty?: true };
+      expect(res.imports).toEqual([expect.objectContaining({ module: './math' })]);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_implementors: an unknown interface returns empty results without index_empty', async () => {
-      const res = await call('mast_implementors', { interface_name: 'NoSuchInterfaceM6' }) as { results: unknown[]; index_empty?: true };
+      const res = await call('mast_implementors', { interface_name: 'NoSuchInterfaceM6' }) as { results: Array<{ class_name: string }>; index_empty?: true };
       expect(res.results).toHaveLength(0);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_implementors: a with-results query never carries index_empty', async () => {
-      const res = await call('mast_implementors', { interface_name: 'Shape' }) as { results: unknown[]; index_empty?: true };
-      expect(res.results.length).toBeGreaterThan(0);
+      const res = await call('mast_implementors', { interface_name: 'Shape' }) as { results: Array<{ class_name: string }>; index_empty?: true };
+      expect(res.results.some((r) => r.class_name === 'Circle')).toBe(true);
       expect(res).not.toHaveProperty('index_empty');
     });
 
     it('mast_rename_impact: an unknown symbol returns empty sections without index_empty', async () => {
       const res = await call('mast_rename_impact', { symbol: 'zzzNoSuchSymbol' }) as {
-        declaration_sites: unknown[];
+        declaration_sites: Array<{ file_path: string }>;
         index_empty?: true;
       };
       expect(res.declaration_sites).toHaveLength(0);
@@ -1577,8 +1682,8 @@ describe('index_empty — M6 Part B', () => {
     });
 
     it('mast_rename_impact: a with-results query never carries index_empty', async () => {
-      const res = await call('mast_rename_impact', { symbol: 'add' }) as { declaration_sites: unknown[]; index_empty?: true };
-      expect(res.declaration_sites.length).toBeGreaterThan(0);
+      const res = await call('mast_rename_impact', { symbol: 'add' }) as { declaration_sites: Array<{ file_path: string }>; index_empty?: true };
+      expect(res.declaration_sites.some((d) => d.file_path === 'math.ts')).toBe(true);
       expect(res).not.toHaveProperty('index_empty');
     });
   });

@@ -1618,7 +1618,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | E7 | JIT under real agent concurrency (4 concurrent MCP clients + in-flight reindex) — **can falsify F1**: if contention degrades non-linearly, per-batch locking made it worse and the answer is a single-writer queue | **Complete — FALSIFIED** |
 | E7-r2 | Re-measure E7 against the post-M1/post-F12 build, to size F11 — same harness/arms, three new probes (hold decomposition, event-loop freeze, `SQLITE_BUSY_SNAPSHOT` repro) | **Complete** |
 | D3 | Spec conformance: quarantine mechanism prose; add `spec-conformance.test.ts` with `// MAST_SPEC.md:NNN` citations | Not Started |
-| D4 | Test-assertion rule: no `unknown[]` in response type annotations; every returned array gets a content assertion | Not Started |
+| D4 | Test-assertion rule: no `unknown[]` in response type annotations; every returned array gets a content assertion | **Complete** — see D4 result below |
 | D5 | Adopt ADR directory (`.history` → numbered ADRs, `002-2026-07-22-name.md`, zero-padded) | Not Started |
 
 **Success criteria**: two identical index runs produce identical edge sets; `eval/`
@@ -1722,6 +1722,106 @@ tools' result assembly, repeated parse cost, match-vs-content skew — are real 
 longer offset by round-1-sized urgency) until evidence from a larger corpus (e.g. E1's
 n8n rung, 12,641 files) shows the contention M1 incidentally fixed at nest's ~1,338-file
 scale reappears at scale.
+
+### D4 result (2026-08-10) — shape-only-assertion sweep + `unknown[]` ban shipped
+
+**Scope**: `eval/GITNEXUS_COMPARISON.md` §13.7/§14.6 measured 65 of 694 `expect()`
+calls suite-wide as SHAPE-only at review time (12/117 concentrated in
+`tools.test.ts`), naming `tools.test.ts:437–446`'s
+`typeof res.summary.potential_count === 'number'` as the exact pattern that masked
+M4's truncation defect. The enforceable rule: no `unknown[]`/bare `unknown` in a
+test's response type annotation, plus a content assertion on every returned array.
+Re-measured per the task brief rather than trusting the old counts (suite had grown
+554→555 tests, 39→40 files including this work's own meta-test).
+
+**Before/after — `unknown[]` and bare-`unknown` response annotations** (found via
+`grep -rn "unknown\[\]"` / `": unknown\b"` across `src/**/__tests__/*.test.ts`,
+cross-checked against the new AST meta-test below):
+
+| file | `unknown[]` found | bare `unknown` field found | fixed |
+|---|---|---|---|
+| `mcp/tools/__tests__/tools.test.ts` | 43 | 2 (`is_exported`, legitimate) | 43 retyped to concrete minimal shapes; 2 allowlisted with a written reason (runtime-type verification, not shape laziness) |
+| `telemetry/__tests__/metrics.test.ts` | 5 | 0 | 5 retyped |
+| `mcp/__tests__/staleness.test.ts` | 0 | 2 (`(err as { code: unknown }).code`) | 2 allowlisted — an error-narrowing idiom on a caught driver exception, not a tool/CLI response |
+| all other 36 test files | 0 | 0 | — |
+
+**Total: 50 occurrences found, 48 retyped to concrete field shapes (0 remaining
+anywhere in the suite), 4 allowlisted with a written per-site reason (0 unjustified
+allowlist entries).** The concentration matched the review's own finding almost
+exactly — `tools.test.ts` and `metrics.test.ts` (both JSON-serialized tool-response
+boundaries) accounted for 48/50 hits; the two non-response hits in `staleness.test.ts`
+are a `catch`-block narrowing idiom the rule was never meant to target.
+
+**Shape-only assertions strengthened** (beyond the type-annotation fix — same files,
+since that is where the `unknown[]` concentration and the shape-only concentration
+coincided): 15 tests in `tools.test.ts`, 2 in `metrics.test.ts`. Representative
+examples — `mast_callers`' "returns summary with verified and potential counts" (the
+review's own cited pattern) now asserts exact `summary`/`verified_callers`/
+`potential_matches` content instead of `typeof … === 'number'`; `mast_status`'s
+`indexed_files`/`chunk_count` are pinned to `6`/`70` (deterministic outputs of a fixed
+fixture) instead of `toBeGreaterThan(0)`; `mast_implementors`' `Circle.methods` is
+pinned to the exact qualified method list instead of a bare length check. Two
+assertions on genuinely non-pinnable values (`tokens_full_file_upper_bound` — real
+`@anthropic-ai/tokenizer` output, not a formula) keep a bound, now with an explicit
+one-line comment naming why exact pinning would be dishonest.
+
+**Vacuous-pass findings (2) — test premises that were false, masked by shape-only
+assertions.** Both are test-fixture bugs, not production defects; verified against
+production behavior before touching either, per the task's STOP-and-verify rule:
+
+1. **`mast_search` "limit is respected"** queried `'a'` with `limit: 2` and asserted
+   `results.length <= 2`. Empirically, query `'a'` matches **zero** results against
+   this suite's fixture (too short for the FTS tokenizer), so the assertion passed
+   regardless of whether `limit` did anything at all — the cap was never exercised.
+   Verified `limit` actually works by re-running against `'helper'` (60 candidates in
+   `large.ts`, 10 returned unlimited, exactly 2 returned with `limit: 2`, matching
+   `helper0`/`helper1` by rank) before rewriting the test to use that query.
+2. **`mast_efficiency` "returns a valid session efficiency result (empty session)"**
+   called `mast_efficiency({scope: 'session'})` through the file-shared `ctx`
+   (`sessionId: 'test-session'`) — the same session every earlier describe block in
+   the file had already recorded calls under. Direct query confirmed **48** rows
+   already existed under that session id by the time this test ran; the four
+   `typeof x === 'number'` checks passed identically whether the session was actually
+   empty or not. `querySessionSummary` itself aggregates correctly by session id
+   (the intended contract) — the bug was test isolation, not production code. Fixed
+   by giving this one assertion its own genuinely-unused session id (same shared
+   `db`, no new fixture needed) so "empty" is actually true, then asserting the full
+   exact response.
+
+No production-code defect was found by this sweep (unlike M4, which this rule exists
+to prevent recurring) — both findings were test-only and are fixed in place.
+
+**Enforcement — `src/__tests__/assertion-rule.test.ts` (new).** A cross-cutting AST
+scan (TypeScript compiler API, already a project dependency) over every
+`src/**/__tests__/*.test.ts` file: walks each file's AST for `ArrayTypeNode`s whose
+element is the bare `unknown` keyword and `PropertySignature`s typed bare `unknown`
+(a distinct node kind from function parameters, so mock handler signatures like
+`tool(name, desc, schema: unknown, handler)` are not false positives). A violation is
+allowed only with a same-line or nearby (≤20 lines above) `mast-assertion-rule-allow:
+<reason>` comment carrying a non-trivial reason (≥15 chars after the marker) — both
+existing allowlisted cases are documented above. **Mechanism and limits are stated in
+the test file's own header comment**, restated here per the task brief: this test
+mechanically enforces the `unknown[]`/bare-`unknown` ban; it does **not**, and cannot
+cheaply, verify "every returned array gets a content assertion" — judging whether a
+given `expect()` call constitutes real content verification is a semantic call no
+regex/AST scan makes reliably. That half was this one-time manual sweep; the
+mechanical ban exists so the annotation laziness that enabled M4-class shape-only
+assertions to go unnoticed cannot quietly return.
+
+**Process note**: the task's prescribed order was meta-test-first (red phase informs
+the sweep worklist). This work instead discovered the worklist via targeted `grep`
+first and swept from it, writing the AST meta-test afterward as the enforcement
+mechanism — the meta-test still ran red on first execution (the two `staleness.test.ts`
+narrowing-idiom cases, not yet allowlisted at that point) and every red item was
+resolved before the meta-test went green. End state is equivalent to the prescribed
+order; noted as a deviation for the record.
+
+**Verification**: 555 tests / 40 files (was 554/39 — the meta-test is the one net-new
+test), `tsc --noEmit` clean, `eslint src` clean, `pnpm align:check` from repo root:
+baselined debt 324 → 324 (0), red only on the 2 pre-existing non-mast violations
+(`application/ui/src/views/root-layout.tsx` import cycle,
+`application/api/src/domain/spec/fold-build-record-repository.ts` layer violation —
+both unrelated to this change).
 
 ### D0 — CLI query surface (raised P2 → P1 by the R3 review, §14.8 item 3)
 

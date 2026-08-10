@@ -16,7 +16,7 @@ import {
   buildDeclexJson,
 } from '../metrics.js';
 import { TOKENIZER_LABEL } from '../tokenizer.js';
-import type { DeclexTelemetry } from '../../search/fused.js';
+import type { DeclexTelemetry, DeclexWindowEffect } from '../../search/fused.js';
 
 // ---------------------------------------------------------------------------
 // Tokenizer label — honest approximate framing (§14.5)
@@ -411,7 +411,9 @@ describe('buildResultsJson', () => {
       symbol_name: `sym${i}`,
     }));
 
-    const parsed = JSON.parse(buildResultsJson(identities)) as unknown[];
+    const parsed = JSON.parse(buildResultsJson(identities)) as Array<
+      { file_path: string; symbol_name: string } | { _truncated: number }
+    >;
 
     expect(parsed).toHaveLength(21); // 20 kept + 1 truncation marker
     expect(parsed.slice(0, 20)).toEqual(identities.slice(0, 20));
@@ -423,8 +425,10 @@ describe('buildResultsJson', () => {
       file_path: `f${i}.ts`,
       symbol_name: null,
     }));
-    const parsed = JSON.parse(buildResultsJson(identities)) as unknown[];
-    expect(parsed).toHaveLength(20);
+    const parsed = JSON.parse(buildResultsJson(identities)) as Array<{ file_path: string; symbol_name: null }>;
+    // Full equality, not just length — proves no truncation marker was
+    // appended AND that every kept entry survived the cap boundary intact.
+    expect(parsed).toEqual(identities);
   });
 
   it('handles an empty identity list', () => {
@@ -458,7 +462,7 @@ describe('buildDeclexJson', () => {
       fired: boolean;
       top_match_channel: string | null;
       candidate_count: number;
-      window_effects: unknown[];
+      window_effects: readonly DeclexWindowEffect[];
       _truncated?: number;
     };
 
@@ -472,7 +476,7 @@ describe('buildDeclexJson', () => {
   it('caps window_effects at 10 entries and states the drop count honestly at the top level', () => {
     const telemetry = makeTelemetry(12);
     const parsed = JSON.parse(buildDeclexJson(telemetry)) as {
-      window_effects: unknown[];
+      window_effects: readonly DeclexWindowEffect[];
       _truncated?: number;
     };
 
@@ -487,8 +491,8 @@ describe('buildDeclexJson', () => {
 
   it('respects a custom capEntries', () => {
     const telemetry = makeTelemetry(5);
-    const parsed = JSON.parse(buildDeclexJson(telemetry, 2)) as { window_effects: unknown[]; _truncated?: number };
-    expect(parsed.window_effects).toHaveLength(2);
+    const parsed = JSON.parse(buildDeclexJson(telemetry, 2)) as { window_effects: readonly DeclexWindowEffect[]; _truncated?: number };
+    expect(parsed.window_effects).toEqual(telemetry.window_effects.slice(0, 2));
     expect(parsed._truncated).toBe(3);
   });
 });
