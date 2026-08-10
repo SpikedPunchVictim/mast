@@ -1612,7 +1612,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | **D0** | **CLI query surface — parity with the MCP read tools (`mast query <tool> <json>`)** | **Complete** |
 | D1 | Sort `walkProject` output (`indexer/walker.ts:43`) — kills ±4/3,940 edge nondeterminism | **Complete** — see D1 result below |
 | D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
-| **D6** | **Build the stats/regression suite** — the metric set below, with a baseline captured before each fix | Not Started |
+| **D6** | **Build the stats/regression suite** — RESCOPED 2026-08-10 (see the D6 RESCOPE block): 5 of 10 rows retired/served by shipped instruments, 3 moved to E1/E2; remaining scope = latency percentiles, lock summarizer, config invariant test | In Progress |
 | D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | **Complete** — see D7 result below |
 | E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration | Not Started |
 | E7 | JIT under real agent concurrency (4 concurrent MCP clients + in-flight reindex) — **can falsify F1**: if contention degrades non-linearly, per-batch locking made it worse and the answer is a single-writer queue | **Complete — FALSIFIED** |
@@ -2226,6 +2226,44 @@ Numerators alone mislead; each pairs with a denominator or a spec claim.
 **Note**: `eval/baseline-locks.json` and `eval/store-spike.json` are the first two
 instalments; D6 is generalizing them into a repeatable suite rather than one-off files.
 **Blocked on**: D2 (the harness must run against a pinned corpus to be comparable).
+
+### D6 RESCOPE (2026-08-10) — the metric table re-decided post-deletion, post-remediation
+
+The table above was drawn against the pre-Stage-7, pre-remediation system. Two things
+have since invalidated parts of it: the vector store (and its Lance `_versions`
+pathology) no longer exists, and this remediation cycle shipped fixes AND standing
+instruments (D3's spec-conformance test, D7's `onCallSite` oracle, F10's
+`potential_truncated`, M6's `index_empty`, the `metrics` table's per-call
+`duration_ms`) that already cover several rows. Per-row verdicts:
+
+| Row | Verdict | Why |
+|---|---|---|
+| `structure` lock hold by caller | **SURVIVES, narrowed** | Stage 1 closed; F11 removed JIT from the lock, so the metric now describes coarse writers only. `store/lockMetrics.ts`'s JSONL sink is the standing instrument; D6 ships a summarizer over it (below). The 10–50ms spec figure was rewritten by F11's §7.6 update; timing is deliberately not conformance-tested (D3). |
+| `_versions` count/bytes | **RETIRED — subject deleted** | Lance is gone (Stage 7); the O(n²) class it caught is structurally gone (M1, O(N) proven). Successor signal: graph.db bytes ÷ chunk_count linearity, which belongs to E1's ladder, not a standing suite. |
+| ms/file at ≥4 corpus sizes | **MOVED to E1** | This row *is* the scaling ladder — external corpora + a growth-law claim = a registered measurement, not a standing metric. |
+| parse-only vs full-index ratio | **MOVED to E1** | Same: meaningful only against pinned corpora at multiple sizes; E1's instrument should capture it per tier. |
+| `POTENTIAL_CALL` by resolution ÷ call sites | **SERVED by D7** | The `onCallSite` seam computes the denominator and distribution on every `pnpm test` run over mast's own src (2,155 sites / 866 edges baseline, D7 result). By-resolution counts on a real index are one SQL away (`SELECT resolution, COUNT(*) FROM edges WHERE edge_type='POTENTIAL_CALL' GROUP BY resolution`). External-corpus denominators are E2. No new code. |
+| identifier_fts ÷ potential returned | **RESOLVED by F10** | `potential_truncated` surfaces the real count per call, in-product. Truncation *frequency* is queryable organically from the metrics table when wanted. |
+| Per-tool p50 latency | **SURVIVES — implement now** | `metrics.duration_ms` already records it per call; `mast metrics --by-tool` shows only averages. D6 adds p50/p95 columns (below). Would have caught F8's 28s. |
+| Useful state ÷ total bytes | **RETIRED — pathology deleted** | The garbage was Lance's manifests. Post-deletion state is graph.db + three small JSON files; linearity goes to E1 with row 2's successor. |
+| Config-honoured invariants | **SURVIVES — implement now** | F9 fixed the config path and D3 pins the defaults, but the *index-run* invariant (every indexed path matches `file_extensions`, none matches `exclude_patterns`) is a runtime property nothing asserts end-to-end. D6 adds the invariant test (below). |
+| chunk_count > 0 / zero-result rate | **RESOLVED by M6 / organic telemetry** | `index_empty` + the serve refusal cover the emptiness half in-product; zero-result *rate* is an organic-telemetry query over `metrics.results_json`, same channel as the standing declex_json harvest — not a suite metric. |
+
+**D6 as re-decided therefore ships exactly three things** (small, deterministic, no
+external corpora, no registration ceremony — everything measurement-shaped moved to
+E1/E2 where the methodology rules govern it):
+1. **p50/p95 columns in `mast metrics --by-tool`** (and its `--json` shape), computed
+   from the existing `duration_ms` column.
+2. **A lock-hold summarizer** over `store/lockMetrics.ts`'s JSONL (count/p50/p95/max
+   by caller), exposed as `mast metrics --locks`, generalizing
+   `eval/baseline-locks.json`'s one-off capture into a repeatable report.
+3. **The config-honoured index invariant test**: after a real `runIndex`, every
+   `files.path` row matches a configured extension and none matches an exclude
+   pattern.
+
+The "Blocked on: D2" note above is stale for the re-decided scope — none of the three
+deliverables needs a pinned corpus. E1 inherits the corpus-pinning requirement along
+with the rows moved to it.
 
 ---
 
