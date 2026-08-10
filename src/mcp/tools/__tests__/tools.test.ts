@@ -565,6 +565,81 @@ describe('mast_callers / mast_rename_impact — checker verdict filtering', () =
 });
 
 // ---------------------------------------------------------------------------
+// mast_callers — potential set for methods (F5, Stage 3). Proves the tool
+// layer actually surfaces a qualified-identifier mention as a POTENTIAL
+// match, not just that identifier_fts contains the row (fts-query.test.ts
+// covers that). The fixture shape is chosen so the call site's
+// POTENTIAL_CALL edge is DELIBERATELY dropped at `insertEdges`: `Repo` is
+// imported from an unresolvable specifier, so `resolveQualifiedNameScoped`
+// finds an import row but a null `resolvedPath` and returns null with no
+// fallback (populate.ts) — the edge never reaches `verified_callers`, even
+// though an unrelated file coincidentally declares a real `Repo.findById`
+// symbol (giving `mast_callers` a target to look up). The identifier_fts
+// qualified compound is the ONLY thing that surfaces the mention.
+// ---------------------------------------------------------------------------
+
+describe('mast_callers — potential set for methods (F5)', () => {
+  let f5TmpDir: string;
+  let f5Config: ResolvedConfig;
+  let f5Db: ReturnType<typeof openDatabase>;
+  let f5Call: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+
+  const TARGET_SRC = `export class Repo {
+  findById(): void {}
+}
+`;
+  const CALLER_SRC = `import { Repo } from 'unresolvable-external-package';
+
+export class Service {
+  constructor(private readonly repo: Repo) {}
+  check(): void { this.repo.findById(); }
+}
+`;
+
+  beforeAll(async () => {
+    f5TmpDir = mkdtempSync(join(tmpdir(), 'mast-f5-potential-'));
+    writeFileSync(join(f5TmpDir, 'target.ts'), TARGET_SRC);
+    writeFileSync(join(f5TmpDir, 'caller.ts'), CALLER_SRC);
+
+    f5Config = resolveConfig({ projectRoot: f5TmpDir });
+    await runIndex(f5Config, { incremental: false });
+    f5Db = openDatabase(f5Config.resolved_state_dir);
+
+    const f5Ctx: AppContext = {
+      db: f5Db,
+      chunkStore: new SqliteChunkStore(f5Db),
+      config: f5Config,
+      sessionId: 'f5-test-session',
+    };
+    const mock = createMockServer();
+    registerCallersTool(mock.server, f5Ctx);
+    f5Call = mock.call;
+  });
+
+  afterAll(async () => {
+    await f5Db.destroy();
+    rmSync(f5TmpDir, { recursive: true, force: true });
+  });
+
+  it('the call site is NOT a verified caller — the import is unresolvable, so insertEdges drops the edge', async () => {
+    const res = await f5Call('mast_callers', { symbol: 'Repo.findById', file_path: 'target.ts' }) as {
+      verified_callers: Array<{ caller_symbol: string }>;
+    };
+    expect(res.verified_callers.some((c) => c.caller_symbol === 'Service.check')).toBe(false);
+  });
+
+  it('the call site IS a non-empty potential match — the qualified identifier_fts mention heals the dropped edge', async () => {
+    const res = await f5Call('mast_callers', { symbol: 'Repo.findById', file_path: 'target.ts' }) as {
+      potential_matches: Array<{ file_path: string; context: string }>;
+    };
+    expect(res.potential_matches.length).toBeGreaterThan(0);
+    expect(res.potential_matches.some(
+      (m) => m.file_path === 'caller.ts' && m.context === 'Service.check',
+    )).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // mast_dependencies
 // ---------------------------------------------------------------------------
 

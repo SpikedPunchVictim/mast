@@ -31,7 +31,7 @@ task and removes the A/B Bash-surface caveat. — **DONE 2026-08-07**. Then **St
 costs ~28 s, 99% in the telemetry counterfactual — **DONE 2026-08-07**; F9: init flags parsed-and-ignored — **DONE 2026-08-08**;
 M6: empty-state serve answers `[]` instead of failing fast — **DONE 2026-08-09**; C1: unify confidence
 signals — **DONE 2026-08-09**) (Stage 3.5 complete) and **Stage 3** (call-graph: F3 await-unwrap — DONE 2026-08-09, F4 `this.`/`super.` resolution — DONE 2026-08-09,
-F5 qualified names in `identifier_fts`, F10 `potential_truncated`).
+F5 qualified names in `identifier_fts` — DONE 2026-08-09, F10 `potential_truncated`).
 
 **P2 — Stage 4 hygiene (D1, D6, D7, E1, D3–D5), Stage 4.5 scale levers, Stage 5 open
 questions** (Q6 — the 1.7–3 s WAL auto-checkpoint stall — is the most user-visible;

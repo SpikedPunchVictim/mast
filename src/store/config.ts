@@ -3,6 +3,20 @@ import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
 
+// 1.3.0 (F5, Stage 3): identifier_fts rows now carry QUALIFIED compound
+// strings ("Class.method") appended after the bare-identifier bag — see
+// ast/extractors/typescript.ts's `appendQualifiedCompounds` and MAST_SPEC.md
+// §6.3. This is a CONTENT-format change to an already-existing column, not a
+// new column, so a schema-diff check would not catch it: an old index's
+// identifier_fts rows lack the compounds entirely, and `searchIdentifiers`'
+// phrase query for a qualified method name would silently keep returning []
+// against that stale state — exactly the class of wrong-version hazard §7.4's
+// migration guard exists for (a confidently-empty answer, not an error).
+// Bumping forces the §7.4 Step 2 wipe-and-full-reindex path, verified by
+// mcp/__tests__/startup.test.ts's schema-mismatch coverage; the Docker seed
+// (§7.4) picks up the new format automatically on its next build since it
+// reindexes from a version-tagged image rather than reusing a mounted volume.
+//
 // 1.2.0: chunks moved from chunks.lance to a `chunks` table inside graph.db
 // (M1, eval/GITNEXUS_COMPARISON.md §15.1) — the on-disk shape changed (a new
 // SQLite table plus the retired Lance chunk table) so old state must not be
@@ -14,7 +28,7 @@ import { ConfigEnvSchema } from '../env.js';
 // 1.1.0: vectors.lance gained a `content_hash` column so re-embedding is keyed
 // on chunk content, not just chunk_id (H1). A bump forces the §7.4 Step 2 wipe
 // so an old vectors table (without the column) is rebuilt rather than read.
-export const CURRENT_SCHEMA_VERSION = '1.2.0';
+export const CURRENT_SCHEMA_VERSION = '1.3.0';
 
 const DEFAULTS: MastConfig = {
   state_dir: '.mast',

@@ -180,7 +180,7 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 `index.json` example:
 ```json
 {
-  "schema_version": "1.2.0",
+  "schema_version": "1.3.0",
   "last_indexed": "2026-05-13T14:22:00Z",
   "file_count": 142,
   "chunk_count": 1840
@@ -320,6 +320,26 @@ CREATE VIRTUAL TABLE IF NOT EXISTS chunk_fts USING fts5(
 -- The `identifiers` column is populated by Phase 1: it stores a whitespace-separated
 -- list of every identifier token found in the chunk (deduplicated). Phase 1
 -- extracts these via tree-sitter — no separate parse pass.
+--
+-- F5 (Stage 3, schema 1.3.0): the bag ALSO carries QUALIFIED compound strings
+-- ("Class.method"), appended after the bare tokens. A phrase-quoted query for a
+-- qualified method name (mast_callers/mast_rename_impact's documented
+-- "Class.method" convention) requires the class and method tokens ADJACENT
+-- under this tokenizer's '.' separator — the bare bag alone essentially never
+-- produces that adjacency, silently emptying the potential set for any method
+-- query. Two sources feed the compounds, both derived from the SAME
+-- `LocalTypeEnvironment` resolution `extractEdges` already computes (no
+-- parallel mechanism): (1) a method chunk's own qualified `symbol_name`
+-- (declaration self-discoverability — constructor/getter/setter forms are
+-- already qualified); (2) for every call site the resolver statically linked
+-- to a receiver type, the resolved `Type.method` string, appended to the
+-- CALLING chunk's bag — this also heals the case where the POTENTIAL_CALL
+-- edge itself is later dropped by `insertEdges`' file-scoped resolution (e.g.
+-- an unresolvable import), since extraction and edge-insertion are
+-- independent. A receiver the resolver could NOT statically link (DI
+-- containers, factories — §10.3.1's documented "does NOT catch" list)
+-- contributes no compound; that residual gap is checker-pass (`--checker`)
+-- territory, not this fix's.
 CREATE VIRTUAL TABLE IF NOT EXISTS identifier_fts USING fts5(
   identifiers,
   chunk_id    UNINDEXED,
@@ -581,7 +601,7 @@ empty-index case is surfaced to callers instead. With the startup reindex
 enabled (the default), this check is a no-op and Step 3 opens the transport
 exactly as described above.
 
-`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.2.0"`). A
+`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.3.0"`). A
 version bump is required any time the SQLite schema or `index.json` fields change
 in a way that makes old on-disk state unreadable by the new code. Incrementing
 without a state wipe causes a corrupt or partial index; wiping without
@@ -1369,7 +1389,14 @@ differently:
   any refactor proceeds. Common causes: factory patterns, DI container lookups,
   inferred types, dynamic dispatch, comments and string literals containing the
   identifier. The `reason` field is informational; v1 always returns
-  `identifier_match_no_resolved_edge`.
+  `identifier_match_no_resolved_edge`. **A qualified `"Class.method"` query (§9's
+  documented convention) now actually matches** (F5, schema 1.3.0): `identifier_fts`
+  rows carry qualified compounds (see §6.3's DDL comment), so this set typically
+  includes the declaration chunk itself plus any call site the resolver linked to a
+  receiver type but whose edge was later dropped by file-scoped resolution (e.g. an
+  unresolvable import) — before F5 this set was confidently empty for essentially
+  every method query (58% of symbols in the eval corpus), independent of whether a
+  real caller existed.
 
 **`summary.checker_classified_non_call_site` / `checker_classified_different_declaration`**
 count candidates the checker pass classified away — not a real call site (comment,
@@ -1859,7 +1886,16 @@ After Phase 1 chunking, mast populates `graph.db` for each indexed file:
   names, method names, type names, variable references) via tree-sitter `identifier`
   node enumeration. Deduplicate per chunk. Insert one row per chunk with
   whitespace-joined identifiers — this is what `mast_callers`'s `potential_matches`
-  query hits.
+  query hits. **F5 (schema 1.3.0):** after the bare-token bag, append QUALIFIED
+  compound strings (`"Class.method"`) — a method chunk's own qualified name, plus
+  the resolved `Type.method` string for every call site the local type environment
+  (§10.3.1) linked to a receiver type, appended to the CALLING chunk's row. This is
+  what makes the phrase-quoted `"Class.method"` query `mast_callers`/
+  `mast_rename_impact` issue (§9) actually hit a row: identifier_fts' `unicode61`
+  tokenizer treats `.` as a separator, so the literal compound string tokenizes into
+  two ADJACENT tokens, matching the phrase directly. The bare bag alone essentially
+  never has that adjacency for a method name. A receiver the resolver could not
+  statically link (§10.3.1's "does NOT catch" list) contributes no compound.
 
 All inserts for a file are wrapped in a single transaction. On incremental reindex,
 existing rows for the file are deleted before reinsertion (delete-and-replace, not
@@ -1906,6 +1942,27 @@ the identifier match still lands in `identifier_fts` and surfaces as
   symbols are populated (see "Two-pass edge insertion" below).
 - **Generic type parameters.** `class Repo<T> { find(id: ID): T }` — the resolver
   treats `T` as opaque.
+
+**F5 honesty note on "still lands in `identifier_fts`" above.** That claim was
+historically true only for BARE identifier tokens (e.g. `findById`), which
+`mast_callers`/`mast_rename_impact` never actually query — they query the
+QUALIFIED `"Class.method"` form (§9), which (pre-F5) essentially never phrase-
+matched anything, silently emptying `potential_matches` for methods regardless
+of this list. Post-F5, the distinction that matters is whether
+`LocalTypeEnvironment.resolveCall` (the SAME resolution `POTENTIAL_CALL`
+edges use) succeeded, not whether the edge survived to `graph.db`:
+  - **Re-exported types not yet resolved through the `re_export_files` chain**
+    — extraction still resolves the receiver's type name and emits the
+    qualified compound; only the DB-layer edge is dropped. This case IS now
+    healed: the mention surfaces in `potential_matches`.
+  - **Factory return types, DI container lookups, chained calls without
+    intermediate binding, dynamic dispatch, generic type parameters** — the
+    receiver is unresolvable at EXTRACTION time (`resolveCall` itself returns
+    null), so no qualified compound is ever produced. These remain a genuine
+    coverage gap for qualified queries specifically — closing it (if ever) is
+    the opt-in `mast index --checker` pass's (§10.3.2) territory, not this
+    fix's; F5 deliberately does not attempt to guess a qualified name for an
+    unresolvable receiver.
 
 **Coverage characterisation.** In a Fastify + DI service codebase, the resolver
 catches roughly the field/parameter/import cases — typically 60–80% of real call

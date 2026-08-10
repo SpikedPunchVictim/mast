@@ -71,8 +71,44 @@ export class TypeScriptExtractor implements LanguageExtractor {
     const symbols = [...symbolsFromChunks(chunks), ...markerSymbols];
     const edges = [...extractEdges(tree, filePath, src), ...reExportEdges];
 
+    // F5 (Stage 3): qualified compounds ("Class.method") for identifier_fts.
+    // `searchIdentifiers` phrase-quotes its query term, and identifier_fts'
+    // unicode61 tokenizer treats '.' as a separator, so a query for a
+    // qualified method name only matches a row whose identifiers column has
+    // the class/method tokens ADJACENT — which the bare-identifier bag below
+    // essentially never produces (the chunk text rarely repeats "Class"
+    // immediately followed by "method"). Deriving the compounds from `edges`
+    // (rather than re-walking the AST) rides the SAME resolution already
+    // computed by `extractEdges`/`LocalTypeEnvironment` — no parallel
+    // mechanism, and a receiver `extractEdges` could not statically link
+    // (DI/factory calls, §10.3.1's documented gap) correctly contributes
+    // nothing here either, since no POTENTIAL_CALL edge exists for it.
+    const qualifiedMentionsByFromName = new Map<string, string[]>();
+    for (const e of edges) {
+      // `toName` is qualified ("Type.method") only for a receiver-based call
+      // (LocalTypeEnvironment.resolveCall's `${binding.type}.${method}` path)
+      // — a bare call (import/same_file resolution) has no receiver and
+      // therefore no dot. PARENT_OF/EXTENDS/etc. use a different fromName
+      // scope (the class itself, not a method body) and must not leak in.
+      if (e.edgeType !== 'POTENTIAL_CALL' || !e.toName.includes('.')) continue;
+      const mentions = qualifiedMentionsByFromName.get(e.fromName);
+      if (mentions === undefined) qualifiedMentionsByFromName.set(e.fromName, [e.toName]);
+      else mentions.push(e.toName);
+    }
+
     const identifierRows: IdentifierRow[] = chunks.flatMap((chunk) => {
-      const identifiers = extractIdentifiers(chunk.content);
+      const base = extractIdentifiers(chunk.content);
+      // Declaration self-discoverability: a method chunk's own qualified
+      // name (constructor/getter/setter forms are already qualified, since
+      // `symbol_name` is always `${className}.${methodName}` for chunk_type
+      // 'method' — see the `chunks.push` call above).
+      const ownQualified = chunk.chunk_type === 'method' && chunk.symbol_name !== null
+        ? [chunk.symbol_name]
+        : [];
+      const mentionQualified = chunk.symbol_name !== null
+        ? qualifiedMentionsByFromName.get(chunk.symbol_name) ?? []
+        : [];
+      const identifiers = appendQualifiedCompounds(base, [...ownQualified, ...mentionQualified]);
       return identifiers.length > 0 ? [{ chunk_id: chunk.chunk_id, identifiers }] : [];
     });
 
@@ -1484,6 +1520,20 @@ export function extractIdentifiers(content: string): string {
   while ((m = re.exec(content)) !== null) {
     seen.add(m[0]);
   }
+  return [...seen].join(' ');
+}
+
+/**
+ * Append qualified compound strings (e.g. "Class.method", F5) to an
+ * already-built identifier bag, deduplicated and appended AFTER the bare
+ * bag — never interleaved — so the qualified compound's own two sub-tokens
+ * (post unicode61 tokenisation, which splits on '.') land adjacent to each
+ * other and are not accidentally split apart by an unrelated bare token.
+ */
+function appendQualifiedCompounds(base: string, extra: readonly string[]): string {
+  if (extra.length === 0) return base;
+  const seen = new Set(base.length > 0 ? base.split(' ') : []);
+  for (const q of extra) seen.add(q);
   return [...seen].join(' ');
 }
 

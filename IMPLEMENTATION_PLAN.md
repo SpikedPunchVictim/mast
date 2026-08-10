@@ -707,13 +707,13 @@ justifies the subsystem.
 
 ## Stage 3: Call-graph correctness
 **Goal**: `mast_callers` stops returning confidently-empty answers.
-**Status**: In Progress — F3/F4 complete (2026-08-09); F5/F10 remaining.
+**Status**: In Progress — F3/F4/F5 complete (2026-08-09); F10 remaining.
 
 | # | Task | Status |
 |---|---|---|
 | F3 | `parseCallee`: unwrap `await_expression` (`typescript.ts:1360`) — one line | **Complete** |
 | F4 | Implement `this.` / `super.` resolution (documented in §10.3.1, never built) | **Complete** |
-| F5 | `mast_callers` potential set for methods — **design change**, see below | Not Started |
+| F5 | `mast_callers` potential set for methods — **design change**, see below | **Complete** |
 | F10 | Surface `potential_truncated` (silent cap at 50; real count was 71) | Not Started |
 
 **Success criteria**: `POTENTIAL_CALL` edges rise from **1,038** toward the
@@ -882,6 +882,188 @@ new architecture drift.
 (qualified names in `identifier_fts`) and F10 (`potential_truncated`) remain
 unimplemented — explicitly out of scope per the task brief; Stage 3's overall
 `Status` is left as "In Progress" rather than "Complete" to reflect this.
+
+### F5 result (2026-08-09) — qualified identifiers indexed
+
+**The defect.** `mast_callers`/`mast_rename_impact` document `'Class.method'` as
+the query convention for a method symbol. `searchIdentifiers` (`search/fts.ts`)
+phrase-quotes the term before querying `identifier_fts`, and that table's
+`unicode61` tokenizer treats `.` as a separator (`graph/db.ts`'s DDL). A phrase
+match therefore requires the tokens `Class` and `method` to sit at ADJACENT
+positions in the row's `identifiers` column. `identifier_fts` rows were built
+purely from `extractIdentifiers` — a regex over raw chunk text that extracts
+every BARE `\w+` token, deduplicates, and whitespace-joins — which essentially
+never places a class name immediately before a same-chunk method name (the two
+tokens are separated by the rest of the chunk's vocabulary between them). The
+potential set for any method query was therefore silently empty
+(`eval/GITNEXUS_COMPARISON.md` §13.4/§6.4a), independent of whether a real
+caller existed — 58% of symbols in the eval corpus are methods.
+
+**The shipped design (as mandated, no relitigation of the choice).** The
+extractor now emits QUALIFIED compound strings — literal `"Class.method"` text
+— into each chunk's identifier row, appended after the bare bag and
+deduplicated. This was chosen over indexing the unqualified leaf name (`method`
+alone), which would have widened the potential set ambiguously across classes
+(`Foo.close` vs `Bar.close` both firing on a bare `close` query) — exactly the
+imprecision `mast_callers`'s "review required, not verified" contract cannot
+absorb silently.
+
+Two sources feed the compounds, both riding the SAME `LocalTypeEnvironment`
+resolution `extractEdges` already computes for `POTENTIAL_CALL` edges — no
+parallel mechanism, same precedent as F3/F4:
+1. **Declaration self-discoverability.** Every `method`-chunk's own qualified
+   `symbol_name` (already `${className}.${methodName}` at construction —
+   constructor/getter/setter forms included, since they share the same naming)
+   is appended to its OWN identifier row. This makes `mast_rename_impact`'s
+   documented "the declaration typically appears in `potential_matches`" claim
+   actually true for methods.
+2. **Resolved call-site mentions.** In `TypeScriptExtractor.extract()`, after
+   `edges` is built, every `POTENTIAL_CALL` edge whose `toName` contains `.`
+   (i.e. `LocalTypeEnvironment.resolveCall` matched a receiver binding —
+   `field_type`, `parameter_type`, `new_expression`, `this_method`, or
+   `super_method`) is grouped by `fromName` and appended to the matching
+   CALLING chunk's identifier row (matched by `chunk.symbol_name === fromName`,
+   the same qualified name `emitCallEdges` used as scope). Deriving this from
+   the already-computed `edges` array (rather than re-walking the AST or
+   threading a new return value through `extractEdges`) meant `extractEdges`'s
+   existing signature — and all 16 tests in `call-edges.test.ts` that assert
+   against it directly — needed zero changes.
+
+   This also HEALS a case F3/F4's own "noticed but not done" left open:
+   extraction and `insertEdges`' DB-layer resolution are independent passes.
+   When a receiver's type is imported from an unresolvable specifier (external
+   package, broken relative path), `resolveQualifiedNameScoped`
+   (`graph/populate.ts`) finds the import row but a `null` `resolvedPath` and
+   returns `null` with NO fallback — the edge never reaches `graph.db`, even
+   when an unrelated file coincidentally declares a same-named qualified
+   symbol. The qualified compound is emitted regardless (extraction never
+   looks at import resolution), so the mention still surfaces in
+   `potential_matches` instead of vanishing. Proven by the tool-level test
+   below.
+3. **Genuinely-unresolvable receivers contribute nothing — honestly.** DI
+   container lookups, factory return types, chained calls without
+   intermediate binding, dynamic dispatch, and generic type parameters
+   (§10.3.1's documented "does NOT catch" list) never produce a
+   `LocalTypeEnvironment` binding, so `resolveCall` returns `null`, no
+   `POTENTIAL_CALL` edge exists, and no qualified compound is ever added for
+   that call site — F5 does not guess. This residual gap is real and is
+   `mast index --checker` / future-work territory, not this fix's; MAST_SPEC.md
+   §10.3.1 now says so explicitly instead of the previous (overstated, for
+   qualified queries) blanket claim that an unresolved identifier "still lands
+   in `identifier_fts`."
+4. **Markdown** contributes no identifier rows at all — unchanged; nothing in
+   this task touches `MarkdownExtractor`.
+
+**Mechanism verification — the adjacency claim.** `graph/db.ts`'s
+`identifier_fts` DDL tokenizer is
+`"unicode61 separators '.-_/()[]{}<>:;,=+*&|!?'"` — `.` is explicitly a
+separator, so a stored value like `"... Bar.close"` tokenizes into two
+POSITION-ADJACENT tokens (`bar`, `close`), which is exactly what
+`searchIdentifiers`'s phrase-quoted `MATCH '"Bar.close"'` requires. Proven at
+the real-pipeline level (`search/__tests__/fts-query.test.ts`, new describe
+block `searchIdentifiers — qualified compounds (F5)`, 2 tests) rather than
+asserted from documentation:
+- **Positive match, two independent chunks.** A `UserRepository` class in one
+  file (declaration) and an `AuthService` calling `this.repo.findByEmail()` in
+  another (field-typed mention) — `searchIdentifiers(db, 'UserRepository.findByEmail')`
+  returns chunk ids resolving to BOTH the declaration chunk and the calling
+  chunk.
+- **Cross-class precision, adversarial single-chunk fixture.** One chunk
+  (`Caller.run`) is engineered to contain the qualified compound `Bar.close`
+  (a real resolved call) AND the unrelated bare token `Foo` (an unused
+  constructor-param-property annotation) in the SAME row, with `Foo` and
+  `close` deliberately non-adjacent in the bare bag (three unrelated tokens —
+  `this`/`void`/etc. — sit between them in dedup-insertion order).
+  `searchIdentifiers(db, 'Foo.close')` returns `[]` (no false adjacency);
+  `searchIdentifiers(db, 'Bar.close')` returns that same chunk. This is the
+  concrete case the F5 mandate flagged as a theoretical risk ("bag-order
+  dedup makes it rare") — demonstrated rare here by construction, not merely
+  asserted.
+
+**Tool-level test — which fixture shape lands in `potential_matches`, and
+why.** `mcp/tools/__tests__/tools.test.ts`, new describe block `mast_callers —
+potential set for methods (F5)`, isolated fixture (own `tmpDir`/`db`, same
+pattern as the existing "F2 — file_busy_returning_stale_cache" block): a
+`target.ts` declaring `class Repo { findById(): void {} }` and a `caller.ts`
+importing `Repo` from `'unresolvable-external-package'` (a specifier that
+never resolves) and calling `this.repo.findById()` from a `field_type`
+constructor-param-property binding. Two assertions:
+1. `verified_callers` does NOT contain `Service.check` — the import's
+   `resolvedPath` is `null`, so `resolveQualifiedNameScoped` returns `null`
+   with no fallback and `insertEdges` drops the edge (proven, not assumed —
+   this is the shape #2 above describes).
+2. `potential_matches` IS non-empty and contains `{ file_path: 'caller.ts',
+   context: 'Service.check' }` — the qualified compound
+   `identifier_fts` row heals exactly the gap the first assertion proves
+   exists.
+
+This shape was chosen over a genuinely-unresolvable-receiver shape (e.g. a DI
+lookup) specifically because #3 above proves those NEVER produce a qualified
+compound at all — they would leave `potential_matches` empty for the qualified
+query, which would not exercise F5's fix (it would only re-prove the
+already-documented, unhealed residual gap).
+
+**Schema bump.** `store/config.ts`'s `CURRENT_SCHEMA_VERSION` bumped `1.2.0` →
+`1.3.0`, with a WHY-comment: this is a CONTENT-format change to an
+already-existing `identifier_fts` column (no new column, so a naive
+schema-diff would miss it) — an old index's identifier rows lack the qualified
+compounds, so a qualified-name query against un-reindexed state would silently
+regress to empty, exactly the "confidently wrong, not erroring" hazard §7.4's
+migration guard exists to prevent. Verified `mcp/startup.ts` needs no code
+change — it keys off the `CURRENT_SCHEMA_VERSION` constant, confirmed by
+grepping for direct version-string literals (none found outside the constant
+and its doc references) and by `mcp/__tests__/startup.test.ts`'s existing
+schema-mismatch coverage passing unmodified. The Docker seed (§7.4) picks up
+the new format automatically on its next build/reindex — no seed data exists
+to migrate under the never-shipped constraint.
+
+**Red-first evidence.** Three new test files/blocks written against the
+unfixed code and run via `pnpm exec vitest run` before any production change:
+`src/ast/extractors/__tests__/qualified-identifiers.test.ts` (new file, 4
+tests), the new `searchIdentifiers — qualified compounds (F5)` block in
+`fts-query.test.ts` (2 tests), and the new `mast_callers — potential set for
+methods (F5)` block in `tools.test.ts` (2 tests). First run: **6 failed / 2
+passed** across the 8 new tests (109 total in the three touched files after
+the additions) — all 6 failures were assertion-level (`expected [...] to
+include '...'`, `expected false to be true`, `expected 0 to be greater than
+0`), proving each exercises real, then-missing behaviour rather than a broken
+import or setup error. The 2 tests that passed "for free" — the DI-style
+unresolvable-receiver pure-layer test, and the tool-level "verified_callers
+does NOT contain the caller" test — confirmed the negative-space assertions
+(no compound for an unresolvable receiver; the edge really is dropped at
+`insertEdges`) already held true before any F5 code existed, isolating the red
+failures to exactly the intended fix surface.
+Implementing `appendQualifiedCompounds` and the `qualifiedMentionsByFromName`
+grouping in `TypeScriptExtractor.extract()` turned all 6 red assertions green
+with zero regressions elsewhere; one test assertion (the DI-unresolvable pure
+test) needed a follow-up correction — it initially failed AFTER the fix
+because it hadn't accounted for the chunk's own declaration-self-discoverable
+compound (`Bootstrap.start`) always being present, conflating "no compound
+from the unresolvable call" with "no compound at all" — corrected to exclude
+the chunk's own name before asserting.
+
+**Verification** (from `packages/mast`): `pnpm test` — **546/546 passed, 38
+files** (baseline 538/37; +8 net new tests — 4 pure-layer + 2 FTS-integration +
+2 tool-level). `pnpm typecheck` — clean. `pnpm lint` — clean. Repo-root
+`pnpm align:check` — `baselined debt: 324 -> 324 (0)`, red only on the 2
+pre-existing non-mast violations (`application/ui/src/views/root-layout.tsx`
+import cycle; `application/api/src/domain/spec/fold-build-record-repository.ts`
+domain→db import) — unchanged from F3/F4's verification, confirming F5
+introduced no new architecture drift.
+
+**Deviations**: none from the mandated design — no changes to `fused.ts`,
+`declex.ts`, `eval/`, `vitest.config.ts` exclusions, or
+`searchIdentifierNearMiss` semantics; `collectPotentialMatchCandidates` and the
+tools were untouched except doc comments. **Noticed but not done**: F10
+(`potential_truncated`) remains unimplemented, unchanged from F3/F4's note —
+out of scope for this task. Also noticed but out of scope: the
+`extractEdges`-derived compound grouping only covers `TypeScriptExtractor`
+(the only extractor that emits `POTENTIAL_CALL` edges); `MarkdownExtractor`
+correctly contributes no identifier rows at all, so this is not a gap, just
+worth naming as a boundary. No corpus-level before/after `potential_matches`
+count was measured against a real external corpus — same E2 scope boundary
+F3/F4 recorded; this task's evidence is unit/integration-level, proving the
+mechanism works, not corpus-scale recall improvement.
 
 ---
 
