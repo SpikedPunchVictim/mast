@@ -2028,6 +2028,12 @@ of guessing. `this.foo()` inside a nested non-arrow function/method/generator
 body is NOT the class instance and is excluded before it ever reaches the
 resolver — arrow functions inherit the enclosing `this` and are not excluded.
 
+(Non-normative, D7/Stage 4) `extractEdges`/`emitCallEdges` also accept an optional
+`onCallSite` diagnostics callback, invoked once per visited call site with a closed
+outcome union; it exists solely as a test seam for `call-oracle.test.ts`'s corpus
+accounting invariant and is not configurable, persisted, or surfaced in any tool
+response.
+
 **Name resolution is file-scoped, not name-only.** When two files export a
 same-named symbol, `insertEdges`' name→id resolution (§10.3) uses the
 resolution rule's own file evidence to pick the target: `same_file` is scoped

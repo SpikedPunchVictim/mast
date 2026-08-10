@@ -1144,8 +1144,23 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
  * "only a known symbol becomes a verified edge" rule from §10.3 is enforced.
  *
  * `src` is the raw source, used to attach the call-site line + context.
+ *
+ * `onCallSite` (D7, Stage 4) is an optional diagnostics seam: when provided,
+ * it is invoked exactly once per `call_expression` node returned by
+ * `collectCalls`, classifying the outcome of resolving that call. It exists
+ * to make the invariant "every visited call yields an edge or a recorded
+ * drop-reason" assertable in tests (`call-oracle.test.ts`); it is not
+ * persisted, configured, or surfaced in any tool response — a future
+ * instrumentation hook (E2's registered corpus measurement), not a shipped
+ * feature. Leaving it `undefined` (the default) costs one `undefined`-check
+ * per call site and zero allocation on the production path.
  */
-export function extractEdges(parsedTree: Tree, _filePath: string, src: string): EdgeRecord[] {
+export function extractEdges(
+  parsedTree: Tree,
+  _filePath: string,
+  src: string,
+  onCallSite?: (outcome: CallSiteOutcome) => void,
+): EdgeRecord[] {
   const lines = src.split('\n');
   const topLevel = nodeChildren(parsedTree.rootNode);
   const edges: EdgeRecord[] = [];
@@ -1183,14 +1198,14 @@ export function extractEdges(parsedTree: Tree, _filePath: string, src: string): 
     const t = nodeType(declNode);
 
     if (t === 'class_declaration' || t === 'abstract_class_declaration') {
-      emitClassEdges(declNode, edges, seedFileScope, lines);
+      emitClassEdges(declNode, edges, seedFileScope, lines, onCallSite);
     } else if (t === 'interface_declaration') {
       emitInterfaceExtends(declNode, edges);
     } else if (t === 'function_declaration' || t === 'generator_function_declaration') {
       const name = declNode.childForFieldName('name')?.text ?? null;
       const body = declNode.childForFieldName('body');
       if (name !== null && body !== null) {
-        emitCallEdges(name, declNode.childForFieldName('parameters'), body, edges, seedFileScope, lines);
+        emitCallEdges(name, declNode.childForFieldName('parameters'), body, edges, seedFileScope, lines, [], onCallSite);
       }
     } else if (t === 'lexical_declaration' || t === 'variable_declaration') {
       const declarator = findChildByType(declNode, 'variable_declarator');
@@ -1199,7 +1214,7 @@ export function extractEdges(parsedTree: Tree, _filePath: string, src: string): 
       if (name !== null && value !== null && nodeType(value) === 'arrow_function') {
         const body = value.childForFieldName('body');
         if (body !== null) {
-          emitCallEdges(name, value.childForFieldName('parameters'), body, edges, seedFileScope, lines);
+          emitCallEdges(name, value.childForFieldName('parameters'), body, edges, seedFileScope, lines, [], onCallSite);
         }
       }
     }
@@ -1214,6 +1229,7 @@ function emitClassEdges(
   edges: EdgeRecord[],
   seedFileScope: (env: LocalTypeEnvironment) => void,
   lines: readonly string[],
+  onCallSite?: (outcome: CallSiteOutcome) => void,
 ): void {
   const className = classNode.childForFieldName('name')?.text ?? null;
   if (className === null) return;
@@ -1283,6 +1299,7 @@ function emitClassEdges(
       seedFileScope,
       lines,
       classScopeBindings,
+      onCallSite,
     );
   }
 }
@@ -1301,6 +1318,60 @@ function emitInterfaceExtends(ifaceNode: SyntaxNode, edges: EdgeRecord[]): void 
 }
 
 /**
+ * Line of the callee TOKEN itself — the method name for `obj.method()`, or
+ * the identifier for a bare `foo()`. Deliberately NOT `call.startPosition`:
+ * for a multi-line fluent/chained call (e.g. `program\n  .command(...)`),
+ * the call_expression node's own start position is the RECEIVER's line, not
+ * the line the call syntax actually appears on — which previously produced
+ * a `context` string with no parentheses at all (e.g. the trimmed text
+ * `program`), violating `EdgeRecord.context`'s "source text of the
+ * call-site line" contract. Found by the D7 self-oracle test running over
+ * mast's own `src/` corpus (`cli/index-cmd.ts:9`, `program.command(...)`);
+ * see IMPLEMENTATION_PLAN.md's D7 result for the finding.
+ */
+function calleeLine(call: SyntaxNode): number {
+  const fn = call.childForFieldName('function') ?? call.namedChildren[0] ?? null;
+  if (fn !== null && nodeType(fn) === 'member_expression') {
+    const property = fn.childForFieldName('property');
+    if (property !== null) return property.startPosition.row + 1;
+  }
+  return call.startPosition.row + 1;
+}
+
+/**
+ * D7 (Stage 4) closed outcome union for the `onCallSite` diagnostics seam.
+ * Every `call_expression` node `collectCalls` returns is classified into
+ * EXACTLY one of these four buckets by `emitCallEdges` — that totality is
+ * the self-oracle invariant `call-oracle.test.ts` asserts over mast's own
+ * `src/` corpus:
+ *
+ * - `edge_emitted`: `parseCallee` extracted a receiver/method AND
+ *   `LocalTypeEnvironment.resolveCall` linked it — a POTENTIAL_CALL edge
+ *   was pushed.
+ * - `unparseable_callee`: `parseCallee` returned null — the callee shape is
+ *   not a bare identifier or a member-expression whose receiver
+ *   `receiverString` can stringify (e.g. a chained call `getX().m()`, or a
+ *   dynamic/computed receiver `registry['key'].m()`).
+ * - `unresolved_receiver`: the callee parsed to a non-null receiver string
+ *   (`repo`, `this.repo`, `this`, `super`, ...) but `resolveCall` found no
+ *   binding for it — an unannotated local, a DI container lookup, or any
+ *   other §10.3.1 "does NOT catch" receiver shape.
+ * - `bare_call_unresolved`: the callee parsed as a receiver-less call
+ *   (`foo()`) but the name matched neither an import nor a same-file symbol.
+ *
+ * **Boundary**: `collectCalls` does not descend into nested
+ * function/method/class bodies (its own skip-list, see below) — those call
+ * sites are never handed to `parseCallee` at all and are therefore, by
+ * design, outside this invariant. A file with heavy use of inline
+ * `function`-expression callbacks will visit fewer calls than it contains.
+ */
+export type CallSiteOutcome =
+  | 'edge_emitted'
+  | 'unparseable_callee'
+  | 'unresolved_receiver'
+  | 'bare_call_unresolved';
+
+/**
  * Build the local type environment for a function/method scope and emit one
  * POTENTIAL_CALL edge per statically-resolvable call site in its body.
  */
@@ -1315,6 +1386,7 @@ function emitCallEdges(
   // types (`this.x`) plus F4's `this`/`super` bindings. Empty for top-level
   // function/arrow scopes, which have no enclosing class.
   classScopeBindings: readonly ReceiverBinding[] = [],
+  onCallSite?: (outcome: CallSiteOutcome) => void,
 ): void {
   const env = new LocalTypeEnvironment();
   seedFileScope(env);
@@ -1326,10 +1398,17 @@ function emitCallEdges(
 
   for (const call of collectCalls(bodyNode)) {
     const parsed = parseCallee(call);
-    if (parsed === null) continue;
+    if (parsed === null) {
+      onCallSite?.('unparseable_callee');
+      continue;
+    }
     const resolved = env.resolveCall(parsed.receiver, parsed.method);
-    if (resolved === null) continue;
-    const line = call.startPosition.row + 1;
+    if (resolved === null) {
+      onCallSite?.(parsed.receiver === null ? 'bare_call_unresolved' : 'unresolved_receiver');
+      continue;
+    }
+    onCallSite?.('edge_emitted');
+    const line = calleeLine(call);
     edges.push({
       fromName,
       toName: resolved.callee,
@@ -1411,8 +1490,13 @@ function collectNewBindings(bodyNode: SyntaxNode): ReceiverBinding[] {
  *  `this`, so a `this.foo()` inside one is never the enclosing class
  *  instance; F4's `this_method`/`super_method` bindings must not leak in.
  *  Arrow functions are deliberately NOT in this list — they inherit the
- *  enclosing scope's `this` and calls inside them must still resolve). */
-function collectCalls(bodyNode: SyntaxNode): SyntaxNode[] {
+ *  enclosing scope's `this` and calls inside them must still resolve).
+ *
+ *  Exported (D7, Stage 4) so `call-oracle.test.ts` can independently
+ *  enumerate the same call sites `emitCallEdges` visits, as the ground
+ *  truth for the `onCallSite` accounting invariant — not part of the
+ *  extractor's public tool-facing surface. */
+export function collectCalls(bodyNode: SyntaxNode): SyntaxNode[] {
   const calls: SyntaxNode[] = [];
   const visit = (node: SyntaxNode): void => {
     for (const child of nodeNamedChildren(node)) {

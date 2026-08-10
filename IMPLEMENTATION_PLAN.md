@@ -1613,7 +1613,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | D1 | Sort `walkProject` output (`indexer/walker.ts:43`) — kills ±4/3,940 edge nondeterminism | **Complete** — see D1 result below |
 | D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
 | **D6** | **Build the stats/regression suite** — the metric set below, with a baseline captured before each fix | Not Started |
-| D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | Not Started |
+| D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | **Complete** — see D7 result below |
 | E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration | Not Started |
 | E7 | JIT under real agent concurrency (4 concurrent MCP clients + in-flight reindex) — **can falsify F1**: if contention degrades non-linearly, per-batch locking made it worse and the answer is a single-writer queue | **Complete — FALSIFIED** |
 | E7-r2 | Re-measure E7 against the post-M1/post-F12 build, to size F11 — same harness/arms, three new probes (hold decomposition, event-loop freeze, `SQLITE_BUSY_SNAPSHOT` repro) | **Complete** |
@@ -1932,6 +1932,177 @@ baselined debt 324 → 324 (0), red only on the same 2 pre-existing non-mast vio
 schema-version bump to 1.3.0) were pre-verified true rather than found drifting — the
 red phase's one finding was the `exclude_patterns` prefix mismatch instead, reported
 per process rule 1 exactly as the schema-version scenario would have been.
+
+### D7 result (2026-08-10) — diagnostics seam + self-oracle corpus test + call-shape matrix shipped; one real extractor defect found and fixed
+
+**Part 1 — the `onCallSite` diagnostics seam.** `extractEdges` (and its call path
+through `emitClassEdges`/`emitCallEdges`) gained an OPTIONAL
+`onCallSite?: (outcome: CallSiteOutcome) => void` parameter, threaded positionally
+through all three functions and invoked exactly once per `call_expression` node
+`collectCalls` returns — chosen over a returned diagnostics-tally object because a
+callback needs no allocation on the hot path when `undefined` (the default): one
+`onCallSite?.(...)` optional-chain check per call site, zero cost otherwise. The
+closed outcome union, as shipped (`CallSiteOutcome` in `typescript.ts`, exported for
+test use only):
+
+```ts
+export type CallSiteOutcome =
+  | 'edge_emitted'          // parseCallee + resolveCall both succeeded — a
+                             // POTENTIAL_CALL edge was pushed.
+  | 'unparseable_callee'    // parseCallee returned null (chained call, dynamic/
+                             // computed receiver, or any callee shape receiverString
+                             // can't stringify).
+  | 'unresolved_receiver'   // callee parsed to a non-null receiver string, but
+                             // LocalTypeEnvironment.resolveCall found no binding for it
+                             // (unannotated local, DI lookup, etc.).
+  | 'bare_call_unresolved'; // receiver-less call (`foo()`) whose name matched neither
+                             // an import nor a same-file symbol.
+```
+
+These four names fell directly out of `emitCallEdges`' existing decision points — no
+new branches were invented to produce them. `collectCalls` itself was also exported
+(test-only; not part of the tool-facing surface) so the oracle test can independently
+enumerate the same call sites the extractor visits. TSDoc on `CallSiteOutcome` and
+`extractEdges` states the boundary explicitly: calls inside nested-scope-skipped
+function/method/class bodies are never handed to `parseCallee` and are therefore, by
+design, outside this invariant — `collectCalls`' own skip-list (unchanged) is what
+defines "visited."
+
+**Part 2 — self-oracle over mast's own `src/` (53 non-test `.ts` files, `__tests__`
+excluded).** New `src/ast/extractors/__tests__/call-oracle.test.ts`. The accounting
+invariant (a) is checked per file: an independently-built `expectedCallSites()` helper
+mirrors `extractEdges`' top-level scope dispatch (function/generator declarations,
+class methods, arrow-function-valued const/let) using ONLY the exported `collectCalls`
+primitive plus tree-sitter's own `SyntaxNode` API — not `extractEdges`' own private
+dispatch helpers — so the oracle and the extractor can disagree if either one drifts.
+Assertion (b) — every emitted `POTENTIAL_CALL` edge's `context` is non-empty and
+contains `(` — is what caught the real defect below. Assertion (c) logs the live
+outcome distribution as an informational `console.log` plus a `total > 0` floor.
+
+**Live self-corpus outcome distribution** (53 files, post-fix):
+
+| outcome | count |
+|---|---|
+| `edge_emitted` | 866 |
+| `unparseable_callee` | 604 |
+| `unresolved_receiver` | 592 |
+| `bare_call_unresolved` | 93 |
+| **total call sites visited** | **2,155** |
+
+This is the live denominator E2's registered corpus measurement can later reuse the
+same seam against — `edge_emitted` / total ≈ 40% on mast's own source, which is
+consistent with §10.3.1's "60–80% coverage in a Fastify+DI codebase" characterisation
+being an upper bound for a codebase (mast itself) that leans more heavily on bare
+utility-function calls and dynamic/chained shapes than a typical DI-heavy service.
+
+**Part 3 — the call-shape matrix** (`call-shape-matrix.test.ts`, `describe.each` x
+`it.each`, no new dependency — project CLAUDE.md §8.5 rules out `fast-check` for this
+finite a shape space). 7 receiver forms x 4 call wrappers = 28 cells, plus 1 auxiliary
+cell for the receiver-less `bare_call_unresolved` bucket (not reachable from the 7x4
+grid, whose every cell has a receiver) = **29 cells total, zero skipped**.
+
+Receivers: annotated param, field (`this.repo` via constructor parameter property),
+bare `this`, bare `super`, `new`-bound local, unannotated local (factory return —
+must NOT resolve), chained `getX()` (must NOT resolve). Wrappers: plain `r.m()`,
+awaited-whole-call `await r.m()`, paren-awaited-receiver `(await r).m()`, generic
+`r.m<T>()`.
+
+**Grammar-validity verification (the task's "(await this).m()? verify" question).** A
+scratch tree-sitter parse dump (`tree.rootNode.toString()`, deleted before finishing)
+showed BOTH `(await this).m()` and `(await super).m()` parse with no ERROR node —
+tree-sitter's grammar accepts a bare `await this`/`await super` operand syntactically,
+unlike what the real TypeScript checker would flag. **No cell was skipped**: all 29
+are grammar-valid. Per-cell trace confirmed both parse to
+`parenthesized_expression(await_expression(this|super))`, i.e. the SAME shape F3's
+`unwrapAwaitedReceiver` already handles for identifier/field receivers — so
+`(await this).m()`/`(await super).m()` resolve to `this_method`/`super_method`
+exactly like their un-awaited forms. This is new, previously-untested coverage (not a
+defect): F3's await-unwrap logic generalises to the `this`/`super` receiver bindings,
+not just identifier/field ones.
+
+**Extractor defect found and fixed** (the most important finding of this task).
+`call-oracle.test.ts`'s context-assertion (Part 2(b)) failed on first run:
+`cli/index-cmd.ts:9 -> Command.command: expected 'program' to contain '('`. Root
+cause: `emitCallEdges` computed `callLine` from `call.startPosition` — the START of
+the whole `call_expression` node. For a single-line call this is the call's own line;
+for a multi-line fluent/chained call like
+
+```ts
+program
+  .command('index [path]')
+  .description('Build or update the index')
+  ...
+```
+
+the `call_expression` node for the `.command(...)` call starts at `program` (line 9),
+not at `.command(` (line 10) — so `callLine` pointed at the receiver's line and
+`context` (`lines[callLine - 1].trim()`) was the bare text `program`, containing no
+parentheses at all. This silently violated `EdgeRecord.context`'s own doc comment
+("Trimmed source text of the call-site line") for every multi-line chained call in the
+codebase — exactly the class of gap D7 exists to make visible (§14.6's oracle-vs-
+sampling framing: F3/F4 shipped without corpus verification because no invariant made
+gaps like this visible). Per the task's process rule 2, this was verified (real corpus
+hit, root-caused via direct code + tree-sitter S-expression inspection), then FIXED
+rather than left red: a new `calleeLine()` helper computes the line from the callee's
+own token — the `property` field of a `member_expression` callee (the method name
+itself), falling back to `call.startPosition` for a bare identifier callee (unaffected,
+matches prior behavior exactly). This is a minimal, purely additive fix to line/context
+attribution only — it does not touch resolution logic, so it could not and did not
+change any `CallSiteOutcome` classification. (The corpus-wide outcome counts shown
+above did shift slightly from the fix's own diff — `calleeLine`'s new code is itself
+part of the `src/` corpus the oracle scans, and its own call sites got classified too;
+not evidence of a resolution-logic change.) Fixed in `typescript.ts`; no other file
+needed a matching change. All 16 pre-existing `call-edges.test.ts` tests still pass
+unmodified (single-line calls were never affected, since callee-token and
+call-expression-start coincide on one line).
+
+**Red-first evidence.** Both new test files were written against a stubbed seam
+(`onCallSite` parameter present in all three signatures, deliberately never invoked —
+each branch's `onCallSite?.(...)` call commented `// RED-PHASE-STUB`) before any
+wiring existed:
+- `call-shape-matrix.test.ts`: **29/29 failed** — every cell's actual tally was
+  `{edge_emitted: 0, unparseable_callee: 0, unresolved_receiver: 0,
+  bare_call_unresolved: 0}` against a nonzero expected tally, e.g. `{edge_emitted: 1,
+  ...}` for the annotated-param/plain cell.
+- `call-oracle.test.ts`: the accounting-invariant test failed on **50 of 53 corpus
+  files** with `outcomes-sum=0 vs collectCalls=N` (N up to 91, `telemetry/metrics.ts`)
+  — a genuine assertion failure proving the tests exercise the real seam, not an
+  import/syntax break. (3 files legitimately have 0 call sites in visited scopes and
+  passed trivially at 0=0.) The aggregate-distribution test failed with `expected 0 to
+  be greater than 0`. The `sanity: corpus size` test passed (unrelated to the seam).
+  The context-assertion test failed independently for the real `cli/index-cmd.ts`
+  reason above — that failure exists with or without the seam wired, since it doesn't
+  use `onCallSite` at all.
+
+Restoring the real `onCallSite?.(...)` calls (removing the stub comments) turned the
+seam tests green; the separate `calleeLine()` fix turned the context-assertion green.
+
+**Verification** (from `packages/mast`): `pnpm test` — **605/605 passed, 43 files**
+(baseline 572/41 — +33 net-new tests: 29 matrix + 4 oracle, +2 net-new files).
+`pnpm typecheck` — clean. `pnpm lint` — clean. Repo-root `pnpm align:check`: baselined
+debt 324 → 324 (0), red only on the same 2 pre-existing non-mast violations
+(`application/ui/src/views/root-layout.tsx` import cycle,
+`application/api/src/domain/spec/fold-build-record-repository.ts` layer violation) —
+unchanged from D3's verification.
+
+**Deviations**: the `calleeLine` fix for multi-line chained-call `callLine`/`context`
+attribution was not in the mandated design (which scoped the production change to
+"a minimal accounting channel") — it was added because the self-oracle's own
+mandated assertion (Part 2(b)) found a real, verifiable defect, and leaving the
+assertion red (or loosening it to hide the defect) would have violated both the
+task's own explicit instruction ("do not adjust the expected cell to match wrong
+behavior") and this repo's full-suite-green requirement. The fix is minimal (one new
+9-line helper, one call-site substitution), does not touch resolution logic, and is
+covered by the same oracle assertion that found the bug — no separate regression
+test was added beyond that, since the oracle now runs on every `pnpm test` and would
+re-catch a regression. **Noticed but not done**: the callee-line fix was verified only
+via the full existing suite + the new oracle/matrix tests, not via a dedicated
+unit test isolating a synthetic multi-line-chain fixture in `call-edges.test.ts` — the
+real corpus hit (`cli/index-cmd.ts`) already serves as that regression's proof by
+construction (it's now part of the oracle's own scanned corpus and will re-fail if
+the fix regresses). No MAST_SPEC.md changes beyond the one-sentence non-normative
+mention of the diagnostics seam in §10.3.1 (below) — the seam is deliberately not a
+documented tool-facing contract.
 
 ### D0 — CLI query surface (raised P2 → P1 by the R3 review, §14.8 item 3)
 
