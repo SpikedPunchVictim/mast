@@ -35,9 +35,14 @@ startup** — expect one full background reindex then.
   `recordToolCall` is a direct awaited insert. Same spec-drift class as the
   `--session`/`--global` P3 item, and should be decided with it.
 
-**First lock data from D6's summarizer** (`mast metrics --locks`, 448 `index-run`
-cycles): hold **p50 65 ms, p95 666 ms, max 1,802 ms**. That max sits inside Q6's
-1.7–3 s stall band — a starting data point for whoever re-scopes Q6, not a conclusion.
+**First lock data from D6's summarizer** (`mast metrics --locks`; 680 `index-run`
+cycles at last reading, count grows as runs accumulate): hold **p50 64 ms, p95 585 ms,
+max 1,802 ms**. That max sits inside Q6's 1.7–3 s stall band. It is **unattributed** —
+a cycle is per *batch*, not per run (`runIndex` takes `structure.lock` at four sites),
+so it is consistent with bulk batch work, but round 1's own record links large batch
+holds to "WAL-checkpoint stalls landing inside a batch transaction" and that is not
+excluded. Cite it neither as a surviving Q6 nor as dismissed; see the plan's Q6
+RESCOPE block.
 
 ---
 
@@ -59,10 +64,12 @@ the rows the D6 RESCOPE moved to it (ms/file growth law, parse-vs-index ratio,
 state-size linearity). D7's `onCallSite` seam is the ready-made call-site
 instrumentation hook; E2 (call-graph denominators) can ride the same registration.
 
-**P2 — Stage 4.5 scale levers and Stage 5 open questions**: Q6 — the 1.7–3 s WAL
-auto-checkpoint stall — is the most user-visible (E7-r2's P3 REFUTED it got worse,
-and suspects Lance was the real round-1 contributor; re-scope before designing);
-Q2, Q3, Q5 unblocked; E5 (`--checker` value); E6 (cross-language silent drop).
+**P2 — Stage 4.5 scale levers and Stage 5 open questions**: ~~Q6~~ **RESCOPED
+2026-08-11 and no longer a standalone item** — round-1's stall signature is measured
+absent, but that null is itself pre-F11 and round 1's own suspect is alive at HEAD, so
+what remains (checkpoint cost at scale + a HEAD-topology probe under concurrent
+readers) MOVED into E1; see the plan's Q6 RESCOPE block. Q2, Q3, Q5 unblocked;
+E5 (`--checker` value); E6 (cross-language silent drop).
 
 **P3 — small recorded decisions awaiting an owner**: MAST_SPEC §14.6 documents
 `--session`/`--global` options `mast metrics` never implemented (found by D6,
@@ -518,6 +525,14 @@ multi-seed T1 sensitivity.
   explicitly (`jsonKey = stratum === 'probe' ? 'probes' : stratum`) — any new script reading
   `scale-queries.json` by naive key needs the same mapping or it silently resolves an empty
   query list.
+- **`eval/e7-round2.json`'s P3 narrative call counts do not reconcile with its own per-N
+  tables** (found 2026-08-11 by the Q6 RESCOPE's adversarial review).
+  `prediction_verdicts.P3_wal_checkpoint_stalls` states "2,367 Arm A + 5,340 Arm B";
+  the per-N tables sum to **3,000** and **4,800** (non-busy subsets: 2,741 / 4,340).
+  No split reconstructs the narrative figures. The zero-outlier verdict is unaffected —
+  `arm_A_no_reindex.variance_note` independently reports 0 at every N — but **cite the
+  per-N tables, never the P3 prose numbers**, and treat this as another instance of the
+  §5 class "the summary field and the data disagree".
 - **`declex-score.mjs` omits the registered esc-arm harm contrast from its output** — it emits
   only fire rates + a match-count distribution for the escape sweep (`computeEscapeCapSweep`,
   `declex-score.mjs:488-507`), not the registration's promised "reported descriptively in its

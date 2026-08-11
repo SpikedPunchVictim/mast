@@ -1614,7 +1614,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
 | **D6** | **Build the stats/regression suite** — RESCOPED 2026-08-10 (see the D6 RESCOPE block): 5 of 10 rows retired/served by shipped instruments, 3 moved to E1/E2; remaining scope = latency percentiles, lock summarizer, config invariant test | **Complete** — see D6 result below |
 | D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | **Complete** — see D7 result below |
-| E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration | Not Started |
+| E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration. Inherits the D6 RESCOPE rows (ms/file growth law, parse-vs-index ratio, state-size linearity) **and, added 2026-08-11 by the Q6 RESCOPE, WAL checkpoint cost at scale + a HEAD-topology (post-F11, concurrent-reader) checkpoint probe** | Not Started |
 | E7 | JIT under real agent concurrency (4 concurrent MCP clients + in-flight reindex) — **can falsify F1**: if contention degrades non-linearly, per-batch locking made it worse and the answer is a single-writer queue | **Complete — FALSIFIED** |
 | E7-r2 | Re-measure E7 against the post-M1/post-F12 build, to size F11 — same harness/arms, three new probes (hold decomposition, event-loop freeze, `SQLITE_BUSY_SNAPSHOT` repro) | **Complete** |
 | D3 | Spec conformance: quarantine mechanism prose; add `spec-conformance.test.ts` with `// MAST_SPEC.md:NNN` citations | **Complete** — see D3 result below |
@@ -2691,12 +2691,128 @@ quality problem.
 | Q3 | `populateFile` FTS insert cost grows with index size (0.37→1.35 ms/KB *within* one run, order-independent) — survives the migration, matters at n8n scale | Not Started |
 | Q4 | ~~Live index is 83% unembedded — wire embedder completion, or stop reporting `mode: "hybrid"`~~ | **Moot** — Stage 7 deleted the embedder and the `mode` surface |
 | Q5 | Result diversification in `mast_search` — no per-file dedup exists (shell↔method dedup only, now in `fused.ts`). Held at P2: evidence was n=1 and confounded by lexical-only mode. Re-test — **unblocked** (Q1 answered, Q4 moot) | Not Started |
-| **Q6** | **SQLite WAL auto-checkpoint stall on `graph.db` — periodic 1.7–3 s freeze, present even at N=1** (E7 secondary finding, previously unknown; unrelated to locking). Investigate `wal_autocheckpoint` / explicit checkpointing | Not Started |
+| **Q6** | ~~SQLite WAL auto-checkpoint stall on `graph.db` — periodic 1.7–3 s freeze, present even at N=1~~ | **RESCOPED 2026-08-11 — see the Q6 RESCOPE block below.** Round-1's signature is measured absent (round 2, same arm/corpus/outlier definition), but that null is itself pre-F11; HEAD's reader/writer topology is unmeasured and round 1's own suspect (`graph.db`'s default-threshold checkpoint inside `populateFile`'s transaction) is alive. Scale row **and** a HEAD-topology checkpoint probe MOVED to E1 |
 | E5 | `mast index --checker` — untested. Does it convert enough truncated potentials into verified edges to justify §10.3.2's complexity? | Not Started |
 | E6 | Cross-language: index `vscode`/`pulumi`; are non-TS files dropped **silently**, making `mast_project_skeleton` present a partial map as complete? (same false-green class as F5) | Not Started |
 | E8 | GitNexus `impact`/`trace`/`rename` — **design study only**, per the §1 licence bar | Not Started |
 
 ---
+
+### Q6 RESCOPE (2026-08-11) — round-1's signature is measured absent on the pre-F11 build; HEAD's topology is unmeasured
+
+Q6's row states "periodic 1.7–3 s freeze, **present even at N=1**". That is round-1
+language, and round 2 measured it absent. This block re-decides the question against
+existing committed evidence rather than opening a new investigation (D6 RESCOPE
+precedent: no new measurement; everything measurement-shaped moves to E1 where §6's
+rules govern it). **It was adversarially reviewed before commit** (Fable,
+SURVIVES-WITH-REQUIRED-CHANGES); all four required changes are applied below, and the
+review's specific findings are recorded rather than absorbed silently, because three
+of the four errors it found ran in this block's own favour — the §6 pattern exactly.
+
+**The replication that carries the retirement.** The strongest evidence is not the
+probe this block originally foregrounded, it is the direct like-for-like arm:
+
+| | round 1 (`eval/e7-concurrency.json`) | round 2 (`eval/e7-round2.json`) |
+|---|---|---|
+| Arm A **N=1**, same arm definition/pacing/corpus | 3 reps / 120 calls | 5 reps / 200 calls |
+| Outliers, **identical field** `wal_checkpoint_outliers_gt_1500ms` | **12 (10% of calls)**, "periodic, every ~10 calls" | **0** |
+| Non-busy latency max | 616 ms | **178 ms** |
+| Build | pre-M1 (Lance chunk store live) | post-M1 / post-F12, **pre-F11** |
+
+The "binned away between rounds" objection fails: both files use the *same* outlier
+field name and threshold, and round 2 reports raw maxima (178 ms at N=1; 186 ms on a
+supplementary 150-call sequential probe run after the full sweep against an
+already-6.3 MB WAL), so no sub-threshold stall is hiding under a redefinition. P3 was
+a *counter-current* prediction (stalls get worse); it did not merely fail to fire.
+
+**Call counts — do NOT quote P3's narrative figures.** `prediction_verdicts.
+P3_wal_checkpoint_stalls` states "2,367 Arm A + 5,340 Arm B". Those figures **do not
+reconcile with the same file's own per-N tables**: Arm A sums to **3,000**
+(200+400+800+1,600) and Arm B to **4,800** (320+640+1,280+2,560), total **7,800**;
+the non-busy subsets are 2,741 / 4,340, also neither figure. The zero-outlier
+conclusion is unaffected (Arm A's `variance_note` independently reports 0 at every N),
+but cite the per-N tables. **The unreconciled narrative figures are an instrument-record
+defect and are logged in HANDOFF_Q1.md §5.**
+
+**The two rounds named DIFFERENT suspects, and round 1's is alive at HEAD.** This block
+originally headlined "the prime suspect has been deleted", leaning on round 2's
+reattribution to `chunks.lance`'s full-file rewrite — which round 2 itself flags as
+`plausible_explanation_not_fully_isolated`. But **round 1's own contamination note
+attributes the stall to `graph.db`'s own connection**: "WAL mode … with no explicit
+`wal_autocheckpoint` override, so the default ~1000-page threshold triggers a blocking
+passive checkpoint **inside `populateFile`'s transaction** periodically". That
+component is untouched at HEAD. Neither suspect was isolated, and the deletion of one
+of them does not retire the other. The Lance-deletion framing is therefore **withdrawn
+as the headline**; it survives only as one of two candidate mechanisms.
+
+**Round 2's null covers a system that no longer exists either.** Round 2 was captured
+**2026-07-28** and was the F11 *sizing* measurement — it ran on a **pre-F11** build
+where every JIT refresh still serialized on `structure.lock` (its Arm A numbers are
+derived from `jit-staleness` lock events, a caller that post-F11 does not exist).
+F11 then removed the lock from the JIT path entirely, so readers and `populateFile`
+commits now overlap at the SQLite level in a topology **no WAL measurement has ever
+covered**. The symmetry is the point: this block's own "re-running would measure a
+different system" argument applies equally to round 2's null. Mitigating, and verified:
+F11 bounded the JIT write's own busy-wait at `IMMEDIATE_WRITE_BUSY_TIMEOUT_MS = 200` ms
+(`graph/populate.ts`), so the multi-second *busy-wait* stall class is designed out —
+but checkpoint work performed *inside* a commit is not bounded by `busy_timeout`, and
+that class is untouched.
+
+**What survives, and where it goes.**
+
+1. **Checkpoint cost at scale — MOVES to E1.** Every WAL measurement in this program was
+   taken on nest (~1,338 files). Nothing has measured checkpoint behaviour at the real
+   target (vscode: 138,440 chunks, 736 MB `graph.db`). Same reasoning that moved D6's
+   ms/file and parse-vs-index rows to E1; rides E1's pinned corpora at no extra corpus
+   cost.
+2. **HEAD-topology probe — ALSO to E1.** A WAL-backlog / checkpoint probe under
+   *concurrent readers* on the post-F11 build, which is the configuration nothing has
+   measured. This is a scope *addition* to E1 relative to what the D6 RESCOPE handed it.
+3. **Mechanism isolation — declined for the pre-F11 system, folded into (2) for HEAD.**
+   Isolating a mechanism that no longer reproduces on a build whose topology has since
+   changed is archaeology; the useful version of the question is (2), measured forward.
+4. **`wal_autocheckpoint` tuning remains untried.** Verified: `graph/db.ts` sets
+   `journal_mode = WAL`, `foreign_keys`, and `busy_timeout = 5000` and **never**
+   overrides `wal_autocheckpoint` (only a test uses `wal_checkpoint(TRUNCATE)`). Q6's
+   original suggestion should be evaluated against E1's numbers, not speculatively.
+
+**Two claims this block previously made that are WITHDRAWN as unsound.**
+
+- **The live-WAL "deferred checkpoint" datum.** Observed on the live index (14,605
+  chunks, `graph.db` 157 MB): `wal_autocheckpoint` = default 1000 pages (≈4 MB at
+  `page_size` 4096), on-disk `graph.db-wal` = 10.8 MB. This block previously read that
+  2.6× ratio as evidence that passive checkpoints are being *deferred*. **That
+  inference is unsound**: SQLite does not shrink the `-wal` file on a passive
+  checkpoint (it resets and reuses it), so the file size is a **high-water mark**, not
+  a backlog measurement — and the supporting "a long-lived `mast serve` reader holds a
+  snapshot" is asserted mechanism, not established (better-sqlite3 in autocommit holds
+  no snapshot between statements). If E1 carries a prior here it must be
+  `PRAGMA wal_checkpoint`'s result columns (busy / log / checkpointed), not file size.
+- **The dismissal of the `mast metrics --locks` lead.** D6's summarizer on live data
+  (as of this reading: **680** `index-run` cycles, hold p50 64 ms, p95 585 ms, **max
+  1,802 ms**; count drifts upward as index runs accumulate) shows a max inside Q6's
+  1.7–3 s band. This block previously dismissed it on the claim that "`index-run` takes
+  `structure.lock` once per `runIndex` call (`indexer/index.ts:181`)". **That claim is
+  false.** Line 181 is only the `caller: 'index-run'` label in the options literal;
+  `runIndex` acquires the lock at **four** sites — cleanup (`:214`), per pass-1 batch
+  (`:295`, commented "scoped to this batch only"), per pass-2 batch (`:365`), and the
+  manifest phase (`:377`). A cycle is therefore **per batch**, and 1,802 ms is a
+  per-batch hold, 2.4–3.5× round 2's Arm B `index-run` hold envelope on nest
+  (max 506–755 ms). Worse for the original dismissal: **round 1's own record
+  hypothesizes exactly this link** — large batch holds "appear to correlate more with
+  WAL-checkpoint stalls landing inside a batch transaction (compounding with normal
+  per-batch FTS cost) than with simple accumulated-version growth alone". The honest
+  statement is therefore **unattributed**: consistent with bulk batch work (the three
+  largest holds — 1,802 / 1,024 / 1,115 ms — are consecutive releases within ~3.5 s of
+  a single run, which fits batch work, not a periodic freeze), but **checkpoint-inside-
+  batch is not excluded**, and two later >1.1 s holds are isolated and unexplained.
+  Candidate mechanisms are at least three: batch volume, Q3's FTS-growth cost, and
+  checkpoint-inside-commit. E1's probe (2) is where this gets attributed.
+
+**Status change**: Q6 → **round-1 signature RETIRED for the measured pre-F11 system;
+HEAD topology UNMEASURED; both the scale row and a HEAD-topology checkpoint probe MOVE
+to E1.** Q6 is no longer an available "smaller alternative to E1" — not because it is
+closed, but because what remains of it can only be answered inside E1's ladder.
 
 ### Q1 — pre-registered experiment design (written 2026-08-01, BEFORE any arm was run)
 
