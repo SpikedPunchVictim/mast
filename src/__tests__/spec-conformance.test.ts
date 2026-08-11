@@ -220,6 +220,19 @@ describe('spec conformance — MAST_SPEC.md ↔ src/', () => {
     expect(example.schema_version).toBe(CURRENT_SCHEMA_VERSION);
   });
 
+  // D8 (IMPLEMENTATION_PLAN.md "D8 result"): §9's documented `mast_status`
+  // response advertises the running binary's schema version as an operator's
+  // only in-product signal that a long-lived server is executing a stale build
+  // against a since-migrated state dir. A spec example that drifts from the
+  // constant would make the one field that exists to expose staleness itself
+  // misleading — so it is pinned here, exactly as §5's index.json example is.
+  it('§9 mast_status output example schema_version ↔ CURRENT_SCHEMA_VERSION', () => {
+    const example = extractFencedJson(readSpec(), '**Output:** `StatusResult`') as {
+      schema_version: string;
+    };
+    expect(example.schema_version).toBe(CURRENT_SCHEMA_VERSION);
+  });
+
   it("§7.4 Step 3's constant prose (\"currently `\\\"1.3.0\\\"`\") ↔ CURRENT_SCHEMA_VERSION", () => {
     const spec = readSpec();
     const window = windowAfter(spec, '`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently');

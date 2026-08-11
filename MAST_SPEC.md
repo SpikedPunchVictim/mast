@@ -780,6 +780,7 @@ Options:
 Output:
 ```
 state_dir:      /workspace/.kluster/.mast
+schema_version: 1.3.0
 last_indexed:   2026-05-13T14:22:00Z (3 minutes ago)
 indexed_files:  142
 chunk_count:    1840
@@ -1645,6 +1646,7 @@ Index health snapshot.
 ```json
 {
   "state_dir": "/workspace/.kluster/.mast",
+  "schema_version": "1.3.0",
   "last_indexed": "2026-05-13T14:22:00Z",
   "indexed_files": 142,
   "chunk_count": 1840,
@@ -1656,6 +1658,18 @@ Index health snapshot.
   "seed_commit": "abc1234"
 }
 ```
+
+`schema_version` is `CURRENT_SCHEMA_VERSION` **as compiled into the running
+binary**, not the value stored in `index.json`. After a normal startup the two are
+identical, because §7.4 Step 2's guard wipes derived state on a mismatch; they
+diverge in exactly the situation this field exists to expose — a long-lived process
+still executing an older build while the state directory it holds open has since
+been migrated by a newer one. That case is invisible to every other field (the index
+looks healthy, because it *is* healthy — it is the server that is stale), and the
+startup guard cannot catch it because the guard only runs at startup. Reading the
+value off disk would report the migrated version and hide the divergence, so it is
+deliberately sourced from the binary's own constant. See IMPLEMENTATION_PLAN.md's
+"D8 result" for the incident that motivated it.
 
 `parse_errors` is the count of files skipped during the last index run due to tree-sitter
 parse failures; `write_errors` is the count skipped due to a chunk/graph/FTS write

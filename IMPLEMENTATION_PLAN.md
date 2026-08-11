@@ -2209,14 +2209,42 @@ restarted. Added to the §7 operational rule in HANDOFF_Q1.md.
 
 **The invariant codified** (§6: hunt the class, codify an invariant): **`pnpm -F mast
 build` joins the verification baseline** whenever a change must reach the running MCP
-server, and is recorded as such in HANDOFF_Q1.md §7. Deliberately NOT done: a product
-detector. The obvious candidates fail on their merits — `package.json` version is
+server, and is recorded as such in HANDOFF_Q1.md §7.
+
+**D8a (2026-08-11) — the product detector, first rejected then adopted on evidence.**
+This block originally declined a product-level detector: `package.json` version is
 `0.1.0` and unbumped across the whole sweep, so a version field in `mast_status` would
-not have fired; `schema_version` in `mast_status` would have fired here but only
-because F5 happened to bump it (F10/C1/D6 did not), so it detects one drift class and
-implies coverage of all of them. A dist-vs-src mtime assertion inside `vitest` fails
-vacuously or spuriously depending on whether `dist/` exists in the checkout. The gap
-was in the done-loop, and the fix belongs there.
+not have fired; `schema_version` would have fired here but only because F5 happened to
+bump it (F10/C1/D6 did not), so it detects one drift class while implying coverage of
+all of them; and a dist-vs-src mtime assertion inside `vitest` fails vacuously or
+spuriously depending on whether `dist/` exists in the checkout. **That reasoning was
+answered by use.** Asked "what version is the running mast MCP server?", the answer had
+to be reconstructed from a PID start time, a `dist` mtime, and a behavioural inference,
+with no in-product way to read it. The rejection optimised for what a detector
+*catches*; the question operators actually ask is *"which schema am I serving?"*, and
+nothing answered it.
+
+Shipped, red-first (`expected undefined to be '1.3.0'` before implementation):
+`StatusResult.schema_version`, on both `mast_status` and `mast status` (human and
+`--json`). **Sourced from the binary's `CURRENT_SCHEMA_VERSION` constant, never from
+`index.json`** — the two are equal after any normal startup because §7.4 Step 2's guard
+wipes on mismatch, and they diverge in precisely the case worth exposing: a long-lived
+process on an old image against a since-migrated state dir. Reading it off disk would
+report the migrated value and hide the divergence. Pinned by a D3 conformance
+assertion (§9's example ↔ the constant); D4's rule caught an `unknown` annotation in
+that very assertion — both standing instruments earning their keep on a change this
+small.
+
+**Scope stated honestly: this is detection, not remediation, and it is narrow.** It
+exposes schema-version drift only; a stale binary whose schema version happens to match
+(the F10/C1/D6 class) remains invisible, exactly as the original rejection argued — so
+`build` + restart stays the real guarantee, and this field is a diagnostic, not a
+safety net. Nothing here fixes the process-level problem, because nothing can from
+inside the server: a Node process cannot reload its own cached module graph, and a tool
+that exited to force a respawn could not report its own outcome — the stdio transport
+dies with the process. Lifecycle belongs to the supervisor (`mast serve` runs until its
+parent closes stdin, §8). The split is deliberate: **detection in-product, remediation
+at the client.**
 
 **Standing-obligation finding, recorded here because it is now measured.** The M2
 condition-5 organic harvest is **n = 0**. `metrics` in the live `graph.db` held **11

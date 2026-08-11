@@ -622,6 +622,18 @@ export type FreshnessCause = 'phase1_stale' | null;
 
 export interface StatusResult {
   readonly state_dir: string;
+  /**
+   * `CURRENT_SCHEMA_VERSION` as compiled into the **running binary** — not the
+   * value stored in `index.json`.
+   *
+   * After a normal startup the two are equal, because §7.4 Step 2's guard wipes
+   * derived state on a mismatch. They diverge in exactly the case worth
+   * detecting (D8): a long-lived process still executing an older build while
+   * the state directory it holds open has since been migrated by a newer one.
+   * Sourcing this from disk would report the migrated value and hide that
+   * divergence, so it is deliberately read from the binary's own constant.
+   */
+  readonly schema_version: string;
   readonly last_indexed: string | null;
   readonly indexed_files: number;
   readonly chunk_count: number;

@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { resolveConfig } from '../store/config.js';
+import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { loadIndexMeta, freshnessCause } from '../indexer/index.js';
 import { walkProject, diffManifest } from '../indexer/walker.js';
 import { existsSync, readFileSync } from 'node:fs';
@@ -34,6 +34,8 @@ export function registerStatusCommand(program: Command): void {
 
       const status = {
         state_dir:     config.resolved_state_dir,
+        // From the binary, never from index.json — see StatusResult.schema_version.
+        schema_version: CURRENT_SCHEMA_VERSION,
         last_indexed:  meta?.last_indexed ?? null,
         indexed_files: meta?.file_count ?? 0,
         chunk_count:   meta?.chunk_count ?? 0,
@@ -56,6 +58,7 @@ export function registerStatusCommand(program: Command): void {
 
       process.stdout.write([
         `state_dir:      ${status.state_dir}`,
+        `schema_version: ${status.schema_version}`,
         `last_indexed:   ${status.last_indexed ?? 'never'}${ago}`,
         `indexed_files:  ${status.indexed_files}`,
         `chunk_count:    ${status.chunk_count}`,
