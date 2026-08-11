@@ -2,6 +2,45 @@
 
 ---
 
+## ⚡ READ FIRST (2026-08-11) — the tool you are running may not be the code you are reading
+
+**`pnpm -F mast build` is part of the verification baseline.** The installed `mast`
+binary is a symlink into this repo's own gitignored `packages/mast/dist/`, and on
+2026-08-11 it was found **three days and one schema version stale** (built 08-07 at
+`1.2.0`; source was at `1.3.0`). Every agent session — including the MCP `mast_*`
+tools — had been running a build that predated the entire 08-08..08-10 sweep: F5, F4,
+F3, F10, M6, C1, F9 and D6's flags were in source and absent from the tool. Nothing
+caught it because the whole baseline is source-level (`vitest` transforms TS, `tsc
+--noEmit` emits nothing, `eslint src` and `align` read source) and `dist/` is
+gitignored, so it never appears in a diff. See IMPLEMENTATION_PLAN.md's **D8 result**
+for the full finding and why a product-level detector was rejected.
+
+**Consequence for E1 and any future measurement:** an instrument driven through `mast
+query` or the MCP surface measures whatever is in `dist/`, not HEAD. Rebuild and record
+the built schema version in the registration's evidence before running any tier, or the
+evidence is attributed to the wrong code version.
+
+**Rebuilt and verified 2026-08-11**: `dist` at `1.3.0`; the `1.2.0 → wipe → full
+reindex → 1.3.0` migration was exercised against a *copy* of the live state dir (never
+race a live one across a schema change while a server holds it open); `mast metrics
+--locks` and F5's qualified `Class.method` lookup both confirmed live on the rebuilt
+binary. **The live `.mast` still reads `1.2.0` and migrates on the next `mast serve`
+startup** — expect one full background reindex then.
+
+**Two facts surfaced in passing, both recorded in D8, neither fixed:**
+- The M2 condition-5 organic harvest is **n = 0** — the `metrics` table held 11 rows,
+  all predating the 08-07 clock start, none with `declex_json` set. The review fires
+  n ≥ 67 or **2026-11-05**; on this trajectory it lands on n = 0.
+- MAST_SPEC §14.3 claims batched metrics writes ("flushed every 1s or every 100 rows");
+  `recordToolCall` is a direct awaited insert. Same spec-drift class as the
+  `--session`/`--global` P3 item, and should be decided with it.
+
+**First lock data from D6's summarizer** (`mast metrics --locks`, 448 `index-run`
+cycles): hold **p50 65 ms, p95 666 ms, max 1,802 ms**. That max sits inside Q6's
+1.7–3 s stall band — a starting data point for whoever re-scopes Q6, not a conclusion.
+
+---
+
 ## ⚡ WORK QUEUE (2026-08-10) — refreshed after the remediation sweep; start here
 
 The remediation backlog is CLOSED except E1. Stages 1, 2, 3, 3.5, 4.5-S1 and all of
@@ -27,7 +66,9 @@ Q2, Q3, Q5 unblocked; E5 (`--checker` value); E6 (cross-language silent drop).
 
 **P3 — small recorded decisions awaiting an owner**: MAST_SPEC §14.6 documents
 `--session`/`--global` options `mast metrics` never implemented (found by D6,
-recorded not fixed — implement or trim the spec); the D7 corpus oracle's
+recorded not fixed — implement or trim the spec), and §14.3 documents batched
+metrics writes that `recordToolCall` does not implement (found by D8 — decide
+both together, they are one spec-drift class); the D7 corpus oracle's
 self-corpus distribution (866/2,155 ≈ 40% edge yield) is a baseline worth
 re-recording after any extractor change.
 
@@ -513,6 +554,10 @@ multi-seed T1 sensitivity.
 ## 7. Operational
 
 - **Run every script from `packages/mast`**, never the repo root.
+- **Verification baseline is `test` + `typecheck` + `lint` + `align:check` + `build`.**
+  The first four are source-level and cannot see the artifact agents actually run;
+  `pnpm -F mast build` refreshes the gitignored `dist/` the installed `mast` binary
+  symlinks to. Omitting it is what produced the D8 finding (2026-08-11).
 - **Off-repo assets: see `eval/ASSETS.md`** — what each contains, which experiment needs it,
   rebuild cost. ~590 MB of embedded state (pre-Q1/SCALE assets) = ~45 min compute; the
   Q1/SCALE vscode assets add substantially more — see `ASSETS.md`'s new entries (~7.4 h embed

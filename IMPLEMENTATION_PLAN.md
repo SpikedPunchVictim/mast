@@ -1620,6 +1620,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | D3 | Spec conformance: quarantine mechanism prose; add `spec-conformance.test.ts` with `// MAST_SPEC.md:NNN` citations | **Complete** — see D3 result below |
 | D4 | Test-assertion rule: no `unknown[]` in response type annotations; every returned array gets a content assertion | **Complete** — see D4 result below |
 | D5 | Adopt ADR directory (`.history` → numbered ADRs, `002-2026-07-22-name.md`, zero-padded) | **Complete** — see D5 result below |
+| D8 | Deploy freshness — the installed `mast` binary (`dist/`, gitignored) had drifted 3 days / one schema version behind `src/`, so no agent was running the shipped sweep; `build` added to the verification baseline | **Complete** — see D8 result below |
 
 **Success criteria**: two identical index runs produce identical edge sets; `eval/`
 runs against a pinned corpus; the three known false spec claims are either true,
@@ -2119,6 +2120,80 @@ deliberately NOT rewritten. Renames done with `git mv` (history preserved).
 Implemented directly by the managing session (file housekeeping, below the
 managed-agent threshold). Verification: full suite/typecheck/lint unaffected
 (no source changes), align 324→324 (+0).
+
+### D8 result (2026-08-11) — the shipped sweep was not the running tool; build added to the verification baseline
+
+**Found while verifying the inherited baseline, not by a test.** `which mast` resolves
+to `/opt/homebrew/bin/mast` → a symlink into this repo's own
+`packages/mast/dist/cli/index.js`. That artifact was **built 2026-08-07 13:53** and
+carried `CURRENT_SCHEMA_VERSION = '1.2.0'`, while `src/store/config.ts` was at
+`1.3.0`. The live `.mast/index.json` read `"schema_version": "1.2.0"`. So the binary
+that MCP — and therefore every agent session, including the one that found this —
+actually executed predated the whole 2026-08-08..08-10 sweep: F5 (qualified
+identifiers / 1.3.0), F3/F4, F10, M6, C1, F9, and D6's `--locks`/`--json`/percentile
+columns were in source and absent from the tool. `mast query` (D0) was present, having
+landed 08-07 before the build.
+
+**Why nothing caught it.** The verification baseline is entirely source-level —
+`vitest` runs TypeScript through its own transform, `tsc --noEmit` emits nothing by
+definition, `eslint src` never looks at output, and `align:check` reads source
+imports. `dist/` is gitignored, so the divergence is invisible in `git status` and in
+every diff review. The project's Definition of Done (`.claude/CLAUDE.md` §10) lists
+tests, typecheck, lint, and docs — **not the artifact agents run**. Every one of the
+sweep's 20 commits could therefore be honestly verified and still not reach the tool,
+and did not.
+
+**Severity, stated plainly.** This is the §6 "reports success wrongly" class. No
+shipped behaviour was wrong; the *record* was — the plan said these tools behaved as
+specified, and against the running binary they did not. The acute risk is to E1: a
+registered measurement driven through `mast query` or the MCP surface on a stale
+artifact would attribute evidence to the wrong code version, and no gate in the
+registration ceremony as currently written would notice.
+
+**Verified fix, end to end.** `pnpm -F mast build` → `dist` at `1.3.0`. Migration
+exercised against a **copy** of the live state dir (not the live one — this session's
+MCP server still held the old binary and an open connection, and racing two writers
+across a schema change is the exact hazard the guard exists to prevent):
+`mast serve` on the copy ran §7.4 Step 2's guard, wiped derived state, and full-
+reindexed to `schema_version: 1.3.0`. Post-migration spot checks on the rebuilt
+binary: `mast metrics --locks` (D6, 08-10) exists and reports; `mast query
+mast_callers '{"symbol":"SqliteChunkStore.replaceChunksForFile"}'` returns a populated
+`potential_matches` (declaration chunk + one call site) — the F5 behaviour that was
+structurally empty for every method query before 1.3.0. The copy's reindex covered 77
+files / 838 chunks rather than the repo's 1,830 because `serve` resolves
+`project_root` from cwd and correctly ignored the persisted absolute path (§4's
+path-portability rule, F9) — scope, not a defect.
+
+**The invariant codified** (§6: hunt the class, codify an invariant): **`pnpm -F mast
+build` joins the verification baseline** whenever a change must reach the running MCP
+server, and is recorded as such in HANDOFF_Q1.md §7. Deliberately NOT done: a product
+detector. The obvious candidates fail on their merits — `package.json` version is
+`0.1.0` and unbumped across the whole sweep, so a version field in `mast_status` would
+not have fired; `schema_version` in `mast_status` would have fired here but only
+because F5 happened to bump it (F10/C1/D6 did not), so it detects one drift class and
+implies coverage of all of them. A dist-vs-src mtime assertion inside `vitest` fails
+vacuously or spuriously depending on whether `dist/` exists in the checkout. The gap
+was in the done-loop, and the fix belongs there.
+
+**Standing-obligation finding, recorded here because it is now measured.** The M2
+condition-5 organic harvest is **n = 0**. `metrics` in the live `graph.db` held **11
+rows total** (8 `mast_search`, 3 `mast_exports`), **0 with `declex_json` set**, newest
+`2026-08-06T16:15:19Z` — every row predates the 08-07 deletion ship that started the
+clock, so none of them counts toward condition 5 and the schema wipe destroyed no
+harvest data (rows dumped before the wipe for the record). All eight primary read
+tools do call `recordToolCall`; `mast_status` deliberately does not. The review fires
+at n ≥ 67 **or 2026-11-05**, whichever comes first; on this trajectory it lands on
+n = 0, which the memo already names as itself a finding forcing a monitoring
+re-decision.
+
+**Noticed, not fixed (P3, same class as the `--session`/`--global` drift D6
+recorded).** MAST_SPEC §14.3 states metrics writes "are non-blocking … enqueued on a
+per-tick batch (flushed every 1s or every 100 rows, whichever comes first)".
+`recordToolCall` (`telemetry/metrics.ts`) is a direct `await`ed insert whose errors are
+swallowed — non-blocking to the *caller's* correctness, but not batched, and no flush
+window exists. The "worst-case data loss on abrupt exit is one flush window" claim
+therefore describes a mechanism that is not there. Left as found; it belongs with the
+P3 spec-drift decision, not in this fix.
 
 ### D0 — CLI query surface (raised P2 → P1 by the R3 review, §14.8 item 3)
 
