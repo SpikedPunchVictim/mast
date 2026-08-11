@@ -12,10 +12,11 @@ clean, align 324→324 (+0). Tree clean for `packages/mast`; the
 `.claude/skills/mcp` → `mcp-server-patterns` rename in the worktree is the project
 owner's, deliberately left unstaged.
 
-**Pending action for the operator:** restart `mast serve` so it picks up `f43a434`.
-Verification is now self-serving — `mast_status` reports `schema_version`, so a
-response carrying that field at all *is* the proof the restart took (the pre-D8a
-binary omits it entirely).
+**Operator restart: DONE 2026-08-11.** `mast serve` was restarted and `mast_status`
+returned `schema_version: "1.3.0"` — the field's mere presence is the proof, since the
+pre-D8a binary omits it entirely. The D8 loop is closed end to end (rebuild → restart →
+verified in-product). Index at that point: 1,830 files / 14,610 chunks, `stale_files:
+0`, `index_fresh: true`. **No operator action outstanding.**
 
 **DECISION TAKEN, not yet written into a registration — the one thing that lives
 nowhere else.** E1's scope was confirmed with the project owner:
