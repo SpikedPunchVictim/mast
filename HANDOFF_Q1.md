@@ -2,6 +2,49 @@
 
 ---
 
+## ⚡ SESSION STATE (2026-08-11, paused mid-track) — resume here
+
+**Committed this session:** `f401b4a` (D8 — the shipped sweep was not the running
+tool) → `e63c5cf` (Q6 RESCOPE) → `84100e2` (results-review corrections; the WAL
+withdrawal grounded in measurement) → `f43a434` (D8a — `schema_version` on
+`mast_status`). Baseline at pause: **629 tests / 45 files**, typecheck/lint/build
+clean, align 324→324 (+0). Tree clean for `packages/mast`; the
+`.claude/skills/mcp` → `mcp-server-patterns` rename in the worktree is the project
+owner's, deliberately left unstaged.
+
+**Pending action for the operator:** restart `mast serve` so it picks up `f43a434`.
+Verification is now self-serving — `mast_status` reports `schema_version`, so a
+response carrying that field at all *is* the proof the restart took (the pre-D8a
+binary omits it entirely).
+
+**DECISION TAKEN, not yet written into a registration — the one thing that lives
+nowhere else.** E1's scope was confirmed with the project owner:
+1. **All five rungs** — otel 902 / langchainjs 2,047 / strapi 3,600 / backstage 7,021
+   / **n8n 12,641**. Five points so the growth-law claim is falsifiable rather than a
+   two-point slope; n8n specifically because E7-r2 named it as the evidence that would
+   reopen the DEFERRED option-(d) overlay.
+2. **E2 folded into the SAME registration** — same pinned corpora, and D7's
+   `onCallSite` seam already computes the call-site denominator (self-corpus baseline
+   866/2,155). One design review and one results review cover both.
+
+**NEXT ACTION — write the E1/E2 pre-registration, then COMMIT IT BEFORE ANY RUN**
+(§6, non-negotiable). It must fix, up front: hypothesis; the five pinned corpora with
+their pin commits and off-repo locations per `eval/ASSETS.md`; falsification criteria;
+and the rows E1 has inherited —
+- from the D6 RESCOPE: ms/file growth law, parse-only vs full-index ratio, state-size
+  (graph.db bytes ÷ chunk_count) linearity;
+- from the Q6 RESCOPE: WAL checkpoint cost at scale, and a **HEAD-topology probe under
+  concurrent readers** (post-F11 — the configuration nothing has ever measured), whose
+  measured prior is `{busy:0, log:889, checkpointed:889}` on the live index, read via
+  `PRAGMA wal_checkpoint` (**not** `-wal` file size — that is a high-water mark, see
+  the Q6 RESCOPE);
+- from E2: `POTENTIAL_CALL`-by-`resolution` ÷ source-side call sites, per tier.
+Then: adversarial **design** review (Fable) → verify its claims → revise → build the
+instrument → run → adversarial **results** review. Structure the registration on
+Q1/SCALE's and Q1/DECLEX's (same file) — they are the house format.
+
+---
+
 ## ⚡ READ FIRST (2026-08-11) — the tool you are running may not be the code you are reading
 
 **`pnpm -F mast build` is part of the verification baseline.** The installed `mast`
