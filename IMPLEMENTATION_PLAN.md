@@ -2162,7 +2162,50 @@ mast_callers '{"symbol":"SqliteChunkStore.replaceChunksForFile"}'` returns a pop
 structurally empty for every method query before 1.3.0. The copy's reindex covered 77
 files / 838 chunks rather than the repo's 1,830 because `serve` resolves
 `project_root` from cwd and correctly ignored the persisted absolute path (§4's
-path-portability rule, F9) — scope, not a defect.
+path-portability rule, F9) — scope, not a defect. **The live state dir subsequently
+migrated on its own** at `2026-08-11T04:06:57Z` (`index.json` now `1.3.0`, 1,830
+files / 14,607 chunks) when its `mast serve` next restarted — the expected path, not
+a manual step.
+
+**What the stale binary contained — settled by the dist artifact, not by the git
+timeline.** The first draft justified `mast query`'s presence with "landed 08-07
+before the build", which the git record contradicts (D0 `3007e94` committed
+**14:36 -0700**, *after* the build's 13:53 mtime). Commit times cannot order against
+`dist` mtimes here. The **artifact** settles both questions, using a discriminator
+verified in this repo: the build is plain `tsc` with `tsconfig.tsbuildinfo`, and a
+sweep of all 54 modules found it re-emits **strictly on own-content change** with
+**zero** dependency-driven re-emits (`dist/mcp/register-tools.js` kept its 13:53 mtime
+though the tool modules it imports changed through 08-10). Therefore:
+
+- **D0 WAS in the stale binary, at final content.** `dist/cli/query.js`,
+  `dist/cli/index.js` and `dist/mcp/register-tools.js` all still carry **08-07 13:53**
+  mtimes — the 08-10 18:58 build skipped them — so their content at the 13:53 build
+  already equalled current committed content. This corroborates the direct empirical
+  check (`mast query mast_status '{}'` → valid JSON, exit 0, run against the stale
+  binary). The original claim was substantively right; only its stated reason was wrong.
+- **The stale binary was PRE-F11.** `dist/store/lock.js` **was** re-emitted at 18:58,
+  and F11 (`f4d730f`, 08-07 **17:08 -0700**) is the only commit that ever touched
+  `src/store/lock.ts` — so its content at the 13:53 build differed from post-F11
+  content. **Consequence: all agent/MCP usage from 08-07 to 08-10 ran the pre-F11
+  JIT-lock topology.** This bears directly on the Q6 RESCOPE — the post-F11 topology
+  has had almost no operational hours, reinforcing "HEAD unmeasured". (Residual
+  inference: a mid-edit `lock.ts` at 13:53 cannot be strictly excluded; D0 at 14:36
+  and F11 at 17:08 make clean pre-F11 content the only plausible timeline.)
+  `lock-metrics.jsonl` does not corroborate independently — it holds **zero**
+  `jit-staleness` events across its whole 08-01→08-11 span (1,360 events, all
+  `index-run`), consistent with pre-F11 *and* no JIT refresh ever firing here.
+
+**Operationally, D8 was NOT closed by the rebuild: rebuild ≠ restart.** Found by the
+results review's empirical pass and verified directly: `mast serve` **PID 38988
+started 2026-08-10 17:08:03 — 110 minutes BEFORE the 18:58 rebuild — and still holds
+the live `graph.db` open** (5 fds, confirmed by `lsof`). Node caches modules at
+startup, so that process keeps executing the **1.2.0 / pre-F11** image regardless of
+what `dist` now contains, while the state dir it is attached to has since migrated to
+**1.3.0**. That is precisely the stale-code-against-new-schema hazard §7.4's startup
+guard exists to prevent — and the guard cannot fire, because it only runs at startup.
+**Any state-dir migration must be paired with a server restart**, and a session that
+rebuilds `dist` mid-flight is still talking to the old code until its MCP server is
+restarted. Added to the §7 operational rule in HANDOFF_Q1.md.
 
 **The invariant codified** (§6: hunt the class, codify an invariant): **`pnpm -F mast
 build` joins the verification baseline** whenever a change must reach the running MCP
@@ -2725,6 +2768,23 @@ supplementary 150-call sequential probe run after the full sweep against an
 already-6.3 MB WAL), so no sub-threshold stall is hiding under a redefinition. P3 was
 a *counter-current* prediction (stalls get worse); it did not merely fail to fire.
 
+**Two caveats on that replication, both left standing rather than argued away.**
+(1) Round 2 has no *structured* per-N outlier field — the zero rests on Arm A's prose
+`variance_note` plus the P3 text, in a file whose *other* prose numbers are shown
+unreliable above; "identical field" overstates the symmetry, though the threshold and
+name do match. (2) The two rounds measure on **different planes**: round 2's Arm A
+numbers are server-derived from `lock-metrics.jsonl`, round 1 aggregated client-side
+wall clock. A mitigating argument was offered in review — that round 1's mechanism
+would have inflated round 2's `jit_hold_ms` (max 68 ms at N=1) regardless of plane —
+and was then **withdrawn by the reviewer on checking**: round 1 (`e7-concurrency.json`)
+contains **no `jit_hold` series at all** (only `index_run_hold_ms_this_window`), so the
+premise cannot be tested and the argument stacked inference on round 1's own
+attribution. **The plane caveat therefore stands un-mitigated.** What the data does say
+is narrower: round 1's N=1 `jit_wait max` was 2 ms, so the stall was not lock-*wait*.
+Settling it needs E1's probe to record client wall-clock **and** hold decomposition on
+the same calls — instrumentation round 2's `jit_hold_decomposition` shows already
+exists.
+
 **Call counts — do NOT quote P3's narrative figures.** `prediction_verdicts.
 P3_wal_checkpoint_stalls` states "2,367 Arm A + 5,340 Arm B". Those figures **do not
 reconcile with the same file's own per-N tables**: Arm A sums to **3,000**
@@ -2778,16 +2838,37 @@ that class is untouched.
 
 **Two claims this block previously made that are WITHDRAWN as unsound.**
 
-- **The live-WAL "deferred checkpoint" datum.** Observed on the live index (14,605
+- **The live-WAL "deferred checkpoint" datum — withdrawn, and the withdrawal is now
+  MEASURED, not argued from documentation.** Observed on the live index (14,605
   chunks, `graph.db` 157 MB): `wal_autocheckpoint` = default 1000 pages (≈4 MB at
   `page_size` 4096), on-disk `graph.db-wal` = 10.8 MB. This block previously read that
-  2.6× ratio as evidence that passive checkpoints are being *deferred*. **That
-  inference is unsound**: SQLite does not shrink the `-wal` file on a passive
-  checkpoint (it resets and reuses it), so the file size is a **high-water mark**, not
-  a backlog measurement — and the supporting "a long-lived `mast serve` reader holds a
-  snapshot" is asserted mechanism, not established (better-sqlite3 in autocommit holds
-  no snapshot between statements). If E1 carries a prior here it must be
-  `PRAGMA wal_checkpoint`'s result columns (busy / log / checkpointed), not file size.
+  2.6× ratio as evidence that passive checkpoints are being *deferred*. Experiments
+  with mast's own driver (better-sqlite3, same pragmas) settle it:
+  - A passive checkpoint **never shrinks** the `-wal`; it resets and reuses at the
+    high-water mark (`{busy:0, log:2450, checkpointed:2450}`, file 11.66 MB before
+    **and** after). Only `TRUNCATE` shrinks it (→ 0.00 MB).
+  - **A single 2,600-page transaction produced an 11.66 MB WAL with no reader ever
+    existing and nothing deferred** — reproducing the live signature from ordinary
+    write behaviour alone. So a 2.6×-over-threshold file is evidence of a past large
+    transaction and nothing more.
+  - The asserted mechanism is **false as stated**: a completed `.get()` in autocommit
+    leaves the next passive checkpoint fully unobstructed (1525/1525) — better-sqlite3
+    holds **no snapshot between statements**. An *open iterator* does pin checkpointing
+    (`checkpointed: 0`), released on close. Note for future readers: the reader-block
+    signal is the `checkpointed < log` gap, **not** the `busy` column, which stays 0.
+  **Verdict: the 10.8 MB observation is SILENT on deferral**, neither supporting nor
+  refuting it.
+- **First `PRAGMA wal_checkpoint` prior for E1 — measured on a copy of the live DB**
+  (`graph.db` + `-wal` + `-shm` all copied; copying only the `.db` silently drops WAL
+  contents). Result: **`{busy:0, log:889, checkpointed:889}`, wal 10.86 MB with
+  capacity for 2,635 frames but only 889 live frames (~3.6 MB) — UNDER the 1000-page
+  threshold.** The live WAL is ~66% dead space, a high-water mark consistent with the
+  08-10 21:06 full reindex, with **no over-threshold backlog**. The real 157 MB
+  database behaves exactly like the synthetic one (no truncation on passive; TRUNCATE
+  works). Honest caveat: opening a copy rebuilds the wal-index, so how many of the 889
+  the live server had already backfilled is unknowable from a copy — 889 is the
+  backlog **ceiling**, not necessarily its actual depth. E1 carries this reading, dated
+  2026-08-11.
 - **The dismissal of the `mast metrics --locks` lead.** D6's summarizer on live data
   (as of this reading: **680** `index-run` cycles, hold p50 64 ms, p95 585 ms, **max
   1,802 ms**; count drifts upward as index runs accumulate) shows a max inside Q6's
@@ -2802,12 +2883,21 @@ that class is untouched.
   hypothesizes exactly this link** — large batch holds "appear to correlate more with
   WAL-checkpoint stalls landing inside a batch transaction (compounding with normal
   per-batch FTS cost) than with simple accumulated-version growth alone". The honest
-  statement is therefore **unattributed**: consistent with bulk batch work (the three
-  largest holds — 1,802 / 1,024 / 1,115 ms — are consecutive releases within ~3.5 s of
-  a single run, which fits batch work, not a periodic freeze), but **checkpoint-inside-
-  batch is not excluded**, and two later >1.1 s holds are isolated and unexplained.
-  Candidate mechanisms are at least three: batch volume, Q3's FTS-growth cost, and
-  checkpoint-inside-commit. E1's probe (2) is where this gets attributed.
+  statement is therefore **unattributed**, and the first draft of this bullet got the
+  supporting data wrong in its own favour (caught by the results review, corrected
+  here by recomputation from the live `lock-metrics.jsonl`, 680 released cycles). The
+  five largest holds are **1,802 / 1,370 / 1,147 / 1,115 / 1,024 ms**. The burst
+  reading — "the three largest are consecutive releases within ~3.5 s of one run" — is
+  false: that burst (2026-08-01T03:52:27.715/29.130/30.483Z) is holds **#1, #5 and
+  #4**, while the **second and third largest are isolated** (1,370 ms on 08-07T18:21Z,
+  1,147 ms on 08-11T00:08Z, different runs entirely). The correction **strengthens**
+  the unattributed verdict rather than weakening it: the burst-fits-batch-work story
+  covers fewer of the large holds than claimed, and two of the top three are single
+  unexplained events. Candidate mechanisms remain at least three — batch volume, Q3's
+  FTS-growth cost, checkpoint-inside-commit — and E1's probe (2) is where this gets
+  attributed. For scale: round 2's Arm B `index_run` hold maxima on nest were
+  **485–755 ms** (N=1..8: 506 / 755 / 520 / 485), so 1,802 ms is **2.4–3.7×** that
+  envelope.
 
 **Status change**: Q6 → **round-1 signature RETIRED for the measured pre-F11 system;
 HEAD topology UNMEASURED; both the scale row and a HEAD-topology checkpoint probe MOVE

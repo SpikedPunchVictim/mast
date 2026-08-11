@@ -24,8 +24,21 @@ evidence is attributed to the wrong code version.
 reindex → 1.3.0` migration was exercised against a *copy* of the live state dir (never
 race a live one across a schema change while a server holds it open); `mast metrics
 --locks` and F5's qualified `Class.method` lookup both confirmed live on the rebuilt
-binary. **The live `.mast` still reads `1.2.0` and migrates on the next `mast serve`
-startup** — expect one full background reindex then.
+binary. The live `.mast` has since migrated — `index.json` read `1.3.0` at
+`2026-08-11T04:06:57Z` (1,830 files / 14,607 chunks).
+
+🔴 **REBUILD ≠ RESTART — action outstanding.** A `mast serve` (PID 38988) started
+**2026-08-10 17:08:03**, *before* the 18:58 rebuild, and still holds the live
+`graph.db` open (5 fds). Node caches modules at startup, so it is executing the
+**1.2.0 / pre-F11** image against a state dir that has since migrated to 1.3.0 — the
+exact stale-code-vs-new-schema hazard §7.4's startup guard exists to prevent, which
+the guard cannot catch because it only runs at startup. **Restart the MCP server
+before trusting any `mast_*` result**, and pair every future migration with a restart.
+Artifact evidence also settles what that binary contained: `dist/store/lock.js` was
+re-emitted by the 18:58 build and F11 is the only commit that ever touched
+`src/store/lock.ts`, so **the binary every agent used 08-07→08-10 was pre-F11** — the
+post-F11 JIT topology has had almost no operational hours, which is why the Q6 RESCOPE
+treats HEAD as unmeasured.
 
 **Two facts surfaced in passing, both recorded in D8, neither fixed:**
 - The M2 condition-5 organic harvest is **n = 0** — the `metrics` table held 11 rows,
@@ -37,12 +50,14 @@ startup** — expect one full background reindex then.
 
 **First lock data from D6's summarizer** (`mast metrics --locks`; 680 `index-run`
 cycles at last reading, count grows as runs accumulate): hold **p50 64 ms, p95 585 ms,
-max 1,802 ms**. That max sits inside Q6's 1.7–3 s stall band. It is **unattributed** —
-a cycle is per *batch*, not per run (`runIndex` takes `structure.lock` at four sites),
-so it is consistent with bulk batch work, but round 1's own record links large batch
-holds to "WAL-checkpoint stalls landing inside a batch transaction" and that is not
-excluded. Cite it neither as a surviving Q6 nor as dismissed; see the plan's Q6
-RESCOPE block.
+max 1,802 ms**, against round 2's 485–755 ms Arm B envelope on nest. That max sits
+inside Q6's 1.7–3 s stall band. It is **unattributed** — a cycle is per *batch*, not
+per run (`runIndex` takes `structure.lock` at four sites), so it is consistent with
+bulk batch work, but round 1's own record links large batch holds to "WAL-checkpoint
+stalls landing inside a batch transaction" and that is not excluded. The five largest
+holds are 1,802 / 1,370 / 1,147 / 1,115 / 1,024 ms, and **#2 and #3 are isolated
+single events on different days** — only #1/#4/#5 form the one burst. Cite it neither
+as a surviving Q6 nor as dismissed; see the plan's Q6 RESCOPE block.
 
 ---
 
@@ -573,6 +588,20 @@ multi-seed T1 sensitivity.
   The first four are source-level and cannot see the artifact agents actually run;
   `pnpm -F mast build` refreshes the gitignored `dist/` the installed `mast` binary
   symlinks to. Omitting it is what produced the D8 finding (2026-08-11).
+- **`build` is not enough on its own — restart `mast serve` too.** Node caches modules
+  at startup, so a running server keeps executing the image it booted with no matter
+  what `dist` now holds (D8: PID 38988 ran the 1.2.0/pre-F11 image for hours after the
+  rebuild, attached to a 1.3.0 index). Pair any rebuild or schema migration with a
+  server restart before trusting `mast_*` output.
+- **Copy `graph.db` + `-wal` + `-shm` together** when snapshotting a state dir for
+  analysis. Copying only the `.db` silently drops WAL contents — the same class of trap
+  as `?mode=ro&immutable=1` below, and the `ab-state` snapshot in `eval/ASSETS.md`
+  documents it costing a session a false "the write path is broken" conclusion.
+- **A large `graph.db-wal` is a high-water mark, not a backlog** (measured 2026-08-11,
+  Q6 RESCOPE): passive checkpoints reset and reuse the file without truncating it, and
+  a single large transaction produces an oversized WAL with no reader and nothing
+  deferred. To read actual backlog use `PRAGMA wal_checkpoint`'s columns, and note the
+  reader-block signal is `checkpointed < log`, **not** `busy` (which stays 0).
 - **Off-repo assets: see `eval/ASSETS.md`** — what each contains, which experiment needs it,
   rebuild cost. ~590 MB of embedded state (pre-Q1/SCALE assets) = ~45 min compute; the
   Q1/SCALE vscode assets add substantially more — see `ASSETS.md`'s new entries (~7.4 h embed
