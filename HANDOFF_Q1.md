@@ -7,10 +7,10 @@
 **Committed this session:** `f401b4a` (D8 — the shipped sweep was not the running
 tool) → `e63c5cf` (Q6 RESCOPE) → `84100e2` (results-review corrections; the WAL
 withdrawal grounded in measurement) → `f43a434` (D8a — `schema_version` on
-`mast_status`). Baseline at pause: **629 tests / 45 files**, typecheck/lint/build
-clean, align 324→324 (+0). Tree clean for `packages/mast`; the
-`.claude/skills/mcp` → `mcp-server-patterns` rename in the worktree is the project
-owner's, deliberately left unstaged.
+`mast_status`) → `219587d` (session state + confirmed E1/E2 scope) → `19f5542` (D8
+restart loop closed) → **the E1/E2 pre-registration**. Baseline: **629 tests / 45
+files**, typecheck/lint/build clean, align 324→324 (+0). Tree clean for
+`packages/mast`.
 
 **Operator restart: DONE 2026-08-11.** `mast serve` was restarted and `mast_status`
 returned `schema_version: "1.3.0"` — the field's mere presence is the proof, since the
@@ -18,31 +18,33 @@ pre-D8a binary omits it entirely. The D8 loop is closed end to end (rebuild → 
 verified in-product). Index at that point: 1,830 files / 14,610 chunks, `stale_files:
 0`, `index_fresh: true`. **No operator action outstanding.**
 
-**DECISION TAKEN, not yet written into a registration — the one thing that lives
-nowhere else.** E1's scope was confirmed with the project owner:
-1. **All five rungs** — otel 902 / langchainjs 2,047 / strapi 3,600 / backstage 7,021
-   / **n8n 12,641**. Five points so the growth-law claim is falsifiable rather than a
-   two-point slope; n8n specifically because E7-r2 named it as the evidence that would
-   reopen the DEFERRED option-(d) overlay.
-2. **E2 folded into the SAME registration** — same pinned corpora, and D7's
-   `onCallSite` seam already computes the call-site denominator (self-corpus baseline
-   866/2,155). One design review and one results review cover both.
+**E1/E2 PRE-REGISTRATION: WRITTEN AND COMMITTED 2026-08-11**, before any measurement,
+per §6. It lives in IMPLEMENTATION_PLAN.md as the last Stage 4 block ("E1/E2 — the
+scaling ladder and call-graph denominators: PRE-REGISTRATION"). The owner-confirmed
+scope it encodes: all five rungs, E2 folded in on the same corpora and the same builds.
+What it fixes, and what a resuming session must NOT re-decide:
+- **Five pin SHAs**, committed with the registration. The remembered file counts (902 /
+  2,047 / 3,600 / 7,021 / 12,641) have **no provenance in the plan** and today's
+  checkouts give 1,059 / 2,153 / 4,895 / 7,645 / 19,056 — the x-axis is the count
+  `runIndex` actually indexes at the pin, read from `graph.db`, never stdout.
+- **Decision-bearing test, E1:** growth exponent `b` from `total_ms = a·N^b`, exposure =
+  **chunk count** (not files), clustered BCa CI, threshold **b = 1.35** (above the
+  expected `N log N` effective 1.12, far below quadratic). Sized to detect a quadratic
+  regression, NOT to resolve b=1.0 vs b=1.2 — that limitation is registered.
+- **Decision-bearing test, E2:** §10.3.1's 60–80% band; UNSUPPORTED requires **all five**
+  rungs to miss, because the investigator's prior (mast's own src = 40%) already favours
+  UNSUPPORTED.
+- **Gate 0 is the D8 gate** — build first, record `schema_version`, invoke the binary by
+  absolute path, void any run whose version disagrees. Every `eval/*.mjs` imports from
+  `../dist/` directly, so the harness carries D8's exact exposure.
 
-**NEXT ACTION — write the E1/E2 pre-registration, then COMMIT IT BEFORE ANY RUN**
-(§6, non-negotiable). It must fix, up front: hypothesis; the five pinned corpora with
-their pin commits and off-repo locations per `eval/ASSETS.md`; falsification criteria;
-and the rows E1 has inherited —
-- from the D6 RESCOPE: ms/file growth law, parse-only vs full-index ratio, state-size
-  (graph.db bytes ÷ chunk_count) linearity;
-- from the Q6 RESCOPE: WAL checkpoint cost at scale, and a **HEAD-topology probe under
-  concurrent readers** (post-F11 — the configuration nothing has ever measured), whose
-  measured prior is `{busy:0, log:889, checkpointed:889}` on the live index, read via
-  `PRAGMA wal_checkpoint` (**not** `-wal` file size — that is a high-water mark, see
-  the Q6 RESCOPE);
-- from E2: `POTENTIAL_CALL`-by-`resolution` ÷ source-side call sites, per tier.
-Then: adversarial **design** review (Fable) → verify its claims → revise → build the
-instrument → run → adversarial **results** review. Structure the registration on
-Q1/SCALE's and Q1/DECLEX's (same file) — they are the house format.
+**NEXT ACTION — adversarial *design* review (Agent tool, model `fable`) against the
+registration as committed.** Then **verify the reviewer's claims yourself** (it has been
+wrong before, and in this session five of seven review errors ran in the investigator's
+favour) → revise the registration in place with an AMENDMENT log, per the Q1/SCALE
+precedent (no data exists yet, so in-place revision is correct) → pin the worktrees →
+build the instrument → run → adversarial *results* review. **No measurement may run
+before the design review is answered.**
 
 ---
 
@@ -112,16 +114,15 @@ Stage 4 except E1 are Complete (20 commits, `6913ba4..252be45`; per-item result
 blocks with red-first evidence live in IMPLEMENTATION_PLAN.md — that file is the
 detailed record; this queue is only the pointer). What remains, prioritized:
 
-**P1 — E1, the scaling ladder (Stage 4)** — the only open Stage 4 item, and the
-only remaining item with a formal ceremony: it is a MEASUREMENT, so per §6 it
-requires pre-registration in IMPLEMENTATION_PLAN.md (hypothesis, tiers,
-falsification criteria) committed BEFORE running, an adversarial design review AND
-results review (Agent tool, model "fable" — verify the reviewer's claims), and
-external corpora (otel 902 / langchainjs 2,047 / strapi 3,600 / backstage 7,021;
-n8n 12,641 now unblocked post-M1). It inherits the corpus-pinning requirement and
-the rows the D6 RESCOPE moved to it (ms/file growth law, parse-vs-index ratio,
-state-size linearity). D7's `onCallSite` seam is the ready-made call-site
-instrumentation hook; E2 (call-graph denominators) can ride the same registration.
+**P1 — E1/E2, the scaling ladder + call-graph denominators (Stage 4)** — the only
+open Stage 4 item and the only one with a formal ceremony. **Pre-registration WRITTEN
+and COMMITTED 2026-08-11** (IMPLEMENTATION_PLAN.md, last Stage 4 block), so the §6
+"registered before any run" obligation is discharged. Remaining ceremony: adversarial
+**design** review (Agent tool, model "fable" — then verify its claims yourself),
+in-place amendment, then build → run → adversarial **results** review. Five pinned
+rungs (otel / langchainjs / strapi / backstage / n8n, SHAs in the registration); E2
+rides the same corpora and the same builds via D7's `onCallSite` seam. See the SESSION
+STATE block at the top for what the registration fixes and must not be re-decided.
 
 **P2 — Stage 4.5 scale levers and Stage 5 open questions**: ~~Q6~~ **RESCOPED
 2026-08-11 and no longer a standalone item** — round-1's stall signature is measured
