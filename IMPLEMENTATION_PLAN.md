@@ -2545,15 +2545,43 @@ corpus and the build are shared. A void on one side does not void the other.
   `super.`). That number stays as recorded; E2 measures external corpora, which is exactly
   what Stage 3's "What is explicitly NOT claimed" note deferred to here.
 
-#### Corpora — five rungs, pinned now, counts re-measured
+#### Corpora — a nested ladder inside one corpus, plus a replication panel
 
-| rung | repo | pin (this registration commits these SHAs) |
-|---|---|---|
-| 1 | `open-telemetry/opentelemetry-js` | `7f3e7eaa9f6b` |
-| 2 | `langchain-ai/langchainjs` | `62fc484b2a0d` |
-| 3 | `strapi/strapi` | `0a8a9b40d064` |
-| 4 | `backstage/backstage` | `25463a867ce7` |
-| 5 | `n8n-io/n8n` | `9d9e9bf97e8a` |
+**AMENDED 2026-08-11 (A1-F3, A1-F1) — see AMENDMENT 1. The original design made five
+unrelated repos the decision-bearing axis. It no longer does.**
+
+**Decision-bearing axis (E1): five seeded nested file subsets of `n8n` at
+`9d9e9bf97e8a`**, strict supersets `T1 ⊂ T2 ⊂ T3 ⊂ T4 ⊂ T5`, targeting ≈1k / 2k / 5k /
+8k / all indexed files. This is the Q1/SCALE recipe verbatim (that registration's own
+words: "Single-point measurement at full scale confounds corpus content with corpus
+scale"), executed with the proven tooling already in this repo — `eval/make-subset.mjs`,
+`eval/scale-build-tiers.mjs`. Construction: seeded shuffle (**seed = 811**, committed
+with this registration) of the full indexed file list; take file prefixes whose
+cumulative **chunk** counts land nearest the targets; T5 = every indexed file. Across
+tiers the only thing varying in expectation is corpus *mass* — the quantity a growth law
+is about — not corpus *kind*.
+
+**Replication panel (E1 supporting, E2 external validity): the five repos, pinned now.**
+
+| rung | repo | pin (this registration commits these SHAs) | role |
+|---|---|---|---|
+| P1 | `open-telemetry/opentelemetry-js` | `7f3e7eaa9f6b` | replication |
+| P2 | `langchain-ai/langchainjs` | `62fc484b2a0d` | replication |
+| P3 | `strapi/strapi` | `0a8a9b40d064` | replication |
+| P4 | `backstage/backstage` | `25463a867ce7` | replication |
+| P5 | `n8n-io/n8n` | `9d9e9bf97e8a` | replication; also the tier ladder's source |
+| **N** | **`nestjs/nest`** | **`f7fffd6`** (already pinned, `eval/ASSETS.md`) | **E2 decision-bearing** |
+
+**Why `nest` carries E2** (A1-F1): §10.3.1's coverage band is explicitly scoped to "a
+Fastify + DI service codebase," and **none** of P1–P5 depends on `fastify` — verified by
+searching every non-`node_modules` `package.json` to depth 4 in all five checkouts. Nest
+ships 3 fastify-bearing packages and 48 DI-bearing ones, is already pinned, and is this
+project's established honest-broker corpus ("the only corpus nobody here tuned anything
+against", `eval/ASSETS.md`). **Registered caveat, stated before measuring:** nest is a DI
+*framework*, not a DI *service* built on one. Its call shapes are plausibly more
+metaprogrammatic than the spec's referent. This makes nest the best available test of the
+band and still an imperfect one; the verdict language below is scoped accordingly, and
+adding a genuine Fastify+DI *service* corpus sits in the Design Reserve.
 
 Pinned via `git worktree add --detach <sha>` per `eval/ASSETS.md` (**never `rm -rf` to
 remove — `git worktree remove`**). Source checkouts live at `~/temp/enterprise-apps/`;
@@ -2561,28 +2589,47 @@ those are live working copies at whatever HEAD `update-repos.mjs` last left, whi
 precisely why the ladder measures detached worktrees at the SHAs above and not the
 checkouts themselves.
 
-**The remembered file counts are not evidence.** The Stage 4 E1 row quotes otel 902 /
+**Index configuration is pinned too** (A1-F9). Every run indexes under `resolveConfig`'s
+**defaults as of this commit, with no overrides** — `file_extensions` `['.ts','.tsx',
+'.js','.jsx','.md']`, `exclude_patterns` `['**/node_modules/**','**/dist/**',
+'**/coverage/**','.kluster/**','**/*.test.ts','**/*.spec.ts']` (`store/config.ts:39-48`).
+The resolved config is recorded in every run manifest. An unpinned config is a free lever
+over `N` itself; note in particular that `.md` **is** indexed and that `*.test.js` /
+`*.spec.js` are **not** excluded, so neither the "source files" intuition nor the raw
+`find` below describes what actually gets indexed.
+
+**No remembered file count is evidence.** The Stage 4 E1 row quotes otel 902 /
 langchainjs 2,047 / strapi 3,600 / backstage 7,021 / n8n 12,641. Those figures have **no
-provenance anywhere in this plan** — no result block produces them — and a raw `find` over
-today's checkouts gives **1,059 / 2,153 / 4,895 / 7,645 / 19,056** `.ts/.tsx/.js/.jsx`
-files outside `node_modules`. Neither set is the measurement. The ladder's x-axis is **the
-count `runIndex` actually indexed at the pinned commit**, read from `graph.db` at Gate 1
-and recorded per rung. The remembered figures are retained only as evidence that the rungs
-are ordered and roughly log-spaced; if a realized count reorders the ladder, the ladder is
-re-ordered by realized count and the discrepancy logged as a finding.
+provenance anywhere in this plan** — no result block produces them — and a raw `find` for
+`.ts/.tsx/.js/.jsx` outside `node_modules` over today's checkouts gives **1,059 / 2,153 /
+4,895 / 7,645 / 19,056**. **Neither set is the measurement, and the `find` figures are the
+wrong anchor in both directions** (A1-F9): they count test files the config excludes and
+omit the `.md` files it includes. The ladder's x-axis is **the count `runIndex` actually
+indexed under the pinned config**, read from `graph.db` at Gate 1 and recorded per tier and
+per panel rung. The quoted figures are retained only to show the panel is roughly
+log-spaced; a realized count that reorders it re-orders the panel, and the discrepancy is
+logged as a finding.
 
 This inherits Q1/SCALE's corpus-truth lesson literally: that experiment's headline count
 was the CLI stdout counter and was wrong by 14,529 chunks. **Ground truth is a `SELECT
 COUNT(*)` against `graph.db`, never stdout.**
 
-#### Design — cold builds, randomized rung order, three repetitions
+#### Design — cold builds, randomized run order, three repetitions
 
-Each **run** = one rung × one repetition, into a **fresh state dir**, never `--incremental`.
-Three repetitions per rung; 15 runs. Run order is a **committed seeded shuffle** over the
-15 (rung, rep) pairs, so corpus size cannot align with OS page-cache warmth or thermal
-drift — at this ladder's timescale (seconds to a minute per run) those are the dominant
-non-corpus variance sources, and a naive small-to-large ordering would confound them with
-the exposure variable exactly.
+Each **run** = one corpus (tier or panel rung) × one repetition, into a **fresh state
+dir**, never `--incremental`. Three repetitions each: 5 tiers × 3 = **15 decision-bearing
+runs**, plus 6 panel corpora × 3 = **18 replication runs**. Run order is a **committed
+seeded shuffle (seed = 811)** over all 33 (corpus, rep) pairs, so corpus size cannot align
+with OS page-cache warmth or thermal drift — at this timescale (seconds to a minute per
+run) those are the dominant non-corpus variance sources, and a naive small-to-large
+ordering would confound them with the exposure variable exactly.
+
+**Fixed-overhead calibration run** (A1-F4a): before the shuffle, the harness performs
+**10 index runs against an empty corpus** (a directory with zero indexable files). Their
+median `durationMs` is `c` — `runIndex`'s own fixed cost (walk setup, `loadIndexMeta`,
+`openDatabase`) with zero indexing work in it. `c` is recorded in the manifest and used by
+the estimator below. Without it the pure power law absorbs an additive constant and biases
+`b` **downward**, which flatters HOLDS.
 
 #### Measured rows
 
@@ -2602,18 +2649,65 @@ the spike era, not from a shipped flag. The harness therefore builds its own par
 (walk → read → tree-sitter parse → `extractChunks`/`extractEdges`, no `graph.db` opened,
 no writes) over the identical file list. **This is a harness reimplementation of Phase 1's
 parse half, not a product mode**, and the ratio inherits whatever drift the
-reimplementation carries. Gate 2 is what makes it usable: the parse pass must produce the
-**exact same chunk count and edge count** as the full index for that rung, or R2 is void
-for that rung. Adding a `--parse-only` flag to the product to serve a measurement is
-out of scope — E1 is an experiment, not a feature.
+reimplementation carries. Gate 2 is what makes it usable. Adding a `--parse-only` flag to
+the product to serve a measurement is out of scope — E1 is an experiment, not a feature.
 
-**E1-R5 construction, and the honest limitation.** The probe runs against a rung's
+**Gate 2 no longer checks edge count** (A1-F2). The original text required the parse pass
+to match the full index on chunk count **and edge count**. That is structurally
+impossible: `insertEdges` silently drops every edge whose from/to name fails DB resolution
+(`graph/populate.ts:425` TSDoc; drop sites `:537`, `:543`) and dedupes on `PRIMARY KEY
+(from_id, to_id, edge_type)` via `.onConflict(doNothing())` (`populate.ts:556-567`,
+`graph/db.ts:257`), so N call sites between one symbol pair collapse to one row and every
+call into an external package vanishes. No product-side extractor-level edge counter
+exists. The gate would therefore have voided R2 on every corpus, or been "satisfied" by
+the harness comparing its own extraction to its own extraction — proving nothing.
+**Registered consequence:** R2's ratio covers Phase 1's parse half only and **excludes
+pass-2 name resolution and edge insertion by construction**. It is a parse-vs-write-path
+ratio over the chunk pipeline, not over the whole index, and is read as nothing more.
+
+**E1-R5 construction, and the honest limitation.** The probe runs against an
 **already-built, warm state dir** while a *second* full index writes into it — the
 production topology (`mast serve` holding readers open while a reindex runs), and the
-post-F11 configuration nothing has ever measured. K = 4 concurrent reader processes issue
-`mast query mast_search <json>` in a loop, each recording per-call wall clock. Reading
-against a state dir mid-*first*-build would return `index_empty`, which is a confidence
-signal, not a latency measurement.
+post-F11 configuration nothing has ever measured. Reading against a state dir
+mid-*first*-build would return `index_empty`, which is a confidence signal, not a latency
+measurement.
+
+**Registered, after A1-F6 — the parameters the first draft left free:**
+- **Corpora: T1 and T5** (the ladder's smallest and largest). Running only a small corpus
+  is the one configuration where the ABSENT branch is easily reachable, and leaving the
+  choice open was a free lever toward retirement.
+- **K = 4 concurrent readers**, and this is an admitted convenience, not a derived number
+  — rounds 1–2 swept N ∈ {1..8}. K = 4 sits mid-sweep; a sensitivity sweep is in the
+  Design Reserve.
+- **Minimum 400 scored reader calls per corpus**, paced at one call per reader per 250 ms,
+  extending the writer's work with repeat indexes if needed to reach the count. Without a
+  registered denominator, "≥ 1% of calls" over a few dozen calls degenerates to "any single
+  call."
+- **Query payload:** the 10 probe queries frozen for Q1/SCALE (`eval/scale-queries.json`),
+  cycled — an existing committed query set, so no new query construction enters here.
+- **Per-corpus idle baseline, measured first:** the same K readers, same payload, same
+  count, with **no writer running**. The stall metric is **excess over that corpus's own
+  idle baseline**, not an absolute number.
+
+**Why the thresholds moved** (A1-F6a/b). The original registered 1,700 ms; round 1's own
+instrument field is `wal_checkpoint_outliers_gt_1500ms` (verified in
+`eval/e7-concurrency.json` and `eval/e7-round2.json`), so **1,500 ms** is the measured
+signature's own threshold and is what this registration now uses — the looser number
+flattered retirement for no stated reason. The original's other bound, 755 ms, was
+imported from round 2's Arm B **server-side lock-hold** envelope on **nest** at **~1.3k
+files** on a **pre-F11** build, and compared against **client wall clock of `mast query`
+CLI processes** — a different plane, corpus, scale, and build. Each `mast query` call is a
+fresh node process that resolves config, opens the DB and registers all tools
+(`cli/query.ts:79-113`), so at T5 scale it can plausibly exceed 755 ms with zero stalls.
+**That bound is withdrawn** and replaced by the idle-baseline comparison above.
+
+**Reader lifecycle, stated as an unargued gap.** Production's topology is `mast serve`
+holding connections open; the probe uses process-per-call CLI readers, which rebuild the
+wal-index and reopen the DB every call. `mast query` does dispatch through the real MCP
+handlers (`cli/query.ts:142-155`), so the *read path* is the shipped one — but the
+*connection lifecycle* is not, and that is exactly the dimension a WAL probe is sensitive
+to. Registered as a known external-validity limit of R5, not resolved.
+
 **There is no non-invasive in-flight backlog probe.** `PRAGMA wal_checkpoint(PASSIVE)`
 *performs* the checkpoint work it would be observing, so sampling it during the write
 would measure the instrument. Backlog is therefore read **at run boundaries only** (before
@@ -2621,12 +2715,39 @@ the write starts, after it completes); during the write the observables are read
 and `mast metrics --locks` hold/wait distributions, both non-invasive. This limitation is
 registered, not discovered later.
 
+**Direction-of-error statement for R5** (A1-F6f, absent from the first draft): the
+investigator's effective prior is **retirement** — round 2 measured the signature absent,
+and the Q6 RESCOPE already retired it for the pre-F11 system. Every free parameter the
+first draft left open (threshold, corpus, denominator) leaned that way. The ABSENT branch
+therefore carries the harder requirement: both corpora, the full 400-call minimum, and the
+idle-baseline comparison, not an absolute threshold that scale alone could satisfy.
+
 #### Exactly one decision-bearing test per experiment
 
-**E1 — the growth exponent.** Fit `total_index_ms = a · N^b` by OLS on log–log over the 15
-runs; `b` is the growth exponent, `b = 1` is linear (cost per unit flat). Report `b` with a
-seeded **BCa bootstrap 95% CI (10,000 resamples), clustering on rung** — the three
-repetitions within a rung share a corpus and are not independent draws.
+**E1 — the growth exponent.** Fit `(durationMs − c) = a · N^b` by OLS on log–log over the
+**15 tier runs**; `b` is the growth exponent, `b = 1` is linear (cost per unit flat).
+
+**The fitted clock is `runIndex`'s own `durationMs`** (`indexer/index.ts:173` → `:414`),
+not the external wall clock (A1-F4c — the first draft named two sources and fitted
+neither, which is a free lever). `c` is the calibration constant measured above. Both the
+**adjusted** fit (`durationMs − c`) and the **raw** fit (`durationMs`) are reported; **if
+they land on opposite sides of 1.35 the verdict is AMBIGUOUS**, which removes the choice
+between them as a post-hoc lever.
+
+**Estimator** (A1-F4b — 5-cluster BCa is withdrawn as unsound; its acceleration constant
+comes from a delete-one jackknife over five values, ~10% of cluster resamples contain ≤ 2
+distinct tiers and ~0.16% contain one, for which the slope is undefined, and the first
+draft registered no handling for degenerate resamples):
+- **Primary: OLS over the 15 tier runs with HC3 heteroscedasticity-robust standard errors**
+  (df = 13), 95% CI on `b`. The nested design is what licenses this — tiers are subsets of
+  one corpus, so a tier's cost is a fixed quantity plus run-to-run noise, not a draw from a
+  population of corpora.
+- **Sensitivity, reported always: a wild cluster bootstrap over the 5 tiers** (Rademacher
+  weights, 10,000 draws, seed 811). **If the primary and the sensitivity land on opposite
+  sides of 1.35, the verdict is AMBIGUOUS.**
+- The **replication panel** (6 corpora × 3 reps) is fitted the same way and reported, but
+  is **supporting only and never carries a verdict** — content confounds scale across
+  unrelated repos, which is the whole reason the decision-bearing axis is nested.
 
 **The exposure variable is `chunk_count`, not file count.** `b_chunk` is decision-bearing;
 `b_file` is supporting. Reason: the write path scales in chunks — the O(n²) pathology
@@ -2638,32 +2759,55 @@ would fold content variation into the scale estimate. Both are reported.
 
 | observed | verdict |
 |---|---|
-| `b_chunk` BCa 95% CI **upper** bound < 1.35 | **O(N) HOLDS at ladder scale.** Stage 2's regression proof extends from ~5k to the ladder's top rung. |
-| `b_chunk` BCa 95% CI **lower** bound > 1.35 | **SUPER-LINEAR REGRESSION.** M1's O(N) claim does not extend; Stage 2 reopens as a scale defect. |
-| CI straddles 1.35 | **AMBIGUOUS.** Report; escalate by adding rungs or repetitions, never by reinterpreting. |
+| `b_chunk` 95% CI **upper** bound < 1.35 — on the HC3 primary **and** the wild-cluster sensitivity, **and** on both the adjusted and raw fits | **O(N) HOLDS at ladder scale.** Stage 2's regression proof extends from ~5k to T5. |
+| `b_chunk` 95% CI **lower** bound > 1.35, on the HC3 primary | **SUPER-LINEAR REGRESSION.** M1's O(N) claim does not extend; Stage 2 reopens as a scale defect. |
+| CI straddles 1.35, **or** primary and sensitivity disagree across it, **or** adjusted and raw disagree across it | **AMBIGUOUS.** Report; escalate by adding tiers or repetitions, never by reinterpreting and never by adding an unrelated corpus. |
 
 Why 1.35, registered before the numbers exist so it cannot be tuned: FTS index growth is
 expected to contribute a mild `N log N` term, whose *effective* exponent across this
-ladder's span (≈1k → ≈19k) is **1.12** — so a threshold at 1.0 would fail a healthy system
-by construction. The pathology class this experiment exists to detect is quadratic
-(`b ≈ 2`): across the same span, `b = 1.35` costs 2.8× more than linear, `b = 2` costs 19×.
-1.35 sits above the expected `N log N` and far below the pathology.
+ladder's realized span (1,059 → 19,056 files, i.e. **18.0×**) is **1.120** — so a threshold
+at 1.0 would fail a healthy system by construction. The pathology class this experiment
+exists to detect is quadratic (`b ≈ 2`): across the same span, `b = 1.35` costs **2.75×**
+more than linear and `b = 2` costs **18×**. 1.35 sits above the expected `N log N` and far
+below the pathology. (The first draft wrote 2.8× / 19× off a span of 19; the realized span
+is 18.0 — corrected per A1-F11, and it mildly *overstated* the pathology's cost.)
 
-**Power, stated honestly.** With five clusters a cluster bootstrap has limited resample
-diversity and the CI will be wide. **This design is sized to detect a quadratic regression,
-not to resolve `b = 1.0` from `b = 1.2`.** If the realized CI is so wide that it straddles
-1.35 from below 1.0, the honest verdict is AMBIGUOUS-underpowered, and the registered
-escalation is more rungs (the Design Reserve's vscode rung) — not a narrower threshold.
+**Power, and the reachability arithmetic** (A1-F4d — Q1/SCALE published its `n_min = 154`;
+the first draft published nothing). Over 5 log-spaced tiers × 3 reps,
+`Sxx = Σ(ln N − mean)² ≈ 16.1`, so `SE(b) ≈ σ / 4.01` where `σ` is the residual sd in log
+time. The HOLDS branch needs `b̂ + 1.96·SE < 1.35`; at the expected `b̂ ≈ 1.12` that
+requires **`σ < 0.47`** — a residual sd of ~47% in log time. Ordinary run-to-run timing
+noise is well inside that, which is precisely what the nested design buys: the same
+calculation over five unrelated repos would have to absorb corpus-content variance too,
+and at a plausible content residual of `σ ≈ 0.2`+ the HOLDS branch was at risk of being
+arithmetically unreachable — an experiment that cannot produce its own primary verdict.
+
+**This design is still sized to detect a quadratic regression, not to resolve `b = 1.0`
+from `b = 1.2`.** If the realized CI straddles 1.35 from below 1.0, the honest verdict is
+AMBIGUOUS-underpowered, and the registered escalation is more tiers or more repetitions —
+never a narrower threshold, and never (as the first draft wrongly proposed) another
+unrelated corpus, which would deepen the confound rather than resolve it.
 
 **Registered consistency triggers.**
-1. If `ms/chunk` is **strictly monotonically increasing across all five rungs** (p = 1/120
+1. If `ms/chunk` is **strictly monotonically increasing across all five tiers** (p = 1/120
    under exchangeability) while the CI discharges → **AMBIGUOUS**.
-2. Any rung with `write_errors > 0` is **VOID** — that is an S1 regression, and S1's whole
+2. Any run with `write_errors > 0` is **VOID** — that is an S1 regression, and S1's whole
    point was that a non-zero `write_errors` means chunks are silently absent from the index.
    Diagnose, then re-run.
-3. If R3's `bytes/chunk` at the largest rung exceeds 1.5× the smallest rung's, it is flagged
+3. If R3's `bytes/chunk` at the largest tier exceeds 1.5× the smallest tier's, it is flagged
    and discussed in the result; it does not alone force AMBIGUOUS (state overhead has a
    fixed component that amortizes differently at 1k vs 19k files).
+4. **Parse-error rate** (A1-F12). Files that fail to parse consume walk/read/parse time and
+   contribute **zero** chunks, so a parse-error rate that rises with tier size inflates
+   `ms/chunk` with `N` through a channel the model does not represent. If any tier's parse-
+   error *rate* exceeds 2× the median tier's, it is flagged and **must be discussed before
+   the verdict is recorded**. (Nested tiers make this unlikely — they are subsets of one
+   corpus — which is another reason the nested axis is decision-bearing; the panel, where
+   vendored/fixture density genuinely varies, is supporting only.)
+5. **`b_file` vs `b_chunk` disagreement** (A1-F10). If the supporting file-count exponent
+   and the decision-bearing chunk-count exponent land on opposite sides of 1.35, that is
+   reported and discussed — it means chunks-per-file is itself varying with scale — but it
+   does not override the registered exposure choice.
 
 **Direction-of-error statement, in advance:** the investigator's prior is that M1 fixed
 this — O(N) was proven at small scale and Stage 2 is marked Complete. **"O(N) HOLDS"
@@ -2671,41 +2815,95 @@ flatters that prior.** The HOLDS branch therefore carries the harder requirement
 upper bound rather than a point estimate near 1, trigger 1 above, and a mandatory
 adversarial results review before the verdict is recorded.
 
-**E2 — the §10.3.1 coverage band.** MAST_SPEC §10.3.1 characterises `POTENTIAL_CALL`
-coverage as **60–80% in a Fastify+DI codebase**. Quantity, per rung: `edge_emitted ÷ total
-call sites visited`, both from the `onCallSite` seam run over that rung's indexed file set.
+**E2 — the §10.3.1 coverage band.** §10.3.1 reads, verbatim (`MAST_SPEC.md:2018-2024`):
+"In a Fastify + DI service codebase, the resolver catches roughly the field/parameter/
+import cases — **typically 60–80% of real call sites** depending on how heavily the
+codebase uses factories and containers." Quantity: `edge_emitted ÷ total call sites
+visited`, from the `onCallSite` seam run over a corpus's indexed file set.
 
-| observed | verdict |
+**Decision-bearing corpus is `nest` alone** (A1-F1). The claim is scoped to Fastify+DI, and
+P1–P5 contain no Fastify at all; testing a scoped claim against out-of-scope corpora and
+then mandating a spec rescope is not a test, it is a formality that returns the
+investigator's prior.
+
+| observed on **nest** | verdict |
 |---|---|
-| **No** rung attains ≥ 60% | §10.3.1's characterisation is **UNSUPPORTED** on external corpora; the spec must be rescoped or the figure removed. Spec-drift finding, same class as the P3 items. |
-| **≥ 1** rung lands in 60–80% | **SUPPORTED**, reported with which corpora and their DI density. |
-| A rung exceeds 80% | Reported as above-band; the band's upper edge is descriptive, not a failure condition. |
+| yield ≥ 60% | **SUPPORTED.** §10.3.1's band holds on the closest available Fastify+DI corpus. Whether the realized value also falls below 80% is descriptive; the upper edge is not a failure condition. |
+| yield < 60% | **UNSUPPORTED.** The band overstates coverage on a Fastify+DI corpus; §10.3.1 must be rescoped or the figure removed. Spec-drift finding, same class as the P3 items. |
+
+The table is exhaustive by construction — the first draft's three rows left the pattern
+"one corpus above 80%, none in 60–80%" with **no verdict at all** (A1-F7), which is the
+Q1/SCALE AMENDMENT-1 F3 class: verdict machinery undefined on a reachable data pattern,
+resolvable only post-hoc by the prior.
+
+**P1–P5 are external validity, and carry no verdict.** Their yields are reported in full
+and answer a different, narrower question: how far the band travels outside its stated
+scope. A miss on all five licenses **no** spec change.
 
 **Direction-of-error statement:** mast's own `src/` measures 40%, below band, so the
 investigator's prior is that the band is optimistic — **UNSUPPORTED flatters that prior**.
-The UNSUPPORTED branch therefore requires **all five** rungs to miss the band, not a median
-or a majority.
+The UNSUPPORTED branch therefore carries the mandatory adversarial results review, and the
+nest caveat above (framework, not service) must be restated wherever the verdict is quoted.
+
+**The denominator is narrower than the spec's** (A1-F8), and this is registered rather than
+discovered later. §10.3.1's band is over "real call sites"; the seam's denominator is
+`collectCalls`' *visited* sites, which **by design** exclude calls inside nested-scope
+function/method/class bodies (D7 result: such calls "are never handed to `parseCallee` and
+are therefore, by design, outside this invariant"). Callback-heavy code — promise chains,
+array HOFs, route-handler closures — is systematically absent from the denominator, so the
+measured yield **overestimates** coverage of real call sites. Direction: this runs
+**against** the UNSUPPORTED prior. Mitigation: every corpus additionally reports raw
+`call_expression` node count alongside visited sites, so the size of the excluded region is
+quantified rather than assumed small.
 
 Supporting, reported in full, never dispositive: the by-`resolution` breakdown (`SELECT
 resolution, COUNT(*) FROM edges WHERE edge_type='POTENTIAL_CALL' GROUP BY resolution`),
 including the `this_method` / `super_method` share F4 shipped; the four-way `CallSiteOutcome`
-distribution per rung against mast's own 866 / 604 / 592 / 93 baseline.
+distribution per corpus against mast's own 866 / 604 / 592 / 93 baseline.
 
 **E1-R5's falsification, registered separately** (it is a defect probe, not a growth law):
 round 1's signature was periodic **1.7–3 s** reader stalls.
 
-| observed | verdict |
+| observed, on **each** of T1 and T5, over ≥ 400 scored calls | verdict |
 |---|---|
-| ≥ 1% of reader calls exceed 1,700 ms | Round-1's stall class is **PRESENT at HEAD**; Q6 reopens as a live defect. |
-| 0 reader calls exceed 1,700 ms **and** max < 755 ms (round 2's Arm B `index-run` envelope max) | **ABSENT at HEAD topology** — which, with round 2's pre-F11 null, retires the class. |
+| ≥ 1% of reader calls exceed **1,500 ms** (round 1's own instrument threshold) | Round-1's stall class is **PRESENT at HEAD**; Q6 reopens as a live defect. |
+| 0 calls exceed 1,500 ms **and** that corpus's p99 is within **2×** its own idle baseline p99 | **ABSENT at HEAD topology** — which, with round 2's pre-F11 null, retires the class. |
 | anything between | Reported; class **INDETERMINATE**. |
+
+Both corpora must land in the same row for a clean verdict; a split (e.g. ABSENT at T1,
+INDETERMINATE at T5) is reported as INDETERMINATE overall, because scale is exactly the
+axis this row exists to probe.
+
+#### Registered readings for the supporting rows (A1-F10)
+
+The first draft measured R2, R3 and R4 and registered no interpretation for any of them —
+in a design whose banner is "exactly one decision-bearing test per experiment", a measured
+row with no registered reading is a post-hoc lever. Each now has one, and none carries a
+verdict:
+
+- **R2 (parse ÷ full ratio):** descriptive. It answers "how much of Phase 1's chunk pipeline
+  is parsing versus writing", scoped by the exclusion above. No threshold; no verdict; its
+  only registered use is to inform where a future optimisation would pay.
+- **R3 (`graph.db` bytes ÷ chunk_count):** descriptive, policed by trigger 3. It is the
+  successor signal to the retired Lance `_versions` row, and a flat value across tiers is
+  the *expected* post-M1 picture, not a discharge criterion for anything.
+- **R4 (checkpoint cost at scale):** descriptive, and explicitly **not** a defect test. It
+  exists to give the deferred `wal_autocheckpoint` question (Q6 RESCOPE item 4) real numbers
+  to be decided against instead of speculation. Registered reading: boundary
+  `PRAGMA wal_checkpoint` `(busy, log, checkpointed)` and TRUNCATE wall-clock per tier,
+  reported as a curve against chunk count. **No threshold is registered because none is
+  justified by anything measured so far** — inventing one here would be a post-hoc lever
+  wearing a pre-registration's clothes.
 
 #### Falsification criteria (pre-stated)
 
-- **Super-linear indexing (the regression outcome):** `b_chunk` CI lower bound > 1.35.
-- **O(N) holding:** `b_chunk` CI upper bound < 1.35.
-- **The spec's coverage band failing:** all five rungs below 60%.
-- **The round-1 stall class living at HEAD:** ≥ 1% of concurrent-reader calls over 1,700 ms.
+- **Super-linear indexing (the regression outcome):** `b_chunk` CI lower bound > 1.35 on the
+  nested tier ladder.
+- **O(N) holding:** `b_chunk` CI upper bound < 1.35, on both the primary HC3 fit and the
+  wild-cluster sensitivity, adjusted and raw.
+- **The spec's coverage band failing:** `nest` yield below 60%.
+- **The round-1 stall class living at HEAD:** ≥ 1% of concurrent-reader calls over 1,500 ms
+  on either probed corpus.
 - Every one of these is falsifiable in both directions; no outcome here is "no result."
 
 #### Gates before any scored measurement
@@ -2719,18 +2917,28 @@ round 1's signature was periodic **1.7–3 s** reader stalls.
    `eval/*.mjs` script imports from `../dist/` directly** — the harness is exposed to the
    identical failure. Rebuild is not restart: any long-lived `mast serve` involved in R5
    must be started *after* the build.
-1. **Corpus integrity, per rung:** detached worktree at the pinned SHA with
-   `git status --porcelain` empty; `write_errors == 0` (else VOID, per trigger 2);
-   `parse_errors` **recorded but not gated** — external corpora legitimately contain files
-   this extractor cannot parse, and gating on that would silently select for corpora that
-   flatter the tool; indexed file count and chunk count read from `graph.db`, never stdout.
-2. **Parse-only fidelity (R2):** the parse pass's chunk count and edge count must equal the
-   full index's **exactly**. Any mismatch voids R2 for that rung — a ratio between two
-   passes that did different work measures nothing.
+1. **Corpus integrity, per run:** detached worktree at the pinned SHA with
+   `git status --porcelain` empty; tier file lists match the frozen tier manifest exactly;
+   `write_errors == 0` (else VOID, per trigger 2); `parse_errors` **recorded but not gated**
+   — corpora legitimately contain files this extractor cannot parse, and gating on that
+   would silently select for corpora that flatter the tool, so the rate is policed by
+   trigger 4 instead; indexed file count and chunk count read from `graph.db`, never stdout;
+   the resolved config recorded in the manifest.
+2. **Parse-only fidelity (R2):** the parse pass's **file count, chunk count and symbol
+   count** must equal the full index's **exactly**. Edge count is deliberately **not** in
+   this gate — see the R2 construction note above (A1-F2): edge rows are lossy and deduped
+   relative to extractor emissions, so equality is structurally impossible and requiring it
+   would void R2 everywhere. Any mismatch on the three checkable counts voids R2 for that
+   run.
 3. **Cold-start discipline:** fresh state dir per run; never `--incremental`; run order is
-   the committed seeded shuffle; each run's externally observed wall clock and `runIndex`'s
-   own `durationMs` must agree within 5%, else that run is re-taken and the divergence
-   logged (it would mean meaningful cost sits outside what the product times).
+   the committed seeded shuffle (seed 811). Each run records **both** clocks. Gate:
+   `external − durationMs ≤ max(5%, 500 ms)`. The absolute floor is not slack — process
+   boot, commander, config resolution and `openDatabase` all sit outside `startMs`
+   (`indexer/index.ts:173`), a fixed 150–300 ms that is 4–9% of a ~3.5 s T1 run, so a bare
+   5% rule would fire systematically on the *healthiest* small-tier runs (A1-F5 — the
+   Q1/SCALE Gate-5 class, a gate firing on the ideal condition). Retakes are **capped at 2
+   per run**; a third failure is logged as a finding rather than retaken, because selective
+   retention of fast-boot runs would bias small-tier totals down and the slope **up**.
 4. **WAL instrument rules — carried verbatim from the Q6 RESCOPE so they cannot be
    re-derived wrongly.** Backlog is read via `PRAGMA wal_checkpoint`, **never** from `-wal`
    file size, which is a high-water mark and is *silent* on deferral. The reader-block
@@ -2739,38 +2947,91 @@ round 1's signature was periodic **1.7–3 s** reader stalls.
    with `?mode=ro&immutable=1` — it is WAL-blind. **Measured prior carried into R4:**
    `{busy:0, log:889, checkpointed:889}` on the live 14,605-chunk index, 2026-08-11 — 889
    is the backlog **ceiling**, not its depth, because opening a copy rebuilds the wal-index.
-5. **Determinism and instrument hygiene:** the five pin SHAs, the run-order seed, the
-   harness scripts, and the run-manifest schema are committed **before** any measurement.
-   Every script ships a working CLI entry point — Q1/SCALE logged that defect class
-   **twice** (`ab-score.mjs`, `idfuse-score.mjs`); a third occurrence is a process failure,
-   not a cosmetic note.
+5. **Determinism and instrument hygiene:** the six pin SHAs, seed 811, the frozen tier
+   manifest, the harness scripts, and the run-manifest schema are committed **before** any
+   measurement. Every script ships a working CLI entry point — Q1/SCALE logged that defect
+   class **twice** (`ab-score.mjs`, `idfuse-score.mjs`); a third occurrence is a process
+   failure, not a cosmetic note.
+6. **Measurement ordering** (A1-F10). R5 runs a **second index into an already-built state
+   dir**, so after R5 that directory is no longer the scored run's artifact. R3's `stat`,
+   R4's boundary checkpoint reading, and E2's seam/SQL extraction must all be taken
+   **before** R5 touches a corpus — or R5 must run against a dedicated copy. Registered
+   here because nothing else in the design forces the order.
 
 #### Costs (stated before spending)
 
 - **Index time.** M1's measured post-migration anchor is nest at 4.4 s / 1,338 files
-  ≈ 3.3 ms/file. Against the realized raw file counts that projects to roughly **5–6
-  minutes** of pure index time across 15 runs, plus parse-only passes and process startup.
-  **This projection is itself the quantity under measurement** — it is a budget, not a
-  prediction, and a realized ladder an order of magnitude above it *is* the R1 result, not
-  a cost overrun.
-- **Disk.** The live index is 157 MB at 14,610 chunks (≈11 KB/chunk). If chunk yield tracks
-  it, the top rung could reach ~1.5–2 GB and one full set of five ~3–4 GB. **Only the final
-  repetition's state dirs are retained**; earlier reps are deleted once their manifest is
-  written. Host: 79 GB free of 926 GB (92% used). `~/.cache/mast-eval/vscode-state-*` holds
-  ~6.9 GB that is reclaimable if needed — per `eval/ASSETS.md`, Q1/SCALE's *conclusions* do
-  not depend on those dirs surviving, only the ability to cheaply re-run ranking arms.
+  ≈ 3.3 ms/file. Across **33 scored runs** (15 tier + 18 panel) plus 10 calibration runs,
+  that projects to roughly **12 minutes** of pure index time, plus parse-only passes,
+  process startup, and R5's writer/reader load on two corpora. Tier construction is cheap
+  and reuses proven tooling. **This projection is itself the quantity under measurement** —
+  it is a budget, not a prediction, and a realized ladder an order of magnitude above it
+  *is* the R1 result, not a cost overrun. The amended design roughly doubles the original's
+  build count; at these absolute numbers that is not a constraint worth trading validity for.
+- **Disk.** The live index is 157 MB at 14,610 chunks (≈11.3 KB/chunk). If chunk yield
+  tracks it, T5/P5 could reach ~1.5–2 GB and one full set of tiers plus panel ~5–7 GB.
+  **Only the final repetition's state dirs are retained**; earlier reps are deleted once
+  their manifest is written, subject to Gate 6's ordering. Host: 79 GB free of 926 GB (92%
+  used). `~/.cache/mast-eval/vscode-state-*` holds ~6.9 GB that is reclaimable if needed —
+  per `eval/ASSETS.md`, Q1/SCALE's *conclusions* do not depend on those dirs surviving, only
+  the ability to cheaply re-run ranking arms.
 - **No agents, no embedding, no model calls.** Token spend is orchestration only.
 
 #### Design Reserve (pre-thought, NOT commitments)
 
-A sixth rung at vscode (8,653 files / 138,440 chunks, already pinned and built once for
-Q1/SCALE), promoted only if the ladder's top end is underpowered or challenged; per-language
-yield breakdown for E2; a DI-density classifier for the rungs, promoted only if the band
-verdict turns on which corpora count as "Fastify+DI"; **`wal_autocheckpoint` tuning**
+A sixth tier at vscode (8,653 files / 138,440 chunks, already pinned and built once for
+Q1/SCALE) — note it is a *different corpus*, so promoting it extends the panel, not the
+nested ladder; a genuine **Fastify+DI service** corpus for E2, which nest only approximates
+(the closest candidate is this monorepo's own `application/api`, disqualified as the home
+corpus); a K-sweep for R5 across N ∈ {1..8} matching rounds 1–2; per-language yield
+breakdown for E2; **`wal_autocheckpoint` tuning**
 (Q6 RESCOPE item 4) evaluated against R4's realized numbers and never speculatively;
 attribution of the 1,802 ms `index-run` hold — which the Q6 RESCOPE leaves explicitly
 **unattributed** across at least three candidate mechanisms (batch volume, Q3's FTS-growth
 cost, checkpoint-inside-commit) — promoted only if R5 reproduces holds in that band.
+
+#### AMENDMENT 1 — 2026-08-11, pre-run, post-adversarial-review
+
+Adversarial design review commissioned per the standing §6 rule (Agent tool, model
+`fable`) against this section as committed at `fd46152`, **before any measurement had
+occurred**. Per the Q1/SCALE and Q1/OUTCOME precedents, no data existed, so the
+registration above was revised **in place** rather than appended to; this log is the audit
+trail. Every code claim the reviewer made was **independently verified against source
+before being accepted** — the reviewer has been wrong before, and §6 requires it.
+
+Stated plainly, because it is the finding about the process rather than the instrument:
+**of the twelve findings, five run toward the investigator's own priors** (E1 → "O(N)
+HOLDS"; E2 → "UNSUPPORTED"), and four more are free levers with no fixed direction that
+would have been resolved after the data existed. Q1/SCALE's review found 7 of 12 running
+the same way. **This is now the third consecutive review round in which the majority of
+defects flattered the investigator** — that regularity is itself the argument for the
+review step, and it should be quoted at anyone who proposes skipping it.
+
+| # | Finding | Change | Direction the error ran |
+|---|---|---|---|
+| F1 | E2 tested a claim §10.3.1 scopes to "a Fastify + DI service codebase" against five corpora, **none of which depend on `fastify`** (verified: every non-`node_modules` `package.json` to depth 4 in all five). The "all five must miss" bar, presented as conservative, was near-automatic — and the consequence ("the spec must be rescoped") did not follow from missing a band on out-of-scope corpora. | `nestjs/nest` @ `f7fffd6` (3 fastify + 48 DI packages, already pinned, the project's honest-broker corpus) becomes E2's **sole decision-bearing** corpus, with an explicit registered caveat that it is a DI *framework*, not a DI *service*. P1–P5 demoted to external validity, licensing **no** spec change. | **Strongly flatters UNSUPPORTED** — the worst defect in the registration. |
+| F2 | Gate 2 required the parse pass to match the full index on **edge count**. Structurally impossible: `insertEdges` drops unresolved names (`populate.ts:537,543`) and dedupes on `PRIMARY KEY (from_id,to_id,edge_type)` (`db.ts:257`), and no product-side extractor-level edge counter exists. The gate would have voided R2 everywhere, or passed vacuously on harness-vs-harness. | Gate 2 now checks **file + chunk + symbol** counts. R2's scope narrowed in writing to Phase 1's chunk pipeline, explicitly excluding pass-2 resolution. | **Free lever** — the likely real outcome was a post-hoc redefinition of "edge count". |
+| F3 | Five unrelated repos made corpus **content** perfectly confounded with `N`. Q1/SCALE faced this exact problem and solved it with seeded nested subsets of one corpus; the reversal was justified nowhere. Worse, the registered escalation for AMBIGUOUS was *another corpus*, deepening the confound. | Decision-bearing axis is now a **seeded nested tier ladder inside n8n** (T1⊂…⊂T5, seed 811), the Q1/SCALE recipe verbatim on existing tooling. The five repos become a replication panel that carries no verdict. Escalation is more tiers/reps, never another corpus. | **Two-way** — content noise widens the CI (opposes), but the HOLDS branch's causal claim ("Stage 2's proof extends") was unsupportable by the design (flatters when it fires). |
+| F4 | Four statistical defects: (a) a pure power law with no additive constant biases `b` **downward**; (b) BCa on 5 clusters draws its acceleration from a 5-value jackknife, ~10% of resamples hold ≤2 distinct clusters, and no degenerate-resample handling was registered; (c) `total_index_ms` was never defined — R1 named two clocks and the fit named neither; (d) no reachability arithmetic, where Q1/SCALE published `n_min = 154`. | (a) 10 empty-corpus calibration runs measure `c`; both adjusted and raw fits reported, opposite sides of 1.35 → AMBIGUOUS. (b) BCa withdrawn; primary is OLS + HC3 over 15 points, with a wild cluster bootstrap as a registered sensitivity, disagreement → AMBIGUOUS. (c) `durationMs` fixed as the fitted clock. (d) `σ < 0.47` published as the residual-sd ceiling for HOLDS to be reachable. | **(a) and (b) flatter HOLDS; (c) free lever; (d) risked a predetermined AMBIGUOUS.** |
+| F5 | Gate 3's flat 5% clock-agreement rule fires on the *ideal* condition: `startMs` sits inside `runIndex` (`index.ts:173`) so 150–300 ms of process boot is 4–9% of a ~3.5 s T1 run. Remedy "re-take the run" cannot fix a structural offset — outcomes were an infinite loop, a de facto void of the cheapest anchor, or selective retention of fast-boot runs. | Gate becomes `max(5%, 500 ms)`; retakes capped at 2, then logged as a finding; both clocks recorded always. | **Opposes HOLDS** (selective retention would bias the slope up) — and it is the Q1/SCALE Gate-5 class repeating: a gate firing backwards. |
+| F6 | R5 imported thresholds across corpus, build, plane and instrument: 1,700 ms where round 1's own field is `wal_checkpoint_outliers_gt_1500ms`; 755 ms taken from a **pre-F11, nest, server-side lock-hold** envelope and applied to **client wall clock of per-call CLI processes**. Rung, denominator, pacing and payload all unregistered; no direction-of-error statement. | Threshold → **1,500 ms**. The 755 ms bound **withdrawn**, replaced by each corpus's own idle baseline (p99 within 2×). T1 **and** T5 both probed, ≥400 scored calls, 250 ms pacing, frozen payload. Reader-lifecycle mismatch registered as a known limit. Direction statement added. | **Flatters retirement** — every free parameter leaned the same way. |
+| F7 | E2's three-row table left "one corpus >80%, none in 60–80%" with **no verdict** — a reachable pattern with undefined machinery. | Table reduced to two exhaustive rows (≥60% / <60%). | **Toward the prior** — the gap would have been closed after the data existed. Q1/SCALE AMENDMENT-1 F3 class, repeating. |
+| F8 | The seam's denominator excludes calls in nested-scope bodies by design (D7), so callback-heavy code is absent from it and the measured yield **overestimates** coverage of the spec's "real call sites". The registration never said so. | Exclusion registered explicitly; raw `call_expression` count reported alongside visited sites so the excluded region is quantified. | **Opposes UNSUPPORTED** — but the registered quantity was silently not the spec's quantity. |
+| F9 | The index config was unpinned — a free lever over `N` itself. Defaults index `.md` and exclude `*.test.ts` but **not** `*.test.js` (`config.ts:39-48`), so the registration's raw-`find` anchor was wrong in both directions. | Config pinned in writing (defaults at this commit, no overrides), resolved config recorded per run, and the `find` figures re-labelled as the wrong anchor rather than a sanity check. | **Free lever, unknown direction.** |
+| F10 | R2, R3 and R4 were measured with **no registered interpretation** — R4 with no threshold, no verdict row, and absent from the falsification criteria, its only consumer a post-hoc tuning decision. `b_file`/`b_chunk` disagreement unhandled. Sequencing unregistered: R5's second index overwrites the artifact R3 and E2 read. | A registered reading per supporting row (explicitly descriptive, verdict-free — including R4, where **no threshold is registered because none is justified**); trigger 5 for exponent disagreement; Gate 6 fixes R3/R4/E2-before-R5. | **Free levers.** |
+| F11 | Arithmetic audit: `N log N` effective exponent 1.120 ✓, 11.3 KB/chunk ✓, 3.29 ms/file ✓, trigger 1's p = 1/120 ✓ — all reproduced. One wobble: the span is 19,056/1,059 = **18.0×**, not 19, so b=1.35 costs 2.75× (not 2.8×) and b=2 costs 18× (not 19×). The shuffle seed was never printed, where Q1/SCALE printed 153. | Figures corrected; **seed = 811** stated in the registration. | **Trivial, flattered the threshold's rationale** by slightly overstating the pathology. |
+| F12 | `parse_errors` recorded-but-ungated was correctly argued, but no consistency trigger existed either: unparseable files consume time and yield zero chunks, so a parse-error rate rising with `N` inflates `ms/chunk` through an unmodelled channel. | Trigger 4: any tier whose parse-error *rate* exceeds 2× the median must be discussed before the verdict is recorded. | **Two-way, most plausibly opposes HOLDS.** |
+
+**Verified and unchanged** (the reviewer attacked these and could not break them): the six
+pins are real commits; S1's whale-file hazard is genuinely retired so trigger 2's
+`write_errors == 0` is enforceable rather than a deterministic rung-killer; ground-truth
+counts from `graph.db` rather than stdout is mechanically correct (`chunksAdded` is counted
+pre-write, `index.ts:282`); the "no parse-only product mode" admission is exact
+(`index-cmd.ts:12-20`); `mast query` dispatches through the real MCP handlers; the seeded
+run-order shuffle; **Gate 0, the D8 binary-identity gate, in full**; chunk count as the
+exposure variable; log–log as the estimation scale; trigger 1; Gate 4's WAL rules,
+transcribed from the Q6 RESCOPE without drift; and the registered admission that no
+non-invasive in-flight backlog probe exists.
 
 ---
 
