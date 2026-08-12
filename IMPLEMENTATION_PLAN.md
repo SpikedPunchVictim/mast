@@ -3481,6 +3481,116 @@ Resolving one in code without an amendment — which is precisely what `combineE
 and it happened to resolve it *correctly* — converts a documented contradiction into an
 undocumented choice, and the next reader has no way to tell which it was.
 
+#### E1 RESULT (2026-08-12) — SUPER-LINEAR REGRESSION: `b = 1.75`, and the upper half of the ladder is near-quadratic
+
+**Verdict: SUPER-LINEAR REGRESSION.** The registered table's row 2 fires: the adjusted HC3
+primary's 95% CI **lower** bound is 1.660, above the 1.35 threshold. Qualifier:
+`lack_of_fit_mixture`.
+
+The verdict is not marginal, and it is not reached through any of the disagreement routes
+that would have made it AMBIGUOUS. All four registered classifications land on the same
+side:
+
+| fit | `b` | HC3 95% CI | wild-cluster bootstrap-t 95% CI | class |
+|---|---|---|---|---|
+| adjusted (`durationMs − c`) — **primary** | **1.7529** | **[1.6599, 1.8458]** | [1.5943, 1.9122] | above |
+| raw (`durationMs`) | 1.7504 | [1.6573, 1.8435] | [1.5888, 1.9128] | above |
+
+`c = 23.5 ms` (median of 10 empty-corpus runs). n = 27 tier runs over 9 tiers, df = 25,
+`t₀.₉₇₅,₂₅ = 2.060`, bootstrap B = 10,000, seed 811, Webb 6-point weights, restricted
+residuals for the test and unrestricted for the percentile-t CI. Adjusted and raw agree;
+primary and sensitivity agree; `c` is small enough here that it moves `b` by 0.0025, so the
+whole adjusted/raw protection is inert on this data rather than load-bearing.
+
+**HOLDS was arithmetically reachable, and it was rejected.** This is the point of Gate 1b's
+committed ceilings, and it is the difference between a measurement and an underpowered
+shrug:
+
+| level | realized σ | Gate 1b ceiling | |
+|---|---|---|---|
+| cluster (9 tier means about the line) — **the honest number** | 0.1851 | 0.28188 | within |
+| run (27 runs about the line) | 0.2349 | 0.56055 | within |
+
+**The shape, which the single exponent flattens.** Cost per chunk rises monotonically by
+**10.2×** across a 20× corpus — this is the finding, and it is visible without any fit:
+
+| tier | chunks | files | reps (ms) | median | ms/chunk |
+|---|---|---|---|---|---|
+| T1 | 3,679 | 656 | 2,639 / 2,575 / 2,702 | 2,639 | 0.717 |
+| T2 | 5,332 | 954 | 8,908 / 4,139 / 6,223 | 6,223 | 1.167 |
+| T3 | 7,761 | 1,393 | 7,534 / 7,159 / 7,184 | 7,184 | 0.926 |
+| T4 | 11,278 | 1,986 | 12,981 / 13,240 / 14,243 | 13,240 | 1.174 |
+| T5 | 16,529 | 2,880 | 26,960 / 37,478 / 26,154 | 26,960 | 1.631 |
+| T6 | 23,854 | 4,191 | 55,321 / 59,244 / 104,531 | 59,244 | 2.484 |
+| T7 | 34,691 | 5,976 | 104,164 / 116,759 / 109,112 | 109,112 | 3.145 |
+| T8 | 50,299 | 8,945 | 271,563 / 241,165 / 222,538 | 241,165 | 4.795 |
+| T9 | 73,359 | 13,330 | 538,591 / 540,559 / 493,134 | 538,591 | 7.342 |
+
+The lack-of-fit F fires (`F = 2.804`, `p = 0.0368`, df 7/18, departure **17.4%**, above the
+5% practical floor), and the reason is curvature rather than noise: **`b` = 1.362 over
+T1–T4 and 1.904 over T3–T9.** The upper half of the ladder is close to quadratic. A single
+`b = 1.75` is therefore a *summary of a mixture*, and per A4-FATAL-1 this is reported as a
+qualifier on SUPER-LINEAR — concordant evidence of a different flavour of not-clean-O(N) —
+never as a downgrade to AMBIGUOUS.
+
+**Supporting outputs.** `b_file = 1.7558`, within 0.003 of `b_chunk`, so trigger 5 does not
+fire and the exposure choice is not doing any work here. Trigger 3 does not fire: bytes per
+chunk is **flat** (5,863 at T1 vs 5,986 at T9, ratio 1.021) — the regression is in **time,
+not space**, which rules out per-row storage bloat as the mechanism. Trigger 4 does not fire
+(zero parse errors at every tier).
+
+**Replication panel — supporting only, and it does not reproduce the exponent.** Fitted the
+same way over 5 corpora × 3 reps: `b = 1.2790`, HC3 CI [0.9471, 1.6110], straddling 1.35.
+It carries no verdict, and the registration said in advance why: content confounds scale
+across unrelated repos. This data shows exactly that confound at full strength — P1 costs
+**4.712 ms/chunk at 8,413 chunks** where the nested T3 costs **0.926 ms/chunk at 7,761
+chunks**, a 5× per-chunk spread between corpora of near-identical size. A cross-corpus fit
+is measuring content, which is the whole reason the decision-bearing axis is nested.
+
+**Two Gate 3 findings, handled as registered.** T2#1 and T2#3 failed the clock-agreement
+gate on all three attempts (final-attempt deltas 561 ms and 513 ms against a 500 ms floor).
+Per A4-MAT-6 the **first** attempt's data enters the fit and the failure is logged, never
+retaken away. Both are recorded in `e1-verdict.json` as `driver_findings`. The gate polices
+the external cross-check clock, which never enters the fit; the excess is process boot, and
+at T2's scale it is ~10% of a small run. Note that `gate3` on a thrice-failing run record is
+the **last** attempt's verdict while `duration_ms` is the **first** attempt's value — the
+registered combination, with every attempt preserved in `gate3_attempts`, but the two fields
+do not correspond and a reader must not divide one by the other.
+
+**A driver-flag discrepancy, resolved toward the registration.** `e1-run.mjs` sets
+`scoreable: false` whenever `findings.length > 0`, which is stricter than anything
+registered: A4-MAT-6 says a thrice-failing Gate 3 run is *logged and retained*, so this
+class of finding was never a scoring blocker. The registered blockers — VOID runs (trigger
+2) and chunk-count nondeterminism — did not fire: 42/42 complete, 0 void, and all three
+repetitions of all 14 corpora reported identical `chunk_count`. Scoring proceeded on the
+registered rule, and the flag is left as-is rather than edited after seeing data.
+
+**A correction to an investigator claim made before this scoring ran.** During the run I
+reported that "three corpora exceed Gate 1b's `σ_tier < 0.282` ceiling" (T2 0.384, P1 0.375,
+T6 0.349). **That comparison was invalid** — those figures are the *within*-corpus sd of
+three repetitions, and the ceiling governs the *between*-tier residual sd of the 9 tier means
+about the fitted line. They are different quantities: repetition spread inflates the run
+level and, where symmetric about the tier mean, leaves the cluster level untouched entirely.
+The realized cluster σ is 0.1851, comfortably inside the ceiling. The mistake is pinned by a
+test (`eval/__tests__/e1-report.test.mjs`, "separates within-tier spread from between-tier
+departure") so it cannot recur silently. The largest repetition spreads (T6's 55.3 / 59.2 /
+104.5 s, T2's 8.9 / 4.1 / 6.2 s) are still worth naming, but against no registered ceiling.
+
+**What this means, stated no more strongly than the data supports.** M1's O(N) claim does
+**not** extend from ~5k files to T9. Stage 2's regression proof is a proof at its own scale
+and nothing beyond it, and Stage 2 reopens as a scale defect. The mechanism is not
+identified here: E1 measures the exponent, not its cause, and flat bytes-per-chunk only
+rules out storage bloat. Locating it — FTS5 index maintenance whose cost grows with existing
+index size, the graph edge-resolution pass, or the write path — is separate work, and R2
+(the parse-only pass) is the registered first cut at splitting parse cost from write cost.
+
+**Artifacts.** `eval/results/e1-verdict.json` (verdict, both fits, panel, triggers,
+reachability), `eval/results/e1-runs.jsonl` (42 runs + 55 attempt records),
+`eval/results/e1-runs-summary.json`, `eval/results/e1-calibration.json`,
+`eval/results/e1-tiers.json` (frozen manifest + Gate 1b arithmetic). Scored by
+`eval/e1-report.mjs` through `scoreE1`, which was committed at `4b49bc1` before scored run 1
+and is pinned by 56 known-answer cases.
+
 ---
 
 ## Stage 4.5: Scale — the actual target

@@ -1,21 +1,126 @@
 {
-  "created": "2026-08-12T21:04:23.535Z",
-  "complete": 1,
+  "created": "2026-08-12T22:35:28.037Z",
+  "complete": 42,
   "total": 42,
   "voids": [],
   "calibration_c_ms": 23.5,
   "rep_identity": [
     {
       "corpus": "T2",
-      "reps": 1,
+      "reps": 3,
       "chunk_counts": [
         5332
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T1",
+      "reps": 3,
+      "chunk_counts": [
+        3679
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "P4",
+      "reps": 3,
+      "chunk_counts": [
+        93518
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "P3",
+      "reps": 3,
+      "chunk_counts": [
+        23468
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T6",
+      "reps": 3,
+      "chunk_counts": [
+        23854
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T8",
+      "reps": 3,
+      "chunk_counts": [
+        50299
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "nest",
+      "reps": 3,
+      "chunk_counts": [
+        4994
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T7",
+      "reps": 3,
+      "chunk_counts": [
+        34691
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T3",
+      "reps": 3,
+      "chunk_counts": [
+        7761
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "P2",
+      "reps": 3,
+      "chunk_counts": [
+        12597
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T5",
+      "reps": 3,
+      "chunk_counts": [
+        16529
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "P1",
+      "reps": 3,
+      "chunk_counts": [
+        8413
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T9",
+      "reps": 3,
+      "chunk_counts": [
+        73359
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T4",
+      "reps": 3,
+      "chunk_counts": [
+        11278
       ],
       "identical": true
     }
   ],
   "findings": [
-    "Gate 3 T2#1: Gate 3 failed on all 3 attempts; first attempt retained in the fit."
+    "Gate 3 T2#1: Gate 3 failed on all 3 attempts; first attempt retained in the fit.",
+    "Gate 3 T2#3: Gate 3 failed on all 3 attempts; first attempt retained in the fit."
   ],
   "scoreable": false
 }

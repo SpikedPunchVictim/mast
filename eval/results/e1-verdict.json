@@ -1,0 +1,362 @@
+{
+  "created": "2026-08-12T23:07:31.308Z",
+  "calibration_c_ms": 23.5,
+  "driver_findings": [
+    "Gate 3 T2#1: Gate 3 failed on all 3 attempts; first attempt retained in the fit.",
+    "Gate 3 T2#3: Gate 3 failed on all 3 attempts; first attempt retained in the fit."
+  ],
+  "ladder": {
+    "verdict": "SUPER_LINEAR",
+    "reasons": [
+      "hc3_primary_ci_lower_above_threshold"
+    ],
+    "qualifiers": [
+      "lack_of_fit_mixture"
+    ],
+    "b_file": 1.7557606093306042,
+    "file_fit": {
+      "b": 1.7557606093306042,
+      "se_hc3": 0.0421902392245883,
+      "df": 25,
+      "t_crit": 2.0595385527532937,
+      "ci_hc3": [
+        1.6688681850976803,
+        1.842653033563528
+      ],
+      "ci_boot": [
+        1.616833393489722,
+        1.8956701589694631
+      ],
+      "boot_p": 0.0045,
+      "se_cr1": 0.05223351513271836,
+      "boot_atoms": 10077696
+    },
+    "triggers": {
+      "t3": {
+        "fires": false,
+        "ratio": 1.0210310001622693,
+        "threshold": 1.5,
+        "smallest_tier": "T1",
+        "largest_tier": "T9",
+        "bytes_per_chunk_smallest": 5862.8801304702365,
+        "bytes_per_chunk_largest": 5986.182363445521,
+        "reading": "descriptive; flagged and discussed in the result, never forces AMBIGUOUS alone"
+      },
+      "t4": {
+        "fires": false,
+        "median_rate": 0,
+        "worst_tier": "T1",
+        "worst_rate": 0,
+        "threshold_multiple": 2,
+        "per_tier": [
+          {
+            "tier": "T1",
+            "rate": 0
+          },
+          {
+            "tier": "T2",
+            "rate": 0
+          },
+          {
+            "tier": "T3",
+            "rate": 0
+          },
+          {
+            "tier": "T4",
+            "rate": 0
+          },
+          {
+            "tier": "T5",
+            "rate": 0
+          },
+          {
+            "tier": "T6",
+            "rate": 0
+          },
+          {
+            "tier": "T7",
+            "rate": 0
+          },
+          {
+            "tier": "T8",
+            "rate": 0
+          },
+          {
+            "tier": "T9",
+            "rate": 0
+          }
+        ]
+      },
+      "t5": {
+        "fires": false,
+        "b_chunk": 1.7528614779452114,
+        "b_file": 1.7557606093306042,
+        "reading": "reported and discussed — it means chunks-per-file is itself varying with scale — but it never overrides the registered exposure choice"
+      }
+    },
+    "threshold": 1.35,
+    "calibration_c_ms": 23.5,
+    "n_runs": 27,
+    "n_tiers": 9,
+    "classes": {
+      "hc3Adj": "above",
+      "bootAdj": "above",
+      "hc3Raw": "above",
+      "bootRaw": "above",
+      "lackOfFitFires": true
+    },
+    "adjusted": {
+      "b": 1.7528614779452114,
+      "se_hc3": 0.045120897963272,
+      "df": 25,
+      "t_crit": 2.0595385527532937,
+      "ci_hc3": [
+        1.6599332490550052,
+        1.8457897068354177
+      ],
+      "ci_boot": [
+        1.594259056585469,
+        1.9122297737121492
+      ],
+      "boot_p": 0.0055,
+      "se_cr1": 0.05831345525969044,
+      "boot_atoms": 10077696
+    },
+    "raw": {
+      "b": 1.7504165343199432,
+      "se_hc3": 0.0451901838679022,
+      "df": 25,
+      "t_crit": 2.0595385527532937,
+      "ci_hc3": [
+        1.6573456084379887,
+        1.8434874602018976
+      ],
+      "ci_boot": [
+        1.5888311896206926,
+        1.912781987424303
+      ],
+      "boot_p": 0.0055,
+      "se_cr1": 0.058588570398753155,
+      "boot_atoms": 10077696
+    },
+    "lack_of_fit": {
+      "F": 2.803998694592556,
+      "p": 0.036827631622291745,
+      "dfLof": 7,
+      "dfPe": 18,
+      "departurePct": 17.380391682174512,
+      "significant": true,
+      "exceedsFloor": true,
+      "fires": true
+    },
+    "lack_of_fit_raw_descriptive": {
+      "F": 2.8348841471440305,
+      "p": 0.03534797642710141,
+      "dfLof": 7,
+      "dfPe": 18,
+      "departurePct": 17.619927679729198,
+      "significant": true,
+      "exceedsFloor": true,
+      "fires": true
+    }
+  },
+  "panel_supporting_only": {
+    "verdict": "AMBIGUOUS",
+    "reasons": [
+      "lack_of_fit",
+      "primary_ci_straddles_threshold",
+      "a_reported_ci_straddles_threshold"
+    ],
+    "qualifiers": [],
+    "b_file": 1.2444574815585039,
+    "file_fit": {
+      "b": 1.2444574815585039,
+      "se_hc3": 0.42013773154458695,
+      "df": 13,
+      "t_crit": 2.16036865646279,
+      "ci_hc3": [
+        0.33680509493220023,
+        2.1521098681848074
+      ],
+      "ci_boot": [
+        -4.181242427149237,
+        6.56442123055327
+      ],
+      "boot_p": 0.9046,
+      "se_cr1": 0.6989476920913019,
+      "boot_atoms": 7776
+    },
+    "triggers": {
+      "t3": {
+        "fires": false,
+        "ratio": 0.9962436834831792,
+        "threshold": 1.5,
+        "smallest_tier": "nest",
+        "largest_tier": "P4",
+        "bytes_per_chunk_smallest": 3599.7885462555064,
+        "bytes_per_chunk_largest": 3586.2666010821445,
+        "reading": "descriptive; flagged and discussed in the result, never forces AMBIGUOUS alone"
+      },
+      "t4": {
+        "fires": false,
+        "median_rate": 0,
+        "worst_tier": "nest",
+        "worst_rate": 0,
+        "threshold_multiple": 2,
+        "per_tier": [
+          {
+            "tier": "nest",
+            "rate": 0
+          },
+          {
+            "tier": "P1",
+            "rate": 0
+          },
+          {
+            "tier": "P2",
+            "rate": 0
+          },
+          {
+            "tier": "P3",
+            "rate": 0
+          },
+          {
+            "tier": "P4",
+            "rate": 0
+          }
+        ]
+      },
+      "t5": {
+        "fires": false,
+        "b_chunk": 1.2790197003504653,
+        "b_file": 1.2444574815585039,
+        "reading": "reported and discussed — it means chunks-per-file is itself varying with scale — but it never overrides the registered exposure choice"
+      }
+    },
+    "threshold": 1.35,
+    "calibration_c_ms": 23.5,
+    "n_runs": 15,
+    "n_tiers": 5,
+    "classes": {
+      "hc3Adj": "straddle",
+      "bootAdj": "straddle",
+      "hc3Raw": "straddle",
+      "bootRaw": "straddle",
+      "lackOfFitFires": true
+    },
+    "adjusted": {
+      "b": 1.2790197003504653,
+      "se_hc3": 0.15365353423129643,
+      "df": 13,
+      "t_crit": 2.16036865646279,
+      "ci_hc3": [
+        0.9470714210424401,
+        1.6109679796584904
+      ],
+      "ci_boot": [
+        0.306725281081879,
+        2.316094584369207
+      ],
+      "boot_p": 0.7321,
+      "se_cr1": 0.26595207657375214,
+      "boot_atoms": 7776
+    },
+    "raw": {
+      "b": 1.2773875189972588,
+      "se_hc3": 0.153193310986931,
+      "df": 13,
+      "t_crit": 2.16036865646279,
+      "ci_hc3": [
+        0.9464334915613363,
+        1.6083415464331812
+      ],
+      "ci_boot": [
+        0.3104430258977757,
+        2.309656707713012
+      ],
+      "boot_p": 0.7293,
+      "se_cr1": 0.26516950439930675,
+      "boot_atoms": 7776
+    },
+    "lack_of_fit": {
+      "F": 75.26527557209768,
+      "p": 3.6475181675044155e-7,
+      "dfLof": 3,
+      "dfPe": 10,
+      "departurePct": 15.656262935910048,
+      "significant": true,
+      "exceedsFloor": true,
+      "fires": true
+    },
+    "lack_of_fit_raw_descriptive": {
+      "F": 75.0616791349888,
+      "p": 3.694953025767944e-7,
+      "dfLof": 3,
+      "dfPe": 10,
+      "departurePct": 15.46445083268142,
+      "significant": true,
+      "exceedsFloor": true,
+      "fires": true
+    }
+  },
+  "reachability": {
+    "cluster": {
+      "realized": 0.18513749585460731,
+      "ceiling": 0.28187713418467,
+      "within_ceiling": true
+    },
+    "run": {
+      "realized": 0.23493710865526496,
+      "ceiling": 0.5605478461808165,
+      "within_ceiling": true
+    },
+    "note": "Ceilings were derived at the projected b = 1.12 and are DESCRIPTIVE — no verdict branch reads them. They answer whether HOLDS was arithmetically reachable."
+  },
+  "repetition_spread_descriptive": [
+    {
+      "tier": "T2",
+      "sd_ln": 0.38350978447616413,
+      "ratio": 2.152210678907952
+    },
+    {
+      "tier": "T6",
+      "sd_ln": 0.34929208288799074,
+      "ratio": 1.8895356193850437
+    },
+    {
+      "tier": "T5",
+      "sd_ln": 0.19951898528332906,
+      "ratio": 1.4329739236828027
+    },
+    {
+      "tier": "T8",
+      "sd_ln": 0.10016117342179004,
+      "ratio": 1.2202994544751888
+    },
+    {
+      "tier": "T7",
+      "sd_ln": 0.05740385862318447,
+      "ratio": 1.120915095426443
+    },
+    {
+      "tier": "T9",
+      "sd_ln": 0.05199304740045763,
+      "ratio": 1.096170614883581
+    },
+    {
+      "tier": "T4",
+      "sd_ln": 0.04887152970628359,
+      "ratio": 1.0972190124027428
+    },
+    {
+      "tier": "T3",
+      "sd_ln": 0.02852405761608929,
+      "ratio": 1.0523816175443497
+    },
+    {
+      "tier": "T1",
+      "sd_ln": 0.024072942408359787,
+      "ratio": 1.0493203883495146
+    }
+  ]
+}
