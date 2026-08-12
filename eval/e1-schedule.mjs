@@ -57,14 +57,24 @@ export const CLOCK_PCT = 0.05;
 /**
  * GATE 3 — the two clocks must agree within `max(5%, 500 ms)`.
  *
- * The floor is not slack (A1-F5). `startMs` is taken inside `runIndex`
- * (`indexer/index.ts:173`), so process boot, commander, config resolution and
- * `openDatabase` all sit OUTSIDE the fitted clock — a fixed 150-300 ms that is 4-9% of a
- * ~3.5 s T1 run. A bare 5% rule would therefore fire systematically on the HEALTHIEST
- * small-tier runs, which is the Q1/SCALE Gate-5 class: a gate that fires on the ideal
- * condition. Its available outcomes were an infinite retake loop, a de facto void of the
- * cheapest anchor, or selective retention of fast-boot runs — and that last one biases
- * small-tier totals down and the slope UP.
+ * The floor exists because of A1-F5, but BOTH halves of its published rationale are wrong,
+ * and AMENDMENT 4 (A4-C1, A4-C2) corrects them here rather than leaving the wrong version
+ * copied into the harness:
+ *
+ *  - `startMs` is `runIndex`'s FIRST statement (`indexer/index.ts:173`) and `openDatabase`
+ *    is at `:188` — INSIDE the fitted clock, and therefore inside `c`, exactly as the
+ *    registration's calibration paragraph says. Only process boot, commander and
+ *    `resolveConfig` are genuinely outside; they run in `cli/index-cmd.ts` before
+ *    `runIndex` is called.
+ *  - The "~3.5 s T1" premise is stale by ~9x. Realized T1 is 3,679 chunks, which at P0's
+ *    rate (73,359 chunks / 635,996 ms) is ~32 s, so the 5% term is >= 1.6 s at every rung
+ *    and THIS FLOOR IS INERT ACROSS ALL 42 RUNS.
+ *
+ * The floor stays registered anyway: removing a gate term because this particular ladder
+ * happens not to need it would be tuning. What A1-F5 got right is the consequence it was
+ * guarding against — a gate that fires on the ideal condition offers only an infinite
+ * retake loop, a de facto void of the cheapest anchor, or selective retention of fast-boot
+ * runs, and that last one biases small-tier totals down and the slope UP.
  *
  * A negative delta is treated as an anomaly rather than a comfortable pass: the external
  * clock encloses the fitted one by construction, so `external < duration` means a clock is

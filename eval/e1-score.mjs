@@ -53,7 +53,23 @@ export function combineE1Verdict({ hc3Adj, bootAdj, hc3Raw, bootRaw, lackOfFitFi
   const reasons = [];
 
   if (hc3Adj === 'above') {
-    return { verdict: 'SUPER_LINEAR', reasons: ['hc3_primary_ci_lower_above_threshold'] };
+    // A4-FATAL-1. The registration contradicted itself here: the verdict table fires
+    // SUPER-LINEAR on the HC3 primary alone, while three separate unconditional sentences
+    // say trigger 1, a sensitivity disagreement, or an adjusted/raw disagreement each force
+    // AMBIGUOUS. AMENDMENT 4 resolved it toward the table, on the principle that AMBIGUOUS
+    // is for CONFLICTING evidence — not for concordant evidence of different flavours of
+    // "not clean O(N)".
+    //
+    // The raw-fit case is the one that makes this concrete rather than pedantic: a large
+    // `c` biases the raw exponent DOWN, so "adjusted above 1.35, raw straddling" is the
+    // expected signature of true super-linearity. Downgrading there would make SUPER_LINEAR
+    // nearly unreachable in exactly the condition it exists to detect, and route it into
+    // AMBIGUOUS's "add more rungs or reps" escalation.
+    const qualifiers = [];
+    if (lackOfFitFires) qualifiers.push('lack_of_fit_mixture');
+    if (hc3Raw !== 'above') qualifiers.push('raw_fit_not_above_threshold');
+    if (bootAdj !== 'above') qualifiers.push('sensitivity_not_above_threshold');
+    return { verdict: 'SUPER_LINEAR', reasons: ['hc3_primary_ci_lower_above_threshold'], qualifiers };
   }
 
   if (lackOfFitFires) reasons.push('lack_of_fit');
@@ -66,9 +82,11 @@ export function combineE1Verdict({ hc3Adj, bootAdj, hc3Raw, bootRaw, lackOfFitFi
   }
 
   const allBelow = hc3Adj === 'below' && bootAdj === 'below' && hc3Raw === 'below' && bootRaw === 'below';
-  if (allBelow && !lackOfFitFires) return { verdict: 'HOLDS', reasons: [] };
+  // The discharge row admits no asterisks: anything that would have been a qualifier here
+  // is, by construction, a disagreement, and a disagreement is already AMBIGUOUS above.
+  if (allBelow && !lackOfFitFires) return { verdict: 'HOLDS', reasons: [], qualifiers: [] };
 
-  return { verdict: 'AMBIGUOUS', reasons: [...new Set(reasons)] };
+  return { verdict: 'AMBIGUOUS', reasons: [...new Set(reasons)], qualifiers: [] };
 }
 
 /**
@@ -110,8 +128,34 @@ export function fitOne(x, y, clusters, { B, seed }) {
  * @param {Array<{tier:string, chunk_count:number, duration_ms:number}>} runs
  * @param {{c?:number, B?:number, seed?:number}} opts  `c` is the calibration constant (ms)
  */
-export function scoreE1(runs, { c = 0, B = 10000, seed = 811 } = {}) {
+export function scoreE1(runs, { c, B = 10000, seed = 811 } = {}) {
+  // A4-MAT-1. `c` was defaulted to 0, so a driver that forgot to thread
+  // `e1-calibration.json` through produced adjusted === raw with NO error — and the
+  // registered "adjusted and raw disagree => AMBIGUOUS" protection then self-satisfied
+  // trivially. Gate 7 case (c) proves the subtraction is wired correctly, but only when `c`
+  // is passed; the production call site was the one seam no test covered. An omitted
+  // additive constant biases `b` downward, i.e. toward HOLDS.
+  if (!Number.isFinite(c) || c < 0) {
+    throw new Error(
+      `scoreE1: the calibration constant c must be an explicit finite value >= 0, got ${c}. ` +
+      `Pass the measured median from eval/results/e1-calibration.json, or an explicit 0 for ` +
+      `synthetic data with no additive constant.`
+    );
+  }
+
   if (runs.length < 3) throw new Error(`scoreE1: need at least 3 runs, got ${runs.length}`);
+
+  // A4-MAT-7. Trigger 2 says "Diagnose, then re-run", so a VOID run is an open question,
+  // not a data point to quietly omit. Fitting around one silently drops a repetition — and
+  // a lost T9 rep specifically weakens the top of the ladder.
+  const voided = runs.filter((r) => r.void === true);
+  if (voided.length > 0) {
+    throw new Error(
+      `scoreE1: ${voided.length} run(s) are VOID and unadjudicated ` +
+      `(${voided.map((r) => r.tier).join(', ')}). Trigger 2 requires diagnosis and a re-run ` +
+      `before this ladder is scored.`
+    );
+  }
 
   const clusters = runs.map((r) => r.tier);
   const groups = new Set(clusters);
@@ -120,6 +164,17 @@ export function scoreE1(runs, { c = 0, B = 10000, seed = 811 } = {}) {
       `scoreE1: need at least 3 tiers for a lack-of-fit test and a cluster bootstrap, ` +
       `got ${groups.size}. A single-tier dataset cannot identify a slope at all.`
     );
+  }
+
+  for (const r of runs) {
+    // Registered supporting outputs (A4-MAT-5) need these; a missing field must fail loudly
+    // rather than produce a NaN exponent that reads like a measurement. Checked after the
+    // structural guards above, so a degenerate dataset reports the reason it is degenerate.
+    for (const field of ['file_count', 'db_bytes', 'parse_errors']) {
+      if (!Number.isFinite(r[field])) {
+        throw new Error(`scoreE1: run ${r.tier} is missing '${field}'; triggers 3-5 and b_file need it.`);
+      }
+    }
   }
 
   const x = runs.map((r) => Math.log(r.chunk_count));
@@ -157,11 +212,25 @@ export function scoreE1(runs, { c = 0, B = 10000, seed = 811 } = {}) {
     lackOfFitFires: lof.fires === true,
   };
 
-  const { verdict, reasons } = combineE1Verdict(classes);
+  const { verdict, reasons, qualifiers } = combineE1Verdict(classes);
+
+  // Supporting file-count exponent, on the same adjusted clock (A4-MAT-5). Registered as
+  // "Both are reported"; it was not being computed at all, so trigger 5 could only ever
+  // have been evaluated by hand after the verdict was already visible.
+  const xFile = runs.map((r) => Math.log(r.file_count));
+  const adjFile = fitOne(xFile, yAdj, clusters, { B, seed });
 
   return {
     verdict,
     reasons,
+    qualifiers,
+    b_file: adjFile.degenerate ? null : adjFile.b,
+    file_fit: adjFile,
+    triggers: {
+      t3: trigger3(runs),
+      t4: trigger4(runs),
+      t5: trigger5(adj.b, adjFile.degenerate ? null : adjFile.b),
+    },
     threshold: THRESHOLD,
     calibration_c_ms: c,
     n_runs: runs.length,
@@ -173,6 +242,85 @@ export function scoreE1(runs, { c = 0, B = 10000, seed = 811 } = {}) {
     // guarantees curvature, so a raw lack-of-fit test would fire by construction.
     lack_of_fit: lof,
     lack_of_fit_raw_descriptive: lofRaw,
+  };
+}
+
+/** Per-tier aggregate over that tier's repetitions. */
+function byTier(runs) {
+  const m = new Map();
+  for (const r of runs) {
+    const t = m.get(r.tier) ?? { tier: r.tier, chunks: 0, files: 0, bytes: 0, parse_errors: 0, n: 0 };
+    t.chunks += r.chunk_count;
+    t.files += r.file_count;
+    t.bytes += r.db_bytes;
+    t.parse_errors += r.parse_errors;
+    t.n += 1;
+    m.set(r.tier, t);
+  }
+  return [...m.values()].sort((a, b) => a.chunks / a.n - b.chunks / b.n);
+}
+
+/** Registered trigger 3 (A4-MAT-5): bytes/chunk at the largest tier vs the smallest. */
+export const T3_RATIO = 1.5;
+export function trigger3(runs) {
+  const tiers = byTier(runs);
+  const small = tiers[0], large = tiers[tiers.length - 1];
+  const bpcSmall = small.bytes / small.chunks;
+  const bpcLarge = large.bytes / large.chunks;
+  const ratio = bpcLarge / bpcSmall;
+  return {
+    fires: ratio > T3_RATIO,
+    ratio,
+    threshold: T3_RATIO,
+    smallest_tier: small.tier,
+    largest_tier: large.tier,
+    bytes_per_chunk_smallest: bpcSmall,
+    bytes_per_chunk_largest: bpcLarge,
+    // Registered: flagged and discussed, never a verdict on its own — state overhead has a
+    // fixed component that amortizes differently across a 20x span.
+    reading: 'descriptive; flagged and discussed in the result, never forces AMBIGUOUS alone',
+  };
+}
+
+/**
+ * Registered trigger 4 (A1-F12): a parse-error RATE that rises with tier size.
+ *
+ * Rate, not count. Files that fail to parse consume walk/read/parse time and contribute
+ * ZERO chunks, so a rate rising with `N` inflates ms/chunk through a channel the model does
+ * not represent. Registered consequence: it "must be discussed before the verdict is
+ * recorded" — which is why it is emitted here rather than computed by hand afterwards.
+ */
+export const T4_RATIO = 2;
+export function trigger4(runs) {
+  const tiers = byTier(runs).map((t) => ({ tier: t.tier, rate: t.files > 0 ? t.parse_errors / t.files : 0 }));
+  const med = percentile(tiers.map((t) => t.rate), 0.5);
+  const worst = tiers.reduce((a, b) => (b.rate > a.rate ? b : a));
+  // A zero median is the clean case, and dividing by it would give Infinity for any
+  // non-zero tier. The honest rule at zero: any tier that fails at all stands out from a
+  // ladder where nothing else does, so it is flagged for discussion.
+  const fires = med === 0 ? worst.rate > 0 : worst.rate > T4_RATIO * med;
+  return { fires, median_rate: med, worst_tier: worst.tier, worst_rate: worst.rate, threshold_multiple: T4_RATIO, per_tier: tiers };
+}
+
+/**
+ * Registered trigger 5 (A1-F10): the supporting file exponent and the decision-bearing
+ * chunk exponent landing on opposite sides of 1.35.
+ *
+ * Measured limitation, recorded here because the registration offers this as a check:
+ * across the frozen ladder chunks-per-file runs 5.50-5.81, giving
+ * d ln(chunks)/d ln(files) = 0.9937 — so `b_file` is pinned within ~0.6% of `b_chunk` BY
+ * THE CORPUS, and this trigger has almost no power on the nested axis. It is the panel,
+ * where vendored/fixture density genuinely varies, that could move them apart.
+ */
+export function trigger5(bChunk, bFile) {
+  if (bFile === null) return { fires: false, b_chunk: bChunk, b_file: null, reason: 'file fit degenerate' };
+  const side = (b) => (b > THRESHOLD ? 'above' : 'below');
+  return {
+    fires: side(bChunk) !== side(bFile),
+    b_chunk: bChunk,
+    b_file: bFile,
+    reading: 'reported and discussed — it means chunks-per-file is itself varying with ' +
+      'scale — but it never overrides the registered exposure choice',
   };
 }
 
