@@ -10,7 +10,8 @@
 // Run every script from `packages/mast`, never the repo root (HANDOFF §7).
 
 import Database from 'better-sqlite3';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, linkSync, mkdirSync, readdirSync, rmSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
@@ -114,32 +115,102 @@ export function assertGate0() {
 
   return {
     schema_version: binVersion,
+    // A4-MAT-2. The schema version is necessary but NOT sufficient: this is an actively
+    // developed branch, and a mid-schedule rebuild at an unchanged '1.3.0' would pass the
+    // check above while the resumed half of the schedule measured different code than `c`
+    // was calibrated on. The content hash is what actually pins the binary across a resume.
+    dist_hash: distContentHash(),
     // The NEWEST emitted artifact, not the entry file's. tsc rewrites only outputs whose
     // input changed, so `dist/cli/index.js` can carry an old mtime while the build is
     // perfectly current — recording the entry file alone would look like D8 staleness and
-    // invite exactly the wrong diagnosis. The version check above is the actual gate.
+    // invite exactly the wrong diagnosis. Kept as context; the hash is the gate.
     dist_newest_mtime: newestDistMtime(),
     dist_entry_mtime: statSync(MAST_BIN).mtime.toISOString(),
     bin: MAST_BIN,
+    node_version: process.version,
   };
+}
+
+/** Every emitted `.js` under `dist/`, sorted — the hash and mtime scans share one walk. */
+function distJsFiles() {
+  const distRoot = resolve(new URL('../dist', import.meta.url).pathname);
+  const out = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith('.js')) out.push(p);
+    }
+  };
+  walk(distRoot);
+  return out.sort();
+}
+
+/**
+ * SHA-256 over every emitted `.js` in `dist/`, in sorted path order.
+ *
+ * Sorted so the digest is a property of the build rather than of directory-iteration order,
+ * and path-inclusive so adding or deleting a file moves the hash even if no file's bytes
+ * changed.
+ */
+export function distContentHash() {
+  const h = createHash('sha256');
+  for (const p of distJsFiles()) {
+    h.update(p);
+    h.update(readFileSync(p));
+  }
+  return h.digest('hex');
 }
 
 /** Newest mtime across every emitted `.js` under `dist/`. */
 function newestDistMtime() {
-  const distRoot = resolve(new URL('../dist', import.meta.url).pathname);
   let newest = 0;
-  const walk = (dir) => {
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
-      const p = join(dir, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (e.name.endsWith('.js')) {
-        const m = statSync(p).mtimeMs;
-        if (m > newest) newest = m;
-      }
-    }
-  };
-  walk(distRoot);
+  for (const p of distJsFiles()) {
+    const m = statSync(p).mtimeMs;
+    if (m > newest) newest = m;
+  }
   return new Date(newest).toISOString();
+}
+
+/**
+ * GATE 1 (config half, A4-C4) — the pinned config is actually what will be resolved.
+ *
+ * The registration fixes every run to `resolveConfig`'s defaults with NO overrides, because
+ * an unpinned config is a free lever over `N` itself. `mast index` never persists its
+ * resolved config the way `init` does, so nothing in the state dir records what was used —
+ * this asks the Gate-0 build's own resolver and records the answer.
+ *
+ * @returns {object} the resolved config, for the run manifest
+ */
+export async function assertConfigPinned(projectRoot, stateDir) {
+  // Imported lazily rather than at module top level: `e1-schedule.mjs` imports this module
+  // for the seed and the shuffle, and its unit tests would otherwise require a built `dist/`
+  // to run at all. Gate 0 has already established dist/ exists by the time this is called.
+  const { resolveConfig } = await import('../dist/store/config.js');
+
+  if (process.env.MAST_STATE_DIR !== undefined) {
+    throw new Error(
+      `GATE 1 FAILED: MAST_STATE_DIR is set (${process.env.MAST_STATE_DIR}). It outranks ` +
+      `every config source below --state-dir and would silently redirect the run.`
+    );
+  }
+  const stray = join(projectRoot, 'mast.config.json');
+  if (existsSync(stray)) {
+    throw new Error(
+      `GATE 1 FAILED: ${stray} exists. A corpus-local config overrides the pinned defaults ` +
+      `for file_extensions/exclude_patterns, which changes N itself.`
+    );
+  }
+
+  const config = resolveConfig({ projectRoot, stateDirOverride: stateDir });
+  const expectedExt = ['.ts', '.tsx', '.js', '.jsx', '.md'];
+  if (JSON.stringify(config.file_extensions) !== JSON.stringify(expectedExt)) {
+    throw new Error(
+      `GATE 1 FAILED: resolved file_extensions ${JSON.stringify(config.file_extensions)} ` +
+      `!= the pinned defaults ${JSON.stringify(expectedExt)}.`
+    );
+  }
+  return config;
 }
 
 /** `CURRENT_SCHEMA_VERSION` read from source, not from any built artifact. */
@@ -213,18 +284,34 @@ export function materialiseTier(sourceRoot, relPaths, tierRoot) {
  * @param {string} opts.stateDir     destination; wiped first
  * @returns {object} run record
  */
-export function runColdIndex({ projectRoot, stateDir }) {
+export async function runColdIndex({ projectRoot, stateDir }) {
   if (existsSync(stateDir)) rmSync(stateDir, { recursive: true, force: true });
   mkdirSync(stateDir, { recursive: true });
 
+  const config = await assertConfigPinned(projectRoot, stateDir);
   const args = [MAST_BIN, 'index', projectRoot, '--state-dir', stateDir];
 
+  // A4-C4: NODE_OPTIONS is stripped rather than inherited. A heap-size flag or an
+  // `--inspect` left in a shell profile would silently change what this measures, and the
+  // measurement would look entirely normal.
+  const { NODE_OPTIONS: inheritedNodeOptions, ...env } = process.env;
+
   const externalStart = Date.now();
-  const stdout = execFileSync(process.execPath, args, { encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024 });
+  // spawnSync, not execFileSync: `cli/index-cmd.ts:58` sets `process.exitCode = 1` when
+  // write_errors > 0, so execFileSync THROWS on exactly the trigger-2 case — discarding the
+  // run record and the stdout needed to diagnose it. The status is inspected explicitly.
+  const proc = spawnSync(process.execPath, args, {
+    encoding: 'utf-8', maxBuffer: 64 * 1024 * 1024, env,
+  });
   const externalMs = Date.now() - externalStart;
+
+  if (proc.error) throw proc.error;
+  const stdout = proc.stdout ?? '';
+  const stderr = proc.stderr ?? '';
 
   const meta = readIndexMeta(stateDir);
   const truth = readGraphCounts(stateDir);
+  const wal = readWalBoundary(stateDir);
 
   return {
     project_root: projectRoot,
@@ -234,8 +321,57 @@ export function runColdIndex({ projectRoot, stateDir }) {
     ...truth,
     parse_errors: meta.parse_errors ?? 0,
     write_errors: meta.write_errors ?? 0,
+    exit_status: proc.status,
     stdout_tail: stdout.trim().split('\n').slice(-3),
+    // A4-C4: parse-error FILE NAMES go to stderr (`indexer/index.ts:286`) while the record
+    // keeps only a count. Trigger 4 requires the rate be discussed before the verdict is
+    // recorded, and reps 1-2's state dirs are deleted, so without this the diagnosis has
+    // nothing to work from.
+    stderr_tail: stderr.trim() === '' ? [] : stderr.trim().split('\n').slice(-20),
+    stderr_lines: stderr.trim() === '' ? 0 : stderr.trim().split('\n').length,
+    wal_boundary: wal,
+    env: { node_version: process.version, node_options_stripped: inheritedNodeOptions ?? null },
+    resolved_config: {
+      file_extensions: config.file_extensions,
+      exclude_patterns: config.exclude_patterns,
+      resolved_state_dir: config.resolved_state_dir,
+      resolved_project_root: config.resolved_project_root,
+    },
   };
+}
+
+/**
+ * R4's run-boundary WAL reading — recorded, and labelled for what it actually is.
+ *
+ * A4-C3, stated in the artifact rather than left for a reader to infer: the one-shot CLI
+ * drains its WAL when the process exits (P0's `graph.db-wal` is 0 bytes), so `log` here is
+ * expected to be 0 at every rung. A per-rung curve of zeros reads as "checkpointing is free
+ * at scale" — which is precisely the number the deferred `wal_autocheckpoint` decision is
+ * registered to consume, so it must not be quotable as evidence about `mast serve`.
+ *
+ * Gate 4's rules are carried literally: backlog comes from `PRAGMA wal_checkpoint`, NEVER
+ * from `-wal` file size (a high-water mark, silent on deferral), and the db is opened
+ * read-write — never `?mode=ro&immutable=1`, which is WAL-blind.
+ */
+export function readWalBoundary(stateDir) {
+  const db = new Database(join(stateDir, 'graph.db'));
+  try {
+    const row = db.pragma('wal_checkpoint(PASSIVE)')[0] ?? {};
+    const walPath = join(stateDir, 'graph.db-wal');
+    return {
+      busy: row.busy ?? null,
+      log: row.log ?? null,
+      checkpointed: row.checkpointed ?? null,
+      // Recorded for completeness and explicitly NOT read as backlog (Gate 4).
+      wal_file_bytes_high_water: existsSync(walPath) ? statSync(walPath).size : 0,
+      structurally_zero_in_this_topology: true,
+      reading:
+        'One-shot CLI drains the WAL at process exit, so log is expected to be 0 at every ' +
+        'rung. NOT evidence that checkpointing is cheap at scale; the serve topology is R5.',
+    };
+  } finally {
+    db.close();
+  }
 }
 
 /**
@@ -302,6 +438,27 @@ export function readGraphCounts(stateDir) {
       potential_call_count: one("SELECT COUNT(*) c FROM edges WHERE edge_type='POTENTIAL_CALL'"),
       db_bytes:     statSync(join(stateDir, 'graph.db')).size,
     };
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Every path this run actually indexed — Gate 1's tier clause (A4-MAT-4).
+ *
+ * The registration required "tier file lists match the frozen tier manifest exactly", and
+ * nothing enforced it: the tier trees are built once and reused across 27 runs, and because
+ * `materialiseTier` HARDLINKS, they alias the source worktree's inodes. Any in-place write
+ * to that worktree during the run window changes tier content mid-schedule, invisibly.
+ *
+ * Note this is the `files` table (`id, path, language, mtime`), not `chunks` — it includes
+ * files that produced zero chunks, which is what makes it a check on the WALK rather than on
+ * the extractor.
+ */
+export function readIndexedPaths(stateDir) {
+  const db = new Database(join(stateDir, 'graph.db'), { readonly: true });
+  try {
+    return db.prepare('SELECT path FROM files ORDER BY path').all().map((r) => r.path);
   } finally {
     db.close();
   }

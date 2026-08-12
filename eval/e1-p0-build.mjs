@@ -43,7 +43,8 @@ async function main() {
   console.log('[P0] GATE 0 — binary identity');
   const gate0 = assertGate0();
   console.log(`     schema_version : ${gate0.schema_version}`);
-  console.log(`     dist mtime     : ${gate0.dist_mtime}`);
+  console.log(`     dist newest    : ${gate0.dist_newest_mtime}`);
+  console.log(`     dist hash      : ${gate0.dist_hash.slice(0, 16)}...`);
   console.log(`     bin            : ${gate0.bin}`);
 
   console.log('[P0] GATE 1 — corpus integrity');
@@ -52,7 +53,7 @@ async function main() {
   console.log(`     pin            : ${PINS.n8n.sha}`);
 
   console.log('[P0] indexing full n8n from cold (this is the peek — declared, not hidden)');
-  const run = runColdIndex({ projectRoot: worktree, stateDir: opts.stateDir });
+  const run = await runColdIndex({ projectRoot: worktree, stateDir: opts.stateDir });
 
   // Gate 1's write_errors clause. S1 batched the inserts under SQLite's parameter
   // ceiling, so a non-zero count here is a regression, not an expected whale-file loss.
