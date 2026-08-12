@@ -104,6 +104,60 @@ export function gate3Verdict({ externalMs, durationMs }) {
 export const MAX_RETAKES = 2;
 
 /**
+ * A4-MAT-3's orphan detection, as a persistable finding rather than a console line.
+ *
+ * An `attempt_start` is journaled before every spawn; a completed run records one entry in
+ * `gate3_attempts` per attempt that finished. A start with no matching completion is an
+ * attempt that was killed mid-flight — and the registration's whole reason for this rule is
+ * that the likeliest kill target is a run that *looks hung*, i.e. a pathologically slow
+ * large-tier run, which is the super-linear signal itself. Silently re-running it warmer
+ * and fitting only the second attempt censors exactly the evidence the experiment exists
+ * to collect.
+ *
+ * The E1 schedule was interrupted twice, both times on T9, and the driver printed both
+ * orphans and persisted neither — so `e1-runs-summary.json` read "42/42 complete, 0 void"
+ * with no trace of either. Console output is not a finding.
+ *
+ * A pair with no completed run at all has every start orphaned: that is a resume in the
+ * middle of a pair, which is the same condition.
+ */
+export function orphanedAttempts(records) {
+  const completed = new Map();
+  for (const r of records) {
+    if (r.type === 'run') completed.set(`${r.corpus}#${r.rep}`, r.gate3_attempts.length);
+    else if (r.type === 'void') completed.set(`${r.corpus}#${r.rep}`, r.attempt);
+  }
+
+  const starts = new Map();
+  for (const r of records) {
+    if (r.type !== 'attempt_start') continue;
+    const k = `${r.corpus}#${r.rep}`;
+    starts.set(k, [...(starts.get(k) ?? []), r]);
+  }
+
+  const orphans = [];
+  for (const [k, ss] of starts) {
+    // The surviving attempts are the LAST n: a resumed pair re-runs from attempt 1, so the
+    // killed starts are always the earlier ones.
+    const surplus = ss.length - (completed.get(k) ?? 0);
+    if (surplus > 0) orphans.push(...ss.slice(0, surplus).map((s) => ({ ...s, key: k })));
+  }
+  return orphans;
+}
+
+/**
+ * Attempts still available to a pair, given how many were already spent on it.
+ *
+ * The other half of A4-MAT-3 — "the re-attempt is flagged and **counted against the retake
+ * cap**". Without this an interrupted pair gets a fresh budget of three, and every extra
+ * spawn runs warmer than the last, which is selective retention of fast takes by another
+ * route.
+ */
+export function remainingAttempts(alreadySpent) {
+  return Math.max(0, MAX_RETAKES + 1 - alreadySpent);
+}
+
+/**
  * Registered: "Only the final repetition's state dirs are retained."
  *
  * Keyed on the repetition NUMBER, not on execution order. The shuffle can run rep 3 first,

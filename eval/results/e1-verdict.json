@@ -1,7 +1,9 @@
 {
-  "created": "2026-08-12T23:07:31.308Z",
+  "created": "2026-08-12T23:38:47.848Z",
   "calibration_c_ms": 23.5,
   "driver_findings": [
+    "INTERRUPTED T9#1: attempt started 2026-08-12T21:38:21.037Z never completed; re-attempted warmer and charged against the retake cap.",
+    "INTERRUPTED T9#2: attempt started 2026-08-12T22:13:43.176Z never completed; re-attempted warmer and charged against the retake cap.",
     "Gate 3 T2#1: Gate 3 failed on all 3 attempts; first attempt retained in the fit.",
     "Gate 3 T2#3: Gate 3 failed on all 3 attempts; first attempt retained in the fit."
   ],

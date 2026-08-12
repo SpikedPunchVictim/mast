@@ -3511,8 +3511,11 @@ shrug:
 | cluster (9 tier means about the line) — **the honest number** | 0.1851 | 0.28188 | within |
 | run (27 runs about the line) | 0.2349 | 0.56055 | within |
 
-**The shape, which the single exponent flattens.** Cost per chunk rises monotonically by
-**10.2×** across a 20× corpus — this is the finding, and it is visible without any fit:
+**The shape, which the single exponent flattens.** Cost per chunk rises **10.2×** end to
+end across a 20× corpus — this is the finding, and it is visible without any fit. It is
+**not monotone**: T2 (1.167) exceeds T3 (0.926), because T2 was slot 1 of the whole schedule
+and its Gate-3-failing first take is the coldest measurement in the ladder. The rise is
+monotone from T3 upward.
 
 | tier | chunks | files | reps (ms) | median | ms/chunk |
 |---|---|---|---|---|---|
@@ -3583,6 +3586,83 @@ identified here: E1 measures the exponent, not its cause, and flat bytes-per-chu
 rules out storage bloat. Locating it — FTS5 index maintenance whose cost grows with existing
 index size, the graph edge-resolution pass, or the write path — is separate work, and R2
 (the parse-only pass) is the registered first cut at splitting parse cost from write cost.
+
+##### E1 RESULTS REVIEW (2026-08-12) — the verdict survives; one registration violation found, running toward HOLDS
+
+An adversarial results review was commissioned per §6 and its claims verified against source
+and recomputed from `e1-runs.jsonl` (the ceremony's requirement — the reviewer has been wrong
+before, and on the Q1/DECLEX round it over-read a design). **Every load-bearing claim it made
+reproduced exactly.** Its judgement: SUPER-LINEAR survives every sensitivity it could
+construct. The following amend this RESULT.
+
+**R1 — a registration violation, and it is mine.** A4-MAT-3 requires an orphaned
+attempt-start to be *"a logged finding"* whose re-attempt is *"counted against the retake
+cap"*. Neither happened. The E1 schedule was interrupted **twice, both times on T9** — an
+attempt started `21:38:21Z` and re-started `21:46:52Z`, another started `22:13:43Z` and
+re-started `22:15:39Z` — and this RESULT's first version asserted "42/42 complete, 0 void"
+with no trace of either. The defect was deeper than a missing `findings.push`: `loadJournal`
+deleted a pair's pending start the moment the pair completed, so an interruption followed by
+a *successful* re-attempt — exactly what happened — left no orphan to report at all. **This
+is the precise scenario A4-MAT-3 was written to catch**, occurring twice, invisible to the
+instrument written to catch it.
+
+*Direction of error:* **toward HOLDS.** Warm re-runs censoring slow top-rung evidence biases
+`b` down. It did not materialize — the two re-run T9 reps are **538,591 and 540,559 ms
+against the uninterrupted rep's 493,134 ms**, i.e. the interrupted reps are the *slowest* of
+the three. Fixed at the instrument, not just in prose: `orphanedAttempts` and
+`remainingAttempts` in `eval/e1-schedule.mjs` with five tests, wired into `loadJournal`,
+`summarise` and the retake budget. `e1-runs-summary.json` and `e1-verdict.json` regenerated
+and now carry both `INTERRUPTED` findings.
+
+**R3 — the panel scopes the claim as well as supporting it, and only one direction was
+quoted.** The omitted contrast is the more informative one: **P4 indexes 93,518 chunks —
+*more than T9* — at 2.97 ms/chunk (median 277,944 ms) against T9's 7.34.** That kills the
+machine-artifact family of explanations outright (thermal accumulation, disk fill, hardlink
+warmth, schedule position could not produce a slow T9 and a fast, larger P4 on the same box
+in the same session), and it simultaneously bounds the finding: **7.34 ms/chunk is not a
+universal function of chunk count.** T9 carries 51,551 symbols and 48,497 edges against P4's
+17,987 and 11,820 — ~2.9× and ~4.1× — so the cost tracks symbol and edge density, not chunks
+alone. "Stage 2 reopens as a scale defect" must not be read as "every 90k-chunk corpus costs
+9 minutes."
+
+**R4 — retake-retention sensitivity, quantified.** A4-MAT-6 fits the take that *passes* Gate
+3, which on two runs was a warmer retake (T1#1 3,266→2,639; T3#2 7,299→7,159; T3#3 went the
+other way). Refitting on **first attempts everywhere gives `b` = 1.7410, CI [1.6415,
+1.8404]** — the registered rule contributes +0.012, and the lower bound clears 1.35 either
+way.
+
+**R2, R7 — two anomalies named plainly.** The ms/chunk rise is not monotone (corrected
+above). **T6#3 = 104,531 ms is a 76% spike** over its siblings (55,321 / 59,244), run warm
+immediately after T6#2, so cache warmth cannot explain it and nothing else is offered. It is
+unexplained, not merely "spread worth naming". Dropping T6 entirely gives `b` = 1.7478.
+
+**R5 — provenance, stated precisely.** Only the verdict machinery was pre-committed:
+`scoreE1` at `4b49bc1`, ~65 minutes before scored run 1. The **reporting seam**
+(`eval/e1-report.mjs`) was written after the data existed, at `227cf17`. On this journal it
+had no discretion to exercise — 42 unique `(corpus, rep)` records, exactly 27 tier runs, no
+voids — and the reviewer reproduced the selection and every downstream number independently.
+Recorded anyway, because "it happened not to matter" is a finding about this dataset, not
+about the instrument.
+
+**R6 — the lack-of-fit p is nominal.** df 7/18 is correct, but the F pools pure error across
+tiers whose within-tier `sd(ln)` spans 0.024 (T1) to 0.384 (T2); under that
+heteroscedasticity `p = 0.0368` is approximate. The mixture qualifier does not rest on it —
+the split-half slopes (1.362 / 1.904) and the 17.4% departure carry it.
+
+**Sensitivities, all verified by recomputation from the journal.** Drop T2 → **1.8045**
+[1.7194, 1.8896]; drop T6 → 1.7478; drop both → 1.7998; first-attempts-everywhere → 1.7410;
+`c` ∈ {21, 48.9, 180} → 1.7526 / 1.7555 / 1.7696; cluster-mean fit at df = 7 → [1.602,
+1.904]; an independently implemented Webb bootstrap with a different RNG → [1.602, 1.911]
+against the harness's [1.594, 1.912]. **`corr(ln chunks, schedule position) = 0.0015`** over
+the 27 tier runs, so the shuffle did its job; a real warming drift exists (residual-vs-slot
+`r` = −0.36) but is orthogonal to size, and adding slot as a covariate moves `b` by 0.0001.
+Symbols scale as `chunks^0.993`, edges `^1.080`, potential calls `^1.116` — near-linear, so
+the time exponent is not smuggled in through a structural count.
+
+**The three concrete biases actually present in this data all run toward HOLDS** — T2's
+retained coldest first-takes, the warm T9 re-runs after interruption, and T9's exclusion of
+the 655 zero-chunk files (logged in the frozen manifest). The verdict cleared 1.35 anyway,
+on every estimator and every sensitivity constructed against it.
 
 **Artifacts.** `eval/results/e1-verdict.json` (verdict, both fits, panel, triggers,
 reachability), `eval/results/e1-runs.jsonl` (42 runs + 55 attempt records),

@@ -12,6 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   TIERS, PANEL, REPS, TOTAL_RUNS, buildSchedule, gate3Verdict, retainStateDir, median,
+  MAX_RETAKES, orphanedAttempts, remainingAttempts,
 } from '../e1-schedule.mjs';
 
 describe('buildSchedule — the committed run order', () => {
@@ -142,5 +143,47 @@ describe('median — the calibration constant c', () => {
 
   it('refuses an empty sample rather than returning NaN as a calibration constant', () => {
     expect(() => median([])).toThrow(/empty/i);
+  });
+});
+
+// A4-MAT-3, discharged late. The registration requires an orphaned attempt-start to be "a
+// logged finding" whose re-attempt is "counted against the retake cap". The driver detected
+// orphans and printed them, but `summarise()` never put them in `findings`, so the E1
+// schedule's two interrupted T9 attempts reached no persisted artifact — found by the
+// adversarial results review, not by the harness. Console output is not a finding.
+describe('orphanedAttempts', () => {
+  const start = (corpus, rep, attempt, at) => ({ type: 'attempt_start', corpus, rep, attempt, at });
+  const run = (corpus, rep, n) => ({
+    type: 'run', corpus, rep, gate3_attempts: Array.from({ length: n }, (_, i) => ({ attempt: i + 1 })),
+  });
+
+  it('finds no orphan when every start has a completed attempt', () => {
+    expect(orphanedAttempts([start('T9', 3, 1, 'a'), run('T9', 3, 1)])).toEqual([]);
+  });
+
+  it('finds the interrupted start when a pair was re-attempted after a kill', () => {
+    const journal = [start('T9', 1, 1, 'killed'), start('T9', 1, 1, 'redone'), run('T9', 1, 1)];
+
+    const orphans = orphanedAttempts(journal);
+
+    expect(orphans).toHaveLength(1);
+    expect(orphans[0].at).toBe('killed');
+  });
+
+  it('counts a retaken run\'s attempts, so a Gate 3 retake is not mistaken for an orphan', () => {
+    const journal = [start('T2', 1, 1, 'a'), start('T2', 1, 2, 'b'), start('T2', 1, 3, 'c'), run('T2', 1, 3)];
+
+    expect(orphanedAttempts(journal)).toEqual([]);
+  });
+
+  it('treats every start of a still-pending pair as orphaned', () => {
+    expect(orphanedAttempts([start('T7', 2, 1, 'a')])).toHaveLength(1);
+  });
+
+  it('charges orphans against the retake cap, which is the half that bounds warm re-runs', () => {
+    // Two kills already spent the budget; a third spawn would be the 3rd attempt, and the
+    // registered cap is 3 total. Selective retention of fast warm re-runs is the risk.
+    expect(remainingAttempts(2)).toBe(1);
+    expect(remainingAttempts(0)).toBe(MAX_RETAKES + 1);
   });
 });

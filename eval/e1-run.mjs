@@ -22,6 +22,7 @@ import {
 } from './e1-common.mjs';
 import {
   TIERS, REPS, TOTAL_RUNS, buildSchedule, gate3Verdict, retainStateDir, median, MAX_RETAKES,
+  orphanedAttempts, remainingAttempts,
 } from './e1-schedule.mjs';
 
 const JOURNAL = join(RESULTS_DIR, 'e1-runs.jsonl');
@@ -57,8 +58,8 @@ const log = (...a) => console.log(...a);
  * only the faster take enters the fit, which censors exactly the evidence E1 exists to find.
  */
 function loadJournal() {
-  const done = new Map(), voids = new Map(), started = new Map();
-  if (!existsSync(JOURNAL)) return { done, voids, started, orphans: [], truncated: false };
+  const done = new Map(), voids = new Map(), records = [];
+  if (!existsSync(JOURNAL)) return { done, voids, records, orphans: [], truncated: false };
 
   const lines = readFileSync(JOURNAL, 'utf-8').split('\n').filter((l) => l.trim() !== '');
   let truncated = false;
@@ -73,11 +74,16 @@ function loadJournal() {
       if (i === lines.length - 1) { truncated = true; continue; }
       throw new Error(`Journal line ${i + 1} is unparseable and is not the trailing line — ${JOURNAL} is corrupt.`);
     }
-    if (rec.type === 'attempt_start') started.set(key(rec), rec);
-    else if (rec.type === 'run') { done.set(key(rec), rec); started.delete(key(rec)); }
-    else if (rec.type === 'void') { voids.set(key(rec), rec); started.delete(key(rec)); }
+    records.push(rec);
+    if (rec.type === 'run') done.set(key(rec), rec);
+    else if (rec.type === 'void') voids.set(key(rec), rec);
   }
-  return { done, voids, started, orphans: [...started.values()], truncated };
+
+  // Orphans are counted, not tracked by presence-in-a-map. The earlier implementation
+  // deleted the pending start when the pair finally completed, so an interrupted attempt
+  // followed by a successful re-attempt — the T9 case that actually occurred, twice —
+  // left no orphan at all. A4-MAT-3's finding must outlive the pair's completion.
+  return { done, voids, records, orphans: orphanedAttempts(records), truncated };
 }
 
 function journal(rec) {
@@ -182,8 +188,20 @@ async function executeRun(entry, ctx) {
   const projectRoot = isTier ? ctx.tierRoots[corpus] : assertCorpusPinned(corpus);
   if (isTier) assertCorpusPinned('n8n');
 
+  // A4-MAT-3's second clause: attempts already killed on this pair are charged against the
+  // cap. A fresh budget of three after every interruption is selective retention of fast
+  // takes by another route — each re-spawn runs warmer than the one it replaces.
+  const spent = ctx.orphansByKey?.get(`${corpus}#${rep}`) ?? 0;
+  const budget = remainingAttempts(spent);
+  if (budget === 0) {
+    const rec = { type: 'void', corpus, rep, kind, attempt: spent,
+      reason: 'retake_cap_exhausted_by_interruptions', measurement: null, at: new Date().toISOString() };
+    journal(rec);
+    return rec;
+  }
+
   const attempts = [];
-  for (let attempt = 1; attempt <= MAX_RETAKES + 1; attempt++) {
+  for (let attempt = 1; attempt <= budget; attempt++) {
     journal({ type: 'attempt_start', corpus, rep, attempt, at: new Date().toISOString() });
 
     const run = await runColdIndex({ projectRoot, stateDir });
@@ -202,7 +220,7 @@ async function executeRun(entry, ctx) {
     const g3 = gate3Verdict({ externalMs: run.external_ms, durationMs: run.duration_ms });
     attempts.push({ attempt, duration_ms: run.duration_ms, external_ms: run.external_ms, gate3: g3 });
 
-    if (g3.ok || attempt === MAX_RETAKES + 1) {
+    if (g3.ok || attempt === budget) {
       // A4-MAT-6. On a third failure the FIRST attempt's data is what enters the fit, not
       // the last: Gate 3 polices the cross-check clock, which never enters the fit at all,
       // so discarding the fitted clock over it would be selective retention — and A1-F5's
@@ -282,9 +300,12 @@ async function main() {
     log(`[E1] FINDING: ${key(o)} attempt ${o.attempt} started at ${o.at} and never completed — re-attempting, flagged.`);
   }
 
+  const orphansByKey = new Map();
+  for (const o of orphans) orphansByKey.set(o.key, (orphansByKey.get(o.key) ?? 0) + 1);
+
   const n8n = assertCorpusPinned('n8n');
   const tierRoots = materialiseTiers(manifest, n8n);
-  const ctx = { manifest, tierRoots };
+  const ctx = { manifest, tierRoots, orphansByKey };
 
   const pending = schedule.filter((e) => !done.has(key(e)));
   log(`[E1] ${done.size} complete, ${voids.size} void, ${pending.length} pending of ${TOTAL_RUNS}`);
@@ -315,12 +336,17 @@ async function main() {
 
 /** Post-schedule checks that are cross-run by nature and cannot live inside one run. */
 function summarise(calibration) {
-  const { done, voids } = loadJournal();
+  const { done, voids, orphans } = loadJournal();
   log('');
-  log(`[E1] ${done.size}/${TOTAL_RUNS} complete, ${voids.size} void`);
+  log(`[E1] ${done.size}/${TOTAL_RUNS} complete, ${voids.size} void, ${orphans.length} interrupted`);
 
   const findings = [];
   for (const [k, v] of voids) findings.push(`VOID ${k}: ${v.reason}`);
+  // A4-MAT-3. Persisted, not printed: the schedule's two interrupted T9 attempts reached
+  // the console and nothing else, and were found afterwards by an external review.
+  for (const o of orphans) {
+    findings.push(`INTERRUPTED ${o.key}: attempt started ${o.at} never completed; re-attempted warmer and charged against the retake cap.`);
+  }
   for (const [k, r] of done) if (!r.gate3.ok) findings.push(`Gate 3 ${k}: ${r.gate3_finding}`);
 
   // Registered: a tier's three repetitions must report IDENTICAL chunk_count; disagreement
