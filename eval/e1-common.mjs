@@ -11,7 +11,7 @@
 
 import Database from 'better-sqlite3';
 import { execFileSync } from 'node:child_process';
-import { existsSync, linkSync, mkdirSync, rmSync, statSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, linkSync, mkdirSync, readdirSync, rmSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -114,9 +114,32 @@ export function assertGate0() {
 
   return {
     schema_version: binVersion,
-    dist_mtime: statSync(MAST_BIN).mtime.toISOString(),
+    // The NEWEST emitted artifact, not the entry file's. tsc rewrites only outputs whose
+    // input changed, so `dist/cli/index.js` can carry an old mtime while the build is
+    // perfectly current — recording the entry file alone would look like D8 staleness and
+    // invite exactly the wrong diagnosis. The version check above is the actual gate.
+    dist_newest_mtime: newestDistMtime(),
+    dist_entry_mtime: statSync(MAST_BIN).mtime.toISOString(),
     bin: MAST_BIN,
   };
+}
+
+/** Newest mtime across every emitted `.js` under `dist/`. */
+function newestDistMtime() {
+  const distRoot = resolve(new URL('../dist', import.meta.url).pathname);
+  let newest = 0;
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith('.js')) {
+        const m = statSync(p).mtimeMs;
+        if (m > newest) newest = m;
+      }
+    }
+  };
+  walk(distRoot);
+  return new Date(newest).toISOString();
 }
 
 /** `CURRENT_SCHEMA_VERSION` read from source, not from any built artifact. */
