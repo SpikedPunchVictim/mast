@@ -38,13 +38,27 @@ What it fixes, and what a resuming session must NOT re-decide:
   absolute path, void any run whose version disagrees. Every `eval/*.mjs` imports from
   `../dist/` directly, so the harness carries D8's exact exposure.
 
-**NEXT ACTION — adversarial *design* review (Agent tool, model `fable`) against the
-registration as committed.** Then **verify the reviewer's claims yourself** (it has been
-wrong before, and in this session five of seven review errors ran in the investigator's
-favour) → revise the registration in place with an AMENDMENT log, per the Q1/SCALE
-precedent (no data exists yet, so in-place revision is correct) → pin the worktrees →
-build the instrument → run → adversarial *results* review. **No measurement may run
-before the design review is answered.**
+**AMENDMENT 1 DONE (`468d585`) — design review answered, registration revised in place.**
+Twelve findings, every code claim verified against source before acceptance; five ran
+toward the investigator's priors. **Two structural reversals, both owner-confirmed:**
+- **E1's decision-bearing axis is no longer the five repos.** It is a seeded **nested tier
+  ladder inside n8n** (T1⊂…⊂T5, seed 811) — Q1/SCALE's recipe, because five unrelated
+  repos confound content with scale. The five repos are now a **replication panel that
+  carries no verdict**. Escalation on AMBIGUOUS is more tiers/reps, **never** another
+  corpus.
+- **E2's decision-bearing corpus is `nest` @ `f7fffd6` alone.** §10.3.1's band is scoped to
+  Fastify+DI and none of the five repos depends on fastify. P1–P5 are external validity and
+  license no spec change.
+Also amended: Gate 2 drops edge count (structurally impossible); BCa→OLS+HC3 + wild-cluster
+sensitivity; fitted clock = `durationMs`, with a 10-run empty-corpus calibration for `c`;
+Gate 3 = `max(5%, 500 ms)`, retakes capped at 2; R5 → 1,500 ms + per-corpus idle baseline,
+T1 **and** T5, ≥400 calls; new Gate 6 fixes R3/R4/E2-before-R5 ordering.
+
+**NEXT ACTION — build the instrument, then run.** Nothing has been measured. Order: pin the
+six worktrees → freeze the tier manifest → commit scripts + run-manifest schema (Gate 5;
+**every script ships a working CLI entry point** — that defect class has already recurred
+twice) → Gate 0 rebuild + `schema_version` capture → calibration runs → the shuffled 33 →
+R5 last per Gate 6. Then the adversarial **results** review.
 
 ---
 
