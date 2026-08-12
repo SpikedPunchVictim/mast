@@ -1,0 +1,21 @@
+{
+  "created": "2026-08-12T21:04:23.535Z",
+  "complete": 1,
+  "total": 42,
+  "voids": [],
+  "calibration_c_ms": 23.5,
+  "rep_identity": [
+    {
+      "corpus": "T2",
+      "reps": 1,
+      "chunk_counts": [
+        5332
+      ],
+      "identical": true
+    }
+  ],
+  "findings": [
+    "Gate 3 T2#1: Gate 3 failed on all 3 attempts; first attempt retained in the fit."
+  ],
+  "scoreable": false
+}

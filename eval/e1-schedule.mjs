@@ -66,15 +66,22 @@ export const CLOCK_PCT = 0.05;
  *    registration's calibration paragraph says. Only process boot, commander and
  *    `resolveConfig` are genuinely outside; they run in `cli/index-cmd.ts` before
  *    `runIndex` is called.
- *  - The "~3.5 s T1" premise is stale by ~9x. Realized T1 is 3,679 chunks, which at P0's
- *    rate (73,359 chunks / 635,996 ms) is ~32 s, so the 5% term is >= 1.6 s at every rung
- *    and THIS FLOOR IS INERT ACROSS ALL 42 RUNS.
+ *  - The "~3.5 s T1" premise is stale, though NOT in the direction A4-C2 claimed — see below.
  *
- * The floor stays registered anyway: removing a gate term because this particular ladder
- * happens not to need it would be tuning. What A1-F5 got right is the consequence it was
- * guarding against — a gate that fires on the ideal condition offers only an infinite
- * retake loop, a de facto void of the cheapest anchor, or selective retention of fast-boot
- * runs, and that last one biases small-tier totals down and the slope UP.
+ * A4-C2 ALSO SAID THIS FLOOR IS INERT. IT IS NOT; that claim was withdrawn after scored run
+ * 1. It was reasoned by extrapolating T1 from P0's MEAN per-chunk cost, which assumes cost
+ * per chunk is constant — i.e. assumes b = 1, i.e. assumes the hypothesis under test. The
+ * measurement: T2 (5,332 chunks) runs in 8,908 ms, not the ~28 s that extrapolation implies,
+ * because per-chunk cost is 1.671 ms at T2 against 8.670 ms at T9. So the 5% term at T2 is
+ * 445 ms and THE FLOOR IS WHAT BINDS at the bottom of the ladder, exactly as A1-F5 argued.
+ *
+ * The threshold is unchanged regardless: moving a gate on first contact with the data is
+ * tuning, in whichever direction it would move. What A1-F5 got right is the consequence it
+ * was guarding against — a gate firing on the ideal condition offers only an infinite retake
+ * loop, a de facto void of the cheapest anchor, or selective retention of fast-boot runs,
+ * and that last one biases small-tier totals down and the slope UP. Measured on run 1: three
+ * attempts at 8,908 / 6,861 / 6,264 ms, the third 30% faster than the first purely from
+ * cache warmth. Retaining the first take is therefore load-bearing, not bookkeeping.
  *
  * A negative delta is treated as an anomaly rather than a comfortable pass: the external
  * clock encloses the fitted one by construction, so `external < duration` means a clock is

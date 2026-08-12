@@ -3415,6 +3415,46 @@ reading) is noted and its underlying point kept.
 | **A4-C5** | Tier trees contain **only chunk-bearing files**, so their walk/stat cost scales with rung size where a real corpus pays a corpus-constant walk over all entries. | Recorded. Uniform across rungs ⇒ **no slope bias within the ladder**; mildly dilutive toward `b = 1`, and the walk is ≲1% of a run. Extends `e1-tiers.json`'s logged deviation, which covered zero-chunk *indexed* files only, not never-indexed directory entries. | Mildly **toward the prior**, immaterial at this magnitude. |
 | **A4-C6** | **Nesting makes every scored run content-warm** — all tiers share inodes with each other and with P0's build. | Recorded, not corrected: the experiment measures warm-cache indexing, **uniformly**, which is a scope statement rather than a defect. Residual: larger tiers' marginal files are touched by fewer prior runs, pointing `b` slightly **up**. | **Against** the prior, immaterial while n8n's sources fit in RAM. |
 
+#### A4-C2 CORRECTED ON FIRST CONTACT (2026-08-12, after scored run 1 of 42)
+
+**A4-C2 is wrong and is withdrawn.** It claimed the `max(5%, 500 ms)` gate's 500 ms floor is
+"inert across all 42 runs", on the reasoning that realized T1 is 3,679 chunks and therefore
+≈32 s at P0's rate, making the 5% term ≥1.6 s everywhere. The first scored run falsifies it:
+
+| | measured |
+|---|---|
+| T2 (5,332 chunks) fitted clock | **8,908 ms**, not the ≈28 s the extrapolation implies |
+| 5% term at T2 | **445 ms** — *below* the 500 ms floor, so the floor is what binds |
+| external − fitted, three attempts | **887 / 794 / 561 ms** — Gate 3 failed all three |
+| ms per chunk | **1.671 at T2** vs **8.670 at P0/T9** |
+
+**The error was circular, and worth naming precisely.** I sized the gate by extrapolating T1
+from P0's *mean* per-chunk cost — which assumes cost per chunk is constant, i.e. assumes
+`b = 1`, i.e. assumes the hypothesis under test. Using the null to calibrate an instrument
+meant to test the null is exactly the move this registration exists to prevent, and I made it
+in the amendment that was correcting other people's version of the same mistake.
+
+**Gate 3 itself is UNCHANGED**, and that is the point. The floor is load-bearing at the bottom
+of the ladder, precisely as A1-F5 argued and contrary to my note; the run's data is retained
+(first attempt, per A4-MAT-6), and the failure is logged as a finding rather than retaken away.
+Moving a threshold on first contact with the data is tuning, and it is forbidden here whichever
+direction it would move.
+
+**A4-MAT-6 is confirmed load-bearing by the same run.** The three attempts came in at 8,908 /
+6,861 / 6,264 ms — the third is **30% faster than the first**, purely from page-cache warmth.
+Had the rule retained the last (or a passing) attempt rather than the first, small-tier totals
+would have been recorded ~30% low, steepening the ladder and biasing `b` **up**. The registered
+rule keeps the coldest take.
+
+**Direction of the A4-C2 error:** it would have led a later reader to dismiss a live gate as
+decorative. Unknowable for `b` directly; corrosive to the gate's standing.
+
+**Not a result, and not to be read as one.** The two-point ms/chunk contrast above spans P0
+(excluded from every fit by construction) and a single unreplicated run, with no calibration
+subtraction and no controls. It is recorded because refusing to write down an inconvenient
+number one has already seen is its own defect — not because it bears on the verdict. The
+verdict comes from 27 scored runs through the committed scorer, or it does not come at all.
+
 **Gate 5 addendum.** `eval/e1-run.mjs`, the run-manifest schema, `eval/results/e1-schedule.json`
 and `eval/results/e1-calibration.json` are committed **before scored run 1** — the standard
 P0 already met (AMENDMENT 3 committed at `b357071` before the peek).
