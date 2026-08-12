@@ -27,13 +27,15 @@ What it fixes, and what a resuming session must NOT re-decide:
   2,047 / 3,600 / 7,021 / 12,641) have **no provenance in the plan** and today's
   checkouts give 1,059 / 2,153 / 4,895 / 7,645 / 19,056 — the x-axis is the count
   `runIndex` actually indexes at the pin, read from `graph.db`, never stdout.
-- **Decision-bearing test, E1:** growth exponent `b` from `total_ms = a·N^b`, exposure =
-  **chunk count** (not files), clustered BCa CI, threshold **b = 1.35** (above the
-  expected `N log N` effective 1.12, far below quadratic). Sized to detect a quadratic
-  regression, NOT to resolve b=1.0 vs b=1.2 — that limitation is registered.
-- **Decision-bearing test, E2:** §10.3.1's 60–80% band; UNSUPPORTED requires **all five**
-  rungs to miss, because the investigator's prior (mast's own src = 40%) already favours
-  UNSUPPORTED.
+- **Decision-bearing test, E1:** growth exponent `b`, exposure = **chunk count** (not
+  files), threshold **b = 1.35** — the one figure unchanged across all three amendments.
+  Sized to detect a quadratic regression, NOT to resolve b=1.0 vs b=1.2 — that limitation
+  is registered. *(The original's BCa CI and 1.12 `N log N` figure are superseded — see
+  AMENDMENTS 1 and 3: OLS+HC3 primary with a Webb wild-cluster sensitivity, `b_eff ≈ 1.10`
+  over the amended 20× chunk span.)*
+- **Decision-bearing test, E2:** §10.3.1's 60–80% band. *(The original's "all five rungs
+  must miss" rule is superseded — AMENDMENT 1 made `nest` the sole decision-bearing corpus,
+  AMENDMENT 3 softened a miss to NOT ATTAINED.)*
 - **Gate 0 is the D8 gate** — build first, record `schema_version`, invoke the binary by
   absolute path, void any run whose version disagrees. Every `eval/*.mjs` imports from
   `../dist/` directly, so the harness carries D8's exact exposure.
@@ -59,77 +61,51 @@ T1 **and** T5, ≥400 calls; new Gate 6 fixes R3/R4/E2-before-R5 ordering.
 defined its decision-bearing test and registered nothing verifying the code that evaluates
 it, which is the `ab-score.mjs` defect class.
 
-**SECOND design review DONE (fable, against `8bd17f8`) — findings VERIFIED, AMENDMENT 3
-NOT YET WRITTEN. This is the next action.** All three fatals are **fix-induced**: the
-AMENDMENT-1 repairs broke new ground. Owner decisions are taken (below); the amendment was
-deliberately deferred rather than written under context pressure, since rushed repair is
-exactly what produced these.
+**SECOND design review DONE (fable, against `8bd17f8`) → AMENDMENT 3 WRITTEN AND
+COMMITTED.** 3 fatal + 9 material + 5 cosmetic, every code claim verified against source
+first. **All three fatals were fix-induced** — none is present in `fd46152`; AMENDMENT 1's
+repairs broke new ground, and two of the three sat inside passages AMENDMENT 1 explicitly
+certified as "verified and unchanged." The registration block now carries the full
+discharge table; do **not** re-derive it from this summary.
 
-**OWNER DECISIONS for AMENDMENT 3 — do not re-ask:**
-1. **Widen to 9 tiers** and **re-derive trigger 1**. Raises bootstrap clusters 5→9, roughly
-   triples `Sxx`, and gives enough points to test lack-of-fit properly. Cost ~20 min.
-2. **E2 stays n = 1 on nest, but the consequence softens** — a sub-60% result registers as
-   "the band is not attained on the closest available Fastify+DI corpus", evidence for a
-   spec revisit, **not** a mandate to rescope or remove the figure.
+**What AMENDMENT 3 changed, in one paragraph.** The ladder is **9 rungs, cut on chunks** as
+geometric fractions `f_i = 20^{−(9−i)/8}` of realized `C_total` (20× span, exactly even in
+`ln N`) — FATAL-2 was that the rungs were *stated* in files and *cut* in chunks, and that
+every published figure came from the raw-`find` anchor AMENDMENT 1 had itself disavowed.
+Trigger 1 is re-derived onto **lack of fit** — `F(7,18)` at α = 0.05 on the adjusted fit,
+jointly with a **5% endpoint-departure floor** benchmarked against `N log N`'s own 0.69%
+curvature — because the old `ms/chunk` monotonicity trigger fired on the *expected healthy*
+signature (FATAL-1). The prerequisite full-n8n build is now **run P0**, under Gates 0/1,
+excluded from every fit, **with the peek declared** and neutralised by committing this
+amendment before it runs (FATAL-3). Also: Webb 6-point weights + restricted/unrestricted
+residuals + studentized CI; **both** σ ceilings published with the cluster-level one named
+as honest (`σ_tier < 0.28`, vs `σ < 0.56` at run level); n8n dropped as panel rung P5;
+E2's sub-60% consequence softened to **NOT ATTAINED**; R5 gets a corpus-derived payload, a
+write-overlap requirement for scored calls, and an absolute 250 ms excess bar replacing the
+vacuous 2× multiplier; **new Gate 1b** (re-derive the power analysis from the frozen
+manifest) and **new Gate 8** (E2 harness fidelity — `extractFile` takes no `onCallSite`, so
+E2 cannot ride a product build); Gate 7 extended with E1's own table, the point-estimate
+killer, and trigger 1's cases.
 
-**VERIFIED findings to discharge in AMENDMENT 3:**
-- **FATAL-1** Trigger 1 contradicts the threshold rationale. Under the `N log N` model used
-  to justify 1.35, `ms/chunk ∝ log N` rises **41%** across the span (`ln 19056/ln 1059 =
-  1.415`), so strict monotone increase is the *expected healthy* behaviour that trigger 1
-  calls AMBIGUOUS — and more reps make it *more* likely. **Fix: the trigger must apply to
-  RESIDUALS from the fitted law (exchangeable under correct specification), never to raw
-  `ms/chunk` (not exchangeable).** Also register the aggregation statistic and raw-vs-
-  adjusted, both currently unregistered.
-- **FATAL-2** Tier construction is incoherent: targets stated in **files** ("≈1k/2k/5k/8k"),
-  cut rule stated in **chunks**; `eval/scale-build-tiers.mjs:36` cuts on chunk targets.
-  Worse, every published figure (span 18.0×, exponent 1.120, `Sxx≈16.1`, `σ<0.47`) is
-  computed on the raw-`find` counts **AMENDMENT 1 itself disavowed as the wrong anchor**.
-  **Fix: cut on chunks, express targets as geometric fractions of realized total chunks,
-  and add a gate that re-derives the reachability arithmetic from the frozen manifest
-  before any scoring.**
-- **FATAL-3** The tier manifest requires a **full n8n index build first** —
-  `scale-build-tiers.mjs:3-5` reads a completed `graph.db`. That build is in no gate, no run
-  count, no cost line, and Gate 0 (the D8 gate) doesn't reach it, though every eval script
-  imports `../dist/` directly. It is also a pre-freeze look at a top-tier timing. **Fix:
-  bring it under Gates 0/1, record it, exclude it from every fit, and declare the peek.**
-- **MAT-1** 9 clusters ⇒ Rademacher gives 2⁹ = 512 atoms (5 gave **32** — the amendment
-  traded one degenerate method for another). Register **Webb 6-point weights**, the CI
-  construction (studentized vs percentile), and restricted-vs-unrestricted residuals — all
-  currently free levers. Publish the honest **cluster-level** reachability ceiling next to
-  the HC3 one; HC3 at n=15/5 x-values treats tier-level lack-of-fit as if it shrank with
-  reps, which it does not.
-- **MAT-3** R5's payload is `eval/scale-queries.json`'s probes — **vscode-specific**
-  (`supportsTelemetry` in `src/vs/platform/telemetry/...`), pointed at n8n. Absent terms are
-  the cheapest possible reads, suppressing the stalls R5 exists to find. **Fix: derive the
-  payload from the probed corpus's own `graph.db`, committed before the probe.**
-- **MAT-4** Falsification says PRESENT "on **either** probed corpus"; the table says a split
-  is INDETERMINATE overall. Contradiction, amendment-introduced. Table wins.
-- **MAT-5** Nothing requires scored R5 calls to **overlap write activity** — 400 calls ≈ 25 s
-  against a ~3.5 s T1 pass means most calls see no writer, diluting the ≥1% criterion.
-  (Verified benign: a non-incremental reindex genuinely rewrites everything, `index.ts:232`
-  — the skip is gated on `options.incremental`, `:278`.)
-- **MAT-6** The "2× idle baseline" multiplier is derived nowhere and is **vacuous at T5**: if
-  idle p99 ≥ 750 ms, 2× ≥ 1,500 ms and the clause is implied by the other one.
-- **MAT-7** Gate 7 exercises E2's and R5's tables but **not E1's** — its AMBIGUOUS row has
-  three feeding mechanisms, none constructed. A scorer keying verdicts off the point estimate
-  instead of CI bounds passes all six cases. Case (c)'s "visibly lower" has no numeric margin.
-- **MAT-8** `extractFile` does not accept `onCallSite` (`src/ast/extract.ts:44-50`), so **E2
-  cannot ride the Gate-0-verified builds** — it is an ungated harness pass self-reporting
-  numerator and denominator. R2 got Gate 2; E2 has no fidelity gate at all.
-- **MAT-9** n8n is both T9 and panel rung P5 — the panel's top point is not external to the
-  ladder.
-- **Cosmetic:** "each indexed once from cold" survives from `fd46152` against 3 reps; the
-  "one registration, shared build" economy is dead post-A1 (E1 decides on n8n tiers, E2 on
-  nest); live index cited as both 14,605 and 14,610 chunks; "roughly doubles" is really
-  2.2–2.9×; `eval/make-subset.mjs` is miscited as tier tooling (it freezes Q1's embedding
-  subset — `scale-build-tiers.mjs` is the tier constructor).
+**Arithmetic in the amendment was independently recomputed before commit** — fractions,
+`Sxx` at both levels, both σ ceilings, the 5-rung counterfactual (`σ_tier < 0.165`, the
+quantitative case for widening), `b_eff` across plausible `C_total`, the 2.853×/20× cost
+multipliers, the 0.69% curvature benchmark, and the ≈13 t / 2.4× cost. All reproduce.
 
-**THEN — build the instrument, then run.** Nothing has been measured. Order: pin the six
-worktrees → prerequisite n8n build under Gates 0/1 → freeze the 9-tier manifest → re-derive
-and commit the reachability arithmetic → commit scripts, scorer and Gate 7's tests (Gate 5;
-**every script ships a working CLI entry point** — that class has already recurred twice) →
-Gate 0 rebuild → calibration → the shuffled runs → R5 last per Gate 6. Then the adversarial
-**results** review.
+**Owner decisions already taken — do not re-ask:** 9 tiers (not 5, not 7); E2 stays `n = 1`
+on nest with the softened consequence.
+
+**THEN — build the instrument, then run. Nothing has been measured.** Order: pin the five
+worktrees → **run P0** (full n8n) under Gates 0/1 → freeze the 9-rung manifest → **Gate 1b**:
+re-derive and commit the reachability arithmetic from realized counts → commit scripts,
+scorer and Gate 7's tests (Gate 5; **every script ships a working CLI entry point** — that
+class has already recurred twice) → Gate 0 rebuild → calibration → the shuffled 42 runs →
+R5 last per Gate 6. Then the adversarial **results** review.
+
+**Carry this forward, it is the lesson with four data points behind it:** a repaired
+registration is a **new** registration and inherits none of the old one's verification.
+Re-certifying a passage as "verified and unchanged" while the passages around it move is
+exactly how FATAL-1 survived a review that had already checked its arithmetic.
 
 ---
 

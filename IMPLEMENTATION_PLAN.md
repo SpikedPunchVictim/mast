@@ -1614,7 +1614,7 @@ as-is since it describes the JIT tools' general locking behavior, not `mast_sear
 | D2 | Repair `eval/` as a regression harness: `paths.mjs` points at a dead session; pin the corpus | **Complete** — see Q1 §D2 result |
 | **D6** | **Build the stats/regression suite** — RESCOPED 2026-08-10 (see the D6 RESCOPE block): 5 of 10 rows retired/served by shipped instruments, 3 moved to E1/E2; remaining scope = latency percentiles, lock summarizer, config invariant test | **Complete** — see D6 result below |
 | D7 | Self-oracle invariant tests over a real corpus (e.g. *every `call_expression` visited yields an edge or a recorded drop-reason*) + property-based call-shape generation (`recv.m()`, `this.m()`, `await x.m<T>()`, `super.m()`, `(await x).m()`) | **Complete** — see D7 result below |
-| E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration. Inherits the D6 RESCOPE rows (ms/file growth law, parse-vs-index ratio, state-size linearity) **and, added 2026-08-11 by the Q6 RESCOPE, WAL checkpoint cost at scale + a HEAD-topology (post-F11, concurrent-reader) checkpoint probe** | **PRE-REGISTERED 2026-08-11** — see the E1/E2 PRE-REGISTRATION block below; E2 rides the same registration. Corpora pinned, nothing measured yet |
+| E1 | Scaling ladder as **regression proof** for Stage 2 — otel(902) / langchainjs(2,047) / strapi(3,600) / backstage(7,021); n8n(12,641) only post-migration. Inherits the D6 RESCOPE rows (ms/file growth law, parse-vs-index ratio, state-size linearity) **and, added 2026-08-11 by the Q6 RESCOPE, WAL checkpoint cost at scale + a HEAD-topology (post-F11, concurrent-reader) checkpoint probe** | **PRE-REGISTERED 2026-08-11, AMENDED ×3 (latest 2026-08-12)** — see the E1/E2 PRE-REGISTRATION block below; E2 rides the same registration but **not** the same builds (A3-MAT-8). Decision-bearing axis is a **9-rung nested chunk ladder inside n8n**, not these five repos, which are now a no-verdict replication panel minus n8n itself. Corpora pinned, **nothing measured yet** |
 | E7 | JIT under real agent concurrency (4 concurrent MCP clients + in-flight reindex) — **can falsify F1**: if contention degrades non-linearly, per-batch locking made it worse and the answer is a single-writer queue | **Complete — FALSIFIED** |
 | E7-r2 | Re-measure E7 against the post-M1/post-F12 build, to size F11 — same harness/arms, three new probes (hold decomposition, event-loop freeze, `SQLITE_BUSY_SNAPSHOT` repro) | **Complete** |
 | D3 | Spec conformance: quarantine mechanism prose; add `spec-conformance.test.ts` with `// MAST_SPEC.md:NNN` citations | **Complete** — see D3 result below |
@@ -2514,13 +2514,19 @@ committed before the instrument is built, per the Q1/OUTCOME and Q1/SCALE preced
 
 #### Why one registration for two experiments
 
-E1 (scaling ladder) and E2 (call-graph denominators) need the same thing and only that
-thing: a set of pinned external corpora, each indexed once from cold with the shipped
-binary. E1 reads the **cost** of that index run; E2 reads the **content** of the graph it
-produced. Separate registrations would pay the corpus-pinning and index-build cost twice
-for no independence gain — the two read disjoint outputs of a shared build, so neither can
-contaminate the other's measurement. They are **scored and decided separately**; only the
-corpus and the build are shared. A void on one side does not void the other.
+**AMENDED 2026-08-12 (A3-C2) — the original economy is dead, and was left standing through
+two amendments.** The first draft's rationale was "one shared build, read twice": E1 reads
+the **cost** of an index run, E2 reads the **content** of the graph it produced. AMENDMENT 1
+moved E1's decision onto the n8n tier ladder and E2's onto `nest`, and A3-MAT-8 below
+establishes that E2 cannot read a product build at all — `extractFile` takes no `onCallSite`
+parameter (`ast/extract.ts:44-50`), so E2 runs its own harness pass. **No build is shared
+between the two experiments any more.**
+
+What *is* shared, and still justifies one registration rather than two: the corpus pinning
+and worktree discipline, Gates 0/1, the run-manifest schema, the seeded run-order shuffle,
+and the harness itself. They remain **scored and decided separately**; a void on one side
+does not void the other, and neither can contaminate the other's measurement — now for the
+stronger reason that they no longer touch the same artifact.
 
 #### What this measures — and does not (scope, stated first)
 
@@ -2547,21 +2553,52 @@ corpus and the build are shared. A void on one side does not void the other.
 
 #### Corpora — a nested ladder inside one corpus, plus a replication panel
 
-**AMENDED 2026-08-11 (A1-F3, A1-F1) — see AMENDMENT 1. The original design made five
-unrelated repos the decision-bearing axis. It no longer does.**
+**AMENDED 2026-08-11 (A1-F3, A1-F1) and 2026-08-12 (A3-FATAL-2, A3-MAT-9). The original
+design made five unrelated repos the decision-bearing axis; it no longer does. The
+amended design then stated the ladder's rungs in one unit and cut them in another; it no
+longer does that either.**
 
-**Decision-bearing axis (E1): five seeded nested file subsets of `n8n` at
-`9d9e9bf97e8a`**, strict supersets `T1 ⊂ T2 ⊂ T3 ⊂ T4 ⊂ T5`, targeting ≈1k / 2k / 5k /
-8k / all indexed files. This is the Q1/SCALE recipe verbatim (that registration's own
-words: "Single-point measurement at full scale confounds corpus content with corpus
-scale"), executed with the proven tooling already in this repo — `eval/make-subset.mjs`,
-`eval/scale-build-tiers.mjs`. Construction: seeded shuffle (**seed = 811**, committed
-with this registration) of the full indexed file list; take file prefixes whose
-cumulative **chunk** counts land nearest the targets; T5 = every indexed file. Across
-tiers the only thing varying in expectation is corpus *mass* — the quantity a growth law
-is about — not corpus *kind*.
+**Decision-bearing axis (E1): nine seeded nested file subsets of `n8n` at
+`9d9e9bf97e8a`**, strict supersets `T1 ⊂ T2 ⊂ … ⊂ T9`. This is the Q1/SCALE recipe verbatim
+(that registration's own words: "Single-point measurement at full scale confounds corpus
+content with corpus scale"), executed with `eval/scale-build-tiers.mjs`, which is the tier
+constructor. (`eval/make-subset.mjs` is **not** tier tooling — it freezes Q1's embedding
+subset. The first draft miscited it; corrected per A3-C5.)
 
-**Replication panel (E1 supporting, E2 external validity): the five repos, pinned now.**
+**Rungs are defined in chunks, because chunks are the exposure variable the fit uses**
+(A3-FATAL-2). The first draft stated targets in *files* — "≈1k / 2k / 5k / 8k / all
+indexed files" — and the cut rule in *chunks*, while `scale-build-tiers.mjs:36` cuts on
+chunk targets. The two units were simply incoherent, and every published figure downstream
+inherited the file-flavoured reading. Targets are now **geometric fractions of the realized
+total chunk count `C_total`** of the full n8n index at the pin, spanning **20×**:
+
+| rung | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 |
+|---|---|---|---|---|---|---|---|---|---|
+| fraction of `C_total` | 0.0500 | 0.0727 | 0.1057 | 0.1538 | 0.2236 | 0.3252 | 0.4729 | 0.6877 | 1.0000 |
+
+`f_i = 20^{−(9−i)/8}`, so the rungs are **exactly evenly spaced in `ln N`** — the scale the
+fit is performed on, which is what makes `Sxx` computable in advance from geometry alone.
+Construction: seeded shuffle (**seed = 811**) of the full indexed file list produced by the
+prerequisite build (run **P0**, below); take the file prefix whose cumulative chunk count is
+nearest `f_i · C_total`; nesting is automatic because every rung is a prefix of one shuffle.
+T9 = every indexed file.
+
+**Nine rungs, not five** (owner decision, discharging A3-MAT-1 and enabling A3-FATAL-1's
+fix). It raises the bootstrap's cluster count 5 → 9 (Rademacher atoms 32 → 512; Webb
+6-point 6⁹ ≈ 10.1 M), roughly triples `Sxx`, and — the reason that actually matters — buys
+**7 lack-of-fit degrees of freedom against 18 of pure error**, which is what makes the
+re-derived trigger 1 a real test rather than a coin flip.
+
+Across rungs the only thing varying in expectation is corpus *mass* — the quantity a growth
+law is about — not corpus *kind*.
+
+**Realized chunk counts must agree across a rung's repetitions.** Extraction is
+deterministic over a fixed file list, so the three reps of a tier must report **identical**
+`chunk_count` from their own `graph.db`. Any disagreement is a nondeterminism finding, is
+reported as such, and voids that tier pending diagnosis. This is cheap, and it is the only
+check that would catch a tier whose file list drifted between reps.
+
+**Replication panel (E1 supporting, E2 external validity), pinned now.**
 
 | rung | repo | pin (this registration commits these SHAs) | role |
 |---|---|---|---|
@@ -2569,12 +2606,20 @@ is about — not corpus *kind*.
 | P2 | `langchain-ai/langchainjs` | `62fc484b2a0d` | replication |
 | P3 | `strapi/strapi` | `0a8a9b40d064` | replication |
 | P4 | `backstage/backstage` | `25463a867ce7` | replication |
-| P5 | `n8n-io/n8n` | `9d9e9bf97e8a` | replication; also the tier ladder's source |
-| **N** | **`nestjs/nest`** | **`f7fffd6`** (already pinned, `eval/ASSETS.md`) | **E2 decision-bearing** |
+| **N** | **`nestjs/nest`** | **`f7fffd6`** (already pinned, `eval/ASSETS.md`) | **E2 decision-bearing**; E1 replication |
+
+**`n8n` is no longer a panel rung** (A3-MAT-9). It was listed as P5 *and* as the ladder's
+source, so the panel's top point was the ladder's top point — the panel's whole claim is
+that it is external to the decision-bearing axis, and it was not. **T9 is the full-n8n
+measurement**; listing it twice double-counted it and would have let the ladder's own top
+rung appear to corroborate the ladder. `nest` still appears in both experiments, which is
+benign for the opposite reason: the E1 panel carries **no** verdict, so no verdict is
+double-counted.
 
 **Why `nest` carries E2** (A1-F1): §10.3.1's coverage band is explicitly scoped to "a
-Fastify + DI service codebase," and **none** of P1–P5 depends on `fastify` — verified by
-searching every non-`node_modules` `package.json` to depth 4 in all five checkouts. Nest
+Fastify + DI service codebase," and **none** of the other five checkouts — P1–P4 plus n8n —
+depends on `fastify`, verified by searching every non-`node_modules` `package.json` to
+depth 4 in all five. Nest
 ships 3 fastify-bearing packages and 48 DI-bearing ones, is already pinned, and is this
 project's established honest-broker corpus ("the only corpus nobody here tuned anything
 against", `eval/ASSETS.md`). **Registered caveat, stated before measuring:** nest is a DI
@@ -2604,11 +2649,19 @@ provenance anywhere in this plan** — no result block produces them — and a r
 `.ts/.tsx/.js/.jsx` outside `node_modules` over today's checkouts gives **1,059 / 2,153 /
 4,895 / 7,645 / 19,056**. **Neither set is the measurement, and the `find` figures are the
 wrong anchor in both directions** (A1-F9): they count test files the config excludes and
-omit the `.md` files it includes. The ladder's x-axis is **the count `runIndex` actually
-indexed under the pinned config**, read from `graph.db` at Gate 1 and recorded per tier and
-per panel rung. The quoted figures are retained only to show the panel is roughly
-log-spaced; a realized count that reorders it re-orders the panel, and the discrepancy is
-logged as a finding.
+omit the `.md` files it includes. The ladder's x-axis is **the chunk count `runIndex`
+actually produced under the pinned config**, read from each run's own `graph.db` at Gate 1.
+The quoted figures are retained only to show the panel is roughly log-spaced; a realized
+count that reorders it re-orders the panel, and the discrepancy is logged as a finding.
+
+**AMENDMENT 1 disavowed that anchor and then went on using it** (A3-FATAL-2, second half).
+Every quantitative claim it published — span 18.0×, `N log N` effective exponent 1.120,
+`Sxx ≈ 16.1`, `SE(b) ≈ σ/4.01`, the `σ < 0.47` reachability ceiling — was computed on the
+raw-`find` counts in the very paragraph that called them the wrong anchor. Those figures are
+**withdrawn**. The amended arithmetic below is derived from the ladder's *geometry* (evenly
+spaced in `ln N` by construction, so `Sxx` depends only on the rung count and the span) and
+is **re-derived from the frozen manifest's realized chunk counts at Gate 1b before any
+scoring**. Nothing in the verdict machinery depends on a remembered count.
 
 This inherits Q1/SCALE's corpus-truth lesson literally: that experiment's headline count
 was the CLI stdout counter and was wrong by 14,529 chunks. **Ground truth is a `SELECT
@@ -2617,12 +2670,30 @@ COUNT(*)` against `graph.db`, never stdout.**
 #### Design — cold builds, randomized run order, three repetitions
 
 Each **run** = one corpus (tier or panel rung) × one repetition, into a **fresh state
-dir**, never `--incremental`. Three repetitions each: 5 tiers × 3 = **15 decision-bearing
-runs**, plus 6 panel corpora × 3 = **18 replication runs**. Run order is a **committed
-seeded shuffle (seed = 811)** over all 33 (corpus, rep) pairs, so corpus size cannot align
+dir**, never `--incremental`. Three repetitions each: 9 tiers × 3 = **27 decision-bearing
+runs**, plus 5 panel corpora × 3 = **15 replication runs**. Run order is a **committed
+seeded shuffle (seed = 811)** over all 42 (corpus, rep) pairs, so corpus size cannot align
 with OS page-cache warmth or thermal drift — at this timescale (seconds to a minute per
 run) those are the dominant non-corpus variance sources, and a naive small-to-large
 ordering would confound them with the exposure variable exactly.
+
+**Run P0 — the prerequisite full-n8n build, registered rather than assumed**
+(A3-FATAL-3). The tier manifest cannot be frozen without it: `scale-build-tiers.mjs:3-5`
+reads a **completed `graph.db`** to obtain the per-file chunk counts the cut rule needs. The
+first draft, and AMENDMENT 1 after it, required this build implicitly and put it in **no
+gate, no run count and no cost line** — on a harness that, like every `eval/*.mjs`, imports
+from `../dist/` directly, which is exactly the exposure Gate 0 exists for. P0 is therefore:
+
+- **Run under Gate 0 and Gate 1 in full**, with its own manifest entry, `schema_version`,
+  `dist/` build timestamp, resolved config, and `graph.db`-sourced counts.
+- **Excluded from every fit**, from both run counts above, and from every verdict. It is
+  construction, not measurement.
+- **Declared as a peek.** P0 yields a T9-scale `durationMs` observed *before* the ladder is
+  frozen. The mitigation is ordering, and it is binding: **this amendment — the rung
+  fractions, seed 811, the 1.35 threshold, the estimator, every trigger and every gate — is
+  committed before P0 runs.** With the verdict machinery already immutable, a glimpse of one
+  duration cannot tune anything. Said plainly rather than hidden: the investigator will have
+  seen roughly what a full n8n index costs before the scored runs begin.
 
 **Fixed-overhead calibration run** (A1-F4a): before the shuffle, the harness performs
 **10 index runs against an empty corpus** (a directory with zero indexable files). Their
@@ -2672,19 +2743,36 @@ post-F11 configuration nothing has ever measured. Reading against a state dir
 mid-*first*-build would return `index_empty`, which is a confidence signal, not a latency
 measurement.
 
-**Registered, after A1-F6 — the parameters the first draft left free:**
-- **Corpora: T1 and T5** (the ladder's smallest and largest). Running only a small corpus
+**Registered, after A1-F6 — the parameters the first draft left free; amended 2026-08-12
+per A3-MAT-3/5/6:**
+- **Corpora: T1 and T9** (the ladder's smallest and largest). Running only a small corpus
   is the one configuration where the ABSENT branch is easily reachable, and leaving the
   choice open was a free lever toward retirement.
 - **K = 4 concurrent readers**, and this is an admitted convenience, not a derived number
   — rounds 1–2 swept N ∈ {1..8}. K = 4 sits mid-sweep; a sensitivity sweep is in the
   Design Reserve.
-- **Minimum 400 scored reader calls per corpus**, paced at one call per reader per 250 ms,
-  extending the writer's work with repeat indexes if needed to reach the count. Without a
-  registered denominator, "≥ 1% of calls" over a few dozen calls degenerates to "any single
-  call."
-- **Query payload:** the 10 probe queries frozen for Q1/SCALE (`eval/scale-queries.json`),
-  cycled — an existing committed query set, so no new query construction enters here.
+- **Minimum 400 scored reader calls per corpus**, paced at one call per reader per 250 ms.
+  Without a registered denominator, "≥ 1% of calls" over a few dozen calls degenerates to
+  "any single call."
+- **A call is scored only if it overlaps write activity** (A3-MAT-5). Its start **and** end
+  timestamps must fall strictly inside a writer index run. 400 calls at K = 4 paced 250 ms
+  is ≈ 25 s of reader traffic against a T1 pass measured in single-digit seconds, so under
+  the first draft's wording most scored calls would have seen **no writer at all** — diluting
+  a ≥ 1% criterion by roughly the duty cycle and pushing R5 toward ABSENT for free. The
+  writer therefore runs **repeat non-incremental indexes back-to-back** until the scored
+  count is reached, and unscored calls are recorded but excluded. (Verified benign: a
+  non-incremental reindex genuinely rewrites everything — `toIndex = currentFiles`,
+  `indexer/index.ts:232`, and the skip is gated on `options.incremental` at `:278` — so
+  repeat passes are real write load, not no-ops.)
+- **Query payload: derived from the probed corpus's own index** (A3-MAT-3). The first draft
+  reused Q1/SCALE's frozen probes (`eval/scale-queries.json`) — which are **vscode-specific**
+  (`strata.probes.queries[0]` targets `supportsTelemetry` in
+  `src/vs/platform/telemetry/common/telemetryUtils.ts`) — against n8n tiers. Absent terms
+  are the cheapest reads a search engine performs: FTS5 returns empty early and ranker D
+  never engages, which suppresses exactly the contention R5 exists to detect. The payload is
+  instead **10 declaration names sampled with seed 811 from that corpus's own `symbols`
+  table**, stratified to span common and rare terms, emitted as
+  `eval/e1r5-queries-<corpus>.json` and **committed before the probe runs**.
 - **Per-corpus idle baseline, measured first:** the same K readers, same payload, same
   count, with **no writer running**. The stall metric is **excess over that corpus's own
   idle baseline**, not an absolute number.
@@ -2698,7 +2786,7 @@ imported from round 2's Arm B **server-side lock-hold** envelope on **nest** at 
 files** on a **pre-F11** build, and compared against **client wall clock of `mast query`
 CLI processes** — a different plane, corpus, scale, and build. Each `mast query` call is a
 fresh node process that resolves config, opens the DB and registers all tools
-(`cli/query.ts:79-113`), so at T5 scale it can plausibly exceed 755 ms with zero stalls.
+(`cli/query.ts:79-113`), so at T9 scale it can plausibly exceed 755 ms with zero stalls.
 **That bound is withdrawn** and replaced by the idle-baseline comparison above.
 
 **Reader lifecycle, stated as an unargued gap.** Production's topology is `mast serve`
@@ -2725,7 +2813,7 @@ idle-baseline comparison, not an absolute threshold that scale alone could satis
 #### Exactly one decision-bearing test per experiment
 
 **E1 — the growth exponent.** Fit `(durationMs − c) = a · N^b` by OLS on log–log over the
-**15 tier runs**; `b` is the growth exponent, `b = 1` is linear (cost per unit flat).
+**27 tier runs**; `b` is the growth exponent, `b = 1` is linear (cost per unit flat).
 
 **The fitted clock is `runIndex`'s own `durationMs`** (`indexer/index.ts:173` → `:414`),
 not the external wall clock (A1-F4c — the first draft named two sources and fitted
@@ -2738,14 +2826,28 @@ between them as a post-hoc lever.
 comes from a delete-one jackknife over five values, ~10% of cluster resamples contain ≤ 2
 distinct tiers and ~0.16% contain one, for which the slope is undefined, and the first
 draft registered no handling for degenerate resamples):
-- **Primary: OLS over the 15 tier runs with HC3 heteroscedasticity-robust standard errors**
-  (df = 13), 95% CI on `b`. The nested design is what licenses this — tiers are subsets of
-  one corpus, so a tier's cost is a fixed quantity plus run-to-run noise, not a draw from a
-  population of corpora.
-- **Sensitivity, reported always: a wild cluster bootstrap over the 5 tiers** (Rademacher
-  weights, 10,000 draws, seed 811). **If the primary and the sensitivity land on opposite
-  sides of 1.35, the verdict is AMBIGUOUS.**
-- The **replication panel** (6 corpora × 3 reps) is fitted the same way and reported, but
+- **Primary: OLS over the 27 tier runs with HC3 heteroscedasticity-robust standard errors**
+  (df = 25), 95% CI on `b` using `t₀.₉₇₅,₂₅ = 2.060`. The nested design is what licenses
+  this — tiers are subsets of one corpus, so a tier's cost is a fixed quantity plus
+  run-to-run noise, not a draw from a population of corpora.
+- **Sensitivity, reported always: a wild cluster bootstrap over the 9 tiers**, with the
+  parameters A3-MAT-1 found unregistered:
+  - **Webb 6-point weights**, not Rademacher. At 5 clusters Rademacher offers 2⁵ = **32**
+    distinct weight vectors, so AMENDMENT 1 traded BCa's degeneracy for a bootstrap whose
+    reference distribution has 32 atoms — one degenerate method for another. Nine clusters
+    give Rademacher 512 atoms, which is workable but still coarse in the tails a 95% CI
+    reads; Webb's 6-point weights give 6⁹ ≈ **10.1 M**. Webb is the standard remedy for
+    exactly this small-`G` regime.
+  - **10,000 draws, seed 811, cluster = tier.**
+  - **Restricted residuals** (imposing `H₀: b = 1.35`) for the **hypothesis test**;
+    **unrestricted residuals** for the **percentile-t CI**. This is the Cameron–Gelbach–Miller
+    convention, and leaving the choice unregistered was a free lever over the headline
+    interval.
+  - **Studentized (bootstrap-t) intervals**, studentizing with the CR1 cluster-robust SE —
+    not raw percentile, which is the weaker construction at small `G`.
+  **If the primary and the sensitivity land on opposite sides of 1.35, the verdict is
+  AMBIGUOUS.**
+- The **replication panel** (5 corpora × 3 reps) is fitted the same way and reported, but
   is **supporting only and never carries a verdict** — content confounds scale across
   unrelated repos, which is the whole reason the decision-bearing axis is nested.
 
@@ -2759,28 +2861,45 @@ would fold content variation into the scale estimate. Both are reported.
 
 | observed | verdict |
 |---|---|
-| `b_chunk` 95% CI **upper** bound < 1.35 — on the HC3 primary **and** the wild-cluster sensitivity, **and** on both the adjusted and raw fits | **O(N) HOLDS at ladder scale.** Stage 2's regression proof extends from ~5k to T5. |
+| `b_chunk` 95% CI **upper** bound < 1.35 — on the HC3 primary **and** the wild-cluster sensitivity, **and** on both the adjusted and raw fits | **O(N) HOLDS at ladder scale.** Stage 2's regression proof extends from ~5k files to T9. |
 | `b_chunk` 95% CI **lower** bound > 1.35, on the HC3 primary | **SUPER-LINEAR REGRESSION.** M1's O(N) claim does not extend; Stage 2 reopens as a scale defect. |
 | CI straddles 1.35, **or** primary and sensitivity disagree across it, **or** adjusted and raw disagree across it | **AMBIGUOUS.** Report; escalate by adding tiers or repetitions, never by reinterpreting and never by adding an unrelated corpus. |
 
 Why 1.35, registered before the numbers exist so it cannot be tuned: FTS index growth is
-expected to contribute a mild `N log N` term, whose *effective* exponent across this
-ladder's realized span (1,059 → 19,056 files, i.e. **18.0×**) is **1.120** — so a threshold
-at 1.0 would fail a healthy system by construction. The pathology class this experiment
-exists to detect is quadratic (`b ≈ 2`): across the same span, `b = 1.35` costs **2.75×**
-more than linear and `b = 2` costs **18×**. 1.35 sits above the expected `N log N` and far
-below the pathology. (The first draft wrote 2.8× / 19× off a span of 19; the realized span
-is 18.0 — corrected per A1-F11, and it mildly *overstated* the pathology's cost.)
+expected to contribute a mild `N log N` term, so a threshold at 1.0 would fail a healthy
+system by construction. Across the ladder's **20× span in chunks**, that term's *effective*
+exponent is `1 + ln(ln N_max / ln N_min) / ln 20`, which for any plausible realized
+`C_total` in [50k, 200k] chunks evaluates to **1.09–1.11** — 1.094 at 200k, 1.101 at 100k,
+1.108 at 50k. Call it **≈ 1.10**; it is re-derived exactly at Gate 1b. The pathology class
+this experiment exists to detect is quadratic (`b ≈ 2`): across the same span, `b = 1.35`
+costs **2.85×** more than linear and `b = 2` costs **20×**. 1.35 sits above the expected
+`N log N` and far below the pathology.
 
-**Power, and the reachability arithmetic** (A1-F4d — Q1/SCALE published its `n_min = 154`;
-the first draft published nothing). Over 5 log-spaced tiers × 3 reps,
-`Sxx = Σ(ln N − mean)² ≈ 16.1`, so `SE(b) ≈ σ / 4.01` where `σ` is the residual sd in log
-time. The HOLDS branch needs `b̂ + 1.96·SE < 1.35`; at the expected `b̂ ≈ 1.12` that
-requires **`σ < 0.47`** — a residual sd of ~47% in log time. Ordinary run-to-run timing
-noise is well inside that, which is precisely what the nested design buys: the same
-calculation over five unrelated repos would have to absorb corpus-content variance too,
-and at a plausible content residual of `σ ≈ 0.2`+ the HOLDS branch was at risk of being
-arithmetically unreachable — an experiment that cannot produce its own primary verdict.
+(The 18.0× / 1.120 / 2.75× / 18× figures from AMENDMENT 1 are withdrawn — A3-FATAL-2: they
+were computed on the raw-`find` **file** counts that same amendment disavowed, for a ladder
+that is cut on **chunks**. The threshold itself, 1.35, is unchanged; it was registered at
+`fd46152` and both the old and new rationales place it in the same gap.)
+
+**Power, and the reachability arithmetic** (A1-F4d; re-derived per A3-FATAL-2 and extended
+per A3-MAT-1). Because the rungs are evenly spaced in `ln N` by construction, `Sxx` follows
+from geometry alone and does not depend on any remembered corpus count. With 9 rungs
+spanning 20×, the spacing is `d = ln 20 / 8 = 0.3745`, and `Σ_{k=−4}^{4} k² = 60`:
+
+- **Cluster level (9 tier means):** `Sxx = 60 d² = 8.414`, `SE(b) = σ_tier / 2.901`, df = 7,
+  `t₀.₉₇₅,₇ = 2.365`. HOLDS needs `b̂ + t·SE < 1.35`; at the expected `b̂ ≈ 1.12` that
+  requires **`σ_tier < 0.28`**.
+- **Run level (27 runs):** `Sxx = 3 × 8.414 = 25.24`, `SE(b) = σ / 5.024`, df = 25,
+  `t₀.₉₇₅,₂₅ = 2.060` → **`σ < 0.56`**.
+
+**Both are published, and the cluster-level one is the honest number** (A3-MAT-1). HC3 over
+27 runs at 9 distinct x-values treats tier-level lack-of-fit as if it shrank with
+repetitions, and it does not: adding reps drives down pure error while leaving any
+systematic tier-level departure untouched. Quoting only `σ < 0.56` would therefore overstate
+the design's power in precisely the situation the experiment cares about. **Widening 5 → 9
+rungs is what makes the honest ceiling livable:** at 5 rungs the same calculation gives
+`Sxx_cluster = 5.22`, df = 3, `t = 3.182`, and `σ_tier < 0.165` — a bar ordinary
+between-tier variation could plausibly breach, i.e. a HOLDS branch at real risk of being
+arithmetically unreachable. Q1/SCALE published its `n_min = 154`; this is the analogue.
 
 **This design is still sized to detect a quadratic regression, not to resolve `b = 1.0`
 from `b = 1.2`.** If the realized CI straddles 1.35 from below 1.0, the honest verdict is
@@ -2789,14 +2908,50 @@ never a narrower threshold, and never (as the first draft wrongly proposed) anot
 unrelated corpus, which would deepen the confound rather than resolve it.
 
 **Registered consistency triggers.**
-1. If `ms/chunk` is **strictly monotonically increasing across all five tiers** (p = 1/120
-   under exchangeability) while the CI discharges → **AMBIGUOUS**.
+1. **Lack of fit — RE-DERIVED 2026-08-12 (A3-FATAL-1). The previous form was wrong in the
+   investigator's favour and had been re-certified as "verified and unchanged."** It read:
+   *"if `ms/chunk` is strictly monotonically increasing across all five tiers (p = 1/120
+   under exchangeability) while the CI discharges → AMBIGUOUS."* Under the very `N log N`
+   model used two paragraphs above to justify `b = 1.35`, `ms/chunk ∝ log N`, which **rises
+   ~41% across the span** (`ln 19056 / ln 1059 = 1.415` on the old ladder; ~1.35 on the
+   amended one) — so **strict monotone increase is the *expected healthy* signature**, and
+   the trigger fired on it. Worse, the registered escalation for AMBIGUOUS is *more
+   repetitions*, which tightens tier means and makes a monotone ordering **more** likely: an
+   escalation that increases the chance of the outcome it is escalating from. `ms/chunk` is
+   not exchangeable across tiers under the fitted model, so no permutation argument applies
+   to it at all.
+
+   **The trigger now applies to departure from the fitted law, which is what "the single
+   exponent misdescribes this ladder" actually means.** With 3 reps at each of 9 rungs the
+   classical decomposition is available and is the right instrument:
+   - **Statistic:** the lack-of-fit `F` test on the **adjusted** log–log fit —
+     `F(7, 18)` = (lack-of-fit MS, 9 − 2 = 7 df) / (pure-error MS, 9 × (3 − 1) = 18 df),
+     at **α = 0.05**.
+   - **Registered on the adjusted fit only.** The raw fit carries a known omitted additive
+     constant, which *guarantees* curvature, so a raw-fit lack-of-fit test would fire by
+     construction and mean nothing. The raw `F` is reported as descriptive.
+   - **A practical-significance floor, required jointly with significance.** The trigger
+     fires only if `F` is significant **and** the fitted quadratic-in-`ln N` term implies a
+     departure from the straight-line fit exceeding **5% in predicted time at the ladder's
+     endpoints**. Benchmark, computed for this ladder's geometry: the `N log N` term's own
+     curvature produces a maximum endpoint departure of **0.69%** in log-time (mid-ladder
+     +0.47%, endpoints −0.69%). A 5% floor clears that by ~7× while sitting far below a
+     linear-plus-quadratic mixture's signature. Without the floor, a design with tight pure
+     error would fire on the 0.7% term itself and AMBIGUOUS would be predetermined — the
+     A1-F4d defect class.
+   - **Fires → AMBIGUOUS**, with the registered escalation (more rungs or more reps).
+   - **What it does and does not detect, stated plainly:** a *pure* power law of any
+     exponent is a straight line in log–log, so this trigger is silent on quadratic-only
+     data — the CI on `b` owns that case. It detects **mixtures**, e.g. a linear pipeline
+     with one quadratic subcomponent that only dominates at scale, where a single exponent
+     is the wrong description of the ladder. The two instruments are complementary, not
+     redundant; the previous trigger was neither.
 2. Any run with `write_errors > 0` is **VOID** — that is an S1 regression, and S1's whole
    point was that a non-zero `write_errors` means chunks are silently absent from the index.
    Diagnose, then re-run.
-3. If R3's `bytes/chunk` at the largest tier exceeds 1.5× the smallest tier's, it is flagged
-   and discussed in the result; it does not alone force AMBIGUOUS (state overhead has a
-   fixed component that amortizes differently at 1k vs 19k files).
+3. If R3's `bytes/chunk` at T9 exceeds 1.5× T1's, it is flagged and discussed in the result;
+   it does not alone force AMBIGUOUS (state overhead has a fixed component that amortizes
+   differently across a 20× span).
 4. **Parse-error rate** (A1-F12). Files that fail to parse consume walk/read/parse time and
    contribute **zero** chunks, so a parse-error rate that rises with tier size inflates
    `ms/chunk` with `N` through a channel the model does not represent. If any tier's parse-
@@ -2822,28 +2977,28 @@ codebase uses factories and containers." Quantity: `edge_emitted ÷ total call s
 visited`, from the `onCallSite` seam run over a corpus's indexed file set.
 
 **Decision-bearing corpus is `nest` alone** (A1-F1). The claim is scoped to Fastify+DI, and
-P1–P5 contain no Fastify at all; testing a scoped claim against out-of-scope corpora and
-then mandating a spec rescope is not a test, it is a formality that returns the
-investigator's prior.
+the other five checkouts — P1–P4 plus n8n, the ladder's source — contain no Fastify at all;
+testing a scoped claim against out-of-scope corpora and then mandating a spec rescope is not
+a test, it is a formality that returns the investigator's prior.
 
 | observed on **nest** | verdict |
 |---|---|
 | yield ≥ 60% | **SUPPORTED.** §10.3.1's band holds on the closest available Fastify+DI corpus. Whether the realized value also falls below 80% is descriptive; the upper edge is not a failure condition. |
-| yield < 60% | **UNSUPPORTED.** The band overstates coverage on a Fastify+DI corpus; §10.3.1 must be rescoped or the figure removed. Spec-drift finding, same class as the P3 items. |
+| yield < 60% | **NOT ATTAINED** (softened 2026-08-12, A3-MAT-2, owner decision). Registered reading: *the band is not attained on the closest available Fastify+DI corpus.* That is **evidence for a spec revisit, not a mandate** to rescope §10.3.1 or remove the figure. Reason: `n = 1`, and the one corpus is a DI *framework* rather than the DI *service* the spec names — a single out-of-referent miss cannot carry a spec change on its own. Recorded as a spec-drift **candidate**, alongside the P3 items, for a decision that weighs it against the caveats rather than executing on it. |
 
 The table is exhaustive by construction — the first draft's three rows left the pattern
 "one corpus above 80%, none in 60–80%" with **no verdict at all** (A1-F7), which is the
 Q1/SCALE AMENDMENT-1 F3 class: verdict machinery undefined on a reachable data pattern,
 resolvable only post-hoc by the prior.
 
-**P1–P5 are external validity, and carry no verdict.** Their yields are reported in full
-and answer a different, narrower question: how far the band travels outside its stated
-scope. A miss on all five licenses **no** spec change.
+**P1–P4 and n8n are external validity, and carry no verdict.** Their yields are reported in
+full and answer a different, narrower question: how far the band travels outside its stated
+scope. A miss on all of them licenses **no** spec change.
 
 **Direction-of-error statement:** mast's own `src/` measures 40%, below band, so the
-investigator's prior is that the band is optimistic — **UNSUPPORTED flatters that prior**.
-The UNSUPPORTED branch therefore carries the mandatory adversarial results review, and the
-nest caveat above (framework, not service) must be restated wherever the verdict is quoted.
+investigator's prior is that the band is optimistic — **NOT ATTAINED flatters that prior**.
+That branch therefore carries the mandatory adversarial results review, and the nest caveat
+above (framework, not service) must be restated wherever the verdict is quoted.
 
 **The denominator is narrower than the spec's** (A1-F8), and this is registered rather than
 discovered later. §10.3.1's band is over "real call sites"; the seam's denominator is
@@ -2864,14 +3019,24 @@ distribution per corpus against mast's own 866 / 604 / 592 / 93 baseline.
 **E1-R5's falsification, registered separately** (it is a defect probe, not a growth law):
 round 1's signature was periodic **1.7–3 s** reader stalls.
 
-| observed, on **each** of T1 and T5, over ≥ 400 scored calls | verdict |
+| observed, on **each** of T1 and T9, over ≥ 400 scored calls (scored = overlapping write activity) | verdict |
 |---|---|
 | ≥ 1% of reader calls exceed **1,500 ms** (round 1's own instrument threshold) | Round-1's stall class is **PRESENT at HEAD**; Q6 reopens as a live defect. |
-| 0 calls exceed 1,500 ms **and** that corpus's p99 is within **2×** its own idle baseline p99 | **ABSENT at HEAD topology** — which, with round 2's pre-F11 null, retires the class. |
+| 0 calls exceed 1,500 ms **and** that corpus's p99 exceeds its own idle-baseline p99 by **≤ 250 ms in absolute terms** | **ABSENT at HEAD topology** — which, with round 2's pre-F11 null, retires the class. |
 | anything between | Reported; class **INDETERMINATE**. |
 
+**The "within 2× idle baseline" multiplier is withdrawn** (A3-MAT-6). It was derived
+nowhere, and it is **vacuous at T9**: any corpus whose idle p99 reaches 750 ms has a 2×
+bound of ≥ 1,500 ms, at which point the clause is strictly implied by the row's other
+condition and contributes nothing. The replacement is absolute and derived: round 1's
+signature was periodic **1,700–3,000 ms** stalls, so an excess an order of magnitude below
+the *smallest* stall ever observed is the operative "no trace of this class" bar — hence
+**250 ms**. Direction, stated because it matters: an absolute bar is **harder** to satisfy
+at T9 than a multiplier would be, so this change runs **against** retirement, which is the
+correct direction given R5's registered prior.
+
 Both corpora must land in the same row for a clean verdict; a split (e.g. ABSENT at T1,
-INDETERMINATE at T5) is reported as INDETERMINATE overall, because scale is exactly the
+INDETERMINATE at T9) is reported as INDETERMINATE overall, because scale is exactly the
 axis this row exists to probe.
 
 #### Registered readings for the supporting rows (A1-F10)
@@ -2901,9 +3066,15 @@ verdict:
   nested tier ladder.
 - **O(N) holding:** `b_chunk` CI upper bound < 1.35, on both the primary HC3 fit and the
   wild-cluster sensitivity, adjusted and raw.
-- **The spec's coverage band failing:** `nest` yield below 60%.
+- **The spec's coverage band failing:** `nest` yield below 60% — read as NOT ATTAINED, per
+  the softened consequence registered above.
 - **The round-1 stall class living at HEAD:** ≥ 1% of concurrent-reader calls over 1,500 ms
-  on either probed corpus.
+  **on both probed corpora** (A3-MAT-4 — this bullet previously read "on either probed
+  corpus" while the verdict table says a split is INDETERMINATE overall. The contradiction
+  was introduced by AMENDMENT 1, which added the second corpus here but not there. **The
+  table wins**, because the table is the instrument that is actually scored, and "either"
+  would have made a single-corpus PRESENT reading dispositive against a design that
+  deliberately probes two scales).
 - Every one of these is falsifiable in both directions; no outcome here is "no result."
 
 #### Gates before any scored measurement
@@ -2916,14 +3087,29 @@ verdict:
    three days and one schema version of agent sessions undetected, and because **every
    `eval/*.mjs` script imports from `../dist/` directly** — the harness is exposed to the
    identical failure. Rebuild is not restart: any long-lived `mast serve` involved in R5
-   must be started *after* the build.
+   must be started *after* the build. **This gate covers run P0** (the prerequisite
+   full-n8n build) and **E2's harness pass**, neither of which the first draft brought
+   under it — see A3-FATAL-3 and A3-MAT-8.
 1. **Corpus integrity, per run:** detached worktree at the pinned SHA with
    `git status --porcelain` empty; tier file lists match the frozen tier manifest exactly;
    `write_errors == 0` (else VOID, per trigger 2); `parse_errors` **recorded but not gated**
    — corpora legitimately contain files this extractor cannot parse, and gating on that
    would silently select for corpora that flatter the tool, so the rate is policed by
    trigger 4 instead; indexed file count and chunk count read from `graph.db`, never stdout;
-   the resolved config recorded in the manifest.
+   the resolved config recorded in the manifest. **Added 2026-08-12:** a tier's three
+   repetitions must report **identical** `chunk_count`; disagreement is a nondeterminism
+   finding and voids that tier pending diagnosis.
+   **Gate 1b — ladder geometry and reachability, re-derived from the frozen manifest before
+   any scoring** (A3-FATAL-2). Once P0 has run and the 9 rungs are cut, the harness computes
+   and **commits**, from the manifest's realized chunk counts: the realized span, each rung's
+   realized fraction of `C_total`, `Sxx` at run and cluster level, both `SE(b)` multipliers,
+   both σ ceilings, and the `N log N` effective exponent. The projected figures above
+   (`Sxx_cluster = 8.414`, `σ_tier < 0.28`, `σ < 0.56`, `b_eff ≈ 1.10`) assume rungs land
+   exactly on their target fractions; real file prefixes land near, not on. **If the realized
+   `Sxx_cluster` falls more than 20% below 8.414, the cut is re-examined before any scored
+   run** — not after, and never by moving the threshold. This gate exists because AMENDMENT 1
+   published an entire power analysis computed on an anchor it had itself disavowed in the
+   same document; arithmetic that is never re-derived against reality is decoration.
 2. **Parse-only fidelity (R2):** the parse pass's **file count, chunk count and symbol
    count** must equal the full index's **exactly**. Edge count is deliberately **not** in
    this gate — see the R2 construction note above (A1-F2): edge rows are lossy and deduped
@@ -2947,6 +3133,11 @@ verdict:
    with `?mode=ro&immutable=1` — it is WAL-blind. **Measured prior carried into R4:**
    `{busy:0, log:889, checkpointed:889}` on the live 14,605-chunk index, 2026-08-11 — 889
    is the backlog **ceiling**, not its depth, because opening a copy rebuilds the wal-index.
+   (A3-C3: this registration cites the live index as both 14,605 and 14,610 chunks. They are
+   the **same index at two moments of 2026-08-11**, five chunks apart — the WAL reading above
+   was taken before the operator restart, the 14,610 figure in Costs after it. The reading's
+   own context is left as measured rather than retro-fitted; only the discrepancy is
+   reconciled here.)
 5. **Determinism and instrument hygiene:** the six pin SHAs, seed 811, the frozen tier
    manifest, the harness scripts, and the run-manifest schema are committed **before** any
    measurement. Every script ships a working CLI entry point — Q1/SCALE logged that defect
@@ -2968,15 +3159,40 @@ verdict:
      prior on every input.
    - **(b) Known linear** (`total = a·N`) must fire **O(N) HOLDS**.
    - **(c) Known linear-plus-large-constant** (`total = c + a·N`) must fire HOLDS on the
-     **adjusted** fit *and* must exhibit a visibly lower raw-fit exponent — this is the only
-     case that proves the calibration subtraction is wired the right way round rather than
-     merely present. A sign error here biases `b` down, i.e. toward HOLDS.
+     **adjusted** fit *and* must exhibit a lower raw-fit exponent — this is the only case
+     that proves the calibration subtraction is wired the right way round rather than merely
+     present. A sign error here biases `b` down, i.e. toward HOLDS. **Numeric margin, added
+     2026-08-12 (A3-MAT-7): "visibly lower" is not a test.** The dataset is constructed with
+     `c` equal to 40% of T1's total time; the assertions are that the **adjusted** fit
+     recovers the constructed truth `b = 1.0` within **±0.05**, and that the **raw** exponent
+     sits at least **0.10 below** the adjusted one. Both numbers are properties of the
+     constructed dataset, not of the outcome.
    - **(d) HC3 and the wild cluster bootstrap** each checked against a fixed dataset whose
      OLS slope and robust SE are computed independently, not by the code under test.
    - **(e) Degenerate input** — all-equal timings, and a single-tier dataset — must **not**
      silently produce HOLDS. They must raise or return an explicit undefined verdict.
    - **(f) E2's two-row table and R5's three-row table** each exercised on synthetic inputs
      that land in every row, including R5's split-corpora INDETERMINATE case.
+   - **(g) E1's own three-row table, every row and every feeding mechanism** (A3-MAT-7 — the
+     first draft of this gate exercised E2's and R5's tables but **not E1's**, which is the
+     only one that carries the headline verdict, and whose AMBIGUOUS row has *three*
+     independent mechanisms, none of them constructed):
+     - SUPER-LINEAR fired via the **CI lower bound** — a dataset with `b̂ ≈ 1.42` whose CI
+       lower bound clears 1.35.
+     - AMBIGUOUS via a **CI straddling** 1.35.
+     - AMBIGUOUS via **primary/sensitivity disagreement** across 1.35.
+     - AMBIGUOUS via **adjusted/raw disagreement** across 1.35.
+     - **The point-estimate killer:** a dataset whose point estimate is **below** 1.35 but
+       whose CI **upper** bound is above it must return **AMBIGUOUS, never HOLDS**. Without
+       this case a scorer that keys verdicts off `b̂` instead of the interval bounds passes
+       every other case in this gate — and it fails toward HOLDS on precisely the noisy data
+       where the distinction decides the experiment.
+   - **(h) Trigger 1's lack-of-fit test.** A pure power law (any exponent) must **not** fire
+     it. A linear-plus-quadratic mixture constructed to exceed the 5% endpoint-departure
+     floor **must** fire it. A mixture constructed to sit at the `N log N` term's own 0.7%
+     departure must **not** fire it even when pure error is made small enough for `F` to be
+     significant — that pair is what verifies the practical-significance floor is wired in
+     rather than merely written down.
 
    **Why this gate is here at all, stated plainly:** the first draft of this registration
    omitted it. Q1/SCALE registered the equivalent gate specifically because `ab-score.mjs`
@@ -2984,19 +3200,55 @@ verdict:
    failure of omitting a check on the machinery that produces the verdict. Carrying that
    file's CLI-entry-point lesson (Gate 5) while dropping its scorer-test lesson was an
    inconsistency in the author's favour.
+8. **E2 harness fidelity — the gate E2 never had** (A3-MAT-8). `extractFile` takes
+   `(filePath, projectRoot, contextLines, chunkSplitThreshold, markdownHeadingDepth)` and
+   **no `onCallSite` parameter** (`ast/extract.ts:44-50`); the seam exists only on
+   `extractEdges` (`ast/extractors/typescript.ts:1148-1162`). **E2 therefore cannot ride a
+   Gate-0-verified product build.** It is a harness pass that self-reports *both* its
+   numerator and its denominator — the one measurement in this registration with no
+   independent check on either — while R2, a merely *descriptive* row, was given Gate 2.
+   That asymmetry is backwards, and it survived two amendments. The compensating control:
+   - The harness pass over `nest` must reproduce that corpus's Gate-0-verified build on
+     **file count, chunk count and symbol count exactly** — the same three counts Gate 2
+     uses, and for the same reason.
+   - Its `edge_emitted` count must be **≥** the `POTENTIAL_CALL` row count in that build's
+     `graph.db`. Greater-or-equal is the only sound direction: A1-F2 established that edge
+     rows are lossy (unresolved names dropped, `populate.ts:537,543`) and deduped
+     (`db.ts:257`) relative to extractor emissions, so equality is structurally impossible
+     and a **lower** harness count would mean the harness is not seeing the whole corpus.
+   - The harness records its own import path and the built `dist/` timestamp, so Gate 0's
+     binary-identity claim extends to it rather than stopping at the product CLI.
+   - Any mismatch **voids E2 for that corpus**, which — since `nest` is E2's sole
+     decision-bearing corpus — voids E2's verdict rather than degrading it silently.
+
+   Adding an `onCallSite` parameter to `extractFile` would let E2 read the product path
+   directly and retire this gate. **That is a product change made to serve a measurement,
+   and it is out of scope** — the same reasoning that kept `--parse-only` out for R2. Gate 8
+   is the compensating control, not a preference.
 
 #### Costs (stated before spending)
 
-- **Index time.** M1's measured post-migration anchor is nest at 4.4 s / 1,338 files
-  ≈ 3.3 ms/file. Across **33 scored runs** (15 tier + 18 panel) plus 10 calibration runs,
-  that projects to roughly **12 minutes** of pure index time, plus parse-only passes,
-  process startup, and R5's writer/reader load on two corpora. Tier construction is cheap
-  and reuses proven tooling. **This projection is itself the quantity under measurement** —
-  it is a budget, not a prediction, and a realized ladder an order of magnitude above it
-  *is* the R1 result, not a cost overrun. The amended design roughly doubles the original's
-  build count; at these absolute numbers that is not a constraint worth trading validity for.
+- **Index time, expressed in the only unit that survives A3-FATAL-2.** A minutes figure
+  derived from the disavowed file counts would repeat the defect this amendment exists to
+  fix, so the budget is stated in **full-n8n-index-equivalents**, `t` = the cost of one T9
+  build:
+  - **Ladder:** `Σ f_i = 3.092` equivalents per repetition × 3 reps = **9.28 t**.
+  - **Prerequisite:** run P0 = **1.00 t**.
+  - **Panel:** P1–P4 + `nest` ≈ **0.90 t** per rep × 3 = **2.69 t**. This one term is
+    still sized off the provisional raw-`find` ratios, because no better anchor for
+    *other* repos exists until they are built; it is a budget line, and no verdict
+    depends on it.
+  - **Total ≈ 13 t**, plus 10 calibration runs (empty corpus, negligible), parse-only
+    passes, process startup, and R5's writer/reader load on two corpora.
+
+  Against the original registration's ≈ 5.5 t, the amended design costs **≈ 2.4×** — not
+  "roughly doubles" (A3-C4), which understated it while the design grew from 5 rungs to 9
+  and acquired a prerequisite build. At these absolute numbers that is not a constraint
+  worth trading validity for. `t` itself is unknown until P0 runs, and **that is the point**:
+  this projection is itself the quantity under measurement — a budget, not a prediction — and
+  a realized ladder an order of magnitude above it *is* the R1 result, not a cost overrun.
 - **Disk.** The live index is 157 MB at 14,610 chunks (≈11.3 KB/chunk). If chunk yield
-  tracks it, T5/P5 could reach ~1.5–2 GB and one full set of tiers plus panel ~5–7 GB.
+  tracks it, T9 could reach ~1.5–2 GB and one full set of tiers plus panel ~5–7 GB.
   **Only the final repetition's state dirs are retained**; earlier reps are deleted once
   their manifest is written, subject to Gate 6's ordering. Host: 79 GB free of 926 GB (92%
   used). `~/.cache/mast-eval/vscode-state-*` holds ~6.9 GB that is reclaimable if needed —
@@ -3006,7 +3258,7 @@ verdict:
 
 #### Design Reserve (pre-thought, NOT commitments)
 
-A sixth tier at vscode (8,653 files / 138,440 chunks, already pinned and built once for
+A tenth rung at vscode (8,653 files / 138,440 chunks, already pinned and built once for
 Q1/SCALE) — note it is a *different corpus*, so promoting it extends the panel, not the
 nested ladder; a genuine **Fastify+DI service** corpus for E2, which nest only approximates
 (the closest candidate is this monorepo's own `application/api`, disqualified as the home
@@ -3085,6 +3337,56 @@ majority of defects flattered the investigator. This one was self-found rather t
 review-found, which is a better sign than the alternative — but it was found while
 *explaining the work to someone else*, not while writing it, and that is worth recording as
 its own lesson about when these defects actually surface.
+
+#### AMENDMENT 3 — 2026-08-12, pre-run, post-second-adversarial-review
+
+Second adversarial design review commissioned per §6 (Agent tool, model `fable`) against
+this section as committed at `8bd17f8`, **before any measurement had occurred**. As with
+AMENDMENT 1, no data existed, so the registration above was revised **in place** and this
+log is the audit trail. Every code claim the reviewer made was **independently verified
+against source before being accepted**; the reviewer has been wrong before.
+
+**The finding about the process, stated first because it is the important one: all three
+fatal defects were introduced by AMENDMENT 1's repairs.** They are not in `fd46152`. The
+review that was supposed to harden the design broke new ground in it — and two of the three
+sat inside passages AMENDMENT 1 explicitly certified as "verified and unchanged." Trigger 1
+is the sharpest case: the reviewer checked its arithmetic in round 1 (`p = 1/120 ✓`) and
+missed that the trigger contradicts the threshold rationale sitting two paragraphs above it.
+**Checking a component in isolation is not checking the design.** This is now the fourth
+consecutive round in which the majority of defects flattered the investigator, and the first
+in which the *repairs* were the vector.
+
+| # | Finding | Change | Direction the error ran |
+|---|---|---|---|
+| **FATAL-1** | **Trigger 1 contradicted the threshold's own rationale.** Under the `N log N` model used to justify `b = 1.35`, `ms/chunk ∝ log N` and rises **~41%** across the span (`ln 19056 / ln 1059 = 1.415`). Strict monotone increase in `ms/chunk` is therefore the **expected healthy signature** — and trigger 1 called it AMBIGUOUS. The registered escalation (more reps) tightens tier means and makes the monotone ordering *more* likely: an escalation that increases the chance of the outcome being escalated from. The `p = 1/120` exchangeability argument never applied, because `ms/chunk` is not exchangeable across tiers under the fitted model. | Trigger 1 re-derived onto **departure from the fitted law**: classical lack-of-fit `F(7, 18)` at α = 0.05 on the **adjusted** fit (raw reported as descriptive, since its known omitted constant guarantees curvature), **jointly** with a **5% endpoint-departure floor** — benchmarked against the `N log N` term's own **0.69%** curvature, computed and shown. What it detects is now stated: mixtures, not pure power laws. | **Toward AMBIGUOUS** — i.e. "safe rather than informative": a design that discharges nothing while appearing rigorous. Fix-induced. |
+| **FATAL-2** | **The ladder's rungs were cut in one unit and stated in another.** Targets read "≈1k / 2k / 5k / 8k / all indexed **files**"; the cut rule read cumulative **chunk** counts; `scale-build-tiers.mjs:36` cuts on chunk targets. Worse: **every published figure** — span 18.0×, `N log N` exponent 1.120, `Sxx ≈ 16.1`, `SE(b) ≈ σ/4.01`, `σ < 0.47` — was computed on the raw-`find` **file** counts that AMENDMENT 1, in the same document, called "the wrong anchor in both directions." | Rungs are now **geometric fractions of realized `C_total`** (`f_i = 20^{−(9−i)/8}`, 20× span, exactly even in `ln N`). All arithmetic re-derived from **geometry** (`Sxx_cluster = 8.414`, `σ_tier < 0.28`, `σ < 0.56`, `b_eff ≈ 1.10`) and the old figures withdrawn. New **Gate 1b** re-derives the whole power analysis from the frozen manifest's realized counts before any scoring, with a 20% geometry tolerance. | **Free lever, and a live incoherence** — the ladder as written could not be built as specified. Fix-induced. |
+| **FATAL-3** | **The tier manifest requires a full n8n index build first** — `scale-build-tiers.mjs:3-5` reads a completed `graph.db` for per-file chunk counts. That build appeared in **no gate, no run count, no cost line**, on a harness that imports `../dist/` directly, i.e. carrying D8's exact exposure while sitting outside the D8 gate. It is also a pre-freeze look at a T9-scale timing. | Promoted to **run P0**: under Gates 0 and 1 in full, own manifest entry, **excluded from every fit**, and **the peek is declared** — with the binding mitigation that this amendment (fractions, seed, threshold, estimator, triggers, gates) is committed **before** P0 runs, so the machinery is immutable by the time anything is seen. | **Free lever plus an ungated build** — the peek is of a duration at the ladder's top rung, the most informative single number in the experiment. Fix-induced. |
+| MAT-1 | AMENDMENT 1 replaced 5-cluster BCa with a 5-cluster **Rademacher** wild bootstrap — 2⁵ = **32** atoms. One degenerate method for another. CI construction, restricted-vs-unrestricted residuals and the studentization were all unregistered. Separately, HC3 over 15 runs at 5 x-values treats tier-level lack-of-fit as if it shrank with reps, which it does not, so `σ < 0.47` overstated the design's power. | 9 clusters (owner decision); **Webb 6-point weights** (6⁹ ≈ 10.1 M atoms); restricted residuals for testing, unrestricted for the percentile-t CI; studentized with CR1. **Both** reachability ceilings published, with the **cluster-level one named as the honest number** — and the 5-rung counterfactual (`σ_tier < 0.165`) shown, which is the quantitative case for widening. | **Flatters HOLDS** — an overstated power figure makes the discharge branch look reachable when it may not be. |
+| MAT-2 | E2 decides on `n = 1`, and the consequence was a mandate: "§10.3.1 must be rescoped or the figure removed." | **Owner decision: keep `n = 1`, soften the consequence.** Sub-60% now registers as **NOT ATTAINED** — "the band is not attained on the closest available Fastify+DI corpus" — evidence for a spec revisit, recorded as a spec-drift *candidate*, **not** a mandate. | **Toward the prior** (mast's own src = 40% already favours a miss); a single out-of-referent corpus cannot carry a spec change. |
+| MAT-3 | R5's payload was Q1/SCALE's frozen probes — **vscode-specific** (`supportsTelemetry` in `src/vs/platform/telemetry/common/telemetryUtils.ts`) — aimed at n8n tiers. Absent terms are the cheapest reads the engine performs: FTS5 returns empty early, ranker D never engages. | Payload **derived from the probed corpus's own `graph.db`** (10 declaration names, seed 811, stratified common/rare), committed as `eval/e1r5-queries-<corpus>.json` before the probe. | **Flatters retirement** — it suppresses exactly the contention R5 exists to find. |
+| MAT-4 | Falsification said the stall class is PRESENT on "**either** probed corpus"; the verdict table says a split is INDETERMINATE overall. Direct contradiction, introduced when AMENDMENT 1 added the second corpus to one and not the other. | Resolved **in the table's favour** — the table is what gets scored. Falsification now reads "on both probed corpora." | **Free lever** — an unresolved contradiction is resolved after the data by whoever reads it. Fix-induced. |
+| MAT-5 | Nothing required scored R5 calls to **overlap write activity**. 400 calls at K = 4 paced 250 ms ≈ 25 s of reader traffic against a single-digit-second T1 pass, so most scored calls would see no writer — diluting the ≥ 1% criterion by the duty cycle. | A call is **scored only if start and end fall strictly inside a writer run**; the writer repeats non-incremental indexes until the count is reached. (Verified benign: `toIndex = currentFiles`, `index.ts:232`, skip gated on `options.incremental` at `:278` — repeat passes are real write load.) | **Flatters retirement**, by roughly the duty cycle. |
+| MAT-6 | The "p99 within **2×** idle baseline" clause was derived nowhere and is **vacuous at T9**: idle p99 ≥ 750 ms makes 2× ≥ 1,500 ms, implied by the row's other condition. | Replaced with an **absolute ≤ 250 ms excess** over the corpus's own idle p99 — an order of magnitude below round 1's smallest observed stall (1,700 ms). Direction noted: absolute is *harder* at T9, which opposes retirement. | **Flatters retirement**, and silently so — the clause reads as a second requirement while adding nothing. |
+| MAT-7 | Gate 7 exercised E2's and R5's verdict tables but **not E1's** — the only one carrying the headline verdict, and the only one whose AMBIGUOUS row has three independent feeding mechanisms. A scorer keying verdicts off the point estimate rather than the CI bounds passed all six registered cases. Case (c)'s "visibly lower" had no numeric margin. | New case **(g)**: E1's three rows and all three AMBIGUOUS mechanisms, including the **point-estimate killer** (`b̂ < 1.35`, CI upper > 1.35 ⇒ AMBIGUOUS, never HOLDS). New case **(h)**: trigger 1's lack-of-fit test, including the pair that verifies the 5% floor. Case (c) given numbers: adjusted recovers `b = 1.0` within ±0.05, raw at least 0.10 below adjusted. | **Toward HOLDS on every branch** — a point-estimate scorer fails toward HOLDS on exactly the noisy data where the distinction decides the experiment. |
+| MAT-8 | `extractFile` takes **no `onCallSite` parameter** (`ast/extract.ts:44-50`); the seam exists only on `extractEdges` (`typescript.ts:1148-1162`). **E2 cannot ride a Gate-0-verified build** — it is an ungated harness pass self-reporting *both* numerator and denominator. R2, a merely descriptive row, had Gate 2; E2's decision-bearing measurement had no fidelity gate at all. | New **Gate 8**: file/chunk/symbol counts must match the Gate-0 build exactly; `edge_emitted` must be **≥** the build's `POTENTIAL_CALL` row count (≥ because edge rows are lossy and deduped — A1-F2); harness import path and `dist/` timestamp recorded. Mismatch **voids E2**. Adding the seam to `extractFile` is explicitly out of scope — a product change to serve a measurement, same reasoning as `--parse-only`. | **Free lever on both terms of a ratio** — the single largest unchecked surface in the registration. |
+| MAT-9 | `n8n` was listed as panel rung **P5** *and* as the tier ladder's source, so the replication panel's top point was the ladder's top point. | **P5 dropped.** T9 *is* the full-n8n measurement. Panel = P1–P4 + `nest`, 15 replication runs. (`nest` still appears in both experiments — benign, because the E1 panel carries no verdict.) | **Flatters HOLDS** — the panel's job is to be external, and its heaviest point was internal. |
+| C1–C5 | Cosmetics: "each indexed once from cold" survived from `fd46152` against a 3-rep design; the "one registration, shared build" economy was dead post-A1 and post-MAT-8; the live index cited as both 14,605 and 14,610 chunks; "roughly doubles" understated the cost growth; `eval/make-subset.mjs` miscited as tier tooling. | All corrected: the shared-build rationale rewritten to name what *is* actually shared; the two chunk readings reconciled as the same index five chunks apart on 2026-08-11; cost restated in **n8n-index-equivalents** (≈ 13 t, ≈ 2.4× the original) rather than a minutes figure derived from the disavowed anchor; `scale-build-tiers.mjs` named as the tier constructor. | — |
+
+**Verified and unchanged** (attacked and not broken): the pin SHAs; Gate 0 in full; the
+`durationMs` fitted clock and the calibration constant `c`; the 1.35 threshold itself, which
+both the old and the re-derived rationale place in the same gap; chunk count as the exposure
+variable; log–log as the estimation scale; Gate 2's three-count formulation and the reasoning
+that removed edge count; Gate 4's WAL rules; Gate 6's ordering constraint; the E2 denominator
+caveat (A1-F8) and the `call_expression` mitigation; the R5 reader-lifecycle limitation;
+triggers 2, 4 and 5.
+
+**Registered process note, since it now has four data points.** Rounds 1 and 2 of review, plus
+the self-found AMENDMENT 2, plus this round: the majority of defects have flattered the
+investigator every time. What is new here is that **the repairs were the vector** — three
+fatal defects, none present in the original draft. The operational conclusion is not "review
+harder"; it is that **a repaired registration is a new registration and inherits none of the
+old one's verification.** Re-certifying a passage as "verified and unchanged" while the
+passages around it move is precisely how FATAL-1 survived.
 
 ---
 
