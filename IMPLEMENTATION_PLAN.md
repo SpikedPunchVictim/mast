@@ -2957,6 +2957,33 @@ verdict:
    R4's boundary checkpoint reading, and E2's seam/SQL extraction must all be taken
    **before** R5 touches a corpus — or R5 must run against a dedicated copy. Registered
    here because nothing else in the design forces the order.
+7. **Scorer correctness — known-answer tests, green BEFORE the scorer sees real data**
+   (AMENDMENT 2). The scorer's statistics ship as `eval/__tests__/e1-score.test.mjs`, run by
+   the normal suite (`vitest.config.ts` already includes `eval/**/*.test.mjs`, and its own
+   comment names this defect class), so the gate is enforced by `pnpm -F mast test` rather
+   than by a bespoke script a runner has to remember to invoke. Required cases, all over the
+   frozen tier chunk counts with seeded multiplicative noise:
+   - **(a) Known quadratic** (`total = a·N²`) must fire **SUPER-LINEAR REGRESSION**. A
+     scorer that cannot fire this row on data built to fire it returns the investigator's
+     prior on every input.
+   - **(b) Known linear** (`total = a·N`) must fire **O(N) HOLDS**.
+   - **(c) Known linear-plus-large-constant** (`total = c + a·N`) must fire HOLDS on the
+     **adjusted** fit *and* must exhibit a visibly lower raw-fit exponent — this is the only
+     case that proves the calibration subtraction is wired the right way round rather than
+     merely present. A sign error here biases `b` down, i.e. toward HOLDS.
+   - **(d) HC3 and the wild cluster bootstrap** each checked against a fixed dataset whose
+     OLS slope and robust SE are computed independently, not by the code under test.
+   - **(e) Degenerate input** — all-equal timings, and a single-tier dataset — must **not**
+     silently produce HOLDS. They must raise or return an explicit undefined verdict.
+   - **(f) E2's two-row table and R5's three-row table** each exercised on synthetic inputs
+     that land in every row, including R5's split-corpora INDETERMINATE case.
+
+   **Why this gate is here at all, stated plainly:** the first draft of this registration
+   omitted it. Q1/SCALE registered the equivalent gate specifically because `ab-score.mjs`
+   shipped with its headline Wilcoxon test *registered but never implemented* — the exact
+   failure of omitting a check on the machinery that produces the verdict. Carrying that
+   file's CLI-entry-point lesson (Gate 5) while dropping its scorer-test lesson was an
+   inconsistency in the author's favour.
 
 #### Costs (stated before spending)
 
@@ -3032,6 +3059,32 @@ run-order shuffle; **Gate 0, the D8 binary-identity gate, in full**; chunk count
 exposure variable; log–log as the estimation scale; trigger 1; Gate 4's WAL rules,
 transcribed from the Q6 RESCOPE without drift; and the registered admission that no
 non-invasive in-flight backlog probe exists.
+
+#### AMENDMENT 2 — 2026-08-12, pre-run, self-identified
+
+Not from a review. Found while distilling the remaining build work for the project owner,
+against the registration as committed at `468d585`, **before any measurement had
+occurred** — so, per the same precedent as AMENDMENT 1, the gate was added in place and
+this log is the audit trail.
+
+**The defect: no known-answer test on the scorer.** Q1/SCALE's Gate 1 required its
+statistical test to be "implemented and unit-tested BEFORE scoring", with named cases,
+because `ab-score.mjs` had shipped with its registered Wilcoxon test **never implemented**
+(HANDOFF_Q1.md §5). This registration inherited that file's *other* lesson — Gate 5's
+working-CLI-entry-point rule, where the same defect class recurred a second time in
+`idfuse-score.mjs` — but silently dropped the scorer-test lesson.
+
+| aspect | statement |
+|---|---|
+| **Change** | New **Gate 7**: six known-answer cases (quadratic → SUPER-LINEAR; linear → HOLDS; linear-plus-constant → adjusted HOLDS with a demonstrably lower raw exponent; independent HC3/bootstrap checks; degenerate inputs must not silently discharge; every verdict-table row exercised). Enforced by `pnpm -F mast test`, since `vitest.config.ts` already includes `eval/**/*.test.mjs`. |
+| **Direction the error ran** | **Toward the investigator's prior, on every branch.** An unverified scorer's most likely silent failures — an inability to fire SUPER-LINEAR at all, a sign error on the calibration subtraction (which biases `b` down), or a degenerate input falling through to the discharge row — all land on **O(N) HOLDS**. This is the same asymmetry AMENDMENT 1 found five times. |
+| **Why it was missed** | The registration's own banner is "exactly one decision-bearing test per experiment", and attention went to *defining* that test rather than to verifying the code that would evaluate it. The gate that checks the checker is the easiest one to forget and the most expensive to omit. |
+
+**Process note.** AMENDMENT 1's tally recorded three consecutive review rounds in which the
+majority of defects flattered the investigator. This one was self-found rather than
+review-found, which is a better sign than the alternative — but it was found while
+*explaining the work to someone else*, not while writing it, and that is worth recording as
+its own lesson about when these defects actually surface.
 
 ---
 
