@@ -1,7 +1,9 @@
 // E1-AB — the arms, the schedule, and Gate A.
 //
 // Registration: IMPLEMENTATION_PLAN.md § E1-AB PRE-REGISTRATION (2026-08-13),
-// as amended by AMENDMENT 1 (2026-08-13, pre-run, post-adversarial-review).
+// as amended by AMENDMENT 1 (2026-08-13, pre-run, post-adversarial-review) and
+// AMENDMENT 3 (2026-08-13, mid-run, data-informed: the Latin square extended to
+// T1 and T5; all runs collected under the retired shuffle discarded unscored).
 //
 // A SEPARATE module from `e1-schedule.mjs` and `e1-phase-schedule.mjs`, for the
 // reason E1-PHASE gave: those are the scored instruments of completed
@@ -10,10 +12,17 @@
 //
 // Run every script from `packages/mast`, never the repo root.
 
-import { seededShuffle } from './e1-common.mjs';
 
-/** Committed with the registration. Distinct from E1's 811 so the two permutations cannot be confused. */
-export const AB_SEED = 4409;
+/**
+ * How within-block ordering is decided. Recorded in the schedule artifact so a
+ * reader of the results knows the order was BALANCED, not randomised.
+ *
+ * AMENDMENT 3 removed `AB_SEED = 4409`. Every rung is now ordered by a Latin
+ * square, so the seed determined nothing — and a seed left in the provenance
+ * record would have told a future reader the order was drawn at random, which is
+ * the one thing it is not.
+ */
+export const AB_ORDERING = 'latin_square_all_rungs';
 
 /** Three rungs of E1's frozen manifest: 1.32x, 5.81x and 26.8x the default page cache. */
 export const AB_TIERS = ['T1', 'T5', 'T9'];
@@ -103,13 +112,20 @@ export const AB_TOTAL_RUNS =
   AB_ARMS.reduce((n, arm) => n + arm.rungs.length * AB_BLOCKS, 0);
 
 /**
- * One row of a Latin square — T9's within-block ordering.
+ * One row of a Latin square — the within-block ordering at EVERY rung.
  *
  * A seeded shuffle gives no positional balance: an arm can land in the
- * thermally-hot tail of two blocks out of three across a ~80-minute stretch of
- * T9 runs. With arm C removed from T9 (AMENDMENT 1 A1) the T9 cells are exactly
- * 3 arms x 3 blocks, so a rotation makes each arm hold each position exactly
- * once. This is free and strictly stronger than shuffling.
+ * thermally-hot tail of two blocks out of three, or — as the retired shuffle
+ * actually did — in the SAME position in all three. With arm C removed from T9
+ * (AMENDMENT 1 A1) the T9 and T1 cells are exactly 3 arms x 3 blocks, so a
+ * rotation makes each arm hold each position exactly once.
+ *
+ * T5's 4 arms in 3 blocks cannot balance exactly and the obstruction is
+ * arithmetic: the position-sum is 3*(1+2+3+4) = 30 over 4 arms, so the mean 7.5
+ * is not attainable, and requiring three DISTINCT positions per arm leaves only
+ * the sums 1+2+3=6, 1+2+4=7, 1+3+4=8 and 2+3+4=9 — forcing the multiset
+ * {6,7,8,9}. The rotation attains it, so it is optimal in its class rather than
+ * merely better than shuffling.
  *
  * @param {string[]} arms in canonical order
  * @param {number} block 1-based
@@ -126,19 +142,27 @@ export function latinSquareRow(arms, block) {
  * because the primary estimator is a WITHIN-BLOCK ratio — an arm and the control
  * it is divided by must be close in time for drift to cancel.
  *
- * T1 and T5 keep a seeded shuffle: at 2.7 s and 30 s per run, ordering is not a
- * credible confound there. T9 gets the Latin square.
+ * EVERY rung gets a Latin square (AMENDMENT 3). T1 and T5 previously kept a
+ * seeded shuffle on the argument that "at 2.7 s and 30 s per run, ordering is not
+ * a credible confound" — sound about DRIFT, silent about WARM-UP, which is fully
+ * present inside a 30-second window because the OS page cache over the tier's
+ * source files is cold for a rung's first run and warm for the rest. The shuffle
+ * then happened to hand arm C position 2 in all three blocks, which would have
+ * made a positional effect and the arm-C effect perfectly collinear — and arm C
+ * is A1's source-contradiction tripwire, so an unreadable rho_C costs the design
+ * its only check on the source reading.
  */
 export function buildAbSchedule() {
   const cells = [];
   for (let block = 1; block <= AB_BLOCKS; block++) {
     for (const tier of AB_TIERS) {
       const arms = AB_ARMS.filter((a) => a.rungs.includes(tier)).map((a) => a.id);
-      // The shuffle's input order is fixed by AB_ARMS' declaration order, because
-      // a seeded shuffle is only reproducible if its input order is.
-      const ordered = tier === 'T9'
-        ? latinSquareRow(arms, block)
-        : seededShuffle(arms, AB_SEED + block);
+      // T1 shares T9's three arms, so an unrotated square would give an arm the
+      // SAME position at both rungs in a block. A position effect whose magnitude
+      // varies by rung would then survive the block slope: a constant
+      // multiplicative factor cancels in a log-log slope exactly, a rung-varying
+      // one does not. One step of rotation decorrelates them and costs nothing.
+      const ordered = latinSquareRow(arms, tier === 'T1' ? block + 1 : block);
       for (const arm of ordered) cells.push({ block, tier, arm });
     }
   }

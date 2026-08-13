@@ -28,7 +28,7 @@ import {
 import { gate3Verdict, remainingAttempts, selectFitted, orphanedAttempts } from './e1-schedule.mjs';
 import { gatePVerdict } from './e1-phase-schedule.mjs';
 import {
-  AB_ARMS_BY_ID, AB_TIERS, AB_TOTAL_RUNS, AB_BLOCKS, AB_SEED,
+  AB_ARMS_BY_ID, AB_TIERS, AB_TOTAL_RUNS, AB_BLOCKS, AB_ORDERING,
   buildAbSchedule, gateAVerdict, abStateDirName,
 } from './e1-ab-schedule.mjs';
 import { foldJournal, planPending, selectAbRuns, gateP2, abKey } from './e1-ab-report.mjs';
@@ -227,7 +227,7 @@ async function main() {
 
   if (!existsSync(SCHEDULE)) {
     writeResult('e1-ab-schedule.json', {
-      created: new Date().toISOString(), gate0, seed: AB_SEED,
+      created: new Date().toISOString(), gate0, ordering: AB_ORDERING,
       total_runs: AB_TOTAL_RUNS, blocks: AB_BLOCKS, tiers: AB_TIERS, schedule,
     });
     log(`[E1-AB] wrote ${SCHEDULE} (schedule + binary pin)`);

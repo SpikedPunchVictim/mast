@@ -1,13 +1,14 @@
 // E1-AB — the schedule's decision logic.
 //
 // Registration: IMPLEMENTATION_PLAN.md § E1-AB PRE-REGISTRATION (2026-08-13),
-// as amended by AMENDMENT 1 (arm C demoted to T5; T9 ordered by Latin square).
+// as amended by AMENDMENT 1 (arm C demoted to T5; T9 ordered by Latin square)
+// and AMENDMENT 3 (the Latin square extended to T1 and T5).
 //
 // Run from `packages/mast`, never the repo root.
 
 import { describe, it, expect } from 'vitest';
 import {
-  AB_ARMS, AB_ARMS_BY_ID, AB_TIERS, AB_BLOCKS, AB_SEED, AB_TOTAL_RUNS,
+  AB_ARMS, AB_ARMS_BY_ID, AB_TIERS, AB_BLOCKS, AB_ORDERING, AB_TOTAL_RUNS,
   DEFAULT_PRAGMAS, buildAbSchedule, latinSquareRow, gateAVerdict, abStateDirName,
 } from '../e1-ab-schedule.mjs';
 
@@ -47,7 +48,7 @@ describe('the registered arms', () => {
   });
 });
 
-describe('latinSquareRow — T9 ordering, so no arm lives in the hot tail', () => {
+describe('latinSquareRow — ordering at every rung, so no arm lives in the hot tail', () => {
   // The whole point: each arm occupies each position exactly once across the
   // three blocks. A seeded shuffle gives no such guarantee.
   it('rotates the arms so every arm holds every position exactly once', () => {
@@ -111,6 +112,74 @@ describe('buildAbSchedule — 30 runs, blocked', () => {
   });
 });
 
+// AMENDMENT 3. The defect this pins is not "the order looked untidy" — it is
+// that the seeded shuffle gave arm C position 2 in ALL THREE blocks, making a
+// positional effect and the arm-C effect perfectly collinear. Arm C is A1's
+// source-contradiction tripwire, so an unreadable rho_C costs the design its
+// only check on the source reading.
+describe('positional balance — every rung, not just T9 (AMENDMENT 3)', () => {
+  const schedule = buildAbSchedule();
+  const positionsOf = (tier) => {
+    const byArm = new Map();
+    for (const b of [1, 2, 3]) {
+      const row = schedule.filter((s) => s.block === b && s.tier === tier).map((s) => s.arm);
+      row.forEach((arm, i) => {
+        if (!byArm.has(arm)) byArm.set(arm, []);
+        byArm.get(arm).push(i + 1);
+      });
+    }
+    return byArm;
+  };
+
+  it.each(['T1', 'T5', 'T9'])('gives every arm three DISTINCT positions at %s', (tier) => {
+    for (const [arm, pos] of positionsOf(tier)) {
+      expect(`${tier}/${arm}: ${pos.join(',')}`)
+        .toBe(`${tier}/${arm}: ${[...new Set(pos)].join(',')}`);
+    }
+  });
+
+  // The specific regression: C was 2,2,2. A design that pinned any arm to one
+  // position would pass a weaker "is it a permutation" check.
+  it('leaves no arm at a fixed position across all blocks', () => {
+    for (const tier of ['T1', 'T5', 'T9']) {
+      for (const [arm, pos] of positionsOf(tier)) {
+        expect([tier, arm, new Set(pos).size === 1]).toEqual([tier, arm, false]);
+      }
+    }
+  });
+
+  // T1 with 3 arms admits exact balance; T5 with 4 arms in 3 blocks provably
+  // does not — 3*(1+2+3+4)/4 = 7.5 is not an integer, and requiring distinct
+  // positions forces the sums to be exactly {6,7,8,9}. Optimal, not balanced.
+  it('balances T1 and T9 exactly, and attains T5\'s forced optimum', () => {
+    for (const tier of ['T1', 'T9']) {
+      const sums = [...positionsOf(tier).values()].map((p) => p.reduce((a, x) => a + x, 0));
+      expect(sums).toEqual([6, 6, 6]);
+    }
+    const t5 = [...positionsOf('T5').values()].map((p) => p.reduce((a, x) => a + x, 0));
+    expect(t5.slice().sort((a, b) => a - b)).toEqual([6, 7, 8, 9]);
+  });
+
+  // Without the rotation an arm's T1 position equals its T9 position in the same
+  // block. A position effect whose MAGNITUDE varies by rung then fails to cancel
+  // in the block slope — a constant multiplicative factor cancels in a log-log
+  // slope exactly, a rung-varying one does not.
+  it('decorrelates T1 ordering from T9 ordering within a block', () => {
+    for (const b of [1, 2, 3]) {
+      const t1 = schedule.filter((s) => s.block === b && s.tier === 'T1').map((s) => s.arm);
+      const t9 = schedule.filter((s) => s.block === b && s.tier === 'T9').map((s) => s.arm);
+      expect(t1).not.toEqual(t9);
+    }
+  });
+
+  // T9's order is explicitly OUT of scope for AMENDMENT 3.
+  it('leaves T9 exactly as AMENDMENT 1 A9 registered it', () => {
+    const t9 = [1, 2, 3].map((b) =>
+      schedule.filter((s) => s.block === b && s.tier === 'T9').map((s) => s.arm));
+    expect(t9).toEqual([['A', 'B', 'D'], ['B', 'D', 'A'], ['D', 'A', 'B']]);
+  });
+});
+
 describe('gateAVerdict — arm identity, the lever-level analogue of Gate 0', () => {
   it('passes when the run reports exactly its arm\'s pragmas', () => {
     expect(gateAVerdict({ arm: 'B', pragmas: { cache_size: -1048576, mmap_size: 0 } }).ok)
@@ -159,9 +228,11 @@ describe('abStateDirName — namespaced away from E1 and E1-PHASE retained artif
   });
 });
 
-describe('the committed seed', () => {
-  it('is 4409, distinct from E1\'s 811', () => {
-    expect(AB_SEED).toBe(4409);
+describe('the committed ordering', () => {
+  // AMENDMENT 3 retired AB_SEED. A seed in the record would have implied the
+  // order was drawn at random; it is balanced by construction.
+  it('is a Latin square at every rung, not a seeded shuffle', () => {
+    expect(AB_ORDERING).toBe('latin_square_all_rungs');
   });
 
   it('covers three rungs', () => {
