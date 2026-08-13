@@ -1,49 +1,73 @@
-# HANDOFF — E1-PHASE, registered and reviewed, NOT YET RUN
+# HANDOFF — E1-PHASE RUN AND SCORED; the mechanism A/B is next
 
-**Written 2026-08-12 at `ef02ef9`.** Read this first, then `HANDOFF_Q1.md`, then
-`IMPLEMENTATION_PLAN.md`, then `MAST_SPEC.md`. This file covers only what changed in the
-E1 track; `HANDOFF_Q1.md` §5 (instrument defects) and §6 (methodological rules) remain in
-force unchanged and are **not** superseded by anything here.
+**Written 2026-08-12 at `497389b`.** Read this first, then `HANDOFF_Q1.md`, then
+`IMPLEMENTATION_PLAN.md`, then `MAST_SPEC.md`. This file covers only the E1 track;
+`HANDOFF_Q1.md` §5 (instrument defects — **two new entries from this session**) and §6
+(methodological rules) remain in force unchanged and are **not** superseded by anything here.
 
 ---
 
 ## 1. Where the work stands
 
 **E1 is complete and scored.** Verdict **SUPER-LINEAR REGRESSION**: adjusted `b = 1.7529`,
-HC3 95% CI `[1.6599, 1.8458]`, against the pre-registered threshold of 1.35. Raw and the
-wild-cluster bootstrap agree, so none of the routes to AMBIGUOUS were taken. HOLDS was
-arithmetically reachable — realized cluster `σ = 0.1851` against Gate 1b's committed
-`0.28188` ceiling — and was rejected. An adversarial results review was commissioned,
-every load-bearing claim recomputed and confirmed, and its seven items were folded into the
-RESULT block. **M1's O(N) claim does not extend past ~5k files; Stage 2 reopens as a scale
-defect.**
+HC3 95% CI `[1.6599, 1.8458]`, against the pre-registered threshold of 1.35. HOLDS was
+arithmetically reachable and was rejected. **M1's O(N) claim does not extend past ~5k files;
+Stage 2 is reopened as a scale defect.**
 
-**E1-PHASE is registered, design-reviewed, its findings discharged — and has not been run.**
-It is the mechanism localisation: which phase of the build carries E1's exponent. Everything
-needed to run it exists except the runner script itself.
+**E1-PHASE is complete, scored, and its adversarial results review is folded in.** Outcome
+**H1 — the exponent is in the WRITE phase.**
 
-### The immediate next action
+| condition | registered | measured | |
+|---|---|---|---|
+| `b_write` | ≥ 1.6 | **1.9685** [1.8800, 2.0569] | pass |
+| `b_parse` | ≤ 1.25 | **1.0144** [0.9930, 1.0359] | pass |
+| write's share of `durationMs` at T9 | ≥ 0.60 | **94.01%** | pass |
 
-1. Build `eval/e1-phase-run.mjs` (the runner does not exist yet — see §4).
-2. Re-calibrate `c` (10 empty-corpus runs; **do not reuse E1's 23.5 ms** — the binary
-   changed at `c71d59c`).
-3. Run the 15 scored runs (~35 min, plus any Gate 3 retakes).
-4. Score, write the RESULT block, then commission the adversarial **results** review and
-   **verify its claims against source** before acting on any of them.
+H2 (`b_edges = 1.4360`, non-monotone share), H3 and H4 are each refuted. 15/15 runs,
+0 VOID, 0 interrupted, Gate P attribution 99.85–100%.
+
+### The immediate next action — the mechanism A/B
+
+**A `cache_size` / `mmap_size` A/B at a single rung.** This is the registered discriminator,
+committed inside the E1-PHASE registration precisely so it could not be improvised after the
+result. It is a **probe, not a remedy.**
+
+Four things constrain it, and none is negotiable:
+
+1. **"No fix before the diagnosis" is now DISCHARGED** — the diagnosis is complete. The A/B
+   is explicitly permitted by the registration and does not breach that rule. But **it is
+   still a measurement**, so §6's full ceremony applies to it: pre-register in
+   `IMPLEMENTATION_PLAN.md` with falsification criteria and a **direction-of-error
+   statement**, **commit the registration before running**, commission an adversarial design
+   review (Agent tool, model `fable`), **verify its claims against source**, then build, run,
+   and commission a results review.
+2. **It is a probe. It does not ship anything.** No pragma is set in product code on the
+   strength of it.
+3. **Any fix that eventually follows is verified by re-running E1's full 9-rung ladder**
+   against the committed scorer and the immutable 1.35 threshold — never by re-running
+   E1-PHASE, and never by moving a threshold.
+4. **A confirmed H1 licenses "write-localised, mechanism unidentified" and nothing
+   narrower.** Chunks and DB bytes are perfectly collinear across this ladder, so a
+   page-cache cliff, FTS5 trigram segment merges, per-file transaction overhead and B-tree
+   depth growth are **indistinguishable on this evidence**. Anyone calling the E1-PHASE
+   result "the page-cache cliff" is over-reading it — including the A/B's own registration.
+
+**Read before designing it:** the pre-run fact that already damages the cache-cliff story
+specifically. **T1's database is 21.6 MB against SQLite's ~2 MB default page cache**, so the
+cache is exhausted before the ladder even begins and cannot produce the T4/T5 knee E1
+measured. The A/B should be designed to be capable of *refuting* the cliff, not to confirm it.
 
 ---
 
 ## 2. Binding constraints — carried forward, still in force
 
-These are inherited from the original brief and are **not** negotiable:
-
 - **Read order:** `HANDOFF_Q1.md` → `IMPLEMENTATION_PLAN.md` (read the result block for any
   subsystem BEFORE touching it) → `MAST_SPEC.md`.
-- **Ceremony for measurements (§6):** pre-register in `IMPLEMENTATION_PLAN.md` (hypothesis,
-  tiers, pinned-corpus plan, falsification criteria, **direction-of-error statement**) and
-  **COMMIT the registration before any run**; commission an adversarial design review AND
-  later a results review (Agent tool, model `fable`) and **VERIFY the reviewer's claims — it
-  has been wrong before**; only then build and run the instrument.
+- **Ceremony for measurements (§6):** pre-register and **COMMIT the registration before any
+  run**; adversarial design review AND results review (Agent tool, model `fable`); **VERIFY
+  the reviewer's claims — it has been wrong before.** On this session's results review every
+  load-bearing claim reproduced, but three of its findings were narrative rather than
+  arithmetic, and the distinction only became visible by checking.
 - **Never open `graph.db` with `?mode=ro&immutable=1`** (WAL-blind; cost a session a false
   conclusion).
 - **Run every script from `packages/mast`, never the repo root.**
@@ -51,21 +75,23 @@ These are inherited from the original brief and are **not** negotiable:
 - **Do NOT reopen settled questions** (HANDOFF §3): Q4, harvest-as-verdict-source, Q1/SCALE,
   IDFUSE, DECLEX, and the vector deletion itself.
 - **The ranker-D escape variant is measured harmful** — never ship or re-test without a fresh
-  registration. Option (d)'s lock-free-read/write-behind overlay is DEFERRED per E7-r2 until
-  scale evidence — do not build it early.
-- **Instrument reuse requires first fixing that instrument's HANDOFF §5 defects.**
+  registration. Option (d)'s lock-free-read/write-behind overlay is DEFERRED per E7-r2.
+- **Instrument reuse requires first fixing that instrument's HANDOFF §5 defects** — and
+  E1-PHASE's runner added two of them (see §4).
 - **TDD red-first for every behavioural change.** Where an honest red is impossible, say so
-  in the plan (D1's result is the precedent) — **never fake one**.
-- Project `CLAUDE.md`: **do not call the Agent tool unless the user requested it** — note the
-  §6 ceremony above *is* a standing request for the design/results reviews specifically, and
-  nothing else. **Do not use workflows or deep-research unless requested.**
+  in the plan — **never fake one**. (This session drafted two modules before their tests,
+  and recovered the red by parking the implementation and stubbing the module rather than
+  claiming a red it had not earned. Do that, or write the test first.)
+- Project `CLAUDE.md`: **do not call the Agent tool unless the user requested it** — §6's
+  ceremony *is* a standing request for the design/results reviews specifically, and nothing
+  else. **Do not use workflows or deep-research unless requested.**
 - Global `CLAUDE.md`: stop at ~70% context and ask about compacting. **Never `--no-verify`.**
 
 ### Verification baseline — every change must hold
 
 | check | expected |
 |---|---|
-| `pnpm -F mast test` | green — **728 tests / 50 files** at `ef02ef9` |
+| `pnpm -F mast test` | green — **796 tests / 52 files** at `497389b` |
 | `pnpm -F mast typecheck` | clean |
 | `pnpm -F mast lint` | clean |
 | `pnpm -F mast build` | clean |
@@ -76,160 +102,155 @@ violations (`application/ui/src/views/root-layout.tsx` import cycle;
 `application/api/src/domain/spec/fold-build-record-repository.ts` dependency direction). **Do
 not attribute those to your changes and do not add new debt.**
 
+> The previous handoff recorded this baseline as "728 tests / 50 files". The test count was
+> right; the file count was not — `2e87238` measures 728 / **49**. Trust the numbers above,
+> and re-measure rather than inheriting.
+
 ---
 
-## 3. Operational gotchas that cost time this session
+## 3. Operational gotchas that cost time
 
-- **Bash working directory persists between calls.** `cd /path && cmd` leaves you at
-  `/path` for every later call — this silently pointed a `grep IMPLEMENTATION_PLAN.md` at
-  the repo-root file (311 lines) instead of the mast one (7,700+). Run root-level commands in
-  a **subshell**: `( cd /Users/spikedpunchvictim/projects/kluster && pnpm align:check )`.
-- **`dist/` is gitignored and the installed binary symlinks into it (D8).** A stale build
-  once served three days of sessions. Every `eval/*.mjs` imports from `../dist/` directly, so
-  **run `pnpm -F mast build` before any measurement**, and Gate 0's `dist` content hash is
-  what proves which binary ran.
+- **Bash working directory persists between calls.** `cd /path && cmd` leaves you at `/path`
+  for every later call. Run root-level commands in a **subshell**:
+  `( cd /Users/spikedpunchvictim/projects/kluster && pnpm align:check )`.
+- **`dist/` is gitignored and the installed binary symlinks into it (D8).** Every
+  `eval/*.mjs` imports from `../dist/` directly, so **run `pnpm -F mast build` before any
+  measurement**, and Gate 0's `dist` content hash is what proves which binary ran.
 - **Never write a test that spawns `src/cli/index.js`** — it does not exist under vitest, the
-  spawn returns empty stdout, and negative assertions pass on that emptiness. This produced a
-  false green this session; the fix was extracting a pure predicate (`isPhaseTimingEnabled`).
+  spawn returns empty stdout, and negative assertions pass on that emptiness.
 - **Long runs must be launched genuinely detached** — `spawn(..., {detached: true, stdio:
-  ['ignore', out, out]})` then `.unref()`. Two E1 launches were killed by tool timeouts (10
-  min and 2 min), which is how the interrupted-attempt defect was discovered.
-- Publishing/committing: commit messages end with the `Co-Authored-By` trailer per the repo
-  convention; see `git log` for the house style (why, not what).
+  ['ignore', out, out]})` then `.unref()`. **This worked cleanly for E1-PHASE's 35-minute
+  schedule.** What still fails is *waiting*: a background poll-until-exit was killed by tool
+  timeout **twice**, while the detached run itself continued unharmed both times. **A dead
+  waiter is not a dead run — check `kill -0 <pid>` before concluding anything.** A launcher
+  is at `scratchpad/launch.mjs`; the pattern is three lines and worth re-creating.
+- **Reconcile `attempt_start` records against completed attempts** after every schedule. This
+  session's RESULT block first claimed "16 attempt records, one Gate 3 miss"; the journal had
+  **18 and two**. The arithmetic (18 starts = 18 completions, 0 orphans) is what proved
+  A4-MAT-3's interruption class did not occur.
+- Commit messages end with the `Co-Authored-By` trailer; see `git log` for house style
+  (why, not what).
 
 ---
 
-## 4. Instrument state — what exists and what does not
+## 4. Instrument state
 
-### Exists and is tested
+### E1-PHASE's instrument — exists, tested, committed before its own scored runs
 
 | file | role |
 |---|---|
-| `eval/e1-common.mjs` | Gate 0 (`assertGate0`, dist content hash), corpus pinning, `runColdIndex` (spawnSync, `NODE_OPTIONS` stripped, sets `ENABLE_MAST_PHASE_TIMING=true`), `parseDurationMs`, **`parsePhaseMs`**, `readIndexedPaths`, `writeResult` |
-| `eval/e1-schedule.mjs` | pure decision logic: `buildSchedule`, `gate3Verdict`, `retainStateDir`, `median`, `orphanedAttempts`, `remainingAttempts`, **`selectFitted`** — 24 tests |
-| `eval/e1-score.mjs` | `scoreE1`, `combineE1Verdict`, triggers 3/4/5 — 56 known-answer tests. **Committed at `4b49bc1` before scored run 1** |
-| `eval/e1-stats.mjs` | OLS, HC3, CR1, Webb wild-cluster bootstrap, lack-of-fit F |
-| `eval/e1-run.mjs` | the E1 42-run driver (resumable, journalled) |
-| `eval/e1-report.mjs` | `selectRuns`, `realizedSigma`, the scoring entry point — 11 tests |
-| `eval/e1-phase-attribution.mjs` | Gate P's anchor measurement (already run) |
-| `src/indexer/index.ts` | `IndexResult.phaseMs` — walk / parse / write / edges / finalise |
-| `src/cli/index-cmd.ts` | `isPhaseTimingEnabled`, the `phases:` output line |
+| `eval/e1-phase-schedule.mjs` | 5-rung schedule, Gate P, the `ln(0)` guard, state-dir namespacing — 20 tests |
+| `eval/e1-phase-score.mjs` | every threshold, the six series' fits, H1–H4/H0, mini-replication — 43 tests |
+| `eval/e1-phase-run.mjs` | the 15-run driver (resumable, journalled) |
+| `eval/e1-phase-report.mjs` | the journal→scorer seam — 5 tests |
 
-### Does NOT exist — this is the build task
+E1's own modules were **not** modified; what E1-PHASE inherits unchanged it imports
+(`gate3Verdict`, `orphanedAttempts`, `remainingAttempts`, `selectFitted`, `median`). E1's
+`eval/e1-{common,schedule,score,stats,run,report}.mjs` are untouched and its 42-run record
+stands exactly as scored.
 
-**`eval/e1-phase-run.mjs`.** Model it on `eval/e1-run.mjs`, which already implements every
-inherited gate. What differs:
+**State dirs are namespaced `phase-run-*`.** `runColdIndex` wipes its state dir before every
+run, and Gate 6 sequences R3/R4/E2/R5 to read E1's retained `run-T9-r3` — reusing the names
+would have destroyed those artifacts on the first T9 run. Pinned by a test.
 
-- **5 rungs, not 9**: T1, T3, T5, T7, T9 from the frozen manifest (`eval/results/e1-tiers.json`).
-- **Its own journal and its own seeded shuffle over the 15 pairs.** Do not append to
-  `e1-runs.jsonl` — that file is E1's record and its 42 runs must stay exactly as scored.
-- **Gate P**: `Σ phase_ms ≥ 0.95 × durationMs` per scored run, else VOID into the
-  A4-MAT-7 queue.
-- **VOID on `phase_ms == null` or any phase `≤ 0`** — `parsePhaseMs` returns null by design
-  so the harness can still read E1's history; on an E1-PHASE run a null is a defect.
-- **Recalibrate `c`** — `--recalibrate` semantics as in `e1-run.mjs`.
-- Reuse `selectFitted` so the clock and its decomposition come from **one attempt**.
+### Two NEW defects — fix before reusing this instrument (now in HANDOFF_Q1 §5)
 
-The tier hardlink trees are still materialised at `~/.cache/mast-eval/e1/tiers/` (T1 verified
-at 656 files), so `materialiseTiers` should reuse rather than rebuild them — the sidecar
-manifest check already handles this.
+- **The VOID queue has no dequeue.** A Gate P/P2 VOID is re-run correctly, but the void
+  record stays in `loadJournal`'s map forever, so `scoreable` is **permanently false** once
+  anything has ever voided. Unexercised here (0 voids). `e1-run.mjs` shares the pattern.
+- **`fitSeries` reports spurious precision on quantized series.** The remainder was fitted
+  over 1–14 ms values; ±1 ms moves that exponent across 0.37–0.79, wider than its own printed
+  interval. The scorer should emit the caveat; here it had to be added by hand.
 
 ### Known instrument facts worth not rediscovering
 
-- On a **thrice-failing Gate 3 run**, the record's `gate3` field is the **last** attempt's
-  verdict while `duration_ms` is the **first** attempt's value. Registered (A4-MAT-6),
-  every attempt preserved in `gate3_attempts` — but the two fields do not correspond and
-  must not be divided by one another.
-- `e1-runs-summary.json` carries a `scoreable` flag that is **stricter than the
-  registration**: it demands zero findings, whereas A4-MAT-6 says a thrice-failing Gate 3 run
-  is logged and retained, never a blocker. Left as-is deliberately rather than edited after
-  seeing data. The registered blockers are VOID runs and chunk-count nondeterminism.
-- `walk` contains `openDatabase` and the schema DDL (they precede the walk stamp), so they
-  are inside `c`. Measured at **1.27–1.47%** of `durationMs` at T1.
-- The unattributed remainder is `db.destroy()`'s WAL close-time checkpoint — 2–3 ms at T1
-  (0.09%), and the one **size-coupled** cost outside every phase.
+- On a **thrice-failing Gate 3 run**, `gate3` is the **last** attempt's verdict while
+  `duration_ms` is the **first** attempt's value — registered (A4-MAT-6), every attempt in
+  `gate3_attempts`, but the two fields do not correspond and must not be divided.
+- `walk` contains `openDatabase` and the schema DDL, so they are inside `c`. Measured at
+  **1.40% of `durationMs` at T1, falling to 0.05% at T9.**
+- E1-PHASE's `c = 15 ms`, re-measured. It **fell** from E1's 23.5 ms across a change that
+  *added* timing stamps. **That is unexplained** — do not repeat the first RESULT's claim
+  that it was the stamps' own cost, which is impossible in that direction.
 
 ---
 
-## 5. E1-PHASE's registration in one page
+## 5. The E1-PHASE result in one page
 
-Full text: `IMPLEMENTATION_PLAN.md`, `### E1-PHASE PRE-REGISTRATION (2026-08-12)`. Read it
-in full before running. Summary:
+Full text: `IMPLEMENTATION_PLAN.md` § `#### E1-PHASE RESULT (2026-08-12)` and the
+`##### E1-PHASE RESULTS REVIEW` beneath it. Read both before designing the A/B.
 
-**It is a DIAGNOSTIC.** It cannot confirm, overturn or soften E1's verdict, and no result may
-be reported as doing so.
+| series | `b` | T9 share |
+|---|---|---|
+| walk | 0.6019 | 0.05% |
+| parse | 1.0144 | 4.33% |
+| **write** | **1.9685** | **94.01%** |
+| edges | 1.4360 | 1.56% |
+| finalise | 1.2623 | 0.05% |
+| remainder | 0.5504 | 0.002% |
 
-**Design.** T1/T3/T5/T7/T9 × 3 reps = 15 runs, still exactly even in `ln N`
-(`d = 0.7482`, `Sxx_cluster = 5.598`). Measured quantity: `b_phase` from OLS of
-`ln(phase_ms)` on `ln(chunk_count)`, plus each phase's share of `durationMs` at T9.
+Write's share climbs 52% → 94% across the ladder while parse's collapses 43% → 4%. Parse is
+essentially exactly linear.
 
-| | fires if |
-|---|---|
-| **H1** write-localised | `b_write ≥ 1.6` **and** `b_parse ≤ 1.25` **and** write's T9 share `≥ 60%` |
-| **H2** edge/symbol resolution | `b_edges ≥ 1.6` **and** strictly rising share |
-| **H3** parse | `b_parse ≥ 1.6` |
-| **H4** diffuse | no phase reaches 1.6 |
-| **H0** residual | all of H1–H4 refuted → "localised, unclassified", escalate as H4 |
+**Carry these caveats with the result — they are what the review corrected:**
 
-**Comparisons are on HC3 point estimates; CIs are context only and refute nothing.** Shares
-come from each tier's **median** run. A confirmed H1 licenses **"write-localised, mechanism
-unidentified"** and nothing narrower — chunks and DB bytes are collinear across this ladder,
-so a cache cliff, FTS5 segment merges and per-file transaction overhead are indistinguishable
-here. The registered discriminator is a `cache_size`/`mmap_size` A/B at one rung, run **after**
-this diagnostic and **before** any shipped fix.
-
-**Direction of error, stated because it is unfavourable:** H1 is the previous agent's own
-hypothesis. The originally-claimed three-condition compensation was **largely theatre** and
-is corrected in the registration: because phases tile `durationMs`,
-`b_total = Σ share_i · b_i`, so given E1's 1.904 upper-half slope only **one** condition is
-substantively free — write's T9 share. A fact recorded before the run already damages H1's
-*mechanism* story: T1's DB is 21.6 MB against a ~2 MB default cache, so the cache is
-exhausted before the ladder starts and cannot produce E1's T4/T5 knee.
-
-**A declared peek:** the Gate P attribution runs revealed T1's phase shares. Every threshold
-they could have tuned — including the 60% share condition — was committed at `36c2f5a`
-beforehand, and those runs are excluded from every fit.
-
-**No fix before the diagnosis.** Do not set a pragma, do not defer index creation. Any fix
-that follows is verified by re-running **E1's full 9-rung ladder** against the committed
-scorer and the immutable 1.35 threshold.
+- **The 60% share condition was far less of a risky test than it looks.** The declared T1
+  attribution peek had already shown write at **51.7–56.2%**, so clearing 60% at T9 was close
+  to foreordained. The informative content is the localisation (parse at 1.0144, write's
+  climb), **not** that a bar was cleared by 34 points.
+- **The estimator rules were registered at `ef02ef9`, not `36c2f5a`.** Only the four numeric
+  thresholds (1.6 / 1.25 / 0.60 / 1.7529) were in `36c2f5a`. Both are pre-data; the
+  distinction matters in a program whose method is commit-ordered provenance.
+- **Gate 5's margin was 24 seconds**, and most of the calibration ran pre-commit. Behavioural
+  identity was verified (`git diff 6c45422..HEAD -- eval/` empty; the committed schedule
+  builder reproduces the pin bit-for-bit), but do better next time: commit, *then* launch.
+- **The coupling looks DB-wide, not write-exclusive.** `edges` (1.436) and `finalise` (1.2623)
+  both exceed the near-linear growth of the items they process. At a 1.6% share this changes
+  no fix priority, but the A/B's design should not assume write is the only affected phase.
+- **Write is itself a mixture** — split-half `b_write` is 1.8378 (T1–T5) and 2.0627 (T5–T9).
+- **T5's repetition spread is 12.5%** (27,105 / 29,649 / 30,498 ms) against ≤2.7% elsewhere.
+  Unexplained. Dropping T5 leaves `b_write` at 1.9685.
+- The mini-replication (`b = 1.7768`, HC3 [1.6693, 1.8843], covering E1's 1.7529) is
+  **consistent** and **adjudicates nothing** in either direction.
 
 ---
 
 ## 6. Still open after E1-PHASE
 
-- **R2 — parse-only pass + Gate 2** (registered by A4-MAT-8): file/chunk/symbol counts must
-  equal the full index's exactly; edge count deliberately excluded.
+- **The `cache_size` / `mmap_size` A/B** — §1. The live item.
+- **R2 — parse-only pass + Gate 2** (A4-MAT-8): file/chunk/symbol counts must equal the full
+  index's exactly; edge count deliberately excluded. **Note E1-PHASE partly overtakes its
+  motivation** — R2 existed to split parse cost from write cost, which is now measured
+  directly. Re-decide whether it still earns its keep before building it.
 - **E2 + Gate 8**: `extractFile` takes no `onCallSite`, so E2 needs its own harness pass with
   file/chunk/symbol equality and `edge_emitted ≥ POTENTIAL_CALL`.
 - **R5, last, per Gate 6**: K=4 readers, ≥400 scored calls overlapping write activity, 250 ms
   pacing, T1 and T9.
 - **P3 spec drift (unowned)**: `MAST_SPEC` §14.6's `--session`/`--global` flags and §14.3's
   batched-metrics-writes claim.
-- **MAST_SPEC does not yet document `--phase-timing` / `ENABLE_MAST_PHASE_TIMING`.** It is
-  the codebase's first environment flag and sets the convention: `ENABLE_`-prefixed, value is
-  the word `true`/`false`, **never** `1`/`0`, compared case-insensitively after trimming, and
-  failing closed on anything else.
-- **Standing**: M2 condition-5 review at organic harvest `n ≥ 67` or 2026-11-05 (currently
-  `n = 0`).
-
----
+- **MAST_SPEC does not document `--phase-timing` / `ENABLE_MAST_PHASE_TIMING`.** It is the
+  codebase's first environment flag and sets the convention: `ENABLE_`-prefixed, value is the
+  word `true`/`false`, **never** `1`/`0`, compared case-insensitively after trimming, failing
+  closed on anything else.
+- **Standing**: M2 condition-5 review at organic harvest `n ≥ 67` or 2026-11-05 (`n = 0`).
 
 ## 7. Session commits (newest first)
 
 ```
-ef02ef9  fix(mast/eval): apply the E1-PHASE design review before any scored run
-36c2f5a  docs(mast): register E1-PHASE before any run
-c71d59c  feat(mast): per-phase index timing behind --phase-timing / ENABLE_MAST_PHASE_TIMING
-3f7b1fa  fix(mast/eval): persist interrupted attempts — A4-MAT-3 was never implemented
-227cf17  feat(mast/eval): score E1 — SUPER-LINEAR REGRESSION at b = 1.75
-a310378  docs(mast): withdraw A4-C2 — the Gate 3 floor is load-bearing after all
+497389b  docs(mast): fold the E1-PHASE results review in — H1 stands, three claims around it do not
+0ba97ec  fix(mast): correct the E1-PHASE RESULT's Gate 3 record, and quantify the bias
+d3ce505  feat(mast/eval): score E1-PHASE — H1 fires, the exponent is in the write phase
+6c45422  feat(mast/eval): the E1-PHASE instrument, committed before any scored run
+2e87238  docs(mast): hand off the E1 track — E1 scored, E1-PHASE registered and unrun
 ```
 
 ## 8. Artifacts
 
-`eval/results/` — `e1-verdict.json` (verdict, both fits, panel, triggers, reachability),
-`e1-runs.jsonl` (42 runs + 55 attempt records), `e1-runs-summary.json` (4 findings: 2
-INTERRUPTED, 2 Gate 3), `e1-calibration.json` (E1's `c = 23.5`, **superseded for E1-PHASE**),
-`e1-tiers.json` (frozen manifest + Gate 1b arithmetic), `e1-schedule.json`,
-`e1-phase-attribution.json` (Gate P's anchor).
+`eval/results/` — **E1-PHASE**: `e1-phase-verdict.json` (six exponents, shares under both
+registered readings, the full condition table, mini-replication), `e1-phase-runs.jsonl`
+(15 runs + 18 attempt records), `e1-phase-runs-summary.json`, `e1-phase-calibration.json`
+(`c = 15`), `e1-phase-schedule.json` (schedule + binary pin), `e1-phase-attribution.json`
+(Gate P's anchor, and the declared peek). **E1**: `e1-verdict.json`, `e1-runs.jsonl` (42 runs
++ 55 attempt records), `e1-runs-summary.json`, `e1-calibration.json` (`c = 23.5`,
+**superseded for E1-PHASE**), `e1-tiers.json` (frozen manifest + Gate 1b arithmetic),
+`e1-schedule.json`.

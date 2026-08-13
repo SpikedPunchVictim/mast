@@ -1,12 +1,17 @@
 # HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/DECLEX RESULT, evidence `beccd52`)
 
-> **SUPERSEDING SESSION STATE (2026-08-12, `ef02ef9`): read
+> **SUPERSEDING SESSION STATE (2026-08-12, `497389b`): read
 > [`HANDOFF_E1PHASE.md`](./HANDOFF_E1PHASE.md) FIRST.** E1 is complete and scored —
 > **SUPER-LINEAR REGRESSION, `b = 1.7529`, HC3 CI [1.6599, 1.8458]** against the
-> pre-registered 1.35 threshold — and E1-PHASE (the mechanism localisation) is registered,
-> design-reviewed and awaiting its runner. The §5 instrument-defect list and the §6
-> methodological rules below remain in force unchanged; only the SESSION STATE section
-> immediately following is stale. Baseline is now **728 tests / 50 files**.
+> pre-registered 1.35 threshold — and **E1-PHASE is now RUN, scored and reviewed:
+> outcome H1, the exponent is in the WRITE phase** (`b_write = 1.9685`, `b_parse = 1.0144`,
+> write's share of the clock at T9 **94.01%**). It licenses *"write-localised, mechanism
+> unidentified"* and nothing narrower. The §5 instrument-defect list and the §6
+> methodological rules below remain in force unchanged — **§5 has two new entries from the
+> E1-PHASE results review**; only the SESSION STATE section immediately following is stale.
+> Baseline is now **796 tests / 52 files**. (The count this block previously carried,
+> "728 tests / 50 files", was wrong in the file half: `2e87238` measures 728 tests /
+> **49** files.)
 
 ---
 
@@ -669,6 +674,22 @@ multi-seed T1 sensitivity.
   computed it by hand with the registered per-query block bootstrap — every cell came back
   harmful (see §2 item 6, caveat i). **Fix the scorer to emit this contrast natively before
   reusing the instrument.**
+- **`e1-phase-run.mjs`'s VOID queue has no dequeue** (found 2026-08-12 by the E1-PHASE
+  results review, RR6). A Gate P or Gate P2 VOID is journalled and the pair *is* correctly
+  re-run on the next invocation — but `loadJournal` keeps the void record in its map
+  forever, so `summarise`'s `voids.size === 0` clause leaves `scoreable` **permanently
+  false** once any run has ever voided, even after the re-run succeeds. A4-MAT-7 calls this
+  a "re-run queue"; nothing dequeues it. **Unexercised on the E1-PHASE data (0 voids), so it
+  contaminated no result — fix before any reuse.** `e1-run.mjs` shares the pattern and
+  should be checked with it. Note this is the *opposite* failure to E1's `scoreable` flag
+  being too strict on Gate 3 findings: one flag, two independent defects.
+- **`fitSeries` reports spurious precision on millisecond-quantized series**
+  (E1-PHASE results review, RR4). It fitted the unattributed remainder over values spanning
+  **1–14 ms**, and a ±1 ms perturbation moves that exponent across **0.37–0.79** — wider
+  than the HC3 interval it printed. The qualitative reading (sub-linear, share falling) is
+  robust to every perturbation; the point estimate and its interval are not. **A series
+  whose values approach the clock's resolution needs the caveat emitted by the scorer, not
+  added in prose afterwards** — the E1-PHASE RESULT had to add it by hand.
 
 ---
 
