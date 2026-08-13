@@ -1,11 +1,12 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { sql } from 'kysely';
 import type { ResolvedConfig } from '../store/config.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
 import type { LockMetricsSink } from '../store/lockMetrics.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
-import { openDatabase } from '../graph/db.js';
+import { openDatabase, type OpenDatabaseOptions } from '../graph/db.js';
 import { populateFile, insertEdges, insertReExportFiles, removeDeletedFiles } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
@@ -35,6 +36,27 @@ export interface IndexResult {
    */
   readonly staleWriteRejections: number;
   readonly durationMs: number;
+  /**
+   * The `cache_size` / `mmap_size` actually in force on this run's connection,
+   * read back from SQLite itself immediately before the handle is closed.
+   *
+   * Keyed by the pragma's own names rather than the codebase's camelCase
+   * because these are SQLite's values echoed verbatim, not a MAST-side model of
+   * them — the whole point is that nothing between the pragma and this field
+   * reinterprets anything. `cache_size` is negative when denominated in KiB.
+   *
+   * Exists so the E1-PHASE mechanism A/B can prove its arms differed. Both
+   * pragmas are connection-scoped, so they vanish when the process exits and
+   * cannot be recovered from the database file afterwards; if the run does not
+   * report them, no later inspection can. Same evidentiary role as Gate 0's
+   * `dist` content hash: it establishes WHICH configuration produced a timing,
+   * rather than leaving it to be assumed from the command line that was meant
+   * to be issued.
+   */
+  readonly appliedPragmas: {
+    readonly cache_size: number;
+    readonly mmap_size: number;
+  };
   /**
    * Cumulative wall-clock per phase, in ms. The phases tile the run: their sum is
    * `durationMs` less a small unattributed remainder.
@@ -102,6 +124,13 @@ export interface IndexOptions {
    * filesystem. Production call sites omit this and get the default sink.
    */
   readonly lockMetricsSink?: LockMetricsSink;
+  /**
+   * Per-connection SQLite tuning for this run's `graph.db` handle
+   * (`OpenDatabaseOptions`, `graph/db.ts`). Omitted everywhere in product code;
+   * it exists so the E1-PHASE mechanism A/B can vary `cache_size` / `mmap_size`
+   * between arms without config or environment acting as a hidden lever.
+   */
+  readonly dbOptions?: OpenDatabaseOptions;
 }
 
 /**
@@ -218,7 +247,7 @@ export async function runIndex(
 
   // Opening the db handle is connection setup, not a graph/chunk-store
   // mutation — no lock needed.
-  const db = openDatabase(config.resolved_state_dir);
+  const db = openDatabase(config.resolved_state_dir, options.dbOptions ?? {});
 
   // M1 (eval/GITNEXUS_COMPARISON.md §15.1): chunks live in graph.db's
   // `chunks` table by default — `SqliteChunkStore` wraps the same `db`
@@ -447,6 +476,13 @@ export async function runIndex(
 
   phase.finalise = Date.now() - finaliseStart;
 
+  // Read the tuning pragmas back BEFORE the connection closes — they are
+  // connection-scoped state, not file state, and are unrecoverable afterwards.
+  const appliedPragmas = {
+    cache_size: (await sql<{ cache_size: number }>`PRAGMA cache_size`.execute(db)).rows[0]?.cache_size ?? 0,
+    mmap_size: (await sql<{ mmap_size: number }>`PRAGMA mmap_size`.execute(db)).rows[0]?.mmap_size ?? 0,
+  };
+
   await db.destroy();
   // SqliteChunkStore (default path) wraps this same `db` connection (§15.1) —
   // no separate handle to close. `chunkStoreOverride`, when supplied, is
@@ -463,6 +499,7 @@ export async function runIndex(
     staleWriteRejections,
     durationMs: Date.now() - startMs,
     phaseMs: phase,
+    appliedPragmas,
   };
 }
 

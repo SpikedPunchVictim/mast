@@ -355,6 +355,42 @@ CREATE INDEX IF NOT EXISTS idx_checker_verdicts_file ON checker_verdicts(call_si
 // ---------------------------------------------------------------------------
 
 /**
+ * Optional per-connection SQLite tuning for {@link openDatabase}.
+ *
+ * Exists for the E1-PHASE mechanism A/B: E1 measured a super-linear index cost
+ * (`b = 1.75`) and E1-PHASE localised the exponent to the write phase
+ * (`b_write = 1.97`, 94% of the clock at the top rung) without identifying the
+ * mechanism. A page-cache cliff is one of several indistinguishable candidates,
+ * and it cannot be probed at all while these pragmas are unreachable.
+ *
+ * **Both options are omitted by default and nothing in product code sets them.**
+ * That is deliberate and load-bearing: the A/B's control arm is defined as the
+ * un-pragma'd binary, so an absent option must leave SQLite's own defaults
+ * standing (pinned by a test in `graph/__tests__/storage.test.ts`). No pragma
+ * ships on the strength of the probe — a shipped default would have to be
+ * justified by re-running E1's full 9-rung ladder.
+ *
+ * Injected as a parameter rather than read from the environment or from
+ * `MastConfig`: an env read inside `openDatabase` would be a hidden global, and
+ * a config field would collide with the eval harness's Gate 1
+ * (`assertConfigPinned`, `eval/e1-common.mjs`), which fails any run whose
+ * resolved config deviates from defaults precisely so config cannot act as a
+ * free lever over a measurement.
+ */
+export interface OpenDatabaseOptions {
+  /**
+   * Page-cache budget in **KiB**, applied as `PRAGMA cache_size = -<kib>`.
+   *
+   * Denominated in KiB rather than raw pragma units because SQLite overloads
+   * the value's sign — positive means pages (whose size varies with
+   * `page_size`), negative means KiB. Callers should not have to carry that.
+   */
+  readonly cacheSizeKib?: number;
+  /** Memory-map budget in **bytes**, applied as `PRAGMA mmap_size = <bytes>`. SQLite may clamp it to its compile-time maximum. */
+  readonly mmapSizeBytes?: number;
+}
+
+/**
  * Open (or create) the MAST graph database.
  *
  * - WAL mode is set on the underlying better-sqlite3 connection before
@@ -362,8 +398,11 @@ CREATE INDEX IF NOT EXISTS idx_checker_verdicts_file ON checker_verdicts(call_si
  * - The schema is initialised synchronously on open (DDL is idempotent).
  * - Returns a typed `Kysely<MastDatabase>` instance. Callers must call
  *   `await db.destroy()` on shutdown.
+ *
+ * @param options optional per-connection tuning; see {@link OpenDatabaseOptions}.
+ *   Omitting it leaves every tunable pragma at SQLite's own default.
  */
-export function openDatabase(stateDir: string): Db {
+export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}): Db {
   const sqlite = new Sqlite(join(stateDir, 'graph.db'));
 
   // WAL + FK must be set on the raw connection before Kysely wraps it.
@@ -383,6 +422,16 @@ export function openDatabase(stateDir: string): Db {
   // redesign of that mechanism) — it only stops SQLite's own driver from
   // being more impatient than the advisory lock wrapped around it.
   sqlite.pragma('busy_timeout = 5000');
+
+  // Set BEFORE the schema DDL below, so the cache/mmap configuration is already
+  // in force for the DDL's own page reads — an arm that only took effect after
+  // open would measure a mixture of both arms.
+  if (options.cacheSizeKib !== undefined) {
+    sqlite.pragma(`cache_size = -${options.cacheSizeKib}`);
+  }
+  if (options.mmapSizeBytes !== undefined) {
+    sqlite.pragma(`mmap_size = ${options.mmapSizeBytes}`);
+  }
 
   // Apply schema DDL synchronously — safe at startup, idempotent.
   sqlite.exec(SCHEMA_DDL);

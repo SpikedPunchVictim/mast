@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Sqlite from 'better-sqlite3';
+import { sql } from 'kysely';
 import { openDatabase } from '../db.js';
 import { populateFile, insertEdges, removeDeletedFiles } from '../populate.js';
 import { searchFts, searchIdentifiers } from '../../search/fts.js';
@@ -105,6 +106,67 @@ describe('SQLite schema initialisation', () => {
     } finally {
       raw.close();
       void db.destroy();
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Cache/mmap pragma options — the E1-PHASE mechanism A/B's only lever.
+  //
+  // These pragmas are CONNECTION-scoped, not persisted into the database file
+  // the way `journal_mode = WAL` is. A second `new Sqlite(...)` handle reports
+  // its own defaults and would happily "confirm" a pragma that was never set,
+  // so every assertion below reads back through the SAME Kysely connection
+  // `openDatabase` configured.
+  // -------------------------------------------------------------------------
+
+  it('applies cache_size, in KiB, when the option is given', async () => {
+    const db = openDatabase(tmpDir, { cacheSizeKib: 65_536 });
+    try {
+      const result = await sql<{ cache_size: number }>`PRAGMA cache_size`.execute(db);
+
+      // SQLite encodes a KiB-denominated cache as a NEGATIVE value; a positive
+      // one would mean pages, whose size varies. The option is KiB precisely so
+      // no caller has to remember that sign convention.
+      expect(result.rows[0]!.cache_size).toBe(-65_536);
+    } finally {
+      await db.destroy();
+    }
+  });
+
+  it('applies mmap_size, in bytes, when the option is given', async () => {
+    const db = openDatabase(tmpDir, { mmapSizeBytes: 268_435_456 });
+    try {
+      const result = await sql<{ mmap_size: number }>`PRAGMA mmap_size`.execute(db);
+
+      expect(result.rows[0]!.mmap_size).toBe(268_435_456);
+    } finally {
+      await db.destroy();
+    }
+  });
+
+  // The load-bearing one. The A/B's control arm is "the un-pragma'd binary",
+  // and that claim is only true if adding the parameter left the no-option path
+  // byte-identical in behaviour. Asserted against a bare better-sqlite3
+  // connection rather than a hardcoded -2000/0, so the test states the actual
+  // contract ("openDatabase sets neither pragma") and does not break when
+  // SQLite changes its own defaults.
+  it('leaves cache_size and mmap_size at SQLite\'s own defaults when no options are given', async () => {
+    const bare = new Sqlite(join(tmpDir, 'bare-defaults.db'));
+    const defaults = {
+      cacheSize: (bare.pragma('cache_size', { simple: true })) as number,
+      mmapSize: (bare.pragma('mmap_size', { simple: true })) as number,
+    };
+    bare.close();
+
+    const db = openDatabase(tmpDir);
+    try {
+      const cache = await sql<{ cache_size: number }>`PRAGMA cache_size`.execute(db);
+      const mmap = await sql<{ mmap_size: number }>`PRAGMA mmap_size`.execute(db);
+
+      expect(cache.rows[0]!.cache_size).toBe(defaults.cacheSize);
+      expect(mmap.rows[0]!.mmap_size).toBe(defaults.mmapSize);
+    } finally {
+      await db.destroy();
     }
   });
 

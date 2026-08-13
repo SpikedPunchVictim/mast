@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
 import { runIndex } from '../indexer/index.js';
-import { openDatabase } from '../graph/db.js';
+import { openDatabase, type OpenDatabaseOptions } from '../graph/db.js';
 import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
 import { runCheckerPass } from '../graph/checker-resolver.js';
 
@@ -27,6 +27,55 @@ export function isPhaseTimingEnabled(
   return env.ENABLE_MAST_PHASE_TIMING?.trim().toLowerCase() === 'true';
 }
 
+/**
+ * Parse an operator-supplied MiB figure for the SQLite tuning flags.
+ *
+ * Commander yields raw strings, so this is a trust boundary (§3.2) — the value
+ * is validated here and the pragma layer downstream receives only numbers it
+ * can apply verbatim. Fractions are refused rather than truncated so that an
+ * arm's declared size and its applied size are always the same number; a silent
+ * truncation would put a measurement's own label out of step with what ran.
+ *
+ * Exported for direct testing: a spawn-based CLI test resolves against `dist/`
+ * and would grade a different binary than the one under review (the D8 failure
+ * mode), which is why `isPhaseTimingEnabled` above is exported for the same
+ * reason.
+ *
+ * @throws Error naming the flag and the rejected value, if it is not a
+ *   non-negative whole number.
+ */
+export function parseMebibytes(flag: string, raw: string): number {
+  // Number('') is 0 — an empty value must be an error, not a silent zero.
+  const value = raw.trim() === '' ? Number.NaN : Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(
+      `${flag} expects a non-negative whole number of MiB, received "${raw}"`,
+    );
+  }
+  return value;
+}
+
+/**
+ * Whether to print the applied-pragma line.
+ *
+ * Emitted when the operator tuned something (they should see what actually took
+ * effect, not what they typed), and also under the phase-timing gate — which is
+ * what gives the A/B's *control* arm, which passes no tuning flag at all, a
+ * `pragmas:` line to be graded against. Without the second clause the one arm
+ * whose "un-pragma'd" claim carries the most weight would be the one arm with
+ * no evidence for it.
+ *
+ * Extracted for the same reason as {@link isPhaseTimingEnabled}: a spawn-based
+ * test resolves against `dist/`, where a negative assertion passes trivially on
+ * empty stdout.
+ */
+export function shouldPrintPragmas(
+  phaseTimingEnabled: boolean,
+  dbOptions: OpenDatabaseOptions,
+): boolean {
+  return phaseTimingEnabled || Object.keys(dbOptions).length > 0;
+}
+
 export function registerIndexCommand(program: Command): void {
   program
     .command('index [path]')
@@ -46,17 +95,42 @@ export function registerIndexCommand(program: Command): void {
       'Also enabled by ENABLE_MAST_PHASE_TIMING=true. The timers themselves always run — this only ' +
       'controls the output line — so enabling it costs nothing but a line of stdout.',
     )
+    .option(
+      '--cache-size-mib <mib>',
+      'SQLite page-cache budget for this run, in MiB (PRAGMA cache_size). Diagnostic lever for the ' +
+      'E1-PHASE mechanism probe; omitted, SQLite\'s own default stands and nothing is set.',
+    )
+    .option(
+      '--mmap-size-mib <mib>',
+      'SQLite memory-map budget for this run, in MiB (PRAGMA mmap_size); 0 disables memory mapping. ' +
+      'Diagnostic lever for the E1-PHASE mechanism probe; omitted, SQLite\'s own default stands.',
+    )
     .action(async (projectPath: string | undefined, opts: {
       stateDir?: string;
       incremental?: boolean;
       showProgress?: boolean;
       checker?: boolean;
       phaseTiming?: boolean;
+      cacheSizeMib?: string;
+      mmapSizeMib?: string;
     }) => {
       const config = resolveConfig({
         projectRoot: projectPath,
         stateDirOverride: opts.stateDir,
       });
+
+      // Built with conditional spreads, not `{ cacheSizeKib: maybeUndefined }`:
+      // `exactOptionalPropertyTypes` distinguishes an absent property from one
+      // explicitly set to undefined, and the A/B's control arm depends on the
+      // property being genuinely absent.
+      const dbOptions: OpenDatabaseOptions = {
+        ...(opts.cacheSizeMib !== undefined
+          ? { cacheSizeKib: parseMebibytes('--cache-size-mib', opts.cacheSizeMib) * 1024 }
+          : {}),
+        ...(opts.mmapSizeMib !== undefined
+          ? { mmapSizeBytes: parseMebibytes('--mmap-size-mib', opts.mmapSizeMib) * 1024 * 1024 }
+          : {}),
+      };
 
       const onProgress = opts.showProgress
         ? (processed: number, total: number) => {
@@ -69,7 +143,11 @@ export function registerIndexCommand(program: Command): void {
           }
         : undefined;
 
-      const result = await runIndex(config, { incremental: opts.incremental ?? false, onProgress });
+      const result = await runIndex(config, {
+        incremental: opts.incremental ?? false,
+        onProgress,
+        dbOptions,
+      });
 
       process.stdout.write(
         `files: ${result.filesIndexed} indexed, ${result.filesSkipped} skipped` +
@@ -92,6 +170,14 @@ export function registerIndexCommand(program: Command): void {
         process.stdout.write(`phases: ${JSON.stringify(result.phaseMs)}\n`);
       }
 
+      // The pragmas SQLite reported for this run's own connection, not an echo
+      // of the flags. A flag that failed to reach the connection would make the
+      // A/B's two arms identical and produce a clean, credible-looking null —
+      // this line is what makes that failure visible instead.
+      if (shouldPrintPragmas(isPhaseTimingEnabled(opts.phaseTiming), dbOptions)) {
+        process.stdout.write(`pragmas: ${JSON.stringify(result.appliedPragmas)}\n`);
+      }
+
       // Non-zero exit so CI/scripts catch a silently-amputated file — a
       // chunk-store write failure must be impossible to miss, not just a
       // console line a human happens to read (GITNEXUS_COMPARISON.md §16).
@@ -106,7 +192,9 @@ export function registerIndexCommand(program: Command): void {
       // closed its own), matching the one-shot-process pattern this command
       // already used for the now-removed Phase 2 embed step.
       if (opts.checker) {
-        const db = openDatabase(config.resolved_state_dir);
+        // Same tuning as the index run above: a flag that applied to one half
+        // of `mast index` and silently not the other would be a trap.
+        const db = openDatabase(config.resolved_state_dir, dbOptions);
         const chunkStore = new SqliteChunkStore(db);
         try {
           const checkerResult = await runCheckerPass(db, chunkStore, config, {
