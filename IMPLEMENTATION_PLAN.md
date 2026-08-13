@@ -3671,6 +3671,105 @@ reachability), `eval/results/e1-runs.jsonl` (42 runs + 55 attempt records),
 `eval/e1-report.mjs` through `scoreE1`, which was committed at `4b49bc1` before scored run 1
 and is pinned by 56 known-answer cases.
 
+### E1-PHASE PRE-REGISTRATION (2026-08-12) — which phase carries E1's exponent
+
+**Status: registered, not yet run.** Committed before any scored run, per §6.
+
+**This is a diagnostic, not a verdict experiment.** It cannot confirm, overturn or soften
+E1's SUPER-LINEAR verdict, and no result here may be reported as doing so. E1 answered *how
+steeply* cost grows; this answers *where the time goes*, which E1 could not, because
+`runIndex` recorded only `durationMs` and its 42 runs are therefore undecomposable after the
+fact. The output is a localisation, and its consumer is the choice of what to fix.
+
+#### The question
+
+E1 measured `b = 1.7529` over the nested ladder, `1.904` over T3–T9, while the work items
+themselves grow near-linearly (symbols `chunks^0.993`, edges `^1.080`, potential calls
+`^1.116`). So cost **per work item** grows with accumulated index size. Which phase?
+
+#### Design
+
+**Five rungs from the frozen E1 manifest — T1, T3, T5, T7, T9 — 3 repetitions each, 15
+runs.** These are every other rung of the 9-rung ladder, so they remain **exactly evenly
+spaced in `ln N`**: `d = ln(19.94)/4 = 0.7482`, `Σ_{k=−2}^{2} k² = 10`, giving
+`Sxx_cluster = 5.598` and `Sxx_run = 16.79`. Chunk counts are fixed by the frozen manifest
+at 3,679 / 7,761 / 16,529 / 34,691 / 73,359. Estimated machine time from E1's medians:
+~11.4 min per repetition, **~35 min total**.
+
+Everything else is inherited from E1 unchanged and must not be re-derived: the frozen tier
+manifest, seed 811, the seeded-shuffle run order, cold-start discipline (fresh state dir per
+run, never `--incremental`), per-`(corpus, rep)` state dirs, `assertCorpusPinned('n8n')` on
+every tier run, `assertTierFileSet`, Gate 3's `max(5%, 500 ms)` clock rule with its retake
+cap, and A4-MAT-6's first-attempt retention.
+
+**The measured quantity is the per-phase exponent** `b_phase`, from OLS of
+`ln(phase_ms)` on `ln(chunk_count)` across the 15 runs, plus each phase's **share of
+`durationMs` at T9**. Both are reported for all five phases. HC3 SEs are reported;
+**no threshold is registered and no verdict fires** — this instrument classifies, it does
+not adjudicate.
+
+**A free confirmatory signal, registered as such:** these 15 runs also yield a total-clock
+exponent on a **different binary** from the one E1 measured (phase timers were added at
+`c71d59c`). It is reported as a mini-replication of E1's 1.75. It is **not** a re-test of
+the verdict — 5 rungs is a weaker design than 9 — and a discrepancy would be a finding about
+the *instrument*, not about `b`.
+
+#### Hypotheses and what each predicts, stated before the data
+
+| | mechanism | prediction |
+|---|---|---|
+| **H1** | Page-cache cliff: 11 B-tree indices maintained during bulk insert (`graph/db.ts:288–350`) against a database reaching ~440 MB, with SQLite's default ~2 MB page cache and no `cache_size`/`mmap_size` pragma set (`db.ts:370–385`). | `b_write ≥ 1.6` **and** `b_parse ≤ 1.25` **and** write's share of `durationMs` at T9 `≥ 60%` |
+| **H2** | Call/symbol resolution: pass 2's edge insertion scales with candidate sets that grow with the corpus. | `b_edges ≥ 1.6` **and** edges' share of `durationMs` rises monotonically T1→T9 |
+| **H3** | Parse itself: tree-sitter cost growing faster than linearly in content. | `b_parse ≥ 1.6` |
+| **H4** | Diffuse — no single phase carries it. | no phase reaches `b ≥ 1.6` |
+
+H1 and H2 are not exclusive; both may fire, and that is a reportable outcome rather than an
+ambiguity to be resolved by choosing one.
+
+**Direction-of-error statement (mandatory field).** **My prior is H1** — I proposed it, from
+three facts that fit it (the knee at T4/T5, flat bytes-per-chunk, and the absent pragmas),
+and I have not tested it. Every free parameter in this design therefore leans toward finding
+H1. The compensations are registered here and are deliberately asymmetric: **H1 requires a
+conjunction of three conditions**, any one of which failing refutes it, while H2, H3 and H4
+each need a single condition. The 1.6 bar sits below E1's measured 1.75 so that a phase
+carrying the exponent is not narrowly missed, and it is the same bar for every hypothesis.
+
+#### Gates
+
+- **Gate 0** — binary identity: `dist` content hash and `schema_version` recorded and
+  re-asserted at every start and restart. The binary **has changed** since E1 (`c71d59c`), so
+  `c` is re-calibrated from 10 empty-corpus runs; E1's `c = 23.5 ms` is **not** reused.
+- **Gate 1** — corpus integrity: n8n pin re-asserted per run; each run's `SELECT path FROM
+  files` equals the frozen manifest's file set for its tier, exactly.
+- **Gate 3** — both clocks recorded, `max(5%, 500 ms)`, retakes capped at 2 then logged, and
+  orphaned attempts charged against that cap (A4-MAT-3, implemented at `3f7b1fa`).
+- **Gate P (new)** — **attribution**: on every scored run, `Σ phase_ms ≥ 0.90 × durationMs`.
+  A run below that is VOID pending diagnosis. Unattributed time is precisely where the
+  mechanism could hide from the instrument built to find it, and a 96% attribution was
+  observed on the smoke run, so 90% is a floor with headroom rather than a stretch.
+- **Gate P2** — **rep identity**: as in E1, a tier's three repetitions must report identical
+  `chunk_count`; disagreement voids that tier.
+
+#### Falsification criteria
+
+- **H1 is refuted** if any of: `b_write < 1.6`, `b_parse > 1.25`, or write's T9 share `< 60%`.
+- **H2 is refuted** if `b_edges < 1.6` or edges' share does not rise monotonically.
+- **H3 is refuted** if `b_parse < 1.6`.
+- **The whole instrument is void** if Gate P fails on any scored run, or if `walk` — a fixed
+  cost that dominated the one-file smoke run at 11 of 22 ms — exceeds **10%** of `durationMs`
+  at T9, which would mean the phase split is mis-drawn and the fit is measuring startup.
+- **If H4 holds** (no phase reaches 1.6), the next step is *not* another ladder: it is
+  statement-level profiling inside the dominant phase, and this registration says so now so
+  that a diffuse result is not quietly re-analysed into a localisation.
+
+#### What is deliberately NOT done
+
+No fix is applied and no pragma is changed before this runs. Measuring the current binary is
+the point; changing `cache_size` first would confound the diagnosis with the remedy. Any fix
+that follows is verified by re-running **E1's full 9-rung registered ladder** against the
+committed scorer and the immutable 1.35 threshold — not by re-running this diagnostic, and
+never by moving a threshold.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
