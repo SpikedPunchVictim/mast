@@ -135,7 +135,14 @@ export function planPending(schedule, { done, voids }) {
 
   const out = [];
   for (const cells of groups.values()) {
-    out.push(...cells.filter((c) => c.arm === 'A'), ...cells.filter((c) => c.arm !== 'A'));
+    // Control-first applies to REPAIR groups only. On the initial pass the
+    // schedule's own order is registered — T9's is a Latin square (AMENDMENT 1
+    // A9) chosen precisely so no arm holds the same position in every block —
+    // and hoisting the control would defeat it. A repair group has no registered
+    // order to preserve, so there the estimator's adjacency wins.
+    const isRepair = cells.some((c) => c.reason === 'repair_pair');
+    if (isRepair) out.push(...cells.filter((c) => c.arm === 'A'), ...cells.filter((c) => c.arm !== 'A'));
+    else out.push(...cells);
   }
   return out;
 }

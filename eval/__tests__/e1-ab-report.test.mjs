@@ -141,6 +141,16 @@ describe('planPending — AMENDMENT 1 A6\'s re-pairing', () => {
     expect(planPending(schedule, foldJournal([]))).toHaveLength(AB_TOTAL_RUNS);
   });
 
+  // Control-first is for REPAIRS. On the initial pass the registered order
+  // stands — T9's Latin square exists so no arm holds the same position in
+  // every block, and hoisting the control would defeat it. Caught by watching
+  // the first four seconds of the real run disagree with --dry-run.
+  it('preserves the registered order on a cold start, Latin square included', () => {
+    expect(planPending(schedule, foldJournal([]))
+      .map((c) => `${c.arm}#${c.tier}#b${c.block}`))
+      .toEqual(schedule.map((c) => `${c.arm}#${c.tier}#b${c.block}`));
+  });
+
   it('schedules nothing once every cell is complete', () => {
     expect(planPending(schedule, foldJournal(fullJournal()))).toHaveLength(0);
   });
