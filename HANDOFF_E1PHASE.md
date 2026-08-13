@@ -57,6 +57,41 @@ specifically. **T1's database is 21.6 MB against SQLite's ~2 MB default page cac
 cache is exhausted before the ladder even begins and cannot produce the T4/T5 knee E1
 measured. The A/B should be designed to be capable of *refuting* the cliff, not to confirm it.
 
+### The A/B needs a product change first — decided 2026-08-12, NOT yet built
+
+**The pragma cannot currently be set at all.** `openDatabase(stateDir: string)`
+(`src/graph/db.ts:369`) takes only a state dir and sets exactly three pragmas —
+`journal_mode = WAL`, `foreign_keys = ON`, `busy_timeout = 5000`. There is no `cache_size`,
+no `mmap_size`, and no parameter through which either could be passed. The E1-PHASE
+registration named the A/B without saying how its arms would differ; **that is a gap in the
+registration, found before building anything.**
+
+**Owner decision: option A — an explicit optional parameter on `openDatabase`, threaded from
+the CLI.** Do not re-decide this. The two rejected alternatives, with the reasons:
+
+- **Env var read inside `openDatabase` — rejected.** A hidden global, and it breaks the
+  dependency-injection line the codebase holds elsewhere.
+- **A field on `MastConfig` via `resolveConfig` — rejected, and this one is a trap.** It
+  **conflicts with the harness's own Gate 1**: `assertConfigPinned` (`eval/e1-common.mjs`)
+  fails a run if a corpus-local `mast.config.json` exists or if resolved config deviates from
+  defaults, precisely so config cannot act as a free lever over a measurement. Routing the
+  A/B's arms through config would require breaching the gate that protects every other
+  experiment in this program.
+
+**Red-first test obligations (two, and the second is the load-bearing one):**
+
+1. Given the option, `openDatabase` actually applies it — open a database, read
+   `PRAGMA cache_size` back. Deterministic, no mocking, no fixture.
+2. **Given no option, the default is unchanged** — no `cache_size` is set and SQLite's own
+   default stands. This is what makes arm A provably *the un-pragma'd binary*; without it the
+   A/B compares two things we changed.
+
+**A consequence that must go into the A/B's registration, not be discovered afterwards:**
+adding the parameter changes `dist`, so **Gate 0's content hash moves and the A/B runs on a
+different binary than E1-PHASE's 15-run ladder.** Both arms share that binary, so the A/B is
+internally valid — but its absolute timings are **not** comparable to the ladder's, and no
+one may read across the two. Both arms re-assert one hash, as E1-PHASE did.
+
 ---
 
 ## 2. Binding constraints — carried forward, still in force
