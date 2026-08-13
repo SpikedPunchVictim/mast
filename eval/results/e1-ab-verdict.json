@@ -1,0 +1,379 @@
+{
+  "created": "2026-08-13T21:03:19.694Z",
+  "is_a_probe": "E1-AB is a probe, not a remedy and not a verdict experiment. It cannot confirm, overturn or soften E1's SUPER-LINEAR verdict, and it cannot re-adjudicate E1-PHASE: H1 (write-localised, mechanism unidentified) stands whatever this returns. No pragma is shipped on the strength of it.",
+  "complete": true,
+  "unresolved_voids": [],
+  "resolved_voids": [],
+  "superseded_controls": [],
+  "poisoned_pairs": [],
+  "gate_p2": [
+    {
+      "tier": "T1",
+      "runs": 9,
+      "expected": 9,
+      "chunk_counts": [
+        3679
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T5",
+      "runs": 12,
+      "expected": 12,
+      "chunk_counts": [
+        16529
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T9",
+      "runs": 9,
+      "expected": 9,
+      "chunk_counts": [
+        73359
+      ],
+      "identical": true
+    }
+  ],
+  "driver_findings": [],
+  "scoreable": true,
+  "level": {
+    "T1": {
+      "B": {
+        "arm": "B",
+        "tier": "T1",
+        "metric": "write_ms",
+        "ratios": [
+          0.9773700305810398,
+          0.9527511961722488,
+          1.0317782285327923
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 0.9773700305810398,
+        "min": 0.9527511961722488,
+        "max": 1.0317782285327923,
+        "spread": 0.07902703236054354,
+        "spread_finding": false
+      },
+      "D": {
+        "arm": "D",
+        "tier": "T1",
+        "metric": "write_ms",
+        "ratios": [
+          1.5663608562691131,
+          1.1543062200956937,
+          1.2123056118999325
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 1.2123056118999325,
+        "min": 1.1543062200956937,
+        "max": 1.5663608562691131,
+        "spread": 0.4120546361734194,
+        "spread_finding": true
+      },
+      "B_duration": {
+        "arm": "B",
+        "tier": "T1",
+        "metric": "duration_ms",
+        "ratios": [
+          1.0234482758620689,
+          0.9815510761872224,
+          1.0140688633839319
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 1.0140688633839319,
+        "min": 0.9815510761872224,
+        "max": 1.0234482758620689,
+        "spread": 0.04189719967484651,
+        "spread_finding": false
+      },
+      "D_duration": {
+        "arm": "D",
+        "tier": "T1",
+        "metric": "duration_ms",
+        "ratios": [
+          1.3455172413793104,
+          1.0792620430474889,
+          1.1136616068122918
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 1.1136616068122918,
+        "min": 1.0792620430474889,
+        "max": 1.3455172413793104,
+        "spread": 0.26625519833182154,
+        "spread_finding": true
+      }
+    },
+    "T5": {
+      "B": {
+        "arm": "B",
+        "tier": "T5",
+        "metric": "write_ms",
+        "ratios": [
+          0.6870630149187263,
+          0.6632817127866633,
+          0.7292623133496768
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 0.6870630149187263,
+        "min": 0.6632817127866633,
+        "max": 0.7292623133496768,
+        "spread": 0.06598060056301358,
+        "spread_finding": false
+      },
+      "D": {
+        "arm": "D",
+        "tier": "T5",
+        "metric": "write_ms",
+        "ratios": [
+          1.008461367178802,
+          0.9826944232884827,
+          1.028393135725429
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 1.008461367178802,
+        "min": 0.9826944232884827,
+        "max": 1.028393135725429,
+        "spread": 0.04569871243694634,
+        "spread_finding": false
+      },
+      "B_duration": {
+        "arm": "B",
+        "tier": "T5",
+        "metric": "duration_ms",
+        "ratios": [
+          0.7446717968722295,
+          0.7252371273712737,
+          0.79041403658928
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 0.7446717968722295,
+        "min": 0.7252371273712737,
+        "max": 0.79041403658928,
+        "spread": 0.06517690921800634,
+        "spread_finding": false
+      },
+      "D_duration": {
+        "arm": "D",
+        "tier": "T5",
+        "metric": "duration_ms",
+        "ratios": [
+          1.0037235362956134,
+          0.9799457994579945,
+          1.0274597910202916
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 1.0037235362956134,
+        "min": 0.9799457994579945,
+        "max": 1.0274597910202916,
+        "spread": 0.047513991562297075,
+        "spread_finding": false
+      }
+    },
+    "T9": {
+      "B": {
+        "arm": "B",
+        "tier": "T9",
+        "metric": "write_ms",
+        "ratios": [
+          0.5054564712377955,
+          0.5218953558771848,
+          0.5131720689661701
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 0.5131720689661701,
+        "min": 0.5054564712377955,
+        "max": 0.5218953558771848,
+        "spread": 0.01643888463938936,
+        "spread_finding": false
+      },
+      "D": {
+        "arm": "D",
+        "tier": "T9",
+        "metric": "write_ms",
+        "ratios": [
+          0.8311376615767145,
+          0.8951902199100323,
+          0.8486277004397947
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 0.8486277004397947,
+        "min": 0.8311376615767145,
+        "max": 0.8951902199100323,
+        "spread": 0.0640525583333178,
+        "spread_finding": false
+      },
+      "B_duration": {
+        "arm": "B",
+        "tier": "T9",
+        "metric": "duration_ms",
+        "ratios": [
+          0.5323580019236029,
+          0.5509008240555996,
+          0.5422922097940229
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 0.5422922097940229,
+        "min": 0.5323580019236029,
+        "max": 0.5509008240555996,
+        "spread": 0.01854282213199665,
+        "spread_finding": false
+      },
+      "D_duration": {
+        "arm": "D",
+        "tier": "T9",
+        "metric": "duration_ms",
+        "ratios": [
+          0.8384138217049475,
+          0.9017011444804592,
+          0.8567391153268387
+        ],
+        "blocks_dropped": [],
+        "void": false,
+        "median": 0.8567391153268387,
+        "min": 0.8384138217049475,
+        "max": 0.9017011444804592,
+        "spread": 0.06328732277551175,
+        "spread_finding": false
+      }
+    }
+  },
+  "rho_B_T9": 0.5131720689661701,
+  "rho_D_T1": 1.2123056118999325,
+  "mechanism": {
+    "cell": "CACHE_IMPLICATED",
+    "level": "PARTIAL",
+    "findings": []
+  },
+  "slopes": {
+    "A": {
+      "arm": "A",
+      "slopes": [
+        1.9330680930546305,
+        1.9093073805181797,
+        1.9639228081755766
+      ],
+      "void": false,
+      "median": 1.9330680930546305,
+      "spread": 0.05461542765739691,
+      "spread_finding": false
+    },
+    "B": {
+      "arm": "B",
+      "slopes": [
+        1.71271312245586,
+        1.7081361342027082,
+        1.7305508466798454
+      ],
+      "void": false,
+      "median": 1.71271312245586,
+      "spread": 0.022414712477137222,
+      "spread_finding": false
+    },
+    "D": {
+      "arm": "D",
+      "slopes": [
+        1.7212050674483461,
+        1.8243315225537737,
+        1.8447607635912426
+      ],
+      "void": false,
+      "median": 1.8243315225537737,
+      "spread": 0.12355569614289652,
+      "spread_finding": false
+    }
+  },
+  "exponent": "EXPONENT_REDUCED",
+  "curvature": {
+    "A": [
+      {
+        "b_lo": 1.7437027163683265,
+        "b_hi": 2.1245078102065333
+      },
+      {
+        "b_lo": 1.7628679790003412,
+        "b_hi": 2.0573509040864266
+      },
+      {
+        "b_lo": 1.809850588744525,
+        "b_hi": 2.1196827608395084
+      }
+    ],
+    "B": [
+      {
+        "b_lo": 1.5091302898788164,
+        "b_hi": 1.9185260359225873
+      },
+      {
+        "b_lo": 1.5218297696356062,
+        "b_hi": 1.8964833302976367
+      },
+      {
+        "b_lo": 1.5788947103137885,
+        "b_hi": 1.883868250094955
+      }
+    ],
+    "D": [
+      {
+        "b_lo": 1.4506335444417884,
+        "b_hi": 1.9947404768254364
+      },
+      {
+        "b_lo": 1.6557403995934268,
+        "b_hi": 1.9947694212796656
+      },
+      {
+        "b_lo": 1.7003469755212224,
+        "b_hi": 1.9907564847982813
+      }
+    ]
+  },
+  "mmap": {
+    "tier": "T5",
+    "ratio": {
+      "arm": "C",
+      "tier": "T5",
+      "metric": "write_ms",
+      "ratios": [
+        0.6921398352260075,
+        0.6728018955741728,
+        0.7035881435257411
+      ],
+      "blocks_dropped": [],
+      "void": false,
+      "median": 0.6921398352260075,
+      "min": 0.6728018955741728,
+      "max": 0.7035881435257411,
+      "spread": 0.030786247951568257,
+      "spread_finding": false
+    },
+    "expected_inert": true,
+    "source_basis": "sqlite3.c:65261-65263 (bMmapOk requires PAGER_READER or PAGER_GET_READONLY) and :77886 (write cursors get curPagerFlags = 0)",
+    "contradicts_source_reading": true,
+    "reading": "CONTRADICTS the source reading. A finding in its own right; triggers a dedicated probe, and licenses no conclusion here."
+  },
+  "gate_a_caveat_attached": false,
+  "gate_a_caveat": null,
+  "thresholds": {
+    "LEVEL_DOMINANT": 0.2,
+    "LEVEL_IMPLICATED": 0.8,
+    "INTERFERENCE_RATIO": 1.1,
+    "CONNECTIVITY_RATIO": 1.1,
+    "D_HELPS_ANOMALY": 0.9,
+    "E1_SUPERLINEAR_THRESHOLD": 1.35,
+    "SLOPE_MATERIAL_DELTA": 0.2,
+    "RATIO_SPREAD_FINDING": 0.15,
+    "SLOPE_SPREAD_FINDING": 0.2
+  }
+}

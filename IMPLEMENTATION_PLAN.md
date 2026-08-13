@@ -4847,6 +4847,184 @@ discarded run is at a cheap rung.
 
 ---
 
+#### E1-AB RESULT — 2026-08-13, scored, post-adversarial-review
+
+**E1-AB is a probe.** It cannot confirm, overturn or soften E1's SUPER-LINEAR verdict, and it
+cannot re-adjudicate E1-PHASE: H1 (write-localised, mechanism unidentified) stands. No pragma
+is shipped on the strength of it. That framing is carried from the registration verbatim and is
+not weakened by anything below.
+
+**What ran.** 30/30 registered runs, 0 voids, 0 driver findings, `scoreable: true`. Every run
+passed **Gate A** with the correct per-arm pragma echo. **Gate P2** is identical within every
+rung — T1 3,679 chunks (9 runs), T5 16,529 (12), T9 73,359 (9) — and those counts come from
+`readGraphCounts`'s `SELECT COUNT(*)` against `graph.db` (`eval/e1-common.mjs:493`), **not** the
+pre-write stdout counter, so the Q1/SCALE trap does not apply to them. `db_bytes` is
+byte-identical across arms at every rung. Every number in `eval/results/e1-ab-verdict.json`
+reproduces from the raw journal to four decimals; the adversarial reviewer recomputed them
+independently and so did the author.
+
+**The registered outcome, as the scorer returned it.**
+
+| statistic | value |
+|---|---|
+| `MECHANISM` | **CACHE_IMPLICATED**, level **PARTIAL** |
+| `EXPONENT` | **EXPONENT_REDUCED** |
+| `rho_B(T9)` | 0.5132 |
+| `rho_D(T1)` | 1.2123 (lever-connectivity, A4) |
+| `rho_C(T5)` | 0.6921 — fires A1's source-contradiction tripwire |
+
+Within-block write-phase ratios (median of three blocks):
+
+| arm | T1 | T5 | T9 |
+|---|---|---|---|
+| B (cache 1024 MiB) | 0.9774 | 0.6871 | 0.5132 |
+| D (cache 2 MiB) | 1.2123 | 1.0085 | **0.8486** |
+| C (mmap 1024 MiB) | — | 0.6921 | — |
+
+Per-block write slopes and their split halves (medians):
+
+| arm | b_write | spread | b_lo (T1→T5) | b_hi (T5→T9) |
+|---|---|---|---|---|
+| A (control) | 1.9331 | 0.0546 | 1.7629 | 2.1197 |
+| B | 1.7127 | 0.0224 | 1.5218 | **1.8965** |
+| D | 1.8243 | 0.1236 | 1.6557 | 1.9947 |
+
+---
+
+##### The four published claims, as corrected by the adversarial review
+
+**Claim 1 — WEAKENED. Not a page-cache residency signature; a cache-size-coupled pager
+mechanism with the channel unresolved.**
+
+`rho_B` rises monotonically with the cache multiple — 0.9774 at 1.32×, 0.6871 at 5.81×, 0.5132
+at 26.8× — and that dose–response is exactly what A3 added T5 to obtain. But the residency
+reading it invites is refuted by the arm in the same experiment: `rho_D(T9) = 0.8486` means the
+T9 response to cache size is **non-monotone**, with the *default* 15.63 MiB cache the slowest of
+the three sizes tested. A residency model cannot produce that, and A4's own power arithmetic
+predicted `rho_D(T9) ≈ 1.03`.
+
+Two escapes were tested and both fail. "A 2 MiB cache frees RAM for the OS unified buffer cache"
+is quantitatively dead: the A−D footprint difference is ≤13.6 MiB on a 16 GiB machine. "A 1 GiB
+cache causes memory pressure" is contradicted by B being the *fastest* arm at every rung.
+
+The registered reading is therefore: **the write-phase cost is coupled to SQLite's cache-size
+setting, and the channel is unresolved between read-miss volume and spill/eviction policy.**
+A8's spill caveat was written for arm D and applies symmetrically to arm B: at 1 GiB, mid-
+transaction spill is structurally impossible, so arm B changes *two* things at once, not one.
+The instrument carries no WAL, spill or RSS counters, so **this data cannot discriminate the two
+channels.** Stated as a limit, not as a hedge.
+
+**Claim 2 — STANDS. The cache does not explain the super-linearity.** This is the strongest
+result in the experiment. With eviction physically impossible — arm B's 1 GiB cache is 2.45× the
+entire T9 database — the write slope is still 1.7127, and the top segment `b_hi(B) = 1.8965`
+remains near-quadratic. Removing eviction entirely removes roughly a fifth of the excess
+exponent.
+
+The category-error concern about comparing a three-rung write-phase slope to E1's nine-rung
+duration threshold of 1.35 is real and was checked rather than waved off. On E1's *own*
+estimand — OLS of `ln(duration_ms)` on `ln(chunk_count)`, median of three blocks — the control
+recomputes to **1.7625**, reproducing E1's `b = 1.7529` to 0.01, and arm B recomputes to
+**1.5498**, still 0.20 above the threshold. The comparison survives on a like-for-like basis.
+Both cross-checks are published here so the claim does not rest on the write-phase basis alone.
+
+**Claim 3 — STRENGTHENED, and it is the most interesting number in the run.** `rho_D(T9) =
+0.8486` carries **no registered flag**: A4 demoted `rho_D(T9)` to an unthresholded working-set
+probe, and the scorer accordingly keys `D_HELPS_ANOMALY` to T1 only (`eval/e1-ab-score.mjs:224`),
+where D correctly hurts at 1.2123. So the verdict JSON reads `findings: []` while the single
+most model-breaking observation sits in the level table unflagged. **That is a gap in the
+registered rule set, recorded here rather than repaired retroactively.** A5's INTERFERENCE text
+says "any arm", which collides with D's positive-control role; the scorer's B-only reading is a
+post-hoc resolution and is recorded as such.
+
+**Claim 4 — WITHDRAWN AS DRAFTED. The AMENDMENT 3 prediction was satisfied, not falsified.**
+The author's first write-up said the prediction "was not confirmed". That is wrong in direction.
+Comparing block 1 to block 1 against the quarantined runs, every comparable statistic moved
+**toward** 1.0 exactly as registered: `rho_C` 0.6720 → 0.6921, `rho_B(T5)` 0.6710 → 0.6871,
+`rho_B(T1)` 0.9279 → 0.9774. The honest statement is that the prediction was **directionally
+satisfied and quantitatively empty** — every move is ≤0.05, inside the blocks' own spread
+(B/T1 spread 0.079, B/T5 0.066), so it was too weak to adjudicate the positional question it was
+registered to test. A prediction that cannot fail at the effect size available is not a risk.
+
+---
+
+##### The mmap tripwire resolves — and re-points the mechanism
+
+`rho_C(T5) = 0.6921` against `rho_B(T5) = 0.6871`. The two arms land on top of each other.
+
+A1 argued from source that mmap cannot serve write-cursor page fetches. **That reading is
+correct and is re-verified here**: `btreeCursor` gives write cursors `curPagerFlags = 0`
+(`sqlite3.c:77886`). It was *incomplete*. The immediately following branch gives read cursors
+`PAGER_GET_READONLY` (`:77889`), and FTS5 fetches segment blocks through
+`sqlite3_blob_open(pConfig->db, ..., 0, &p->pReader)` in `fts5DataRead` (`:251470`) — flags `0`,
+a **read-only** blob handle, and therefore mmap-eligible *inside a write transaction*.
+
+So arm C was never inert, and nothing in the source reading was wrong. The traffic mmap
+accelerates is read traffic occurring during the write phase, and the coincidence of `rho_C` and
+`rho_B` at T5 points both arms at the same population: **FTS5 segment merge reads, not B-tree
+insertion traversals.** The tripwire did its job — it caught an incomplete source argument that
+three reviews had passed over.
+
+---
+
+##### Residual weaknesses, recorded
+
+1. **EXPONENT_REDUCED fired by 0.0204.** `b_A − b_B = 1.9331 − 1.7127 = 0.2204` against
+   `SLOPE_MATERIAL_DELTA = 0.20`. The threshold's own docstring
+   (`eval/e1-ab-score.mjs:57-63`) justifies 0.20 as "deliberately blunt … a marginal call
+   decided by an unvalidated noise model is worse than a bar that can only fire on an obvious
+   effect", citing σ ≈ 0.0085. On that σ the *bar* is ~20σ but the *outcome* is ~2.4σ. This is
+   the marginal call the bar existed to refuse. **EXPONENT_REDUCED is reported at its registered
+   value and simultaneously flagged as weakly attained.** Claim 2 does not depend on it —
+   `b_hi(B) = 1.8965` and the duration-basis 1.5498 carry that claim.
+2. **A3's corroborating curvature reading also fires narrowly.** `b_hi(A) − b_hi(B) = 2.1197 −
+   1.8965 = 0.2232` against its 0.20 bar, a margin of 0.0232, and it **fails in block 2**
+   (0.1609). A3 registered this as corroborating and non-gating; it corroborates weakly.
+3. **The connectivity cell is the one the scorer flagged as noisy.** `rho_D(T1)` carries
+   `spread_finding: true` (blocks 1.566 / 1.154 / 1.212, spread 0.412). A4 keys the entire
+   mechanism classification on this cell. Connectivity is nonetheless robust: the *minimum*
+   block ratio, 1.154, still clears the 1.10 bar. The finding is raised in the JSON and printed
+   nowhere by the reporter — an instrument defect, logged.
+4. **Both Gate 3 retakes retained the warmer passing attempt** (D/T1/b2 and A/T1/b3), and both
+   retentions move *toward* connectivity firing: attempt 1 of D/T1/b2 would have given a ratio of
+   1.0795, **below** the bar. Recomputed under first-attempt substitution the median is 1.1719 —
+   still fires. Reported per the registered Gate 3 reconciliation clause, with the bias direction
+   named.
+5. **T5 is optimal, not balanced, and the tripwire arm drew the warm end.** The Latin square
+   gives arm C positions 4/3/2 — position-sum 9, the maximum of the forced `{6,7,8,9}` multiset —
+   so C never ran first at T5. AMENDMENT 3's arithmetic proves the multiset is forced; it says
+   nothing about which arm receives the 9, and the amendment should not have described T5 as
+   balanced. Empirically bounded at ≲3% against a 31% effect (arm B ran first at T5/b2 and kept
+   its full effect), so `rho_C` is not threatened.
+6. **AMENDMENT 3 understated prior exposure.** It says seven runs existed. A full diagnostic
+   A/T9 run (540,136 ms) had also been observed before the restart, disclosed only in
+   `eval/results/discarded-amendment3/README.md`. The ordering flaw was knowable before the run
+   and was acted on only after data showed arm C fast. The discard itself is verified complete
+   and honest — same Gate 0 hash, clean timestamp partition — but the disclosure belonged in the
+   amendment, not only in the quarantine.
+
+---
+
+##### What this licenses, and what it does not
+
+**Licensed:** the write phase's cost is coupled to SQLite's cache-size setting, strongly and
+with a monotone dose–response in corpus size; and **that coupling does not account for the
+super-linear exponent**, which survives at 1.7127 (write basis) / 1.5498 (duration basis) with
+eviction made impossible.
+
+**Not licensed:** any statement that page-cache residency *is* the mechanism; any channel
+attribution between read-miss volume and spill policy; any reading of `rho_D(T9)`; any pragma
+change shipped to `mast`. H1 stands unchanged — write-localised, mechanism unidentified.
+
+**Successor probe.** The FTS5 finding gives it a target the previous rounds did not have: an
+arm that isolates FTS5 segment-merge read traffic, and an instrument that carries WAL, spill and
+RSS counters so the two candidate channels can be told apart. `rho_D(T9) < 1.0` is its second
+target and needs an explanation before any cache story is published.
+
+Adversarial review in full: `eval/results/e1-ab-results-review.md`. Every source claim above was
+re-verified against the amalgamation and the scorer by the author before being recorded here.
+
+---
+
 ## Stage 4.5: Scale — the actual target
 **Goal**: MAST is "Monorepo AST search". Make the scale target explicit and measured,
 because it changes several decisions already taken.

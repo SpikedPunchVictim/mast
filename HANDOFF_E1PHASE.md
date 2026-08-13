@@ -1,4 +1,4 @@
-# HANDOFF — E1-AB REGISTERED, BUILT AND LAUNCHED; scoring is next
+# HANDOFF — E1-AB COMPLETE, SCORED AND REVIEWED; the successor probe is next
 
 **Rewritten 2026-08-13 at `bee40e3`.** Read this first, then `HANDOFF_Q1.md`, then
 `IMPLEMENTATION_PLAN.md`, then `MAST_SPEC.md`. This file covers only the E1 track;
@@ -26,62 +26,82 @@ Stage 2 is reopened as a scale defect.**
 H2 (`b_edges = 1.4360`, non-monotone share), H3 and H4 are each refuted. 15/15 runs,
 0 VOID, 0 interrupted, Gate P attribution 99.85–100%.
 
-**E1-AB is registered, its instrument is built and committed, and the 30-run schedule was
-launched 2026-08-13.** The lever it needed (`OpenDatabaseOptions` on `openDatabase`, threaded
-from two CLI flags) shipped at `ef8d83e`. **The immediate next action is to score it** — see §1a.
+**E1-AB is complete, scored, and its adversarial results review is folded in.** Outcome
+**CACHE_IMPLICATED / PARTIAL** with **EXPONENT_REDUCED**. The lever it needed
+(`OpenDatabaseOptions` on `openDatabase`, threaded from two CLI flags) shipped at `ef8d83e`.
+**The immediate next action is the successor probe** — see §1a.
 
-### 1a. E1-AB — what is running, and what to do when it finishes
+### 1a. E1-AB — complete, scored, reviewed. What it settled and what it did not.
 
-**The question:** is the SQLite page cache the mechanism behind write's super-linearity? It is a
-**probe, not a remedy.** No pragma is shipped on the strength of it, it cannot confirm/overturn
-/soften E1's verdict, and it cannot re-adjudicate E1-PHASE — H1 stands whatever it returns. Any
-fix that eventually follows is verified by re-running **E1's full 9-rung ladder** against the
-committed scorer and the immutable 1.35 threshold.
+**The question was:** is the SQLite page cache the mechanism behind write's super-linearity?
+It was a **probe, not a remedy**, and that framing held: no pragma was shipped, E1's verdict is
+untouched, and **H1 — write-localised, mechanism unidentified — still stands.**
 
-| arm | flags | expected `pragmas:` | role |
-|---|---|---|---|
-| A | *(none)* | `{-16000, 0}` | control — the un-pragma'd binary |
-| B | `--cache-size-mib 1024` | `{-1048576, 0}` | 2.45× T9's 418.8 MiB database; no page can be evicted |
-| D | `--cache-size-mib 2` | `{-2048, 0}` | **positive control**, 8× shrink |
-| C | `--mmap-size-mib 1024` | `{-16000, 1073741824}` | **T5 ONLY** — tripwire, expected inert |
+**Outcome.** 30/30 runs, 0 voids, Gate A clean on every run, Gate P2 identical within every
+rung. `MECHANISM = CACHE_IMPLICATED`, level `PARTIAL`; `EXPONENT = EXPONENT_REDUCED`.
 
-3 rungs (T1/T5/T9) × 3 blocks. **30 runs, ~87 min.** Registration + AMENDMENTS 1 and 2 in
-`IMPLEMENTATION_PLAN.md`.
+| statistic | value |
+|---|---|
+| `rho_B` (write) at T1 / T5 / T9 | 0.9774 / 0.6871 / **0.5132** |
+| `rho_D` (write) at T1 / T5 / T9 | **1.2123** / 1.0085 / **0.8486** |
+| `rho_C` at T5 | **0.6921** — fired A1's source-contradiction tripwire |
+| `b_write` A / B / D | 1.9331 / **1.7127** / 1.8243 |
+| `b_hi` (T5→T9) A / B | 2.1197 / **1.8965** |
+| duration-basis `b` A / B | 1.7625 / **1.5498** (E1's own `b` = 1.7529) |
 
-**When it finishes:** `node eval/e1-ab-report.mjs` writes `eval/results/e1-ab-verdict.json`.
-Then commission the adversarial **results** review (Agent tool, model `fable`), **verify its
-claims against source**, and fold it in as a RESULTS REVIEW block under the RESULT.
+**The two things that survived review, and are the result:**
 
-**Five things the RESULT must carry, and none is optional:**
+1. **The write phase is coupled to cache size, with a monotone dose–response** — `rho_B` 0.98 →
+   0.69 → 0.51 as the database goes 1.32× → 5.81× → 26.8× the default cache.
+2. **That coupling does NOT explain the super-linearity.** With eviction physically impossible
+   (arm B's cache is 2.45× the whole T9 database) the slope is still 1.7127, and 1.5498 on E1's
+   own duration estimand — above the immutable 1.35 either way. Removing eviction removes about
+   a fifth of the excess exponent.
 
-1. **`rho_B <= 0.80` is the ONLY substantively free test.** `rho_D(T1) >= 1.10` is an
-   instrument check, and the exponent classification is conditional on the level result. Do not
-   report three thresholds as three hurdles — E1-PHASE had to correct exactly that in itself.
-2. **A CACHE-INERT result is a POSITIVE finding, not a null** — that is what arm D buys. But it
-   rests on a connectivity proof taken at **T1**, the rung where the mechanism is least likely
-   to be operating. That limit is uncompensated and must be stated.
-3. **Arm C's expected inert result is WEAK evidence.** The mmap refutation is *analytic*, from
-   `sqlite3.c:65261-65263` (`bMmapOk` needs `PAGER_READER` or `PAGER_GET_READONLY`) and `:77886`
-   (write cursors get `curPagerFlags = 0`). Never report it as "refuted by measurement".
-4. **A level result never licenses an exponent claim.** At `rho_B = 0.20` — the CACHE-DOMINANT
-   *floor* — arm B is still super-linear at slope ~1.42.
-5. **Gate 0's hash has MOVED** (`73f4d1e6…` vs E1-PHASE's `454894e5…`). No absolute timing here
-   is comparable to the 15-run ladder's. Both arms share this binary, which is what keeps the
-   A/B internally valid.
+**The three things a reader must not take from it:**
 
-**Direction of error, inherited:** the previous session's prior moved TOWARD the cache-cliff
-story because it withdrew the counter-evidence against it itself (`CORRECTION (2026-08-13)`).
-The default page cache is **~16 MB**, not the ~2 MB the E1-PHASE registration assumed
-(`better-sqlite3@12.11.1`, `deps/defines.gypi:13`), so T1 is **1.32×** the cache and T9 is
-**26.8×**. That withdraws a piece of counter-evidence; it supplies **no** evidence *for* the
-cliff. A confirmed H1 still licenses "write-localised, mechanism unidentified" and nothing
-narrower — FTS5 trigram merges, per-file transaction overhead and B-tree depth growth remain
-indistinguishable, and E1-AB does not touch them.
+1. **This is not a residency result.** `rho_D(T9) = 0.8486` — a 2 MiB cache *beat* the default at
+   T9 — makes the T9 response to cache size **non-monotone**, which no residency model produces
+   and which A4's own arithmetic predicted against (`rho_D(T9) ≈ 1.03`). The registered reading
+   is "cache-size-coupled pager mechanism, **channel unresolved**" between read-miss volume and
+   spill/eviction policy. A8's spill caveat applies to arm B as well as D: at 1 GiB, mid-
+   transaction spill is structurally impossible, so B moves two things at once.
+2. **`EXPONENT_REDUCED` fired by 0.0204** on a 0.20 bar whose own docstring calls it
+   "deliberately blunt … a bar that can only fire on an obvious effect" (σ ≈ 0.0085, so the
+   *outcome* is ~2.4σ, not the bar's ~20σ). A3's corroborating curvature reading fires by 0.0232
+   and **fails in block 2**. Claim 2 does not rest on either — `b_hi(B)` and the duration-basis
+   cross-check carry it.
+3. **`rho_D(T9)` carries no registered flag.** A4 demoted it to an unthresholded probe and the
+   scorer keys `D_HELPS_ANOMALY` to T1 only (`eval/e1-ab-score.mjs:224`), so the verdict prints
+   `findings: []` while the most model-breaking number in the run sits unflagged. Gap in the
+   rule set, recorded, not retroactively repaired.
 
-**The honest prior, recorded before the data:** T9's database is 418.8 MiB on a **16 GiB**
-machine, so the OS page cache plausibly holds the whole file and a SQLite miss may be a
-`memcpy` rather than a disk read. **CACHE-INERT is the more likely outcome than
-CACHE-DOMINANT.**
+**The tripwire paid for itself — this is the finding to carry forward.** `rho_C(T5) = 0.6921` ≈
+`rho_B(T5) = 0.6871`. A1's source reading was **correct but incomplete**: write cursors do get
+`curPagerFlags = 0` (`sqlite3.c:77886`), but the next branch gives read cursors
+`PAGER_GET_READONLY` (`:77889`), and FTS5's `fts5DataRead` reads segment blocks through
+`sqlite3_blob_open(..., 0, &p->pReader)` (`:251470`) — a **read-only** blob handle, mmap-eligible
+*inside a write transaction*. Arm C was never inert. Both arms are accelerating the same
+traffic: **FTS5 segment merge reads, not B-tree insertion traversals.**
+
+**The successor probe therefore has a target the last three rounds lacked:** isolate FTS5
+segment-merge read traffic, and build an instrument carrying **WAL, spill and RSS counters** so
+the two candidate channels can be told apart. `rho_D(T9) < 1.0` is its second target and needs an
+explanation before any cache story is published.
+
+**The pre-registered prior was roughly right.** §1a's honest prior said CACHE-INERT was more
+likely than CACHE-DOMINANT. The result landed between them at PARTIAL. Recorded because the
+prior was written down before the data and should be scored, not quietly forgotten.
+
+**AMENDMENT 3's prediction was satisfied, not falsified** — the first write-up said otherwise and
+was wrong in direction. Every comparable block-1 statistic moved toward 1.0 as registered
+(`rho_C` 0.6720 → 0.6921, `rho_B(T5)` 0.6710 → 0.6871, `rho_B(T1)` 0.9279 → 0.9774). All moves
+are ≤0.05, inside block spread — directionally satisfied, quantitatively empty, and too weak to
+adjudicate anything.
+
+Full RESULT: `IMPLEMENTATION_PLAN.md` § E1-AB RESULT. Adversarial review:
+`eval/results/e1-ab-results-review.md`. Data: `eval/results/e1-ab-{verdict,runs}.json*`.
+Discarded pre-AMENDMENT-3 runs, quarantined not deleted: `eval/results/discarded-amendment3/`.
 
 ---
 
@@ -267,7 +287,19 @@ essentially exactly linear.
 
 ## 6. Still open
 
-- **Score E1-AB and review it** — §1a. The live item.
+- **The E1-AB successor probe** — §1a. The live item. Two targets: isolate FTS5 segment-merge
+  read traffic (the tripwire finding), and explain `rho_D(T9) = 0.8486`. Needs an instrument
+  carrying **WAL, spill and RSS counters** — the current one has none, which is exactly why
+  E1-AB cannot separate read-miss volume from spill/eviction policy.
+- **Rule-set gaps E1-AB exposed, for the successor's registration** — three, all recorded in the
+  RESULT and none repaired retroactively: (a) `D_HELPS_ANOMALY` is keyed to T1 only
+  (`eval/e1-ab-score.mjs:224`), so `rho_D(T9) <= 0.90` passes unflagged; (b) A5's INTERFERENCE
+  text says "any arm", which collides with D's positive-control role — the scorer's B-only
+  reading is post-hoc; (c) `spread_finding` is written to the verdict JSON and printed nowhere
+  by the reporter, so D/T1's 0.412 spread was invisible at the console.
+- **`SLOPE_MATERIAL_DELTA` is a fire/no-fire bar with no interval behind it.** E1-AB's outcome
+  cleared it by 0.0204. Either publish an interval for the block-slope median or stop reporting
+  the classification as though it were a test.
 - **`MAST_SPEC` does not document `--cache-size-mib` / `--mmap-size-mib`** (added `ef8d83e`),
   and still does not document `--phase-timing` / `ENABLE_MAST_PHASE_TIMING`. Settle together.
 - **R2 — parse-only pass + Gate 2** (A4-MAT-8): file/chunk/symbol counts must equal the full

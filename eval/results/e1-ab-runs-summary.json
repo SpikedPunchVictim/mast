@@ -1,0 +1,40 @@
+{
+  "created": "2026-08-13T20:40:35.830Z",
+  "complete": true,
+  "total": 30,
+  "unresolved_voids": [],
+  "resolved_voids": [],
+  "superseded": [],
+  "poisoned_pairs": [],
+  "gate_p2": [
+    {
+      "tier": "T1",
+      "runs": 9,
+      "expected": 9,
+      "chunk_counts": [
+        3679
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T5",
+      "runs": 12,
+      "expected": 12,
+      "chunk_counts": [
+        16529
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T9",
+      "runs": 9,
+      "expected": 9,
+      "chunk_counts": [
+        73359
+      ],
+      "identical": true
+    }
+  ],
+  "findings": [],
+  "scoreable": true
+}
