@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   TIERS, PANEL, REPS, TOTAL_RUNS, buildSchedule, gate3Verdict, retainStateDir, median,
-  MAX_RETAKES, orphanedAttempts, remainingAttempts,
+  MAX_RETAKES, orphanedAttempts, remainingAttempts, selectFitted,
 } from '../e1-schedule.mjs';
 
 describe('buildSchedule — the committed run order', () => {
@@ -185,5 +185,36 @@ describe('orphanedAttempts', () => {
     // registered cap is 3 total. Selective retention of fast warm re-runs is the risk.
     expect(remainingAttempts(2)).toBe(1);
     expect(remainingAttempts(0)).toBe(MAX_RETAKES + 1);
+  });
+});
+
+// P6 (E1-PHASE design review, FATAL if unfixed). A4-MAT-6 swaps the FIRST attempt's clock
+// into a thrice-failing run, while the phase breakdown lived only on the LAST attempt's
+// measurement blob — so a decomposition would have divided warm phases by a cold total.
+// Not hypothetical: E1's T2#1 and T2#3 both failed Gate 3 on all three attempts.
+describe('selectFitted — the clock and its decomposition come from one attempt', () => {
+  const att = (n, ms) => ({ attempt: n, duration_ms: ms, external_ms: ms + 100, phase_ms: { write: ms / 2 } });
+
+  it('keeps the passing attempt whole', () => {
+    const last = { duration_ms: 500, external_ms: 600, phase_ms: { write: 250 }, chunk_count: 9 };
+
+    expect(selectFitted(last, [att(1, 900), att(2, 500)], true)).toMatchObject({
+      duration_ms: 500, phase_ms: { write: 250 },
+    });
+  });
+
+  it('takes the clock AND the phases from attempt 1 when every attempt failed', () => {
+    const last = { duration_ms: 400, external_ms: 999, phase_ms: { write: 200 }, chunk_count: 9 };
+
+    const fitted = selectFitted(last, [att(1, 900), att(2, 600), att(3, 400)], false);
+
+    expect(fitted.duration_ms).toBe(900);
+    expect(fitted.phase_ms).toEqual({ write: 450 });
+  });
+
+  it('carries non-clock fields from the completed run, which the attempts do not hold', () => {
+    const last = { duration_ms: 400, external_ms: 999, phase_ms: { write: 200 }, chunk_count: 9 };
+
+    expect(selectFitted(last, [att(1, 900), att(2, 600), att(3, 400)], false).chunk_count).toBe(9);
   });
 });

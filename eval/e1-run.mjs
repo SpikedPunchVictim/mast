@@ -22,7 +22,7 @@ import {
 } from './e1-common.mjs';
 import {
   TIERS, REPS, TOTAL_RUNS, buildSchedule, gate3Verdict, retainStateDir, median, MAX_RETAKES,
-  orphanedAttempts, remainingAttempts,
+  orphanedAttempts, remainingAttempts, selectFitted,
 } from './e1-schedule.mjs';
 
 const JOURNAL = join(RESULTS_DIR, 'e1-runs.jsonl');
@@ -218,18 +218,20 @@ async function executeRun(entry, ctx) {
     if (isTier) assertTierFileSet(run, tier, corpus);
 
     const g3 = gate3Verdict({ externalMs: run.external_ms, durationMs: run.duration_ms });
-    attempts.push({ attempt, duration_ms: run.duration_ms, external_ms: run.external_ms, gate3: g3 });
+    attempts.push({ attempt, duration_ms: run.duration_ms, external_ms: run.external_ms,
+      phase_ms: run.phase_ms, gate3: g3 });
 
     if (g3.ok || attempt === budget) {
       // A4-MAT-6. On a third failure the FIRST attempt's data is what enters the fit, not
       // the last: Gate 3 polices the cross-check clock, which never enters the fit at all,
       // so discarding the fitted clock over it would be selective retention — and A1-F5's
       // own analysis says dropping slow small-tier takes biases the slope UP.
-      const fitted = g3.ok ? run : { ...run, duration_ms: attempts[0].duration_ms, external_ms: attempts[0].external_ms };
+      const fitted = selectFitted(run, attempts, g3.ok);
       const rec = {
         type: 'run', corpus, rep, kind, at: new Date().toISOString(),
         chunk_count: run.chunk_count, file_count: run.file_count, duration_ms: fitted.duration_ms,
-        external_ms: fitted.external_ms, db_bytes: run.db_bytes, parse_errors: run.parse_errors,
+        external_ms: fitted.external_ms, phase_ms: fitted.phase_ms,
+        db_bytes: run.db_bytes, parse_errors: run.parse_errors,
         symbol_count: run.symbol_count, edge_count: run.edge_count,
         potential_call_count: run.potential_call_count,
         tier: isTier ? corpus : null,

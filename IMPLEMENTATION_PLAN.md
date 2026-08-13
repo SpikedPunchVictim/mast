@@ -3722,17 +3722,38 @@ the *instrument*, not about `b`.
 | **H2** | Call/symbol resolution: pass 2's edge insertion scales with candidate sets that grow with the corpus. | `b_edges ≥ 1.6` **and** edges' share of `durationMs` rises monotonically T1→T9 |
 | **H3** | Parse itself: tree-sitter cost growing faster than linearly in content. | `b_parse ≥ 1.6` |
 | **H4** | Diffuse — no single phase carries it. | no phase reaches `b ≥ 1.6` |
+| **H0** | **Residual, registered so the set is exhaustive:** all of H1–H4 refuted. Reachable — e.g. `b_write = 3.0` at a 45% T9 share refutes H1 on the share condition while write carries the entire exponent, and refutes H4 because a phase did reach 1.6. | outcome is **"localised, unclassified"**: report every exponent and share, adjudicate nothing, escalate exactly as H4 |
 
 H1 and H2 are not exclusive; both may fire, and that is a reportable outcome rather than an
 ambiguity to be resolved by choosing one.
 
-**Direction-of-error statement (mandatory field).** **My prior is H1** — I proposed it, from
-three facts that fit it (the knee at T4/T5, flat bytes-per-chunk, and the absent pragmas),
-and I have not tested it. Every free parameter in this design therefore leans toward finding
-H1. The compensations are registered here and are deliberately asymmetric: **H1 requires a
-conjunction of three conditions**, any one of which failing refutes it, while H2, H3 and H4
-each need a single condition. The 1.6 bar sits below E1's measured 1.75 so that a phase
-carrying the exponent is not narrowly missed, and it is the same bar for every hypothesis.
+**What a confirmed H1 does and does not license.** It confirms **write-localised,
+size-coupled super-linearity** and nothing narrower. Chunks and database bytes are perfectly
+collinear across this ladder, so this instrument **cannot distinguish** a page-cache cliff
+from FTS5 trigram segment merges, per-file transaction overhead, or B-tree depth growth. Any
+report calling a confirmed H1 "the page-cache cliff" is over-reading it. The mechanism
+discriminator is registered here so it cannot be improvised later: **a `cache_size` /
+`mmap_size` A/B at a single rung, run AFTER this diagnostic and BEFORE any shipped fix.**
+That is a probe, not a remedy, and so does not breach "no fix before diagnosis".
+
+**A fact that already damages H1's mechanism story, recorded before the run.** T1's database
+is **21.6 MB** — already ~10× SQLite's ~2 MB default page cache — while the knee E1 measured
+sits at T4/T5 (66 → 95 MB). A 2 MB cache is exhausted before the ladder begins, so it cannot
+produce a knee there. H1's *location* claim (write-localised) survives; H1's *mechanism*
+claim as originally stated does not follow from the evidence I cited for it.
+
+**Direction-of-error statement (mandatory field).** **My prior is H1** — I proposed it and
+have not tested it, so every free parameter here leans toward finding it. **The compensation
+I first claimed was largely theatre, and is corrected rather than defended.** Because the
+phases tile `durationMs`, the total slope is share-weighted: `b_total = Σ share_i · b_i`. Given
+E1's T3–T9 slope of 1.904, `b_parse ≤ 1.25` is near-automatic *a priori* (symbols scale
+`^0.993`, edges `^1.080`, bytes/chunk flat), and once the share condition holds, `b_write ≥ 1.6`
+follows arithmetically — at a 60% share with parse at 1.25 and the rest linear,
+`b_write ≈ 2.38`. **Exactly one substantive free condition remains: write's T9 share ≥ 60%.**
+The other two are consistency checks, not independent hurdles, and are reported as such.
+Condition counts, corrected: H1 needs 3 (one substantive), **H2 needs 2**, H3 and H4 need 1.
+The 1.6 bar sits below E1's measured 1.75 so a phase carrying the exponent is not narrowly
+missed, and it is the same bar for every hypothesis.
 
 #### Gates
 
@@ -3743,10 +3764,31 @@ carrying the exponent is not narrowly missed, and it is the same bar for every h
   files` equals the frozen manifest's file set for its tier, exactly.
 - **Gate 3** — both clocks recorded, `max(5%, 500 ms)`, retakes capped at 2 then logged, and
   orphaned attempts charged against that cap (A4-MAT-3, implemented at `3f7b1fa`).
-- **Gate P (new)** — **attribution**: on every scored run, `Σ phase_ms ≥ 0.90 × durationMs`.
-  A run below that is VOID pending diagnosis. Unattributed time is precisely where the
-  mechanism could hide from the instrument built to find it, and a 96% attribution was
-  observed on the smoke run, so 90% is a floor with headroom rather than a stretch.
+- **Gate P (new)** — **attribution**: on every scored run, `Σ phase_ms ≥ 0.95 × durationMs`.
+  A run below that is VOID pending diagnosis, and joins A4-MAT-7's re-run queue.
+
+  *Re-anchored on a measurement (design review P8).* The first draft set 90% on the strength
+  of a one-file 22 ms smoke run, whose ~7 `Date.now()` stamps are quantization-dominated and
+  could not distinguish 96% attribution from 80%. `eval/e1-phase-attribution.mjs` ran the
+  real T1 rung three times: **attribution 99.91 / 99.93 / 99.93%**, remainder 3 / 2 / 2 ms.
+  The floor is 95% — beneath the worst observation with ~5 points of headroom — and it stays
+  permissive on purpose: the remainder is `db.destroy()`'s WAL close-time checkpoint, which
+  is genuinely size-coupled, and a tight floor would VOID T9 for exhibiting the very growth
+  the experiment is looking for. **The remainder is therefore policed as a FINDING, not a
+  gate: a remainder share above 2% at any rung is reported and discussed** — T1's is 0.09%,
+  so 2% is a 20× rise, not a tolerance.
+- **Walk-share void condition, re-anchored the same way**: `walk` measured **1.27–1.47%** of
+  `durationMs` at T1, so the registered 10%-at-T9 tripwire is generous and correctly aimed
+  rather than arbitrary. Unchanged.
+
+**Declared peek (P0 precedent).** The attribution runs above are T1 rung measurements taken
+*after* this registration was committed at `36c2f5a` but *before* the scored runs, and they
+necessarily revealed T1's phase shares. The mitigation is ordering, and it is already
+discharged: every threshold these numbers could tune — the 1.6 exponent bar, `b_parse ≤ 1.25`,
+**and the 60% write-share condition** — was committed at `36c2f5a`, before the measurement
+existed. The three runs are excluded from every E1-PHASE fit and from the run count; they are
+gate calibration, not measurement, and `eval/results/e1-phase-attribution.json` records them
+in full so the peek is auditable rather than merely asserted.
 - **Gate P2** — **rep identity**: as in E1, a tier's three repetitions must report identical
   `chunk_count`; disagreement voids that tier.
 
@@ -3758,9 +3800,43 @@ carrying the exponent is not narrowly missed, and it is the same bar for every h
 - **The whole instrument is void** if Gate P fails on any scored run, or if `walk` — a fixed
   cost that dominated the one-file smoke run at 11 of 22 ms — exceeds **10%** of `durationMs`
   at T9, which would mean the phase split is mis-drawn and the fit is measuring startup.
-- **If H4 holds** (no phase reaches 1.6), the next step is *not* another ladder: it is
-  statement-level profiling inside the dominant phase, and this registration says so now so
-  that a diffuse result is not quietly re-analysed into a localisation.
+- **If H4 or H0 holds**, the next step is *not* another ladder: it is statement-level
+  profiling inside the highest-share phase, and this registration says so now so that a
+  diffuse or unclassified result is not quietly re-analysed into a localisation.
+
+#### Estimator and aggregation rules, registered so nothing is chosen after the data
+
+Every clause here closes a lever the first draft left open. The precedent is four
+consecutive rounds in which the unregistered choice was later resolved toward the prior
+(A4-FATAL-1, A4-MAT-1, A4-MAT-6).
+
+- **Comparisons are on HC3 point estimates.** SEs and CIs are reported for context and have
+  **no role in any refutation**. At 5 rungs a cluster-level 95% CI is roughly ±0.22 even at
+  E1's realized `σ_tier = 0.185`, so permitting "the CI touches 1.6" would make every
+  condition negotiable after the fact.
+- **"Share at T9" is computed from T9's median run**, by `phase_ms / durationMs`. Not the
+  mean, not a pooled ratio-of-sums.
+- **H2's monotonicity is strict, on per-tier median shares, across all five rungs.** A tie
+  breaks it.
+- **`ln(0)` is not permitted:** any scored run with a null `phase_ms` (a binary predating
+  `c71d59c`) or any phase `≤ 0` is **VOID**, never silently dropped. `parsePhaseMs` returns
+  null by design so the harness can still read E1's own history; on an E1-PHASE scored run
+  that null is a defect.
+- **A Gate P or Gate P2 VOID joins A4-MAT-7's re-run queue**, whose semantics apply
+  unchanged; it is not an excuse to fit around the gap.
+- **The unattributed remainder** (`durationMs − Σ phase_ms`) is fitted and reported as a
+  sixth series with its T9 share. Its registered reading is **"teardown, including WAL's
+  close-time checkpoint"** — `db.destroy()` (`index.ts:445`) runs after the `finalise` stamp
+  (`:443`) and before `durationMs` (`:459`), making it the one size-coupled cost outside
+  every phase. Reported rather than tolerated as slack, because Gate P's 10% tolerance is
+  ~54 s at T9 and unattributed time is exactly where the mechanism could hide.
+- **The mini-replication is fitted with E1's own registered estimator** (adjusted clock,
+  OLS + HC3) and is **"consistent" iff its 95% CI covers 1.7529**. Anything else is logged as
+  an instrument finding and adjudicates nothing in either direction — it may not soften E1
+  and may not be claimed as strengthening it.
+- **The "no threshold, no verdict" sentence above governs the HYPOTHESIS SET, not the gates.**
+  H1–H4 are classifications with registered refutation conditions; none of them is a verdict
+  on MAST's scaling, which E1 alone carries.
 
 #### What is deliberately NOT done
 

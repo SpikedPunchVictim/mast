@@ -158,6 +158,28 @@ export function remainingAttempts(alreadySpent) {
 }
 
 /**
+ * The record that enters the fit, assembled from ONE attempt.
+ *
+ * A4-MAT-6 retains the FIRST attempt's clock when every attempt failed Gate 3. Before
+ * E1-PHASE that only concerned `duration_ms`/`external_ms`, and the phase breakdown was
+ * read off the LAST attempt's measurement blob — so a decomposition would have divided a
+ * warm attempt's phases by a cold attempt's total, both mis-firing Gate P's attribution
+ * check and mixing attempts inside a single fitted point.
+ *
+ * Not hypothetical: E1's T2#1 and T2#3 each failed Gate 3 on all three attempts, and the
+ * three takes ran 8,908 / 6,861 / 6,264 ms — a 30% spread between the take whose clock is
+ * kept and the take whose phases would have been.
+ *
+ * Non-clock fields (counts, db bytes) come from the completed run: they are invariant
+ * across attempts by Gate 1's rep-identity rule, and the attempt records do not carry them.
+ */
+export function selectFitted(run, attempts, gate3Ok) {
+  if (gate3Ok) return run;
+  const first = attempts[0];
+  return { ...run, duration_ms: first.duration_ms, external_ms: first.external_ms, phase_ms: first.phase_ms };
+}
+
+/**
  * Registered: "Only the final repetition's state dirs are retained."
  *
  * Keyed on the repetition NUMBER, not on execution order. The shuffle can run rep 3 first,

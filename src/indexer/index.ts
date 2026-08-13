@@ -37,8 +37,13 @@ export interface IndexResult {
   readonly durationMs: number;
   /**
    * Cumulative wall-clock per phase, in ms. The phases tile the run: their sum is
-   * `durationMs` less a small unattributed remainder (config resolution, `openDatabase`,
-   * teardown).
+   * `durationMs` less a small unattributed remainder.
+   *
+   * The remainder is `db.destroy()` and the return — NOT `openDatabase`, which runs before
+   * the `walk` stamp and is therefore inside `walk` (and inside the calibration constant
+   * `c`, per A4-C1). This matters because `db.destroy()` closes the last connection, which
+   * triggers WAL's close-time checkpoint: the one size-coupled cost outside every phase.
+   * E1-PHASE reports the remainder as its own series rather than treating it as slack.
    *
    * Exists because E1 measured a growth exponent of ~1.75 on the nested ladder — ~1.90
    * over its upper half — from `durationMs` alone, which localises the cost to the run and
