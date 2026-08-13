@@ -4745,6 +4745,33 @@ weak one at T9 (A4), so a CACHE-INERT verdict rests on a connectivity proof take
 where the mechanism is *least* likely to be operating. That is the best available design at
 this cost, and it is a genuine limit rather than one I can argue away. The RESULT must carry it.
 
+#### AMENDMENT 2 — 2026-08-13, pre-run, found while building the instrument
+
+One change, and it TIGHTENS a rule rather than relaxing one. Found by a test that failed
+against `planPending` and turned out to be wrong about the registration rather than about the
+code.
+
+**AMENDMENT 1 A6 has a gap: the control run is SHARED.** A6 says a VOIDed cell is re-run
+"together with a fresh control run of the same rung, and that pair replaces the block's ratio".
+But one control run at a `(tier, block)` is the denominator for **every** arm in that block.
+Superseding it to repair one arm silently re-pairs the *untouched* arms against a control
+measured at a different time — reintroducing, for them, exactly the drift the repair existed to
+remove. A6 as written fixes one ratio by quietly breaking the others.
+
+**Corrected rule: an unresolved VOID at `(tier, block)` re-runs that whole block-pair group** —
+the control and every arm at that rung — control first, so each pair is measured adjacently.
+This holds A6's actual guarantee (every ratio is a temporally adjacent pair) for every arm
+rather than for one. It applies symmetrically when the *control* is the cell that voided.
+
+**Cost:** one extra run per repair at the affected rung — ~9 minutes at T9, seconds at T1/T5.
+Zero if nothing voids, which is the expected case.
+
+**Direction of error:** none available. This changes which runs are *collected* after a gate
+failure, never which runs are *kept* or how any statistic is computed, and it cannot be steered
+toward an outcome because a VOID is not under the investigator's control. Recorded anyway,
+because the program's rule is that a deviation from registered text is disclosed rather than
+absorbed.
+
 ---
 
 ## Stage 4.5: Scale — the actual target

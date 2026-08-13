@@ -104,6 +104,17 @@ export function gate3Verdict({ externalMs, durationMs }) {
 export const MAX_RETAKES = 2;
 
 /**
+ * How E1 and E1-PHASE identify a unit of work: `corpus#rep`.
+ *
+ * Extracted and made overridable so E1-AB can reuse `orphanedAttempts` unchanged
+ * — its unit is `arm#tier#block`, and under the hardcoded key every one of its
+ * records would collapse into a single `undefined#undefined` bucket, silently
+ * mis-attributing every orphan. The default is pinned by a test so this
+ * generalisation cannot drift E1's or E1-PHASE's scored records.
+ */
+export const defaultAttemptKey = (r) => `${r.corpus}#${r.rep}`;
+
+/**
  * A4-MAT-3's orphan detection, as a persistable finding rather than a console line.
  *
  * An `attempt_start` is journaled before every spawn; a completed run records one entry in
@@ -121,17 +132,17 @@ export const MAX_RETAKES = 2;
  * A pair with no completed run at all has every start orphaned: that is a resume in the
  * middle of a pair, which is the same condition.
  */
-export function orphanedAttempts(records) {
+export function orphanedAttempts(records, keyOf = defaultAttemptKey) {
   const completed = new Map();
   for (const r of records) {
-    if (r.type === 'run') completed.set(`${r.corpus}#${r.rep}`, r.gate3_attempts.length);
-    else if (r.type === 'void') completed.set(`${r.corpus}#${r.rep}`, r.attempt);
+    if (r.type === 'run') completed.set(keyOf(r), r.gate3_attempts.length);
+    else if (r.type === 'void') completed.set(keyOf(r), r.attempt);
   }
 
   const starts = new Map();
   for (const r of records) {
     if (r.type !== 'attempt_start') continue;
-    const k = `${r.corpus}#${r.rep}`;
+    const k = keyOf(r);
     starts.set(k, [...(starts.get(k) ?? []), r]);
   }
 
