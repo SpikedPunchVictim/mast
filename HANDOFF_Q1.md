@@ -1,5 +1,13 @@
 # HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/DECLEX RESULT, evidence `beccd52`)
 
+> **SUPERSEDING SESSION STATE (2026-08-12, `ef02ef9`): read
+> [`HANDOFF_E1PHASE.md`](./HANDOFF_E1PHASE.md) FIRST.** E1 is complete and scored —
+> **SUPER-LINEAR REGRESSION, `b = 1.7529`, HC3 CI [1.6599, 1.8458]** against the
+> pre-registered 1.35 threshold — and E1-PHASE (the mechanism localisation) is registered,
+> design-reviewed and awaiting its runner. The §5 instrument-defect list and the §6
+> methodological rules below remain in force unchanged; only the SESSION STATE section
+> immediately following is stale. Baseline is now **728 tests / 50 files**.
+
 ---
 
 ## ⚡ SESSION STATE (2026-08-11, paused mid-track) — resume here
