@@ -3975,14 +3975,29 @@ lost.
 
 **Gates.** Gate P (attribution ≥ 95%): **99.85–100.00%** on all 15 runs, worst 99.85% at
 T1#3. Walk-share void condition (10% at T9): **0.05%**. Gate P2 (rep identity): all three
-repetitions of all five rungs reported identical `chunk_count`. Gate 3: one miss, T3#1 at
-slot 15 (delta 551 ms against a 500 ms floor), retaken and **passed on attempt 2**, so
-A4-MAT-6 retained the passing take; the first-attempt rule never engaged. Gate 0: `dist`
+repetitions of all five rungs reported identical `chunk_count`. Gate 0: `dist`
 content hash `454894e5…`, identical to the build
 `eval/results/e1-phase-attribution.json` was measured on, so Gate P's floor and the scored
 runs share one binary. `c = 15 ms` (median of 10 empty-corpus runs), re-measured — **E1's
 23.5 ms was not reused**, and the 8.5 ms gap is the phase stamps' own cost showing up in the
 fixed constant.
+
+**Gate 3 and retake retention, with the bias named and quantified.** Two runs missed the
+clock-agreement gate, **both at T3**: T3#3 failed on attempts 1 and 2 (deltas 531 and 505 ms
+against a 500 ms floor) and passed on attempt 3; T3#1 failed on attempt 1 (551 ms) and passed
+on attempt 2. Both therefore retained a **passing** take, and A4-MAT-6's first-attempt rule
+never engaged — there was no thrice-failing run. The journal reconciles exactly: **18
+`attempt_start` records against 18 completed attempts across 15 runs, so `orphanedAttempts`
+reports zero**, and A4-MAT-3's interruption class did not occur.
+
+*The direction of that retention is unfavourable and is stated rather than left implicit.*
+Both retained takes are **faster** than their first attempts (7,185 vs 7,210 ms; 7,350 vs
+7,622 ms), and they sit at a **low** rung — retaining faster takes at the bottom of a ladder
+biases the slope **upward**, i.e. toward the super-linear write result this experiment
+reports. Refitting on **first attempts everywhere** moves nothing that matters:
+`b_write` **1.9685 → 1.9683**, `b_parse` 1.0144 → 1.0093, `b_edges` 1.4360 → 1.4392, write's
+T9 share unchanged at 94.01%, mini-replication 1.7768 → 1.7750, **outcome H1 either way**.
+The bias is real, is in the flattering direction, and is worth −0.0002.
 
 **The mini-replication is consistent, and it adjudicates nothing.** `b = 1.7768`, HC3 95%
 [1.6693, 1.8843], which covers E1's 1.7529 — "consistent" by the registered rule, on a
@@ -4008,7 +4023,7 @@ full 9-rung ladder** against the committed scorer and the immutable 1.35 thresho
 re-running this diagnostic.
 
 **Artifacts.** `eval/results/e1-phase-verdict.json` (exponents, shares under both readings,
-the full condition table, mini-replication), `e1-phase-runs.jsonl` (15 runs + 16 attempt
+the full condition table, mini-replication), `e1-phase-runs.jsonl` (15 runs + 18 attempt
 records), `e1-phase-runs-summary.json`, `e1-phase-calibration.json`, `e1-phase-schedule.json`
 (schedule + binary pin), `e1-phase-attribution.json` (Gate P's anchor).
 
