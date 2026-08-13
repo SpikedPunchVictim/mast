@@ -35,6 +35,34 @@ export interface IndexResult {
    */
   readonly staleWriteRejections: number;
   readonly durationMs: number;
+  /**
+   * Cumulative wall-clock per phase, in ms. The phases tile the run: their sum is
+   * `durationMs` less a small unattributed remainder (config resolution, `openDatabase`,
+   * teardown).
+   *
+   * Exists because E1 measured a growth exponent of ~1.75 on the nested ladder — ~1.90
+   * over its upper half — from `durationMs` alone, which localises the cost to the run and
+   * no further. The candidate mechanisms are distinguishable only by phase: a page-cache
+   * cliff loads `write` while `parse` stays linear; call/symbol resolution loads `edges`;
+   * FTS5 segment-merge cost loads `write` but scales with chunks rather than with database
+   * size. Reported so a scaling run can discriminate them instead of guessing.
+   *
+   * `write` and `edges` include the time spent waiting for `structure.lock`, which is
+   * correct for a scaling measurement (a cold build contends with nothing) but must not be
+   * read as pure I/O under concurrency.
+   */
+  readonly phaseMs: {
+    /** Project walk and manifest diff — everything before the first parse batch. */
+    readonly walk: number;
+    /** Pass 1, unlocked: tree-sitter extraction. Expected to be linear in bytes. */
+    readonly parse: number;
+    /** Pass 1, locked: `populateFile` — chunks + symbols + imports + FTS, per file. */
+    readonly write: number;
+    /** Pass 2, locked: edge and star-re-export insertion once every symbol row exists. */
+    readonly edges: number;
+    /** Final phase: re-stat, manifest write, `index.json`. */
+    readonly finalise: number;
+  };
 }
 
 export interface IndexOptions {
@@ -250,8 +278,15 @@ export async function runIndex(
   type ParsedItem = { entry: FileEntry; result: ReturnType<typeof extractFile>; mtime: number };
   const edgeDataByFile = new Map<string, ReturnType<typeof extractFile>>();
 
+  // Phase accumulators. Summed across batches rather than sampled, because the parse/write
+  // interleave runs once per 16-file batch and a single stamp would capture only one of them.
+  const phase = { walk: 0, parse: 0, write: 0, edges: 0, finalise: 0 };
+  // Everything from `startMs` to here is the walk and manifest diff.
+  phase.walk = Date.now() - startMs;
+
   for (let i = 0; i < toIndex.length; i += LANCE_BATCH) {
     const batch = toIndex.slice(i, i + LANCE_BATCH);
+    const batchParseStart = Date.now();
 
     // Parse phase — synchronous tree-sitter, cannot be parallelised without
     // workers, and does not touch the graph db / chunk store, so it runs
@@ -288,6 +323,9 @@ export async function runIndex(
       }
       options.onProgress?.(filesIndexed + filesStable + parseErrors, toIndex.length);
     }
+
+    phase.parse += Date.now() - batchParseStart;
+    const batchWriteStart = Date.now();
 
     // Write phase — LOCKED, scoped to this batch only (F1). Bounds how long
     // any caller (including a concurrent JIT re-parse) can be starved to
@@ -349,6 +387,7 @@ export async function runIndex(
         edgeDataByFile.set(entry.relativePath, result);
       }
     });
+    phase.write += Date.now() - batchWriteStart;
   }
 
   // Pass 2: insert edges and star re-export rows now that all files' symbols
@@ -360,6 +399,7 @@ export async function runIndex(
   // could produce already exists, independent of how pass 2's own lock
   // acquisitions are chunked.
   const edgeEntries = [...edgeDataByFile];
+  const edgesStart = Date.now();
   for (let i = 0; i < edgeEntries.length; i += LANCE_BATCH) {
     const batch = edgeEntries.slice(i, i + LANCE_BATCH);
     await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
@@ -369,6 +409,9 @@ export async function runIndex(
       }
     });
   }
+
+  phase.edges = Date.now() - edgesStart;
+  const finaliseStart = Date.now();
 
   // Final phase — manifest + index.json, under one more short lock. See
   // invariant 2 in the runIndex WHY-comment for why this re-stats every file
@@ -397,6 +440,8 @@ export async function runIndex(
     );
   });
 
+  phase.finalise = Date.now() - finaliseStart;
+
   await db.destroy();
   // SqliteChunkStore (default path) wraps this same `db` connection (§15.1) —
   // no separate handle to close. `chunkStoreOverride`, when supplied, is
@@ -412,6 +457,7 @@ export async function runIndex(
     writeErrors,
     staleWriteRejections,
     durationMs: Date.now() - startMs,
+    phaseMs: phase,
   };
 }
 

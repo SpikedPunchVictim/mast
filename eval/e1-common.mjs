@@ -294,7 +294,10 @@ export async function runColdIndex({ projectRoot, stateDir }) {
   // A4-C4: NODE_OPTIONS is stripped rather than inherited. A heap-size flag or an
   // `--inspect` left in a shell profile would silently change what this measures, and the
   // measurement would look entirely normal.
-  const { NODE_OPTIONS: inheritedNodeOptions, ...env } = process.env;
+  const { NODE_OPTIONS: inheritedNodeOptions, ...inherited } = process.env;
+  // Phase timing is opt-in on the CLI; the harness always wants it. Set explicitly rather
+  // than inherited so a scaling run's decomposition never depends on the operator's shell.
+  const env = { ...inherited, ENABLE_MAST_PHASE_TIMING: 'true' };
 
   const externalStart = Date.now();
   // spawnSync, not execFileSync: `cli/index-cmd.ts:58` sets `process.exitCode = 1` when
@@ -317,6 +320,7 @@ export async function runColdIndex({ projectRoot, stateDir }) {
     project_root: projectRoot,
     state_dir: stateDir,
     duration_ms: parseDurationMs(stdout),    // the FITTED clock — see parseDurationMs
+    phase_ms: parsePhaseMs(stdout),          // the decomposition E1 lacked — see parsePhaseMs
     external_ms: externalMs,                 // Gate 3's cross-check only
     ...truth,
     parse_errors: meta.parse_errors ?? 0,
@@ -403,6 +407,28 @@ export function parseDurationMs(stdout) {
     );
   }
   return Number(m[1]);
+}
+
+/**
+ * The phase decomposition of the fitted clock (`cli/index-cmd.ts`, `phases:` line).
+ *
+ * Returns `null` rather than throwing, deliberately and unlike `parseDurationMs`: a binary
+ * built before phase timing existed cannot emit this line, and E1's own 42 runs were
+ * measured by exactly such a binary. A hard throw here would make the harness unable to
+ * re-read its own history. The fitted clock has no such fallback — a missing `duration`
+ * would silently drop a run from the fit — which is why the two differ.
+ *
+ * Gate 0's dist content hash is what distinguishes "old binary" from "broken binary": a run
+ * whose hash matches a phase-timed build and whose `phase_ms` is null is a defect.
+ */
+export function parsePhaseMs(stdout) {
+  const m = /phases:\s*(\{.*\})/.exec(stdout);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1]);
+  } catch {
+    return null;
+  }
 }
 
 /** `index.json` as written by `runIndex`. */
