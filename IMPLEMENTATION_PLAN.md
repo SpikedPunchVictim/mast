@@ -4482,6 +4482,269 @@ documentation of `--cache-size-mib` / `--mmap-size-mib` (and of the still-undocu
 `--phase-timing` / `ENABLE_MAST_PHASE_TIMING`) is a separate, non-measurement item and is not
 folded in here. E1-PHASE is not re-run and E1 is not re-scored.
 
+#### AMENDMENT 1 — 2026-08-13, pre-run, post-adversarial-review
+
+The registration above was committed at `7ee03aa` **before** the review was commissioned, so
+everything here is provably a response to it rather than absorbed into the original text. Per
+§6 and the standing rule that this reviewer has been wrong before, **every load-bearing claim
+was verified against source or recomputed before being accepted**. One was rejected on
+verification; one was accepted but its severity corrected; and one recommendation was accepted
+in its diagnosis and **replaced with a better remedy**, which is recorded as such rather than
+passed off as the reviewer's.
+
+**No threshold from the original registration is loosened. One is deleted as degenerate and
+replaced by a stricter one; the rest are additions.**
+
+##### A1 — arm C is structurally incapable of reaching the mechanism. VERIFIED at source; arm demoted.
+
+The review's blocking finding reproduces exactly. In `sqlite3.c` (SQLite 3.53.2, vendored):
+
+```c
+const int bMmapOk = (pgno>1
+ && (pPager->eState==PAGER_READER || (flags & PAGER_GET_READONLY))
+);                                                        /* :65261–65263 */
+```
+
+and in `btreeCursor`, a **write** cursor gets `pCur->curPagerFlags = 0` (`:77886`) while only a
+read-only cursor gets `PAGER_GET_READONLY` (`:77889`). Inside an open write transaction
+`eState` is a WRITER state, so **page fetches made through write cursors — which is exactly the
+11 indices' B-tree insertion traversals, the hypothesised miss source — can never be served
+from the memory map.** A third gate compounds it: `if( bMmapOk && iFrame==0 )` (`:65286`) skips
+mmap for any page still resident in the WAL, and a bulk load with 4 MiB autocheckpoints always
+has a rolling set of hot pages there.
+
+So `ρ_C ≈ 1` is close to predetermined, and the original registration's claim that arm C
+"isolates the read-path syscall/copy cost" of index-maintenance misses is **wrong**. Worse, arm
+C was named as the mitigation for the OS-page-cache counter-prior; that mitigation was hollow.
+
+**Change:** arm C is **removed from T1 and T9** and **retained at T5 only** (3 runs, ~90 s).
+It is re-registered as what it actually is: **a source-contradiction tripwire, not a mechanism
+arm.** Its registered reading is stated in advance and is asymmetric on purpose —
+
+- `ρ_C(T5) > 0.80` — **expected**, predicted by the source reading above. It is **weak
+  evidence** and may not be reported as "the mmap story is refuted by measurement"; the
+  refutation is analytic, from `:65261` and `:77886`, and the run merely fails to contradict it.
+- `ρ_C(T5) ≤ 0.80` — **contradicts the source reading**, is a finding in its own right, and
+  triggers a dedicated probe rather than any conclusion here.
+
+Keeping it at the cheap rung preserves an empirical datum against the registered discriminator
+that E1-PHASE named ("a `cache_size` / `mmap_size` A/B") for ~1.5 minutes of machine time,
+rather than narrowing that discriminator purely on my own reading of a 250k-line amalgamation.
+Spending 27 minutes at T9 for a structurally foreordained null is what is refused.
+
+*One reviewer sub-claim died under its own verification and is recorded because it strengthens
+Gate A:* a **runtime** mmap failure is not invisible to Gate A. `unixMapfile` sets
+`pFd->mmapSizeMax = 0` on `MAP_FAILED` (`:45838–45843`) and `PRAGMA mmap_size` reads back
+through that field, so the echo would print `0`, mismatch arm C's expectation, and VOID. Gate A
+is blind to the *structural* gating above — but that is not a failure mode, it is physics.
+
+##### A2 — Δ is withdrawn as degenerate. The per-arm slope replaces it, and the replacement is not the one recommended.
+
+**The diagnosis is accepted and verified.** Every candidate mechanism predicts `ρ_B(T1) ≈ 1`,
+because T1's database is only 1.32× the default cache and there is almost no miss cost there
+for a larger cache to remove. So `Δ = ρ_B(T1) − ρ_B(T9) ≈ 1 − ρ_B(T9)`, and the gate
+"`Δ ≥ 0.10` given `ρ_B(T9) ≤ 0.80`" reduces to "`≥ 0.20 − ε ≥ 0.10`" — **SIZE-COUPLED fires
+almost automatically whenever it is consulted at all.** The label that flatters the exponent
+story was the near-automatic one, and the direction-of-error statement did not name it. That is
+the same unregistered-lever-shaped bias this program has now been caught by four times.
+Independently: T1's write spread across E1-PHASE's reps is **8.63%** (1,414 / 1,452 / 1,536 ms),
+so Δ's T1 leg sits at roughly 2σ of its own noise.
+
+**`Δ` is deleted as a decision statistic.** It is reported descriptively and adjudicates nothing.
+
+**The replacement, and why it is not the reviewer's.** The review recommended adding a middle
+rung and deciding on a three-point slope. The middle rung is adopted (A3) — but *not for that
+reason*, because the recommendation rests on an arithmetic error of omission. In a three-point
+OLS with evenly spaced `ln N`, **the midpoint carries 0.09% of the slope's leverage** against
+33.5% at each endpoint (computed on this ladder's actual chunk counts). On E1-PHASE's control
+data the three-point slope is **1.9613** against the two-point slope's **1.9614** — identical to
+four decimals. Adding T5 buys **no slope precision at all**, and a registration claiming
+otherwise would be making a promise the arithmetic does not keep.
+
+**What actually makes the slope a clean size-coupling test is simpler, and it was already in the
+design.** A constant-factor speedup multiplies write time by a fixed `ρ` at every rung, which
+shifts the intercept of `ln(write) ~ ln(chunks)` and **leaves the slope exactly unchanged**. The
+slope moves *if and only if* `ρ` varies with `N`. So the per-arm slope is non-degenerate by
+construction, and needs no second statistic beside it. It is hereby **promoted from "descriptive,
+no outcome depends on it" to the registered exponent test**:
+
+| `b̂_write(B)` | outcome | licenses |
+|---|---|---|
+| < **1.35** | **EXPONENT-EXPLAINED** | the enlarged cache removes the super-linearity *by this program's own standing definition* — 1.35 is E1's pre-registered, immutable threshold, not a number invented here |
+| 1.35 ≤ `b̂_write(B)` ≤ `b̂_write(A) − 0.20` | **EXPONENT-REDUCED** | materially flattens the growth; write remains super-linear |
+| > `b̂_write(A) − 0.20` | **EXPONENT-UNTOUCHED** | whatever the level effect, the cache does not explain the exponent |
+
+**Slopes are computed within each block** (3 per arm), and the **median of the three** is the
+statistic; the spread of the three is reported, and a spread above 0.20 is a finding. Computing
+within-block preserves the drift cancellation that the ratio estimator was chosen for.
+
+**The 0.20 bar's power, computed rather than asserted.** Propagating E1-PHASE's own within-rung
+spreads (T1 8.63%, T9 1.50%) through the endpoint leverages, with a median of three, gives a
+slope σ of **≈0.0085**. The bar is therefore ~20σ. It is left deliberately far above σ because
+that σ is estimated from *within-session* repetitions and this schedule runs ~90 minutes; I
+would rather the test be blunt than have a marginal call decided by a noise model I have not
+validated across blocks.
+
+**A number the level test alone cannot deliver, and the reason this promotion matters.** At
+`ρ_B(T9) = 0.20` — the CACHE-DOMINANT *floor* — arm B's write at T9 is ~100 s against a
+linear extrapolation from T1 of ~28 s, a two-point slope of **1.424**. Still super-linear. So
+even the strongest level result the registration can report would **not** have licensed "the
+cache explains the exponent", and without this amendment there was no registered statistic that
+could have refused that reading.
+
+##### A3 — T5 is added for arms A, B, D. What it actually buys, stated honestly.
+
+Not slope precision (A2). It buys two things:
+
+1. **A dose–response curve on the cache multiple.** T5's `graph.db` is **95,203,328 B = 90.8 MiB
+   = 5.81×** the 15.63 MiB cache, against T1's 1.32× and T9's 26.8×. `ρ_B` measured at three
+   multiples spanning 20× says *where the effect turns on*, which is the size-coupling evidence
+   Δ was supposed to provide and could not.
+2. **A curvature reading.** E1-PHASE found write is itself a mixture. On the control's three
+   rungs the split halves are **`b_lo` = 1.8770** (T1→T5) and **`b_hi` = 2.0465** (T5→T9). Both
+   are reported per arm. **A cache cliff should flatten `b_hi` specifically** — the half where
+   the database most exceeds the cache. `b_hi(B) < b_hi(A) − 0.20` is registered as a
+   **corroborating** reading of EXPONENT-REDUCED/EXPLAINED; it is not an independent hurdle and
+   does not gate any outcome.
+
+Cost: 9 runs at ~30 s ≈ **4.5 minutes**.
+
+##### A4 — arm D's lever-connectivity check moves to T1, where it has power. VERIFIED arithmetic.
+
+The review's computation reproduces. Under a uniform-access model at T9 (107,212 pages), a
+15.63 MiB cache holds 3.73% and a 2 MiB cache holds 0.47%, so **miss volume rises only 1.034×**
+— even if misses were 100% of write's excess, `ρ_D(T9) ≈ 1.03`, below its own 1.10 bar and
+inside noise. Presenting `ρ_D(T9) ≥ 1.10` as a general proof that the lever is connected was
+wrong.
+
+At **T1** (5,266 pages) the same model gives 76.0% vs 9.5% residency and a **3.76×** rise in
+miss volume. Those three runs are already in the schedule and no registered statistic read them.
+
+**Change:** **`ρ_D(T1) ≥ 1.10` is the lever-connectivity check.** `ρ_D(T9)` is demoted to a
+working-set probe and reported without a threshold. The 2×2 outcome table's `ρ_D` axis is
+re-keyed to **`ρ_D(T1)`**; every cell's wording is otherwise unchanged.
+
+Note the model's own limit: uniform access is the *wrong* model for B-tree maintenance, where
+interior nodes are hot. It is used here only to establish which rung has power, and that
+conclusion is robust to the model — T1's cache holds most of the file and T9's holds almost
+none of it under any access pattern.
+
+##### A5 — three holes in the outcome set, patched. VERIFIED against the registration's own text.
+
+The set claimed exhaustiveness and did not have it:
+
+- **`ρ_X > 1.10` on any arm (the lever makes things WORSE)** fell into the `ρ_B > 0.80` row and
+  would have been labelled CACHE-SATURATED or CACHE-INERT, both false. **Now: INTERFERENCE —
+  reported, no mechanism cell claimed, and the RESULT must offer or refuse an explanation.**
+- **`ρ_D ≤ 0.90` (shrinking the cache HELPS)** was filed as "shrinking is free", which it is
+  not. **Now: reported anomaly; the CACHE-INERT cell may not be claimed while it holds.**
+- **The all-inert clause used `|ρ_X − 1| < 0.10`, a third partition inconsistent with the 2×2.**
+  `(ρ_B = 0.85, ρ_D = 1.05)` is CACHE-INERT by the cells but not "all inert" by the clause, so
+  which caveat attached was ambiguous. **Now restated in the table's own terms: the Gate A
+  limit attaches whenever the outcome is CACHE-INERT *and* `ρ_C(T5) > 0.80`** — i.e. when no
+  arm anywhere moved the clock.
+
+A fourth hole the review raised — a joint `(CACHE-INERT, MMAP-DOMINANT)` contradiction — is
+dissolved rather than patched: under A1 arm C no longer produces a mechanism cell at all.
+
+##### A6 — a VOID re-run breaks the pairing the primary estimator depends on. Rule registered.
+
+The within-block ratio is justified by drift cancellation, which assumes the arm run and its
+control run are temporally adjacent. A run VOIDed by Gate A/P/P2 and re-run later — possibly
+after the whole schedule — silently violates that for exactly the runs the dequeue exists to
+save. E1-PHASE's fits were pairing-free, so RR6's dequeue was bookkeeping; **here the pairing
+is the estimator**, and the registration did not say which control a re-run pairs with.
+
+**Rule:** a VOIDed cell is re-run **together with a fresh control run of the same rung**, and
+that pair replaces the block's ratio. If the fresh control itself fails a gate, **the block's
+ratio is dropped and the median is taken over the remaining blocks**, with the drop recorded as
+a finding. A median over fewer than two blocks is a VOID of that arm.
+
+**The journal records the block index and a monotonic run sequence number on every run** — the
+registration assumed this and never said it.
+
+##### A7 — Gate A's read-back coalesces a failed evidence read into a passing value. Fix registered; the review's severity corrected.
+
+`src/indexer/index.ts` (from `ef8d83e`):
+
+```ts
+cache_size: (await sql`PRAGMA cache_size`.execute(db)).rows[0]?.cache_size ?? 0,
+mmap_size:  (await sql`PRAGMA mmap_size`.execute(db)).rows[0]?.mmap_size ?? 0,
+```
+
+**Accepted:** in an instrument whose stated role is "the direct analogue of Gate 0's content
+hash", a failed evidence read must **throw**, not fall back to a value. `?? 0` reports
+`mmap_size: 0`, which is the *expected* value for every retained arm.
+
+**Severity corrected, because the review overstated it.** It claimed this "would pass Gate A on
+3 of 4 arms". If the read-back returns no rows the `cache_size` read coalesces to `0` as well,
+and `0` matches **no** arm's expectation (`-16000` / `-1048576` / `-2048`), so Gate A VOIDs. The
+hole is narrower than claimed: it requires the `mmap_size` read alone to fail while
+`cache_size` succeeds. The fix is adopted anyway — the principle does not depend on how narrow
+the hole is — as a **red-first** change: a test that forces an empty read-back and asserts a
+throw, before the `??` is removed.
+
+##### A8 — `cache_spill` makes any arm-D penalty mechanistically ambiguous. Caveat registered.
+
+VERIFIED: the spill threshold tracks the cache size (`sqlite3.c:57599`, `p->szSpill = mxPage`,
+with the `res < p->szSpill` clamp at `:57602`). At 2 MiB (500 pages) a per-file transaction that
+dirties more than ~500 pages spills to the WAL mid-transaction. **A `ρ_D ≥ 1.10` result
+therefore mixes read-miss cost with spill mechanics and may not be reported as "read-path misses
+corroborated".** Both are cache-size mechanisms, so arm D's role in the outcome table survives;
+only the narration is constrained.
+
+##### A9 — ordering, strengthened at zero cost.
+
+A seeded shuffle of a block gives no positional balance: an arm can land in the thermally-hot
+tail of two blocks out of three. With arm C removed from T9 (A1), the T9 cells are exactly
+**3 arms × 3 blocks — a 3×3 Latin square**, which guarantees each arm occupies each position
+exactly once. **T9 ordering is the Latin square**; T1 and T5 (2.7 s and 30 s per run) keep the
+seed-4409 shuffle, where drift is not a credible confound.
+
+##### A10 — a review claim REJECTED after verification, recorded so it cannot recirculate
+
+The review states that `stdout_tail` will "now drop the `files:` line once `pragmas:` prints".
+**False.** `eval/e1-common.mjs:329` is `stdout.trim().split('\n').slice(-3)`, and a phase-timed
+run emits exactly three lines (`files:`, `phases:`, `pragmas:`), so all three are retained. This
+was also confirmed empirically last session against the real `dist` binary. Nothing is dropped.
+
+Two review nits are accepted as accurate but left unfixed, with reasons: `parseMebibytes` uses
+`Number()`, so `0x10` and `1e3` pass the whole-number gate — no arm uses either form, and
+tightening the parser is a product change with no bearing on this experiment; and
+`--cache-size-mib 0` yields `PRAGMA cache_size = -0`, an untested edge no arm uses.
+
+##### Revised design, superseding the corresponding rows above
+
+| | registered `7ee03aa` | **as amended** |
+|---|---|---|
+| arms | A, B, C, D at both rungs | **A, B, D** at all rungs; **C at T5 only** |
+| rungs | T1, T9 | **T1, T5, T9** |
+| runs | 24 | **30** (27 + 3 for arm C) |
+| cache multiples probed | 1.32×, 26.8× | **1.32×, 5.81×, 26.8×** |
+| exponent test | `Δ ≥ 0.10` (degenerate) | **`b̂_write(B)` vs 1.35 and vs `b̂_write(A) − 0.20`** |
+| connectivity check | `ρ_D(T9) ≥ 1.10` (no power) | **`ρ_D(T1) ≥ 1.10`** |
+| T9 ordering | seeded shuffle | **3×3 Latin square** |
+| machine time | ~2 h | **~87 min** (80 min T9 + 6 min T5 + 0.4 min T1) |
+
+The amended design is **cheaper and answers more**: dropping arm C's two expensive rungs frees
+~27 minutes, of which ~4.5 buys the middle rung.
+
+Gate P2 (work identity) now requires identical `chunk_count` across **all runs at a rung** — 9
+at T1 and T9, 12 at T5.
+
+##### Direction of error, revisited against the review
+
+The review's audit — that two of four claimed compensations were real, and that the two genuine
+leaks were Δ's auto-fire and the inevitable post-hoc promotion of a "descriptive" slope — is
+**accepted, and both leaks are now closed by the same change** (A2): the slope is promoted with
+a threshold *before* the data, and Δ is deleted rather than demoted, so there is no degenerate
+statistic left to reach for.
+
+**What remains uncompensated, stated plainly.** Arm D is a real positive control at T1 and a
+weak one at T9 (A4), so a CACHE-INERT verdict rests on a connectivity proof taken at the rung
+where the mechanism is *least* likely to be operating. That is the best available design at
+this cost, and it is a genuine limit rather than one I can argue away. The RESULT must carry it.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
