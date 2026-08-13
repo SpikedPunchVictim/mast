@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Sqlite from 'better-sqlite3';
 import { sql } from 'kysely';
-import { openDatabase } from '../db.js';
+import { openDatabase, readPragmaValue } from '../db.js';
 import { populateFile, insertEdges, removeDeletedFiles } from '../populate.js';
 import { searchFts, searchIdentifiers } from '../../search/fts.js';
 import { extractFile } from '../../ast/extract.js';
@@ -1002,5 +1002,40 @@ describe('insertEdges — second-pass graph edges', () => {
     } finally {
       await db.destroy();
     }
+  });
+});
+
+/**
+ * `readPragmaValue` is the read side of the same evidentiary contract
+ * `openDatabase`'s tuning options are the write side of: a run must be able to
+ * prove which pragma configuration produced its timing. Gate A of the E1-AB
+ * registration compares this value against the arm's declared pragmas, so a
+ * read that fails must fail loudly — a defaulted value would be
+ * indistinguishable from a genuine reading on the arms whose expected value it
+ * happens to match.
+ */
+describe('readPragmaValue — pragma read-back as measurement evidence', () => {
+  it('returns the value when the pragma reported one', () => {
+    expect(readPragmaValue('cache_size', [{ cache_size: -16000 }])).toBe(-16000);
+  });
+
+  // Zero is a legitimate reading (mmap off), so it must survive rather than be
+  // treated as "missing" by a falsy check.
+  it('returns a legitimate zero rather than treating it as absent', () => {
+    expect(readPragmaValue('mmap_size', [{ mmap_size: 0 }])).toBe(0);
+  });
+
+  // The load-bearing case. `?? 0` here would report `mmap_size: 0` — the
+  // expected value on the control, large-cache and small-cache arms alike.
+  it('throws when the result set is empty rather than defaulting to zero', () => {
+    expect(() => readPragmaValue('mmap_size', [])).toThrow(/mmap_size/);
+  });
+
+  it('throws when the column is missing from the row', () => {
+    expect(() => readPragmaValue('cache_size', [{ something_else: 1 }])).toThrow(/cache_size/);
+  });
+
+  it('throws when the value is not a number', () => {
+    expect(() => readPragmaValue('cache_size', [{ cache_size: '-16000' }])).toThrow(/cache_size/);
   });
 });

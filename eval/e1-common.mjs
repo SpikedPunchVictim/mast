@@ -274,6 +274,40 @@ export function materialiseTier(sourceRoot, relPaths, tierRoot) {
 }
 
 /**
+ * The argv `runColdIndex` spawns, extracted so it can be pinned by a test.
+ *
+ * E1's 42 scored runs and E1-PHASE's 15 were produced by the no-extra-args form,
+ * and this module is shared with both. Extracting the construction is what lets
+ * `eval/__tests__/e1-common-argv.test.mjs` assert that adding E1-AB's arm flags
+ * left their command line untouched, rather than asserting it in a comment.
+ *
+ * Arm flags are appended AFTER the pinned prefix so nothing a caller passes can
+ * displace `--state-dir` and silently redirect a run into another rung's dir.
+ */
+export function buildIndexArgs({ projectRoot, stateDir, extraArgs = [] }) {
+  return [MAST_BIN, 'index', projectRoot, '--state-dir', stateDir, ...extraArgs];
+}
+
+/**
+ * The pragmas SQLite reported for the run's own connection (`pragmas:` line).
+ *
+ * Returns `null` rather than throwing, for exactly `parsePhaseMs`'s reason: the
+ * binaries that produced E1's and E1-PHASE's records could not emit this line,
+ * and the harness must stay able to re-read its own history. On an E1-AB scored
+ * run a null is a **Gate A VOID** — but that is the gate's judgement to make,
+ * not the parser's.
+ */
+export function parsePragmas(stdout) {
+  const m = /pragmas:\s*(\{.*\})/.exec(stdout);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1]);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * One cold index run into a fresh state dir. Never `--incremental` (Gate 3).
  *
  * Records BOTH clocks: `runIndex`'s own `durationMs` (the fitted clock, A1-F4c) and the
@@ -282,14 +316,16 @@ export function materialiseTier(sourceRoot, relPaths, tierRoot) {
  * @param {object} opts
  * @param {string} opts.projectRoot  corpus to index
  * @param {string} opts.stateDir     destination; wiped first
+ * @param {string[]} [opts.extraArgs] per-arm CLI flags (E1-AB). Empty for every
+ *   E1 and E1-PHASE call site, which is what keeps this change additive.
  * @returns {object} run record
  */
-export async function runColdIndex({ projectRoot, stateDir }) {
+export async function runColdIndex({ projectRoot, stateDir, extraArgs = [] }) {
   if (existsSync(stateDir)) rmSync(stateDir, { recursive: true, force: true });
   mkdirSync(stateDir, { recursive: true });
 
   const config = await assertConfigPinned(projectRoot, stateDir);
-  const args = [MAST_BIN, 'index', projectRoot, '--state-dir', stateDir];
+  const args = buildIndexArgs({ projectRoot, stateDir, extraArgs });
 
   // A4-C4: NODE_OPTIONS is stripped rather than inherited. A heap-size flag or an
   // `--inspect` left in a shell profile would silently change what this measures, and the
@@ -321,6 +357,8 @@ export async function runColdIndex({ projectRoot, stateDir }) {
     state_dir: stateDir,
     duration_ms: parseDurationMs(stdout),    // the FITTED clock — see parseDurationMs
     phase_ms: parsePhaseMs(stdout),          // the decomposition E1 lacked — see parsePhaseMs
+    pragmas: parsePragmas(stdout),           // Gate A's arm identity — see parsePragmas
+    extra_args: extraArgs,                   // what was ASKED for; `pragmas` is what took effect
     external_ms: externalMs,                 // Gate 3's cross-check only
     ...truth,
     parse_errors: meta.parse_errors ?? 0,

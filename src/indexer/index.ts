@@ -6,7 +6,7 @@ import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
 import type { LockMetricsSink } from '../store/lockMetrics.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
-import { openDatabase, type OpenDatabaseOptions } from '../graph/db.js';
+import { openDatabase, readPragmaValue, type OpenDatabaseOptions } from '../graph/db.js';
 import { populateFile, insertEdges, insertReExportFiles, removeDeletedFiles } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
@@ -479,8 +479,14 @@ export async function runIndex(
   // Read the tuning pragmas back BEFORE the connection closes — they are
   // connection-scoped state, not file state, and are unrecoverable afterwards.
   const appliedPragmas = {
-    cache_size: (await sql<{ cache_size: number }>`PRAGMA cache_size`.execute(db)).rows[0]?.cache_size ?? 0,
-    mmap_size: (await sql<{ mmap_size: number }>`PRAGMA mmap_size`.execute(db)).rows[0]?.mmap_size ?? 0,
+    cache_size: readPragmaValue(
+      'cache_size',
+      (await sql<Record<string, unknown>>`PRAGMA cache_size`.execute(db)).rows,
+    ),
+    mmap_size: readPragmaValue(
+      'mmap_size',
+      (await sql<Record<string, unknown>>`PRAGMA mmap_size`.execute(db)).rows,
+    ),
   };
 
   await db.destroy();

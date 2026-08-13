@@ -402,6 +402,36 @@ export interface OpenDatabaseOptions {
  * @param options optional per-connection tuning; see {@link OpenDatabaseOptions}.
  *   Omitting it leaves every tunable pragma at SQLite's own default.
  */
+/**
+ * Read one value out of a `PRAGMA` result set, refusing to invent one.
+ *
+ * The E1-AB registration's Gate A treats these values as evidence of which
+ * experimental arm produced a timing — the lever-level analogue of Gate 0's
+ * `dist` content hash. The first version coalesced a missing row to `0`, which
+ * is the *expected* value of `mmap_size` on three of that experiment's four
+ * arms: a failed evidence read would have been indistinguishable from a
+ * passing one. A gate that cannot fail is not a gate.
+ *
+ * @param pragma the pragma name, which is also the result column's name
+ * @param rows the `PRAGMA` result rows, as returned by the query layer
+ * @throws Error naming the pragma, if there is no row or the value is not a
+ *   number.
+ */
+export function readPragmaValue(
+  pragma: string,
+  rows: readonly Readonly<Record<string, unknown>>[],
+): number {
+  const value = rows[0]?.[pragma];
+  if (typeof value !== 'number') {
+    throw new Error(
+      `PRAGMA ${pragma} read-back returned no usable value (got ${JSON.stringify(value)}). ` +
+      `This value is measurement evidence identifying which configuration produced a run, ` +
+      `and must never be defaulted.`,
+    );
+  }
+  return value;
+}
+
 export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}): Db {
   const sqlite = new Sqlite(join(stateDir, 'graph.db'));
 
