@@ -4772,6 +4772,79 @@ toward an outcome because a VOID is not under the investigator's control. Record
 because the program's rule is that a deviation from registered text is disclosed rather than
 absorbed.
 
+#### AMENDMENT 3 — 2026-08-13, mid-run, DATA-INFORMED — positional balance at T1 and T5
+
+**This amendment was made after seeing data, and every run collected under the previous design
+is discarded unscored.** That is the condition under which it is legitimate, and it is stated
+first so no reader has to look for it. Seven runs existed when this was written — all of block
+1's T1 and T5 cells, all Gate A clean. **None of them enter the score.** The schedule restarts
+from zero.
+
+**What was wrong.** AMENDMENT 1 A9 gave T9 a Latin square and left T1 and T5 on a seeded
+shuffle, reasoning that "at 2.7 s and 30 s per run, ordering is not a credible confound there".
+That rationale addresses **drift** — a slow trend across an ~80-minute stretch. It does not
+address **warm-up**: the OS page cache over the tier's 13,330 source files is cold for the first
+run at a rung and warm for the rest, and that asymmetry is fully present inside a 30-second
+window. A9's argument is sound about the thing it names and silent about the thing that bites.
+
+The seeded shuffle then happened to produce a schedule with almost no positional variance:
+
+```
+T1 b1 D A B   b2 D A B   b3 B D A     A:2,2,3  B:3,3,1  D:1,1,2
+T5 b1 A C B D b2 D C A B b3 D C A B   A:1,3,3  B:3,4,4  C:2,2,2  D:4,1,1
+T9 b1 A B D   b2 B D A   b3 D A B     A:1,3,2  B:2,1,3  D:3,2,1   (balanced)
+```
+
+**Arm C holds position 2 in all three blocks.** Arm B is third or fourth in all three.
+
+**Why that is disqualifying rather than untidy.** Arm C is the source-contradiction tripwire
+registered in AMENDMENT 1 A1: the source reading says mmap cannot serve write-cursor page
+fetches, so arm C must be inert, and a non-inert ρ_C is "a finding in its own right". With C
+nailed to one position for every block, a positional effect and the arm-C effect are **perfectly
+collinear** — there is no contrast in the design that separates them. A ρ_C of 0.67 would be
+unreadable: it would be equally consistent with "the source reading is wrong" and with "position
+2 is fast". The tripwire would fire and carry no information. A covariate cannot rescue this;
+zero variance means there is nothing to regress against.
+
+**The correction.** T1 and T5 get cyclic Latin squares, the same construction A9 already
+registered for T9. T9's ordering is **unchanged**.
+
+- **T1** (3 arms, 3 blocks) balances exactly — each arm holds each position once. Its square is
+  **rotated by one relative to T9's** so that an arm's position at T1 is not perfectly correlated
+  with its position at T9 within the same block. Without the rotation, a position effect whose
+  *magnitude* differs by rung (a cold-cache penalty is larger at T9 than at T1) would fail to
+  cancel in the block slope; a constant multiplicative factor cancels in a log-log slope exactly,
+  a rung-varying one does not.
+- **T5** (4 arms, 3 blocks) **cannot** be balanced exactly, and the reason is arithmetic, not
+  effort: the position-sum over 3 blocks is 3·(1+2+3+4) = 30 across 4 arms, so the mean is 7.5
+  and no integer assignment reaches it. Further, if every arm is required to hold three
+  *distinct* positions, the only available sums are 1+2+3=6, 1+2+4=7, 1+3+4=8 and 2+3+4=9 — so
+  the multiset {6,7,8,9} is **forced** for any all-distinct design. The cyclic square attains it
+  and is therefore optimal in its class. Residual imbalance is ±1.5 around the mean and, unlike
+  the shuffle's, is not concentrated on one arm.
+
+**What this does NOT change.** No threshold, no estimator, no gate, no arm definition, no rung,
+no block count, and not T9's order. `e1-ab-score.mjs` is untouched. This changes only the order
+in which cells are visited within a block.
+
+**Direction of error.** Balancing removes a confound; it does not push ρ toward or away from any
+registered cut. The one honest statement available: under the discarded design, arm B and arm C
+both sat in the early-middle positions and the control sat first in the one block that ran, so
+if warm-up is real the discarded data would have **flattered** arms B and C — i.e. it would have
+made the page-cache lever look more effective than it is. The corrected design should therefore
+be expected to produce ρ_B and ρ_C **closer to 1.0**, not further from it. That prediction is
+registered here so the re-run can falsify it.
+
+**What is NOT claimed.** That the positional effect is real. It is not demonstrated: block 1's
+T5 showed position 1 slow (24.5 s), positions 2–3 fast (16.5 s), and position 4 slow again
+(25.7 s), which pure warm-up does not predict — though position 4 was arm D, the starved-cache
+arm, where slowness is hypothesis-consistent. n=1 and ambiguous. The justification for this
+amendment is **not** that the effect exists; it is that if it exists and the design is
+unbalanced, it is unfixable after the fact, while the remedy costs ~2 minutes because every
+discarded run is at a cheap rung.
+
+**Cost:** re-running 7 T1/T5 cells, ≈2 minutes of the 87-minute schedule.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
