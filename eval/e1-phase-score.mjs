@@ -2,10 +2,15 @@
 //
 // Registration: IMPLEMENTATION_PLAN.md § E1-PHASE PRE-REGISTRATION (2026-08-12).
 //
-// Every threshold in this file was committed at 36c2f5a, before any measurement existed —
-// including the 60% write-share condition, which the Gate P attribution runs could otherwise
-// have tuned (see the registration's "Declared peek"). Nothing here may be edited after the
-// scored runs exist; a repaired rule is a new registration.
+// The four numeric thresholds here (1.6 / 1.25 / 0.60 / 1.7529) were committed at 36c2f5a,
+// before any measurement existed — including the 60% write-share condition, which the Gate P
+// attribution runs could otherwise have tuned (see the registration's "Declared peek"). The
+// ESTIMATOR RULES built on them — point-estimate comparison, the median-run share, strict
+// monotonicity, the mini-replication consistency test — arrived later, at ef02ef9, ~100
+// seconds after that peek and ~90 minutes before the first scored run. The distinction is
+// recorded because the results review found this file's first version claiming the stronger
+// provenance for both (RR2). Nothing here may be edited now that the scored runs exist; a
+// repaired rule is a new registration.
 //
 // This file holds the RULES. `e1-phase-report.mjs` holds the seam between the journal and
 // these rules, kept separate for the same reason `e1-report.mjs` is: reading the data must

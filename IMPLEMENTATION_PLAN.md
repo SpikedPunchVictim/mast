@@ -3979,8 +3979,10 @@ repetitions of all five rungs reported identical `chunk_count`. Gate 0: `dist`
 content hash `454894e5…`, identical to the build
 `eval/results/e1-phase-attribution.json` was measured on, so Gate P's floor and the scored
 runs share one binary. `c = 15 ms` (median of 10 empty-corpus runs), re-measured — **E1's
-23.5 ms was not reused**, and the 8.5 ms gap is the phase stamps' own cost showing up in the
-fixed constant.
+23.5 ms was not reused**. Note the direction: the constant **fell**, 23.5 → 15 ms, across a
+change that *added* timing stamps. **I have no explanation for that and do not offer one**;
+machine and OS-cache state differ between sessions, and `c` is small enough here to be
+inert either way (the mini-replication is 1.7768 at `c = 15` and 1.7778 at `c = 23.5`).
 
 **Gate 3 and retake retention, with the bias named and quantified.** Two runs missed the
 clock-agreement gate, **both at T3**: T3#3 failed on attempts 1 and 2 (deltas 531 and 505 ms
@@ -4026,6 +4028,83 @@ re-running this diagnostic.
 the full condition table, mini-replication), `e1-phase-runs.jsonl` (15 runs + 18 attempt
 records), `e1-phase-runs-summary.json`, `e1-phase-calibration.json`, `e1-phase-schedule.json`
 (schedule + binary pin), `e1-phase-attribution.json` (Gate P's anchor).
+
+##### E1-PHASE RESULTS REVIEW (2026-08-12) — H1 stands; the provenance claims around it do not
+
+An adversarial results review was commissioned per §6, and **every load-bearing claim it made
+was verified against source or recomputed before being accepted here**. It reproduced all six
+exponents, both HC3 interval sets, both share readings at all five rungs, the mini-replication,
+the first-attempts refit and the share-weighted cross-check — exactly — under an independently
+written OLS+HC3 and its own wild-cluster bootstrap ([1.037, 2.486] against the harness's
+[1.043, 2.511]). It confirmed the scorer is faithful to the registered rules line by line, that
+Gate P's VOID path is reachable and evaluated on the fitted attempt, and that the corrective
+commit `0ba97ec` moved the record **against** the investigator. **The arithmetic carries no
+error running toward H1. The narrative did, in three places.**
+
+**RR1 — the declared peek partially answered the one "free" condition, and the RESULT above
+oversold that condition as a risky test.** `e1-phase-attribution.json` (created
+`01:06:46Z`) revealed write already at **51.7 / 54.9 / 56.2% of the clock at T1**. Given that,
+and E1's already-known convex total curve, write's T9 share falling below 60% would have
+required another phase to out-grow write from a ~3.4% base — roughly `b_edges ≈ 2.7`. So
+"cleared it by 34 points rather than narrowly" is true arithmetic and **weak epistemics**: the
+share condition was close to foreordained once the peek existed. The registration's mitigation
+(every threshold committed at `36c2f5a`, verified: `00:12:17Z`, before the peek) protects
+against threshold-tuning and **does not** protect against this. What remains genuinely
+informative is the localisation itself — parse at exactly 1.0144, write's 52% → 94% climb —
+not the fact that a bar was cleared.
+
+**RR2 — the estimator rules were registered later than the RESULT implies, and the
+point-estimate clause was never actually outcome-determinative.** Verified: the "Estimator and
+aggregation rules" section is **absent from `36c2f5a`** and was added at `ef02ef9`
+(`01:08:27Z`) — ~100 seconds *after* the attribution peek, though still ~90 minutes before the
+first scored run. The four numeric constants (1.6 / 1.25 / 0.60 / 1.7529) *are* in `36c2f5a`;
+the rules built on them are not. Two mitigations verified: a single-rung peek yields no
+exponent and no interval, so the point-estimate clause could not have been tuned to `b_edges`'
+near-miss; and **H2 was independently refuted by non-monotone edge shares under both registered
+readings**, so a CI-based rule would have fired nothing either. Consequence for the RESULT
+above: **"the first case where that clause actually bound" is withdrawn.** It did not bind —
+H2 died on monotonicity regardless.
+
+**RR3 — Gate 5's margin was 24 seconds, and part of the calibration predates the commit.**
+Verified timestamps: `e1-phase-schedule.json` written `01:36:42Z`; commit `6c45422` landed
+`01:37:29Z`; calibration completed `01:37:52Z`; first scored `attempt_start` `01:37:53Z`. So
+"committed before any scored run" holds **by 24 seconds**, the driver process was loaded from
+the working tree before the commit existed, and most of the 10 empty-corpus runs behind
+`c = 15` ran pre-commit. Behavioural identity was checked rather than assumed: `git diff
+6c45422..HEAD -- eval/` is empty, the committed `buildPhaseSchedule` reproduces the pinned
+schedule bit-for-bit, and every Gate 3 decision in the journal matches the committed
+`gate3Verdict` arithmetic. Nothing indicates the running code differed from the committed
+code — but Gate 5 is a provenance gate, and a 24-second margin is worth disclosing rather
+than claiming comfortably.
+
+**RR4 — the remainder refutation is qualitatively sound and quantitatively spurious.**
+Remainder values span **1–14 ms** and are millisecond-quantized. A ±1 ms adversarial
+perturbation moves `b_remainder` across **0.37–0.79**, wider than its own printed HC3 interval
+[0.3253, 0.7756] — so four decimals on 0.5504 are theatre. The qualitative claim survives every
+perturbation (sub-linear under all of them; share falls 0.074% → 0.002%), so the registered
+"size-coupled" reading is still refuted; the *precision* is withdrawn.
+
+**RR5 — omissions now named.** (a) **T5's repetition spread is 12.5%** (27,105 / 29,649 /
+30,498 ms) against ≤2.7% at every other rung; unexplained, and unmentioned above where E1's
+RESULT named its own T6 spike. Dropping T5 entirely leaves `b_write` at 1.9685; dropping any
+single rung keeps it in 1.90–2.08. (b) **Write itself is a mixture**: split-half `b_write` is
+**1.8378** over T1–T5 and **2.0627** over T5–T9, the same convexity E1 carried as a formal
+qualifier — so "consistent with E1's 1.7529" compares two mixture summaries. (c) **The
+coupling looks DB-wide, not write-exclusive**: `edges` at 1.436 and `finalise` at 1.2623 both
+exceed the near-linear growth of the items they process (edge count scales `chunks^1.080`),
+and edges' share upticks at T9. At a 1.6% share this changes no fix priority, but a reader
+localising to "write" should know the neighbours lean the same way.
+
+**RR6 — a latent instrument defect, unexercised.** A Gate P or Gate P2 VOID that is later
+successfully re-run leaves the void in `loadJournal`'s map, so `scoreable` stays false
+permanently: A4-MAT-7's "re-run queue" has no dequeue in `e1-phase-run.mjs`. Zero voids
+occurred, so it touched nothing here. **Fix before any reuse of this instrument** — it joins
+HANDOFF §5's defect list.
+
+**What survives all of it.** H1 — **write-localised, mechanism unidentified** — stands
+unchanged, on every estimator and every sensitivity constructed against it. What is amended is
+the confidence language around it, in the three places where this RESULT's first version
+flattered its own hypothesis.
 
 ---
 
