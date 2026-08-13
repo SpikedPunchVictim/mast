@@ -1,9 +1,9 @@
-# HANDOFF — E1-PHASE RUN AND SCORED; the mechanism A/B is next
+# HANDOFF — E1-AB REGISTERED, BUILT AND LAUNCHED; scoring is next
 
-**Written 2026-08-12 at `497389b`.** Read this first, then `HANDOFF_Q1.md`, then
+**Rewritten 2026-08-13 at `bee40e3`.** Read this first, then `HANDOFF_Q1.md`, then
 `IMPLEMENTATION_PLAN.md`, then `MAST_SPEC.md`. This file covers only the E1 track;
-`HANDOFF_Q1.md` §5 (instrument defects — **two new entries from this session**) and §6
-(methodological rules) remain in force unchanged and are **not** superseded by anything here.
+`HANDOFF_Q1.md` §5 (instrument defects) and §6 (methodological rules) remain in force
+unchanged and are **not** superseded by anything here.
 
 ---
 
@@ -26,88 +26,62 @@ Stage 2 is reopened as a scale defect.**
 H2 (`b_edges = 1.4360`, non-monotone share), H3 and H4 are each refuted. 15/15 runs,
 0 VOID, 0 interrupted, Gate P attribution 99.85–100%.
 
-### The immediate next action — the mechanism A/B
+**E1-AB is registered, its instrument is built and committed, and the 30-run schedule was
+launched 2026-08-13.** The lever it needed (`OpenDatabaseOptions` on `openDatabase`, threaded
+from two CLI flags) shipped at `ef8d83e`. **The immediate next action is to score it** — see §1a.
 
-**A `cache_size` / `mmap_size` A/B at a single rung.** This is the registered discriminator,
-committed inside the E1-PHASE registration precisely so it could not be improvised after the
-result. It is a **probe, not a remedy.**
+### 1a. E1-AB — what is running, and what to do when it finishes
 
-Four things constrain it, and none is negotiable:
+**The question:** is the SQLite page cache the mechanism behind write's super-linearity? It is a
+**probe, not a remedy.** No pragma is shipped on the strength of it, it cannot confirm/overturn
+/soften E1's verdict, and it cannot re-adjudicate E1-PHASE — H1 stands whatever it returns. Any
+fix that eventually follows is verified by re-running **E1's full 9-rung ladder** against the
+committed scorer and the immutable 1.35 threshold.
 
-1. **"No fix before the diagnosis" is now DISCHARGED** — the diagnosis is complete. The A/B
-   is explicitly permitted by the registration and does not breach that rule. But **it is
-   still a measurement**, so §6's full ceremony applies to it: pre-register in
-   `IMPLEMENTATION_PLAN.md` with falsification criteria and a **direction-of-error
-   statement**, **commit the registration before running**, commission an adversarial design
-   review (Agent tool, model `fable`), **verify its claims against source**, then build, run,
-   and commission a results review.
-2. **It is a probe. It does not ship anything.** No pragma is set in product code on the
-   strength of it.
-3. **Any fix that eventually follows is verified by re-running E1's full 9-rung ladder**
-   against the committed scorer and the immutable 1.35 threshold — never by re-running
-   E1-PHASE, and never by moving a threshold.
-4. **A confirmed H1 licenses "write-localised, mechanism unidentified" and nothing
-   narrower.** Chunks and DB bytes are perfectly collinear across this ladder, so a
-   page-cache cliff, FTS5 trigram segment merges, per-file transaction overhead and B-tree
-   depth growth are **indistinguishable on this evidence**. Anyone calling the E1-PHASE
-   result "the page-cache cliff" is over-reading it — including the A/B's own registration.
+| arm | flags | expected `pragmas:` | role |
+|---|---|---|---|
+| A | *(none)* | `{-16000, 0}` | control — the un-pragma'd binary |
+| B | `--cache-size-mib 1024` | `{-1048576, 0}` | 2.45× T9's 418.8 MiB database; no page can be evicted |
+| D | `--cache-size-mib 2` | `{-2048, 0}` | **positive control**, 8× shrink |
+| C | `--mmap-size-mib 1024` | `{-16000, 1073741824}` | **T5 ONLY** — tripwire, expected inert |
 
-**Read before designing it — and note this reverses what the previous handoff said here.**
-That handoff recorded a pre-run fact said to damage the cache-cliff story specifically: *"T1's
-database is 21.6 MB against SQLite's ~2 MB default page cache, so the cache is exhausted
-before the ladder even begins."* **The ~2 MB figure is wrong.** `better-sqlite3@12.11.1`
-compiles the amalgamation with `SQLITE_DEFAULT_CACHE_SIZE=-16000` (`deps/defines.gypi:13`,
-confirmed on the shipped object's own compile command line), so **MAST's effective default
-page cache is ~16 MB**, and the control arm's own `pragmas:` line now prints `-16000` on every
-run as standing proof. Also measured: **`mmap_size = 0` by default** — memory mapping is off,
-so an mmap arm is an on/off contrast, not a resize.
+3 rungs (T1/T5/T9) × 3 blocks. **30 runs, ~87 min.** Registration + AMENDMENTS 1 and 2 in
+`IMPLEMENTATION_PLAN.md`.
 
-At the true default T1 is **1.3×** the cache, not 10×: the ladder *crosses* the cache boundary
-near its first rung and reaches 4–6× by T4/T5 — the regime in which a cliff would produce a
-knee, which is where E1 measured one. Full reasoning and its three attached limits are in
-`IMPLEMENTATION_PLAN.md` § `CORRECTION (2026-08-13)`.
+**When it finishes:** `node eval/e1-ab-report.mjs` writes `eval/results/e1-ab-verdict.json`.
+Then commission the adversarial **results** review (Agent tool, model `fable`), **verify its
+claims against source**, and fold it in as a RESULTS REVIEW block under the RESULT.
 
-**Do not over-read this either.** It withdraws a piece of counter-evidence; it does not supply
-evidence *for* the cliff, and constraint 4 above is untouched — a confirmed H1 still licenses
-"write-localised, mechanism unidentified" and nothing narrower. The A/B must still be designed
-to be capable of *refuting* the cliff. What changed is only that the cliff can no longer be
-dismissed a priori, and that **the arms must be sized against a 16 MB control, not a 2 MB one**
-— the control is already a moderately large cache.
+**Five things the RESULT must carry, and none is optional:**
 
-### The A/B needs a product change first — decided 2026-08-12, NOT yet built
+1. **`rho_B <= 0.80` is the ONLY substantively free test.** `rho_D(T1) >= 1.10` is an
+   instrument check, and the exponent classification is conditional on the level result. Do not
+   report three thresholds as three hurdles — E1-PHASE had to correct exactly that in itself.
+2. **A CACHE-INERT result is a POSITIVE finding, not a null** — that is what arm D buys. But it
+   rests on a connectivity proof taken at **T1**, the rung where the mechanism is least likely
+   to be operating. That limit is uncompensated and must be stated.
+3. **Arm C's expected inert result is WEAK evidence.** The mmap refutation is *analytic*, from
+   `sqlite3.c:65261-65263` (`bMmapOk` needs `PAGER_READER` or `PAGER_GET_READONLY`) and `:77886`
+   (write cursors get `curPagerFlags = 0`). Never report it as "refuted by measurement".
+4. **A level result never licenses an exponent claim.** At `rho_B = 0.20` — the CACHE-DOMINANT
+   *floor* — arm B is still super-linear at slope ~1.42.
+5. **Gate 0's hash has MOVED** (`73f4d1e6…` vs E1-PHASE's `454894e5…`). No absolute timing here
+   is comparable to the 15-run ladder's. Both arms share this binary, which is what keeps the
+   A/B internally valid.
 
-**The pragma cannot currently be set at all.** `openDatabase(stateDir: string)`
-(`src/graph/db.ts:369`) takes only a state dir and sets exactly three pragmas —
-`journal_mode = WAL`, `foreign_keys = ON`, `busy_timeout = 5000`. There is no `cache_size`,
-no `mmap_size`, and no parameter through which either could be passed. The E1-PHASE
-registration named the A/B without saying how its arms would differ; **that is a gap in the
-registration, found before building anything.**
+**Direction of error, inherited:** the previous session's prior moved TOWARD the cache-cliff
+story because it withdrew the counter-evidence against it itself (`CORRECTION (2026-08-13)`).
+The default page cache is **~16 MB**, not the ~2 MB the E1-PHASE registration assumed
+(`better-sqlite3@12.11.1`, `deps/defines.gypi:13`), so T1 is **1.32×** the cache and T9 is
+**26.8×**. That withdraws a piece of counter-evidence; it supplies **no** evidence *for* the
+cliff. A confirmed H1 still licenses "write-localised, mechanism unidentified" and nothing
+narrower — FTS5 trigram merges, per-file transaction overhead and B-tree depth growth remain
+indistinguishable, and E1-AB does not touch them.
 
-**Owner decision: option A — an explicit optional parameter on `openDatabase`, threaded from
-the CLI.** Do not re-decide this. The two rejected alternatives, with the reasons:
-
-- **Env var read inside `openDatabase` — rejected.** A hidden global, and it breaks the
-  dependency-injection line the codebase holds elsewhere.
-- **A field on `MastConfig` via `resolveConfig` — rejected, and this one is a trap.** It
-  **conflicts with the harness's own Gate 1**: `assertConfigPinned` (`eval/e1-common.mjs`)
-  fails a run if a corpus-local `mast.config.json` exists or if resolved config deviates from
-  defaults, precisely so config cannot act as a free lever over a measurement. Routing the
-  A/B's arms through config would require breaching the gate that protects every other
-  experiment in this program.
-
-**Red-first test obligations (two, and the second is the load-bearing one):**
-
-1. Given the option, `openDatabase` actually applies it — open a database, read
-   `PRAGMA cache_size` back. Deterministic, no mocking, no fixture.
-2. **Given no option, the default is unchanged** — no `cache_size` is set and SQLite's own
-   default stands. This is what makes arm A provably *the un-pragma'd binary*; without it the
-   A/B compares two things we changed.
-
-**A consequence that must go into the A/B's registration, not be discovered afterwards:**
-adding the parameter changes `dist`, so **Gate 0's content hash moves and the A/B runs on a
-different binary than E1-PHASE's 15-run ladder.** Both arms share that binary, so the A/B is
-internally valid — but its absolute timings are **not** comparable to the ladder's, and no
-one may read across the two. Both arms re-assert one hash, as E1-PHASE did.
+**The honest prior, recorded before the data:** T9's database is 418.8 MiB on a **16 GiB**
+machine, so the OS page cache plausibly holds the whole file and a SQLite miss may be a
+`memcpy` rather than a disk read. **CACHE-INERT is the more likely outcome than
+CACHE-DOMINANT.**
 
 ---
 
@@ -128,12 +102,16 @@ one may read across the two. Both arms re-assert one hash, as E1-PHASE did.
   IDFUSE, DECLEX, and the vector deletion itself.
 - **The ranker-D escape variant is measured harmful** — never ship or re-test without a fresh
   registration. Option (d)'s lock-free-read/write-behind overlay is DEFERRED per E7-r2.
-- **Instrument reuse requires first fixing that instrument's HANDOFF §5 defects** — and
-  E1-PHASE's runner added two of them (see §4).
-- **TDD red-first for every behavioural change.** Where an honest red is impossible, say so
-  in the plan — **never fake one**. (This session drafted two modules before their tests,
-  and recovered the red by parking the implementation and stubbing the module rather than
-  claiming a red it had not earned. Do that, or write the test first.)
+- **Instrument reuse requires first fixing that instrument's defects** — see §4 for what is
+  fixed and what is still open.
+- **TDD red-first for every behavioural change.** Where an honest red is impossible, say so —
+  **never fake one**. Two techniques this track has actually used: stub the new function with
+  the OLD (defective) behaviour so the red is an assertion failure rather than a missing
+  import; and for a brand-new pure module, where the only available red is "module not found",
+  say so plainly and **mutation-test instead**. The E1-AB session ran 11 mutations across two
+  new modules and one survived — a within-block slope test using a uniform multiplier, which a
+  slope is mathematically blind to, so it passed even when the function ignored its `block`
+  argument. That gap was invisible on a reading.
 - Project `CLAUDE.md`: **do not call the Agent tool unless the user requested it** — §6's
   ceremony *is* a standing request for the design/results reviews specifically, and nothing
   else. **Do not use workflows or deep-research unless requested.**
@@ -143,7 +121,7 @@ one may read across the two. Both arms re-assert one hash, as E1-PHASE did.
 
 | check | expected |
 |---|---|
-| `pnpm -F mast test` | green — **796 tests / 52 files** at `497389b` |
+| `pnpm -F mast test` | green — **898 tests / 58 files** at `bee40e3` |
 | `pnpm -F mast typecheck` | clean |
 | `pnpm -F mast lint` | clean |
 | `pnpm -F mast build` | clean |
@@ -154,9 +132,9 @@ violations (`application/ui/src/views/root-layout.tsx` import cycle;
 `application/api/src/domain/spec/fold-build-record-repository.ts` dependency direction). **Do
 not attribute those to your changes and do not add new debt.**
 
-> The previous handoff recorded this baseline as "728 tests / 50 files". The test count was
-> right; the file count was not — `2e87238` measures 728 / **49**. Trust the numbers above,
-> and re-measure rather than inheriting.
+> Re-measure rather than inheriting. Two previous handoffs recorded a file count that was
+> wrong (728/50 for an actual 728/49; 796/52 which was right, then left stale through
+> +102 tests). The numbers above were measured at `bee40e3`.
 
 ---
 
@@ -205,14 +183,34 @@ stands exactly as scored.
 run, and Gate 6 sequences R3/R4/E2/R5 to read E1's retained `run-T9-r3` — reusing the names
 would have destroyed those artifacts on the first T9 run. Pinned by a test.
 
-### Two NEW defects — fix before reusing this instrument (now in HANDOFF_Q1 §5)
+### E1-AB's instrument — built and committed BEFORE its own scored runs (Gate 5)
 
-- **The VOID queue has no dequeue.** A Gate P/P2 VOID is re-run correctly, but the void
-  record stays in `loadJournal`'s map forever, so `scoreable` is **permanently false** once
-  anything has ever voided. Unexercised here (0 voids). `e1-run.mjs` shares the pattern.
-- **`fitSeries` reports spurious precision on quantized series.** The remainder was fitted
-  over 1–14 ms values; ±1 ms moves that exponent across 0.37–0.79, wider than its own printed
-  interval. The scorer should emit the caveat; here it had to be added by hand.
+| file | role |
+|---|---|
+| `eval/e1-ab-schedule.mjs` | arms, Latin-square T9 ordering, Gate A, state-dir namespacing — 22 tests |
+| `eval/e1-ab-score.mjs` | every registered threshold, the bands, the 2×2, the slopes — 32 tests |
+| `eval/e1-ab-report.mjs` | `foldJournal` (RR6's dequeue), `planPending`, `selectAbRuns`, Gate P2 — 22 tests |
+| `eval/e1-ab-run.mjs` | the 30-run driver |
+
+**`foldJournal` and `planPending` live in the REPORT module, not the driver.** RR6 survived the
+E1-PHASE review precisely because it was driver-private and nothing could reach it. Do not move
+decision logic back into a driver.
+
+**`eval/e1-common.mjs` and `eval/e1-schedule.mjs` were touched — both additively, both pinned by
+tests.** `buildIndexArgs` is extracted so the no-extra-args argv is asserted byte-for-byte as
+what E1's 42 and E1-PHASE's 15 runs were spawned with; `orphanedAttempts` takes an optional key
+function because its hardcoded `corpus#rep` would have collapsed every E1-AB record into one
+`undefined#undefined` bucket. E1's and E1-PHASE's scored records are untouched and unre-scored.
+
+### Defect status — one fixed, one still open
+
+- **The VOID queue has no dequeue (RR6) — FIXED for E1-AB**, in `foldJournal`, with a
+  void → re-run → `scoreable: true` test. ⚠️ **`e1-phase-run.mjs` and `e1-run.mjs` still carry
+  the defect** and must be fixed before either is reused.
+- **`fitSeries` reports spurious precision on quantized series — STILL OPEN.** The remainder was
+  fitted over 1–14 ms values; ±1 ms moves that exponent across 0.37–0.79, wider than its own
+  printed interval. Does not affect E1-AB (no OLS on a quantized series; its slopes run over
+  1.4 s–500 s values), so it was not fixed here.
 
 ### Known instrument facts worth not rediscovering
 
@@ -267,9 +265,11 @@ essentially exactly linear.
 
 ---
 
-## 6. Still open after E1-PHASE
+## 6. Still open
 
-- **The `cache_size` / `mmap_size` A/B** — §1. The live item.
+- **Score E1-AB and review it** — §1a. The live item.
+- **`MAST_SPEC` does not document `--cache-size-mib` / `--mmap-size-mib`** (added `ef8d83e`),
+  and still does not document `--phase-timing` / `ENABLE_MAST_PHASE_TIMING`. Settle together.
 - **R2 — parse-only pass + Gate 2** (A4-MAT-8): file/chunk/symbol counts must equal the full
   index's exactly; edge count deliberately excluded. **Note E1-PHASE partly overtakes its
   motivation** — R2 existed to split parse cost from write cost, which is now measured
@@ -280,14 +280,26 @@ essentially exactly linear.
   pacing, T1 and T9.
 - **P3 spec drift (unowned)**: `MAST_SPEC` §14.6's `--session`/`--global` flags and §14.3's
   batched-metrics-writes claim.
-- **MAST_SPEC does not document `--phase-timing` / `ENABLE_MAST_PHASE_TIMING`.** It is the
-  codebase's first environment flag and sets the convention: `ENABLE_`-prefixed, value is the
-  word `true`/`false`, **never** `1`/`0`, compared case-insensitively after trimming, failing
-  closed on anything else.
+- The `ENABLE_MAST_PHASE_TIMING` convention, for whoever writes that spec section: the
+  codebase's first environment flag — `ENABLE_`-prefixed, value is the word `true`/`false`,
+  **never** `1`/`0`, compared case-insensitively after trimming, failing closed on anything else.
 - **Standing**: M2 condition-5 review at organic harvest `n ≥ 67` or 2026-11-05 (`n = 0`).
 
 ## 7. Session commits (newest first)
 
+2026-08-13 — the E1-AB session:
+```
+bee40e3  chore(mast/eval): pin E1-AB's binary and schedule before any run
+2f51c41  feat(mast/eval): the E1-AB driver, and AMENDMENT 2 — a gap the tests found in A6
+f6b8a2e  feat(mast/eval): E1-AB's arms, schedule and scorer — plus the Gate A fix the review earned
+545559a  docs(mast): amend E1-AB after the adversarial design review — one arm dies, one statistic is replaced
+7ee03aa  docs(mast): register E1-AB — is the page cache the mechanism, or not
+90f957e  docs(mast): withdraw the 2 MB page-cache claim at all three sites that made it
+b1164a4  docs(mast): correct the default page-cache figure — 16 MB, not 2 MB
+ef8d83e  feat(mast): make cache_size/mmap_size reachable, so the A/B has a lever
+```
+
+2026-08-12 — the E1-PHASE session:
 ```
 497389b  docs(mast): fold the E1-PHASE results review in — H1 stands, three claims around it do not
 0ba97ec  fix(mast): correct the E1-PHASE RESULT's Gate 3 record, and quantify the bias
@@ -298,7 +310,9 @@ d3ce505  feat(mast/eval): score E1-PHASE — H1 fires, the exponent is in the wr
 
 ## 8. Artifacts
 
-`eval/results/` — **E1-PHASE**: `e1-phase-verdict.json` (six exponents, shares under both
+`eval/results/` — **E1-AB**: `e1-ab-schedule.json` (schedule + binary pin, committed pre-run),
+`e1-ab-runs.jsonl` (the journal), `e1-ab-runs-summary.json`, `e1-ab-verdict.json` (written by
+`e1-ab-report.mjs`). **E1-PHASE**: `e1-phase-verdict.json` (six exponents, shares under both
 registered readings, the full condition table, mini-replication), `e1-phase-runs.jsonl`
 (15 runs + 18 attempt records), `e1-phase-runs-summary.json`, `e1-phase-calibration.json`
 (`c = 15`), `e1-phase-schedule.json` (schedule + binary pin), `e1-phase-attribution.json`
