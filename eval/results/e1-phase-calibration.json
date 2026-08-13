@@ -1,0 +1,30 @@
+{
+  "created": "2026-08-13T01:37:52.573Z",
+  "gate0": {
+    "schema_version": "1.3.0",
+    "dist_hash": "454894e50ccdf7fc299fe7f5af006217b1bfbed396663e9a1be14c5efe35aa4c",
+    "dist_newest_mtime": "2026-08-13T01:07:51.165Z",
+    "dist_entry_mtime": "2026-08-07T20:53:13.746Z",
+    "bin": "/Users/spikedpunchvictim/projects/kluster/packages/mast/dist/cli/index.js",
+    "node_version": "v24.18.0"
+  },
+  "n": 10,
+  "durations_ms": [
+    21,
+    16,
+    15,
+    17,
+    15,
+    15,
+    14,
+    15,
+    15,
+    15
+  ],
+  "c_ms": 15,
+  "min_ms": 14,
+  "max_ms": 21,
+  "supersedes": "E1's c = 23.5 ms, which was measured on the pre-c71d59c binary. Gate 0's dist content hash is what distinguishes the two builds; `c` is a property of the binary, so it is re-measured rather than carried over.",
+  "what_it_measures": "runIndex's own fixed cost with zero indexing work in it. `startMs` is runIndex's FIRST statement and openDatabase follows it, so the schema DDL, lock-marker init and an empty walk are all INSIDE this number — and therefore inside the `walk` phase.",
+  "why_it_matters": "Left in, a fixed additive constant makes small runs look disproportionately expensive, which flattens the curve and biases the mini-replication DOWNWARD."
+}

@@ -1,0 +1,51 @@
+{
+  "created": "2026-08-13T02:12:36.167Z",
+  "complete": 15,
+  "total": 15,
+  "voids": [],
+  "calibration_c_ms": 15,
+  "rep_identity": [
+    {
+      "corpus": "T5",
+      "reps": 3,
+      "chunk_counts": [
+        16529
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T9",
+      "reps": 3,
+      "chunk_counts": [
+        73359
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T7",
+      "reps": 3,
+      "chunk_counts": [
+        34691
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T3",
+      "reps": 3,
+      "chunk_counts": [
+        7761
+      ],
+      "identical": true
+    },
+    {
+      "corpus": "T1",
+      "reps": 3,
+      "chunk_counts": [
+        3679
+      ],
+      "identical": true
+    }
+  ],
+  "findings": [],
+  "scoreable": true
+}

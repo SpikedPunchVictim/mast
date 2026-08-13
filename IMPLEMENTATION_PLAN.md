@@ -3897,6 +3897,121 @@ own worked H0 counterexample (`b_write = 3.0` at a 45% T9 share), every boundary
 / `<=`, and H2's strict-monotonicity tie. E1's own modules are **not** modified: what
 E1-PHASE inherits unchanged it imports.
 
+#### E1-PHASE RESULT (2026-08-12) — H1 FIRES: the exponent is in the WRITE phase, and the mechanism is still unidentified
+
+**Outcome: H1.** All three registered conditions hold, and H2, H3 and H4 are each refuted.
+15/15 runs complete, 0 VOID, 0 interrupted, no driver findings, `scoreable: true`.
+
+| condition | registered test | measured | |
+|---|---|---|---|
+| `b_write` | `>= 1.6` | **1.9685** | pass |
+| `b_parse` | `<= 1.25` | **1.0144** | pass |
+| write's share of `durationMs` at T9 | `>= 0.60` | **94.01%** | pass |
+
+| series | `b` | HC3 95% (context only) | T9 share |
+|---|---|---|---|
+| walk | 0.6019 | [0.5446, 0.6591] | 0.05% |
+| parse | 1.0144 | [0.9930, 1.0359] | 4.33% |
+| **write** | **1.9685** | **[1.8800, 2.0569]** | **94.01%** |
+| edges | 1.4360 | [1.2333, 1.6388] | 1.56% |
+| finalise | 1.2623 | [1.1189, 1.4057] | 0.05% |
+| remainder | 0.5504 | [0.3253, 0.7756] | 0.002% |
+
+| rung | chunks | walk | parse | write | edges | finalise |
+|---|---|---|---|---|---|---|
+| T1 | 3,679 | 1.40% | 42.80% | 52.18% | 3.39% | 0.15% |
+| T3 | 7,761 | 0.72% | 32.54% | 63.69% | 2.87% | 0.11% |
+| T5 | 16,529 | 0.30% | 17.93% | 80.02% | 1.64% | 0.09% |
+| T7 | 34,691 | 0.11% | 9.55% | 88.88% | 1.39% | 0.06% |
+| T9 | 73,359 | 0.05% | 4.33% | **94.01%** | 1.56% | 0.05% |
+
+**Write is near-quadratic and it eats the ladder.** Parse is essentially exactly linear
+(1.0144), walk is sub-linear (0.6019), and write's share of the clock climbs monotonically
+from 52% to 94% while parse's collapses from 43% to 4%. At T1 the run is a parse/write
+split; at T9 it is a write.
+
+**What this licenses, stated at exactly the registered strength: "write-localised, mechanism
+unidentified", and nothing narrower.** Chunks and database bytes are perfectly collinear
+across this ladder, so this instrument **cannot distinguish** a page-cache cliff from FTS5
+trigram segment merges, per-file transaction overhead, or B-tree depth growth. Any report
+calling this "the page-cache cliff" is over-reading it. **The fact recorded before the run
+still stands and still damages that specific mechanism story:** T1's database is 21.6 MB
+against SQLite's ~2 MB default page cache, so the cache is exhausted before the ladder
+begins and cannot produce the T4/T5 knee E1 measured. H1's *location* claim is confirmed;
+H1's *mechanism* claim is not, and was not tested here.
+
+**Direction of error, revisited against the outcome.** H1 was the previous agent's own
+hypothesis and every free parameter leaned toward finding it — that was registered in
+advance, and it fired. Two things keep this from being a prior confirming itself. First, the
+registration corrected its own compensation claim before the run: because phases tile
+`durationMs`, only **one** condition was substantively free — write's T9 share — and the
+other two are arithmetic consequences. That one free condition came in at **94.01% against a
+60% bar**, clearing it by 34 points rather than narrowly. Second, the registration's own
+worked H0 counterexample (`b_write = 3.0` at a 45% share, which refutes H1 while write
+carries the whole exponent) is a committed known-answer test in
+`eval/__tests__/e1-phase-score.test.mjs` and passes — the scorer demonstrably *can* refuse
+H1 on the share condition alone.
+
+**H2 is refuted on both of its conditions, and one of them is a near miss that the
+registration's estimator rule refuses to negotiate.** `b_edges = 1.4360` with HC3
+[1.2333, **1.6388**] — the interval touches the 1.6 bar. The registration puts every
+comparison on HC3 **point estimates** and says CIs "have no role in any refutation",
+precisely so a touching interval cannot be argued into a firing. It is recorded here as the
+first case where that clause actually bound. Edge share is also **not** monotonic: it falls
+T1→T7 and rises again at T9 (3.84 → 2.87 → 1.71 → 1.39 → 1.57% on per-rung median shares;
+3.39 → 2.87 → 1.64 → 1.39 → 1.56% on the median run's shares). **Both registered readings of
+"median share" give the same refutation**, so the addendum's item-2 choice changes nothing
+here.
+
+**A registered prediction that the data refutes — the remainder is NOT size-coupled.** The
+registration's reading of the unattributed remainder was "teardown, including WAL's
+close-time checkpoint... the one **size-coupled** cost outside every phase", and Gate P was
+deliberately left permissive to avoid voiding T9 for exhibiting that growth. Measured:
+`b_remainder = 0.5504`, strongly **sub**-linear, with its share falling 0.074% → 0.002% from
+T1 to T9 (2 ms → 12 ms absolute, against a 20× corpus). The remainder is real but inert, the
+permissiveness it justified was never needed, and the registered *reading* of it is wrong.
+Recorded rather than quietly dropped, because it is a prediction this registration made and
+lost.
+
+**Gates.** Gate P (attribution ≥ 95%): **99.85–100.00%** on all 15 runs, worst 99.85% at
+T1#3. Walk-share void condition (10% at T9): **0.05%**. Gate P2 (rep identity): all three
+repetitions of all five rungs reported identical `chunk_count`. Gate 3: one miss, T3#1 at
+slot 15 (delta 551 ms against a 500 ms floor), retaken and **passed on attempt 2**, so
+A4-MAT-6 retained the passing take; the first-attempt rule never engaged. Gate 0: `dist`
+content hash `454894e5…`, identical to the build
+`eval/results/e1-phase-attribution.json` was measured on, so Gate P's floor and the scored
+runs share one binary. `c = 15 ms` (median of 10 empty-corpus runs), re-measured — **E1's
+23.5 ms was not reused**, and the 8.5 ms gap is the phase stamps' own cost showing up in the
+fixed constant.
+
+**The mini-replication is consistent, and it adjudicates nothing.** `b = 1.7768`, HC3 95%
+[1.6693, 1.8843], which covers E1's 1.7529 — "consistent" by the registered rule, on a
+**different binary** and a weaker 5-rung design. It may not be read as strengthening E1's
+verdict and could not have softened it. Its wild-cluster bootstrap interval is
+[1.0429, 2.5107]: five clusters is very few for Webb weights, and that width is a fact about
+this design, not about `b`.
+
+**An arithmetic cross-check that was not registered and is offered as such.** Because the
+phases tile the clock, the local slope at a rung is the share-weighted sum of the phase
+exponents. Evaluated at T9's shares that gives **1.9178**, against E1's independently
+measured T3–T9 slope of **1.904** — two binaries, two experiments, 0.7% apart. This is a
+consistency observation, not a test, and no conclusion rests on it.
+
+**What this does NOT do.** It cannot confirm, overturn or soften E1's SUPER-LINEAR verdict,
+and nothing here is reported as doing so. E1 answered how steeply cost grows; this answers
+where the time goes.
+
+**Next step, as registered and not improvised now:** a `cache_size` / `mmap_size` A/B at a
+single rung — a **probe, not a remedy** — run before any shipped fix. No pragma has been
+set and no index creation deferred. Any fix that follows is verified by re-running **E1's
+full 9-rung ladder** against the committed scorer and the immutable 1.35 threshold, never by
+re-running this diagnostic.
+
+**Artifacts.** `eval/results/e1-phase-verdict.json` (exponents, shares under both readings,
+the full condition table, mini-replication), `e1-phase-runs.jsonl` (15 runs + 16 attempt
+records), `e1-phase-runs-summary.json`, `e1-phase-calibration.json`, `e1-phase-schedule.json`
+(schedule + binary pin), `e1-phase-attribution.json` (Gate P's anchor).
+
 ---
 
 ## Stage 4.5: Scale — the actual target

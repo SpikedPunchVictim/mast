@@ -1,0 +1,305 @@
+{
+  "created": "2026-08-13T02:12:56.594Z",
+  "is_a_diagnostic": "E1-PHASE cannot confirm, overturn or soften E1's SUPER-LINEAR verdict, and no result here may be reported as doing so. E1 answered how steeply cost grows; this answers where the time goes.",
+  "calibration_c_ms": 15,
+  "driver_findings": [],
+  "n_runs": 15,
+  "n_rungs": 5,
+  "void": false,
+  "void_reason": null,
+  "exponents": {
+    "walk": {
+      "b": 0.601877076580953,
+      "se_hc3": 0.0265088433886169,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        0.5446082022051042,
+        0.6591459509568018
+      ],
+      "ci_is_context_only": true
+    },
+    "parse": {
+      "b": 1.014438285515779,
+      "se_hc3": 0.00993905062113725,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        0.992966272078877,
+        1.035910298952681
+      ],
+      "ci_is_context_only": true
+    },
+    "write": {
+      "b": 1.9684599660819548,
+      "se_hc3": 0.040945064248231716,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.8800035326432198,
+        2.0569163995206896
+      ],
+      "ci_is_context_only": true
+    },
+    "edges": {
+      "b": 1.4360461300906024,
+      "se_hc3": 0.09383822191106837,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.2333209766957305,
+        1.6387712834854744
+      ],
+      "ci_is_context_only": true
+    },
+    "finalise": {
+      "b": 1.2623337129470098,
+      "se_hc3": 0.06637400749831528,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.1189413875438232,
+        1.4057260383501964
+      ],
+      "ci_is_context_only": true
+    },
+    "remainder": {
+      "b": 0.55044029769865,
+      "se_hc3": 0.10420172609586795,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        0.32532615469181614,
+        0.7755544407054838
+      ],
+      "ci_is_context_only": true
+    }
+  },
+  "shares": [
+    {
+      "tier": "T1",
+      "chunk_count": 3679,
+      "n": 3,
+      "median_run_rep": 1,
+      "median_run": {
+        "walk": 0.014022140221402213,
+        "parse": 0.4280442804428044,
+        "write": 0.5217712177121772,
+        "edges": 0.03394833948339483,
+        "finalise": 0.0014760147601476014,
+        "remainder": 0.0007380073800738007
+      },
+      "median_of_shares": {
+        "walk": 0.013079222720478326,
+        "parse": 0.398729446935725,
+        "write": 0.5426008968609866,
+        "edges": 0.03840526700804682,
+        "finalise": 0.0018288222384784199,
+        "remainder": 0.0007473841554559044
+      }
+    },
+    {
+      "tier": "T3",
+      "chunk_count": 7761,
+      "n": 3,
+      "median_run_rep": 2,
+      "median_run": {
+        "walk": 0.007201218667774546,
+        "parse": 0.3254396897936574,
+        "write": 0.6368923971749065,
+        "edges": 0.028666389696717906,
+        "finalise": 0.001107879795042238,
+        "remainder": 0.0006924248719013987
+      },
+      "median_of_shares": {
+        "walk": 0.007201218667774546,
+        "parse": 0.3326374391092554,
+        "write": 0.6306193458594294,
+        "edges": 0.028666389696717906,
+        "finalise": 0.0012244897959183673,
+        "remainder": 0.0005567153792623522
+      }
+    },
+    {
+      "tier": "T5",
+      "chunk_count": 16529,
+      "n": 3,
+      "median_run_rep": 2,
+      "median_run": {
+        "walk": 0.0030017875813686803,
+        "parse": 0.1792640561233094,
+        "write": 0.8001956221120442,
+        "edges": 0.01639178387129414,
+        "finalise": 0.0009106546595163412,
+        "remainder": 0.00023609565246719957
+      },
+      "median_of_shares": {
+        "walk": 0.0030017875813686803,
+        "parse": 0.1792640561233094,
+        "write": 0.8001956221120442,
+        "edges": 0.017148665486261393,
+        "finalise": 0.0009106546595163412,
+        "remainder": 0.0001311561413863204
+      }
+    },
+    {
+      "tier": "T7",
+      "chunk_count": 34691,
+      "n": 3,
+      "median_run_rep": 3,
+      "median_run": {
+        "walk": 0.001137615012877802,
+        "parse": 0.0955323583214263,
+        "write": 0.888795857261169,
+        "edges": 0.013878903157109183,
+        "finalise": 0.000591559806696457,
+        "remainder": 0.0000637064407211569
+      },
+      "median_of_shares": {
+        "walk": 0.001137615012877802,
+        "parse": 0.09634956877027889,
+        "write": 0.8883424694256741,
+        "edges": 0.013878903157109183,
+        "finalise": 0.0004860529797747955,
+        "remainder": 0.0000637064407211569
+      }
+    },
+    {
+      "tier": "T9",
+      "chunk_count": 73359,
+      "n": 3,
+      "median_run_rep": 1,
+      "median_run": {
+        "walk": 0.00046734760526582505,
+        "parse": 0.043279391284436385,
+        "write": 0.9401100612994892,
+        "edges": 0.015640191143293656,
+        "finalise": 0.0004804858913576354,
+        "remainder": 0.00002252277615738916
+      },
+      "median_of_shares": {
+        "walk": 0.00037992647305315616,
+        "parse": 0.043279391284436385,
+        "write": 0.9401100612994892,
+        "edges": 0.0157427376309722,
+        "finalise": 0.00034826593363205985,
+        "remainder": 0.00002252277615738916
+      }
+    }
+  ],
+  "hypotheses": {
+    "H1": {
+      "fires": true,
+      "conditions": [
+        {
+          "name": "b_write",
+          "value": 1.9684599660819548,
+          "test": ">= 1.6",
+          "pass": true
+        },
+        {
+          "name": "b_parse",
+          "value": 1.014438285515779,
+          "test": "<= 1.25",
+          "pass": true
+        },
+        {
+          "name": "write_share_t9",
+          "value": 0.9401100612994892,
+          "test": ">= 0.6",
+          "pass": true
+        }
+      ],
+      "refuted_by": []
+    },
+    "H2": {
+      "fires": false,
+      "conditions": [
+        {
+          "name": "b_edges",
+          "value": 1.4360461300906024,
+          "test": ">= 1.6",
+          "pass": false
+        },
+        {
+          "name": "edge_share_monotonic",
+          "value": [
+            0.03840526700804682,
+            0.028666389696717906,
+            0.017148665486261393,
+            0.013878903157109183,
+            0.0157427376309722
+          ],
+          "test": "strictly rising T1->T9",
+          "pass": false
+        }
+      ],
+      "refuted_by": [
+        "b_edges",
+        "edge_share_monotonic"
+      ]
+    },
+    "H3": {
+      "fires": false,
+      "conditions": [
+        {
+          "name": "b_parse",
+          "value": 1.014438285515779,
+          "test": ">= 1.6",
+          "pass": false
+        }
+      ],
+      "refuted_by": [
+        "b_parse"
+      ]
+    },
+    "H4": {
+      "fires": false,
+      "conditions": [
+        {
+          "name": "no_phase_reaches_bar",
+          "value": [
+            "write"
+          ],
+          "test": "no phase >= 1.6",
+          "pass": false
+        }
+      ],
+      "refuted_by": [
+        "no_phase_reaches_bar"
+      ]
+    },
+    "H0": {
+      "fires": false,
+      "escalates_as": "H4",
+      "reading": "localised, unclassified — report every exponent and share, adjudicate nothing"
+    },
+    "fired": [
+      "H1"
+    ],
+    "outcome": "H1",
+    "next_step": "A cache_size / mmap_size A/B at a single rung, run before any shipped fix."
+  },
+  "mini_replication": {
+    "b": 1.7768013646684129,
+    "se_hc3": 0.04974138621800595,
+    "df": 13,
+    "t_crit": 2.16036865646279,
+    "ci_hc3": [
+      1.6693416329540227,
+      1.884261096382803
+    ],
+    "ci_boot": [
+      1.0428630395067846,
+      2.51073968983001
+    ],
+    "boot_p": 0.0684,
+    "se_cr1": 0.08085187339403581,
+    "boot_atoms": 7776,
+    "e1_b": 1.7529,
+    "consistent_with_e1": true,
+    "adjudicates": false,
+    "reading": "A mini-replication on a different binary, at 5 rungs rather than 9. Consistent iff the 95% HC3 interval covers E1's 1.7529. It adjudicates nothing in either direction."
+  },
+  "findings": []
+}
