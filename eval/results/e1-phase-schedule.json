@@ -1,0 +1,112 @@
+{
+  "created": "2026-08-13T01:36:42.630Z",
+  "gate0": {
+    "schema_version": "1.3.0",
+    "dist_hash": "454894e50ccdf7fc299fe7f5af006217b1bfbed396663e9a1be14c5efe35aa4c",
+    "dist_newest_mtime": "2026-08-13T01:07:51.165Z",
+    "dist_entry_mtime": "2026-08-07T20:53:13.746Z",
+    "bin": "/Users/spikedpunchvictim/projects/kluster/packages/mast/dist/cli/index.js",
+    "node_version": "v24.18.0"
+  },
+  "total_runs": 15,
+  "reps": 3,
+  "tiers": [
+    "T1",
+    "T3",
+    "T5",
+    "T7",
+    "T9"
+  ],
+  "schedule": [
+    {
+      "slot": 1,
+      "kind": "tier",
+      "corpus": "T5",
+      "rep": 2
+    },
+    {
+      "slot": 2,
+      "kind": "tier",
+      "corpus": "T5",
+      "rep": 1
+    },
+    {
+      "slot": 3,
+      "kind": "tier",
+      "corpus": "T9",
+      "rep": 1
+    },
+    {
+      "slot": 4,
+      "kind": "tier",
+      "corpus": "T7",
+      "rep": 1
+    },
+    {
+      "slot": 5,
+      "kind": "tier",
+      "corpus": "T3",
+      "rep": 3
+    },
+    {
+      "slot": 6,
+      "kind": "tier",
+      "corpus": "T7",
+      "rep": 2
+    },
+    {
+      "slot": 7,
+      "kind": "tier",
+      "corpus": "T5",
+      "rep": 3
+    },
+    {
+      "slot": 8,
+      "kind": "tier",
+      "corpus": "T1",
+      "rep": 1
+    },
+    {
+      "slot": 9,
+      "kind": "tier",
+      "corpus": "T1",
+      "rep": 2
+    },
+    {
+      "slot": 10,
+      "kind": "tier",
+      "corpus": "T1",
+      "rep": 3
+    },
+    {
+      "slot": 11,
+      "kind": "tier",
+      "corpus": "T3",
+      "rep": 2
+    },
+    {
+      "slot": 12,
+      "kind": "tier",
+      "corpus": "T7",
+      "rep": 3
+    },
+    {
+      "slot": 13,
+      "kind": "tier",
+      "corpus": "T9",
+      "rep": 3
+    },
+    {
+      "slot": 14,
+      "kind": "tier",
+      "corpus": "T9",
+      "rep": 2
+    },
+    {
+      "slot": 15,
+      "kind": "tier",
+      "corpus": "T3",
+      "rep": 1
+    }
+  ]
+}

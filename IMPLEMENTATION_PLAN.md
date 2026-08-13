@@ -3846,6 +3846,57 @@ that follows is verified by re-running **E1's full 9-rung registered ladder** ag
 committed scorer and the immutable 1.35 threshold — not by re-running this diagnostic, and
 never by moving a threshold.
 
+#### ADDENDUM (2026-08-12, written while building the instrument, BEFORE any scored run)
+
+Building `eval/e1-phase-run.mjs` surfaced six choices the registration above does not fix.
+Each is an unregistered lever, and this program's own record says an unregistered lever gets
+resolved toward the investigator's prior (A4-FATAL-1, A4-MAT-1, A4-MAT-6, four rounds
+running). They are therefore closed here, in writing, before the instrument is run — not
+defended afterwards. **No threshold in the registration moves; these are readings of it.**
+
+1. **"T9's median run" is the run with the median `duration_ms`** among that rung's three.
+   Three repetitions is odd, so the median run is unique and no averaging occurs. Not the
+   mean and not a pooled ratio-of-sums, both of which the registration already excludes.
+2. **"Per-tier median share" (H2's monotonicity input) is the median of the rung's three
+   per-run shares** — a different statistic from item 1, which is why `tierShares` publishes
+   **both** readings at every rung (`median_run` and `median_of_shares`). Publishing one
+   would leave the choice between them available after the data arrived.
+3. **H4 is evaluated over the five phases only.** The remainder is not a phase. If the
+   remainder alone reached the 1.6 bar while no phase did, H4 still fires exactly as
+   registered, and the remainder's exponent is reported beside it as a finding rather than
+   folded into the classification.
+4. **A non-positive remainder at any rung makes the sixth series unfittable**, reported as
+   `degenerate: non_positive_values` plus a finding. It is neither dropped nor a VOID: the
+   registered `ln(0)` VOID governs *phases*, and widening it to the remainder would let
+   millisecond rounding at T1 void an entire rung.
+5. **Gate P is evaluated on the FITTED attempt**, after `selectFitted` — the run that will
+   actually be scored, not the last one spawned. Checking the last attempt would let a
+   thrice-failing pair pass Gate P on a decomposition that never enters the fit.
+6. **`scoreable` encodes the registered blockers only** — VOID runs and Gate P2
+   chunk-count disagreement. A thrice-failing Gate 3 run is logged and retained (A4-MAT-6)
+   and is **not** a blocker. E1's driver conflated the two into one stricter flag, which the
+   E1 RESULT recorded as a discrepancy resolved toward the registration; it is encoded
+   correctly here rather than inherited wrong.
+
+**Binary identity, recorded before the run.** `pnpm -F mast build` at this commit reproduces
+`dist` content hash `454894e50ccdf7fc299fe7f5af006217b1bfbed396663e9a1be14c5efe35aa4c` —
+**the same hash `eval/results/e1-phase-attribution.json` carries**. Gate P's 95% floor and
+the scored runs therefore measure one build, which is what makes the floor's ~5 points of
+headroom meaningful rather than a comparison across binaries.
+
+**`c` is re-measured, not inherited.** E1's `c = 23.5 ms` was measured on the pre-`c71d59c`
+binary and is not reused; `eval/results/e1-phase-calibration.json` is written by this
+instrument's own 10 empty-corpus runs.
+
+**Instrument, committed before any scored run (Gate 5).** `eval/e1-phase-schedule.mjs` (the
+5-rung schedule, Gate P, the `ln(0)` guard, and the state-dir namespacing that keeps E1's
+retained rep-3 artifacts alive), `eval/e1-phase-score.mjs` (every threshold and the
+classification), `eval/e1-phase-run.mjs` (the driver), `eval/e1-phase-report.mjs` (the
+journal seam), and 68 known-answer tests across three files — including the registration's
+own worked H0 counterexample (`b_write = 3.0` at a 45% T9 share), every boundary at `>=`
+/ `<=`, and H2's strict-monotonicity tie. E1's own modules are **not** modified: what
+E1-PHASE inherits unchanged it imports.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
