@@ -4165,6 +4165,323 @@ baseline. An arm at, say, 8 MB or 64 MB was going to be described relative to a 
 that does not exist, and the "control" arm is not a small cache — it is already a moderately
 large one.
 
+### E1-AB PRE-REGISTRATION (2026-08-13) — is the page cache the mechanism behind write's super-linearity?
+
+**Status: registered, not yet run.** To be committed before any scored run, per §6.
+
+**This is a probe, not a remedy, and not a verdict experiment.** It cannot confirm, overturn
+or soften E1's SUPER-LINEAR verdict, and no result here may be reported as doing so. It also
+cannot re-adjudicate E1-PHASE: H1 (write-localised, mechanism unidentified) stands whatever
+this returns. It is the mechanism discriminator registered *inside* the E1-PHASE registration
+precisely so it could not be improvised after the result. **No pragma is shipped on the
+strength of it.** Any fix that eventually follows is verified by re-running **E1's full 9-rung
+ladder** against the committed scorer and the immutable 1.35 threshold — never by re-running
+E1-PHASE, never by re-running this, and never by moving a threshold.
+
+#### The question
+
+E1-PHASE localised the exponent to the write phase (`b_write = 1.9685`, 94.01% of the clock at
+T9) and licensed **"write-localised, mechanism unidentified" and nothing narrower**. Chunks and
+database bytes are perfectly collinear across that ladder, so a page-cache cliff, FTS5 trigram
+segment merges, per-file transaction overhead and B-tree depth growth are indistinguishable on
+that evidence. This experiment breaks the collinearity on exactly one of those candidates, by
+varying the page cache **at fixed corpus size** and watching whether write time moves.
+
+#### Facts this design rests on, each measured or read at primary source (not inherited)
+
+| fact | value | source |
+|---|---|---|
+| default page cache | `cache_size = -16000` → **15.63 MiB** | `better-sqlite3@12.11.1` `deps/defines.gypi:13`, on the shipped object's compile line |
+| default memory map | `mmap_size = 0` — **off** | measured on a live connection |
+| mmap ceiling on this platform | `SQLITE_MAX_MMAP_SIZE = 0x7fff0000` (~2 GiB) | `sqlite3.c:16129`, `__APPLE__ && __MACH__` branch; no `SQLITE_MAX_MMAP_SIZE` define in `defines.gypi` |
+| WAL commit durability | `SQLITE_DEFAULT_WAL_SYNCHRONOUS=1` → **NORMAL** | `defines.gypi:15` |
+| T1 `graph.db` | **21,569,536 B = 20.57 MiB** = 1.32× the cache | `ls -l ~/.cache/mast-eval/e1/phase-run-T1-r3/graph.db`, re-measured today |
+| T9 `graph.db` | **439,140,352 B = 418.8 MiB** = 26.8× the cache | same, `phase-run-T9-r3` |
+| write structure | **one transaction per file** (~13,330 at T9) | `src/indexer/index.ts:369` and the `populateFile` loop beneath it |
+
+The T1/T9 sizes discharge limit 2 of the `CORRECTION (2026-08-13)` above — the 21.6 MB figure
+was inherited there on the previous session's authority and is now first-hand.
+
+Two of these actively shape the design. `synchronous = NORMAL` means a per-file commit does
+**not** fsync, so per-transaction durability cost is not the linear floor one would otherwise
+assume. And `mmap_size = 0` means the mmap arm is an **on/off** contrast, not a resize.
+
+#### Design
+
+**Two rungs — T1 and T9 — four arms, three blocks: 24 runs.**
+
+| arm | flags | expected `pragmas:` echo | role |
+|---|---|---|---|
+| **A** | *(none)* | `{"cache_size":-16000,"mmap_size":0}` | control — the un-pragma'd binary |
+| **B** | `--cache-size-mib 1024` | `{"cache_size":-1048576,"mmap_size":0}` | cache exceeds T9's whole database (1024 MiB vs 418.8 MiB, 2.4×), so **no page can ever be evicted** |
+| **C** | `--mmap-size-mib 1024` | `{"cache_size":-16000,"mmap_size":1073741824}` | memory mapping ON, cache at default — isolates the read-path syscall/copy cost |
+| **D** | `--cache-size-mib 2` | `{"cache_size":-2048,"mmap_size":0}` | **positive control** — an 8× *shrink*, to the figure the E1-PHASE registration wrongly assumed was the default |
+
+Arm B's size is chosen by a rule, not by taste: **≥ 2× T9's final database size**, so that the
+arm is "the cliff cannot exist" rather than "a bigger number". Arm D is 2 MiB = `-2048`, near
+but not identical to the `-2000` the registration assumed; the difference is 2.4% and is
+noted so nobody later reads `-2048` as a transcription error.
+
+**Why two rungs when the E1-PHASE registration said "at a single rung".** This is a deliberate
+expansion of the registered scope and is declared as one. A single-rung contrast measures a
+**level** effect; the claim under test is about an **exponent**. T1 costs 2.7 s against T9's
+8.9 min, so the second rung is **0.5% of the schedule's machine time** and buys the only
+statistic that speaks to size-coupling (below). Expanding a registered scope *before* running,
+in writing, with the reason, is the opposite of the failure mode §6 guards against.
+
+**Blocked, not shuffled globally.** Each of the 3 blocks contains all 8 `(arm × rung)` cells,
+ordered by a seeded shuffle (**seed 4409**, committed here). Blocks run sequentially. Every arm
+therefore appears exactly once per block, so a monotone machine drift across a ~2-hour schedule
+loads onto all arms roughly equally instead of onto whichever arm ran last.
+
+**State dirs are namespaced `e1ab-run-<arm>-<tier>-r<k>` under `~/.cache/mast-eval/e1/`.**
+`runColdIndex` wipes its state dir before every run, and E1's `run-T9-r3` / E1-PHASE's
+`phase-run-T9-r3` are retained artifacts that Gate 6 and any future audit read. Note also that
+`~/.cache/mast-eval/ab-runs/` and `ab-state/` **already exist** and belong to the unrelated
+paraphrase A/B — the `e1ab-` prefix avoids that collision too. Pinned by a test.
+
+Everything else is inherited from E1/E1-PHASE unchanged and must not be re-derived: the frozen
+tier manifest, `assertCorpusPinned('n8n')`, `assertTierFileSet`, cold-start discipline (fresh
+state dir per run, never `--incremental`), Gate 3's `max(5%, 500 ms)` clock rule with its
+retake cap, and A4-MAT-6's first-attempt retention.
+
+#### The estimator, fixed before the data
+
+**Primary statistic — a within-block ratio, so drift cancels by construction:**
+
+```
+ρ_X = median over blocks k=1..3 of  write_ms(X, T9, k) / write_ms(A, T9, k)
+```
+
+for `X ∈ {B, C, D}`. **Median of the three per-block ratios**, not a ratio of medians and not a
+pooled ratio-of-sums. `write_ms` is the primary series because E1-PHASE measured it at 94.01%
+of the clock at T9; `duration_ms` is reported alongside under the identical estimator and has
+**no role in any decision** — it is there so a divergence between the two is visible rather
+than hidden.
+
+**`c` is neither measured nor used.** Every statistic here is a within-rung ratio or a
+write-phase quantity, so the empty-corpus constant plays no part. It is not recorded, because
+an unused measurement lying in an artifact is an invitation to post-hoc use.
+
+**Three blocks is three numbers.** No CI, no HC3, no bootstrap is computed or reported for
+`ρ`: at n=3 any interval would be decoration, and the E1-PHASE record already contains one
+case (`b_edges`) where a printed interval invited an argument the registration had to refuse.
+The **spread** (min, median, max of the three per-block ratios) is reported instead, and a
+spread exceeding **0.15** on any arm is a **reported finding**, not a gate.
+
+#### Hypotheses, thresholds and the outcome set — exhaustive, committed before the data
+
+**Primary classification, on `ρ_B`:**
+
+| `ρ_B` | outcome | what it licenses — and nothing more |
+|---|---|---|
+| ≤ 0.20 | **CACHE-DOMINANT** | the page cache accounts for ≥80% of write time at T9; the cache-cliff *class* is the leading mechanism at this rung |
+| 0.20 < `ρ_B` ≤ 0.80 | **CACHE-PARTIAL** | materially involved; does **not** account for the bulk — other mechanisms carry the majority |
+| > 0.80 | **CACHE-NOT-IMPLICATED** | a 64× enlargement buys <20% at the rung where write is 94% of the clock |
+
+The same three-way table is applied to `ρ_C` with `MMAP-` prefixes, independently. **The bands
+are graded on purpose**: write's excess over linear is ~94% of write time at T9, so a 20%
+reduction retires ~21% of the excess. Without the bands, a `ρ_B` of 0.79 could be narrated as
+"the cache cliff is confirmed", which it is not.
+
+**The mechanism story is adjudicated on the pair `(ρ_B, ρ_D)`, and every cell is named:**
+
+| | `ρ_D ≥ 1.10` (shrinking hurts) | `ρ_D < 1.10` (shrinking is free) |
+|---|---|---|
+| **`ρ_B` ≤ 0.80** | cache implicated per the ρ_B band; corroborated in both directions | **CACHE-ASYMMETRIC** — classification per the ρ_B band **stands**, and the asymmetry is a finding that must be explained before any fix is proposed |
+| **`ρ_B` > 0.80** | **CACHE-SATURATED** — the lever demonstrably works, but 15.63 MiB is already past the benefit knee. The *default cache* is not the mechanism. | **CACHE-INERT** — a **512× range** (2 MiB → 1024 MiB) moves write by less than the bands. **The page-cache-cliff story is REFUTED at T9.** |
+
+**CACHE-INERT is a positive result, not a null**, and arm D is what makes it one. Without a
+positive control, "we enlarged the cache and nothing happened" is indistinguishable from "our
+lever was not connected". With it, the claim becomes "we moved the lever 512× in both
+directions and the clock did not care."
+
+**The size-coupling discriminator — interpreted only when `ρ_B ≤ 0.80`:**
+
+```
+Δ = ρ_B(T1) − ρ_B(T9)
+```
+
+**SIZE-COUPLED iff `Δ ≥ 0.10`** — the enlargement helps at least 10 percentage points more at
+26.8× the cache than at 1.32×. Otherwise **CONSTANT-FACTOR**: the arm is a speedup, not an
+explanation of the exponent, and may not be reported as bearing on `b_write`. This is a
+**conditional discriminator, not an independent hurdle**, and is counted as such below.
+
+**Secondary, descriptive, no threshold:** the two-point write slope per arm,
+`b̂_write(X) = ln(w9/w1) / ln(19.94)`. On E1-PHASE's control data this returns **1.961** against
+the 5-rung fit's 1.9685, so the two-point form tracks the ladder — but **two points are not a
+fit**, no interval exists for it, and no outcome above depends on it. It is reported to make
+the arms mutually comparable in the units the program has been reasoning in, and for no other
+purpose.
+
+#### Direction-of-error statement (mandatory field)
+
+**My prior now leans toward the cliff, and the reason is uncomfortable: I moved it there
+myself, yesterday, by withdrawing the counter-evidence** (`CORRECTION (2026-08-13)`). §6 says a
+result that flatters the thing you are testing deserves more scrutiny; the same applies to a
+*correction* that flatters it. Four compensations, and I distinguish the real ones from the
+decorative:
+
+1. **Arm D is the substantive compensation.** It gives a refutation its own positive evidence,
+   so an inert result is publishable rather than a reason to keep hunting for a better arm.
+   Nothing else in the design does that work.
+2. **Gate A (arm identity) cuts both ways.** A flag that silently failed to reach the
+   connection would produce identical arms and a clean, credible-looking null — *or*, on a
+   different failure, a spurious difference. The echo makes both visible.
+3. **The graded bands** stop a small effect being narrated as vindication. That is a guard on
+   *reporting*, not on measurement, and is worth less than (1).
+4. **The within-block ratio and seed are fixed here**, so no aggregation or ordering choice
+   remains open after the data arrives. This is table stakes, not a compensation.
+
+**Condition counting, honestly.** The cache-cliff story has **exactly one substantively free
+test: `ρ_B ≤ 0.80`.** `Δ ≥ 0.10` is conditional on it and only sub-classifies. `ρ_D ≥ 1.10` is
+an instrument check that does not test the hypothesis — it decides whether a *refutation* is
+informative. Anyone reading three thresholds as three hurdles is over-counting, which is the
+error the E1-PHASE registration had to correct in itself before running.
+
+**A prior that runs the other way, recorded now so it cannot be claimed later.** T9's database
+is 418.8 MiB on a machine with far more RAM than that, so the OS page cache plausibly holds the
+entire file already; a SQLite cache miss may then be a `memcpy` from the OS cache rather than a
+disk read. If so, **arm B should do very little**, and the honest expectation for this
+experiment is closer to CACHE-INERT than to CACHE-DOMINANT. Arm C exists partly because it
+addresses that regime directly: mmap removes the `pread` syscall and copy that a warm-OS-cache
+miss still pays.
+
+**One consequence I do not control and will not pretend to.** `wal_autocheckpoint` stays at its
+default (1000 pages ≈ 4 MiB) in every arm. Cache size and checkpoint scheduling interact, so
+"arm B" is strictly "arm B *at the default checkpoint policy*". It is held constant, not
+isolated.
+
+#### Gates
+
+- **Gate 0 — binary identity.** `dist` content hash + `schema_version` recorded pre-run and
+  re-asserted at every start and restart; all 24 runs assert one hash. **The hash HAS moved**:
+  `ef8d83e` added `OpenDatabaseOptions` and the two CLI flags, so this experiment runs on a
+  different binary than E1-PHASE's 15-run ladder. **Registered consequence: no absolute timing
+  here is comparable to the ladder's, and nobody may read across the two.** Both arms sharing
+  one binary is what keeps the A/B internally valid; the control arm is **re-measured on this
+  binary** and E1-PHASE's T9 write times are not reused as a control.
+- **Gate 1 — corpus integrity.** `assertCorpusPinned('n8n')` per run; each run's `SELECT path
+  FROM files` equals the frozen manifest's file set for its tier, exactly.
+- **Gate A (new) — arm identity.** Every run's `pragmas:` line must equal its arm's declared
+  pair in the table above, **exactly**. A mismatch **VOIDs the run**. This is the gate that
+  makes each run self-describing about which arm produced it; it is the direct analogue of
+  Gate 0's content hash, at the level of the lever rather than the binary.
+  **Its limit, stated rather than glossed:** the echo proves the pragma was *configured on the
+  connection SQLite reported it from*. It does not prove SQLite's pager honoured it internally.
+  The only available cross-check on that is behavioural — if **no** arm moves the clock, a
+  disconnected lever cannot be fully excluded, and CACHE-INERT is reported with that caveat
+  attached rather than as a clean refutation.
+- **Gate 3 — clock agreement.** `max(5%, 500 ms)`, retakes capped at 2 then logged, orphaned
+  attempts charged against the cap (A4-MAT-3), A4-MAT-6 first-attempt retention. Retentions
+  are reconciled (`attempt_start` records vs completed attempts) and the direction of any
+  retained bias is stated in the RESULT, as E1-PHASE's was.
+- **Gate P — attribution.** `Σ phase_ms ≥ 0.95 × durationMs` on the **fitted** attempt.
+  Inherited unchanged; E1-PHASE measured 99.85–100.00% across 15 runs, so the floor is
+  ~5 points of real headroom rather than a guess.
+- **Gate P2 — work identity, strengthened.** All **twelve** runs at a rung (4 arms × 3 blocks)
+  must report an identical `chunk_count`, not merely the three reps of one arm. This is the
+  gate that proves the arms did the *same work* and differ only in configuration. Disagreement
+  voids the rung.
+- **Gate 5 — instrument committed before any scored run.** And this time literally: **commit,
+  then launch.** E1-PHASE's margin was 24 seconds with part of its calibration running
+  pre-commit (RR3); that is disclosed there and is not repeated here.
+
+**Database size across arms is a reported FINDING, not a gate.** Final `graph.db` bytes are
+recorded for every run and compared across arms at each rung. It is *not* a gate because the
+run-to-run determinism of that number has not been measured, and Gate P's precedent (re-anchored
+on three real T1 runs rather than a smoke test) is that a threshold with no measurement behind
+it does not belong in this program.
+
+#### Falsification criteria
+
+- **The cache-cliff mechanism story is REFUTED at T9** iff `ρ_B > 0.80` **and** `ρ_D < 1.10`
+  (CACHE-INERT).
+- **It is refuted specifically as a story about the DEFAULT** iff `ρ_B > 0.80` and
+  `ρ_D ≥ 1.10` (CACHE-SATURATED): the cache matters, and 15.63 MiB is already enough.
+- **It is refuted as an explanation of the EXPONENT**, even when `ρ_B ≤ 0.80`, iff
+  `Δ < 0.10` (CONSTANT-FACTOR).
+- **The mmap story is refuted** iff `ρ_C > 0.80`.
+- **The whole instrument is VOID** if Gate A fails on any scored run that cannot be re-run
+  clean, if Gate P2 disagrees within a rung, or if any run's `write_ms ≤ 0`.
+- **If every arm is inert** (`|ρ_X − 1| < 0.10` for all of B, C, D), the result is reported as
+  **CACHE-INERT with the Gate A limit attached** — see above — and the next step is *not*
+  another pragma arm: it is statement-level or `sqlite3_stmt_scanstatus` profiling inside the
+  write phase. Registered now so an all-inert outcome is not quietly re-analysed.
+
+#### Instrument — to be built and committed before any scored run (Gate 5)
+
+| file | role |
+|---|---|
+| `eval/e1-ab-schedule.mjs` | arms, rungs, blocks, the seed-4409 within-block shuffle, Gate A's expectation table, state-dir namespacing |
+| `eval/e1-ab-score.mjs` | within-block ratios, the ρ bands, the 2×2 outcome cells, Δ, the descriptive two-point slope |
+| `eval/e1-ab-run.mjs` | the 24-run driver — resumable, journalled, **with a working VOID dequeue** |
+| `eval/e1-ab-report.mjs` | the journal→scorer seam |
+
+**Two inherited defects must be dealt with, because HANDOFF §5 forbids reusing an instrument
+without fixing its defects:**
+
+1. **The VOID queue has no dequeue** (RR6). A void that is later re-run clean stays in
+   `loadJournal`'s map, pinning `scoreable` false forever. Unexercised in E1-PHASE (0 voids),
+   but Gate A makes a void *plausible* here, so the new driver implements the dequeue and a
+   test exercises void → re-run → `scoreable: true`.
+2. **`fitSeries` reports spurious precision on quantized series** (RR4). **Does not apply** —
+   this instrument computes no OLS fit. The one slope it reports is a two-point ratio,
+   explicitly labelled descriptive, over values of 1.4 s and 500 s where millisecond
+   quantization is ~0.0002%.
+
+**`eval/e1-common.mjs` is touched, and the change is additive.** `runColdIndex` needs to pass
+the two flags and parse the `pragmas:` line. It gains an optional extra-args parameter
+defaulting to none, plus a `parsePragmas` export. **E1's and E1-PHASE's call paths must be
+byte-for-byte unchanged in behaviour**, pinned by a test that calls it with no extra args and
+asserts the argv it builds. Neither E1's nor E1-PHASE's scored records are re-scored, re-fitted,
+or touched in any way.
+
+#### Declared prior exposure (P0 precedent)
+
+Three things were seen before this registration was written, and none of them tuned a threshold:
+
+1. **E1-PHASE's T9 control write times** (500,885 / 497,485 / 504,941 ms) are published data on
+   the **previous** binary. Every statistic here is a ratio against a control **re-measured on
+   this binary**, so the old absolutes cannot enter. They did inform the ~8.9 min/run cost
+   estimate and hence the block count.
+2. **T1 and T9 `graph.db` sizes**, measured today from retained artifacts. These *did* set arm
+   B's size, via the pre-stated rule "≥2× T9's database". That is a design input chosen from a
+   size, not a threshold chosen from a timing.
+3. **A `pragmas:` smoke run** on a one-file corpus while building the lever, which printed
+   `{"cache_size":-65536,"mmap_size":268435456}`. It produced no tier timing.
+
+No T1 or T9 timing on the current binary has been observed by anyone at the time of this
+commit.
+
+#### Costs
+
+24 runs. 12 at T9 (~8.9 min each on the previous binary) and 12 at T1 (~2.7 s each):
+**~2 hours** if the arms are neutral, and materially longer if arm D is slow — a 2× arm-D
+penalty adds ~27 min. Peak transient disk is one T9 state dir at a time (~420 MiB), wiped per
+run. **Machine must be otherwise idle**, as for E1 and E1-PHASE.
+
+#### Design Reserve (pre-thought, NOT commitments)
+
+Recorded so that if any of these is later promoted, the promotion is visible as a change of
+plan rather than as improvisation:
+
+- **A 1 MiB cache arm**, if arm D at 2 MiB proves inert — a stronger positive control.
+- **A combined arm** (large cache + mmap). Deliberately excluded: it is fix-shaped, and this
+  is a probe.
+- **An FTS5 arm** — building the trigram index in a second pass, or `'rebuild'` after bulk
+  insert — to attack the mechanism candidate this experiment cannot touch. That is a different
+  instrument and would need its own registration.
+- **`wal_autocheckpoint` as an arm.** Named because it is the interaction this design holds
+  constant rather than isolates.
+
+#### What is deliberately NOT done
+
+No pragma is set in product code, in either direction, on the strength of this. `MAST_SPEC`
+documentation of `--cache-size-mib` / `--mmap-size-mib` (and of the still-undocumented
+`--phase-timing` / `ENABLE_MAST_PHASE_TIMING`) is a separate, non-measurement item and is not
+folded in here. E1-PHASE is not re-run and E1 is not re-scored.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
