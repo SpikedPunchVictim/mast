@@ -4106,6 +4106,54 @@ unchanged, on every estimator and every sensitivity constructed against it. What
 the confidence language around it, in the three places where this RESULT's first version
 flattered its own hypothesis.
 
+##### CORRECTION (2026-08-13) — the "~2 MB default page cache" figure is wrong by 8×, and it was load-bearing
+
+Found while building the A/B's lever (`ef8d83e`), before the A/B was designed. A test asserting
+that `openDatabase` leaves the page cache at SQLite's own default was written against a bare
+`better-sqlite3` connection rather than a hardcoded constant, and it reported **`cache_size =
+-16000`** — not the `-2000` the E1-PHASE registration assumed.
+
+**Verified at primary source, not inferred from the observation.** `better-sqlite3@12.11.1`
+(SQLite 3.53.2) compiles the amalgamation with `SQLITE_DEFAULT_CACHE_SIZE=-16000`
+(`deps/defines.gypi:13`), overriding the `#ifndef` fallback of `-2000` in `sqlite3.c:14850`;
+the flag's presence on the shipped object's own compile command line
+(`build/Release/.deps/…/sqlite3.o.d`) confirms it reached the binary rather than merely the
+build file. Measured on the same install: `page_size = 4096`, and **`mmap_size = 0`** — memory
+mapping is OFF by default, so an mmap arm is an on/off contrast, not a resize.
+
+**MAST's effective default page cache is therefore ~16.0 MB (16,000 KiB), not ~2 MB.**
+
+**What this overturns.** The registration recorded, as a pre-run fact damaging H1's mechanism
+story: *"T1's database is 21.6 MB — already ~10× SQLite's ~2 MB default page cache — while the
+knee E1 measured sits at T4/T5 (66 → 95 MB). A 2 MB cache is exhausted before the ladder
+begins, so it cannot produce a knee there."* At the true default, T1's 21.6 MB is **1.3×** the
+cache, not 10×. The ladder does not begin with the cache already exhausted — it **crosses** the
+cache boundary at roughly its first rung and reaches 4–6× the cache by T4/T5. That is the
+regime in which a cache cliff would produce a knee, which is precisely where E1 measured one.
+
+**Direction of error — stated because this one runs the wrong way.** The correction **removes a
+piece of counter-evidence against the hypothesis the previous session held**, and so makes the
+cache-cliff story more plausible, not less. Under §6 ("a result that flatters the thing you are
+testing deserves MORE scrutiny") it is recorded with its own limits attached:
+
+1. **Database size is not working set.** A bulk insert's hot pages are the 11 indices' interior
+   B-tree nodes and FTS5's in-flight segment structures, not the whole file. Neither the old
+   comparison nor the corrected one is decisive about residency; what changed is only that the
+   *ratio degrades ~5× across the ladder* instead of being pinned far past the cliff from the
+   start.
+2. **The 21.6 MB T1 figure is inherited, not re-measured here.** It is carried forward from the
+   previous session on its own authority.
+3. **This does not promote H1's mechanism claim.** A confirmed H1 still licenses
+   "write-localised, mechanism unidentified" and nothing narrower — FTS5 segment merges,
+   per-file transaction overhead and B-tree depth growth remain indistinguishable on the
+   E1-PHASE evidence. What the correction changes is that the cache cliff can no longer be
+   waved off *a priori*; it has to be measured. That is what the A/B is for.
+
+**Consequence for the A/B's registration:** its arms must be sized against the real **16 MB**
+baseline. An arm at, say, 8 MB or 64 MB was going to be described relative to a 2 MB control
+that does not exist, and the "control" arm is not a small cache — it is already a moderately
+large one.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
