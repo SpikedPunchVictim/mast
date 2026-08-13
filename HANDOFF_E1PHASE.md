@@ -52,10 +52,27 @@ Four things constrain it, and none is negotiable:
    depth growth are **indistinguishable on this evidence**. Anyone calling the E1-PHASE
    result "the page-cache cliff" is over-reading it — including the A/B's own registration.
 
-**Read before designing it:** the pre-run fact that already damages the cache-cliff story
-specifically. **T1's database is 21.6 MB against SQLite's ~2 MB default page cache**, so the
-cache is exhausted before the ladder even begins and cannot produce the T4/T5 knee E1
-measured. The A/B should be designed to be capable of *refuting* the cliff, not to confirm it.
+**Read before designing it — and note this reverses what the previous handoff said here.**
+That handoff recorded a pre-run fact said to damage the cache-cliff story specifically: *"T1's
+database is 21.6 MB against SQLite's ~2 MB default page cache, so the cache is exhausted
+before the ladder even begins."* **The ~2 MB figure is wrong.** `better-sqlite3@12.11.1`
+compiles the amalgamation with `SQLITE_DEFAULT_CACHE_SIZE=-16000` (`deps/defines.gypi:13`,
+confirmed on the shipped object's own compile command line), so **MAST's effective default
+page cache is ~16 MB**, and the control arm's own `pragmas:` line now prints `-16000` on every
+run as standing proof. Also measured: **`mmap_size = 0` by default** — memory mapping is off,
+so an mmap arm is an on/off contrast, not a resize.
+
+At the true default T1 is **1.3×** the cache, not 10×: the ladder *crosses* the cache boundary
+near its first rung and reaches 4–6× by T4/T5 — the regime in which a cliff would produce a
+knee, which is where E1 measured one. Full reasoning and its three attached limits are in
+`IMPLEMENTATION_PLAN.md` § `CORRECTION (2026-08-13)`.
+
+**Do not over-read this either.** It withdraws a piece of counter-evidence; it does not supply
+evidence *for* the cliff, and constraint 4 above is untouched — a confirmed H1 still licenses
+"write-localised, mechanism unidentified" and nothing narrower. The A/B must still be designed
+to be capable of *refuting* the cliff. What changed is only that the cliff can no longer be
+dismissed a priori, and that **the arms must be sized against a 16 MB control, not a 2 MB one**
+— the control is already a moderately large cache.
 
 ### The A/B needs a product change first — decided 2026-08-12, NOT yet built
 

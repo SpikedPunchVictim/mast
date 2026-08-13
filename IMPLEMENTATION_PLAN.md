@@ -3718,7 +3718,7 @@ the *instrument*, not about `b`.
 
 | | mechanism | prediction |
 |---|---|---|
-| **H1** | Page-cache cliff: 11 B-tree indices maintained during bulk insert (`graph/db.ts:288–350`) against a database reaching ~440 MB, with SQLite's default ~2 MB page cache and no `cache_size`/`mmap_size` pragma set (`db.ts:370–385`). | `b_write ≥ 1.6` **and** `b_parse ≤ 1.25` **and** write's share of `durationMs` at T9 `≥ 60%` |
+| **H1** | Page-cache cliff: 11 B-tree indices maintained during bulk insert (`graph/db.ts:288–350`) against a database reaching ~440 MB, with SQLite's default ~2 MB page cache and no `cache_size`/`mmap_size` pragma set (`db.ts:370–385`). *(⚠️ the "~2 MB" is WRONG — it is ~16 MB; see CORRECTION 2026-08-13. H1's decision conditions are purely numeric and are unaffected.)* | `b_write ≥ 1.6` **and** `b_parse ≤ 1.25` **and** write's share of `durationMs` at T9 `≥ 60%` |
 | **H2** | Call/symbol resolution: pass 2's edge insertion scales with candidate sets that grow with the corpus. | `b_edges ≥ 1.6` **and** edges' share of `durationMs` rises monotonically T1→T9 |
 | **H3** | Parse itself: tree-sitter cost growing faster than linearly in content. | `b_parse ≥ 1.6` |
 | **H4** | Diffuse — no single phase carries it. | no phase reaches `b ≥ 1.6` |
@@ -3739,7 +3739,9 @@ That is a probe, not a remedy, and so does not breach "no fix before diagnosis".
 **A fact that already damages H1's mechanism story, recorded before the run.** T1's database
 is **21.6 MB** — already ~10× SQLite's ~2 MB default page cache — while the knee E1 measured
 sits at T4/T5 (66 → 95 MB). A 2 MB cache is exhausted before the ladder begins, so it cannot
-produce a knee there. H1's *location* claim (write-localised) survives; H1's *mechanism*
+produce a knee there. *(⚠️ **WITHDRAWN 2026-08-13** — the default is ~16 MB, not ~2 MB, so
+T1 is 1.3× the cache and this argument does not hold. See `CORRECTION (2026-08-13)` after the
+E1-PHASE RESULTS REVIEW. Left standing as the historical record per §6.)* H1's *location* claim (write-localised) survives; H1's *mechanism*
 claim as originally stated does not follow from the evidence I cited for it.
 
 **Direction-of-error statement (mandatory field).** **My prior is H1** — I proposed it and
@@ -3939,6 +3941,15 @@ still stands and still damages that specific mechanism story:** T1's database is
 against SQLite's ~2 MB default page cache, so the cache is exhausted before the ladder
 begins and cannot produce the T4/T5 knee E1 measured. H1's *location* claim is confirmed;
 H1's *mechanism* claim is not, and was not tested here.
+
+> ⚠️ **The paragraph above is WITHDRAWN as of 2026-08-13 — see `CORRECTION (2026-08-13)`
+> below.** The default page cache is **~16 MB**, not ~2 MB (`better-sqlite3` compiles
+> `SQLITE_DEFAULT_CACHE_SIZE=-16000`), so T1 is 1.3× the cache rather than 10× and the
+> "exhausted before the ladder begins" argument does not hold. Text left standing as the
+> historical record per §6. **The sentence either side of it is unaffected:** H1's location
+> claim is still confirmed and its mechanism claim is still untested — withdrawing a piece
+> of counter-evidence does not promote the mechanism story, it only removes the grounds for
+> dismissing it without measuring.
 
 **Direction of error, revisited against the outcome.** H1 was the previous agent's own
 hypothesis and every free parameter leaned toward finding it — that was registered in
