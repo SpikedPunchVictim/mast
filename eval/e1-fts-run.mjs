@@ -378,7 +378,7 @@ function summarise() {
   // The gate that makes arm G confound-free. A failure here is not a finding to
   // weigh against others; it means the arm measured something else.
   for (const row of dbRows) {
-    if (!row.ok) {
+    if (row.pending !== true && !row.ok) {
       findings.push(
         `GATE DB IDENTITY ${row.tier} b${row.block}: ${row.reason} ` +
         `(A ${row.arm_a_bytes} vs G ${row.arm_g_bytes}, delta ${row.delta_bytes})`
@@ -386,7 +386,11 @@ function summarise() {
     }
   }
 
-  const gatesOk = chunkRows.every((r) => r.runs === 0 || r.identical) && dbRows.every((r) => r.ok);
+  // Pending pairs are excluded here rather than counted as failures — see
+  // `dbIdentityRows`. `sel.scoreable` separately requires all 30 runs, so no
+  // pair can slip past the gate by still being pending in the final state.
+  const gatesOk = chunkRows.every((r) => r.runs === 0 || r.identical)
+    && dbRows.every((r) => r.pending === true || r.ok);
   const scoreable = sel.scoreable && gatesOk;
 
   writeResult('e1-fts-runs-summary.json', {

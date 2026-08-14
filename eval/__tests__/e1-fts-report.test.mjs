@@ -190,3 +190,30 @@ describe('dbIdentityRows — arm G must not have changed the database', () => {
     expect(row.reason).toBe('db_size_unreadable');
   });
 });
+
+// Found by smoking the driver at --limit 2: a mid-schedule summary reported
+// fourteen DB IDENTITY failures for pairs that had simply not run yet. An
+// operator who learns to scroll past this gate is one who will scroll past the
+// time it fires for real.
+describe('dbIdentityRows — a pair that has not run is pending, not failing', () => {
+  it('marks an entirely un-run pair pending rather than failed', () => {
+    const rows = dbIdentityRows([run('A', 'T1', 1), run('G', 'T1', 1)]);
+    const untouched = rows.filter((r) => !(r.tier === 'T1' && r.block === 1));
+    expect(untouched).toHaveLength(14);
+    expect(untouched.every((r) => r.pending === true && r.ok === null)).toBe(true);
+  });
+
+  it('still adjudicates the pair that did run', () => {
+    const row = dbIdentityRows([run('A', 'T1', 1), run('G', 'T1', 1)])
+      .find((r) => r.tier === 'T1' && r.block === 1);
+    expect(row).toMatchObject({ pending: false, ok: true });
+  });
+
+  // A HALF-populated pair is genuinely incomplete, not pending — one arm ran and
+  // the other is missing, which is the shape a lost run leaves behind.
+  it('does not hide a half-populated pair behind pending', () => {
+    const row = dbIdentityRows([run('A', 'T1', 1)]).find((r) => r.tier === 'T1' && r.block === 1);
+    expect(row.pending).toBe(false);
+    expect(row.ok).toBe(false);
+  });
+});

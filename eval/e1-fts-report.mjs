@@ -164,6 +164,14 @@ export function chunkIdentityRows(runs) {
  *
  * Exact equality, no tolerance — a tolerance would be a licence for the
  * confound that got arm F cut to hide inside it.
+ *
+ * A pair that is not yet fully populated is `pending`, NOT a failure. That
+ * distinction is load-bearing rather than cosmetic: without it a mid-schedule
+ * summary reports fourteen gate failures for pairs that simply have not run, and
+ * an operator who learns to scroll past this gate is an operator who will scroll
+ * past the one time it fires for real. Nothing is weakened — `scoreable`
+ * separately requires all {@link FTS_TOTAL_RUNS} runs, so in any final state
+ * every pair is populated and every pair is adjudicated.
  */
 export function dbIdentityRows(runs) {
   const rows = [];
@@ -172,9 +180,17 @@ export function dbIdentityRows(runs) {
       const cell = runs.filter((r) => r.tier === tier && r.block === block);
       const a = cell.find((r) => r.arm === 'A');
       const g = cell.find((r) => r.arm === 'G');
+      if (a === undefined && g === undefined) {
+        rows.push({
+          tier, block, pending: true, ok: null, reason: 'not_yet_run',
+          arm_a_bytes: null, arm_g_bytes: null, delta_bytes: null,
+        });
+        continue;
+      }
       rows.push({
         tier,
         block,
+        pending: false,
         ...dbIdentityVerdict({ armA: a?.db_bytes ?? null, armG: g?.db_bytes ?? null }),
       });
     }
