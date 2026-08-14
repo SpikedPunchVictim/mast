@@ -197,3 +197,56 @@ export function dbIdentityRows(runs) {
   }
   return rows;
 }
+
+/**
+ * Attempts that started and never produced a terminal record — REPAIR-AWARE.
+ *
+ * E1's `orphanedAttempts` (`eval/e1-schedule.mjs:135-157`) counts every
+ * `attempt_start` for a key across the whole journal and subtracts the attempt
+ * count of the LAST terminal record. That is correct for a schedule each cell
+ * runs once. It is wrong for one with repairs: a cell that ran twice — once on
+ * the first pass, once as a re-paired repair — has all of both passes' starts
+ * counted against only the second pass's attempt count, and the first pass's
+ * attempts are reported as interruptions that never happened.
+ *
+ * That is not cosmetic. Orphan counts feed `remainingAttempts`, which SHRINKS a
+ * resumed cell's Gate 3 retake budget; at the limit it reaches zero and the
+ * driver voids the cell with `retake_cap_exhausted_by_interruptions` — a cell
+ * voided for interruptions that did not occur. E1-FTS is the first schedule
+ * here to both repair pairs and resume, which is why it surfaces now.
+ *
+ * The rule is E1's own, applied per SEGMENT instead of per key: each terminal
+ * record closes a segment, and consumes the last `n` starts in it. Starts left
+ * over when a segment closes were genuinely killed. Starts still pending at the
+ * end of the journal were genuinely interrupted.
+ *
+ * `e1-schedule.mjs` is E1's scored instrument and is not modified — this is a
+ * separate function, and the defect there is recorded rather than patched in
+ * place.
+ */
+export function ftsOrphanedAttempts(records) {
+  const pending = new Map();
+  const orphans = [];
+
+  for (const rec of records) {
+    const k = ftsKey(rec);
+    if (rec.type === 'attempt_start') {
+      pending.set(k, [...(pending.get(k) ?? []), rec]);
+      continue;
+    }
+    if (rec.type !== 'run' && rec.type !== 'void') continue;
+
+    const consumed = rec.type === 'run' ? (rec.gate3_attempts?.length ?? 1) : (rec.attempt ?? 0);
+    const started = pending.get(k) ?? [];
+    // The surviving attempts are the LAST n — a resumed cell re-runs from
+    // attempt 1, so anything killed is always earlier in the segment.
+    const surplus = started.length - consumed;
+    if (surplus > 0) orphans.push(...started.slice(0, surplus).map((s) => ({ ...s, key: k })));
+    pending.set(k, []);
+  }
+
+  for (const [k, started] of pending) {
+    orphans.push(...started.map((s) => ({ ...s, key: k })));
+  }
+  return orphans;
+}

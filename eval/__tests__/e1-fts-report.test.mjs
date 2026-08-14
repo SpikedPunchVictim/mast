@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ftsKey, ftsPairKey, foldJournal, planPending, selectFtsRuns,
-  chunkIdentityRows, dbIdentityRows,
+  chunkIdentityRows, dbIdentityRows, ftsOrphanedAttempts,
 } from '../e1-fts-report.mjs';
 import { buildFtsSchedule } from '../e1-fts-schedule.mjs';
 
@@ -215,5 +215,73 @@ describe('dbIdentityRows — a pair that has not run is pending, not failing', (
     const row = dbIdentityRows([run('A', 'T1', 1)]).find((r) => r.tier === 'T1' && r.block === 1);
     expect(row.pending).toBe(false);
     expect(row.ok).toBe(false);
+  });
+});
+
+// Found on the real schedule: after the voided T3/b1 pair was repaired, the
+// summary reported five INTERRUPTED attempts that never happened. E1's
+// `orphanedAttempts` compares ALL of a key's starts against only the LAST
+// terminal record, so both passes' attempts are charged to the second pass.
+//
+// Not cosmetic — orphan counts feed `remainingAttempts`, which shrinks a
+// resumed cell's Gate 3 budget and at the limit auto-voids it.
+describe('ftsOrphanedAttempts — repair-aware interruption detection', () => {
+  const start = (arm, tier, block, attempt, at) => ({ type: 'attempt_start', arm, tier, block, attempt, at });
+  const ran = (arm, tier, block, attempts, at) => ({
+    type: 'run', arm, tier, block, at, gate3_attempts: Array.from({ length: attempts }, (_, i) => ({ attempt: i + 1 })),
+  });
+
+  it('reports nothing for a cell that ran once, first time', () => {
+    expect(ftsOrphanedAttempts([start('A', 'T1', 1, 1, 't0'), ran('A', 'T1', 1, 1, 't1')])).toEqual([]);
+  });
+
+  it('reports nothing for a cell that retook and then completed', () => {
+    expect(ftsOrphanedAttempts([
+      start('A', 'T1', 1, 1, 't0'), start('A', 'T1', 1, 2, 't1'), ran('A', 'T1', 1, 2, 't2'),
+    ])).toEqual([]);
+  });
+
+  // The exact shape that produced the false report: two passes over one cell,
+  // each internally complete.
+  it('reports nothing when a cell legitimately ran twice — first pass then repair', () => {
+    expect(ftsOrphanedAttempts([
+      start('A', 'T3', 1, 1, 't0'), start('A', 'T3', 1, 2, 't1'), ran('A', 'T3', 1, 2, 't2'),
+      start('A', 'T3', 1, 1, 't3'), start('A', 'T3', 1, 2, 't4'), ran('A', 'T3', 1, 2, 't5'),
+    ])).toEqual([]);
+  });
+
+  it('reports nothing when a void segment is followed by a clean repair', () => {
+    expect(ftsOrphanedAttempts([
+      start('G', 'T3', 1, 1, 't0'), start('G', 'T3', 1, 2, 't1'), start('G', 'T3', 1, 3, 't2'),
+      { type: 'void', arm: 'G', tier: 'T3', block: 1, attempt: 3, at: 't3' },
+      start('G', 'T3', 1, 1, 't4'), ran('G', 'T3', 1, 1, 't5'),
+    ])).toEqual([]);
+  });
+
+  // The case orphan detection actually exists for — a killed process leaves a
+  // start with no terminal record after it.
+  it('reports a start left pending at the end of the journal', () => {
+    const o = ftsOrphanedAttempts([start('A', 'T9', 2, 1, 'tX')]);
+    expect(o).toHaveLength(1);
+    expect(o[0].key).toBe('A#T9#b2');
+  });
+
+  // A kill mid-retake: three starts but the terminal record only accounts for
+  // two, so the earliest was killed.
+  it('reports a start killed inside a segment, taking the earliest', () => {
+    const o = ftsOrphanedAttempts([
+      start('A', 'T5', 1, 1, 'early'), start('A', 'T5', 1, 1, 'mid'), start('A', 'T5', 1, 2, 'late'),
+      ran('A', 'T5', 1, 2, 'done'),
+    ]);
+    expect(o).toHaveLength(1);
+    expect(o[0].at).toBe('early');
+  });
+
+  it('still reports a pending start that follows a completed segment', () => {
+    const o = ftsOrphanedAttempts([
+      start('A', 'T1', 1, 1, 't0'), ran('A', 'T1', 1, 1, 't1'), start('A', 'T1', 1, 1, 't2'),
+    ]);
+    expect(o).toHaveLength(1);
+    expect(o[0].at).toBe('t2');
   });
 });

@@ -26,7 +26,7 @@ import {
   E1_ROOT, RESULTS_DIR, assertGate0, assertCorpusPinned, materialiseTier,
   runColdIndex, readIndexedPaths, writeResult,
 } from './e1-common.mjs';
-import { gate3Verdict, remainingAttempts, selectFitted, orphanedAttempts } from './e1-schedule.mjs';
+import { gate3Verdict, remainingAttempts, selectFitted } from './e1-schedule.mjs';
 import { gatePVerdict } from './e1-phase-schedule.mjs';
 import {
   FTS_ARMS_BY_ID, FTS_TIERS, FTS_TOTAL_RUNS, FTS_BLOCKS, FTS_ORDERING, WRITE_SPANS,
@@ -34,6 +34,7 @@ import {
 } from './e1-fts-schedule.mjs';
 import {
   foldJournal, planPending, selectFtsRuns, chunkIdentityRows, dbIdentityRows, ftsKey,
+  ftsOrphanedAttempts,
 } from './e1-fts-report.mjs';
 
 const JOURNAL = join(RESULTS_DIR, 'e1-fts-runs.jsonl');
@@ -73,7 +74,7 @@ function loadJournal() {
       throw new Error(`Journal line ${i + 1} is unparseable and is not the trailing line — ${JOURNAL} is corrupt.`);
     }
   }
-  return { records, ...foldJournal(records), orphans: orphanedAttempts(records, ftsKey), truncated };
+  return { records, ...foldJournal(records), orphans: ftsOrphanedAttempts(records), truncated };
 }
 
 function journal(rec) {

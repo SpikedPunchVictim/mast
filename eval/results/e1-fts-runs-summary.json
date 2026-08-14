@@ -1,15 +1,22 @@
 {
-  "created": "2026-08-14T09:47:12.265Z",
-  "complete": false,
+  "created": "2026-08-14T17:16:30.377Z",
+  "complete": true,
   "total": 30,
-  "unresolved_voids": [
-    "G#T3#b1"
+  "unresolved_voids": [],
+  "resolved_voids": [
+    {
+      "key": "G#T3#b1",
+      "void_reason": "gate_tiling_tiling_below_floor",
+      "resolved_at": "2026-08-14T17:04:59.855Z"
+    }
   ],
-  "resolved_voids": [],
-  "superseded": [],
-  "poisoned_pairs": [
-    "T3#b1"
+  "superseded": [
+    {
+      "key": "A#T3#b1",
+      "at": "2026-08-14T17:04:52.784Z"
+    }
   ],
+  "poisoned_pairs": [],
   "chunk_identity": [
     {
       "tier": "T1",
@@ -21,7 +28,7 @@
     },
     {
       "tier": "T3",
-      "runs": 4,
+      "runs": 6,
       "chunk_counts": [
         7761
       ],
@@ -86,12 +93,12 @@
     {
       "tier": "T3",
       "block": 1,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 45588480,
+      "arm_g_bytes": 45588480,
+      "delta_bytes": 0
     },
     {
       "tier": "T3",
@@ -205,7 +212,8 @@
     }
   ],
   "findings": [
-    "VOID G#T3#b1: gate_tiling_tiling_below_floor"
+    "VOID RESOLVED G#T3#b1: was gate_tiling_tiling_below_floor, re-run clean",
+    "SUPERSEDED A#T3#b1: a re-paired run replaced the stale record"
   ],
-  "scoreable": false
+  "scoreable": true
 }

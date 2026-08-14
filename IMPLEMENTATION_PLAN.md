@@ -5325,6 +5325,36 @@ adjacent.
 record retained the measurement that disproved it. A tiling gate that had silently passed the
 inverted case would have put a mis-scaled `fts_del/write` into the record with no trace.
 
+##### AMENDMENT 4 — 2026-08-14, post-run, summary defect. No scored run affected.
+
+**Interruption detection must be repair-aware.** After the voided `T3/b1` pair was repaired, the
+summary reported **five INTERRUPTED attempts that never happened**.
+
+`orphanedAttempts` (`eval/e1-schedule.mjs:135-157`, E1's) counts every `attempt_start` for a cell
+across the whole journal and subtracts the attempt count of the **last** terminal record. That is
+correct for a schedule in which each cell runs once. E1-FTS is the first schedule here to both
+repair pairs and resume, so a cell that legitimately ran twice — first pass, then repair — had
+both passes' attempts charged against only the second pass's count, and the first pass's attempts
+were reported as interruptions.
+
+**Not cosmetic.** Orphan counts feed `remainingAttempts`, which SHRINKS a resumed cell's Gate 3
+retake budget; at the limit it reaches zero and the driver voids the cell with
+`retake_cap_exhausted_by_interruptions` — a cell voided for interruptions that did not occur. It
+did not bite this schedule, because orphans are computed once at the start of an invocation and
+the repair ran within the same one. Any subsequent resume would have hit it.
+
+`ftsOrphanedAttempts` applies E1's own rule per SEGMENT instead of per key: each terminal record
+closes a segment and consumes the last `n` starts in it; leftovers were genuinely killed, and
+starts still pending at the end of the journal were genuinely interrupted. `e1-schedule.mjs` is
+E1's scored instrument and is **not** modified — the defect there is recorded here rather than
+patched in place, and E1-AB's completed record is unaffected because that schedule was never
+resumed after a repair.
+
+**No scored run is affected.** Orphan counts touch only the findings text and the retake budget of
+runs not yet taken. The 30 scored records are byte-identical. The corrected summary reads
+`0 interrupted`, with the two findings that are real: `VOID RESOLVED G#T3#b1` and
+`SUPERSEDED A#T3#b1`.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
