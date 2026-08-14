@@ -5206,6 +5206,59 @@ exists in this form: it withdrew the author's mechanism, found the real one, cau
 bias in the author's proposed instrument, and replaced an unusable arm with a confound-free one —
 all before any code was written.
 
+##### AMENDMENT 1 — 2026-08-14, pre-run, instrument-informed, no data collected
+
+**Four spans become six.** `txn` and `lock` are added. Nothing else in the registration changes:
+the arms, the ladder, the blocks, the estimator, the gates, the registered outcomes and every
+numeric threshold stand exactly as written above.
+
+**Why.** The registration named four spans and asserted they tile the write phase. Built and run
+against a 56-file smoke corpus, they tiled it to **0.746** — against a registered gate of 0.95.
+The unattributed remainder was **0.72 ms per file**, and it decomposes into two things the design
+simply forgot:
+
+| span | what it is | share of that smoke build's write phase |
+|---|---|---|
+| `txn` | connection checkout, the two `busy_timeout` pragmas, `BEGIN IMMEDIATE` | 6.8% |
+| `lock` | `structure.lock` acquire + release, once per 16-file batch (F1) | 13.2% |
+
+With both added the same build tiles to **0.989**.
+
+**Why this mattered more than a failed gate.** Both are roughly constant per file (`txn`) or per
+batch (`lock`), so their share *shrinks* as the ladder climbs — projected at ~33% of T1's write
+phase and ~2% of T9's. The registered gate would therefore have voided **T1**, the cheapest rung
+and the one that anchors the growth exponent, while passing T9, the rung where the answer is least
+in doubt. A gate that fails only where the measurement is hardest is worse than no gate.
+
+The second consequence is the one that would have been invisible. Had the remainder been swept
+into `rest` — the obvious repair, and the one a subtraction-based design would have made
+automatically — then `b_rest` would have carried a per-file constant. A constant per file is
+linear in `N`, which pulls any fitted exponent toward 1.0, so `b_rest > 1.35` — the **PARTIAL**
+condition — would have been biased toward not firing. The registration's ban on computing spans by
+subtraction is what prevented that, and it prevented it before any data existed.
+
+**No registered statistic changes meaning.** `rest` was already defined as "chunks, symbols,
+imports" and timed directly, so `txn` and `lock` were never inside it — they were unattributed,
+not misattributed. `fts_del/write` keeps `phaseMs.write` as its denominator. This amendment adds
+visibility; it moves nothing between existing buckets.
+
+**Legitimacy.** No run has been collected under the four-span design, scored or otherwise. This is
+instrument construction, not a data-informed redesign, and so does not incur E1-AB AMENDMENT 3's
+obligation to discard prior runs — there are none to discard.
+
+**Clock: `performance.now()`, not `Date.now()`.** The registration costed the timers against
+`Date.now()` at 43.5 ns. Measured on this machine, `Date.now()` costs 65.3 ns/call and yields only
+**33 distinct values across a 200,000-call burst** — roughly 1 ms granularity. `performance.now()`
+costs **34.8 ns/call** with full sub-microsecond resolution. At T1 a per-file FTS delete runs well
+under a millisecond, so `Date.now()` would round each one to 0 or 1 and turn the anchor rung into a
+coin flip. The substituted clock is both cheaper and less biased, so the deviation runs in the
+direction of a harder test. Overhead with six spans: ~12 timer calls per file ≈ 418 ns, which is
+0.019% of T1's write phase and 0.001% of T9's.
+
+**Not evidence of anything.** The smoke build above is 56 files — two orders of magnitude below
+T1. Its span shares (`fts_del` at 4.6%) are reported here to justify the amendment and for no
+other purpose. They are not a prior, not a prediction, and not comparable to any rung.
+
 ---
 
 ## Stage 4.5: Scale — the actual target

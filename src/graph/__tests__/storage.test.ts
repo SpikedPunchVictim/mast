@@ -572,7 +572,7 @@ describe('populateFile — chunks join the graph write transaction (M1)', () => 
             symbols: result.symbols,
             identifierRows: result.identifierRows,
           },
-          failingChunkWriter,
+          { chunkWriter: failingChunkWriter },
         ),
       ).rejects.toThrow('simulated chunk write failure');
 

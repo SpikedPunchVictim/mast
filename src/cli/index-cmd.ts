@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
 import { runIndex } from '../indexer/index.js';
+import { newWriteSpans } from '../graph/populate.js';
 import { openDatabase, type OpenDatabaseOptions } from '../graph/db.js';
 import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
 import { runCheckerPass } from '../graph/checker-resolver.js';
@@ -76,6 +77,40 @@ export function shouldPrintPragmas(
   return phaseTimingEnabled || Object.keys(dbOptions).length > 0;
 }
 
+/**
+ * Whether this run skips the per-file FTS5 deletes — E1-FTS's arm G.
+ *
+ * The skip is only sound on a **cold** build, where those deletes match zero
+ * rows and the finished database is therefore identical to the control's. On an
+ * incremental run they are load-bearing: skipping them leaves the previous
+ * version's rows in `chunk_fts` / `identifier_fts` alongside the new ones while
+ * the ordinary tables replace correctly, so the index goes silently wrong — no
+ * error, no missing rows, just stale search hits.
+ *
+ * Refused here, at the trust boundary, rather than documented and hoped for.
+ * It **throws** instead of falling back to the safe path, because an operator
+ * who asked for arm G and quietly received arm A would collect a null and have
+ * no way to tell.
+ *
+ * Exported for direct testing, same reason as {@link parseMebibytes}.
+ *
+ * @throws Error naming both flags, if the skip is combined with `--incremental`.
+ */
+export function resolveSkipFtsDeletes(
+  flag: boolean | undefined,
+  incremental: boolean,
+): boolean {
+  if (flag !== true) return false;
+  if (incremental) {
+    throw new Error(
+      '--unsafe-skip-fts-deletes cannot be combined with --incremental: the FTS deletes are ' +
+      'only redundant on a cold build. On an incremental run they are what removes the ' +
+      'previous version\'s rows, and skipping them corrupts the index silently.',
+    );
+  }
+  return true;
+}
+
 export function registerIndexCommand(program: Command): void {
   program
     .command('index [path]')
@@ -105,6 +140,12 @@ export function registerIndexCommand(program: Command): void {
       'SQLite memory-map budget for this run, in MiB (PRAGMA mmap_size); 0 disables memory mapping. ' +
       'Diagnostic lever for the E1-PHASE mechanism probe; omitted, SQLite\'s own default stands.',
     )
+    .option(
+      '--unsafe-skip-fts-deletes',
+      'EVAL ONLY — skip the per-file FTS5 delete statements. Sound ONLY on a cold build, where they ' +
+      'match zero rows; on any other path this leaves stale FTS rows behind and corrupts the index ' +
+      'silently, so it is refused with --incremental. E1-FTS arm G.',
+    )
     .action(async (projectPath: string | undefined, opts: {
       stateDir?: string;
       incremental?: boolean;
@@ -113,6 +154,7 @@ export function registerIndexCommand(program: Command): void {
       phaseTiming?: boolean;
       cacheSizeMib?: string;
       mmapSizeMib?: string;
+      unsafeSkipFtsDeletes?: boolean;
     }) => {
       const config = resolveConfig({
         projectRoot: projectPath,
@@ -143,10 +185,31 @@ export function registerIndexCommand(program: Command): void {
           }
         : undefined;
 
+      const incremental = opts.incremental ?? false;
+      const skipFtsDeletes = resolveSkipFtsDeletes(opts.unsafeSkipFtsDeletes, incremental);
+
+      // Allocated only under the phase-timing gate, and passed only when
+      // allocated: `populateFile` reads no clock at all without an accumulator,
+      // so an ordinary `mast index` is untouched by this instrument.
+      const writeSpans = isPhaseTimingEnabled(opts.phaseTiming) ? newWriteSpans() : undefined;
+
+      if (skipFtsDeletes) {
+        // Loud on stderr as well as refused above: this run's database is a
+        // measurement artifact, and anyone reading the log later must be able
+        // to tell it apart from a production index.
+        process.stderr.write(
+          '[mast] WARN: --unsafe-skip-fts-deletes is set — FTS5 delete statements are being ' +
+          'skipped. This is an eval instrument (E1-FTS arm G) and is sound only because this ' +
+          'is a cold build. Do NOT reuse this index.\n',
+        );
+      }
+
       const result = await runIndex(config, {
-        incremental: opts.incremental ?? false,
+        incremental,
         onProgress,
         dbOptions,
+        ...(writeSpans !== undefined ? { writeSpans } : {}),
+        ...(skipFtsDeletes ? { unsafeSkipFtsDeletes: true } : {}),
       });
 
       process.stdout.write(
@@ -168,6 +231,15 @@ export function registerIndexCommand(program: Command): void {
       // growing an argument — read HERE, at the CLI boundary, and never inside the indexer.
       if (isPhaseTimingEnabled(opts.phaseTiming)) {
         process.stdout.write(`phases: ${JSON.stringify(result.phaseMs)}\n`);
+      }
+
+      // The write phase's own decomposition (E1-FTS). A separate line from
+      // `phases:` on purpose — `phases:` is E1-PHASE's scored instrument and a
+      // finished record must not sit behind a moving definition, which is the
+      // same rule that gave E1-AB its own schedule module rather than an
+      // extension of E1's.
+      if (writeSpans !== undefined) {
+        process.stdout.write(`write_spans: ${JSON.stringify(writeSpans)}\n`);
       }
 
       // The pragmas SQLite reported for this run's own connection, not an echo

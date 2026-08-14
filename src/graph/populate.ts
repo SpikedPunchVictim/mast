@@ -66,6 +66,135 @@ export interface PopulateFileResult {
 export type ChunkWriter = (filePath: string, chunks: readonly Chunk[]) => Promise<number>;
 
 /**
+ * Cumulative wall-clock, in ms, for the four regions that tile a file's write.
+ *
+ * Eval instrument (E1-FTS, IMPLEMENTATION_PLAN.md § E1-FTS PRE-REGISTRATION,
+ * 2026-08-14). E1-PHASE localised the super-linear growth exponent to the
+ * `write` phase (`b_write = 1.9685`, 94.01% of T9's run) but no further; these
+ * four decompose that phase.
+ *
+ * Mutable by design — it is an accumulator summed across every `populateFile`
+ * call in a run, in the same shape and for the same reason as `runIndex`'s own
+ * `phase` record. Data, not behaviour (§4.2), so it is a record and not a class.
+ *
+ * **Every region is timed by its own start and end. None is computed by
+ * subtraction.** A `rest` derived as `write − fts` would silently absorb any
+ * cost the other timers missed, which is precisely how this experiment's first
+ * draft would have produced a false null: FTS5 flushes its segments at COMMIT
+ * (`fts5SyncMethod`, `sqlite3.c:262278`; `xCommit` is a no-op at `:262302`),
+ * not inside the INSERT, so a naive `fts_ms` around the inserts misses them.
+ * Because the regions are timed independently they need not tile exactly, and
+ * the shortfall is the point: unattributed work shows up as a tiling gap the
+ * harness's ≥ 0.95 gate can see, instead of being absorbed in silence.
+ */
+export interface WriteSpansMs {
+  /** The two `DELETE FROM *_fts WHERE file_path = ?` statements. */
+  fts_del: number;
+  /** The two batched `INSERT INTO *_fts` loops. */
+  fts_ins: number;
+  /** The per-file `COMMIT`, where FTS5's segment flush actually happens. */
+  commit: number;
+  /** The monotonic guard, the `files` row, and the chunks/symbols/imports writes. */
+  rest: number;
+  /**
+   * Per-file transaction machinery: connection checkout, the two `busy_timeout`
+   * pragmas, and `BEGIN IMMEDIATE`.
+   *
+   * AMENDMENT 1 to the registration (2026-08-14, pre-run, no data collected).
+   * The four registered spans left this unattributed, and it is a per-FILE
+   * constant — measured at 0.72 ms/file, which is ~33% of T1's write phase and
+   * ~2% of T9's. Two consequences, both bad, both caught by running the
+   * instrument before the experiment: the registered tiling gate would have
+   * voided the cheapest rung, the one that anchors the exponent, while passing
+   * the rung where the answer is least in doubt; and folding it into `rest`
+   * instead would have contaminated `b_rest` — the PARTIAL condition — with a
+   * per-file constant that pulls any exponent toward 1.0, biasing PARTIAL
+   * toward not firing.
+   */
+  txn: number;
+  /**
+   * `structure.lock` acquisition and release, once per 16-file write batch.
+   *
+   * The only span not accumulated by {@link populateFile} — the indexer owns it,
+   * because the lock is per-BATCH and wraps the whole file loop (F1,
+   * `indexer/index.ts`). Named separately rather than folded in because the
+   * `phaseMs` docblock already warns that `write` includes lock wait and "must
+   * not be read as pure I/O under concurrency"; with this span that caveat
+   * becomes a number instead of a warning.
+   *
+   * AMENDMENT 1, same provenance as {@link WriteSpansMs.txn}.
+   */
+  lock: number;
+}
+
+/** A zeroed {@link WriteSpansMs} accumulator. */
+export function newWriteSpans(): WriteSpansMs {
+  return { fts_del: 0, fts_ins: 0, commit: 0, rest: 0, txn: 0, lock: 0 };
+}
+
+/**
+ * Charge one region's elapsed wall-clock to `key`.
+ *
+ * `performance.now()` rather than `Date.now()`: the registration costed the
+ * timers against `Date.now()`, but measured on this machine that clock yields
+ * only 33 distinct values across a 200,000-call burst (~1 ms granularity) while
+ * costing 65.3 ns/call, against 34.8 ns/call and full sub-microsecond
+ * resolution for `performance.now()`. At T1 a per-file FTS delete runs well
+ * under a millisecond, so `Date.now()` would round each one to 0 or 1 — turning
+ * the cheapest rung, which anchors the growth exponent being measured, into a
+ * coin flip. The higher-resolution clock is cheaper AND less biased, so the
+ * deviation from the registered clock is in the direction of a harder test.
+ *
+ * Returns `fn()` untouched when no accumulator was supplied, so the production
+ * path — which never passes one — pays nothing at all.
+ */
+async function timed<T>(
+  spans: WriteSpansMs | undefined,
+  key: keyof WriteSpansMs,
+  fn: () => Promise<T>,
+): Promise<T> {
+  if (spans === undefined) return fn();
+  const started = performance.now();
+  try {
+    return await fn();
+  } finally {
+    spans[key] += performance.now() - started;
+  }
+}
+
+/**
+ * Optional per-call knobs for {@link populateFile}.
+ *
+ * An options object rather than more positional parameters: `chunkWriter` was
+ * the third argument, and the two additions here are both eval instruments that
+ * would otherwise have to be threaded past it in a fixed order.
+ */
+export interface PopulateFileOptions {
+  /** See {@link ChunkWriter} — test-only chunk-write substitution. */
+  readonly chunkWriter?: ChunkWriter;
+  /** When supplied, this call's four write regions are accumulated into it. */
+  readonly spans?: WriteSpansMs;
+  /**
+   * **Eval-only, and unsafe outside a cold build.** Skips the two
+   * `DELETE FROM *_fts WHERE file_path = ?` statements.
+   *
+   * This is E1-FTS's arm G — the causal test for whether those deletes carry
+   * the write phase's exponent, and a rehearsal of the fix (guarding them on
+   * whether the file was previously indexed, which the monotonic-guard SELECT
+   * below already knows).
+   *
+   * On a **cold** build the skipped deletes match zero rows, so the finished
+   * database is byte-identical to the control's — that identity is what makes
+   * arm G confound-free, and it is asserted both by
+   * `__tests__/write-spans.test.ts` and by a per-rung gate in the harness. On
+   * **any other** path it corrupts the index, leaving the previous version's
+   * FTS rows behind alongside the new ones while the ordinary tables replace
+   * correctly. The CLI therefore refuses to combine it with `--incremental`.
+   */
+  readonly skipFtsDeletes?: boolean;
+}
+
+/**
  * Dedicated `busy_timeout` (ms) for {@link populateFile}'s own transaction —
  * distinct from `graph.db`'s shared 5000ms connection default
  * (`openDatabase`, `graph/db.ts`).
@@ -156,18 +285,26 @@ const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
 export async function populateFile(
   db: Db,
   data: Omit<FileIndexData, 'edges'>,
-  chunkWriter?: ChunkWriter,
+  options: PopulateFileOptions = {},
 ): Promise<PopulateFileResult> {
+  // Stamped before `db.connection()` so the `txn` span includes the connection
+  // checkout itself — Kysely serialises every acquisition on one
+  // `ConnectionMutex` (see the doc comment above), so that wait is real.
+  const enteredAt = options.spans === undefined ? 0 : performance.now();
+
   return db.connection().execute(async (conn) => {
+    if (options.spans !== undefined) options.spans.txn += performance.now() - enteredAt;
+
     // The busy_timeout toggle must happen INSIDE this exclusive connection
     // window (see the doc comment above) so no unrelated statement on the
     // shared connection ever runs with the short value — pragmas are cheap
     // and synchronous, so bracketing the transaction with them costs nothing
     // measurable.
-    await sql.raw(`pragma busy_timeout = ${IMMEDIATE_WRITE_BUSY_TIMEOUT_MS}`).execute(conn);
+    await timed(options.spans, 'txn', () =>
+      sql.raw(`pragma busy_timeout = ${IMMEDIATE_WRITE_BUSY_TIMEOUT_MS}`).execute(conn));
 
     try {
-      await sql`begin immediate`.execute(conn);
+      await timed(options.spans, 'txn', () => sql`begin immediate`.execute(conn));
     } catch (err) {
       // BEGIN IMMEDIATE itself lost the busy_timeout wait — no transaction
       // was ever opened, so there is nothing to roll back. Restore the
@@ -177,8 +314,11 @@ export async function populateFile(
     }
 
     try {
-      const result = await writePopulatedFileRows(conn, data, chunkWriter);
-      await sql`commit`.execute(conn);
+      const result = await writePopulatedFileRows(conn, data, options);
+      // Timed as its own region because this is where FTS5 actually writes its
+      // segments — `fts5SyncMethod` runs at COMMIT (sqlite3.c:262278), not
+      // inside the INSERT statements above.
+      await timed(options.spans, 'commit', () => sql`commit`.execute(conn));
       return result;
     } catch (err) {
       await sql`rollback`.execute(conn);
@@ -187,7 +327,8 @@ export async function populateFile(
       // Runs after both the commit and the rollback branches above — see the
       // doc comment's "checks out the underlying connection exclusively"
       // paragraph for why this must land before the connection is released.
-      await sql.raw(`pragma busy_timeout = ${DEFAULT_BUSY_TIMEOUT_MS}`).execute(conn);
+      await timed(options.spans, 'txn', () =>
+        sql.raw(`pragma busy_timeout = ${DEFAULT_BUSY_TIMEOUT_MS}`).execute(conn));
     }
   });
 }
@@ -205,19 +346,20 @@ export async function populateFile(
 async function writePopulatedFileRows(
   trx: Db,
   data: Omit<FileIndexData, 'edges'>,
-  chunkWriter?: ChunkWriter,
+  options: PopulateFileOptions,
 ): Promise<PopulateFileResult> {
+  const { chunkWriter, spans } = options;
   // Monotonic write-guard — see the F12 paragraph in populateFile's doc
   // comment above. Reading the existing row's mtime and deciding whether to
   // proceed inside the SAME transaction that performs the delete-and-replace
   // keeps the check-then-act pair atomic relative to any other populateFile
   // call, exactly as invariant 1's read-then-write pair is kept atomic
   // relative to other `structure.lock` holders (indexer/index.ts).
-  const existing = await trx
+  const existing = await timed(spans, 'rest', () => trx
     .selectFrom('files')
     .select(['id', 'mtime'])
     .where('path', '=', data.filePath)
-    .executeTakeFirst();
+    .executeTakeFirst());
 
   if (existing !== undefined && existing.mtime > data.mtime) {
     // Logged at WARN, not ERROR — this is a correctly-refused stale write,
@@ -233,17 +375,20 @@ async function writePopulatedFileRows(
   }
 
   // Delete-and-replace: FK cascades remove symbols, edges, imports.
-  await trx.deleteFrom('files').where('path', '=', data.filePath).execute();
+  const file = await timed(spans, 'rest', async () => {
+    await trx.deleteFrom('files').where('path', '=', data.filePath).execute();
 
-  const [file] = await trx
-    .insertInto('files')
-    .values({
-      path: data.filePath,
-      language: data.language,
-      mtime: data.mtime,
-    })
-    .returning('id')
-    .execute();
+    const [row] = await trx
+      .insertInto('files')
+      .values({
+        path: data.filePath,
+        language: data.language,
+        mtime: data.mtime,
+      })
+      .returning('id')
+      .execute();
+    return row;
+  });
 
   if (file === undefined) throw new Error(`Insert into files returned no id for ${data.filePath}`);
 
@@ -253,9 +398,9 @@ async function writePopulatedFileRows(
   // (§15.1). Default path writes the shared `chunks` table directly;
   // `chunkWriter` (test-only) substitutes an injected implementation, see
   // its docstring above for why that stays atomic too.
-  const chunksRemoved = chunkWriter !== undefined
-    ? await chunkWriter(data.filePath, data.chunks)
-    : await replaceChunksInline(trx, data.filePath, data.chunks);
+  const chunksRemoved = await timed(spans, 'rest', () => chunkWriter !== undefined
+    ? chunkWriter(data.filePath, data.chunks)
+    : replaceChunksInline(trx, data.filePath, data.chunks));
 
   // Insert symbols. Batched under SQLite's 32,766 bound-parameter ceiling
   // (Stage 4.5 S1, IMPLEMENTATION_PLAN.md — see `replaceChunksInline`'s
@@ -286,9 +431,11 @@ async function writePopulatedFileRows(
       declaration_hash: s.declarationHash,
       body_hash: s.bodyHash,
     }));
-    for (const batch of chunkRowsForSqlite(symbolRows)) {
-      await trx.insertInto('symbols').values(batch).execute();
-    }
+    await timed(spans, 'rest', async () => {
+      for (const batch of chunkRowsForSqlite(symbolRows)) {
+        await trx.insertInto('symbols').values(batch).execute();
+      }
+    });
   }
 
   // Insert imports. Same batching as symbols above.
@@ -308,40 +455,56 @@ async function writePopulatedFileRows(
       is_external: imp.isExternal ? 1 : 0,
       resolved_path: imp.resolvedPath,
     }));
-    for (const batch of chunkRowsForSqlite(importRows)) {
-      await trx.insertInto('imports').values(batch).execute();
-    }
+    await timed(spans, 'rest', async () => {
+      for (const batch of chunkRowsForSqlite(importRows)) {
+        await trx.insertInto('imports').values(batch).execute();
+      }
+    });
   }
 
   // FTS5 updates — same transaction as graph writes (§7.1 step 5).
-  // Delete existing rows by file_path (UNINDEXED column, supported by FTS5).
-  await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
-  await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
+  //
+  // Delete existing rows by file_path. FTS5 SUPPORTS the predicate on an
+  // UNINDEXED column but cannot use it: `xBestIndex`
+  // (sqlite3.c:260775-260860) will not consume an equality constraint on an
+  // ordinary column, so each of these is `SCAN <table> VIRTUAL TABLE INDEX 0:`
+  // — a full table scan of an index that grows with the whole corpus. On a
+  // COLD build every one of them matches zero rows. That is the subject of
+  // E1-FTS (IMPLEMENTATION_PLAN.md § E1-FTS PRE-REGISTRATION); `skipFtsDeletes`
+  // is its arm G, and is unsafe on any path but a cold build.
+  if (options.skipFtsDeletes !== true) {
+    await timed(spans, 'fts_del', async () => {
+      await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
+      await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
+    });
+  }
 
   // Batch-insert all chunks in one statement instead of one INSERT per chunk
   // — further batched under the parameter ceiling, same as above.
-  if (data.chunks.length > 0) {
-    const chunkFtsRows = data.chunks.map((chunk) => ({
-      content: chunk.content,
-      symbol_name: chunk.symbol_name,
-      chunk_id: chunk.chunk_id,
-      file_path: data.filePath,
-    }));
-    for (const batch of chunkRowsForSqlite(chunkFtsRows)) {
-      await trx.insertInto('chunk_fts').values(batch).execute();
+  await timed(spans, 'fts_ins', async () => {
+    if (data.chunks.length > 0) {
+      const chunkFtsRows = data.chunks.map((chunk) => ({
+        content: chunk.content,
+        symbol_name: chunk.symbol_name,
+        chunk_id: chunk.chunk_id,
+        file_path: data.filePath,
+      }));
+      for (const batch of chunkRowsForSqlite(chunkFtsRows)) {
+        await trx.insertInto('chunk_fts').values(batch).execute();
+      }
     }
-  }
 
-  if (data.identifierRows.length > 0) {
-    const identifierFtsRows = data.identifierRows.map((row) => ({
-      identifiers: row.identifiers,
-      chunk_id: row.chunk_id,
-      file_path: data.filePath,
-    }));
-    for (const batch of chunkRowsForSqlite(identifierFtsRows)) {
-      await trx.insertInto('identifier_fts').values(batch).execute();
+    if (data.identifierRows.length > 0) {
+      const identifierFtsRows = data.identifierRows.map((row) => ({
+        identifiers: row.identifiers,
+        chunk_id: row.chunk_id,
+        file_path: data.filePath,
+      }));
+      for (const batch of chunkRowsForSqlite(identifierFtsRows)) {
+        await trx.insertInto('identifier_fts').values(batch).execute();
+      }
     }
-  }
+  });
 
   return { fileId, chunksRemoved, written: true };
 }

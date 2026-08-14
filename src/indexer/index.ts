@@ -8,6 +8,7 @@ import type { LockMetricsSink } from '../store/lockMetrics.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
 import { openDatabase, readPragmaValue, type OpenDatabaseOptions } from '../graph/db.js';
 import { populateFile, insertEdges, insertReExportFiles, removeDeletedFiles } from '../graph/populate.js';
+import type { PopulateFileOptions, WriteSpansMs } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
 import type { IndexMeta, FreshnessCause } from '../ast/types.js';
@@ -131,6 +132,21 @@ export interface IndexOptions {
    * between arms without config or environment acting as a hidden lever.
    */
   readonly dbOptions?: OpenDatabaseOptions;
+  /**
+   * When supplied, every `populateFile` call in this run accumulates its four
+   * write regions into this record (`graph/populate.ts`'s {@link WriteSpansMs}).
+   *
+   * Omitted everywhere in product code. It exists so E1-FTS can decompose the
+   * `write` phase that E1-PHASE showed carries the growth exponent; passing
+   * nothing means no clock is read at all, so the production path is unchanged.
+   */
+  readonly writeSpans?: WriteSpansMs;
+  /**
+   * **Eval-only, and unsafe outside a cold build** — see
+   * {@link PopulateFileOptions.skipFtsDeletes} for what it does and why it
+   * corrupts an incremental index. E1-FTS's arm G.
+   */
+  readonly unsafeSkipFtsDeletes?: boolean;
 }
 
 /**
@@ -259,6 +275,17 @@ export async function runIndex(
     ? options.chunkStoreOverride.replaceChunksForFile.bind(options.chunkStoreOverride)
     : undefined;
 
+  // Built with conditional spreads for the same reason `index-cmd.ts` builds
+  // `dbOptions` that way: `exactOptionalPropertyTypes` distinguishes an absent
+  // property from one explicitly set to undefined, and the production path
+  // depends on `spans` being genuinely absent so `populateFile` never takes a
+  // clock reading at all.
+  const populateOptions: PopulateFileOptions = {
+    ...(chunkWriter !== undefined ? { chunkWriter } : {}),
+    ...(options.writeSpans !== undefined ? { spans: options.writeSpans } : {}),
+    ...(options.unsafeSkipFtsDeletes === true ? { skipFtsDeletes: true } : {}),
+  };
+
   // Load previous manifest for incremental comparison.
   const manifestPath = join(config.resolved_state_dir, 'file_manifest.json');
   const prevManifest: Record<string, number> = existsSync(manifestPath)
@@ -360,11 +387,19 @@ export async function runIndex(
 
     phase.parse += Date.now() - batchParseStart;
     const batchWriteStart = Date.now();
+    // E1-FTS `lock` span — see WriteSpansMs.lock. Acquisition is timed from
+    // here to the first statement of the callback, release from the callback's
+    // last statement to `withLock`'s return; both directly, neither derived.
+    const lockAcquireStart = options.writeSpans === undefined ? 0 : performance.now();
+    let lockBodyEnd = 0;
 
     // Write phase — LOCKED, scoped to this batch only (F1). Bounds how long
     // any caller (including a concurrent JIT re-parse) can be starved to
     // roughly one batch's writes, not the whole run.
     await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
+      if (options.writeSpans !== undefined) {
+        options.writeSpans.lock += performance.now() - lockAcquireStart;
+      }
       // populateFile now writes chunks + symbols + edges + imports + FTS in
       // ONE per-file transaction (M1, §15.1) — a failure anywhere in it rolls
       // back everything for that file, so there is no separate "chunk store
@@ -399,7 +434,7 @@ export async function runIndex(
             imports: result.imports,
             symbols: result.symbols,
             identifierRows: result.identifierRows,
-          }, chunkWriter);
+          }, populateOptions);
           if (!written) {
             // Monotonic write-guard (F12 invariant 2, graph/populate.ts)
             // rejected this write: some other writer — a concurrent JIT
@@ -420,7 +455,11 @@ export async function runIndex(
         }
         edgeDataByFile.set(entry.relativePath, result);
       }
+      lockBodyEnd = performance.now();
     });
+    if (options.writeSpans !== undefined) {
+      options.writeSpans.lock += performance.now() - lockBodyEnd;
+    }
     phase.write += Date.now() - batchWriteStart;
   }
 
