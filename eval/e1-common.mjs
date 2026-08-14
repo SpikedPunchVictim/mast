@@ -308,6 +308,58 @@ export function parsePragmas(stdout) {
 }
 
 /**
+ * Thrown when a cold index run leaves no readable index behind.
+ *
+ * Exists because the failure path used to throw whatever `readIndexMeta` /
+ * `readGraphCounts` threw and let the child's stderr fall on the floor. On
+ * 2026-08-13 a T9 cell died to a `structure.lock` race and the driver reported only
+ * "No index.json in <dir>" — while the CLI's own "Could not acquire structure lock"
+ * message, which named the cause outright, was sitting in the discarded stderr. The
+ * diagnosis had to be reconstructed from lock metrics and WAL sizes over a session
+ * that reading one line would have closed.
+ *
+ * The tails are kept as fields as well as prose so a driver can journal them: a state
+ * dir is wiped by the next run, so stderr not captured here is gone for good.
+ */
+export class ColdIndexFailure extends Error {
+  /**
+   * @param {object} o
+   * @param {string} o.stateDir the run's state dir, already wiped of any prior contents
+   * @param {number|null} o.status child exit status; null when killed by a signal
+   * @param {string|null} [o.signal] child termination signal, if any
+   * @param {string} [o.stdout] child stdout
+   * @param {string} [o.stderr] child stderr — the reason this class exists
+   * @param {Error} [o.cause] the reader error that detected the missing artifact
+   */
+  constructor({ stateDir, status, signal = null, stdout = '', stderr = '', cause = undefined }) {
+    const tail = (s, n) => {
+      const t = (s ?? '').trim();
+      return t === '' ? [] : t.split('\n').slice(-n);
+    };
+    const stderrTail = tail(stderr, 20);
+    const stdoutTail = tail(stdout, 3);
+
+    const exit = status === null || status === undefined ? 'null' : String(status);
+    const lines = [
+      `Cold index run produced no readable index in ${stateDir}`,
+      `  exit status: ${exit}${signal === null || signal === undefined ? '' : ` (signal ${signal})`}`,
+      `  detected by: ${cause instanceof Error ? cause.message : String(cause)}`,
+      stderrTail.length === 0
+        ? '  child stderr: empty — the child died without explaining itself'
+        : `  child stderr (last ${stderrTail.length} lines):\n${stderrTail.map((l) => `    ${l}`).join('\n')}`,
+    ];
+
+    super(lines.join('\n'), cause === undefined ? undefined : { cause });
+    this.name = 'ColdIndexFailure';
+    this.state_dir = stateDir;
+    this.exit_status = status ?? null;
+    this.signal = signal ?? null;
+    this.stderr_tail = stderrTail;
+    this.stdout_tail = stdoutTail;
+  }
+}
+
+/**
  * One cold index run into a fresh state dir. Never `--incremental` (Gate 3).
  *
  * Records BOTH clocks: `runIndex`'s own `durationMs` (the fitted clock, A1-F4c) and the
@@ -348,9 +400,19 @@ export async function runColdIndex({ projectRoot, stateDir, extraArgs = [] }) {
   const stdout = proc.stdout ?? '';
   const stderr = proc.stderr ?? '';
 
-  const meta = readIndexMeta(stateDir);
-  const truth = readGraphCounts(stateDir);
-  const wal = readWalBoundary(stateDir);
+  // Wrapped, not bare: each of these throws on a run whose write never landed, and the
+  // reason it never landed is in `stderr`, which the bare throw discarded. See
+  // `ColdIndexFailure`.
+  let meta, truth, wal;
+  try {
+    meta = readIndexMeta(stateDir);
+    truth = readGraphCounts(stateDir);
+    wal = readWalBoundary(stateDir);
+  } catch (cause) {
+    throw new ColdIndexFailure({
+      stateDir, status: proc.status, signal: proc.signal, stdout, stderr, cause,
+    });
+  }
 
   return {
     project_root: projectRoot,

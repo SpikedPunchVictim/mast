@@ -8,7 +8,7 @@
 // Run from `packages/mast`, never the repo root.
 
 import { describe, it, expect } from 'vitest';
-import { foldJournal, selectAbRuns, gateP2, planPending, abKey } from '../e1-ab-report.mjs';
+import { foldJournal, selectAbRuns, gateP2, planPending, abKey, spreadFindingLines } from '../e1-ab-report.mjs';
 import { AB_TOTAL_RUNS, buildAbSchedule } from '../e1-ab-schedule.mjs';
 import { orphanedAttempts } from '../e1-schedule.mjs';
 
@@ -224,5 +224,77 @@ describe('orphanedAttempts — generalised without moving E1\'s behaviour', () =
     expect(orphanedAttempts(records, abKey)).toHaveLength(0);
     // Under the default key both cells share one bucket and one is called an orphan.
     expect(orphanedAttempts(records).length).toBeGreaterThan(0);
+  });
+});
+
+// The defect this pins: `spread_finding` was computed by the scorer, written to
+// `e1-ab-verdict.json`, and printed NOWHERE. E1-AB's scoring session therefore never
+// saw at the console that `rho_D(T1)` — the cell AMENDMENT 1 A4 keys the entire
+// mechanism classification on — carried a 0.412 spread with a block-1 outlier of
+// 1.566. A finding the operator must open a JSON file to notice is not raised.
+describe('spreadFindingLines — a raised finding reaches the console', () => {
+  const cell = (over = {}) => ({
+    arm: 'D', tier: 'T1', metric: 'write_ms',
+    ratios: [1.5663, 1.1543, 1.2123], spread: 0.4121, spread_finding: true, void: false,
+    ...over,
+  });
+  const scored = (over = {}) => ({
+    level: { T1: { B: cell({ arm: 'B', spread_finding: false }), D: cell() }, T5: {}, T9: {} },
+    mmap: { ratio: { arm: 'C', tier: 'T5', metric: 'write_ms', ratios: [0.69, 0.67, 0.70], spread: 0.03, spread_finding: false, void: false } },
+    slopes: {
+      A: { arm: 'A', slopes: [1.93, 1.91, 1.96], spread: 0.0546, spread_finding: false, void: false },
+      B: { arm: 'B', slopes: [1.71, 1.71, 1.73], spread: 0.0224, spread_finding: false, void: false },
+      D: { arm: 'D', slopes: [1.72, 1.82, 1.84], spread: 0.1236, spread_finding: false, void: false },
+    },
+    ...over,
+  });
+
+  it('emits a line for the exact cell the scorer flagged', () => {
+    const lines = spreadFindingLines(scored());
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('T1/D');
+  });
+
+  it('carries the spread AND the per-block values that produced it', () => {
+    // The spread alone does not show WHICH block is the outlier, which is the thing
+    // an operator needs in order to decide whether the median is load-bearing.
+    const [line] = spreadFindingLines(scored());
+    expect(line).toContain('0.4121');
+    expect(line).toContain('1.566');
+  });
+
+  it('says nothing when nothing was flagged', () => {
+    const clean = scored();
+    clean.level.T1.D.spread_finding = false;
+    expect(spreadFindingLines(clean)).toEqual([]);
+  });
+
+  it('reports a flagged SLOPE spread, not only a flagged ratio spread', () => {
+    const s = scored();
+    s.level.T1.D.spread_finding = false;
+    s.slopes.D.spread_finding = true;
+    const lines = spreadFindingLines(s);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatch(/slope/i);
+    expect(lines[0]).toContain('D');
+  });
+
+  // Arm C lives only under `mmap`, never in the level table, so a flagged spread on
+  // the source-contradiction tripwire would otherwise be the one finding that stayed
+  // invisible even after this fix.
+  it('reaches arm C under mmap, which the level table never contains', () => {
+    const s = scored();
+    s.level.T1.D.spread_finding = false;
+    s.mmap.ratio.spread_finding = true;
+    const lines = spreadFindingLines(s);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('T5/C');
+  });
+
+  it('tolerates a void cell without inventing a finding for it', () => {
+    const s = scored();
+    s.level.T1.D = { arm: 'D', tier: 'T1', metric: 'write_ms', ratios: [], void: true,
+      median: null, min: null, max: null, spread: null, spread_finding: false };
+    expect(spreadFindingLines(s)).toEqual([]);
   });
 });

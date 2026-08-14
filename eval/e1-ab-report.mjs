@@ -165,6 +165,52 @@ export function gateP2(runs) {
   return rows;
 }
 
+/**
+ * Every spread the scorer flagged, as printable lines.
+ *
+ * `spread_finding` was computed, written to `e1-ab-verdict.json`, and printed nowhere.
+ * E1-AB's scoring session therefore never saw at the console that `rho_D(T1)` — the cell
+ * AMENDMENT 1 A4 keys the whole mechanism classification on — carried a 0.412 spread with
+ * a block-1 outlier of 1.566. It surfaced only in the adversarial review, from the JSON.
+ * A finding an operator has to go looking for is not raised.
+ *
+ * Each line carries the per-block values as well as the spread, because the spread alone
+ * does not say WHICH block is the outlier — and that is what decides whether the median is
+ * load-bearing.
+ *
+ * @param {object} scored the scorer's record
+ * @returns {string[]} one line per flagged cell; empty when nothing was flagged
+ */
+export function spreadFindingLines(scored) {
+  const f = (x, d = 4) => (typeof x === 'number' ? x.toFixed(d) : String(x));
+  const lines = [];
+
+  const ratioLine = (c) => `ratio spread  ${c.tier}/${c.arm}  ${c.metric}  ` +
+    `${f(c.spread)}  blocks ${(c.ratios ?? []).map((x) => f(x, 3)).join(' ')}`;
+
+  for (const tier of ['T1', 'T5', 'T9']) {
+    const cells = scored.level?.[tier] ?? {};
+    for (const key of Object.keys(cells)) {
+      const c = cells[key];
+      if (c?.spread_finding === true) lines.push(ratioLine(c));
+    }
+  }
+
+  // Arm C lives under `mmap` and never appears in the level table, so without this the
+  // source-contradiction tripwire would be the one arm whose spread stayed invisible.
+  const m = scored.mmap?.ratio;
+  if (m?.spread_finding === true) lines.push(ratioLine(m));
+
+  for (const arm of ['A', 'B', 'D']) {
+    const s = scored.slopes?.[arm];
+    if (s?.spread_finding !== true) continue;
+    lines.push(`slope spread  arm ${arm}  ${f(s.spread)}  ` +
+      `blocks ${(s.slopes ?? []).map((x) => f(x, 3)).join(' ')}`);
+  }
+
+  return lines;
+}
+
 function main() {
   const records = readFileSync(join(RESULTS_DIR, 'e1-ab-runs.jsonl'), 'utf8')
     .split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
@@ -215,6 +261,7 @@ function main() {
   console.log(`[E1-AB] EXPONENT   ${scored.exponent}`);
   console.log(`[E1-AB] mmap(T5)   rho_C = ${scored.mmap.ratio.void ? 'VOID' : f(scored.mmap.ratio.median)} — ${scored.mmap.reading.split(':')[0]}`);
   if (scored.gate_a_caveat_attached) console.log(`[E1-AB] CAVEAT     ${scored.gate_a_caveat}`);
+  for (const line of spreadFindingLines(scored)) console.log(`[E1-AB] SPREAD:    ${line}`);
   for (const finding of scored.mechanism.findings) console.log(`[E1-AB] FINDING: ${finding}`);
   console.log(`[E1-AB] scoreable: ${scored.scoreable}`);
   console.log(`\nwrote ${out}`);
