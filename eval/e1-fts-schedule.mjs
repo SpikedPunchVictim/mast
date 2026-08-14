@@ -205,3 +205,49 @@ export function dbIdentityVerdict({ armA, armG }) {
 export function ftsStateDirName(arm, tier, block) {
   return `e1fts-run-${arm}-${tier}-b${block}`;
 }
+
+/**
+ * GATE — ARM IDENTITY. The analogue of E1-AB's Gate A, for a boolean lever.
+ *
+ * E1-AB could grade its arms against the pragmas SQLite reported for its own
+ * connection. A flag has no such echo, so this grades the two things that ARE
+ * observable: the flag appears in the argv the run recorded, and the flag's one
+ * necessary consequence holds — arm G must report `fts_del == 0`, because the
+ * statements that span times did not execute, and the control must report more
+ * than zero, because they did.
+ *
+ * Checked BEFORE Gate 3's retake logic, for Gate A's reason: a run whose flag
+ * silently failed to take effect is not a slow or fast measurement of this arm,
+ * it is a measurement of the OTHER arm, and retaking it would produce more of
+ * the wrong thing. Without this the two arms would be identical and the
+ * experiment would return a clean, credible-looking null.
+ *
+ * @param {{arm: string, spans: object|null, extraArgs: string[]|undefined}} run
+ */
+export function armIdentityVerdict({ arm, spans, extraArgs }) {
+  const expected = FTS_ARMS_BY_ID[arm];
+  if (expected === undefined) {
+    return { ok: false, reason: `unknown_arm_${arm}`, arm, fts_del_ms: null };
+  }
+  if (spans === null || spans === undefined) {
+    return { ok: false, reason: 'write_spans_absent', arm, fts_del_ms: null };
+  }
+  const args = extraArgs ?? [];
+  if (JSON.stringify(args) !== JSON.stringify(expected.extraArgs)) {
+    return {
+      ok: false, reason: 'extra_args_mismatch', arm,
+      expected: expected.extraArgs, actual: args, fts_del_ms: null,
+    };
+  }
+  const ftsDel = spans.fts_del;
+  if (typeof ftsDel !== 'number') {
+    return { ok: false, reason: 'fts_del_not_a_number', arm, fts_del_ms: ftsDel ?? null };
+  }
+  if (arm === 'G' && ftsDel !== 0) {
+    return { ok: false, reason: 'skip_flag_did_not_take_effect', arm, fts_del_ms: ftsDel };
+  }
+  if (arm === 'A' && !(ftsDel > 0)) {
+    return { ok: false, reason: 'control_recorded_no_delete_time', arm, fts_del_ms: ftsDel };
+  }
+  return { ok: true, reason: null, arm, fts_del_ms: ftsDel };
+}

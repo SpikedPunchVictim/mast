@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   FTS_ARMS, FTS_ARMS_BY_ID, FTS_TIERS, FTS_BLOCKS, FTS_TOTAL_RUNS, FTS_ORDERING,
   WRITE_SPANS, GATE_TILING_FLOOR, buildFtsSchedule, ftsStateDirName,
-  tilingVerdict, dbIdentityVerdict, spanSum,
+  tilingVerdict, dbIdentityVerdict, spanSum, armIdentityVerdict,
 } from '../e1-fts-schedule.mjs';
 import { parseWriteSpans } from '../e1-common.mjs';
 
@@ -234,5 +234,62 @@ describe('ftsStateDirName — namespaced away from every retained artifact', () 
     const names = buildFtsSchedule().map((s) => ftsStateDirName(s.arm, s.tier, s.block));
     expect(names.some((n) => /^(run-|phase-run-|e1ab-run-)/.test(n))).toBe(false);
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+// E1-AB's Gate A caught the failure mode that matters most in an A/B: a lever
+// that silently does not reach the process makes both arms identical and yields
+// a clean, credible-looking null. A boolean flag has no pragma echo to grade
+// against, so this grades its one necessary consequence instead.
+describe('armIdentityVerdict — the arm actually ran as the arm it claims', () => {
+  const spans = (ftsDel) => ({ fts_del: ftsDel, fts_ins: 5, commit: 5, rest: 5, txn: 1, lock: 1 });
+
+  it('passes the control when it recorded delete time', () => {
+    expect(armIdentityVerdict({ arm: 'A', spans: spans(42), extraArgs: [] }).ok).toBe(true);
+  });
+
+  it('passes arm G when it recorded exactly zero delete time', () => {
+    expect(armIdentityVerdict({
+      arm: 'G', spans: spans(0), extraArgs: ['--unsafe-skip-fts-deletes'],
+    }).ok).toBe(true);
+  });
+
+  // The failure the gate exists for. A flag that did not take effect makes arm
+  // G a second control, and the experiment then measures nothing.
+  it('fails arm G when the skip flag did not take effect', () => {
+    const v = armIdentityVerdict({
+      arm: 'G', spans: spans(42), extraArgs: ['--unsafe-skip-fts-deletes'],
+    });
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe('skip_flag_did_not_take_effect');
+  });
+
+  // The control is graded exactly as strictly, for Gate A's reason: it is the
+  // arm whose "production path" claim carries the most weight.
+  it('fails the control when it recorded no delete time at all', () => {
+    const v = armIdentityVerdict({ arm: 'A', spans: spans(0), extraArgs: [] });
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe('control_recorded_no_delete_time');
+  });
+
+  it('fails when the argv does not match the arm it claims to be', () => {
+    expect(armIdentityVerdict({
+      arm: 'A', spans: spans(42), extraArgs: ['--unsafe-skip-fts-deletes'],
+    }).ok).toBe(false);
+  });
+
+  it('fails when the spans line is absent rather than assuming the arm ran', () => {
+    expect(armIdentityVerdict({ arm: 'G', spans: null, extraArgs: ['--unsafe-skip-fts-deletes'] }).ok)
+      .toBe(false);
+  });
+
+  // `undefined !== 0` is true, so a missing span would otherwise PASS arm G —
+  // the one arm whose condition is an equality against zero.
+  it('fails arm G on a missing fts_del rather than reading it as zero', () => {
+    const v = armIdentityVerdict({
+      arm: 'G', spans: { fts_ins: 5 }, extraArgs: ['--unsafe-skip-fts-deletes'],
+    });
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe('fts_del_not_a_number');
   });
 });
