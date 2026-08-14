@@ -5288,6 +5288,43 @@ median of the three per-run shares. Both are computed and both are reported; the
 **adjudicates** is the median run's own share, following E1-PHASE's H1 precedent. Fixing it in code
 now removes the option of choosing once the two are seen to disagree.
 
+##### AMENDMENT 3 — 2026-08-14, mid-run, instrument defect. No scored run affected.
+
+**The span and the clock in a record must come from the same attempt.** They did not, and the
+first schedule produced one false VOID because of it.
+
+**The defect.** Gate 3 retakes a cell up to three times. When every attempt misses,
+`selectFitted` (`eval/e1-schedule.mjs:187-191`, E1's, unchanged and unchangeable) retains the
+**first** attempt's clock and phases. The driver paired that with `run.write_spans` — the **last**
+attempt's. The tiling gate then divided one attempt's spans by another attempt's write phase.
+
+It fired on `G#T3#b1`, the only cell in the schedule that missed Gate 3 on all three attempts.
+The gate recorded `tiling 0.7318` and voided the run. Recomputed from that same void record, the
+attempt's own spans sum to 2,513.0 ms against its own write phase of 2,527 ms — **0.9945**. The
+run was fine; the gate was comparing two different runs. In the opposite direction the same defect
+would have produced a false PASS.
+
+**No scored run is affected, and the verification is reproducible rather than asserted.** All 29
+retained runs have `gate3.ok === true`, so `selectFitted` returned the current attempt for every
+one of them and the fitted spans are the same object either way. Recomputing tiling from each
+retained record directly gives a minimum of **0.9937** across all 29. Check both from
+`eval/results/e1-fts-runs.jsonl`:
+
+- `runs.filter(r => !r.gate3.ok).length === 0`
+- `min(sum(values(r.write_spans)) / r.write_ms) === 0.9937`
+
+**This does not trigger E1-AB AMENDMENT 3's discard obligation.** That obligation exists because a
+design changed *after seeing data* can be shaped by it, so the data collected under the old design
+must go. Here the change is provably a no-op on every run that was retained — not "we believe it
+made no difference", but "the branch it alters was never taken by any scored run". The one cell it
+did alter was voided and scored nothing. The voided pair re-runs, which is what the estimator
+requires anyway: `G#T3#b1`'s partner `A#T3#b1` is re-run with it so the pair stays temporally
+adjacent.
+
+**What it cost to find.** Nothing was lost, but only because the gate failed loudly and the void
+record retained the measurement that disproved it. A tiling gate that had silently passed the
+inverted case would have put a mis-scaled `fts_del/write` into the record with no trace.
+
 ---
 
 ## Stage 4.5: Scale — the actual target

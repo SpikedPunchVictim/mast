@@ -30,7 +30,7 @@ import { gate3Verdict, remainingAttempts, selectFitted, orphanedAttempts } from 
 import { gatePVerdict } from './e1-phase-schedule.mjs';
 import {
   FTS_ARMS_BY_ID, FTS_TIERS, FTS_TOTAL_RUNS, FTS_BLOCKS, FTS_ORDERING, WRITE_SPANS,
-  buildFtsSchedule, tilingVerdict, armIdentityVerdict, ftsStateDirName,
+  buildFtsSchedule, tilingVerdict, armIdentityVerdict, selectFittedSpans, ftsStateDirName,
 } from './e1-fts-schedule.mjs';
 import {
   foldJournal, planPending, selectFtsRuns, chunkIdentityRows, dbIdentityRows, ftsKey,
@@ -172,8 +172,12 @@ async function executeCell(cell, ctx) {
     assertTierFileSet(run, manifestTier, tier);
 
     const g3 = gate3Verdict({ externalMs: run.external_ms, durationMs: run.duration_ms });
+    // `write_spans` rides along with the clock it was measured beside. Without
+    // it, a cell that misses Gate 3 on every attempt has `selectFitted` retain
+    // the FIRST attempt's phases while the spans stay on the LAST — and a ratio
+    // of two quantities measured in different runs is not a ratio of anything.
     attempts.push({ attempt, duration_ms: run.duration_ms, external_ms: run.external_ms,
-      phase_ms: run.phase_ms, gate3: g3 });
+      phase_ms: run.phase_ms, write_spans: run.write_spans, gate3: g3 });
 
     if (g3.ok || attempt === budget) {
       // A4-MAT-6. `selectFitted` keeps the clock and its decomposition on ONE
@@ -182,7 +186,7 @@ async function executeCell(cell, ctx) {
       // for the same reason, so they are taken from `run` only when the fitted
       // attempt IS this run.
       const fitted = selectFitted(run, attempts, g3.ok);
-      const spansAreFitted = fitted.duration_ms === run.duration_ms;
+      const fittedSpans = selectFittedSpans(attempts, g3.ok);
 
       const gp = gatePVerdict({ phaseMs: fitted.phase_ms, durationMs: fitted.duration_ms });
       if (!gp.ok) {
@@ -197,7 +201,7 @@ async function executeCell(cell, ctx) {
       // originally-registered spans it read 0.746 on a real build, and whatever
       // is unattributed cannot be ruled out as the carrier of the exponent —
       // which is the entire question this experiment asks.
-      const gt = tilingVerdict({ spans: run.write_spans, writeMs: fitted.phase_ms.write });
+      const gt = tilingVerdict({ spans: fittedSpans, writeMs: fitted.phase_ms.write });
       if (!gt.ok) {
         const rec = { type: 'void', arm, tier, block, attempt, reason: `gate_tiling_${gt.reason}`,
           gate_tiling: gt, measurement: run, at: new Date().toISOString() };
@@ -210,7 +214,7 @@ async function executeCell(cell, ctx) {
         // The primary series. E1-PHASE measured write at 94.01% of the clock at
         // T9, which is why every ratio is taken on it and not on duration_ms.
         write_ms: fitted.phase_ms.write,
-        write_spans: run.write_spans,
+        write_spans: fittedSpans,
         duration_ms: fitted.duration_ms,
         external_ms: fitted.external_ms,
         phase_ms: fitted.phase_ms,
@@ -224,11 +228,12 @@ async function executeCell(cell, ctx) {
         extra_args: run.extra_args,
         arm_identity: ident, gate3: g3, gate3_attempts: attempts,
         gate3_finding: g3.ok ? null : `Gate 3 failed on all ${attempts.length} attempts; first attempt retained.`,
-        // Stated in the record rather than left for a reader to reconstruct: a
-        // Gate 3 retake can make the fitted CLOCK come from a different attempt
-        // than the spans, and a reader comparing spans against `write_ms` needs
-        // to know when that happened.
-        spans_from_fitted_attempt: spansAreFitted,
+        // Retained as a positive assertion rather than a caveat: the spans and
+        // the clock above are now selected by the same rule, so this is always
+        // true, and a future record where it is not would mean the two
+        // selectors have drifted apart.
+        spans_from_fitted_attempt: true,
+        gate3_attempt_used: g3.ok ? attempts.length : 1,
         gate_p: gp, gate_tiling: gt,
         measurement: run,
       };
@@ -366,8 +371,12 @@ function summarise() {
   }
   for (const r of sel.runs) if (!r.gate3.ok) findings.push(`Gate 3 ${ftsKey(r)}: ${r.gate3_finding}`);
   for (const r of sel.runs) {
+    // An INVARIANT check now, not a caveat. The spans and the clock are
+    // selected by the same rule, so a record where this is false means the two
+    // selectors have drifted apart — which is the defect that produced a false
+    // void on the first schedule.
     if (r.spans_from_fitted_attempt === false) {
-      findings.push(`SPAN/CLOCK ${ftsKey(r)}: Gate 3 retakes made the fitted clock a different attempt than the spans.`);
+      findings.push(`SPAN/CLOCK ${ftsKey(r)}: the span and clock selectors disagree — the record's write_spans and write_ms come from different attempts and no ratio between them is meaningful.`);
     }
   }
   for (const row of chunkRows) {

@@ -1,15 +1,19 @@
 {
-  "created": "2026-08-14T09:06:53.467Z",
+  "created": "2026-08-14T09:47:12.265Z",
   "complete": false,
   "total": 30,
-  "unresolved_voids": [],
+  "unresolved_voids": [
+    "G#T3#b1"
+  ],
   "resolved_voids": [],
   "superseded": [],
-  "poisoned_pairs": [],
+  "poisoned_pairs": [
+    "T3#b1"
+  ],
   "chunk_identity": [
     {
       "tier": "T1",
-      "runs": 2,
+      "runs": 6,
       "chunk_counts": [
         3679
       ],
@@ -17,27 +21,35 @@
     },
     {
       "tier": "T3",
-      "runs": 0,
-      "chunk_counts": [],
-      "identical": false
+      "runs": 4,
+      "chunk_counts": [
+        7761
+      ],
+      "identical": true
     },
     {
       "tier": "T5",
-      "runs": 0,
-      "chunk_counts": [],
-      "identical": false
+      "runs": 6,
+      "chunk_counts": [
+        16529
+      ],
+      "identical": true
     },
     {
       "tier": "T7",
-      "runs": 0,
-      "chunk_counts": [],
-      "identical": false
+      "runs": 6,
+      "chunk_counts": [
+        34691
+      ],
+      "identical": true
     },
     {
       "tier": "T9",
-      "runs": 0,
-      "chunk_counts": [],
-      "identical": false
+      "runs": 6,
+      "chunk_counts": [
+        73359
+      ],
+      "identical": true
     }
   ],
   "db_identity": [
@@ -54,22 +66,22 @@
     {
       "tier": "T1",
       "block": 2,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 21569536,
+      "arm_g_bytes": 21569536,
+      "delta_bytes": 0
     },
     {
       "tier": "T1",
       "block": 3,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 21569536,
+      "arm_g_bytes": 21569536,
+      "delta_bytes": 0
     },
     {
       "tier": "T3",
@@ -84,114 +96,116 @@
     {
       "tier": "T3",
       "block": 2,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 45588480,
+      "arm_g_bytes": 45588480,
+      "delta_bytes": 0
     },
     {
       "tier": "T3",
       "block": 3,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 45588480,
+      "arm_g_bytes": 45588480,
+      "delta_bytes": 0
     },
     {
       "tier": "T5",
       "block": 1,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 95203328,
+      "arm_g_bytes": 95203328,
+      "delta_bytes": 0
     },
     {
       "tier": "T5",
       "block": 2,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 95203328,
+      "arm_g_bytes": 95203328,
+      "delta_bytes": 0
     },
     {
       "tier": "T5",
       "block": 3,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 95203328,
+      "arm_g_bytes": 95203328,
+      "delta_bytes": 0
     },
     {
       "tier": "T7",
       "block": 1,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 198684672,
+      "arm_g_bytes": 198684672,
+      "delta_bytes": 0
     },
     {
       "tier": "T7",
       "block": 2,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 198684672,
+      "arm_g_bytes": 198684672,
+      "delta_bytes": 0
     },
     {
       "tier": "T7",
       "block": 3,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 198684672,
+      "arm_g_bytes": 198684672,
+      "delta_bytes": 0
     },
     {
       "tier": "T9",
       "block": 1,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 439140352,
+      "arm_g_bytes": 439140352,
+      "delta_bytes": 0
     },
     {
       "tier": "T9",
       "block": 2,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 439140352,
+      "arm_g_bytes": 439140352,
+      "delta_bytes": 0
     },
     {
       "tier": "T9",
       "block": 3,
-      "pending": true,
-      "ok": null,
-      "reason": "not_yet_run",
-      "arm_a_bytes": null,
-      "arm_g_bytes": null,
-      "delta_bytes": null
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 439140352,
+      "arm_g_bytes": 439140352,
+      "delta_bytes": 0
     }
   ],
-  "findings": [],
+  "findings": [
+    "VOID G#T3#b1: gate_tiling_tiling_below_floor"
+  ],
   "scoreable": false
 }

@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   FTS_ARMS, FTS_ARMS_BY_ID, FTS_TIERS, FTS_BLOCKS, FTS_TOTAL_RUNS, FTS_ORDERING,
   WRITE_SPANS, GATE_TILING_FLOOR, buildFtsSchedule, ftsStateDirName,
-  tilingVerdict, dbIdentityVerdict, spanSum, armIdentityVerdict,
+  tilingVerdict, dbIdentityVerdict, spanSum, armIdentityVerdict, selectFittedSpans,
 } from '../e1-fts-schedule.mjs';
 import { parseWriteSpans } from '../e1-common.mjs';
 
@@ -291,5 +291,44 @@ describe('armIdentityVerdict — the arm actually ran as the arm it claims', () 
     });
     expect(v.ok).toBe(false);
     expect(v.reason).toBe('fts_del_not_a_number');
+  });
+});
+
+// The defect that fired on the first schedule. Gate 3 retakes up to three
+// times; when every attempt misses, `selectFitted` retains the FIRST attempt's
+// clock. The driver paired that with the LAST attempt's spans, so the tiling
+// gate divided one attempt's spans by another attempt's write phase — reading
+// 0.7318 on a run that tiled to 0.9945, and voiding it.
+describe('selectFittedSpans — spans and clock must come from ONE attempt', () => {
+  const attempts = [
+    { attempt: 1, write_spans: { fts_del: 100 } },
+    { attempt: 2, write_spans: { fts_del: 200 } },
+    { attempt: 3, write_spans: { fts_del: 300 } },
+  ];
+
+  it('takes the last attempt when Gate 3 finally passed, matching selectFitted', () => {
+    expect(selectFittedSpans(attempts, true).fts_del).toBe(300);
+  });
+
+  // The case that broke. `selectFitted` returns the FIRST attempt's clock here,
+  // so the spans must be the first attempt's too.
+  it('takes the FIRST attempt when Gate 3 failed on all of them', () => {
+    expect(selectFittedSpans(attempts, false).fts_del).toBe(100);
+  });
+
+  it('is a no-op on a single-attempt cell, whichever way Gate 3 went', () => {
+    const one = [{ attempt: 1, write_spans: { fts_del: 42 } }];
+    expect(selectFittedSpans(one, true).fts_del).toBe(42);
+    expect(selectFittedSpans(one, false).fts_del).toBe(42);
+  });
+
+  it('returns null rather than inventing spans when there are no attempts', () => {
+    expect(selectFittedSpans([], true)).toBeNull();
+  });
+
+  // A null must reach the tiling gate, which can name the cell, rather than
+  // being silently read as zero attributed time.
+  it('returns null when the fitted attempt carries no spans', () => {
+    expect(selectFittedSpans([{ attempt: 1 }], true)).toBeNull();
   });
 });

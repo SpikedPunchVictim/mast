@@ -251,3 +251,30 @@ export function armIdentityVerdict({ arm, spans, extraArgs }) {
   }
   return { ok: true, reason: null, arm, fts_del_ms: ftsDel };
 }
+
+/**
+ * The spans belonging to the attempt whose clock was retained.
+ *
+ * MIRRORS `selectFitted`'s rule (`eval/e1-schedule.mjs`) exactly, and exists
+ * because that function predates this experiment and cannot be changed: it is
+ * E1's, and every completed record depends on it.
+ *
+ * The defect this closes was real and it fired on the first schedule. Gate 3
+ * retakes a cell up to three times; when every attempt misses, `selectFitted`
+ * retains the FIRST attempt's clock and phases. The driver was pairing that
+ * with the LAST attempt's spans, so the tiling gate divided one attempt's spans
+ * by another attempt's write phase. It read 0.7318 on a run that actually tiled
+ * to 0.9945 and voided it — a false void, and in the opposite direction it
+ * would have been a false pass.
+ *
+ * A ratio of two quantities measured in different runs is not a ratio of
+ * anything. Every span/clock pair in a record must come from one attempt.
+ *
+ * @param {object[]} attempts each carrying its own `write_spans`
+ * @param {boolean} gate3Ok whether the final attempt passed Gate 3
+ */
+export function selectFittedSpans(attempts, gate3Ok) {
+  if (attempts.length === 0) return null;
+  const fitted = gate3Ok ? attempts[attempts.length - 1] : attempts[0];
+  return fitted.write_spans ?? null;
+}
