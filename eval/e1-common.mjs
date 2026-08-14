@@ -419,6 +419,7 @@ export async function runColdIndex({ projectRoot, stateDir, extraArgs = [] }) {
     state_dir: stateDir,
     duration_ms: parseDurationMs(stdout),    // the FITTED clock — see parseDurationMs
     phase_ms: parsePhaseMs(stdout),          // the decomposition E1 lacked — see parsePhaseMs
+    write_spans: parseWriteSpans(stdout),    // E1-FTS's write-phase decomposition
     pragmas: parsePragmas(stdout),           // Gate A's arm identity — see parsePragmas
     extra_args: extraArgs,                   // what was ASKED for; `pragmas` is what took effect
     external_ms: externalMs,                 // Gate 3's cross-check only
@@ -523,6 +524,27 @@ export function parseDurationMs(stdout) {
  */
 export function parsePhaseMs(stdout) {
   const m = /phases:\s*(\{.*\})/.exec(stdout);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1]);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The write phase's own decomposition (`cli/index-cmd.ts`, `write_spans:` line).
+ *
+ * E1-FTS's instrument. A SEPARATE line from `phases:` and parsed separately, because
+ * `phases:` is E1-PHASE's scored instrument and a finished record must not sit behind a
+ * moving definition — the same rule that gave E1-AB its own schedule module.
+ *
+ * Returns `null` rather than throwing, for `parsePhaseMs`'s reason and one more: a run
+ * whose spans are missing must reach the TILING GATE, which can name the run and quote its
+ * stdout, rather than dying in a parser that knows nothing about which cell it was in.
+ */
+export function parseWriteSpans(stdout) {
+  const m = /write_spans:\s*(\{.*\})/.exec(stdout);
   if (!m) return null;
   try {
     return JSON.parse(m[1]);

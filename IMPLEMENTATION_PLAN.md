@@ -5259,6 +5259,35 @@ direction of a harder test. Overhead with six spans: ~12 timer calls per file �
 T1. Its span shares (`fts_del` at 4.6%) are reported here to justify the amendment and for no
 other purpose. They are not a prior, not a prediction, and not comparable to any rung.
 
+##### AMENDMENT 2 — 2026-08-14, pre-run, no data collected
+
+**`b_rest ≤ 1.35` is a fifth blocking condition on MECHANISM_IDENTIFIED.** The registration's two
+outcome clauses contradict each other and this resolves the contradiction before any data exists.
+
+The MECHANISM_IDENTIFIED clause reads "iff all four hold" and lists conditions 1-4, which do not
+include `b_rest`. The PARTIAL clause reads "iff the decomposition conditions (1-2) hold but
+`b_rest > 1.35`, **or** the intervention conditions (3-4) fail." Those disagree about exactly one
+case: all four registered conditions hold *and* `b_rest > 1.35`. The first clause returns
+MECHANISM_IDENTIFIED; the second returns PARTIAL.
+
+**Resolved in favour of PARTIAL**, because the PARTIAL clause is the one that mentions `b_rest` at
+all, and because the substantive reason PARTIAL was registered as first-class says the same thing:
+`chunks` carries a TEXT primary key whose autoindex is a plausible second super-linear term, and a
+surviving second term means the exponent has been *reduced*, not *explained*. Reporting that as
+MECHANISM_IDENTIFIED would claim the stronger of the two.
+
+The resolution is recorded because it is an interpretation of ambiguous registered text, and the
+direction it resolves in is the one **less** favourable to the author's expected outcome. It was
+found by a test written against the registration's words rather than against the implementation —
+`eval/__tests__/e1-fts-score.test.mjs`, "returns PARTIAL when a second super-linear term survives
+in rest" — which is why it surfaced before the run rather than during the results review.
+
+**One further reading fixed here, also before data.** The registration names the condition
+"`fts_del/write ≥ 0.50` at T9" without saying whether that is the median run's own share or the
+median of the three per-run shares. Both are computed and both are reported; the one that
+**adjudicates** is the median run's own share, following E1-PHASE's H1 precedent. Fixing it in code
+now removes the option of choosing once the two are seen to disagree.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
