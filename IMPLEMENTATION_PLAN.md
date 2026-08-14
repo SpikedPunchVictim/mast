@@ -5025,6 +5025,189 @@ re-verified against the amalgamation and the scorer by the author before being r
 
 ---
 
+#### E1-FTS PRE-REGISTRATION — 2026-08-14, pre-run, post-adversarial-design-review
+
+**The question. H-DELETE-SCAN:** is the per-file FTS5 delete-scan at
+`src/graph/populate.ts:318-319` the mechanism behind the write phase's super-linear exponent?
+
+This supersedes the merge hypothesis the author drafted first. That draft is recorded here as
+withdrawn, not quietly replaced: it proposed that FTS5 segment merging produced the exponent, and
+the adversarial design review killed it on the source before a line was written —
+`fts5IndexAutomerge` schedules work proportional to leaves-flushed × level-count
+(`sqlite3.c:255626-255645`, `FTS5_WORK_UNIT = 64` at `:250651`), which is amortised O(N log N) and
+can contribute perhaps +0.05–0.1 to an exponent, never the +0.9 at issue. The same review found
+that the author's proposed `fts_ms` timer would have missed FTS5's segment writes entirely, since
+those happen at COMMIT via `fts5SyncMethod` (`:262278`; `xCommit` is a documented no-op at
+`:262302`) rather than inside the INSERT — a structural bias toward a **false null**.
+
+##### Epistemic status, stated before the design so it cannot be overclaimed afterwards
+
+**This is not a discovery probe. The mechanism is already established statically.** What is not
+established is its magnitude *inside a build*, and whether removing it removes the exponent. That
+is what this experiment measures, and it is all it measures.
+
+The design was chosen **after** seeing the evidence below. That is legitimate here only because
+the evidence is static and observational — it is prior evidence, not a result of this experiment,
+and it is published in this registration so a reader can discount it appropriately. No run
+collected under this registration informed its design.
+
+**Prior evidence, verified independently by the author before registering:**
+
+1. **The deletes are full table scans.** `EXPLAIN QUERY PLAN` against the retained
+   `phase-run-T9-r3/graph.db` (opened plain-readonly, never `?mode=ro&immutable=1`):
+
+   | statement | plan |
+   |---|---|
+   | `DELETE FROM chunk_fts WHERE file_path = ?` | `SCAN chunk_fts VIRTUAL TABLE INDEX 0:` |
+   | `DELETE FROM identifier_fts WHERE file_path = ?` | `SCAN identifier_fts VIRTUAL TABLE INDEX 0:` |
+   | `DELETE FROM chunks WHERE file_path = ?` | `SEARCH chunks USING INDEX idx_chunks_file_path` |
+
+   The ordinary table uses its index; FTS5 cannot, because `xBestIndex`
+   (`sqlite3.c:260775-260860`) will not consume an equality constraint on an ordinary column.
+
+2. **They run unconditionally on the cold path**, `populate.ts:318-319`, with no guard on whether
+   the file was previously indexed. The comment there reads "Delete existing rows by file_path
+   (UNINDEXED column, supported by FTS5)" — true about support, silent about cost, and that is
+   where this hid through E1, E1-PHASE and E1-AB.
+
+3. **On a cold build every one of those scans matches zero rows**, because nothing for that file
+   has ever been written. The work is not merely quadratic; it is quadratic and entirely wasted.
+
+4. **The quadratic model predicts the measured write times.** With `N` = files and `F` = FTS5
+   bytes, scan work over a cold run is `SUM_i F*(i-1)/N ≈ N*F/2`. Fitting the single constant `k`
+   in `write_ms ≈ k*N*F` on **T9 alone** and predicting the rest:
+
+   | tier | N | measured write_ms | predicted | err |
+   |---|---|---|---|---|
+   | T1 | 656 | 1,452 | 1,225 | −15.6% |
+   | T3 | 1,393 | 4,555 | 5,504 | +20.8% |
+   | T5 | 2,880 | 23,725 | 23,695 | **−0.1%** |
+   | T7 | 5,976 | 97,660 | 102,015 | +4.5% |
+   | T9 | 13,330 | 500,885 | 500,885 | 0.0% (fitted) |
+
+   The linear null model `write_ms ≈ k*chunks` is wrong by **+1630%** at T1. The quadratic model's
+   own implied exponent, `ln(N*F ratio)/ln(chunk ratio) = 6.035/2.993 = 2.02`, sits beside
+   E1-PHASE's measured `b_write = 1.9685`. T1 and T3 deviate in the direction and roughly the
+   magnitude expected, since fixed per-file work still dominates before the quadratic term does.
+
+   **This table is warm, readonly, out-of-transaction prior evidence.** In-build scans run inside
+   `BEGIN IMMEDIATE` against a cache that is missing. The shares are order-of-magnitude priors and
+   are explicitly **not** registered as thresholds.
+
+5. It retro-explains E1-AB. A scan is read-cursor traffic and therefore mmap-eligible inside a
+   write transaction (`sqlite3.c:77889`, `:251470`), which is why arm C was not inert and why the
+   cache dose-response tracked database size.
+
+##### The arms
+
+| arm | what it does | role |
+|---|---|---|
+| **A** | control — the exact production path | every ratio is taken against this arm inside its own block |
+| **G** | identical, except the two DELETE statements at `populate.ts:318-319` are skipped under a driver-injected flag | the causal test, and the fix rehearsal |
+
+**Arm F — "skip FTS5 writes entirely" — is registered as CUT, with the reason.** It was the
+author's proposed causal arm and it is unusable: it shrinks the database by ~69%, and E1-AB
+established that write time is coupled to database size, so arm F would confound "FTS work
+removed" with "smaller database" in the direction that **flatters** a positive result. Arm G has
+no such confound: skipping deletes that match nothing leaves the finished database
+**byte-identical**. The author believed no confound-free causal arm existed; the review found one.
+
+##### Ladder, blocks, and the estimator
+
+**T1/T3/T5/T7/T9 × 3 blocks**, both arms interleaved within a block. Five rungs, not E1-AB's
+three: a three-rung slope is determined by three points with no residual freedom and no honest
+interval, which E1-AB's own results review named as a weakness. Not E1's nine, because the
+marginal rungs cost more than the precision buys here.
+
+Blocks are contiguous and the primary estimator is a **within-block ratio**, so drift cancels by
+construction — inherited from E1-AB unchanged. Within-block arm order is a **Latin square**
+(AMENDMENT 3's lesson, carried forward: with 2 arms × 3 blocks exact positional balance is not
+attainable, so the order alternates and the imbalance is recorded rather than described as
+balanced).
+
+##### What is instrumented
+
+Four spans **tiling** the write phase, each **timed directly — none by subtraction**:
+
+- `fts_del_ms` — the two DELETE statements
+- `fts_ins_ms` — the two batched INSERT loops
+- `commit_ms` — the per-file transaction commit, where FTS5's segment flush actually happens
+- `rest_ms` — chunks, symbols, imports
+
+Timed directly because a single blended `fts_ms` would mix a population with `b ≈ 2` (the deletes)
+against a roughly linear one (the inserts), and because `rest = write − fts` would silently absorb
+any cost the other timers missed — which is exactly how the author's first design would have
+produced a false null. The existing `phaseMs` record (`src/indexer/index.ts:81`) is unchanged;
+these are additive.
+
+Timer overhead is quantitatively closed, not assumed: 43.5 ns per `Date.now()`, 0.016% of T1's
+write and 0.0009% of T9's, slope bias < 0.001. It was worth checking because an overhead that is a
+larger fraction of a small rung's time biases the slope, which is the one quantity being measured.
+
+##### Gates
+
+- **Tiling ≥ 0.95** per run — the four spans must account for the write phase. The analogue of
+  E1-PHASE's `GATE_P_FLOOR` (`eval/e1-phase-schedule.mjs:32`), same floor and same reason.
+- **`db_bytes(G) == db_bytes(A)`** per rung. This is what makes arm G confound-free, so it is a
+  gate and not an observation; a mismatch voids the arm.
+- **Gate 0 (binary identity) and Gate 3 (dual clocks)** inherited from E1-PHASE unchanged.
+- **Fresh binary ⇒ no absolute-time comparison** with E1, E1-PHASE or E1-AB records. Both arms
+  share this binary, which is what keeps the comparison internally valid. E1-AB's registered
+  consequence applies verbatim.
+
+##### Registered outcomes
+
+**MECHANISM_IDENTIFIED** iff all four hold:
+
+1. `b_fts_del ≥ 1.6`
+2. `fts_del/write ≥ 0.50` at T9
+3. `write_A/write_G ≥ 2` at T9
+4. `b_write(G) ≤ 1.35` — the immutable E1 linearity threshold, reused unchanged
+
+**PARTIAL** iff the decomposition conditions (1-2) hold but `b_rest > 1.35`, or the intervention
+conditions (3-4) fail. **PARTIAL is a first-class outcome, not a degraded one**: `chunks` carries a
+TEXT primary key whose autoindex is a plausible second super-linear term, and if it is real then
+removing the delete-scan will reduce the exponent without flattening it. Registered in advance so
+that result cannot be reported as a disappointment or as a null.
+
+**NULL** iff `b_fts_del < 1.6`. This would mean the static model above is wrong about in-build
+behaviour, which is a publishable finding in its own right.
+
+**Instrument-validity check, adjudicating nothing:**
+`|(write_A − write_G) − fts_del_A| ≤ 0.15 · fts_del_A` at T7 and T9. Two independent measurements
+of the same quantity; disagreement condemns the instrument, not the hypothesis.
+
+##### Direction of error, and what this cannot license
+
+**Direction of error.** The author arrives at this experiment already believing the hypothesis, on
+the strength of a model that fits four rungs. That is the condition under which a favourable
+result is least informative and an unfavourable one most informative. The registered NULL band
+exists to be reachable, and the honest expectation is recorded here: **MECHANISM_IDENTIFIED is
+expected.** If it is returned, it confirms a prediction made in advance; it is not a discovery
+made by the experiment.
+
+**This cannot license:** any statement about the *update* path (arm G's condition is cold-build
+only — an incremental reindex genuinely must delete, and for that path the delete-scan is a real
+cost needing a different fix); any claim that the exponent is now *explained* if PARTIAL is
+returned; any re-adjudication of E1's SUPER-LINEAR verdict, which stands regardless; and any
+explanation of E1-AB's `rho_D(T9) = 0.8486`, which the scan mechanism does not obviously produce
+and which remains open.
+
+**Not shipped on the strength of this.** The fix — guarding both DELETEs on whether the file's
+`files` row previously existed, which the F12 monotonic-guard SELECT at `populate.ts:216-220`
+already knows — is a separate change, verified by re-running **E1's full 9-rung ladder** against
+the committed scorer and the immutable 1.35 threshold. Arm G is a rehearsal of that guard, not the
+guard itself.
+
+**Cost:** 30 runs, ≈ 45–50 minutes.
+
+**Design review:** `eval/results/e1-fts-design-review.md`. It is the reason this registration
+exists in this form: it withdrew the author's mechanism, found the real one, caught a false-null
+bias in the author's proposed instrument, and replaced an unusable arm with a confound-free one —
+all before any code was written.
+
+---
+
 ## Stage 4.5: Scale — the actual target
 **Goal**: MAST is "Monorepo AST search". Make the scale target explicit and measured,
 because it changes several decisions already taken.
