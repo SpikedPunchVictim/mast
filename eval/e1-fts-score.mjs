@@ -263,3 +263,59 @@ export function fitExponents(runs) {
 
 /** The tiers this scorer expects to find, re-exported so the report cannot drift from it. */
 export { FTS_TIERS };
+
+/**
+ * Every registered statistic, assembled.
+ *
+ * The adjudicating inputs are named explicitly in `verdict_inputs` rather than
+ * left to be reconstructed from the tables — the registration fixed which
+ * reading adjudicates (AMENDMENT 2), and a reader must be able to see the five
+ * numbers that decided the outcome without re-deriving them.
+ */
+export function scoreFts(runs) {
+  const armA = runs.filter((r) => r.arm === 'A');
+  const exponents = fitExponents(runs);
+
+  const shares = {};
+  const ratios = {};
+  for (const tier of FTS_TIERS) {
+    shares[tier] = Object.fromEntries(
+      ['fts_del', 'fts_ins', 'commit', 'rest', 'txn', 'lock']
+        .map((span) => [span, rungShares(armA, tier, span)]),
+    );
+    ratios[tier] = withinBlockRatios(runs, tier, (r) => r.phase_ms.write);
+  }
+
+  // At T7 and T9 only, as registered — the rungs where the delete span is large
+  // enough that the two measurements can meaningfully disagree.
+  const validity = {};
+  for (const tier of ['T7', 'T9']) {
+    const a = runs.filter((r) => r.tier === tier && r.arm === 'A');
+    const g = runs.filter((r) => r.tier === tier && r.arm === 'G');
+    validity[tier] = a.length > 0 && g.length > 0
+      ? validityCheck({
+          writeA: median(a.map((r) => r.phase_ms.write)),
+          writeG: median(g.map((r) => r.phase_ms.write)),
+          ftsDelA: median(a.map((r) => r.write_spans.fts_del)),
+        })
+      : { ok: false, reason: 'rung_incomplete', adjudicates: false };
+  }
+
+  const verdictInputs = {
+    b_fts_del: exponents.b_fts_del.b ?? null,
+    b_rest: exponents.b_rest.b ?? null,
+    b_write_g: exponents.b_write_g.b ?? null,
+    // AMENDMENT 2: the median RUN's own share adjudicates, not the median of shares.
+    share_fts_del_t9: shares.T9.fts_del.median_run,
+    write_ratio_t9: ratios.T9.median,
+  };
+
+  return {
+    exponents,
+    shares,
+    write_ratio: ratios,
+    instrument_validity: validity,
+    verdict_inputs: verdictInputs,
+    verdict: adjudicate(verdictInputs),
+  };
+}

@@ -17,7 +17,11 @@
 //
 // Run from `packages/mast`, never the repo root.
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { RESULTS_DIR, writeResult } from './e1-common.mjs';
 import { FTS_TIERS, FTS_TOTAL_RUNS, dbIdentityVerdict } from './e1-fts-schedule.mjs';
+import { scoreFts, VALIDITY_TOLERANCE } from './e1-fts-score.mjs';
 
 /** A cell's identity: arm x rung x block. */
 export const ftsKey = (r) => `${r.arm}#${r.tier}#b${r.block}`;
@@ -250,3 +254,84 @@ export function ftsOrphanedAttempts(records) {
   }
   return orphans;
 }
+
+function main() {
+  const records = readFileSync(join(RESULTS_DIR, 'e1-fts-runs.jsonl'), 'utf8')
+    .split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
+  const summary = JSON.parse(readFileSync(join(RESULTS_DIR, 'e1-fts-runs-summary.json'), 'utf8'));
+
+  const sel = selectFtsRuns(records);
+  const scored = scoreFts(sel.runs);
+
+  const record = {
+    created: new Date().toISOString(),
+    what_this_is:
+      'E1-FTS tests whether the per-file FTS5 delete-scan carries the write phase\'s ' +
+      'super-linear exponent. It cannot re-adjudicate E1\'s SUPER-LINEAR verdict, which stands ' +
+      'regardless; it licenses nothing about the UPDATE path, where the deletes are real work; ' +
+      'and it does not explain E1-AB\'s rho_D(T9) = 0.8486, which remains open. The fix is not ' +
+      'shipped on the strength of this — it is verified by re-running E1\'s full 9-rung ladder.',
+    expected_outcome_declared_in_advance:
+      'MECHANISM_IDENTIFIED was registered as the EXPECTED outcome before the run. A favourable ' +
+      'result confirms a prediction made in advance; it is not a discovery made by the experiment.',
+    complete: sel.complete,
+    scoreable: sel.scoreable,
+    unresolved_voids: [...sel.voids.keys()],
+    resolved_voids: sel.resolved_voids,
+    superseded: sel.superseded,
+    poisoned_pairs: sel.poisoned_pairs,
+    chunk_identity: chunkIdentityRows(sel.runs),
+    db_identity: dbIdentityRows(sel.runs),
+    driver_findings: summary.findings,
+    ...scored,
+  };
+  const out = writeResult('e1-fts-verdict.json', record);
+
+  const f = (x, d = 4) => (typeof x === 'number' ? x.toFixed(d) : String(x));
+  const pct = (x) => (typeof x === 'number' ? `${(x * 100).toFixed(1)}%` : String(x));
+
+  console.log('');
+  console.log('  rung   write_A ms   write_G ms   ratio A/G   blocks');
+  for (const tier of FTS_TIERS) {
+    const r = scored.write_ratio[tier];
+    const a = sel.runs.filter((x) => x.tier === tier && x.arm === 'A').map((x) => x.phase_ms.write);
+    const g = sel.runs.filter((x) => x.tier === tier && x.arm === 'G').map((x) => x.phase_ms.write);
+    const med = (v) => (v.length ? [...v].sort((p, q) => p - q)[Math.floor(v.length / 2)] : NaN);
+    console.log(`  ${tier.padEnd(6)} ${String(med(a)).padEnd(12)} ${String(med(g)).padEnd(12)} ` +
+      `${f(r.median, 3).padEnd(11)} ${r.per_block.map((x) => f(x, 3)).join(' ')}`);
+  }
+
+  console.log('');
+  console.log('  arm A span shares of the write phase (median run)');
+  console.log(`  rung   ${['fts_del', 'fts_ins', 'commit', 'rest', 'txn', 'lock'].map((s) => s.padEnd(9)).join('')}`);
+  for (const tier of FTS_TIERS) {
+    console.log(`  ${tier.padEnd(6)} ` +
+      ['fts_del', 'fts_ins', 'commit', 'rest', 'txn', 'lock']
+        .map((s) => pct(scored.shares[tier][s].median_run).padEnd(9)).join(''));
+  }
+
+  console.log('');
+  console.log('  exponent (ln series on ln chunks; HC3 interval is CONTEXT, not a bar)');
+  for (const [k, v] of Object.entries(scored.exponents)) {
+    console.log(`  ${k.padEnd(12)} ${v.degenerate ? `DEGENERATE ${v.degenerate}` :
+      `${f(v.b)}   ci [${f(v.ci_hc3[0], 3)}, ${f(v.ci_hc3[1], 3)}]  df ${v.df}`}`);
+  }
+
+  console.log('');
+  for (const tier of ['T7', 'T9']) {
+    const v = scored.instrument_validity[tier];
+    console.log(`  instrument validity ${tier}: ${v.ok ? 'ok' : `DISAGREE (${v.reason})`}  ` +
+      `rel err ${f(v.relative_error, 4)} (tolerance ${v.tolerance ?? VALIDITY_TOLERANCE}) — adjudicates nothing`);
+  }
+
+  console.log('');
+  for (const c of scored.verdict.conditions) {
+    console.log(`  ${c.met ? 'MET    ' : 'UNMET  '} ${c.id.padEnd(18)} ${f(c.value)} vs ${c.threshold}   ${c.label}`);
+  }
+  console.log('');
+  console.log(`[E1-FTS] OUTCOME   ${scored.verdict.outcome}${scored.verdict.reason ? `  (${scored.verdict.reason})` : ''}`);
+  console.log(`[E1-FTS] scoreable: ${sel.scoreable}`);
+  console.log(`\nwrote ${out}`);
+}
+
+if (process.argv[1] && process.argv[1].endsWith('e1-fts-report.mjs')) main();

@@ -1,0 +1,570 @@
+{
+  "created": "2026-08-14T17:29:05.897Z",
+  "what_this_is": "E1-FTS tests whether the per-file FTS5 delete-scan carries the write phase's super-linear exponent. It cannot re-adjudicate E1's SUPER-LINEAR verdict, which stands regardless; it licenses nothing about the UPDATE path, where the deletes are real work; and it does not explain E1-AB's rho_D(T9) = 0.8486, which remains open. The fix is not shipped on the strength of this — it is verified by re-running E1's full 9-rung ladder.",
+  "expected_outcome_declared_in_advance": "MECHANISM_IDENTIFIED was registered as the EXPECTED outcome before the run. A favourable result confirms a prediction made in advance; it is not a discovery made by the experiment.",
+  "complete": true,
+  "scoreable": true,
+  "unresolved_voids": [],
+  "resolved_voids": [
+    {
+      "key": "G#T3#b1",
+      "void_reason": "gate_tiling_tiling_below_floor",
+      "resolved_at": "2026-08-14T17:04:59.855Z"
+    }
+  ],
+  "superseded": [
+    {
+      "key": "A#T3#b1",
+      "at": "2026-08-14T17:04:52.784Z"
+    }
+  ],
+  "poisoned_pairs": [],
+  "chunk_identity": [
+    {
+      "tier": "T1",
+      "runs": 6,
+      "chunk_counts": [
+        3679
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T3",
+      "runs": 6,
+      "chunk_counts": [
+        7761
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T5",
+      "runs": 6,
+      "chunk_counts": [
+        16529
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T7",
+      "runs": 6,
+      "chunk_counts": [
+        34691
+      ],
+      "identical": true
+    },
+    {
+      "tier": "T9",
+      "runs": 6,
+      "chunk_counts": [
+        73359
+      ],
+      "identical": true
+    }
+  ],
+  "db_identity": [
+    {
+      "tier": "T1",
+      "block": 1,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 21569536,
+      "arm_g_bytes": 21569536,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T1",
+      "block": 2,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 21569536,
+      "arm_g_bytes": 21569536,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T1",
+      "block": 3,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 21569536,
+      "arm_g_bytes": 21569536,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T3",
+      "block": 1,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 45588480,
+      "arm_g_bytes": 45588480,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T3",
+      "block": 2,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 45588480,
+      "arm_g_bytes": 45588480,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T3",
+      "block": 3,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 45588480,
+      "arm_g_bytes": 45588480,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T5",
+      "block": 1,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 95203328,
+      "arm_g_bytes": 95203328,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T5",
+      "block": 2,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 95203328,
+      "arm_g_bytes": 95203328,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T5",
+      "block": 3,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 95203328,
+      "arm_g_bytes": 95203328,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T7",
+      "block": 1,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 198684672,
+      "arm_g_bytes": 198684672,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T7",
+      "block": 2,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 198684672,
+      "arm_g_bytes": 198684672,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T7",
+      "block": 3,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 198684672,
+      "arm_g_bytes": 198684672,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T9",
+      "block": 1,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 439140352,
+      "arm_g_bytes": 439140352,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T9",
+      "block": 2,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 439140352,
+      "arm_g_bytes": 439140352,
+      "delta_bytes": 0
+    },
+    {
+      "tier": "T9",
+      "block": 3,
+      "pending": false,
+      "ok": true,
+      "reason": null,
+      "arm_a_bytes": 439140352,
+      "arm_g_bytes": 439140352,
+      "delta_bytes": 0
+    }
+  ],
+  "driver_findings": [
+    "VOID RESOLVED G#T3#b1: was gate_tiling_tiling_below_floor, re-run clean",
+    "SUPERSEDED A#T3#b1: a re-paired run replaced the stale record"
+  ],
+  "exponents": {
+    "b_fts_del": {
+      "b": 2.3453857933296147,
+      "se_hc3": 0.019506779844025914,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        2.303243957566061,
+        2.3875276290931686
+      ],
+      "ci_is_context_only": true
+    },
+    "b_fts_ins": {
+      "b": 1.1642491303496552,
+      "se_hc3": 0.009090230348853494,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.1446108816239653,
+        1.183887379075345
+      ],
+      "ci_is_context_only": true
+    },
+    "b_commit": {
+      "b": 1.2127809903527806,
+      "se_hc3": 0.02496303205467626,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.1588516383315821,
+        1.2667103423739792
+      ],
+      "ci_is_context_only": true
+    },
+    "b_rest": {
+      "b": 1.1767656032681242,
+      "se_hc3": 0.024784757446456137,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.1232213901227677,
+        1.2303098164134807
+      ],
+      "ci_is_context_only": true
+    },
+    "b_write_a": {
+      "b": 1.9379145371347226,
+      "se_hc3": 0.0378298058621526,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.8561882102700558,
+        2.0196408639993892
+      ],
+      "ci_is_context_only": true
+    },
+    "b_write_g": {
+      "b": 1.095596432824288,
+      "se_hc3": 0.019581196432347694,
+      "df": 13,
+      "n": 15,
+      "ci_hc3": [
+        1.053293829795803,
+        1.137899035852773
+      ],
+      "ci_is_context_only": true
+    }
+  },
+  "shares": {
+    "T1": {
+      "fts_del": {
+        "median_run": 0.27766177233042777,
+        "median_of_shares": 0.2826938812368229,
+        "n": 3
+      },
+      "fts_ins": {
+        "median_run": 0.22823799731363473,
+        "median_of_shares": 0.22823799731363473,
+        "n": 3
+      },
+      "commit": {
+        "median_run": 0.2722210315648074,
+        "median_of_shares": 0.2597872874209395,
+        "n": 3
+      },
+      "rest": {
+        "median_run": 0.132349449294831,
+        "median_of_shares": 0.132349449294831,
+        "n": 3
+      },
+      "txn": {
+        "median_run": 0.012292131631979546,
+        "median_of_shares": 0.012292131631979546,
+        "n": 3
+      },
+      "lock": {
+        "median_run": 0.0726129100067157,
+        "median_of_shares": 0.07561378566409054,
+        "n": 3
+      }
+    },
+    "T3": {
+      "fts_del": {
+        "median_run": 0.4338730104803497,
+        "median_of_shares": 0.4338730104803497,
+        "n": 3
+      },
+      "fts_ins": {
+        "median_run": 0.18097499541484544,
+        "median_of_shares": 0.18097499541484544,
+        "n": 3
+      },
+      "commit": {
+        "median_run": 0.22743065524017733,
+        "median_of_shares": 0.22743065524017733,
+        "n": 3
+      },
+      "rest": {
+        "median_run": 0.09444991572052143,
+        "median_of_shares": 0.09478079783310901,
+        "n": 3
+      },
+      "txn": {
+        "median_run": 0.008630898471614593,
+        "median_of_shares": 0.008630898471614593,
+        "n": 3
+      },
+      "lock": {
+        "median_run": 0.05210027270742548,
+        "median_of_shares": 0.051869294144767535,
+        "n": 3
+      }
+    },
+    "T5": {
+      "fts_del": {
+        "median_run": 0.7248622000473463,
+        "median_of_shares": 0.7245800440771347,
+        "n": 3
+      },
+      "fts_ins": {
+        "median_run": 0.08394689654356037,
+        "median_of_shares": 0.08394689654356037,
+        "n": 3
+      },
+      "commit": {
+        "median_run": 0.11423918319128815,
+        "median_of_shares": 0.11423918319128815,
+        "n": 3
+      },
+      "rest": {
+        "median_run": 0.04703888778409222,
+        "median_of_shares": 0.047508355855203487,
+        "n": 3
+      },
+      "txn": {
+        "median_run": 0.004044176278406534,
+        "median_of_shares": 0.004044176278406534,
+        "n": 3
+      },
+      "lock": {
+        "median_run": 0.02434061358901591,
+        "median_of_shares": 0.02434061358901591,
+        "n": 3
+      }
+    },
+    "T7": {
+      "fts_del": {
+        "median_run": 0.8468073241288974,
+        "median_of_shares": 0.8463823639396326,
+        "n": 3
+      },
+      "fts_ins": {
+        "median_run": 0.049770638492505445,
+        "median_of_shares": 0.049134893811811686,
+        "n": 3
+      },
+      "commit": {
+        "median_run": 0.06273341680865452,
+        "median_of_shares": 0.06369877198610491,
+        "n": 3
+      },
+      "rest": {
+        "median_run": 0.026147509115691782,
+        "median_of_shares": 0.026147509115691782,
+        "n": 3
+      },
+      "txn": {
+        "median_run": 0.002177636426560167,
+        "median_of_shares": 0.002179813663259644,
+        "n": 3
+      },
+      "lock": {
+        "median_run": 0.011499752406712556,
+        "median_of_shares": 0.011499752406712556,
+        "n": 3
+      }
+    },
+    "T9": {
+      "fts_del": {
+        "median_run": 0.9168865559683326,
+        "median_of_shares": 0.9214676017525477,
+        "n": 3
+      },
+      "fts_ins": {
+        "median_run": 0.024239278767116602,
+        "median_of_shares": 0.024034106765206238,
+        "n": 3
+      },
+      "commit": {
+        "median_run": 0.03594539383555772,
+        "median_of_shares": 0.03247964917184754,
+        "n": 3
+      },
+      "rest": {
+        "median_run": 0.015348869516170736,
+        "median_of_shares": 0.01475618372670347,
+        "n": 3
+      },
+      "txn": {
+        "median_run": 0.0012198390549902516,
+        "median_of_shares": 0.0012119680098730539,
+        "n": 3
+      },
+      "lock": {
+        "median_run": 0.005755229169159365,
+        "median_of_shares": 0.005589082475858775,
+        "n": 3
+      }
+    }
+  },
+  "write_ratio": {
+    "T1": {
+      "per_block": [
+        1.2907563025210085,
+        1.3682692307692308,
+        1.4757185332011893
+      ],
+      "median": 1.3682692307692308,
+      "spread": 0.13517970478382857,
+      "blocks_dropped": []
+    },
+    "T3": {
+      "per_block": [
+        1.803231939163498,
+        1.8350253807106598,
+        1.9415006358626536
+      ],
+      "median": 1.8350253807106598,
+      "spread": 0.07534974619566706,
+      "blocks_dropped": []
+    },
+    "T5": {
+      "per_block": [
+        4.066823767042585,
+        3.6053319393622583,
+        4.019794442329654
+      ],
+      "median": 4.019794442329654,
+      "spread": 0.1148048325110056,
+      "blocks_dropped": []
+    },
+    "T7": {
+      "per_block": [
+        7.679874460572774,
+        7.62022234845411,
+        7.449573749396815
+      ],
+      "median": 7.62022234845411,
+      "spread": 0.030222308568552347,
+      "blocks_dropped": []
+    },
+    "T9": {
+      "per_block": [
+        15.416509698952447,
+        16.41880809185347,
+        15.95664030542678
+      ],
+      "median": 15.95664030542678,
+      "spread": 0.06281387395566887,
+      "blocks_dropped": []
+    }
+  },
+  "instrument_validity": {
+    "T7": {
+      "ok": true,
+      "reason": null,
+      "intervention_delta_ms": 81470,
+      "direct_span_ms": 79518.59496499998,
+      "relative_error": 0.02454023534820914,
+      "tolerance": 0.15,
+      "adjudicates": false
+    },
+    "T9": {
+      "ok": true,
+      "reason": null,
+      "intervention_delta_ms": 438768,
+      "direct_span_ms": 429882.1441019968,
+      "relative_error": 0.020670446586157555,
+      "tolerance": 0.15,
+      "adjudicates": false
+    }
+  },
+  "verdict_inputs": {
+    "b_fts_del": 2.3453857933296147,
+    "b_rest": 1.1767656032681242,
+    "b_write_g": 1.095596432824288,
+    "share_fts_del_t9": 0.9168865559683326,
+    "write_ratio_t9": 15.95664030542678
+  },
+  "verdict": {
+    "outcome": "MECHANISM_IDENTIFIED",
+    "reason": null,
+    "conditions": [
+      {
+        "id": "b_fts_del",
+        "label": "the delete span grows super-linearly",
+        "value": 2.3453857933296147,
+        "threshold": 1.6,
+        "met": true
+      },
+      {
+        "id": "share_fts_del_t9",
+        "label": "the delete span is at least half of T9's write phase",
+        "value": 0.9168865559683326,
+        "threshold": 0.5,
+        "met": true
+      },
+      {
+        "id": "write_ratio_t9",
+        "label": "removing the deletes at least halves T9's write phase",
+        "value": 15.95664030542678,
+        "threshold": 2,
+        "met": true
+      },
+      {
+        "id": "b_write_g",
+        "label": "arm G's write phase is linear by E1's own bar",
+        "value": 1.095596432824288,
+        "threshold": 1.35,
+        "met": true
+      },
+      {
+        "id": "b_rest",
+        "label": "no second super-linear term survives in rest",
+        "value": 1.1767656032681242,
+        "threshold": 1.35,
+        "met": true
+      }
+    ]
+  }
+}
