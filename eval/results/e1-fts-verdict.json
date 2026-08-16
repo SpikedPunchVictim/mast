@@ -1,5 +1,5 @@
 {
-  "created": "2026-08-14T17:29:05.897Z",
+  "created": "2026-08-16T20:31:17.928Z",
   "what_this_is": "E1-FTS tests whether the per-file FTS5 delete-scan carries the write phase's super-linear exponent. It cannot re-adjudicate E1's SUPER-LINEAR verdict, which stands regardless; it licenses nothing about the UPDATE path, where the deletes are real work; and it does not explain E1-AB's rho_D(T9) = 0.8486, which remains open. The fix is not shipped on the strength of this — it is verified by re-running E1's full 9-rung ladder.",
   "expected_outcome_declared_in_advance": "MECHANISM_IDENTIFIED was registered as the EXPECTED outcome before the run. A favourable result confirms a prediction made in advance; it is not a discovery made by the experiment.",
   "complete": true,

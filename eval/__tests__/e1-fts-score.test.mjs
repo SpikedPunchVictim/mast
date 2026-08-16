@@ -150,6 +150,24 @@ describe('rungShares — both readings, and which one adjudicates', () => {
     expect(rungShares(runs, 'T9', 'fts_del').median_of_shares).toBeCloseTo(0.6, 5);
   });
 
+  // Found by the adversarial results review. `median` of an EVEN sample is the
+  // average of the two middle values, which equals no run's write phase — so
+  // `find` returns undefined and the old `?? cell[0]` fallback silently selected
+  // the FIRST run, which is not the median and is not even a median-adjacent
+  // one. Unexercised at n=3, armed the moment a block is dropped.
+  it('picks a genuinely median-adjacent run on an even sample, never the first', () => {
+    const even = [
+      { tier: 'T9', arm: 'A', phase_ms: { write: 400 }, write_spans: { fts_del: 360 } },
+      { tier: 'T9', arm: 'A', phase_ms: { write: 100 }, write_spans: { fts_del: 10 } },
+      { tier: 'T9', arm: 'A', phase_ms: { write: 200 }, write_spans: { fts_del: 100 } },
+      { tier: 'T9', arm: 'A', phase_ms: { write: 300 }, write_spans: { fts_del: 240 } },
+    ];
+    // median write is (200+300)/2 = 250, which no run has. The chosen run must be
+    // one of the two straddling it, never the 400 ms run that happens to be first.
+    const share = rungShares(even, 'T9', 'fts_del').median_run;
+    expect([share === 100 / 200 || share === 240 / 300, share]).toEqual([true, share]);
+  });
+
   it('returns nulls rather than a number when the rung has no runs', () => {
     expect(rungShares(runs, 'T1', 'fts_del').median_run).toBeNull();
   });

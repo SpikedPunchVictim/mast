@@ -124,10 +124,16 @@ export function rungShares(runs, tier, span) {
     return { median_run: null, median_of_shares: null, n: 0 };
   }
 
-  const writes = cell.map((r) => r.phase_ms.write);
-  const medianWrite = median(writes);
   // The run whose write phase IS the median — not an average of runs.
-  const medianRun = cell.find((r) => r.phase_ms.write === medianWrite) ?? cell[0];
+  //
+  // Selected by RANK rather than by matching the median value. `median` of an
+  // even sample averages the two middle values, which equals no run's write
+  // phase, so an equality match falls through — and the fallback this replaced
+  // (`?? cell[0]`) then silently returned the FIRST run, which is neither the
+  // median nor adjacent to it. Unexercised at n=3, armed the moment a block is
+  // dropped and a rung has two runs. Found by the adversarial results review.
+  const ordered = [...cell].sort((p, q) => p.phase_ms.write - q.phase_ms.write);
+  const medianRun = ordered[Math.floor((ordered.length - 1) / 2)];
 
   const shares = cell
     .filter((r) => r.phase_ms.write > 0)
