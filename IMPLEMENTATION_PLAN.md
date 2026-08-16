@@ -5355,6 +5355,121 @@ runs not yet taken. The 30 scored records are byte-identical. The corrected summ
 `0 interrupted`, with the two findings that are real: `VOID RESOLVED G#T3#b1` and
 `SUPERSEDED A#T3#b1`.
 
+#### E1-FTS RESULT — 2026-08-16, scored, post-adversarial-review
+
+**MECHANISM_IDENTIFIED.** The per-file FTS5 delete-scan carries the write phase's super-linear
+exponent. All five conditions met; the smallest margin is 8x.
+
+##### What ran
+
+30/30 runs, `scoreable: true`. Gate 0 pinned `dist` at `d863c5d5…`; Gate 1, Gate 3 and Gate P
+inherited and clean; minimum tiling **0.9937** against the 0.95 floor; chunk counts identical
+across both arms at every rung; 15/15 database-identity pairs equal. One cell voided and was
+repaired (AMENDMENT 3); interruption reporting was corrected (AMENDMENT 4). Neither touched a
+scored record.
+
+##### The registered conditions
+
+| condition | measured | bar | margin |
+|---|---|---|---|
+| `b_fts_del` | **2.3454** | >= 1.6 | 1.47x |
+| T9 `fts_del/write` | **91.7%** | >= 50% | 1.83x |
+| T9 `write_A/write_G` | **15.96** | >= 2 | 7.98x |
+| `b_write(G)` | **1.0956** | <= 1.35 | |
+| `b_rest` | **1.1768** | <= 1.35 | |
+
+Span shares of arm A's write phase, by rung: `fts_del` 27.8% -> 43.4% -> 72.5% -> 84.7% -> 91.7%.
+Intervention ratio: 1.368 -> 1.835 -> 4.020 -> 7.620 -> 15.957 (T9 blocks 15.417 / 16.419 / 15.957;
+spreads 13.5% / 7.5% / 11.5% / 3.0% / 6.3%). End-to-end at T9: 499.2 s -> 58.8 s, 8.5x — smaller
+than the write-phase figure because parse then dominates.
+
+##### Five claims the adversarial review corrected
+
+The review is `eval/results/e1-fts-results-review.md`. It reimplemented the fold, the OLS, the HC3
+intervals, every median and all fifteen block ratios independently and matched the verdict exactly.
+The verdict survived; five statements about it did not, and every correction below was
+re-verified against source and journal before being recorded.
+
+1. **"Byte-identical" was false — it is byte-COUNT identical.** The gate reads
+   `statSync(...).size` (`eval/e1-common.mjs:587`). Content was digested only on the 56-file smoke
+   corpus (`src/graph/__tests__/write-spans.test.ts`). **No scored run's FTS content was ever
+   verified**, and the schedule does not even record a `chunk_fts` row count. Size equality across
+   15 pairs spanning five orders of magnitude is strong evidence for arm G's premise; it is not the
+   proof the original wording claimed.
+
+2. **"The same quantity by two independent routes" is refuted by this experiment's own journal.**
+   Arm G is faster at NON-delete work too. Median non-delete spans, arm A minus arm G: T5 **+64 ms**,
+   T7 **+1,925 ms**, T9 **+7,858 ms**; `rest` alone at T9 is 7,090 ms (A) against 4,166 ms (G),
+   **+70%**. So `write_A - write_G` is the delete span PLUS a real secondary effect — almost
+   certainly page-cache eviction by the scans, which is what E1-AB's cache dose-response predicts.
+   The validity check passed honestly at 2.1%, because the spillover is small relative to the span;
+   the description of what it demonstrated was wrong, and the spillover itself went unreported.
+
+3. **"Replicates E1-PHASE on a different binary" overstated it.** The chunk counts are
+   digit-identical (3679 / 7761 / 16529 / 34691 / 73359): same corpus manifest, same tier trees,
+   same machine, same imported estimator. `b_write(A) = 1.9379` against E1-PHASE's `1.9685` is a
+   **repeatability check under instrument perturbation** — worth having, since levels moved up to
+   11% while the slope held — but not an independent replication.
+
+4. **The interval was quoted for something the scorer disclaims.** The claim "the model's 2.02 lies
+   outside [2.303, 2.388]" leans on an HC3 interval that this scorer explicitly registers as
+   "context, not a bar", and that is anticonservative here: 15 runs at 5 rungs have residuals
+   clustered by rung. **The conclusion survives on better evidence.** Every adjacent local slope of
+   `ln(fts_del)` on `ln(chunks)` — 2.270, 2.536, 2.222, 2.253 — exceeds 2.02. The weakest local
+   slope beats the model without any interval being invoked.
+
+5. **`b_rest = 1.1768` is the spillover-contaminated number.** It is arm A's, and finding 2 shows
+   arm A's `rest` carries eviction cost the deletes caused. Arm G's uncontaminated rest exponent is
+   **1.0124** — a materially stronger result, and it was sitting in the journal unreported.
+
+##### What stands
+
+The intervention result is unaffected by finding 2: the spillover is a causal CONSEQUENCE of the
+deletes, so `write_A/write_G` remains the honest measure of what removing them buys. What finding 2
+costs is the decomposition's precision, not the intervention's validity — `fts_del` slightly
+under-states the deletes' full cost rather than over-stating it, which is the safe direction.
+
+The monotone climb of the intervention ratio across five rungs cannot be produced by a constant
+factor: a constant shifts a log-log intercept and leaves the slope alone. AMENDMENT 2's
+contradiction was real and was resolved toward the stricter reading. AMENDMENT 3's repair is
+provably immaterial, and the repaired pair drifted TOGETHER — its ratio, 1.803, sits inside the
+range of the blocks it was compared against, which is the within-block design demonstrating itself.
+
+##### What this does and does not license
+
+**Licensed.** The delete-scan is the mechanism. The fix — guarding both DELETEs on whether the
+file's `files` row previously existed, which the F12 SELECT at `populate.ts:216-220` already
+knows — is worth building.
+
+**NOT licensed.** Any claim about the UPDATE path, where the deletes are real work and need a
+different fix. Any re-adjudication of E1's SUPER-LINEAR verdict, which stands. Any explanation of
+E1-AB's `rho_D(T9) = 0.8486`, still open. Any statement that arm G's content was verified. And —
+the top residual threat — **any extrapolation beyond T9 or to a different size-to-cache ratio.**
+The T3->T5 local slope of 2.536 against neighbours near 2.23 indicates a regime change, plausibly
+the FTS tables outgrowing the 15.6 MiB page cache, so the fitted 2.35 blends two regimes.
+
+**MECHANISM_IDENTIFIED was registered in advance as the EXPECTED outcome.** This confirms a
+prediction; it discovers nothing. The informative content is in the corrections above and in the
+magnitude, which exceeded the prediction that motivated the design.
+
+##### Residual weaknesses, ranked by threat to the conclusion
+
+1. **T3->T5 curvature, unexplained.** Limits extrapolation. Does not threaten the mechanism.
+2. **Content identity never verified on a scored run.** Size is a proxy. Cheap to close: record
+   `chunk_fts` / `identifier_fts` row counts, or a content digest, per run.
+3. **Spillover unmeasured as such.** The eviction effect is visible in the spans but was never
+   given its own estimate.
+4. **The HC3 interval is anticonservative** and should not be quoted for anything. A cluster
+   bootstrap over blocks would be the honest interval.
+5. **`b_fts_del` exceeds the motivating model by 0.33** and the gap is unexplained. Candidate:
+   FTS5 segment-count growth adding per-scan overhead beyond raw bytes. Untested.
+
+##### Not shipped on the strength of this
+
+Arm G is a rehearsal of the guard, not the guard. The fix is a separate change, verified by
+re-running **E1's full 9-rung ladder** against the committed scorer and the immutable 1.35
+threshold.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
