@@ -113,8 +113,27 @@ export function assertGate0() {
     );
   }
 
+  // GATE 0b — see `distStalenessVerdict`. Checked AFTER the schema_version
+  // comparison so the more specific diagnosis wins when both would fire.
+  const src = newestSrcMtime();
+  const staleness = distStalenessVerdict({
+    newestSrcMs: src.ms,
+    newestDistMs: new Date(newestDistMtime()).getTime(),
+    newestSrcFile: src.file,
+  });
+  if (!staleness.ok) {
+    throw new Error(
+      `GATE 0 FAILED (staleness): dist/ is older than src/. The binary you are about to ` +
+      `measure is not the code you are reading.\n` +
+      `  newest source : ${staleness.newest_src_file}\n` +
+      `  src is newer by: ${Math.round((staleness.src_newer_by_ms ?? 0) / 1000)} s\n` +
+      `Run \`pnpm -F mast build\`.`
+    );
+  }
+
   return {
     schema_version: binVersion,
+    dist_staleness: staleness,
     // A4-MAT-2. The schema version is necessary but NOT sufficient: this is an actively
     // developed branch, and a mid-schedule rebuild at an unchanged '1.3.0' would pass the
     // check above while the resumed half of the schedule measured different code than `c`
@@ -170,6 +189,64 @@ function newestDistMtime() {
     if (m > newest) newest = m;
   }
   return new Date(newest).toISOString();
+}
+
+/**
+ * GATE 0b — the built binary is not merely CONSISTENT, it is CURRENT.
+ *
+ * Added 2026-08-16 after a near-miss that nothing else would have caught. The
+ * FTS delete guard was written, tested, linted and committed — and `dist/` was
+ * never rebuilt. Two E1-VERIFY cells ran against a binary two days old, and the
+ * only reason it surfaced is that a span the guard should have zeroed reported
+ * 956 ms.
+ *
+ * Gate 0 could not see it, and this is worth stating precisely because Gate 0
+ * looks like it should: the `schema_version` check compares the built binary to
+ * the source tree, but the version had not changed (1.3.0 either way). The
+ * content hash pins the binary across a RESUME — it detects `dist/` changing
+ * mid-schedule, and says nothing about whether `dist/` ever corresponded to
+ * `src/`. A stale build is perfectly self-consistent.
+ *
+ * The failure is silent and it is directional: whichever way the staleness
+ * falls, the experiment measures code the author is not reading, and the
+ * author's conclusion is about the code they ARE reading.
+ *
+ * mtime, not a hash of the compiled output: what must be detected is `src/`
+ * being NEWER, which is a question about ordering. Tolerance is zero — tsc
+ * rewrites only outputs whose input changed, so a legitimately current build
+ * always has some dist artifact at or after the newest source file.
+ */
+export function distStalenessVerdict({ newestSrcMs, newestDistMs, newestSrcFile }) {
+  if (!(newestSrcMs > 0) || !(newestDistMs > 0)) {
+    return { ok: false, reason: 'mtimes_unreadable', newest_src_file: newestSrcFile ?? null };
+  }
+  if (newestSrcMs > newestDistMs) {
+    return {
+      ok: false,
+      reason: 'dist_older_than_src',
+      newest_src_file: newestSrcFile ?? null,
+      src_newer_by_ms: newestSrcMs - newestDistMs,
+    };
+  }
+  return { ok: true, reason: null, newest_src_file: newestSrcFile ?? null, src_newer_by_ms: 0 };
+}
+
+/** Newest `.ts` under `src/`, as {ms, file}. */
+function newestSrcMtime() {
+  const root = resolve(new URL('../src', import.meta.url).pathname);
+  let newest = 0;
+  let file = null;
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      if (!e.name.endsWith('.ts')) continue;
+      const m = statSync(p).mtimeMs;
+      if (m > newest) { newest = m; file = p; }
+    }
+  };
+  walk(root);
+  return { ms: newest, file };
 }
 
 /**
