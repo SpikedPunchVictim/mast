@@ -416,6 +416,37 @@ incomplete, and this program's rule is instrument first.
 precisely what produced and then retired E1-EDGES. (An earlier revision of this line said 89; the
 count is 87, per §1.2.)
 
+#### The next step, as revised by adversarial review (2026-08-17)
+
+**A semantics decision gates everything else.** The two LIKE sites are not merely slow, they can
+return the wrong file, so no fix is a free swap. Three options, none yet chosen:
+
+| option | fixes the scan | fixes the wrong-file bug | changes behaviour |
+|---|---|---|---|
+| add an `ESCAPE` clause | no — still scans | wildcard case only | minimal |
+| exact probe, then escaped LIKE | at `:957` only (`:1091` needs the prefix) | wildcard case only | the wrong-file cases, which are bugs |
+| range query `path >= p AND path < p‖0x10FFFF` | **yes, both sites** | **yes, both cases** | drops case-insensitive matching |
+
+The range query is the only option that fixes both defects at both sites. Its cost is that
+case-differing paths stop matching — which is almost certainly correct (nothing documents
+case-insensitive path matching as intended; it is a side effect of default LIKE), but it is a
+**deliberate semantics change and must be decided, not assumed**.
+
+**The instrument-first plan was judged heavier than needed.** The cheaper decisive test: apply a
+candidate fix and build once at T8 and once at T9, fix vs no-fix. The edges phase is 3.4 s and
+8.5 s there, so the scan's share is measured directly with no instrumentation risk. If the phase
+*is* instrumented instead, the observer effect is negligible (~100 ns/call against an 8.5 s phase)
+— but the counters must cover **both** LIKE sites and `resolveThroughStarChain`, or the split will
+be attributed wrongly. Keep T1 as a cheap anchor; the knee starts at T6.
+
+**The residual does not gate the fix.** Naming what else is super-linear is required before any
+"the curve is explained" claim, but a confirmed correctness-and-performance defect does not need
+its residual explained before it is repaired.
+
+Still unmeasured and unnamed: the residual itself; `importResolvedPathFor` JSON-parses every import
+row of the file on **every** resolver call, which is per-call CPU that `EXPLAIN` cannot see and is a
+live candidate for the constant baseline.
+
 ### 2.4 Open: the incremental path still pays the full-scan delete
 
 **The FTS guard fixes cold builds. It does not fix incremental re-indexing.** `populate.ts:503`:
