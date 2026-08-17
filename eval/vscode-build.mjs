@@ -40,7 +40,9 @@ function assertCorpusPinned() {
   return head;
 }
 
-function main() {
+// `async` so that a synchronous gate failure still lands in the `.catch` below and sets a
+// non-zero exit code, rather than escaping as an uncaught throw past it.
+async function main() {
   // Gate 0 + Gate 0b. A stale `dist` is the one failure this program has actually hit, and
   // it is invisible in the output: the run simply measures a different binary.
   const gate0 = assertGate0();

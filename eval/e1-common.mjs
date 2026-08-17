@@ -231,7 +231,32 @@ export function distStalenessVerdict({ newestSrcMs, newestDistMs, newestSrcFile 
   return { ok: true, reason: null, newest_src_file: newestSrcFile ?? null, src_newer_by_ms: 0 };
 }
 
-/** Newest `.ts` under `src/`, as {ms, file}. */
+/**
+ * Whether a file under `src/` is an input to the build — i.e. whether editing it can
+ * actually make `dist/` stale.
+ *
+ * Mirrors `tsconfig.json`'s `exclude`: `**\/*.test.ts`, `**\/*.spec.ts` and
+ * `**\/__tests__\/**` are never compiled, so no edit to them changes a byte of `dist/`.
+ * Must be kept in step with that config; a divergence in the permissive direction
+ * re-opens Gate 0b's blind spot, and in the strict direction re-opens its false positive.
+ *
+ * WHY THIS EXISTS: Gate 0b's first live firing was a false positive. It named a
+ * `__tests__` file as the newest source and refused to run a build that was perfectly
+ * current. That is a worse failure than it looks — a gate which blocks for a reason that
+ * cannot affect the binary teaches its operator to bypass it, and the next block will be
+ * the real one.
+ *
+ * @param {string} path absolute or relative path to a file under `src/`
+ * @returns {boolean} true when `tsc` compiles this file
+ */
+export function isBuildInput(path) {
+  if (!path.endsWith('.ts')) return false;
+  if (path.endsWith('.test.ts') || path.endsWith('.spec.ts')) return false;
+  if (path.includes('/__tests__/')) return false;
+  return true;
+}
+
+/** Newest BUILD-INPUT `.ts` under `src/`, as {ms, file}. See `isBuildInput`. */
 function newestSrcMtime() {
   const root = resolve(new URL('../src', import.meta.url).pathname);
   let newest = 0;
@@ -240,7 +265,7 @@ function newestSrcMtime() {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, e.name);
       if (e.isDirectory()) { walk(p); continue; }
-      if (!e.name.endsWith('.ts')) continue;
+      if (!isBuildInput(p)) continue;
       const m = statSync(p).mtimeMs;
       if (m > newest) { newest = m; file = p; }
     }

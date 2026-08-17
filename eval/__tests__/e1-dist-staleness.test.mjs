@@ -14,7 +14,7 @@
 // Run from `packages/mast`, never the repo root.
 
 import { describe, it, expect } from 'vitest';
-import { distStalenessVerdict } from '../e1-common.mjs';
+import { distStalenessVerdict, isBuildInput } from '../e1-common.mjs';
 
 const T = 1_760_000_000_000;
 
@@ -49,5 +49,43 @@ describe('distStalenessVerdict', () => {
   it('fails rather than passing when a mtime is unreadable', () => {
     expect(distStalenessVerdict({ newestSrcMs: 0, newestDistMs: T }).ok).toBe(false);
     expect(distStalenessVerdict({ newestSrcMs: T, newestDistMs: 0 }).reason).toBe('mtimes_unreadable');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Which files can actually make `dist/` stale.
+//
+// Gate 0b's first live firing was a FALSE POSITIVE: it named
+// `src/graph/__tests__/fts-delete-guard.test.ts` as the newest source and refused
+// to run. But `tsconfig.json` excludes `**/*.test.ts`, `**/*.spec.ts` and
+// `**/__tests__/**` from the build, so no edit to any of them can change a single
+// byte of `dist/`.
+//
+// This matters more than a nuisance: a gate that blocks for a reason that cannot
+// affect the binary teaches its operator to bypass it, and the next block will be
+// the real one. The predicate below is the fix, and it must stay in step with
+// tsconfig.json's `exclude`.
+// ---------------------------------------------------------------------------
+
+describe('isBuildInput', () => {
+  it('accepts ordinary source that tsc compiles', () => {
+    expect(isBuildInput('/p/src/graph/populate.ts')).toBe(true);
+  });
+
+  it('rejects a .test.ts file — tsconfig.json excludes it from the build', () => {
+    expect(isBuildInput('/p/src/graph/__tests__/fts-delete-guard.test.ts')).toBe(false);
+  });
+
+  it('rejects a .spec.ts file', () => {
+    expect(isBuildInput('/p/src/graph/thing.spec.ts')).toBe(false);
+  });
+
+  // The exact false positive that produced this predicate.
+  it('rejects anything under a __tests__ directory, including non-test fixtures', () => {
+    expect(isBuildInput('/p/src/ast/extractors/__tests__/fixtures/basic.ts')).toBe(false);
+  });
+
+  it('rejects non-TypeScript files', () => {
+    expect(isBuildInput('/p/src/graph/schema.sql')).toBe(false);
   });
 });
