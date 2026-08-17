@@ -5510,6 +5510,122 @@ threshold.
 
 ---
 
+#### E1-VERIFY RESULT — 2026-08-17, the guard against E1's own ladder
+
+**HOLDS.** E1's ladder, re-run against the shipped FTS delete guard and scored by `scoreE1`
+untouched at the immutable 1.35 threshold, returns **b = 1.0825**. E1 measured **1.7529** and
+returned SUPER_LINEAR.
+
+Note which verdict this is. E1's table is deliberately asymmetric: SUPER_LINEAR needs the HC3
+lower bound above the bar, HOLDS needs **all four** intervals below it. All four classify `below`.
+
+##### What ran
+
+27/27 runs (9 rungs x 3 reps), **0 voids**. Gate 0 pinned `dist` at `b77f0ae3…`; **Gate 0b clean**
+(`src_newer_by_ms: 0`) — the gate that did not exist when E1, E1-PHASE, E1-AB and E1-FTS ran. `c`
+was re-measured on this binary at **15 ms** (n=10, 14–19), because E1's stored `c` was taken on a
+different one and a stale additive constant biases `b` *downward*, toward the answer this run
+wants.
+
+Scored by `eval/e1-verify-score.mjs`, which computes nothing: it renames `corpus` to `tier` and
+calls `scoreE1`. The fit, the HC3 interval, the cluster bootstrap, the lack-of-fit test, the five
+triggers and the verdict rule are E1's. Writing a faithful new scorer here would have been marking
+my own homework with a ruler I had just made.
+
+##### The fit
+
+| fit | b | HC3 | cluster bootstrap |
+|---|---|---|---|
+| adjusted (primary) | **1.0825** | [1.0651, 1.0998] | [1.042, 1.122] |
+| raw | 1.0806 | [1.0631, 1.0981] | [1.039, 1.122] |
+| by file (`b_file`) | 1.0837 | | |
+
+Lack of fit **quiet**: F = 1.9141, p = 0.1264, departure 1.40%. Triggers 3/4/5 **quiet** (t3 ratio
+1.0210 against 1.5; t4 all per-tier rates 0; t5 `b_chunk` 1.0825 vs `b_file` 1.0837). No
+qualifiers, no reasons.
+
+##### `fts_del` is zero
+
+**0 ms in all 27 runs — max 0, sum 0.** The span E1-FTS measured at 91.7% of T9's write phase, with
+its own exponent of 2.3454, does not appear at any rung. The descriptive write-phase log-log slope
+falls from E1-PHASE's `b_write = 1.9685` to **1.1136**, and the write phase stops dominating: it
+was **94.01%** of T9 and is now **51.3%** (44.8–53.1% across the ladder), with parse at 36.3%.
+
+##### The guard skips work, not rows
+
+`chunk_fts_count === chunk_count` in **27 of 27** runs; 0 parse errors throughout. This is the
+check that separates a correct guard from a fast one — skipping the deletes *and* losing rows would
+also have produced a flat exponent.
+
+##### One Gate 3 miss, and what it revealed
+
+Five cells needed a retake. One — **T3#r3** — failed on all three attempts (deltas 510, 593,
+513 ms against a 500 ms floor) and E1's rule retained the first attempt, `gate3_finding` recorded.
+
+The overshoot is 13 ms, and its cause is worth recording: Gate 3's floor is `max(500 ms, 5% of
+fitted)`, and the ~510 ms is fixed process startup that the internal clock correctly excludes. On
+the pre-guard binary T3 took 7.2 s and that overhead was invisible under the 5% arm. **The guard's
+own speedup shrank the runs until a constant became visible.** The floor is now marginally tight at
+the small rungs — a note for any future ladder, not a defect in this one.
+
+##### Sensitivity
+
+The verdict does not depend on any of it:
+
+| perturbation | b | HC3 upper | verdict |
+|---|---|---|---|
+| all 27 (registered) | 1.0825 | 1.0998 | HOLDS |
+| drop T3#r3 | 1.0839 | 1.1013 | HOLDS |
+| external clock throughout | 1.0353 | 1.0577 | HOLDS |
+| `c = 0` | 1.0806 | 1.0981 | HOLDS |
+| `c = 30` | 1.0843 | 1.1015 | HOLDS |
+
+Every upper bound sits below 1.11 against a bar of 1.35.
+
+##### Descriptive, not registered: the wall clock
+
+T9's median build goes **538,591 ms → 62,136 ms**, ~8.7x. This is *not* a registered comparison —
+different binary, `c` re-measured — but it lands where the prior work predicted. E1-PHASE put write
+at 94.01% of T9 and E1-FTS put the delete-scan at 91.7% of write, making the scan ~86% of T9 and
+predicting ~74 s. Observed 62 s, ~16% better, plausibly because a smaller segment churn also
+cheapens the commit. Three independently-registered measurements agreeing to within 16% is
+coherence that is hard to obtain by accident.
+
+##### What this does NOT establish
+
+- **Ladder only.** E1's 5-corpus PANEL was out of scope, as registered; E1 records it as
+  `panel_supporting_only`. No claim is made about it.
+- **`ρ_D(T9) = 0.8486` from E1-AB remains unexplained.** The exponent is gone; that correlation was
+  never the same question and is not answered here.
+- **Absolute timings are not comparable to E1's ladder.** The exponent is what was compared.
+- **Linear is not proven, and cannot be.** `b = 1.08` with an upper bound of 1.10 is what was
+  measured over 3.7k–73k chunks. It is a statement about this range, not an asymptote.
+
+##### The near-miss that changed the gates
+
+The guard was written, tested, linted and committed at `43eb928` — and `dist/` was never rebuilt.
+The first two E1-VERIFY cells measured a two-day-old binary. The only signal was `fts_del 956 ms`
+on a cold build, a span the guard makes exactly zero; a subtler effect would have run all 27 cells
+against the wrong binary and scored them.
+
+Gate 0 could not see it, and the reason generalises. Its `schema_version` check compares binary to
+source but the version had not changed. Its content hash pins the binary across a *resume* — it
+detects `dist/` changing mid-schedule and says nothing about whether `dist/` ever corresponded to
+`src/`. **A stale build is perfectly self-consistent.** Every experiment in this program ran under
+that blind spot.
+
+**GATE 0b** (`eb85738`) compares the newest `.ts` under `src/` to the newest artifact under `dist/`
+and throws, naming the offending file. Zero tolerance, because `tsc` rewrites only outputs whose
+input changed — a tolerance window is precisely how a one-file edit slips through, and a one-file
+edit is what this was. The two invalid runs, the pin carrying the stale hash, and the calibration
+taken on it are quarantined under `eval/results/discarded-stale-dist/` with the diagnosis.
+
+##### Commits
+
+`43eb928` guard + tests · `eb85738` Gate 0b + quarantine + rebuild · `62f2322` E1-VERIFY results.
+
+---
+
 ## Stage 4.5: Scale — the actual target
 **Goal**: MAST is "Monorepo AST search". Make the scale target explicit and measured,
 because it changes several decisions already taken.
