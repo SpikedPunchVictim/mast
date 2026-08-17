@@ -5745,6 +5745,92 @@ Registered and committed **before** the instrument is built and before any run, 
 An adversarial design review is commissioned against this block before the first scored run;
 amendments are **appended, never edited in place**.
 
+#### AMENDMENT 1 — 2026-08-17, post-design-review, BEFORE any instrument was built
+
+The commissioned adversarial review returned two FATALs. **Both are confirmed against source and
+committed data, by me, independently.** The experiment as registered is **RETIRED — it will not
+run.** Its deciding condition was already measured, with a stronger lever, and the answer is a null.
+
+##### F1 (confirmed) — E1-AB already ran this lever, at 2x the strength, and found nothing
+
+`eval/results/e1-ab-runs.jsonl` holds 30 scored runs on the **same corpus and same tiers**
+(T1/T5/T9), with `cache_size` as the only lever, and it records `phase_ms.edges` and `edge_count`
+on every run. E1-AB scored `write_ms` and `duration_ms` only, so the edges phase was **collected
+and never read**. That is the sole reason this looked unexplored.
+
+Medians of per-run `phase_ms.edges / edge_count`:
+
+| arm | `cache_size` | T5 | T9 | T9/T5 |
+|---|---|---|---|---|
+| A | −16000 (default, 15.6 MiB) | 0.05292 | 0.17945 | **3.391** |
+| B | −1048576 (**1024 MiB**) | 0.05358 | 0.17762 | **3.315** |
+| D | −2048 (2 MiB) | 0.05513 | 0.18121 | — |
+
+Against this registration's own three conditions: condition 1 **passes** (3.391 >= 2.0);
+condition 2 **fails** (3.315 > 1.35); condition 3 **fails** — `msPerEdge(A,T9)/msPerEdge(B,T9)` =
+**1.0103** against a bar of 1.5. By the registered verdict rule that is **ALGORITHMIC**.
+
+Arm B is **1024 MiB — twice the 512 MiB proposed here**, so the design's arm L is strictly weaker
+than an arm already run. And the positive control settles the "did the lever ever bite" question
+that F5 raised: **D/B = 1.0202 across a 512x cache span** (2 MiB → 1024 MiB). Per-edge cost moved
+2%. The page cache is not the mechanism.
+
+##### F2 (confirmed) — arm S's pragma value was unreachable and would have voided all 15 arm-S runs
+
+`--cache-size-mib 16` cannot produce `−16000`. `cli/index-cmd.ts:170` computes
+`parseMebibytes(...) * 1024`, and `graph/db.ts:460` issues `cache_size = -${cacheSizeKib}` — so
+16 MiB → 16384 KiB → **`−16384`**. ARM IDENTITY as written demanded `−16000`, so every arm-S run
+fails the gate, condition 1 becomes unreadable, and the design goes VOID.
+
+The stated premise was wrong too: the default `−16000` is **15.625 MiB**, which no integer
+`--cache-size-mib` can reproduce. The control had to be the *unflagged* arm, as E1-AB's arm A was.
+
+##### What this changes
+
+**The page-cache hypothesis is dead, and the correction runs against me.** Last session's reading —
+that the T5→T9 knee was a bounded cache step already crossed — is **withdrawn**. It is not the
+cache. `edges` is algorithmic super-linearity in the region measured, which is the more expensive
+answer and the one this design was built to be able to return.
+
+**The mechanism is now unidentified, and so is the vscode plateau.** vscode's per-edge cost
+(0.165) sits slightly *below* T9's (0.175) despite 3.6x the edges. That was the evidence for a
+plateau; with the cache excluded it is unexplained under either hypothesis, and it remains
+confounded by corpus (vscode carries 1.73x n8n's edge density). Both are open questions, not
+findings.
+
+##### Corrections to this block, recorded rather than edited
+
+- The header **"written BEFORE any measurement" is false** as it applies to condition 3. The
+  measurement existed, in this repo, unscored. Stated here rather than silently amended above.
+- **The working-set table's column is under-defined** (review F3, confirmed by `dbstat` on the
+  retained state dirs): `insertEdges` also reads `files`/`imports` and writes `edges` plus three
+  indexes. The true working set is ~2.2x the figure tabulated, crossing the cache at **T7→T8**
+  rather than after T9 — i.e. the corrected table makes the cache hypothesis look *stronger*,
+  which is what makes F1's null worth recording instead of re-measuring. The registration's claim
+  that no condition depends on the table is **verified true**; the conditions are pure ratios.
+- **`edge_count` is the surviving-row count, not the work count** (review F4, confirmed):
+  `readGraphCounts` reads `SELECT COUNT(*) FROM edges` (`e1-common.mjs:687`), collapsed by
+  `PRIMARY KEY (from_id, to_id, edge_type)` under `doNothing()`, and unresolved targets cost a
+  full `resolveCallTarget` while contributing zero. The bias *deflates* ms/edge at large rungs, so
+  the knee is conservative and condition 1 is safe — but ms/edge is not "cost per unit of work",
+  and any future edges experiment must instrument `edgeValues.length`.
+- **The +6% vs +21.7% comparison quoted for the exposure change is not like-for-like.** The 21.7%
+  miss came from a *super-linear* (b ≈ 1.40) chunk projection, not a linear one. Edge count is
+  still the better denominator — a linear-in-chunks projection misses by −38.5% — but the margin
+  was overstated.
+
+##### What survives, and what would be worth running
+
+The homonym-amplification rival stays refuted (independently re-measured at 1.124 rows/name
+corpus-wide, 1.084 restricted to `method` targets). Attack #1 — that the pragma might not reach
+the connection running `insertEdges` — was checked and is **unfounded**: one handle, applied
+before DDL, read back before `destroy`.
+
+No replacement experiment is registered here. The next question is **which** algorithmic term
+grows, and that is a profiling question, not an A/B — `resolveCallTarget` per unique `toName` per
+file is the named suspect (`populate.ts:683-702`), and it is not measured by anything currently in
+the harness.
+
 ---
 
 ## Stage 4.5: Scale — the actual target
