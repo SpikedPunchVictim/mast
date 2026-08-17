@@ -23,7 +23,7 @@
   "scripts": {
     "setup": "node install.mjs",
     "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src",

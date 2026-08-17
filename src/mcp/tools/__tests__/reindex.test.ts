@@ -21,7 +21,10 @@ describe('toReindexResult', () => {
       chunksRemoved: 2,
       parseErrors: 4,
       writeErrors: 7,
+      staleWriteRejections: 0,
       durationMs: 123,
+      appliedPragmas: { cache_size: -2000, mmap_size: 0 },
+      phaseMs: { walk: 1, parse: 2, write: 3, edges: 4, finalise: 5 },
     };
 
     const mapped = toReindexResult(result);

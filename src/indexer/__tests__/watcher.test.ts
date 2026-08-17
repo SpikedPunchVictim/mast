@@ -8,7 +8,14 @@ import { WatchScheduler, shouldWatchPath, type WatchPathFilter } from '../watche
 const DEBOUNCE = 500;
 
 interface Harness {
-  readonly scheduler: WatchScheduler;
+  /**
+   * Assigned immediately after the literal, never reassigned afterwards — so it is
+   * mutable for one reason only: `WatchScheduler`'s `onBatch` closes over the harness,
+   * so the harness has to exist before the scheduler does. Declaring it `readonly`
+   * made `makeHarness` a type error that nothing reported, because test files were
+   * outside `tsc`'s view until `tsconfig.test.json`.
+   */
+  scheduler: WatchScheduler;
   readonly batches: string[][];
   readonly warnings: string[];
   /** Resolvers for in-flight onBatch promises, in call order. */

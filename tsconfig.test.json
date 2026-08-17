@@ -1,0 +1,43 @@
+// Type-checks the test suite, which `tsconfig.json` deliberately excludes.
+//
+// WHY A SECOND CONFIG rather than dropping the base config's test excludes: the base
+// config is the BUILD (`composite`, `declaration`, `outDir: ./dist`). Including tests
+// there would emit them into `dist/` and into the published `.d.ts` surface. Tests must
+// be checked but never built, and those are two different jobs.
+//
+// WHY THIS EXISTS AT ALL: `tsc --noEmit` passed clean while `storage.test.ts` called
+// `populateFile(db, data, failingChunkWriter)` against a signature whose third parameter
+// had become `PopulateFileOptions` — a real breakage, invisible to the type-checker,
+// caught only by running the suite. The same shape as the stale-`dist` near-miss that
+// produced Gate 0b: a check that structurally cannot see what it is meant to verify.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+
+    // `composite` and `declaration` are build-output concerns and conflict with
+    // `noEmit`. Turned off here rather than in the base config, which still needs them.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+
+    // `vitest.config.ts` sits at the package root, outside the build's `rootDir: ./src`.
+    // Nothing is emitted, so the root only has to be wide enough to contain every
+    // checked file.
+    "rootDir": "."
+  },
+
+  // The base config excludes `**/*.test.ts` and `**/__tests__/**`. `extends` inherits
+  // `exclude`, so it must be restated here without those patterns — an omission would
+  // silently re-open exactly the gap this file closes.
+  "include": ["src/**/*", "vitest.config.ts"],
+
+  // Extractor fixtures are PARSER INPUT, not code this package compiles. They are read as
+  // text by `loadFixture` and fed to tree-sitter, and their "errors" are the assertions:
+  // `basic.ts`'s unused `internal()` is there precisely so the extractor can be checked for
+  // marking it non-exported, and `two-pass-exports.ts` re-exports a type without
+  // `export type` because that is the syntax under test. Type-checking them would force
+  // edits that destroy what they exist to measure.
+  "exclude": ["node_modules", "dist", "src/ast/extractors/__tests__/fixtures/**"]
+}
