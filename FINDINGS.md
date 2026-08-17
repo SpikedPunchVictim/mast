@@ -215,7 +215,37 @@ is known so the next registration starts from it.
 before it is A/B'd** — registering a lever against an unidentified mechanism is precisely what
 produced and then retired E1-EDGES.
 
-### 2.4 Retrieval
+### 2.4 Open: the incremental path still pays the full-scan delete
+
+**The FTS guard fixes cold builds. It does not fix incremental re-indexing.** `populate.ts:503`:
+
+```ts
+const fileHadPreviousVersion = existing !== undefined;
+if (options.skipFtsDeletes !== true && fileHadPreviousVersion) { /* the two DELETEs */ }
+```
+
+The delete is skipped only when the file was **never indexed**. A cold build has no existing files,
+so it skips 100% of them — which is why `fts_del` is 0 ms in all 27 E1-VERIFY runs. Re-indexing a
+*changed* file still runs both deletes, and each is still a full FTS5 table scan whose cost grows
+with the whole corpus. A changed file is by definition one already indexed, so this is the
+defining case of incremental work.
+
+**Do not read E1-VERIFY's `fts_del = 0` as evidence that incremental is fixed.** It is evidence
+that a cold build has no existing files. The ladder is cold-build-only by construction and
+structurally cannot see this path.
+
+Confidence, stated separately because it differs by claim:
+
+- The scan mechanism is **measured** — E1-FTS, exponent 2.3454, 91.7% of T9's write phase.
+- Its persistence on the incremental path is a **code read**, not a measurement.
+- Its magnitude at 150k chunks is **unmeasured**. No eval harness measures incremental re-index
+  cost, and Stage 4.5's "379 ms for one file at any corpus size" carries no citation anywhere in
+  `IMPLEMENTATION_PLAN.md`.
+
+Recorded 2026-08-17 in Stage 4.5 CORRECTION §5. No fix proposed; registered so it is not assumed
+away.
+
+### 2.5 Retrieval
 
 The shipped strategy is **lexical BM25 + a declaration-exact ranker (ranker D)**. There is no vector
 store: it was deleted at `5d00775` (Stage 7).
@@ -248,8 +278,9 @@ regression.
 | The write-phase exponent is the **page cache** | E1-AB: `CACHE_IMPLICATED` / PARTIAL. A 1024 MiB cache cut T9 write ~49% and left the curvature. Cache is a *cost multiplier*, not the exponent. |
 | The **edges** exponent is the page cache | E1-AB's own data, re-read — see below. By E1-EDGES' own registered rule: **ALGORITHMIC**. |
 | **Homonym amplification** drives edge resolution cost | Measured: **1.124 rows/name**, 11.1% discarded, top-1000 names = 5.6% of rows. Refuted. |
-| Post-M1 chunk storage is **O(N)** | Falsified by E1 (b = 1.76), then restored by the FTS guard (b = 1.08). Stage 4.5's prose still asserts the original claim — **known stale, tracked**. |
-| The **vector subsystem** is the only component that degrades | Vectors were deleted at `5d00775`. Stage 4.5's prose still asserts this — **known stale, tracked**. |
+| Post-M1 chunk storage is **O(N)** | Falsified by E1 (b = 1.76), then restored *by repair* — the FTS guard (b = 1.08). True for cold builds only; see §2.4. Corrected in Stage 4.5 CORRECTION §1. |
+| The **vector subsystem** is the only component that degrades | Vectors were deleted at `5d00775`. Corrected in Stage 4.5 CORRECTION §2. |
+| Incremental indexing is **O(changed files)** at any corpus size | The FTS guard is conditional on the file being *new*, so a changed file still pays two full-scan deletes. See §2.4. |
 | E1-PHASE's H2/H3/H4 | H2 (edges carries it) b = 1.436 < 1.6 bar. H3 (parse) b = 1.014. H4 (no phase reaches the bar) — write did. |
 
 #### The edges/cache refutation in full

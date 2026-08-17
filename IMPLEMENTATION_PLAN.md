@@ -5836,7 +5836,10 @@ the harness.
 ## Stage 4.5: Scale — the actual target
 **Goal**: MAST is "Monorepo AST search". Make the scale target explicit and measured,
 because it changes several decisions already taken.
-**Status**: Not Started
+**Status**: **S1 Complete; scale target MEASURED** (vscode@`5ebbe53`, 2026-08-17). The stage's
+own forward-looking analysis is **substantially superseded** — it was written before E1 and before
+Stage 7 deleted the vector store. **Read the STAGE 4.5 CORRECTION block at the end of this stage
+before acting on anything between here and Stage 5.**
 
 **S1 (added 2026-08-07, promoted from HANDOFF §5's defect list): batch
 `replaceChunksForFile`'s insert.** `src/store/sqliteChunkStore.ts:82` issues ONE
@@ -5955,7 +5958,8 @@ symbols correctly in the whale-file integration test.
 | directus | 2,089 | 7,205 |
 | nest | 1,333 | 5,030 |
 
-**[Correction, 2026-08-02 — see Q1/SCALE below]:** vscode's true chunk count is **138,440**,
+**[Correction, 2026-08-02 — see Q1/SCALE below]** *(itself SUPERSEDED 2026-08-17 — the 152,969
+figure was right, and the gap was the S1 defect; see CORRECTION §4)*: vscode's true chunk count is **138,440**,
 read from `graph.db`'s `chunks` table after indexing. 152,969 was the CLI stdout counter,
 which silently includes two files whose chunk writes failed deterministically on SQLite's
 32,766-parameter INSERT ceiling (`replaceChunksForFile`, `src/store/sqliteChunkStore.ts`).
@@ -5965,14 +5969,19 @@ and the product-defect finding.
 **vscode is 10× kluster's own index.** Every measurement in this document was taken on
 a 5k–14k chunk corpus. The real target is **150k+**.
 
-### What breaks at that scale — and what doesn't
+### ~~What breaks at that scale — and what doesn't~~ — **BOTH CLAIMS FALSIFIED, see the CORRECTION block**
+
+> Kept verbatim for the record. E1 falsified "already sublinear" (measured `b = 1.75`); Stage 7
+> deleted the subsystem the second claim is about. The "incremental is O(changed files)" line is
+> **still wrong today** — see CORRECTION §5, the one item here that is not merely historical.
 
 **Already sublinear, no work needed**: FTS5 is an inverted index (BM25 costs
 O(matching docs), not O(total)); graph queries use covering indexes with sub-ms
 recursive CTEs; incremental indexing is O(changed files) — 379 ms for one file at any
 corpus size. Post-M1 chunk storage is O(N).
 
-**The vector subsystem is the only component that degrades**, on three axes:
+**The vector subsystem is the only component that degrades**, on three axes —
+***MOOT: the vector store was deleted at `5d00775` (Stage 7). Kept for the record.***
 
 | | n8n 49.5k | backstage 89.5k | **vscode 153k** |
 |---|---|---|---|
@@ -6031,7 +6040,7 @@ batching attempt must account for this: a file with one large class yields adjac
 chunks, so the pathological all-long batch arises routinely from file locality rather
 than being a rare draw.
 
-### [R6] M2 recommendation RETRACTED — ~~pending this~~ **now un-blocked, must be re-decided**
+### ~~[R6] M2 recommendation RETRACTED — pending this / now un-blocked, must be re-decided~~ — **DECIDED 2026-08-06 (Stage 7): vectors deleted**
 
 "Drop Lance, use SQLite BLOB + JS brute-force cosine" was scoped to ~14k chunks and
 **inverts at the real target**: at 153k, brute force needs 169 ms and 470 MB, so an ANN
@@ -6047,7 +6056,7 @@ only remaining way the inputs move is q8 and multi-process, and neither changes 
 *query-side* brute-force cost (169 ms) or the *memory* cost (470 MB) that drive R6 —
 they only affect build time. **R6 can be decided now.**
 
-### Scaling levers that are NOT vectors, by leverage
+### Scaling levers that are NOT vectors, by leverage — **3 of 7 since falsified or moot, see CORRECTION §6**
 
 1. **Scoping — highest leverage, already built, barely used.** `mast_project_skeleton`
    takes `directory`/`max_depth`; `mast_search` takes `file_pattern`/`chunk_type`/
@@ -6073,6 +6082,131 @@ they only affect build time. **R6 can be decided now.**
 query is the one whose value has *never been measured* (Q1/E4). And the live index has
 been 83% unembedded — i.e. running lexical-only in practice — without anyone noticing a
 quality problem.
+
+---
+
+### STAGE 4.5 CORRECTION — 2026-08-17, appended
+
+Everything above from "What breaks at that scale" onward was written **before E1** (the scaling
+ladder) and **before Stage 7** (the vector deletion). It reads as current guidance and is largely
+not. This block records what replaced it.
+
+**Why appended, not edited in place.** The house rule — amendments are appended, never edited —
+protects *registrations*, where editing would destroy the audit trail that makes pre-registration
+mean anything. Stage 4.5 is a plan stage, so the rule does not bind it automatically. It is
+appended anyway, for three reasons. The stale claims are **falsified predictions**, and the
+falsification is the valuable part; deleting a prediction erases the record that we predicted
+wrong. This stage already models the convention twice — the inline `[Correction, 2026-08-02]` block
+and the struck-through-with-original-kept 7.2 h section. And parts of the stage are **evidence**
+(the S1 result table, the batching falsification with its measured arms), which must not be edited
+at all. The inline markers added above are navigational — a reader who stops at a stale heading is
+told to come here — and they alter no claim.
+
+#### 1. "Already sublinear, no work needed" — FALSIFIED, then repaired
+
+E1 measured the cold-build ladder at **`b = 1.7558`** (HC3 [1.6689, 1.8427]), verdict
+`SUPER_LINEAR`, on nine nested subsets of n8n. The claim was wrong when written.
+
+The mechanism was found four experiments later: `DELETE FROM chunk_fts WHERE file_path = ?` is a
+**full scan of the FTS5 table**, because `xBestIndex` cannot consume an equality constraint on an
+ordinary column. E1-FTS measured that span at **91.7% of T9's write phase** with its own exponent
+of **2.3454**. The guard (`43eb928`) skips it, and E1-VERIFY re-ran the whole ladder to confirm:
+**`b = 1.0825`**, HC3 [1.0651, 1.0998], `HOLDS`, T9 **538.6 s → 62.1 s**.
+
+So the claim is true again **for cold builds** — but by repair, not because it was ever safe to
+assume. See §5 for where it is still false.
+
+#### 2. "The vector subsystem is the only component that degrades" — MOOT
+
+The vector store was deleted at `5d00775` (Stage 7, M2 arm D). The table of embed times, vector
+memory and brute-force cosine costs describes a subsystem that no longer exists. Search is
+**lexical BM25 + the declaration-exact ranker (ranker D)**.
+
+Consequently the whole 7.2 h / 470 MB / 169 ms argument, `[R6]`, and levers 5 and 7 below are
+historical. They are correct as records of what was measured; none of them is a live decision.
+
+#### 3. The real open scaling question is `edges`, not vectors
+
+Nothing in this stage anticipated it. After the FTS guard, `edges` is the only phase near the
+super-linear bar, and it is **23.1% of the vscode build**.
+
+- E1-PHASE scored it at **1.4360**, HC3 [1.2333, 1.6388] — the CI **straddles** the 1.35 bar, and
+  E1-PHASE's own H2 did not fire because its bar was 1.6.
+- **It is algorithmic, not cache.** E1-EDGES was registered to test the page-cache hypothesis and
+  retired the same day: E1-AB had already run the lever with a 2× stronger arm. Across a **512×**
+  cache span the T5→T9 growth ratio moves 3.287 → 3.315, and the T9 level moves ~2%, against a
+  registered 1.5 bar. See § E1-EDGES AMENDMENT 1.
+- **There is a knee**, visible in E1-VERIFY's nine-rung ladder: ms/edge is flat at ~0.057 through
+  16.5k chunks, then climbs 3.1× over the last four rungs (.0569 → .0656 → .0764 → .1117 → .1753).
+
+The mechanism is **unidentified**, and the phase must be instrumented before it is A/B'd again.
+
+#### 4. The 150k target is MEASURED, and the corpus-count correction is superseded
+
+vscode@`5ebbe53`, single cold build against the guard (`eval/results/vscode-build.json`):
+
+**8,653 files · 152,969 chunks · 118,299 symbols · 174,844 edges · 793.8 MiB · 124,878 ms** (2.08
+min), with `parse_errors` 0, **`write_errors` 0**, `fts_del` 0 ms.
+
+This **supersedes the 2026-08-02 correction above**. That correction concluded vscode's "true"
+count was 138,440 and that 152,969 was an inflated stdout counter. The stdout counter was right:
+152,969 − 138,440 = **14,529 chunks exactly** — the whale-file tail that the S1 defect was silently
+dropping behind two write errors. S1 fixed it; the tail is now in the database. The correction's
+*root cause* was sound and its *conclusion about the true count* was not.
+
+Against a per-phase projection from T9: total **−9.0%**, walk −42.5%, parse −0.7%, write −28.7%,
+**edges +21.7%**. Everything beats projection except edges — and most of that overshoot is edge
+*density* (vscode is 1.14 edges/chunk against n8n's 0.66, a 1.73× ratio), not per-edge slowdown.
+
+#### 5. STILL FALSE: "incremental indexing is O(changed files) — 379 ms for one file at any corpus size"
+
+This is the one line above that is not merely historical, and it is the only **new** finding in
+this block.
+
+The FTS guard is conditional (`graph/populate.ts:503`):
+
+```ts
+const fileHadPreviousVersion = existing !== undefined;
+if (options.skipFtsDeletes !== true && fileHadPreviousVersion) { /* the two DELETEs */ }
+```
+
+It skips the delete only for a file **never indexed before**. On a cold build every file is new, so
+it skips 100% of them — which is exactly why `fts_del` is 0 ms in all 27 E1-VERIFY runs. But
+**re-indexing a file that already exists still runs both full-scan DELETEs**, and that is the
+defining case of incremental indexing: a changed file is by definition one we have already seen.
+
+The full-scan cost grows with total corpus size, so per-changed-file incremental cost is **O(corpus),
+not O(changed files)** — precisely the claim above. The scan mechanism is *measured* (E1-FTS,
+exponent 2.3454); its persistence on the incremental path is a *code read*; its magnitude at 150k
+is **unmeasured**. The 379 ms figure carries no citation anywhere in this document, and no eval
+harness measures incremental re-index cost at all.
+
+**This is not a defect report and no fix is proposed here** — the ladder is cold-build-only by
+construction and structurally cannot see this. It is registered as an open question so that
+E1-VERIFY's `fts_del = 0` is not read as evidence that incremental is fixed. It is evidence that a
+cold build has no existing files.
+
+#### 6. The seven scaling levers, re-scored
+
+| # | lever | status |
+|---|---|---|
+| 1 | Scoping | **Live, unchanged** — still the highest-leverage item here |
+| 2 | Identifier decomposition at index time | **FALSIFIED** — Q1/RESERVE measured it **HARMFUL**, not neutral; the stop rule fired. Q1/RESERVE-2 found the shipped TRIGRAM tokenizer was doing the work instead. |
+| 3 | Graph expansion from lexical seeds | Live, untested |
+| 4 | Per-package / federated indexes | Live, untested |
+| 5 | Coarse-to-fine embedding | **MOOT** — no embeddings |
+| 6 | Result budgets (`maxTokens`) | Live, unchanged |
+| 7 | ANN | **MOOT** — "only if vectors survive Q1"; they did not |
+
+The gap lever 2 was meant to close was instead closed by the **declaration-exact ranker** (Q1/DECLEX
+— "GAP CLOSED", the S-ident scale caveat **DISCHARGED**). The fusion alternative, Q1/IDFUSE, scored
+`INERT-LEVER`.
+
+#### 7. Where this is consolidated
+
+All of the above, plus every other settled finding and refuted hypothesis, is indexed in
+**`packages/mast/FINDINGS.md`**. Per `.claude/CLAUDE.md`, that file must be read before any new
+pre-registration is written — §1 (data recorded but never scored) and §3 (dead hypotheses).
 
 ---
 
