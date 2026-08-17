@@ -5626,6 +5626,127 @@ taken on it are quarantined under `eval/results/discarded-stale-dist/` with the 
 
 ---
 
+### E1-EDGES PRE-REGISTRATION — 2026-08-17, written BEFORE any measurement
+
+**Question.** The `edges` phase's cost *per edge* is flat through T5 and then climbs 3x by T9.
+Is that rise SQLite page-cache capacity — bounded, and already crossed at target scale — or is
+it algorithmic, and therefore unbounded?
+
+This is the last component of the build still growing faster than its own exposure. It is
+**23.1% of the vscode build** and, since the FTS guard, the largest remaining super-linear term.
+
+##### What is already established, and what is not
+
+Descriptive, from the E1-VERIFY journal and the vscode build (no verdict attaches to either):
+
+| | edges/chunk | ms/edge | symbols+idx (est.) | vs 15.6 MiB cache |
+|---|---|---|---|---|
+| T5 | 0.55 | 0.057 | 3.0 MiB | 0.19x |
+| T6 | 0.56 | 0.066 | 4.3 MiB | 0.27x |
+| T7 | 0.59 | 0.076 | 6.2 MiB | 0.40x |
+| T8 | 0.61 | 0.112 | 8.9 MiB | 0.57x |
+| T9 | 0.66 | 0.175 | 12.9 MiB | 0.82x |
+| vscode | 1.14 | **0.165** | 29.5 MiB (measured) | 1.89x |
+
+The default cache is `cache_size: -16000` = **15.6 MiB**, read back from the vscode run's
+`appliedPragmas`. `symbols` + `idx_symbols_lookup` + `idx_symbols_file` measure **29.5 MiB** at
+152,969 chunks via `dbstat`; per-tier figures scale that linearly in symbol count and are
+**estimates**, not measurements.
+
+**Two things this does NOT already show.**
+
+1. **The vscode point cannot carry the plateau claim.** vscode is a different corpus with 1.73x
+   n8n's edge density, so its cheaper-than-T9 per-edge cost may be corpus character rather than a
+   plateau. This is exactly the confound E1's nested-ladder design exists to remove, and it is why
+   the A/B runs on the ladder rather than adding vscode rungs.
+2. **A refuted rival is recorded so it is not re-proposed.** The first hypothesis was that
+   `insertEdges`' `WHERE name IN (...) AND kind != 'export'` fetches every homonym corpus-wide and
+   discards all but the first, making work grow with name collisions. Measured on the vscode graph:
+   **1.12 rows per name**, 11.1% of fetched rows discarded, top-1000 names only 5.6% of rows.
+   **Refuted.** There is no meaningful homonym amplification.
+
+##### Exposure — registered, and different from E1's
+
+E1 fits everything against **chunks**. This experiment fits `edges` against **edge count**, because
+chunks are the wrong denominator for it: predicting the vscode edges phase from T9's per-edge rate
+lands within 6% (30,650 ms predicted vs 28,829 measured) where the chunk-based projection missed by
+21.7%. Registered now, before any arm is run, so the choice cannot be made after seeing which
+denominator flatters the result.
+
+##### Design
+
+**Corpus:** n8n's nested ladder, **rungs T5–T9 only** — the knee region. Same corpus across all
+rungs, which is the entire point.
+
+**Arms**, differing in one registered lever:
+
+| arm | `--cache-size-mib` | rationale |
+|---|---|---|
+| **S** | 16 | the product default, stated explicitly so ARM IDENTITY can verify it |
+| **L** | 512 | exceeds T9's whole 418.8 MiB database, so **no** page can be evicted for capacity |
+
+`--mmap-size-mib` is pinned at **0** in both arms (the default the vscode run recorded), so mmap
+cannot act as a second, unregistered lever.
+
+**5 rungs x 2 arms x 3 reps = 30 runs.** Arm order alternates by `(block + rungIndex) % 2`, the
+positional-balance rule E1-FTS used, so arm never confounds with position in the schedule.
+
+##### Registered conditions — fixed now, immutable
+
+| # | condition | bar |
+|---|---|---|
+| 1 | **knee reproduces in arm S** — `ms/edge(S,T9) / ms/edge(S,T5)` | >= 2.0 |
+| 2 | **arm L flattens it** — `ms/edge(L,T9) / ms/edge(L,T5)` | <= 1.35 |
+| 3 | **the lever bites at T9** — `ms/edge(S,T9) / ms/edge(L,T9)` | >= 1.5 |
+
+Condition 1's bar is 2.0 against an observed 3.07x, so it is a reproduction check with headroom,
+not a coin flip. Condition 2 reuses **E1's own immutable 1.35**, rather than inventing a threshold
+for this experiment.
+
+##### Verdict rule
+
+| outcome | conditions | reading |
+|---|---|---|
+| **CACHE_BOUND** | 1, 2, 3 all met | the knee is page-cache capacity: bounded, and already crossed at target scale |
+| **PARTIAL** | 1 and 3 met, 2 not | cache is implicated but is not the whole mechanism |
+| **ALGORITHMIC** | 1 met, 3 not met | **not** the cache. Per-edge growth is algorithmic, the vscode plateau is a corpus artifact, and `edges` is a live scaling risk |
+| **VOID** | 1 fails | the phenomenon did not reproduce; nothing is concluded, and no other condition is read |
+
+**Falsification, stated plainly:** if arm L does not move the curve, the page-cache hypothesis is
+dead. ALGORITHMIC is the outcome that costs the most and is therefore the one this design must be
+able to return — condition 3 is the single point where that is decided.
+
+##### Gates
+
+Gate 0 (binary identity) · **Gate 0b** (dist staleness — note it now filters through `isBuildInput`,
+after its first live firing was a false positive on a test file) · Gate 1 (tier file set) · Gate 3
+(dual clocks + retakes).
+
+- **ARM IDENTITY.** Each run's `appliedPragmas.cache_size` must equal its arm's request
+  (`-16000` / `-524288`). The record keeps what took *effect*, never what was asked for — an arm
+  whose pragma silently failed to apply is two copies of the same arm.
+- **DB IDENTITY.** For each rung, both arms must produce identical `chunk_count`, `symbol_count`
+  and `edge_count`. A cache size must not change what gets indexed; if it does, the arms are not
+  comparable and the rung is void.
+
+##### Scope limits, registered in advance
+
+- **Rungs T5–T9 of n8n only.** No claim about T1–T4, about the panel, or about vscode.
+- **It tests the mechanism, not the plateau.** vscode's flat per-edge cost stays an inference even
+  under CACHE_BOUND, because vscode is not in this design.
+- **It measures why `edges` slows, not whether it can be made faster.** No optimisation is proposed
+  or evaluated here.
+- **The per-tier working-set figures above are estimates** extrapolated from one `dbstat`
+  measurement, and are context for the hypothesis — no condition depends on them.
+
+##### Process
+
+Registered and committed **before** the instrument is built and before any run, per Gate 5.
+An adversarial design review is commissioned against this block before the first scored run;
+amendments are **appended, never edited in place**.
+
+---
+
 ## Stage 4.5: Scale — the actual target
 **Goal**: MAST is "Monorepo AST search". Make the scale target explicit and measured,
 because it changes several decisions already taken.
