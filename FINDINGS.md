@@ -43,13 +43,18 @@ question that may already be answerable without running anything.
 
 | Series | Where it is recorded | Scoreable rows | Read by | Status |
 |---|---|---|---|---|
-| `potential_call_count` | all five journals | **144** | **nothing** | see 1.1 |
-| `phase_ms.*` (all 5 phases) | `e1-ab` 30, `e1-fts` 30, `e1-verify` 27 | **87** | nothing (E1-PHASE's own 15 are scored, and `e1-fts`'s `write` — see 1.2) | see 1.2 |
-| `write_spans.*` (6 spans) | `e1-verify` | **27** | **nothing** | see 1.4 |
-| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` | 27 | nothing (the 27/27 identity check in §2.1 is hand analysis) | see 1.4 |
+| `potential_call_count` | all five journals | **144** | `e1-unread-fit.mjs` (e1-verify's 27 only) | see 1.1 |
+| `phase_ms.*` (all 5 phases) | `e1-ab` 30, `e1-fts` 30, `e1-verify` 27 | **87** | **`e1-unread-fit.mjs` — all 87** | **CLOSED 08-17**, see 1.2 |
+| `write_spans.*` (6 spans) | `e1-verify` | **27** | **`e1-unread-fit.mjs`** | **CLOSED 08-17**, see 1.4 |
+| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` | 27 | nothing (the 27/27 identity check in §2.1 is hand analysis) | **still open**, see 1.4 |
 | `external_ms` | all five journals | 144 | `e1-schedule.mjs` only, for scheduling — never scored | low value |
-| guard-era per-phase exponents | `eval/vscode-build.mjs` constants | — | no scorer reproduces them | see 1.3 |
+| guard-era per-phase exponents | `eval/vscode-build.mjs` constants | — | **`e1-unread-fit.mjs` reproduces all five** | **CLOSED 08-17**, see 1.3 |
 | `symbol_count`, `edge_count` | all five journals | 144 | runners only; descriptive | unscored by design |
+
+`eval/e1-unread-fit.mjs` → `eval/results/e1-unread-fit.json` (2026-08-17) fits every series above that
+arithmetic alone could close. It is **descriptive, not registered** — no hypothesis, no threshold, no
+verdict — and it adjudicates nothing. Its value is that six numbers this program had been quoting
+from prose are now reproduced by a script that fails loudly if they stop reproducing.
 
 **`file_count` is NOT in this register** — it is scored. `e1-score.mjs:220` fits
 `xFile = log(file_count)`, which *is* the `b_file` / `file_fit` in `e1-verdict.json` and
@@ -71,10 +76,19 @@ rows plus 1 `type:"void"` (G#T3#b1, tiling below floor) *and* a superseded dupli
 (`A#T3#b1`, listed in the verdict's `superseded`), so the naive filter returns 32 where the scorer
 scores 30 (n=15 per arm). Cross-check any *n* against the matching `-verdict.json` before quoting it.
 
-**Not every journal keys runs the same way.** `e1-verify` rows have **no `tier` field** — they carry
-`rep` and are identified by `chunk_count`. Grouping its 27 runs by `tier` silently collapses all
-nine rungs into one bucket, and taking a median then returns T5's value while looking like a
-ladder-wide figure. Group by `chunk_count`.
+**Not every journal keys runs the same way.** `e1-verify` rows have **no `tier` field** — the rung
+label is `corpus` (`T1`…`T9`), which `e1-verify-score.mjs:46` renames to `tier` at the seam before
+handing the runs to the shared scorer. Grouping its 27 runs by `tier` silently collapses all nine
+rungs into one bucket, and taking a median then returns T5's value while looking like a ladder-wide
+figure. Group by `corpus` or by `chunk_count` — both are stable, and `chunk_count` is identical
+across all three reps of a rung (the tiers are deterministic nested subsets).
+
+**Not every field is at the top level.** `e1-verify` rows lift `chunk_count`, `file_count`,
+`edge_count` and `symbol_count` out of `measurement` onto the row — but **not**
+`potential_call_count`, which exists only at `measurement.potential_call_count`. Reading it from the
+top level yields `undefined`, and any rate built on it silently becomes `NaN`. Fits should refuse a
+non-positive series rather than drop it; `e1-unread-fit.mjs` reports `non_positive_values`, which is
+how this trap was caught rather than published.
 
 ### 1.1 `potential_call_count` — recorded on 144 scoreable runs, never read
 
@@ -141,32 +155,58 @@ session and survive only as prose and hardcoded constants:
 - `b_duration = 1.0789`, `b_edges = 1.3949`, `b_walk = 0.6108`, `b_parse = 0.9929` — projection
   constants in `eval/vscode-build.mjs:60-64`.
 
-**The estimator has since been identified** (2026-08-17): per-rung **median**, OLS on the nine
-`(log chunks, log ms)` points. Re-derived from `e1-verify-runs.jsonl`, `walk`, `parse` and `edges`
-reproduce the constants to four decimals **exactly**; `write` lands at 1.1117 against 1.1136 and
-`duration` at 1.0791 against 1.0789. Fitting all 27 runs instead of nine medians gives
-`edges = 1.3823`, `write = 1.1186` — close, but not the same number.
+**The estimator is settled** (2026-08-17): per-rung **median**, OLS on the nine `(log chunks, log ms)`
+points. `e1-unread-fit.mjs` reproduces **all five constants**, largest deviation `4.9e-5` — pure
+4-dp rounding. The script asserts them on every run and exits non-zero if any stops reproducing, so
+these are no longer prose.
 
-Two consequences, both live:
+> **[Correction, 2026-08-17]** An earlier revision of this section reported that `write` lands at
+> 1.1117 against 1.1136 and `duration` at 1.0791 against 1.0789, and drew a live consequence from
+> the gap. **Both figures were wrong, and there is no gap** — the median estimator returns
+> 1.113618 and 1.078941. The erroneous pair came from neither candidate estimator: the *mean*
+> estimator gives 1.1193 / 1.0807, so it does not explain them either. They were simply
+> miscomputed by hand. This is the failure `.claude/CLAUDE.md` §11.1 names — a number that
+> originated in prose and was repeated without being recomputed.
 
-1. **The edges exponent has two values, and they are not interchangeable.** E1-PHASE's scored
-   **1.4360** (pre-guard, HC3 [1.2333, 1.6388]) and the guard-era descriptive **1.3949**. Any claim
-   about the edges exponent must say which it uses and that the guard-era one is unscored.
-2. **The residual `write`/`duration` disagreement is unexplained.** It is small enough not to move
-   any verdict and large enough to mean the recorded constants were not produced by the estimator
-   just described. Persisting these fits through a real scorer would settle it and retire §1.3.
+Fitting all 27 runs instead of nine medians gives `edges = 1.3814`, `write = 1.1193` — close, but
+not the same number, and the two families must not be mixed. (An earlier revision quoted the
+all-runs `edges` as 1.3823; it is 1.3814.)
+
+One consequence remains live:
+
+- **The edges exponent has two values, and they are not interchangeable.** E1-PHASE's scored
+  **1.4360** (pre-guard, HC3 [1.2333, 1.6388]) and the guard-era **1.3949** (median family) /
+  **1.3814** (all-runs, HC3 [1.2180, 1.5449]). Any claim about the edges exponent must say which it
+  uses. The guard-era pair is now fitted but still **descriptive** — `e1-unread-fit.mjs` registers
+  no threshold and returns no verdict.
+
+One minor data note, recorded so a later fit does not trip on it: in exactly **1 of 27** rows
+(T3 rep 3) the top-level `duration_ms` is 5587 against `measurement.duration_ms` 5551, a 36 ms
+(0.6%) difference. Every other row agrees exactly. It does not move the median fit; a mean-based
+fit would see it.
 
 ### 1.4 E1-VERIFY's spans and FTS counts — 27 rows, nothing reads them
 
 `e1-verify-runs.jsonl` carries the six `write_spans` (`fts_del`, `fts_ins`, `commit`, `rest`, `txn`,
-`lock`) on all 27 runs. `write_spans` is fitted only by `e1-fts-score.mjs`, over **its own** journal;
-nothing reads E1-VERIFY's. This is the only **post-guard, nine-rung** span decomposition that exists
-— the post-guard exponents of `fts_ins`, `commit` and `rest` are sitting there unfitted, and by §1's
-own logic they should be fitted before any new write-phase registration is written.
+`lock`) on all 27 runs — the only **post-guard, nine-rung** span decomposition that exists. It is now
+fitted (`e1-unread-fit.mjs`), all-runs family, HC3 in brackets:
 
-The same journal's `chunk_fts_count` and `identifier_fts_count` are likewise unscored. §2.1's
-"`chunk_fts_count === chunk_count` in 27 of 27" is hand analysis, not a scorer output — the same
-status §1.3 flags for the per-phase exponents.
+| span | `fts_del` | `fts_ins` | `commit` | `rest` | `txn` | `lock` |
+|---|---|---|---|---|---|---|
+| b | *degenerate* | **1.1110** | **1.1888** | **1.0344** | 0.9475 | 1.0121 |
+| HC3 | — | [1.0989, 1.1230] | [1.1730, 1.2046] | [1.0143, 1.0545] | [0.9053, 0.9896] | [0.9813, 1.0430] |
+
+**The finding is that there is no finding: post-guard, no write span is super-linear.** The largest
+is `commit` at 1.19, well under the 1.35 bar, and the write phase's own 1.1193 is consistent with a
+sum of near-linear parts. Whatever remains in the write phase is not another `fts_del`.
+
+`fts_del` is **degenerate, not zero-exponent** — it is 0 ms in all 27 runs, so `log(0)` is undefined
+and no slope exists. The fit reports `non_positive_values` and refuses to emit a number. A scorer
+that silently dropped those rows would publish an exponent fitted on an empty series.
+
+The same journal's `chunk_fts_count` and `identifier_fts_count` **remain unread** — this fit does not
+close them. §2.1's "`chunk_fts_count === chunk_count` in 27 of 27" is still hand analysis, not a
+scorer output.
 
 ---
 
@@ -254,10 +294,65 @@ is known so the next registration starts from it.
 - POTENTIAL_CALL rows per chunk rise 0.259 → 0.370, share 49.7% → 55.9% (§1.1).
 - `resolveCallTarget` is called at `src/graph/populate.ts:698`, declared at `:782`.
 
-**Before registering anything here:** §1.2's 89 unscored runs of `phase_ms.edges` already cover a
-512× cache range *and* a full nine-rung post-guard ladder. And the phase must be **instrumented
-before it is A/B'd** — registering a lever against an unidentified mechanism is precisely what
-produced and then retired E1-EDGES.
+**The exponent decomposes, and the larger part is per-edge cost.** An exact identity, since
+`edges_ms = (ms/edge) × (edges/chunk) × chunks`:
+
+```
+b_edges  =  b_msPerEdge  +  b_edgesPerChunk  +  1
+1.3814   =    0.3016     +     0.0798        +  1     (all-runs family)
+1.3949   =    0.3151     +     0.0798        +  1     (median family)
+```
+
+So **79% of the excess over linear is each edge getting dearer**, not more edges being emitted per
+chunk. That is a constraint on any mechanism proposed here: an explanation in terms of emission
+volume is arguing about the smaller term.
+
+#### The `files` prefix scan — a confirmed defect, an unconfirmed attribution
+
+`resolveInFileOrReExportChain` (`src/graph/populate.ts:954-959`) looks its target file up with
+`WHERE path LIKE '<resolvedPath>%' ORDER BY path ASC`. Against the shipped schema this is a **full
+scan**, and it is the *only* scan among the resolver's lookups:
+
+| query | plan |
+|---|---|
+| `files WHERE path LIKE ?` | **`SCAN files USING COVERING INDEX sqlite_autoindex_files_1`** |
+| `files WHERE path = ?` | `SEARCH … (path=?)` |
+| `symbols WHERE name = ? AND file_id = ?` | `SEARCH … idx_symbols_lookup` |
+| `symbols WHERE name = ?` | `SEARCH … idx_symbols_lookup` |
+| `imports WHERE file_id = ?` | `SEARCH … idx_imports_file` |
+
+Measured with `EXPLAIN QUERY PLAN` against the real 152,969-chunk vscode database, 2026-08-17.
+The cause is SQLite's LIKE optimization, which is **disabled** when `case_sensitive_like` is off
+(the default, and this repo sets no such pragma) and the candidate index uses BINARY collation —
+which `files.path TEXT NOT NULL UNIQUE` (`src/graph/db.ts:234`) does. The function is on the
+`import` resolution path (`:812`), the qualified-receiver path (`:886`) and RE_EXPORTS resolution
+(`:723`), so it runs per unique `toName` per file.
+
+Confidence, apportioned (`.claude/CLAUDE.md` §11.5):
+
+- **Measured** — the query plan is a scan, on the shipped schema, at target scale.
+- **Inferred** — that this scan is a large and growing share of the edges phase. `edges_ms/(edges ×
+  files)` falls 89.8 → 13.2 µs across the ladder and flattens over the top three rungs (12.79,
+  12.49, 13.15), the `a/F + b` shape a per-call O(files) scan predicts once it overtakes a constant
+  baseline. The implied baseline, ~0.05 ms/edge, matches the flat part of the ms/edge curve.
+- **Refuted as a complete explanation** — a two-term model `edges_ms = a·E + b·E·F` fitted in
+  relative error under-predicts T9 by **23%** and vscode, out of sample, by **37%**. The true curve
+  is steeper than the scan alone. Something else is also super-linear, and it has not been named.
+- **Unmeasured** — the actual call count, the actual time inside the scan, and the residual. No
+  counter exists for any of them.
+
+**A behaviour-preserving fix exists** and is not yet applied: probe `path = resolvedPath` first and
+fall back to the LIKE only on a miss. It is exactly equivalent — among prefix matches the exact
+match always sorts first, since any other match is strictly longer and shares the prefix — and the
+case-insensitive matches that only LIKE can find still reach the fallback. **It should not be
+shipped on the strength of the fit above**; the residual says the fit is incomplete, and this
+program's own rule is instrument first.
+
+**Before registering anything here:** §1.2's **87** unscored runs of `phase_ms.edges` are now fitted
+(`e1-unread-fit.mjs`) — start from that artifact, not from a new run. And the phase must be
+**instrumented before it is A/B'd** — registering a lever against an unidentified mechanism is
+precisely what produced and then retired E1-EDGES. (An earlier revision of this line said 89; the
+count is 87, per §1.2.)
 
 ### 2.4 Open: the incremental path still pays the full-scan delete
 
