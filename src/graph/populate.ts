@@ -464,15 +464,44 @@ async function writePopulatedFileRows(
 
   // FTS5 updates — same transaction as graph writes (§7.1 step 5).
   //
-  // Delete existing rows by file_path. FTS5 SUPPORTS the predicate on an
-  // UNINDEXED column but cannot use it: `xBestIndex`
-  // (sqlite3.c:260775-260860) will not consume an equality constraint on an
-  // ordinary column, so each of these is `SCAN <table> VIRTUAL TABLE INDEX 0:`
-  // — a full table scan of an index that grows with the whole corpus. On a
-  // COLD build every one of them matches zero rows. That is the subject of
-  // E1-FTS (IMPLEMENTATION_PLAN.md § E1-FTS PRE-REGISTRATION); `skipFtsDeletes`
-  // is its arm G, and is unsafe on any path but a cold build.
-  if (options.skipFtsDeletes !== true) {
+  // Delete existing rows by file_path, but ONLY when this file had a previous
+  // version. FTS5 supports the predicate on an UNINDEXED column and cannot use
+  // it: `xBestIndex` (sqlite3.c:260775-260860) will not consume an equality
+  // constraint on an ordinary column, so each statement is
+  // `SCAN <table> VIRTUAL TABLE INDEX 0:` — a full table scan of an index that
+  // grows with the whole corpus, giving the write phase a quadratic term.
+  //
+  // E1-FTS measured it (IMPLEMENTATION_PLAN.md § E1-FTS RESULT): at T9 the two
+  // deletes were **91.7% of the write phase**, growing with exponent 2.35, and
+  // on a cold build every one of them matched ZERO rows. Skipping them took the
+  // write phase's exponent from 1.94 to 1.10 and T9's cold build from 499 s to
+  // 59 s.
+  //
+  // `existing` is the monotonic write-guard's own SELECT, a few lines above —
+  // this reuses a read that already happened rather than adding one. Its safety
+  // rests on a single invariant:
+  //
+  //     A file's FTS rows exist only if its `files` row exists.
+  //
+  // maintained by the only two writers of these tables, both in this file and
+  // both transactional: this function writes the `files` row and the FTS rows
+  // inside one `BEGIN IMMEDIATE`, and `removeDeletedFiles` deletes both inside
+  // one transaction. That second one is load-bearing and easy to lose:
+  // `chunk_fts` / `identifier_fts` are FTS5 VIRTUAL tables, so they do NOT
+  // participate in the foreign-key cascade that removes `symbols` / `edges` /
+  // `imports` when a `files` row goes — the deletes there are explicit and must
+  // stay. `__tests__/fts-delete-guard.test.ts` pins the invariant directly, so
+  // a future change that drops a `files` row without its FTS rows fails there
+  // rather than silently making this guard wrong.
+  //
+  // The SELECT and these DELETEs share one transaction, so no concurrent writer
+  // can insert FTS rows between them — the same atomicity argument F12 already
+  // relies on for the monotonic guard.
+  //
+  // `skipFtsDeletes` is E1-FTS's arm G, retained because it is the instrument of
+  // a completed experiment. It is unconditional and unsafe outside a cold build.
+  const fileHadPreviousVersion = existing !== undefined;
+  if (options.skipFtsDeletes !== true && fileHadPreviousVersion) {
     await timed(spans, 'fts_del', async () => {
       await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
       await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
