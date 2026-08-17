@@ -45,14 +45,19 @@ const SPANS = ['fts_del', 'fts_ins', 'commit', 'rest', 'txn', 'lock'];
 const SELF_CHECK = [
   // `eval/vscode-build.mjs:60-64` — the per-phase projection to the 150k target. Produced
   // by the median estimator, so that is the family they are checked against.
+  // Every tolerance is 1e-4 — the width of the 4-dp rounding in the recorded constants, and
+  // nothing more. Observed deviations are all <= 4.9e-5, so each check has about 2x headroom.
+  //
+  // `write` and `duration` briefly carried 0.0020 and 0.0005, on the belief that they did not
+  // reproduce. They do. Those tolerances were not merely stale, they were harmful: 0.0020
+  // would have PASSED the erroneous 1.1117 that FINDINGS.md § 1.3 records (|1.1117 - 1.1136|
+  // = 0.0019), which is the precise error this check exists to catch. A tolerance sized to
+  // an assumed discrepancy tests nothing once the assumption is withdrawn.
   { id: 'vscode_walk', expect: 0.6108, tol: 0.0001, from: 'vscode-build.mjs:61' },
   { id: 'vscode_parse', expect: 0.9929, tol: 0.0001, from: 'vscode-build.mjs:62' },
   { id: 'vscode_edges', expect: 1.3949, tol: 0.0001, from: 'vscode-build.mjs:64' },
-  // These two are recorded as NOT reproducing (FINDINGS.md § 1.3). The tolerance is set to
-  // the observed gap so the check documents the discrepancy instead of hiding it; tighten
-  // it only when the gap is explained.
-  { id: 'vscode_write', expect: 1.1136, tol: 0.0020, from: 'vscode-build.mjs:63 (known residual)' },
-  { id: 'vscode_duration', expect: 1.0789, tol: 0.0005, from: 'vscode-build.mjs:60 (known residual)' },
+  { id: 'vscode_write', expect: 1.1136, tol: 0.0001, from: 'vscode-build.mjs:63' },
+  { id: 'vscode_duration', expect: 1.0789, tol: 0.0001, from: 'vscode-build.mjs:60' },
   // `e1-fts-verdict.json` condition 4 — a shipped scorer's output, all-runs family.
   { id: 'fts_b_write_g', expect: 1.0956, tol: 0.0001, from: 'e1-fts-verdict.json b_write_g' },
 ];

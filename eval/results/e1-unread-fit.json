@@ -1,5 +1,5 @@
 {
-  "created": "2026-08-17T21:21:51.938Z",
+  "created": "2026-08-17T23:11:47.060Z",
   "what_this_is": "Descriptive fits of the series FINDINGS.md § 1.2 and § 1.4 record as committed but read by no scorer. NOT REGISTERED: no hypothesis, no threshold, no verdict. It adjudicates nothing and licenses no change — it exists so the next registration starts from checkable numbers instead of prose constants.",
   "not_a_mechanism": "A fitted exponent describes a curve; it does not name a cause. In particular the edges phase remains unexplained, and this program's rule stands: instrument before you A/B. Registering a lever against an unidentified mechanism is what produced and then retired E1-EDGES.",
   "estimators": "all_runs = OLS over every scoreable run (what E1's scorers use). rung_medians = OLS over one median point per rung (what produced vscode-build.mjs's constants). They differ; any claim must say which family it quotes.",
@@ -33,21 +33,21 @@
     },
     {
       "id": "vscode_write",
-      "source": "vscode-build.mjs:63 (known residual)",
+      "source": "vscode-build.mjs:63",
       "expected": 1.1136,
       "actual": 1.1136179963954935,
       "delta": 0.000017996395493602435,
       "within_tolerance": true,
-      "tolerance": 0.002
+      "tolerance": 0.0001
     },
     {
       "id": "vscode_duration",
-      "source": "vscode-build.mjs:60 (known residual)",
+      "source": "vscode-build.mjs:60",
       "expected": 1.0789,
       "actual": 1.0789410631297014,
       "delta": 0.00004106312970142412,
       "within_tolerance": true,
-      "tolerance": 0.0005
+      "tolerance": 0.0001
     },
     {
       "id": "fts_b_write_g",

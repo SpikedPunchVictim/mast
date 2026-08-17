@@ -49,7 +49,9 @@ question that may already be answerable without running anything.
 | `chunk_fts_count`, `identifier_fts_count` | `e1-verify` | 27 | nothing (the 27/27 identity check in §2.1 is hand analysis) | **still open**, see 1.4 |
 | `external_ms` | all five journals | 144 | `e1-schedule.mjs` only, for scheduling — never scored | low value |
 | guard-era per-phase exponents | `eval/vscode-build.mjs` constants | — | **`e1-unread-fit.mjs` reproduces all five** | **CLOSED 08-17**, see 1.3 |
-| `symbol_count`, `edge_count` | all five journals | 144 | runners only; descriptive | unscored by design |
+| `symbol_count` | all five journals | 144 | runners only; descriptive | unscored by design |
+| `edge_count` | all five journals | 144 | `e1-unread-fit.mjs` (ms/edge, edges/chunk) | partly read |
+| `measurement.wal_boundary`, `measurement.stderr_lines` | all five journals | 144 | nothing | diagnostics-grade; not a measurement series |
 
 `eval/e1-unread-fit.mjs` → `eval/results/e1-unread-fit.json` (2026-08-17) fits every series above that
 arithmetic alone could close. It is **descriptive, not registered** — no hypothesis, no threshold, no
@@ -162,11 +164,30 @@ these are no longer prose.
 
 > **[Correction, 2026-08-17]** An earlier revision of this section reported that `write` lands at
 > 1.1117 against 1.1136 and `duration` at 1.0791 against 1.0789, and drew a live consequence from
-> the gap. **Both figures were wrong, and there is no gap** — the median estimator returns
-> 1.113618 and 1.078941. The erroneous pair came from neither candidate estimator: the *mean*
-> estimator gives 1.1193 / 1.0807, so it does not explain them either. They were simply
-> miscomputed by hand. This is the failure `.claude/CLAUDE.md` §11.1 names — a number that
-> originated in prose and was repeated without being recomputed.
+> the gap. **There is no gap** — the median estimator returns 1.113618 and 1.078941, reproducing
+> the recorded constants.
+>
+> **[Second correction, same day, adversarial review]** The first correction went on to explain the
+> old pair as "simply miscomputed by hand", having checked only the median and mean estimators.
+> **That etiology is wrong, and the error was systematic rather than manual.** Two specific
+> estimator faults reproduce the old numbers to 4 dp:
+>
+> | old figure | estimator that reproduces it | value |
+> |---|---|---|
+> | `write` 1.1117 | per-rung-median OLS **with rung T6 dropped** | 1.111717 |
+> | `duration` 1.0791 | per-rung-median OLS on **`measurement.duration_ms`** (not top-level) | 1.079053 |
+>
+> A simultaneous 4-dp match on two independent series is not coincidence. The earlier session was
+> almost certainly **dropping a rung** from the fold, and reading `duration_ms` from a different
+> field than the one it reported. That matters far more than "hand error" would: a selection bug
+> silently touches *every* number derived in that session, whereas a hand slip tells no one where
+> else to look. **Any other figure first derived on 2026-08-17 in that session should be re-derived
+> against a nine-rung fold before it is quoted.**
+>
+> Note this is *proof of an estimator that reproduces the numbers*, not proof of provenance — the
+> session's actual code was not recovered. Recorded as the most probable cause, not a certainty.
+> This is the failure `.claude/CLAUDE.md` §11.1 names, and the follow-on is the §11.3 one: having
+> found *an* explanation, the first correction stopped instead of asking what else would fit.
 
 Fitting all 27 runs instead of nine medians gives `edges = 1.3814`, `write = 1.1193` — close, but
 not the same number, and the two families must not be mixed. (An earlier revision quoted the
@@ -307,6 +328,13 @@ So **79% of the excess over linear is each edge getting dearer**, not more edges
 chunk. That is a constraint on any mechanism proposed here: an explanation in terms of emission
 volume is arguing about the smaller term.
 
+Two honesty notes on how much this is worth. **The identity itself cannot fail** — OLS is linear in
+`y` and the slope of `log C` on `log C` is 1, so the three fits sum by construction (residual
+2e-16). It is an arithmetic check, not a result; the *split* between the two terms is the finding.
+And **"per-edge cost" is not a synonym for "a mechanism other than the scan"** — the `files` scan
+below runs per resolver call and therefore lives *inside* the per-edge term. The decomposition
+separates per-edge cost from emission volume; it does not separate one mechanism from another.
+
 #### The `files` prefix scan — a confirmed defect, an unconfirmed attribution
 
 `resolveInFileOrReExportChain` (`src/graph/populate.ts:954-959`) looks its target file up with
@@ -332,21 +360,55 @@ Confidence, apportioned (`.claude/CLAUDE.md` §11.5):
 
 - **Measured** — the query plan is a scan, on the shipped schema, at target scale.
 - **Inferred** — that this scan is a large and growing share of the edges phase. `edges_ms/(edges ×
-  files)` falls 89.8 → 13.2 µs across the ladder and flattens over the top three rungs (12.79,
-  12.49, 13.15), the `a/F + b` shape a per-call O(files) scan predicts once it overtakes a constant
-  baseline. The implied baseline, ~0.05 ms/edge, matches the flat part of the ms/edge curve.
-- **Refuted as a complete explanation** — a two-term model `edges_ms = a·E + b·E·F` fitted in
-  relative error under-predicts T9 by **23%** and vscode, out of sample, by **37%**. The true curve
-  is steeper than the scan alone. Something else is also super-linear, and it has not been named.
+  files)` falls 89.8 → 13.2 **ns** across the ladder and flattens over the top three rungs (12.79,
+  12.49, 13.15 ns), the `a/F + b` shape a per-call O(files) scan predicts once it overtakes a
+  constant baseline. The implied baseline, ~0.05 ms/edge, matches the flat part of the ms/edge
+  curve. (An earlier revision gave these in **µs** — a 1000× unit error. `113 ms / (1919 × 656)` is
+  8.98e-5 ms = 89.8 ns. The shape of the argument is unaffected.)
+- **Refuted as a complete explanation** — a two-term model `edges_ms = a·E + b·E·F` cannot fit both
+  ends of the ladder under any weighting. Relative-error weighting under-predicts T9 by **23%**;
+  unweighted least squares fits T9 to **−1.1%** but misses T1 by **−74%**. Out of sample, vscode is
+  under-predicted by **30–37%** either way. **Quote the weighting-independent statement**, not the
+  23%: no single `(a, b)` describes the whole ladder, so the true curve is steeper than the scan
+  alone and something else is also super-linear. It has not been named. These figures are
+  **prose-only — no committed script computes them**, which is the §11.1 failure this very file
+  warns about; persisting them through `e1-unread-fit.mjs` is outstanding work.
 - **Unmeasured** — the actual call count, the actual time inside the scan, and the residual. No
   counter exists for any of them.
 
-**A behaviour-preserving fix exists** and is not yet applied: probe `path = resolvedPath` first and
-fall back to the LIKE only on a miss. It is exactly equivalent — among prefix matches the exact
-match always sorts first, since any other match is strictly longer and shares the prefix — and the
-case-insensitive matches that only LIKE can find still reach the fallback. **It should not be
-shipped on the strength of the fit above**; the residual says the fit is incomplete, and this
-program's own rule is instrument first.
+#### The scan is also a correctness bug, and there are two of them
+
+> **[Correction, 2026-08-17, adversarial review]** An earlier revision of this section claimed a
+> **"provably behaviour-preserving"** fix: probe `path = resolvedPath` first, fall back to LIKE on a
+> miss, on the argument that among prefix matches the exact match always sorts first. **That proof
+> is false.** Its premise holds only for case-sensitive, wildcard-free LIKE, and this is neither.
+
+`resolvedPath` is interpolated into the pattern **unescaped**, so any `_` in a real path is a
+single-character wildcard; and default LIKE is case-insensitive while the index sorts BINARY. Both
+counterexamples below were verified against SQLite — in each, the exact path **exists** and the
+current query returns a **different file**:
+
+| files present | `resolvedPath` | LIKE returns | exact returns |
+|---|---|---|---|
+| `src/my.util.ts`, `src/my_util.ts` | `src/my_util.ts` | **`src/my.util.ts`** | `src/my_util.ts` |
+| `src/FOO.ts`, `src/Foo.ts` | `src/Foo.ts` | **`src/FOO.ts`** | `src/Foo.ts` |
+
+`.` (0x2E) sorts before `_` (0x5F), and `FOO` before `Foo`, so `ORDER BY path ASC` hands back the
+wrong row first. **This is not only a performance defect — the resolver can bind an edge to the
+wrong file**, and snake_case paths make the first case routine rather than exotic. That reframes
+the fix: it is a *bug fix requiring a semantics decision* (escape the pattern, or convert to a
+range query, and decide whether case-insensitive matching was ever intended), not a free swap.
+
+**There are two such scans, not one.** The second is in `insertReExportFiles`
+(`src/graph/populate.ts:1088-1092`), which runs **inside the `phase.edges` timing window**
+(`src/indexer/index.ts:475` opens it, `:486` closes it). Fixing only the resolver leaves an
+identical O(files) scan in the same measured phase. The two are not interchangeable: the resolver's
+LIKE is documented as defensive because the import resolver returns extension-inclusive paths,
+whereas `insertReExportFiles`' own comment (`:1086-1087`) says `resolved_path` **may lack an
+extension**, so there the prefix match is load-bearing and an exact probe would miss.
+
+**Neither should be shipped on the strength of the fit above** — the residual says the fit is
+incomplete, and this program's rule is instrument first.
 
 **Before registering anything here:** §1.2's **87** unscored runs of `phase_ms.edges` are now fitted
 (`e1-unread-fit.mjs`) — start from that artifact, not from a new run. And the phase must be
