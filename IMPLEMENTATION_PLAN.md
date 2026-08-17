@@ -5551,6 +5551,12 @@ its own exponent of 2.3454, does not appear at any rung. The descriptive write-p
 falls from E1-PHASE's `b_write = 1.9685` to **1.1136**, and the write phase stops dominating: it
 was **94.01%** of T9 and is now **51.3%** (44.8–53.1% across the ladder), with parse at 36.3%.
 
+> **[Correction, 2026-08-17, post-review]** The parse figure is wrong: T9 parse/duration is
+> **34.5%** (per-rep 34.04 / 34.49 / 34.48). 36.3% does not reproduce under any estimator tried —
+> per-rep, per-rung median, ratio-of-medians, against `external_ms`, or with `c = 15` subtracted.
+> Every other number in this subsection reproduces exactly, including the 51.3% it sits beside.
+> Nothing downstream depends on it. Found by adversarial review of the FINDINGS.md index.
+
 ##### The guard skips work, not rows
 
 `chunk_fts_count === chunk_count` in **27 of 27** runs; 0 parse errors throughout. This is the
@@ -5969,11 +5975,15 @@ and the product-defect finding.
 **vscode is 10× kluster's own index.** Every measurement in this document was taken on
 a 5k–14k chunk corpus. The real target is **150k+**.
 
-### ~~What breaks at that scale — and what doesn't~~ — **BOTH CLAIMS FALSIFIED, see the CORRECTION block**
+### ~~What breaks at that scale — and what doesn't~~ — **SUPERSEDED, see the CORRECTION block**
 
-> Kept verbatim for the record. E1 falsified "already sublinear" (measured `b = 1.75`); Stage 7
-> deleted the subsystem the second claim is about. The "incremental is O(changed files)" line is
-> **still wrong today** — see CORRECTION §5, the one item here that is not merely historical.
+> Kept verbatim for the record. Precisely: E1 **falsified** the indexing half of "already
+> sublinear" (measured `b = 1.75`); the query-side sub-claims in that same paragraph — BM25 costs
+> O(matching docs), sub-ms recursive CTEs — were never tested by E1, which measured indexing only,
+> and are neither confirmed nor refuted. The vector paragraph is **moot**, not falsified: Stage 7
+> deleted the subsystem rather than measuring it wrong. And the "incremental is O(changed files)"
+> line is **still wrong today** — see CORRECTION §5, the one item here that is not merely
+> historical.
 
 **Already sublinear, no work needed**: FTS5 is an inverted index (BM25 costs
 O(matching docs), not O(total)); graph queries use covering indexes with sub-ms
@@ -6104,8 +6114,9 @@ told to come here — and they alter no claim.
 
 #### 1. "Already sublinear, no work needed" — FALSIFIED, then repaired
 
-E1 measured the cold-build ladder at **`b = 1.7558`** (HC3 [1.6689, 1.8427]), verdict
-`SUPER_LINEAR`, on nine nested subsets of n8n. The claim was wrong when written.
+E1 measured the cold-build ladder at **`b = 1.7529`** (HC3 [1.6599, 1.8458]) — the registered
+adjusted primary, per the E1 RESULT above — verdict `SUPER_LINEAR`, on nine nested subsets of n8n.
+The claim was wrong when written.
 
 The mechanism was found four experiments later: `DELETE FROM chunk_fts WHERE file_path = ?` is a
 **full scan of the FTS5 table**, because `xBestIndex` cannot consume an equality constraint on an
@@ -6150,9 +6161,15 @@ min), with `parse_errors` 0, **`write_errors` 0**, `fts_del` 0 ms.
 
 This **supersedes the 2026-08-02 correction above**. That correction concluded vscode's "true"
 count was 138,440 and that 152,969 was an inflated stdout counter. The stdout counter was right:
-152,969 − 138,440 = **14,529 chunks exactly** — the whale-file tail that the S1 defect was silently
-dropping behind two write errors. S1 fixed it; the tail is now in the database. The correction's
-*root cause* was sound and its *conclusion about the true count* was not.
+152,969 − 138,440 = **14,529 chunks exactly** — the whale-file tail that the S1 defect was dropping.
+S1 fixed it; the tail is now in the database. The correction's *root cause* was sound and its
+*conclusion about the true count* was not.
+
+The loss was **loud, not silent** — the 2026-08-02 record is explicit about this (`write_errors=2`,
+CLI exit code 1), and the gap it identified was narrower: orchestration that gates on exit code
+alone, without also checking `write_errors`, would drop the file silently. Describing S1 as
+"silently dropping" the tail, as an earlier revision of this block did, overstates the original
+finding it is correcting.
 
 Against a per-phase projection from T9: total **−9.0%**, walk −42.5%, parse −0.7%, write −28.7%,
 **edges +21.7%**. Everything beats projection except edges — and most of that overshoot is edge
@@ -6160,8 +6177,15 @@ Against a per-phase projection from T9: total **−9.0%**, walk −42.5%, parse 
 
 #### 5. STILL FALSE: "incremental indexing is O(changed files) — 379 ms for one file at any corpus size"
 
-This is the one line above that is not merely historical, and it is the only **new** finding in
-this block.
+This is the one line above that is not merely historical.
+
+**What is new here is the contradiction, not the fact.** The codebase already knew the incremental
+path pays the deletes, in three committed places: `e1-fts-verdict.json`'s `what_this_is` ("it
+licenses nothing about the UPDATE path, where the deletes are real work"), the CLI's refusal to
+combine `--unsafe-skip-fts-deletes` with `--incremental` (`src/cli/index-cmd.ts:106`), and a test
+that pins it (`src/graph/__tests__/fts-delete-guard.test.ts:93`, "runs the delete-scan for a file
+that was indexed before"). None of them was connected to Stage 4.5's "O(changed files) at any
+corpus size" claim, which has sat here contradicted and unmarked. That connection is the finding.
 
 The FTS guard is conditional (`graph/populate.ts:503`):
 
@@ -6180,6 +6204,11 @@ not O(changed files)** — precisely the claim above. The scan mechanism is *mea
 exponent 2.3454); its persistence on the incremental path is a *code read*; its magnitude at 150k
 is **unmeasured**. The 379 ms figure carries no citation anywhere in this document, and no eval
 harness measures incremental re-index cost at all.
+
+There is a second, smaller instance on the same path: `removeDeletedFiles`
+(`graph/populate.ts:1116`, deletes at `:1129-1130`) runs the same two full-scan FTS deletes per
+*deleted* file, unconditionally. It must stay — `chunk_fts` / `identifier_fts` are FTS5 virtual
+tables and do not participate in the foreign-key cascade — but it carries the same per-corpus cost.
 
 **This is not a defect report and no fix is proposed here** — the ladder is cold-build-only by
 construction and structurally cannot see this. It is registered as an open question so that

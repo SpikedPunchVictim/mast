@@ -9,6 +9,11 @@ replace it. But it is chronological, not topical — answering "what do we alrea
 edges phase?" means reading fourteen experiment blocks and reconstructing the answer. This file is
 that reconstruction, maintained.
 
+**Scope.** Coverage begins at the Q1 retrieval program and the E1 scaling program. The pre-deletion
+embedding-model bake-off (`eval/results/*__fp32.json`, `truncation.json`, `task9-score-*.json`,
+2026-07-10; documented in `eval/README.md`) is deliberately **not** indexed — Stage 7 deleted the
+subsystem it was selecting for. Note that `eval/README.md` is itself stale for the same reason.
+
 ---
 
 ## The rule
@@ -20,7 +25,8 @@ that they checked both — and what they found.
 This rule exists because of a concrete, expensive failure. **E1-EDGES** was registered on
 2026-08-17 to test whether the edges phase's super-linearity was a page-cache effect. It was
 retired the same day, before a single measurement, because the adversarial design review found that
-**E1-AB had already run that exact lever, on the same corpus and tiers, with a 2× stronger arm** —
+**E1-AB had already run that exact lever, on the same corpus, at the rungs E1-EDGES' own conditions
+read (T5 and T9), with a 2× stronger arm** —
 and its answer (ALGORITHMIC, not cache) had been sitting in `eval/results/e1-ab-runs.jsonl` since
 2026-08-13. E1-AB recorded `phase_ms.edges` on all 30 of its runs and scored only `write_ms` and
 `duration_ms`. The data was committed, complete, and unread.
@@ -35,26 +41,42 @@ Twenty minutes of analysis on already-committed data retired a 30-run experiment
 Measurements that are **recorded in committed journals and read by no scorer**. Each row is a
 question that may already be answerable without running anything.
 
-| Series | Where it is recorded | Measurement rows | Read by | Status |
+| Series | Where it is recorded | Scoreable rows | Read by | Status |
 |---|---|---|---|---|
-| `potential_call_count` | all five journals | **146** | **nothing** | see 1.1 |
-| `phase_ms.*` (all 5 phases) | `e1-ab` 30, `e1-fts` 32, `e1-verify` 27 | **89** | nothing (E1-PHASE's own 15 are scored) | see 1.2 |
+| `potential_call_count` | all five journals | **144** | **nothing** | see 1.1 |
+| `phase_ms.*` (all 5 phases) | `e1-ab` 30, `e1-fts` 30, `e1-verify` 27 | **87** | nothing (E1-PHASE's own 15 are scored, and `e1-fts`'s `write` — see 1.2) | see 1.2 |
+| `write_spans.*` (6 spans) | `e1-verify` | **27** | **nothing** | see 1.4 |
+| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` | 27 | nothing (the 27/27 identity check in §2.1 is hand analysis) | see 1.4 |
+| `external_ms` | all five journals | 144 | `e1-schedule.mjs` only, for scheduling — never scored | low value |
 | guard-era per-phase exponents | `eval/vscode-build.mjs` constants | — | no scorer reproduces them | see 1.3 |
-| `symbol_count`, `edge_count`, `file_count` | all five journals | 146 | runners only; descriptive | unscored by design |
+| `symbol_count`, `edge_count` | all five journals | 144 | runners only; descriptive | unscored by design |
+
+**`file_count` is NOT in this register** — it is scored. `e1-score.mjs:220` fits
+`xFile = log(file_count)`, which *is* the `b_file` / `file_fit` in `e1-verdict.json` and
+`e1-verify-verdict.json`; `:173` validates it and `:254` aggregates it for trigger t4.
+`db_bytes` (trigger t3) and `parse_errors` (t4) are likewise read. An earlier revision of this
+table listed `file_count` as descriptive and unscored; that was wrong, and it was wrong in the
+one section this file's own rule tells you to trust.
 
 Verified 2026-08-17 by enumerating every key in each `eval/results/*-runs.jsonl` and grepping the
-five scorers for it. To re-verify after adding a journal, repeat that diff.
+five scorers for it; corrected 2026-08-17 after adversarial review. To re-verify after adding a
+journal, repeat that diff — and grep the *scorers*, not just the runners, before calling anything
+unread.
 
-**Count rows, not lines.** A journal line is not a run: the files carry retakes, gate records and
-calibration rows alongside measurements. `wc -l` over-counts by roughly 2×. Filter on the field you
-actually care about (`r.measurement?.phase_ms != null`) before quoting an *n*.
+**Count rows, not lines, and then subtract the dead ones.** A journal line is not a run: the files
+carry `attempt_start` records, gate rows and calibration rows alongside measurements, so `wc -l`
+over-counts by roughly 2×. But filtering on `r.measurement?.phase_ms != null` is still not the
+scoreable *n* — it admits **voided and superseded** runs. `e1-fts-runs.jsonl` holds 31 `type:"run"`
+rows plus 1 `type:"void"` (G#T3#b1, tiling below floor) *and* a superseded duplicate
+(`A#T3#b1`, listed in the verdict's `superseded`), so the naive filter returns 32 where the scorer
+scores 30 (n=15 per arm). Cross-check any *n* against the matching `-verdict.json` before quoting it.
 
 **Not every journal keys runs the same way.** `e1-verify` rows have **no `tier` field** — they carry
 `rep` and are identified by `chunk_count`. Grouping its 27 runs by `tier` silently collapses all
 nine rungs into one bucket, and taking a median then returns T5's value while looking like a
 ladder-wide figure. Group by `chunk_count`.
 
-### 1.1 `potential_call_count` — recorded on 146 runs, never read
+### 1.1 `potential_call_count` — recorded on 144 scoreable runs, never read
 
 Recorded by `readGraphCounts` (`eval/e1-common.mjs:688`) into all five journals. It appears in
 `e1-common.mjs`, `e1-p0-build.mjs`, `e1-run.mjs` and `e1-phase-run.mjs` — all **runners**. No
@@ -86,18 +108,21 @@ this says: **at larger corpora a growing fraction of call sites fail to resolve.
 any hypothesis about the edges phase. It does not measure the phase's cost, and must not be
 presented as if it does.
 
-### 1.2 `phase_ms` outside E1-PHASE — 89 unscored runs, including a full guard-era ladder
+### 1.2 `phase_ms` outside E1-PHASE — 87 unscored runs, including a full guard-era ladder
 
-`phase_ms.{walk,parse,write,edges,finalise}` is recorded on 104 measurement rows. Only
-`e1-phase-score.mjs` fits phase timings, and only over E1-PHASE's own **15**. `e1-fts-score.mjs`
-reads `phase_ms.write` alone, as a denominator for span shares. `e1-ab-score.mjs` and
-`e1-verify-score.mjs` read none of it.
+`phase_ms.{walk,parse,write,edges,finalise}` is recorded on 102 scoreable rows, of which **15** are
+fitted by `e1-phase-score.mjs` across all five phases.
 
-| journal | rows | rungs | what it is |
+One partial exception, easy to miss: `e1-fts-score.mjs` does not merely read `phase_ms.write` as a
+denominator — it **fits** it, at `:265-266`, producing `b_write_a` and `b_write_g`, and
+`b_write_g = 1.0956` is condition 4 of the E1-FTS verdict. So e1-fts's `write` column is scored.
+Its other four phases are not. `e1-ab-score.mjs` and `e1-verify-score.mjs` fit no phase at all.
+
+| journal | rows | rungs | what is unscored |
 |---|---|---|---|
-| `e1-ab` | 30 | 3 (T1/T5/T9) | per-phase timings across a **512× SQLite cache range** |
-| `e1-fts` | 32 | 5 | per-phase timings for arms A and G (guard off/on) |
-| `e1-verify` | **27** | **9** | **the complete post-guard per-phase ladder** |
+| `e1-ab` | 30 | 3 (T1/T5/T9) | all five phases, across a **512× SQLite cache range** |
+| `e1-fts` | 30 | 5 | all but `write` (arms A and G, guard off/on) |
+| `e1-verify` | **27** | **9** | all five — **the complete post-guard per-phase ladder** |
 
 `e1-ab`'s 30 rows are what retired E1-EDGES. `e1-verify`'s 27 are the larger prize and were missed
 for a duller reason: they have no `tier` field, so every by-tier query returns them as one bucket.
@@ -112,7 +137,7 @@ E1-VERIFY re-fitted the ladder against the FTS delete guard and produced a total
 (`eval/results/e1-verify-verdict.json`). Its **per-phase** slopes were computed by hand during the
 session and survive only as prose and hardcoded constants:
 
-- `b_write = 1.1136` — `IMPLEMENTATION_PLAN.md:5551`, RESULT prose only.
+- `b_write = 1.1136` — `IMPLEMENTATION_PLAN.md:5551` (RESULT prose) **and** `vscode-build.mjs:63`.
 - `b_duration = 1.0789`, `b_edges = 1.3949`, `b_walk = 0.6108`, `b_parse = 0.9929` — projection
   constants in `eval/vscode-build.mjs:60-64`.
 
@@ -131,6 +156,18 @@ Two consequences, both live:
    any verdict and large enough to mean the recorded constants were not produced by the estimator
    just described. Persisting these fits through a real scorer would settle it and retire §1.3.
 
+### 1.4 E1-VERIFY's spans and FTS counts — 27 rows, nothing reads them
+
+`e1-verify-runs.jsonl` carries the six `write_spans` (`fts_del`, `fts_ins`, `commit`, `rest`, `txn`,
+`lock`) on all 27 runs. `write_spans` is fitted only by `e1-fts-score.mjs`, over **its own** journal;
+nothing reads E1-VERIFY's. This is the only **post-guard, nine-rung** span decomposition that exists
+— the post-guard exponents of `fts_ins`, `commit` and `rest` are sitting there unfitted, and by §1's
+own logic they should be fitted before any new write-phase registration is written.
+
+The same journal's `chunk_fts_count` and `identifier_fts_count` are likewise unscored. §2.1's
+"`chunk_fts_count === chunk_count` in 27 of 27" is hand analysis, not a scorer output — the same
+status §1.3 flags for the per-phase exponents.
+
 ---
 
 ## 2. What is settled
@@ -142,13 +179,18 @@ reps each. The super-linear bar is **b ≥ 1.35**, fixed before any measurement 
 
 | experiment | date | verdict | key number |
 |---|---|---|---|
-| **E1** | 08-12 | `SUPER_LINEAR` | b = **1.7558**, HC3 [1.6689, 1.8427]; lack-of-fit fires |
+| **E1** | 08-12 | `SUPER_LINEAR` | b = **1.7529**, HC3 [1.6599, 1.8458]; lack-of-fit fires |
 | **E1-PHASE** | 08-12 | H1 fires | the exponent is in **write**: b = **1.9685** |
 | **E1-AB** | 08-13 | `CACHE_IMPLICATED` / PARTIAL | cache reduces but does not remove it |
 | **E1-FTS** | 08-16 | `MECHANISM_IDENTIFIED` | `fts_del` is **91.7%** of T9's write phase |
 | **E1-VERIFY** | 08-17 | `HOLDS` | guard drops the ladder to b = **1.0825** |
 
-**The chain, end to end:** total build time grew at b = 1.76. E1-PHASE localised that to the write
+Quote the **adjusted** fit for both E1 and E1-VERIFY — that is each one's registered primary
+(`durationMs − c`). E1's `b_file = 1.7558` and E1-VERIFY's `b_file = 1.0837` are *supporting*
+outputs, used for trigger 5's chunk-vs-file comparison, and mixing the two families across a
+before/after pair is not a like-for-like comparison.
+
+**The chain, end to end:** total build time grew at b = 1.75. E1-PHASE localised that to the write
 phase (b = 1.97) while parse stayed linear (1.0144) and walk was sub-linear (0.6019). E1-AB showed a
 1024 MiB page cache cut write time at T9 by ~49% but left the curvature — so the cache was
 implicated, not causal. E1-FTS decomposed write into six directly-timed spans and found one:
@@ -168,7 +210,9 @@ quadratically. The fix (`43eb928`) skips the delete entirely when the file was n
 - `chunk_fts_count === chunk_count` in **27 of 27** — the guard skips *work*, not rows. This is the
   check that separates a correct guard from a merely fast one.
 - T9: **538.6 s → 62.1 s**.
-- Write's share of T9 fell from **94.01%** to **51.3%**; parse is now 36.3%.
+- Write's share of T9 fell from **94.01%** to **51.3%**; parse is now **34.5%**.
+  (`IMPLEMENTATION_PLAN.md:5552` says 36.3% — that figure does not reproduce from the journal;
+  per-rep T9 parse/duration is 34.04 / 34.49 / 34.48%. Corrected inline in the plan.)
 
 **Indexing scales.** Evidence: `IMPLEMENTATION_PLAN.md` §§ E1 / E1-PHASE / E1-AB / E1-FTS /
 E1-VERIFY RESULT blocks; `eval/results/e1*-verdict.json`.
@@ -230,6 +274,16 @@ so it skips 100% of them — which is why `fts_del` is 0 ms in all 27 E1-VERIFY 
 with the whole corpus. A changed file is by definition one already indexed, so this is the
 defining case of incremental work.
 
+`removeDeletedFiles` (`populate.ts:1116`, deletes at `:1129-1130`) runs the same two full-scan
+deletes per *deleted* file, unconditionally. It must — the FTS5 virtual tables do not participate
+in the foreign-key cascade — but it carries the same per-corpus cost.
+
+**The fact was already known in three places**; what was new on 2026-08-17 is the contradiction
+with Stage 4.5. `e1-fts-verdict.json`'s `what_this_is` says the guard "licenses nothing about the
+UPDATE path"; the CLI refuses `--unsafe-skip-fts-deletes` together with `--incremental`
+(`src/cli/index-cmd.ts:106`); and `src/graph/__tests__/fts-delete-guard.test.ts:93` pins the
+behaviour directly. None was connected to the "O(changed files)" claim.
+
 **Do not read E1-VERIFY's `fts_del = 0` as evidence that incremental is fixed.** It is evidence
 that a cold build has no existing files. The ladder is cold-build-only by construction and
 structurally cannot see this path.
@@ -255,7 +309,7 @@ store: it was deleted at `5d00775` (Stage 7).
 | Q1/RESERVE | identifier decomposition is **HARMFUL**, not neutral — stop rule fired |
 | Q1/RESERVE-2 | decomposition doesn't survive; the shipped **TRIGRAM** tokenizer does real work |
 | Q1/OUTCOME | hybrid vs lexical is **outcome-neutral at k=12** |
-| Q1/ARM-V | V ≈ H everywhere; F16 stays closed |
+| Q1/ARM-V | V ≈ H everywhere; **F16** stays closed — F16 is the RRF-fusion lever (`IMPLEMENTATION_PLAN.md:6838`); both its hypotheses (`rrf_k` mis-tuning, then fusion itself) were **falsified**, and the finding is that **`rrf_k = 60` should not be changed** (`:6999`, reaffirmed `:8072`) |
 | Q1/SCALE | lexical degrades with scale where hybrid does not — real, and **marginal** |
 | Q1/IDFUSE | **INERT-LEVER** — the bag ranker fails as a scale rescue and harms off-stratum |
 | Q1/DECLEX | **GAP CLOSED** (harm untested) — holds the identifier stratum flat at full scale; the S-ident scale caveat is **DISCHARGED** |
@@ -286,7 +340,9 @@ regression.
 #### The edges/cache refutation in full
 
 E1-EDGES proposed to A/B the SQLite page cache against the edges phase. E1-AB had already run that
-lever, on the same corpus and rungs, with an arm **2× stronger** than the one E1-EDGES intended.
+lever, on the same corpus, with an arm **2× stronger** than the one E1-EDGES intended. E1-AB covers
+T1/T5/T9 against E1-EDGES' designed T5–T9, but E1-EDGES' registered conditions read only T5 and T9,
+so the coverage gap is immaterial to the retirement.
 Median ms/edge from `eval/results/e1-ab-runs.jsonl`:
 
 | arm | `cache_size` | T5 | T9 | T9/T5 (the knee) |
