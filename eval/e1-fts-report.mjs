@@ -195,7 +195,10 @@ export function dbIdentityRows(runs) {
         tier,
         block,
         pending: false,
-        ...dbIdentityVerdict({ armA: a?.db_bytes ?? null, armG: g?.db_bytes ?? null }),
+        ...dbIdentityVerdict({
+          armA: a?.db_bytes ?? null, armG: g?.db_bytes ?? null,
+          rowsA: a ?? null, rowsG: g ?? null,
+        }),
       });
     }
   }
@@ -253,6 +256,11 @@ export function ftsOrphanedAttempts(records) {
     orphans.push(...started.map((s) => ({ ...s, key: k })));
   }
   return orphans;
+}
+
+/** How many identity pairs had their FTS row counts actually compared. */
+function scored_contentChecked(record) {
+  return record.db_identity.filter((r) => r.content_checked === true).length;
 }
 
 function main() {
@@ -316,6 +324,20 @@ function main() {
     console.log(`  ${k.padEnd(12)} ${v.degenerate ? `DEGENERATE ${v.degenerate}` :
       `${f(v.b)}   ci [${f(v.ci_hc3[0], 3)}, ${f(v.ci_hc3[1], 3)}]  df ${v.df}`}`);
   }
+
+  console.log('');
+  console.log('  eviction spillover — arm A\'s non-delete work minus arm G\'s (a FINDING, adjudicates nothing)');
+  console.log('  rung   spillover ms   share of delta   where it lands');
+  for (const row of scored.spillover) {
+    if (row.spillover_ms === null) { console.log(`  ${row.tier.padEnd(6)} (no complete pair)`); continue; }
+    const top = Object.entries(row.by_span).sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([k, v]) => `${k} ${v.toFixed(0)}`).join('  ');
+    console.log(`  ${row.tier.padEnd(6)} ${row.spillover_ms.toFixed(0).padEnd(14)} ` +
+      `${pct(row.share_of_delta).padEnd(16)} ${top}`);
+  }
+
+  console.log('');
+  console.log(`  db identity: content verified on ${scored_contentChecked(record)} of ${record.db_identity.length} pairs`);
 
   console.log('');
   for (const tier of ['T7', 'T9']) {

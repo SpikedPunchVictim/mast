@@ -172,9 +172,22 @@ export function tilingVerdict({ spans, writeMs }) {
  * Exact equality, not a tolerance — a tolerance here would be a licence for the
  * confound to hide inside it.
  *
- * @param {{armA: number|null, armG: number|null}} sizes
+ * **Size alone is a proxy, and the E1-FTS results review was right to say so** —
+ * two databases can share a byte count and differ in content. `rowsA`/`rowsG`
+ * close that gap for THIS arm exactly: arm G differs from the control only by
+ * skipping DELETEs, so the sole way its content can diverge is extra or missing
+ * FTS rows. Counting them is necessary and sufficient here; a full content
+ * digest would be strictly stronger but answers a question this arm cannot pose.
+ *
+ * Row counts are OPTIONAL. The first schedule did not record them, and a check
+ * added afterwards must not retroactively fail a completed experiment — that
+ * would be grading old data against an instrument it never ran under. When they
+ * are absent the verdict says `content_not_recorded` and passes on size, which
+ * is exactly the weakness the E1-FTS RESULT block already names.
+ *
+ * @param {{armA: number|null, armG: number|null, rowsA?: object|null, rowsG?: object|null}} sizes
  */
-export function dbIdentityVerdict({ armA, armG }) {
+export function dbIdentityVerdict({ armA, armG, rowsA = null, rowsG = null }) {
   if (typeof armA !== 'number' || typeof armG !== 'number') {
     return {
       ok: false,
@@ -182,15 +195,38 @@ export function dbIdentityVerdict({ armA, armG }) {
       arm_a_bytes: armA ?? null,
       arm_g_bytes: armG ?? null,
       delta_bytes: null,
+      content_checked: false,
     };
   }
   const delta = armG - armA;
+  if (delta !== 0) {
+    return {
+      ok: false, reason: 'db_bytes_differ',
+      arm_a_bytes: armA, arm_g_bytes: armG, delta_bytes: delta, content_checked: false,
+    };
+  }
+
+  const base = { arm_a_bytes: armA, arm_g_bytes: armG, delta_bytes: 0 };
+  const countable = rowsA !== null && rowsG !== null
+    && typeof rowsA.chunk_fts_count === 'number' && typeof rowsG.chunk_fts_count === 'number'
+    && typeof rowsA.identifier_fts_count === 'number' && typeof rowsG.identifier_fts_count === 'number';
+  if (!countable) {
+    // Passes on size, but never claims content was verified.
+    return { ...base, ok: true, reason: 'content_not_recorded', content_checked: false };
+  }
+
+  const rowDeltas = {
+    chunk_fts: rowsG.chunk_fts_count - rowsA.chunk_fts_count,
+    identifier_fts: rowsG.identifier_fts_count - rowsA.identifier_fts_count,
+  };
+  const rowsMatch = rowDeltas.chunk_fts === 0 && rowDeltas.identifier_fts === 0;
   return {
-    ok: delta === 0,
-    reason: delta === 0 ? null : 'db_bytes_differ',
-    arm_a_bytes: armA,
-    arm_g_bytes: armG,
-    delta_bytes: delta,
+    ...base,
+    ok: rowsMatch,
+    reason: rowsMatch ? null : 'fts_row_counts_differ',
+    content_checked: true,
+    fts_row_deltas: rowDeltas,
+    arm_a_fts_rows: { chunk_fts: rowsA.chunk_fts_count, identifier_fts: rowsA.identifier_fts_count },
   };
 }
 

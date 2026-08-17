@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   B_FTS_DEL_FLOOR, FTS_DEL_SHARE_FLOOR, WRITE_RATIO_FLOOR, E1_SUPERLINEAR_THRESHOLD,
   VALIDITY_TOLERANCE, adjudicate, withinBlockRatios, rungShares, validityCheck,
+  spilloverRows, NON_DELETE_SPANS,
 } from '../e1-fts-score.mjs';
 
 describe('the registered thresholds', () => {
@@ -199,5 +200,83 @@ describe('validityCheck — the instrument grading itself', () => {
 
   it('cannot divide by a zero span', () => {
     expect(validityCheck({ writeA: 1000, writeG: 400, ftsDelA: 0 }).ok).toBe(false);
+  });
+});
+
+// The adversarial results review's finding 2. Arm G is faster at NON-delete work
+// too — at T9 its non-delete spans are 7,858 ms lower and `rest` alone is +70%
+// on arm A. So `write_A - write_G` is the delete span PLUS a secondary effect,
+// almost certainly page-cache eviction by the scans. The effect was visible in
+// the spans and went unreported; this gives it its own estimate.
+//
+// A FINDING, never a gate. It does not threaten the intervention result: the
+// spillover is a causal CONSEQUENCE of the deletes, so it belongs in what
+// removing them buys.
+describe('spilloverRows — the eviction cost the deletes impose on everything else', () => {
+  const spans = (over) => ({ fts_del: 0, fts_ins: 0, commit: 0, rest: 0, txn: 0, lock: 0, ...over });
+  const r = (arm, tier, block, ftsDel, rest) => ({
+    arm, tier, block,
+    phase_ms: { write: ftsDel + rest },
+    write_spans: spans({ fts_del: ftsDel, rest }),
+  });
+
+  it('names the five spans that are not the delete span', () => {
+    expect(NON_DELETE_SPANS).toEqual(['fts_ins', 'commit', 'rest', 'txn', 'lock']);
+  });
+
+  it('measures arm A\'s non-delete work against arm G\'s, inside a block', () => {
+    const runs = [r('A', 'T9', 1, 400, 100), r('G', 'T9', 1, 0, 60)];
+    const row = spilloverRows(runs).find((x) => x.tier === 'T9');
+    expect(row.spillover_ms).toBe(40);
+  });
+
+  // The number that matters for interpretation: how much of the intervention
+  // delta is NOT the directly-timed delete span.
+  it('reports the spillover as a share of the intervention delta', () => {
+    const runs = [r('A', 'T9', 1, 400, 100), r('G', 'T9', 1, 0, 60)];
+    const row = spilloverRows(runs).find((x) => x.tier === 'T9');
+    // delta = 500 - 60 = 440; spillover 40 => 9.09%
+    expect(row.share_of_delta).toBeCloseTo(40 / 440, 6);
+  });
+
+  it('breaks the spillover down by span, so its location is visible', () => {
+    const runs = [
+      { arm: 'A', tier: 'T9', block: 1, phase_ms: { write: 200 },
+        write_spans: spans({ fts_del: 100, rest: 70, commit: 30 }) },
+      { arm: 'G', tier: 'T9', block: 1, phase_ms: { write: 60 },
+        write_spans: spans({ fts_del: 0, rest: 40, commit: 20 }) },
+    ];
+    const row = spilloverRows(runs).find((x) => x.tier === 'T9');
+    expect(row.by_span.rest).toBe(30);
+    expect(row.by_span.commit).toBe(10);
+  });
+
+  // A NEGATIVE spillover would mean arm G was slower at non-delete work, which
+  // the eviction story does not predict. It must be reportable, not clamped.
+  it('reports a negative spillover rather than clamping it to zero', () => {
+    const runs = [r('A', 'T9', 1, 400, 50), r('G', 'T9', 1, 0, 80)];
+    expect(spilloverRows(runs).find((x) => x.tier === 'T9').spillover_ms).toBe(-30);
+  });
+
+  it('takes the median across blocks and keeps the per-block values', () => {
+    const runs = [
+      r('A', 'T9', 1, 400, 100), r('G', 'T9', 1, 0, 60),
+      r('A', 'T9', 2, 400, 120), r('G', 'T9', 2, 0, 60),
+      r('A', 'T9', 3, 400, 110), r('G', 'T9', 3, 0, 60),
+    ];
+    const row = spilloverRows(runs).find((x) => x.tier === 'T9');
+    expect(row.per_block).toEqual([40, 60, 50]);
+    expect(row.spillover_ms).toBe(50);
+  });
+
+  it('reports nulls for a rung with no complete pair rather than a zero', () => {
+    const row = spilloverRows([r('A', 'T1', 1, 10, 5)]).find((x) => x.tier === 'T1');
+    expect(row.spillover_ms).toBeNull();
+    expect(row.share_of_delta).toBeNull();
+  });
+
+  it('never adjudicates', () => {
+    const runs = [r('A', 'T9', 1, 400, 100), r('G', 'T9', 1, 0, 60)];
+    expect(spilloverRows(runs).every((x) => x.adjudicates === false)).toBe(true);
   });
 });

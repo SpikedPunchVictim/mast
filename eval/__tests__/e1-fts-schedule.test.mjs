@@ -220,6 +220,69 @@ describe('dbIdentityVerdict — arm G must not have changed the database', () =>
   it('fails when either size is missing rather than treating it as equal', () => {
     expect(dbIdentityVerdict({ armA: 100, armG: null }).ok).toBe(false);
   });
+
+  // The results review's finding 1: `db_bytes` is a byte COUNT, and two
+  // databases can share one while differing in content. For arm G, which
+  // differs only by skipping DELETEs, the sole way content can diverge is extra
+  // or missing FTS rows — so counting them is necessary and sufficient.
+  it('verifies FTS row counts when they were recorded', () => {
+    const v = dbIdentityVerdict({
+      armA: 100, armG: 100,
+      rowsA: { chunk_fts_count: 500, identifier_fts_count: 500 },
+      rowsG: { chunk_fts_count: 500, identifier_fts_count: 500 },
+    });
+    expect(v.ok).toBe(true);
+    expect(v.content_checked).toBe(true);
+  });
+
+  // The exact failure arm G would produce if a skipped delete had ever matched:
+  // the same byte count is possible, but the row count cannot lie.
+  it('fails on equal bytes but divergent FTS rows', () => {
+    const v = dbIdentityVerdict({
+      armA: 100, armG: 100,
+      rowsA: { chunk_fts_count: 500, identifier_fts_count: 500 },
+      rowsG: { chunk_fts_count: 503, identifier_fts_count: 500 },
+    });
+    expect(v.ok).toBe(false);
+    expect(v.reason).toBe('fts_row_counts_differ');
+    expect(v.fts_row_deltas.chunk_fts).toBe(3);
+  });
+
+  it('catches a divergence in identifier_fts alone', () => {
+    expect(dbIdentityVerdict({
+      armA: 100, armG: 100,
+      rowsA: { chunk_fts_count: 500, identifier_fts_count: 500 },
+      rowsG: { chunk_fts_count: 500, identifier_fts_count: 499 },
+    }).ok).toBe(false);
+  });
+
+  // A check added after a schedule ran must not retroactively fail it — that
+  // would grade old data against an instrument it never ran under. It passes on
+  // size but must never CLAIM content was verified.
+  it('passes on size alone when the counts were never recorded, and says so', () => {
+    const v = dbIdentityVerdict({ armA: 100, armG: 100, rowsA: {}, rowsG: {} });
+    expect(v.ok).toBe(true);
+    expect(v.reason).toBe('content_not_recorded');
+    expect(v.content_checked).toBe(false);
+  });
+
+  it('does not claim a content check when only one arm recorded counts', () => {
+    const v = dbIdentityVerdict({
+      armA: 100, armG: 100,
+      rowsA: { chunk_fts_count: 500, identifier_fts_count: 500 }, rowsG: {},
+    });
+    expect(v.content_checked).toBe(false);
+  });
+
+  // Size divergence is reported as size divergence, not masked by a row check.
+  it('reports a byte difference before looking at rows', () => {
+    const v = dbIdentityVerdict({
+      armA: 100, armG: 104,
+      rowsA: { chunk_fts_count: 500, identifier_fts_count: 500 },
+      rowsG: { chunk_fts_count: 500, identifier_fts_count: 500 },
+    });
+    expect(v.reason).toBe('db_bytes_differ');
+  });
 });
 
 describe('ftsStateDirName — namespaced away from every retained artifact', () => {

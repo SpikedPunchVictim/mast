@@ -5464,6 +5464,44 @@ magnitude, which exceeded the prediction that motivated the design.
 5. **`b_fts_del` exceeds the motivating model by 0.33** and the gap is unexplained. Candidate:
    FTS5 segment-count growth adding per-scan overhead beyond raw bytes. Untested.
 
+##### ADDENDUM — 2026-08-16: two review weaknesses closed, no re-run required
+
+Residual weaknesses 2 and 3 above are now instrumented. Neither changes the verdict.
+
+**3 — the eviction spillover now has its own estimate.** Arm A's non-delete spans minus arm G's,
+within a block, medianed:
+
+| rung | spillover | share of the intervention delta | where it lands (top 3) |
+|---|---|---|---|
+| T1 | **-20 ms** | -5.3% | noise-dominated |
+| T3 | 228 ms | 10.3% | commit 133, fts_ins 45, rest 41 |
+| T5 | 540 ms | 3.4% | rest 193, fts_ins 157, commit 88 |
+| T7 | 2,020 ms | 2.5% | fts_ins 736, rest 677, commit 435 |
+| T9 | **7,928 ms** | **1.8%** | rest 2,924, fts_ins 2,251, commit 1,936 |
+
+**This strengthens the decomposition rather than weakening it.** The spillover grows in absolute
+terms but SHRINKS as a share of the intervention delta, from 10.3% at T3 to 1.8% at T9 — so at the
+rung that adjudicates, **98.2% of `write_A - write_G` is the directly-timed delete span**. The
+review's finding 2 stands as a correction to the *description* of the validity check; its
+quantitative effect on the T9 result is under two percent.
+
+T1's value is NEGATIVE (-20 ms, -5.3%), which the eviction story does not predict. It is reported
+rather than clamped: at 1.5 s of write phase the rung is noise-dominated, and a contradiction that
+only appears where the signal is smallest is the expected shape of noise rather than of a rival
+mechanism. Recorded so a future reader can check that reading rather than take it.
+
+**2 — FTS content identity is now recorded per run.** `readGraphCounts` captures
+`chunk_fts_count` and `identifier_fts_count` (read AFTER the timed run, so the measurement is
+untouched), and the database-identity gate compares them. For an arm that differs only by skipping
+DELETEs, extra or missing rows are the sole way content can diverge, so these counts are necessary
+and sufficient — a full digest would be stronger but answers a question this arm cannot pose.
+
+**The completed schedule is not retroactively graded against it.** Those 30 runs recorded no
+counts, and a check added afterwards must not fail an experiment that never ran under it. The gate
+reports `content_not_recorded` and `content_checked: false`, and the re-scored verdict states
+plainly: **content verified on 0 of 15 pairs.** Weakness 2 is therefore closed for future
+schedules and remains open, and openly labelled, for this one.
+
 ##### Not shipped on the strength of this
 
 Arm G is a rehearsal of the guard, not the guard. The fix is a separate change, verified by

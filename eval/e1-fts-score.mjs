@@ -320,8 +320,77 @@ export function scoreFts(runs) {
     exponents,
     shares,
     write_ratio: ratios,
+    // A FINDING, never a gate — see `spilloverRows`. Reported because the first
+    // schedule left this effect visible in the spans and unnamed.
+    spillover: spilloverRows(runs),
     instrument_validity: validity,
     verdict_inputs: verdictInputs,
     verdict: adjudicate(verdictInputs),
   };
+}
+
+/** The five spans that are not the delete span. */
+export const NON_DELETE_SPANS = ['fts_ins', 'commit', 'rest', 'txn', 'lock'];
+
+/**
+ * The eviction cost the delete-scans impose on everything ELSE in the write phase.
+ *
+ * The adversarial results review's finding 2. Arm G is faster at non-delete work
+ * too — at T9 its non-delete spans are 7,858 ms lower than arm A's, with `rest`
+ * alone +70%. So `write_A - write_G` is the directly-timed delete span PLUS a
+ * secondary effect: the scans evict pages that the inserts, the commit and the
+ * ordinary-table writes then have to fault back in, which is exactly what
+ * E1-AB's cache dose-response predicts. The effect was visible in the spans of
+ * the first schedule and went unreported.
+ *
+ * **A FINDING, never a gate, and it does not threaten the intervention result.**
+ * The spillover is a causal CONSEQUENCE of the deletes, so it belongs inside
+ * what removing them buys — `write_A/write_G` stays the honest measure. What it
+ * costs is the decomposition's precision: `fts_del` UNDER-states the deletes'
+ * full cost rather than over-stating it, which is the safe direction.
+ *
+ * Measured within a block and then medianed, for the estimator's usual reason.
+ * A negative value is reported rather than clamped: it would mean arm G was
+ * slower at non-delete work, which the eviction story does not predict, and
+ * suppressing it would hide a contradiction.
+ */
+export function spilloverRows(runs) {
+  const nonDelete = (r) => NON_DELETE_SPANS.reduce((t, k) => t + (r.write_spans[k] ?? 0), 0);
+
+  return FTS_TIERS.map((tier) => {
+    const perBlock = [];
+    const perSpan = Object.fromEntries(NON_DELETE_SPANS.map((k) => [k, []]));
+    const deltas = [];
+
+    for (let block = 1; block <= FTS_BLOCKS; block++) {
+      const cell = runs.filter((r) => r.tier === tier && r.block === block);
+      const a = cell.find((r) => r.arm === 'A');
+      const g = cell.find((r) => r.arm === 'G');
+      if (a === undefined || g === undefined) continue;
+      perBlock.push(nonDelete(a) - nonDelete(g));
+      deltas.push(a.phase_ms.write - g.phase_ms.write);
+      for (const k of NON_DELETE_SPANS) {
+        perSpan[k].push((a.write_spans[k] ?? 0) - (g.write_spans[k] ?? 0));
+      }
+    }
+
+    if (perBlock.length === 0) {
+      return {
+        tier, per_block: [], spillover_ms: null, share_of_delta: null,
+        by_span: Object.fromEntries(NON_DELETE_SPANS.map((k) => [k, null])),
+        adjudicates: false,
+      };
+    }
+
+    const spillover = median(perBlock);
+    const delta = median(deltas);
+    return {
+      tier,
+      per_block: perBlock,
+      spillover_ms: spillover,
+      share_of_delta: delta !== 0 ? spillover / delta : null,
+      by_span: Object.fromEntries(NON_DELETE_SPANS.map((k) => [k, median(perSpan[k])])),
+      adjudicates: false,
+    };
+  });
 }

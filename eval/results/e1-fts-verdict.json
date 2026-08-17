@@ -1,5 +1,5 @@
 {
-  "created": "2026-08-16T20:31:17.928Z",
+  "created": "2026-08-17T03:57:42.653Z",
   "what_this_is": "E1-FTS tests whether the per-file FTS5 delete-scan carries the write phase's super-linear exponent. It cannot re-adjudicate E1's SUPER-LINEAR verdict, which stands regardless; it licenses nothing about the UPDATE path, where the deletes are real work; and it does not explain E1-AB's rho_D(T9) = 0.8486, which remains open. The fix is not shipped on the strength of this — it is verified by re-running E1's full 9-rung ladder.",
   "expected_outcome_declared_in_advance": "MECHANISM_IDENTIFIED was registered as the EXPECTED outcome before the run. A favourable result confirms a prediction made in advance; it is not a discovery made by the experiment.",
   "complete": true,
@@ -66,151 +66,166 @@
       "tier": "T1",
       "block": 1,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 21569536,
       "arm_g_bytes": 21569536,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T1",
       "block": 2,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 21569536,
       "arm_g_bytes": 21569536,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T1",
       "block": 3,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 21569536,
       "arm_g_bytes": 21569536,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T3",
       "block": 1,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 45588480,
       "arm_g_bytes": 45588480,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T3",
       "block": 2,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 45588480,
       "arm_g_bytes": 45588480,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T3",
       "block": 3,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 45588480,
       "arm_g_bytes": 45588480,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T5",
       "block": 1,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 95203328,
       "arm_g_bytes": 95203328,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T5",
       "block": 2,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 95203328,
       "arm_g_bytes": 95203328,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T5",
       "block": 3,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 95203328,
       "arm_g_bytes": 95203328,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T7",
       "block": 1,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 198684672,
       "arm_g_bytes": 198684672,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T7",
       "block": 2,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 198684672,
       "arm_g_bytes": 198684672,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T7",
       "block": 3,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 198684672,
       "arm_g_bytes": 198684672,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T9",
       "block": 1,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 439140352,
       "arm_g_bytes": 439140352,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T9",
       "block": 2,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 439140352,
       "arm_g_bytes": 439140352,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     },
     {
       "tier": "T9",
       "block": 3,
       "pending": false,
-      "ok": true,
-      "reason": null,
       "arm_a_bytes": 439140352,
       "arm_g_bytes": 439140352,
-      "delta_bytes": 0
+      "delta_bytes": 0,
+      "ok": true,
+      "reason": "content_not_recorded",
+      "content_checked": false
     }
   ],
   "driver_findings": [
@@ -499,6 +514,98 @@
       "blocks_dropped": []
     }
   },
+  "spillover": [
+    {
+      "tier": "T1",
+      "per_block": [
+        -96.85659999999052,
+        -20.226933000024133,
+        64.83390100003021
+      ],
+      "spillover_ms": -20.226933000024133,
+      "share_of_delta": -0.05281183550920139,
+      "by_span": {
+        "fts_ins": 2.4459970000048656,
+        "commit": -13.936271000011459,
+        "rest": 0.4450309999920137,
+        "txn": 0.7674729999887404,
+        "lock": -1.6253320000004692
+      },
+      "adjudicates": false
+    },
+    {
+      "tier": "T3",
+      "per_block": [
+        228.18933400001606,
+        74.11308900004724,
+        230.19649999997137
+      ],
+      "spillover_ms": 228.18933400001606,
+      "share_of_delta": 0.10274170823953897,
+      "by_span": {
+        "fts_ins": 45.24422399998639,
+        "commit": 132.83618900000886,
+        "rest": 41.44578399998551,
+        "txn": 8.283554999978662,
+        "lock": 2.38674800001246
+      },
+      "adjudicates": false
+    },
+    {
+      "tier": "T5",
+      "per_block": [
+        729.5292810002466,
+        -36.74112100006914,
+        540.3316960000639
+      ],
+      "spillover_ms": 540.3316960000639,
+      "share_of_delta": 0.034055949577717376,
+      "by_span": {
+        "fts_ins": 156.50026599998682,
+        "commit": 87.56577900006823,
+        "rest": 192.89179700005593,
+        "txn": 26.29368299997475,
+        "lock": 47.73950200002639
+      },
+      "adjudicates": false
+    },
+    {
+      "tier": "T7",
+      "per_block": [
+        2463.8262599989102,
+        2020.3277969995925,
+        1764.5841900002124
+      ],
+      "spillover_ms": 2020.3277969995925,
+      "share_of_delta": 0.024764685367911553,
+      "by_span": {
+        "fts_ins": 735.9211090002445,
+        "commit": 435.0507809999972,
+        "rest": 677.0125979996542,
+        "txn": 82.83806099977255,
+        "lock": 89.50524799992377
+      },
+      "adjudicates": false
+    },
+    {
+      "tier": "T9",
+      "per_block": [
+        6195.363048000294,
+        7927.880706000073,
+        9380.97696299673
+      ],
+      "spillover_ms": 7927.880706000073,
+      "share_of_delta": 0.018068502502461604,
+      "by_span": {
+        "fts_ins": 2251.0192319977286,
+        "commit": 1936.4539079982442,
+        "rest": 2923.639559005832,
+        "txn": 289.0844009977079,
+        "lock": 517.533796000118
+      },
+      "adjudicates": false
+    }
+  ],
   "instrument_validity": {
     "T7": {
       "ok": true,

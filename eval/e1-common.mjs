@@ -584,6 +584,14 @@ export function readGraphCounts(stateDir) {
       symbol_count: one('SELECT COUNT(*) c FROM symbols'),
       edge_count:   one('SELECT COUNT(*) c FROM edges'),
       potential_call_count: one("SELECT COUNT(*) c FROM edges WHERE edge_type='POTENTIAL_CALL'"),
+      // FTS row counts, added 2026-08-16 after the E1-FTS results review found
+      // that arm G's "byte-identical" claim rested on `db_bytes` alone — a byte
+      // COUNT, which two different databases can share. For an arm that differs
+      // only by skipping DELETEs, the sole way content can diverge is extra or
+      // missing rows, so these two counts close that gap exactly. Read AFTER the
+      // timed run, so they cost the measurement nothing.
+      chunk_fts_count:      one('SELECT COUNT(*) c FROM chunk_fts'),
+      identifier_fts_count: one('SELECT COUNT(*) c FROM identifier_fts'),
       db_bytes:     statSync(join(stateDir, 'graph.db')).size,
     };
   } finally {
