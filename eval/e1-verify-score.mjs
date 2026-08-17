@@ -81,7 +81,16 @@ function main() {
   console.log(`  threshold       ${THRESHOLD}  (E1's immutable bar, unchanged)`);
   console.log(`[E1-VERIFY] VERDICT  ${scored.verdict}`);
   for (const r of scored.reasons ?? []) console.log(`[E1-VERIFY] reason: ${r}`);
-  for (const t of scored.triggers ?? []) if (t.fires) console.log(`[E1-VERIFY] TRIGGER ${t.id}: ${t.what}`);
+  // `scoreE1` returns triggers as an OBJECT keyed t3/t4/t5, not an array — trigger 1
+  // (lack of fit) and trigger 2 (unadjudicated voids) are surfaced separately, the
+  // latter by throwing before the fit is ever computed.
+  for (const [id, t] of Object.entries(scored.triggers ?? {})) {
+    console.log(`[E1-VERIFY] ${id} ${t.fires ? 'FIRES' : 'quiet'}`);
+  }
+  const lof = scored.lack_of_fit;
+  console.log(`[E1-VERIFY] lack-of-fit ${lof?.fires ? 'FIRES' : 'quiet'}  ` +
+    `F=${f(lof?.F, 3)} p=${f(lof?.p, 3)} departure=${f(lof?.departurePct, 2)}%`);
+  for (const q of scored.qualifiers ?? []) console.log(`[E1-VERIFY] qualifier: ${q}`);
   console.log(`\nwrote ${out}`);
 }
 

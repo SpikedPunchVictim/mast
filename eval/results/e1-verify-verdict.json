@@ -1,0 +1,156 @@
+{
+  "created": "2026-08-17T07:13:42.182Z",
+  "what_this_is": "E1's 9-rung ladder re-run against the FTS delete guard (graph/populate.ts) and scored by E1's own committed scorer at the immutable 1.35 threshold. Required by IMPLEMENTATION_PLAN.md § E1-FTS RESULT before the guard is accepted.",
+  "scope": "LADDER ONLY. E1's 5-corpus PANEL is out of scope — the registration names the ladder, and E1 records the panel as panel_supporting_only. No claim is made about it.",
+  "not_comparable": "Absolute timings are NOT comparable to E1's original ladder: different binary, and c is re-measured here for that reason. The EXPONENT is what is compared.",
+  "calibration_c_ms": 15,
+  "runs": 27,
+  "verdict": "HOLDS",
+  "reasons": [],
+  "qualifiers": [],
+  "b_file": 1.0837310126369586,
+  "file_fit": {
+    "b": 1.0837310126369586,
+    "se_hc3": 0.006961196172132398,
+    "df": 25,
+    "t_crit": 2.0595385527532937,
+    "ci_hc3": [
+      1.0693941607471733,
+      1.0980678645267439
+    ],
+    "ci_boot": [
+      1.066025281911998,
+      1.1013801652939081
+    ],
+    "boot_p": 0,
+    "se_cr1": 0.007068269337367626,
+    "boot_atoms": 10077696
+  },
+  "triggers": {
+    "t3": {
+      "fires": false,
+      "ratio": 1.0210310001622693,
+      "threshold": 1.5,
+      "smallest_tier": "T1",
+      "largest_tier": "T9",
+      "bytes_per_chunk_smallest": 5862.8801304702365,
+      "bytes_per_chunk_largest": 5986.182363445521,
+      "reading": "descriptive; flagged and discussed in the result, never forces AMBIGUOUS alone"
+    },
+    "t4": {
+      "fires": false,
+      "median_rate": 0,
+      "worst_tier": "T1",
+      "worst_rate": 0,
+      "threshold_multiple": 2,
+      "per_tier": [
+        {
+          "tier": "T1",
+          "rate": 0
+        },
+        {
+          "tier": "T2",
+          "rate": 0
+        },
+        {
+          "tier": "T3",
+          "rate": 0
+        },
+        {
+          "tier": "T4",
+          "rate": 0
+        },
+        {
+          "tier": "T5",
+          "rate": 0
+        },
+        {
+          "tier": "T6",
+          "rate": 0
+        },
+        {
+          "tier": "T7",
+          "rate": 0
+        },
+        {
+          "tier": "T8",
+          "rate": 0
+        },
+        {
+          "tier": "T9",
+          "rate": 0
+        }
+      ]
+    },
+    "t5": {
+      "fires": false,
+      "b_chunk": 1.0824611258477586,
+      "b_file": 1.0837310126369586,
+      "reading": "reported and discussed — it means chunks-per-file is itself varying with scale — but it never overrides the registered exposure choice"
+    }
+  },
+  "threshold": 1.35,
+  "n_runs": 27,
+  "n_tiers": 9,
+  "classes": {
+    "hc3Adj": "below",
+    "bootAdj": "below",
+    "hc3Raw": "below",
+    "bootRaw": "below",
+    "lackOfFitFires": false
+  },
+  "adjusted": {
+    "b": 1.0824611258477586,
+    "se_hc3": 0.008427966794207188,
+    "df": 25,
+    "t_crit": 2.0595385527532937,
+    "ci_hc3": [
+      1.0651034033137643,
+      1.0998188483817528
+    ],
+    "ci_boot": [
+      1.0423810188901046,
+      1.1222361242192893
+    ],
+    "boot_p": 0.0006,
+    "se_cr1": 0.010547163352893952,
+    "boot_atoms": 10077696
+  },
+  "raw": {
+    "b": 1.0806289372677722,
+    "se_hc3": 0.008498285474119282,
+    "df": 25,
+    "t_crit": 2.0595385527532937,
+    "ci_hc3": [
+      1.0631263907015203,
+      1.0981314838340241
+    ],
+    "ci_boot": [
+      1.0390788647917262,
+      1.12233735565206
+    ],
+    "boot_p": 0.0006,
+    "se_cr1": 0.01070844671475837,
+    "boot_atoms": 10077696
+  },
+  "lack_of_fit": {
+    "F": 1.9141191931992307,
+    "p": 0.12642482270584843,
+    "dfLof": 7,
+    "dfPe": 18,
+    "departurePct": 1.4001939866369328,
+    "significant": false,
+    "exceedsFloor": false,
+    "fires": false
+  },
+  "lack_of_fit_raw_descriptive": {
+    "F": 1.9526878633535305,
+    "p": 0.11963570724954109,
+    "dfLof": 7,
+    "dfPe": 18,
+    "departurePct": 1.5193417089065964,
+    "significant": false,
+    "exceedsFloor": false,
+    "fires": false
+  }
+}

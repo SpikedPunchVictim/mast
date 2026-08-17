@@ -1,0 +1,195 @@
+{
+  "created": "2026-08-17T06:54:22.272Z",
+  "gate0": {
+    "schema_version": "1.3.0",
+    "dist_staleness": {
+      "ok": true,
+      "reason": null,
+      "newest_src_file": "/Users/spikedpunchvictim/projects/kluster/packages/mast/src/graph/populate.ts",
+      "src_newer_by_ms": 0
+    },
+    "dist_hash": "b77f0ae38d04dd1a80d717a967e647b07d25aa7d4dd1deb88e084030c21759d9",
+    "dist_newest_mtime": "2026-08-17T05:14:18.348Z",
+    "dist_entry_mtime": "2026-08-07T20:53:13.746Z",
+    "bin": "/Users/spikedpunchvictim/projects/kluster/packages/mast/dist/cli/index.js",
+    "node_version": "v24.18.0"
+  },
+  "total_runs": 27,
+  "reps": 3,
+  "tiers": [
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "T7",
+    "T8",
+    "T9"
+  ],
+  "scope": "ladder_only_panel_out_of_scope",
+  "schedule": [
+    {
+      "slot": 1,
+      "kind": "tier",
+      "corpus": "T2",
+      "rep": 1
+    },
+    {
+      "slot": 2,
+      "kind": "tier",
+      "corpus": "T1",
+      "rep": 3
+    },
+    {
+      "slot": 3,
+      "kind": "tier",
+      "corpus": "T6",
+      "rep": 1
+    },
+    {
+      "slot": 4,
+      "kind": "tier",
+      "corpus": "T8",
+      "rep": 1
+    },
+    {
+      "slot": 5,
+      "kind": "tier",
+      "corpus": "T8",
+      "rep": 2
+    },
+    {
+      "slot": 6,
+      "kind": "tier",
+      "corpus": "T7",
+      "rep": 2
+    },
+    {
+      "slot": 7,
+      "kind": "tier",
+      "corpus": "T3",
+      "rep": 3
+    },
+    {
+      "slot": 8,
+      "kind": "tier",
+      "corpus": "T5",
+      "rep": 2
+    },
+    {
+      "slot": 9,
+      "kind": "tier",
+      "corpus": "T3",
+      "rep": 1
+    },
+    {
+      "slot": 10,
+      "kind": "tier",
+      "corpus": "T1",
+      "rep": 1
+    },
+    {
+      "slot": 11,
+      "kind": "tier",
+      "corpus": "T6",
+      "rep": 2
+    },
+    {
+      "slot": 12,
+      "kind": "tier",
+      "corpus": "T6",
+      "rep": 3
+    },
+    {
+      "slot": 13,
+      "kind": "tier",
+      "corpus": "T9",
+      "rep": 1
+    },
+    {
+      "slot": 14,
+      "kind": "tier",
+      "corpus": "T7",
+      "rep": 1
+    },
+    {
+      "slot": 15,
+      "kind": "tier",
+      "corpus": "T4",
+      "rep": 1
+    },
+    {
+      "slot": 16,
+      "kind": "tier",
+      "corpus": "T5",
+      "rep": 1
+    },
+    {
+      "slot": 17,
+      "kind": "tier",
+      "corpus": "T3",
+      "rep": 2
+    },
+    {
+      "slot": 18,
+      "kind": "tier",
+      "corpus": "T7",
+      "rep": 3
+    },
+    {
+      "slot": 19,
+      "kind": "tier",
+      "corpus": "T9",
+      "rep": 3
+    },
+    {
+      "slot": 20,
+      "kind": "tier",
+      "corpus": "T8",
+      "rep": 3
+    },
+    {
+      "slot": 21,
+      "kind": "tier",
+      "corpus": "T9",
+      "rep": 2
+    },
+    {
+      "slot": 22,
+      "kind": "tier",
+      "corpus": "T2",
+      "rep": 3
+    },
+    {
+      "slot": 23,
+      "kind": "tier",
+      "corpus": "T1",
+      "rep": 2
+    },
+    {
+      "slot": 24,
+      "kind": "tier",
+      "corpus": "T2",
+      "rep": 2
+    },
+    {
+      "slot": 25,
+      "kind": "tier",
+      "corpus": "T5",
+      "rep": 3
+    },
+    {
+      "slot": 26,
+      "kind": "tier",
+      "corpus": "T4",
+      "rep": 3
+    },
+    {
+      "slot": 27,
+      "kind": "tier",
+      "corpus": "T4",
+      "rep": 2
+    }
+  ]
+}

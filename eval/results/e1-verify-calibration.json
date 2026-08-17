@@ -1,0 +1,34 @@
+{
+  "created": "2026-08-17T06:54:26.532Z",
+  "gate0": {
+    "schema_version": "1.3.0",
+    "dist_staleness": {
+      "ok": true,
+      "reason": null,
+      "newest_src_file": "/Users/spikedpunchvictim/projects/kluster/packages/mast/src/graph/populate.ts",
+      "src_newer_by_ms": 0
+    },
+    "dist_hash": "b77f0ae38d04dd1a80d717a967e647b07d25aa7d4dd1deb88e084030c21759d9",
+    "dist_newest_mtime": "2026-08-17T05:14:18.348Z",
+    "dist_entry_mtime": "2026-08-07T20:53:13.746Z",
+    "bin": "/Users/spikedpunchvictim/projects/kluster/packages/mast/dist/cli/index.js",
+    "node_version": "v24.18.0"
+  },
+  "n": 10,
+  "durations_ms": [
+    15,
+    14,
+    15,
+    17,
+    15,
+    19,
+    15,
+    15,
+    16,
+    16
+  ],
+  "c_ms": 15,
+  "min_ms": 14,
+  "max_ms": 19,
+  "why_remeasured": "E1's stored c was taken on a different binary. A stale additive constant biases the exponent DOWNWARD — toward the answer this run wants — so it is re-measured, not reused."
+}
