@@ -10482,3 +10482,168 @@ read, quoted, and then not applied to the sentence being written.
 - **One corpus family.** n8n rungs only; vscode contributed the plan evidence, not timings, and the
   two are not pooled.
 - **Nothing here measures `resolveCallTarget` invocations.** No per-call cost is claimed.
+
+---
+
+## E1-LADDER PRE-REGISTRATION (2026-08-17) — does a residual survive the range fix?
+
+**Registered before any run.** Gate 5: this block and the three instrument scripts are committed
+before `e1-ladder-run.mjs` is invoked. Task #5, re-scoped after E1-SCAN.
+
+### Why this exists
+
+E1-SCAN (`f79de4f`) measured the range fix against the `files` prefix scan and found the scan *was*
+the edges exponent: `b` falls 1.4382 → **≈1.0–1.1**. That result is registered, scored, and stands.
+What it cannot do is say whether the remaining curve is **flat** or **slightly bent**, because it
+measured four rungs (T1/T5/T8/T9) and its own RESULT records that the post-fix exponent is not
+stable to four figures across slices (0.9785 / 1.0738 / 1.1051 depending on which rungs are kept).
+
+"Name the residual in the edges curve" is the last open piece of that question. This experiment
+resolves it at full ladder resolution.
+
+### Mandatory pre-registration reading (`.claude/CLAUDE.md`, `FINDINGS.md` §6)
+
+**§1 — the register of unread data. Checked; it changed this design twice.**
+
+1. **The pre-fix half of this experiment is already measured, and already fitted.**
+   `e1-verify-runs.jsonl` carries `phase_ms.edges` at **all nine rungs**, 3 reps each — a complete
+   pre-fix ladder. §1's `phase_ms.*` row is marked **CLOSED 08-17**: `e1-unread-fit.mjs` reads all
+   87 rows, and `e1-unread-fit.json` already publishes
+   `e1_verify.phases.edges.all_runs.b = 1.3814453328704095` (n=27, `se_hc3` 0.0794) and
+   `rung_medians.b = 1.3949401082042703` (n=9, `se_hc3` 0.1593).
+   **E1-LADDER therefore runs one arm, not two.** The comparator is a committed artifact.
+   Re-derived from the journal this session as the §11.1 check: OLS on the nine rung medians gives
+   **1.394940**, reproducing the committed figure to six figures.
+
+2. **`potential_call_count` is a trap this program has already sprung twice**, once knowingly
+   (§1.1, and E1-SCAN's H3 died on it). **No hypothesis below routes through it.** All three are
+   stated on `phase_ms.edges` against `chunk_count` only. It is not used as a normaliser, a floor,
+   or a denominator anywhere in `e1-ladder-score.mjs`.
+
+3. **Two journal-shape traps, both avoided in the scorer.** `e1-verify` rows have **no `tier`
+   field** — the rung is `corpus`, and grouping by `tier` silently collapses nine rungs into one
+   bucket that returns T5's value. And `potential_call_count` sits only under `measurement`.
+   E1-LADDER's own journal writes `tier` *and* `corpus` for exactly this reason.
+
+4. **Still open in §1 and untouched by this experiment:** `chunk_fts_count` / `identifier_fts_count`
+   (27 rows, task #7). Not read here — out of scope, and named so the register stays honest.
+
+**§3 — dead hypotheses. Checked. This experiment re-proposes none of them, and one needs care.**
+
+- *"The edges exponent has a cause other than the `files` full scan"* is **dead** (E1-SCAN).
+  E1-LADDER **does not reopen it.** It accepts that the scan was the exponent and asks only how much
+  curve is left underneath. Should H1 be refuted, that is *new evidence* about a residual, not a
+  revival of the dead hypothesis — and the registration says so in advance so the distinction
+  cannot be made after the fact.
+- *E1-SCAN's H3* is **dead**, killed by the non-existent `POTENTIAL_CALL` floor. H3 below is a
+  different hypothesis with a similar name; it rests on adjacent-rung local slopes and touches no
+  row count.
+- *The edges exponent is the page cache* is **dead** (E1-AB). No cache lever here; `cache_size` is
+  left at its default and pinned by Gate 1's config clause.
+
+### Design
+
+**One arm.** The post-fix binary at `HEAD = f79de4f`. `git log c4b4816..HEAD -- src/` returns **zero
+commits**, so this binary is source-identical to E1-SCAN's arm R. Working tree clean.
+
+**Nine rungs x 3 reps = 27 runs**, the full E1 ladder, hardlinked from the pinned n8n worktree via
+the frozen `e1-tiers.json` manifest (seed 811): T1 656f/3,679c through T9 13,330f/73,359c.
+
+**Order** is `seededShuffle(pairs, 811)` over the 27 (corpus, rep) pairs — the established
+convention. The input is 27 pairs, not E1-PHASE's 15, so this is a genuinely different permutation
+and not a prefix of any prior schedule. Committed to `e1-ladder-schedule.json` with the binary pin
+before the first run.
+
+**No calibration.** `c` is `runIndex`'s fixed cost, and E1-PHASE's calibration TSDoc establishes it
+lands **inside the `walk` phase** — schema DDL, lock-marker init and the empty walk all precede the
+first phase boundary. The outcome here is `phase_ms.edges`, which `c` does not touch. Measuring an
+unused constant invites post-hoc use; it is not measured. Total-duration figures, if reported at
+all, are labelled **uncalibrated**.
+
+### The estimator, fixed in advance
+
+OLS of `ln(phase_ms.edges)` on `ln(chunk_count)`.
+
+- **Primary: `all_runs`, n = 27** — every scored run, one point each. This is the estimator that
+  produced the pre-fix comparator, so both sides of the contrast are computed the same way.
+  Chosen over rung medians *because the committed artifact shows it is the tighter of the two*:
+  pre-fix `se_hc3` is 0.0794 at n=27 against 0.1593 at n=9.
+- **Secondary: `rung_medians`, n = 9**, reported alongside.
+- HC3 standard errors are reported and are **context-only**, carrying `e1-unread-fit.mjs`'s own
+  `ci_is_context_only` flag. The rungs are **nested subsets** (T1 ⊂ T2 ⊂ … ⊂ T9), so the points are
+  not independent draws and no p-value is claimed. Every threshold below is a bar on a **point
+  estimate**, as in E1-SCAN.
+
+### Hypotheses
+
+**H1 (primary) — no residual worth naming.** `b_R(all_runs) <= 1.15`.
+Point forecast **1.05**. Refuted if `b_R > 1.15`, in which case the residual is real and its
+magnitude is `b_R - 1`, which is the number task #5 has been asking for since it was opened.
+
+**H2 (separation control) — the contrast reproduces.** `b_verify - b_R >= 0.20`, with
+`b_verify = 1.3814453328704095` read from `e1-unread-fit.json`. This is the guard against the
+machine, the harness, or the fit having moved: if H1 fires *and* H2 fails, H1 is an artifact and
+the run is not evidence of anything.
+
+**H3 (no bend) — the fix does not merely postpone the knee.** `max` over the eight adjacent-rung
+local slopes `<= 1.30`.
+
+This is the hypothesis four rungs could not test, and the reason nine are worth nine minutes. The
+pre-fix ladder is *flat at the bottom and bends hard above T4* — derived this session from
+`e1-verify-runs.jsonl`:
+
+| segment | T1→T2 | T2→T3 | T3→T4 | T4→T5 | T5→T6 | T6→T7 | T7→T8 | T8→T9 |
+|---|---|---|---|---|---|---|---|---|
+| pre-fix slope | 0.9033 | 1.0003 | 0.9740 | 1.1513 | 1.4689 | 1.5512 | 2.0722 | **2.4276** |
+
+A post-fix exponent averaging 1.05 is compatible with two very different worlds: a flat curve, or a
+flat bottom with a knee that has moved above T9's chunk count. Only the top-end local slopes
+separate them, and an average over the whole ladder hides the difference. **H3 is the residual
+test; H1 is the summary.** Bar set at 1.30, comfortably under the pre-fix maximum of 2.4276 and
+above the 1.1051 E1-SCAN measured for post-fix T8→T9.
+
+### Gates
+
+Inherited unchanged: **Gate 0** (dist content hash pinned across all 27 runs), **Gate 0b**
+(staleness — src newer than dist), **Gate 1** (n8n corpus pin, A4-MAT-4 tier file-set verification,
+config pin), **Gate 3** (external vs fitted clock with A4-MAT-6 retakes and `selectFitted`),
+**Gate P** (phase attribution >= 0.95), **Gate P2** (a rung's three reps report identical
+`chunk_count`). A4-MAT-3 attempt journaling and A4-MAT-7's VOID queue apply.
+
+**Gate L (new) — cross-experiment replication, registered as a FINDING, not a blocker.**
+Because this binary is source-identical to E1-SCAN's arm R, four of these nine rungs are a direct
+re-run of measurements taken three days ago. E1-SCAN arm R medians: **T1 112, T5 446, T8 1461,
+T9 2217 ms**. E1-LADDER's medians at those rungs are compared and **any deviation beyond ±15% is
+reported as a finding**. It is not a blocker because machine state legitimately varies between
+sessions; the band is generous on purpose (E1-SCAN's arm N reproduced E1-VERIFY within ±4%). A
+violation would say the two experiments are not measuring the same thing, which matters more than
+either result.
+
+### Scoreable
+
+`scoreable: true` requires 27/27 complete, 0 VOID, and Gate P2 identical at every rung.
+
+### Also computed, explicitly descriptive and adjudicating nothing
+
+`e1-ladder-score.mjs` recomputes the **two-term model** `edges_ms = a·E + b·E·F` on e1-verify's 27
+**pre-fix** runs, reports its weighted and unweighted fits, its T1 and T9 residuals, and its
+out-of-sample error against the vscode build (`vscode-build.json`: F = 8,653, E = 174,844,
+`edges_ms` = 28,829, pre-fix binary `b77f0ae3…`).
+
+**Why it is here and why it is fenced off.** `FINDINGS.md` §2.3 quotes "under-predicts T9 by 23%",
+"misses T1 by −74%" and "vscode under-predicted by 30–37%" and then admits, in the same paragraph,
+that these are **prose-only — no committed script computes them**. That is the §11.1 failure the
+file itself warns about, and it is the second half of task #5. Persisting them retires the prose.
+
+It enters **no hypothesis and no verdict**. The model was an *inference device* for "something else
+is also super-linear"; E1-SCAN tested that claim by direct counterfactual and H1/H3 test it again
+here at nine rungs. Measurement outranks the fit. If the recomputation fails to reproduce the prose
+figures, **that is the finding** and it is reported as one rather than reconciled away.
+
+### Direction of error, declared
+
+I wrote the range fix, I predicted linearity in E1-SCAN, and I expect H1 to fire. That is the
+condition under which controls earn their place, so H2 is registered as a hard falsifier of H1 and
+H3 is written to catch the specific way a fix like this fails silently — by moving a knee rather
+than removing it. E1-SCAN's block-1 read had both its controls outside the band before the full n
+brought them in; partial series will not be reported as trends here either.
