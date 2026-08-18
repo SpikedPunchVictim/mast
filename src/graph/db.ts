@@ -13,11 +13,45 @@ import type { ColumnType, Generated } from 'kysely';
  */
 type BoolCol = ColumnType<number, 0 | 1, 0 | 1>;
 
+/**
+ * One end of the rowid block a file's rows occupy in an FTS5 virtual table
+ * (see {@link FilesTable.chunk_fts_lo}). Nullable, and optional on insert, so
+ * that a row written before this column existed — or a file that produced no
+ * rows at all — reads back as SQL NULL rather than a misleading 0.
+ */
+type FtsRowidCol = ColumnType<number | null, number | null | undefined, number | null>;
+
 interface FilesTable {
   readonly id: Generated<number>;
   readonly path: string;
   readonly language: string;
   readonly mtime: number;
+  /**
+   * Inclusive bounds of the contiguous `chunk_fts` rowid block this file owns,
+   * or NULL when the file has no rows there (no chunks, or a row written
+   * before Stage 4.6 added the column).
+   *
+   * This exists because FTS5 cannot answer `WHERE file_path = ?` with anything
+   * but a full table scan — `xBestIndex` refuses equality constraints on
+   * ordinary columns, so the delete on re-index cost O(corpus) per changed
+   * file (measured: 3.0 ms at T1 rising to 151.6 ms at T9, exponent 1.32).
+   * A rowid is the one column FTS5 *will* seek on, so recording the block
+   * turns that delete into O(rows-in-this-file). See `populate.ts`
+   * `deleteFtsRowidBlock` for why the deletes are issued one rowid at a time
+   * rather than as a single `BETWEEN` range.
+   */
+  readonly chunk_fts_lo: FtsRowidCol;
+  /** Upper bound of the `chunk_fts` block — see {@link FilesTable.chunk_fts_lo}. */
+  readonly chunk_fts_hi: FtsRowidCol;
+  /**
+   * Bounds of the `identifier_fts` block. Tracked separately from the
+   * `chunk_fts` block because the two tables receive different row counts for
+   * the same file: markdown chunks produce no identifier rows at all
+   * (measured across the E1 ladder — FINDINGS.md §1.4).
+   */
+  readonly ident_fts_lo: FtsRowidCol;
+  /** Upper bound of the `identifier_fts` block — see {@link FilesTable.ident_fts_lo}. */
+  readonly ident_fts_hi: FtsRowidCol;
 }
 
 interface SymbolsTable {
@@ -181,6 +215,12 @@ interface ChunksTable {
  * `file_path` enables filtered deletes and upserts without a LIKE prefix hack.
  */
 interface ChunkFtsTable {
+  /**
+   * FTS5's implicit rowid, surfaced so `populate.ts` can assign it explicitly
+   * rather than let SQLite pick. Optional on insert — every writer other than
+   * the block allocator lets SQLite assign as before.
+   */
+  readonly rowid: ColumnType<number, number | undefined, number>;
   readonly content: string;
   readonly symbol_name: string | null;
   readonly chunk_id: string;
@@ -194,6 +234,8 @@ interface ChunkFtsTable {
  * boundary separators). `chunk_id` and `file_path` are UNINDEXED.
  */
 interface IdentifierFtsTable {
+  /** FTS5's implicit rowid — see {@link ChunkFtsTable.rowid}. */
+  readonly rowid: ColumnType<number, number | undefined, number>;
   readonly identifiers: string;
   readonly chunk_id: string;
   readonly file_path: string;
@@ -230,10 +272,14 @@ export type Db = Kysely<MastDatabase>;
  */
 const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS files (
-  id       INTEGER PRIMARY KEY,
-  path     TEXT NOT NULL UNIQUE,
-  language TEXT NOT NULL,
-  mtime    REAL NOT NULL
+  id           INTEGER PRIMARY KEY,
+  path         TEXT NOT NULL UNIQUE,
+  language     TEXT NOT NULL,
+  mtime        REAL NOT NULL,
+  chunk_fts_lo INTEGER,
+  chunk_fts_hi INTEGER,
+  ident_fts_lo INTEGER,
+  ident_fts_hi INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS symbols (
@@ -479,6 +525,22 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
     ['context', 'ALTER TABLE edges ADD COLUMN context TEXT'],
   ] as const) {
     if (!edgeColumns.has(name)) sqlite.exec(ddl);
+  }
+
+  // Same additive-migration precedent for the files table's FTS rowid blocks
+  // (Stage 4.6). Databases indexed before these columns existed keep working:
+  // the columns read back NULL, and `populate.ts` falls back to the old
+  // file_path scan for exactly those rows until the file is next re-indexed.
+  const fileColumns = new Set(
+    sqlite.prepare('PRAGMA table_info(files)').all().map((c) => (c as { name: string }).name),
+  );
+  for (const [name, ddl] of [
+    ['chunk_fts_lo', 'ALTER TABLE files ADD COLUMN chunk_fts_lo INTEGER'],
+    ['chunk_fts_hi', 'ALTER TABLE files ADD COLUMN chunk_fts_hi INTEGER'],
+    ['ident_fts_lo', 'ALTER TABLE files ADD COLUMN ident_fts_lo INTEGER'],
+    ['ident_fts_hi', 'ALTER TABLE files ADD COLUMN ident_fts_hi INTEGER'],
+  ] as const) {
+    if (!fileColumns.has(name)) sqlite.exec(ddl);
   }
 
   // Same additive-migration precedent for the metrics table's argument/result

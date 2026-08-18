@@ -11278,3 +11278,116 @@ check is **name-based and therefore coarse** — a field read for one journal co
 everywhere — which is the caveat §1's method paragraph already carried and which this pass did not
 remove. Spot-checked, not exhaustively verified.
 
+
+---
+
+## Stage 4.6 — the incremental FTS delete, closed by a rowid block (2026-08-18)
+
+Closes FINDINGS.md §2.4, which was registered on 2026-08-17 as a known-open defect with an
+**unmeasured** magnitude. Both halves are now measured, and one of them refuted the claim that
+motivated the fix.
+
+### What was wrong
+
+`DELETE FROM chunk_fts WHERE file_path = ?` is a full FTS5 table scan — `xBestIndex` will not
+consume an equality constraint on an ordinary column. The Stage 4.5 guard skips that scan when a
+file was **never** indexed, which fixes cold builds and by construction cannot fix the incremental
+path: a *changed* file is one that was already indexed, so it pays two full scans, and each grows
+with the size of the whole corpus rather than the size of the file.
+
+### The measurement that was missing (§2.4's own gap)
+
+One changed file, real E1 corpora, median of repeated re-indexes:
+
+| corpus | `chunk_fts` rows | delete for one changed file |
+|---|---|---|
+| T1 | 3,679 | 3.0 ms |
+| T5 | 16,529 | 18.2 ms |
+| T8 | 50,299 | 95.6 ms |
+| T9 | 73,359 | 151.6 ms |
+
+OLS on log-log: **b = 1.32, R² = 0.9975**, projecting **384 ms per changed file at 150k chunks**
+(346 ms at vscode's 138,440).
+
+**This refutes Stage 4.5's "379 ms for one file at any corpus size."** The *magnitude* is close
+enough to be a real measurement someone took at roughly this scale; the words *"at any corpus
+size"* are the error, and they are the load-bearing half — they assert the exact invariance the
+data denies. Recorded in §3 as a dead claim.
+
+### The mechanism, and a design that was wrong before it was right
+
+The fix records the contiguous rowid block each file owns (`files.chunk_fts_lo/hi`,
+`ident_fts_lo/hi` — `db.ts:43`, DDL `db.ts:279`, additive migration `db.ts:538` following the
+`edges`/`metrics` precedent), because a rowid is the one column FTS5 will seek on.
+
+**The first version of this design was refuted by measurement before any code was written.** The
+registered plan was a single `DELETE ... WHERE rowid BETWEEN ? AND ?`, justified by reading the
+query plan `SCAN chunk_fts VIRTUAL TABLE INDEX 0:=` as "constraint consumed". That reading was
+wrong: the operative word is `SCAN`, FTS5 cannot use a rowid *range*, and only exact equality is a
+seek. Isolating the locate cost at T9:
+
+| | locate cost |
+|---|---|
+| `WHERE file_path = ?` (scan) | 75.01 ms |
+| `WHERE rowid BETWEEN ? AND ?` | 75.96 ms |
+| `WHERE rowid = ?` × 11 rows | 0.0293 ms |
+
+So the deletes are issued one rowid at a time (`deleteFtsRowidBlock`, `populate.ts:401`). Full
+delete of one 11-chunk file at T9: **1.125 ms by per-rowid equality against 129.8 ms by
+`file_path`.**
+
+Three supporting facts, all measured:
+
+- `SELECT max(rowid)` on a 73,359-row `chunk_fts` is `SEARCH ... INDEX 192:` at **0.0008 ms**, so
+  reserving a block explicitly costs nothing (`reserveFtsBlock`, `populate.ts:370`). The block is
+  therefore true *by construction*, not inferred from SQLite's assignment order.
+- Blocks were **already** contiguous 100% of the time before this change (8,945/8,945 files in
+  `chunk_fts`, 8,572/8,572 in `identifier_fts`) because files are written one at a time.
+- The two curves do cross for a file holding a large fraction of the corpus. On a synthetic 73k
+  corpus: 27x faster at 5 chunks, 11.5x at 200, 2.8x at 1,000, still **1.3x at 3,000 chunks (4% of
+  the corpus)**. No real file approaches the crossover, so there is deliberately **no size
+  heuristic** — an untested branch firing on no real input is worse than the branch it replaces.
+
+Reserving happens *before* the old rows are deleted (`populate.ts:459`). Deleting first would lower
+`max(rowid)` and hand back rowids the old block still occupies. Reserving early only leaves gaps,
+which cost nothing.
+
+The old block is read by the monotonic write-guard's existing SELECT, which already ran before the
+`files` row is deleted and reinserted — the last point at which the old block is readable. No
+reordering of the write path was required.
+
+### RESULT — both arms through the same code path
+
+The "scan" arm is produced by nulling the recorded block, which triggers the documented
+pre-migration fallback in `deleteFtsRowidBlock`. Same code, same corpus, same transaction
+machinery; arm order alternates per rep (the E1-HOIST cache-warming lesson).
+
+| corpus (synthetic) | `chunk_fts` rows | scan arm | block arm | speedup |
+|---|---|---|---|---|
+| T1~ | 3,684 | 0.85 ms | 0.116 ms | 7x |
+| T5~ | 16,530 | 3.37 ms | 0.102 ms | 33x |
+| T8~ | 50,304 | 10.70 ms | 0.093 ms | 116x |
+| T9~ | 73,362 | 15.14 ms | 0.087 ms | **174x** |
+
+- scan arm: **b = 0.97, R² = 0.9992** — cost grows with the corpus.
+- block arm: **b = −0.09, R² = 0.9920** — the corpus-size dependence is *gone*, not reduced.
+
+**Confidence, separated (§11.5).** The exponents and the 174x are **measured on a synthetic
+corpus** (uniform 6-chunk files, generated content). Its absolute constants are ~10x smaller than
+the real corpus — 15.14 ms against T9's 151.6 ms — because generated content yields a smaller
+trigram index, and its scan-arm exponent is 0.97 against the real corpus's 1.32. What transfers is
+the **shape**: one arm scales with the corpus and the other does not. The claim "incremental
+re-index is now O(changed file), not O(corpus)" is measured for the shape and **inferred** for the
+constant on a real repository. Re-measuring on a real corpus at 150k chunks remains unmeasured.
+
+### Tests
+
+`src/graph/__tests__/fts-rowid-block.test.ts`, 6 tests. The load-bearing one is
+`leaves a neighbouring file untouched when one file is re-indexed`: an over-wide block does not
+fail loudly, it silently deletes another file's search rows, and the only symptom is a document
+that stops being findable. Also pinned: block bounds exactly the rowids owned, the two tables are
+tracked independently (markdown chunks produce no identifier rows), a chunkless file records a NULL
+block, the block moves on re-index, and a NULL block still cleans correctly via the fallback.
+
+Suite 1,095 passing (was 1,089). `tsc --noEmit` clean, `eslint src` clean. `pnpm align:check`
+remains red at its pre-existing baseline, **unchanged: 324 → 324 (0)**.

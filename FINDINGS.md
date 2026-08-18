@@ -721,9 +721,10 @@ compares UTF-16 code units, and the two disagree — U+FFFF sorts *above* the su
 U+10FFFF. The bound is valid for SQL comparison only. A first draft of the helper's unit test
 asserted the JS ordering and failed against a correct bound; the test now compares UTF-8 bytes.
 
-### 2.4 Open: the incremental path still pays the full-scan delete
+### 2.4 CLOSED (2026-08-18): the incremental full-scan delete, measured then removed
 
-**The FTS guard fixes cold builds. It does not fix incremental re-indexing.** `populate.ts:503`:
+**The FTS guard fixed cold builds. It did not fix incremental re-indexing.** The code as it stood
+on 2026-08-17, quoted here as history — this is **not** the current source, see Stage 4.6:
 
 ```ts
 const fileHadPreviousVersion = existing !== undefined;
@@ -736,9 +737,10 @@ so it skips 100% of them — which is why `fts_del` is 0 ms in all 27 E1-VERIFY 
 with the whole corpus. A changed file is by definition one already indexed, so this is the
 defining case of incremental work.
 
-`removeDeletedFiles` (`populate.ts:1116`, deletes at `:1129-1130`) runs the same two full-scan
-deletes per *deleted* file, unconditionally. It must — the FTS5 virtual tables do not participate
-in the foreign-key cascade — but it carries the same per-corpus cost.
+`removeDeletedFiles` (now `populate.ts:1266`) ran the same two full-scan deletes per *deleted*
+file, unconditionally. It must delete them explicitly — the FTS5 virtual tables do not participate
+in the foreign-key cascade — but it carried the same per-corpus cost. Stage 4.6 gives it the same
+block-driven delete, reading the block from `files` before that row is removed.
 
 **The fact was already known in three places**; what was new on 2026-08-17 is the contradiction
 with Stage 4.5. `e1-fts-verdict.json`'s `what_this_is` says the guard "licenses nothing about the
@@ -750,16 +752,44 @@ behaviour directly. None was connected to the "O(changed files)" claim.
 that a cold build has no existing files. The ladder is cold-build-only by construction and
 structurally cannot see this path.
 
-Confidence, stated separately because it differs by claim:
+Recorded 2026-08-17 in Stage 4.5 CORRECTION §5 with its magnitude **unmeasured** and no fix
+proposed. Both gaps closed on 2026-08-18 — Stage 4.6 in `IMPLEMENTATION_PLAN.md`.
 
-- The scan mechanism is **measured** — E1-FTS, exponent 2.3454, 91.7% of T9's write phase.
-- Its persistence on the incremental path is a **code read**, not a measurement.
-- Its magnitude at 150k chunks is **unmeasured**. No eval harness measures incremental re-index
-  cost, and Stage 4.5's "379 ms for one file at any corpus size" carries no citation anywhere in
-  `IMPLEMENTATION_PLAN.md`.
+**The magnitude, measured** (one changed file, real E1 corpora): 3.0 ms at T1 (3,679 chunks),
+18.2 ms at T5, 95.6 ms at T8, **151.6 ms at T9** (73,359 chunks). OLS on log-log **b = 1.32,
+R² = 0.9975**, projecting **384 ms per changed file at 150k chunks**. This refuted Stage 4.5's
+"379 ms for one file **at any corpus size**" — see §3; the number is plausible, the invariance
+claim is the error.
 
-Recorded 2026-08-17 in Stage 4.5 CORRECTION §5. No fix proposed; registered so it is not assumed
-away.
+**The fix**: record the contiguous rowid block each file owns on `files`
+(`chunk_fts_lo/hi`, `ident_fts_lo/hi`), because a rowid is the one column FTS5 will seek on. A
+first design using `WHERE rowid BETWEEN ? AND ?` was **refuted by measurement before any code was
+written** — FTS5 reports a rowid range as `SCAN ... INDEX 0:=` and the `SCAN` is literal (75.96 ms
+against 75.01 ms for an unconstrained scan). Only exact equality seeks, so the deletes are issued
+one rowid at a time: **1.125 ms against 129.8 ms** for one 11-chunk file at T9.
+
+**Result**, both arms through the same production code path (the "scan" arm is the documented
+pre-migration fallback):
+
+| corpus (synthetic) | rows | scan arm | block arm | speedup |
+|---|---|---|---|---|
+| T1~ | 3,684 | 0.85 ms | 0.116 ms | 7x |
+| T9~ | 73,362 | 15.14 ms | 0.087 ms | **174x** |
+
+scan arm **b = 0.97** (R² 0.9992); block arm **b = −0.09** (R² 0.9920). The corpus-size dependence
+is gone, not reduced.
+
+Confidence, stated separately because it still differs by claim (§11.5):
+
+- The scan mechanism was **measured** — E1-FTS, exponent 2.3454, 91.7% of T9's write phase.
+- Its magnitude on the incremental path is now **measured** on real E1 corpora (the table above).
+- The fix's *shape* — one arm scales with the corpus, the other does not — is **measured**, but on
+  a **synthetic** corpus whose constants run ~10x smaller than the real one (15.14 ms against
+  151.6 ms at T9) and whose scan-arm exponent is 0.97 against the real 1.32. The claim
+  "incremental re-index is now O(changed file)" is measured for the shape and **inferred** for the
+  constant on a real repository.
+- Incremental re-index cost on a real 150k-chunk corpus remains **unmeasured**. No eval harness
+  measures it; that gap is unchanged by this work.
 
 ### 2.5 Retrieval
 
@@ -796,7 +826,9 @@ regression.
 | **Homonym amplification** drives edge resolution cost | Measured: **1.124 rows/name**, 11.1% discarded, top-1000 names = 5.6% of rows. Refuted. |
 | Post-M1 chunk storage is **O(N)** | Falsified by E1 (b = 1.76), then restored *by repair* — the FTS guard (b = 1.08). True for cold builds only; see §2.4. Corrected in Stage 4.5 CORRECTION §1. |
 | The **vector subsystem** is the only component that degrades | Vectors were deleted at `5d00775`. Corrected in Stage 4.5 CORRECTION §2. |
-| Incremental indexing is **O(changed files)** at any corpus size | The FTS guard is conditional on the file being *new*, so a changed file still pays two full-scan deletes. See §2.4. |
+| Incremental indexing is **O(changed files)** at any corpus size | False when claimed — the FTS guard is conditional on the file being *new*, so a changed file paid two full-scan deletes (**measured b = 1.32**, 151.6 ms at T9). Made true *by repair* in Stage 4.6 (rowid block, **b = −0.09**). See §2.4. |
+| Stage 4.5's "**379 ms** for one file **at any corpus size**" | The magnitude is plausible (measurement projects 384 ms at 150k chunks); the invariance is the error, and it was the load-bearing half. Measured: 3.0 ms at T1 → 151.6 ms at T9, **b = 1.32, R² = 0.9975**. The figure carried no citation anywhere in `IMPLEMENTATION_PLAN.md`. Killed by Stage 4.6. |
+| A rowid **range** (`BETWEEN`) lets FTS5 skip the scan | The query plan `SCAN ... INDEX 0:=` was misread as "constraint consumed"; the operative word is `SCAN`. Measured at T9: range **75.96 ms** against an unconstrained scan's **75.01 ms** — no saving. Only exact `rowid = ?` seeks (0.0293 ms for the same 11 rows). Refuted before any code was written. |
 | E1-PHASE's H2/H3/H4 | H2 (edges carries it) b = 1.436 < 1.6 bar. H3 (parse) b = 1.014. H4 (no phase reaches the bar) — write did. |
 | The **edges** exponent has a cause other than the `files` full scan | E1-SCAN: removing the scan takes edges from b = 1.4382 to **b ≈ 1.0–1.1**, T8→T9 local slope 2.4709 → 1.1051, at 24 runs with T1/T5 controls null. The scan *was* the exponent. |
 | E1-SCAN's own **H3** — "removing the scan does not make edges linear" | Registered band [1.15, 1.55] on the post-fix T8→T9 slope; observed **1.1051**, missing low. The `POTENTIAL_CALL` floor the hypothesis rested on does not exist — see §1.1. |

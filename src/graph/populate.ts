@@ -344,6 +344,79 @@ export async function populateFile(
  * (nothing was mutated, but the write reservation `BEGIN IMMEDIATE` took
  * must still be released), not treated as an error.
  */
+/**
+ * Inclusive bounds of the contiguous rowid block a file owns in one FTS5
+ * virtual table, or `null` bounds when it owns no rows there.
+ */
+interface FtsBlock {
+  readonly lo: number | null;
+  readonly hi: number | null;
+}
+
+const EMPTY_FTS_BLOCK: FtsBlock = { lo: null, hi: null };
+
+type FtsTable = 'chunk_fts' | 'identifier_fts';
+
+/**
+ * Reserves the next `rowCount` rowids in `table`.
+ *
+ * SQLite assigns an unspecified rowid as `max(rowid) + 1`, so reserving is just
+ * reading that maximum — `SEARCH ... INDEX 192:`, measured at 0.0008 ms on a
+ * 73,359-row `chunk_fts`. Callers must reserve BEFORE deleting the file's old
+ * block, so that the reserved range cannot collide with rows still present.
+ * (Deleting first would lower the maximum and hand back rowids the old block
+ * still occupies.) Reserving early only ever leaves gaps, which cost nothing.
+ */
+async function reserveFtsBlock(trx: Db, table: FtsTable, rowCount: number): Promise<FtsBlock> {
+  if (rowCount === 0) return EMPTY_FTS_BLOCK;
+  const result = await sql<{ m: number | null }>`
+    SELECT max(rowid) AS m FROM ${sql.table(table)}
+  `.execute(trx);
+  const lo = (result.rows[0]?.m ?? 0) + 1;
+  return { lo, hi: lo + rowCount - 1 };
+}
+
+/**
+ * Removes one file's rows from an FTS5 table, using its recorded rowid block.
+ *
+ * Issued as one `WHERE rowid = ?` per row rather than a single
+ * `WHERE rowid BETWEEN ? AND ?`, which looks equivalent and is not: FTS5
+ * reports a rowid RANGE as `SCAN ... INDEX 0:=`, and the `SCAN` is literal —
+ * measured at 75.96 ms against 75.01 ms for an unconstrained scan on T9, i.e.
+ * no saving at all. Only exact equality is a seek. Same corpus, same file:
+ * 1.125 ms by per-rowid equality against 129.8 ms by `file_path`.
+ *
+ * That makes the cost O(rows in this file) where it was O(rows in the corpus),
+ * so it wins by more the larger the repository gets. The two curves do cross
+ * for a file holding a large fraction of the corpus — at T9 scale, measured on
+ * a synthetic corpus, a 3,000-chunk file (4% of all chunks) is still 1.3x
+ * faster this way, and a 5-chunk file 27x. No real file approaches the
+ * crossover, so there is deliberately no size heuristic here: an untested
+ * branch that fires on no real input is worse than the branch it replaces.
+ *
+ * Raw SQL because `rowid` is a column Kysely's schema models only as an
+ * insert-time hint; `sql.table` takes a literal from {@link FtsTable}, never
+ * caller input.
+ */
+async function deleteFtsRowidBlock(
+  trx: Db,
+  table: FtsTable,
+  block: FtsBlock,
+  filePath: string,
+): Promise<void> {
+  if (block.lo === null || block.hi === null) {
+    // No block recorded — a `files` row written before Stage 4.6 added the
+    // columns. Fall back to the scan this change exists to remove: slow, but
+    // correct, and self-healing because the row is about to be rewritten with
+    // a block. Never skipped — skipping would leave stale rows findable.
+    await sql`DELETE FROM ${sql.table(table)} WHERE file_path = ${filePath}`.execute(trx);
+    return;
+  }
+  for (let rowid = block.lo; rowid <= block.hi; rowid++) {
+    await sql`DELETE FROM ${sql.table(table)} WHERE rowid = ${rowid}`.execute(trx);
+  }
+}
+
 async function writePopulatedFileRows(
   trx: Db,
   data: Omit<FileIndexData, 'edges'>,
@@ -356,9 +429,13 @@ async function writePopulatedFileRows(
   // keeps the check-then-act pair atomic relative to any other populateFile
   // call, exactly as invariant 1's read-then-write pair is kept atomic
   // relative to other `structure.lock` holders (indexer/index.ts).
+  // Selecting the FTS blocks here — rather than at the delete below — is what
+  // makes the whole scheme work: this SELECT runs BEFORE the `files` row is
+  // deleted and reinserted a few lines down, so it is the last point at which
+  // the OLD block is still readable.
   const existing = await timed(spans, 'rest', () => trx
     .selectFrom('files')
-    .select(['id', 'mtime'])
+    .select(['id', 'mtime', 'chunk_fts_lo', 'chunk_fts_hi', 'ident_fts_lo', 'ident_fts_hi'])
     .where('path', '=', data.filePath)
     .executeTakeFirst());
 
@@ -375,6 +452,13 @@ async function writePopulatedFileRows(
     return { fileId: existing.id, chunksRemoved: 0, written: false };
   }
 
+  // Reserved before the old rows are deleted, so the new block cannot overlap
+  // rows that are still present — see `reserveFtsBlock`. The two tables get
+  // different counts for the same file (markdown chunks produce no identifier
+  // rows), so they are reserved independently.
+  const chunkBlock = await timed(spans, 'rest', () => reserveFtsBlock(trx, 'chunk_fts', data.chunks.length));
+  const identBlock = await timed(spans, 'rest', () => reserveFtsBlock(trx, 'identifier_fts', data.identifierRows.length));
+
   // Delete-and-replace: FK cascades remove symbols, edges, imports.
   const file = await timed(spans, 'rest', async () => {
     await trx.deleteFrom('files').where('path', '=', data.filePath).execute();
@@ -385,6 +469,10 @@ async function writePopulatedFileRows(
         path: data.filePath,
         language: data.language,
         mtime: data.mtime,
+        chunk_fts_lo: chunkBlock.lo,
+        chunk_fts_hi: chunkBlock.hi,
+        ident_fts_lo: identBlock.lo,
+        ident_fts_hi: identBlock.hi,
       })
       .returning('id')
       .execute();
@@ -501,11 +589,20 @@ async function writePopulatedFileRows(
   //
   // `skipFtsDeletes` is E1-FTS's arm G, retained because it is the instrument of
   // a completed experiment. It is unconditional and unsafe outside a cold build.
-  const fileHadPreviousVersion = existing !== undefined;
-  if (options.skipFtsDeletes !== true && fileHadPreviousVersion) {
+  // Tests `existing` directly rather than via a named boolean so that
+  // TypeScript narrows it — the recorded block is read from it below.
+  if (options.skipFtsDeletes !== true && existing !== undefined) {
     await timed(spans, 'fts_del', async () => {
-      await trx.deleteFrom('chunk_fts').where('file_path', '=', data.filePath).execute();
-      await trx.deleteFrom('identifier_fts').where('file_path', '=', data.filePath).execute();
+      await deleteFtsRowidBlock(
+        trx, 'chunk_fts',
+        { lo: existing.chunk_fts_lo, hi: existing.chunk_fts_hi },
+        data.filePath,
+      );
+      await deleteFtsRowidBlock(
+        trx, 'identifier_fts',
+        { lo: existing.ident_fts_lo, hi: existing.ident_fts_hi },
+        data.filePath,
+      );
     });
   }
 
@@ -513,7 +610,10 @@ async function writePopulatedFileRows(
   // — further batched under the parameter ceiling, same as above.
   await timed(spans, 'fts_ins', async () => {
     if (data.chunks.length > 0) {
-      const chunkFtsRows = data.chunks.map((chunk) => ({
+      // Explicit rowids, so the block recorded on `files` above is true by
+      // construction rather than inferred from SQLite's assignment order.
+      const chunkFtsRows = data.chunks.map((chunk, i) => ({
+        rowid: (chunkBlock.lo ?? 0) + i,
         content: chunk.content,
         symbol_name: chunk.symbol_name,
         chunk_id: chunk.chunk_id,
@@ -525,7 +625,8 @@ async function writePopulatedFileRows(
     }
 
     if (data.identifierRows.length > 0) {
-      const identifierFtsRows = data.identifierRows.map((row) => ({
+      const identifierFtsRows = data.identifierRows.map((row, i) => ({
+        rowid: (identBlock.lo ?? 0) + i,
         identifiers: row.identifiers,
         chunk_id: row.chunk_id,
         file_path: data.filePath,
@@ -1174,9 +1275,27 @@ export async function removeDeletedFiles(db: Db, deletedPaths: readonly string[]
         .executeTakeFirst();
       chunksRemoved += row?.count ?? 0;
 
+      // Read before `files` is deleted below — the row is the only record of
+      // which rowids this file owns. A path with no `files` row yields no
+      // block, and `deleteFtsRowidBlock` then falls back to the scan, so a
+      // caller passing an unknown path still gets correct (if slow) cleanup.
+      const block = await trx
+        .selectFrom('files')
+        .select(['chunk_fts_lo', 'chunk_fts_hi', 'ident_fts_lo', 'ident_fts_hi'])
+        .where('path', '=', filePath)
+        .executeTakeFirst();
+
       await trx.deleteFrom('chunks').where('file_path', '=', filePath).execute();
-      await trx.deleteFrom('chunk_fts').where('file_path', '=', filePath).execute();
-      await trx.deleteFrom('identifier_fts').where('file_path', '=', filePath).execute();
+      await deleteFtsRowidBlock(
+        trx, 'chunk_fts',
+        { lo: block?.chunk_fts_lo ?? null, hi: block?.chunk_fts_hi ?? null },
+        filePath,
+      );
+      await deleteFtsRowidBlock(
+        trx, 'identifier_fts',
+        { lo: block?.ident_fts_lo ?? null, hi: block?.ident_fts_hi ?? null },
+        filePath,
+      );
     }
     await trx.deleteFrom('files').where('path', 'in', deletedPaths).execute();
     return chunksRemoved;
