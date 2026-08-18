@@ -695,8 +695,15 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
     // always inserts it before pass 2 runs edges) — fromMap would be empty
     // too in that case, so every edge is dropped downstream regardless.
     if (fromFile !== undefined) {
+      // One import index per file, built lazily. `fromFile.id` is invariant
+      // across this whole loop, so the old per-call query re-read and re-parsed
+      // identical rows once per unique `toName`. LAZY rather than eager because
+      // most resolution rules never consult imports at all (`same_file` and
+      // `this_method` are ~76% of resolved call edges on the T8 corpus), and an
+      // eager build would add a query to every file instead of removing them.
+      const imports = fileImportIndexLoader(db, fromFile.id);
       for (const [toName, edge] of callEdgesByToName) {
-        const targetId = await resolveCallTarget(db, fromFile.id, edge.resolution, toName);
+        const targetId = await resolveCallTarget(db, fromFile.id, imports, edge.resolution, toName);
         if (targetId !== null) callToMap.set(toName, targetId);
       }
     }
@@ -783,6 +790,7 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
 async function resolveCallTarget(
   db: Db,
   fromFileId: number,
+  imports: ImportIndexLoader,
   resolution: CallerResolution | undefined,
   toName: string,
 ): Promise<number | null> {
@@ -801,7 +809,7 @@ async function resolveCallTarget(
       return resolveSameFileScoped(db, fromFileId, toName);
 
     case 'import': {
-      const lookup = await importResolvedPathFor(db, fromFileId, toName);
+      const lookup = importResolvedPathFor(await imports(), toName);
       // An `import`-resolution edge is only emitted for a name the extractor
       // saw in this file's own import_clause (local-type-env.ts
       // recordImport), so an import row always exists; `lookup === null`
@@ -821,7 +829,7 @@ async function resolveCallTarget(
       // that file (or its re-export chain). Falls back to a global
       // bare-name match when `typeName` has no file evidence at all (a
       // known, narrow coverage gap — MAST_SPEC §10.3.1).
-      return resolveQualifiedNameScoped(db, fromFileId, toName, legacyGlobalFirstMatch);
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName, legacyGlobalFirstMatch);
 
     // F4: `super.foo()` — toName is `ParentName.methodName`, traced exactly
     // like a field_type receiver's type (import first, then same-file
@@ -833,7 +841,7 @@ async function resolveCallTarget(
     // missing binding — and a wrong "verified" super-call edge would poison
     // `verified_callers`' safe-to-act-on contract more than a missing one.
     case 'super_method':
-      return resolveQualifiedNameScoped(db, fromFileId, toName, async () => null);
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName, async () => null);
 
     default:
       // A POTENTIAL_CALL edge always carries a resolution (`emitCallEdges`
@@ -875,13 +883,14 @@ async function resolveSameFileScoped(db: Db, fromFileId: number, toName: string)
 async function resolveQualifiedNameScoped(
   db: Db,
   fromFileId: number,
+  imports: ImportIndexLoader,
   toName: string,
   onUnresolved: (db: Db, toName: string) => Promise<number | null>,
 ): Promise<number | null> {
   const dot = toName.indexOf('.');
   const typeName = dot === -1 ? toName : toName.slice(0, dot);
 
-  const lookup = await importResolvedPathFor(db, fromFileId, typeName);
+  const lookup = importResolvedPathFor(await imports(), typeName);
   if (lookup !== null) {
     if (lookup.resolvedPath === null) return null; // imported but unresolved — no edge
     return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName);
@@ -914,27 +923,64 @@ async function resolveQualifiedNameScoped(
  * caller must treat as "no edge", not "no evidence" (the import statement
  * proves the receiver came from *some* module; that module just isn't ours).
  */
-async function importResolvedPathFor(
-  db: Db,
-  fromFileId: number,
-  name: string,
-): Promise<{ resolvedPath: string | null } | null> {
+type FileImportIndex = ReadonlyMap<string, string | null>;
+
+/**
+ * Deferred, memoised access to one file's import index.
+ *
+ * Invoking it more than once for the same file issues exactly one query; never
+ * invoking it issues none.
+ */
+type ImportIndexLoader = () => Promise<FileImportIndex>;
+
+/**
+ * Every symbol this file imports, mapped to the module's resolved path.
+ *
+ * `null` values are meaningful and distinct from absence: the name IS imported,
+ * from a module that did not resolve to a file we index. Absence means the file
+ * does not import the name at all. Callers must keep the two apart — see
+ * `importResolvedPathFor`.
+ *
+ * FIRST WRITE WINS, which preserves the row-scan order this replaced: the old
+ * code returned the first `imports` row naming the symbol, and both read rows in
+ * `idx_imports_file` order. A later duplicate import of the same name is
+ * therefore ignored exactly as before.
+ */
+async function buildFileImportIndex(db: Db, fromFileId: number): Promise<FileImportIndex> {
   const rows = await db
     .selectFrom('imports')
     .select(['symbols', 'resolved_path'])
     .where('file_id', '=', fromFileId)
     .execute();
 
+  const index = new Map<string, string | null>();
   for (const row of rows) {
     let importedSymbols: string[];
     try {
       importedSymbols = JSON.parse(row.symbols) as string[];
     } catch {
-      continue; // malformed row — treat as not naming `name`
+      continue; // malformed row — treat as naming nothing
     }
-    if (importedSymbols.includes(name)) return { resolvedPath: row.resolved_path };
+    for (const symbol of importedSymbols) {
+      if (!index.has(symbol)) index.set(symbol, row.resolved_path);
+    }
   }
-  return null;
+  return index;
+}
+
+function fileImportIndexLoader(db: Db, fromFileId: number): ImportIndexLoader {
+  let pending: Promise<FileImportIndex> | null = null;
+  return () => (pending ??= buildFileImportIndex(db, fromFileId));
+}
+
+function importResolvedPathFor(
+  index: FileImportIndex,
+  name: string,
+): { resolvedPath: string | null } | null {
+  const resolvedPath = index.get(name);
+  // `undefined` can only mean absent — the map never stores it, only `null`.
+  if (resolvedPath === undefined) return null;
+  return { resolvedPath };
 }
 
 /**
