@@ -1,0 +1,613 @@
+{
+  "created": "2026-08-18T02:24:23.265Z",
+  "experiment": "E1-LADDER",
+  "registration": "IMPLEMENTATION_PLAN.md § E1-LADDER PRE-REGISTRATION (2026-08-17)",
+  "scoreable": true,
+  "n_runs": 27,
+  "n_void": 0,
+  "self_check": {
+    "ok": true,
+    "b_verify_all_runs": 1.3814453328704095,
+    "b_verify_rung_medians": 1.3949401082042703
+  },
+  "post_fix": {
+    "all_runs": {
+      "b": 1.0184476977482846,
+      "se_hc3": 0.03514507534525786,
+      "r2": 0.9816772505636153,
+      "n": 27,
+      "df": 25,
+      "ci_hc3": [
+        0.9460650601353068,
+        1.0908303353612625
+      ],
+      "ci_is_context_only": true
+    },
+    "rung_medians": {
+      "b": 1.0338875339474463,
+      "se_hc3": 0.03325136858975451,
+      "r2": 0.9930143108973888,
+      "n": 9,
+      "df": 7,
+      "ci_hc3": [
+        0.9552605413814622,
+        1.1125145265134302
+      ],
+      "ci_is_context_only": true
+    },
+    "rungs": [
+      {
+        "rung": "T1",
+        "chunks": 3679,
+        "files": 656,
+        "n": 3,
+        "values": [
+          162,
+          95,
+          110
+        ],
+        "median_ms": 110
+      },
+      {
+        "rung": "T2",
+        "chunks": 5332,
+        "files": 954,
+        "n": 3,
+        "values": [
+          152,
+          154,
+          159
+        ],
+        "median_ms": 154
+      },
+      {
+        "rung": "T3",
+        "chunks": 7761,
+        "files": 1393,
+        "n": 3,
+        "values": [
+          238,
+          244,
+          225
+        ],
+        "median_ms": 238
+      },
+      {
+        "rung": "T4",
+        "chunks": 11278,
+        "files": 1986,
+        "n": 3,
+        "values": [
+          327,
+          377,
+          340
+        ],
+        "median_ms": 340
+      },
+      {
+        "rung": "T5",
+        "chunks": 16529,
+        "files": 2880,
+        "n": 3,
+        "values": [
+          467,
+          417,
+          408
+        ],
+        "median_ms": 417
+      },
+      {
+        "rung": "T6",
+        "chunks": 23854,
+        "files": 4191,
+        "n": 3,
+        "values": [
+          627,
+          676,
+          885
+        ],
+        "median_ms": 676
+      },
+      {
+        "rung": "T7",
+        "chunks": 34691,
+        "files": 5976,
+        "n": 3,
+        "values": [
+          986,
+          945,
+          977
+        ],
+        "median_ms": 977
+      },
+      {
+        "rung": "T8",
+        "chunks": 50299,
+        "files": 8945,
+        "n": 3,
+        "values": [
+          1758,
+          1936,
+          1390
+        ],
+        "median_ms": 1758
+      },
+      {
+        "rung": "T9",
+        "chunks": 73359,
+        "files": 13330,
+        "n": 3,
+        "values": [
+          2292,
+          2439,
+          2761
+        ],
+        "median_ms": 2439
+      }
+    ]
+  },
+  "pre_fix": {
+    "all_runs": {
+      "b": 1.3814453328704095,
+      "se_hc3": 0.07936931510719318,
+      "r2": 0.9578558646048133,
+      "n": 27,
+      "df": 25,
+      "ci_hc3": [
+        1.2179811685015207,
+        1.5449094972392983
+      ],
+      "ci_is_context_only": true
+    },
+    "rung_medians": {
+      "b": 1.3949401082042703,
+      "se_hc3": 0.1593142076404675,
+      "r2": 0.9689563866897066,
+      "n": 9,
+      "df": 7,
+      "ci_hc3": [
+        1.0182218691943328,
+        1.7716583472142078
+      ],
+      "ci_is_context_only": true
+    },
+    "rungs": [
+      {
+        "rung": "T1",
+        "chunks": 3679,
+        "files": 656,
+        "n": 3,
+        "values": [
+          110,
+          113,
+          169
+        ],
+        "median_ms": 113
+      },
+      {
+        "rung": "T2",
+        "chunks": 5332,
+        "files": 954,
+        "n": 3,
+        "values": [
+          157,
+          158,
+          160
+        ],
+        "median_ms": 158
+      },
+      {
+        "rung": "T3",
+        "chunks": 7761,
+        "files": 1393,
+        "n": 3,
+        "values": [
+          240,
+          230,
+          209
+        ],
+        "median_ms": 230
+      },
+      {
+        "rung": "T4",
+        "chunks": 11278,
+        "files": 1986,
+        "n": 3,
+        "values": [
+          374,
+          331,
+          329
+        ],
+        "median_ms": 331
+      },
+      {
+        "rung": "T5",
+        "chunks": 16529,
+        "files": 2880,
+        "n": 3,
+        "values": [
+          518,
+          514,
+          480
+        ],
+        "median_ms": 514
+      },
+      {
+        "rung": "T6",
+        "chunks": 23854,
+        "files": 4191,
+        "n": 3,
+        "values": [
+          810,
+          894,
+          881
+        ],
+        "median_ms": 881
+      },
+      {
+        "rung": "T7",
+        "chunks": 34691,
+        "files": 5976,
+        "n": 3,
+        "values": [
+          1742,
+          1575,
+          1573
+        ],
+        "median_ms": 1575
+      },
+      {
+        "rung": "T8",
+        "chunks": 50299,
+        "files": 8945,
+        "n": 3,
+        "values": [
+          3401,
+          3417,
+          3392
+        ],
+        "median_ms": 3401
+      },
+      {
+        "rung": "T9",
+        "chunks": 73359,
+        "files": 13330,
+        "n": 3,
+        "values": [
+          9778,
+          8501,
+          8347
+        ],
+        "median_ms": 8501
+      }
+    ],
+    "source": "e1-verify-runs.jsonl, keyed by `corpus` per FINDINGS.md §1"
+  },
+  "local_slopes": {
+    "post_fix": [
+      {
+        "segment": "T1->T2",
+        "slope": 0.9067244706222094
+      },
+      {
+        "segment": "T2->T3",
+        "slope": 1.159658258325458
+      },
+      {
+        "segment": "T3->T4",
+        "slope": 0.9543327855131049
+      },
+      {
+        "segment": "T4->T5",
+        "slope": 0.5340325307953206
+      },
+      {
+        "segment": "T5->T6",
+        "slope": 1.3169577336025011
+      },
+      {
+        "segment": "T6->T7",
+        "slope": 0.9833529482023675
+      },
+      {
+        "segment": "T7->T8",
+        "slope": 1.5812588532983702
+      },
+      {
+        "segment": "T8->T9",
+        "slope": 0.8675905446725903
+      }
+    ],
+    "pre_fix": [
+      {
+        "segment": "T1->T2",
+        "slope": 0.903315491941581
+      },
+      {
+        "segment": "T2->T3",
+        "slope": 1.000265024964935
+      },
+      {
+        "segment": "T3->T4",
+        "slope": 0.9740365064280672
+      },
+      {
+        "segment": "T4->T5",
+        "slope": 1.1513159236399317
+      },
+      {
+        "segment": "T5->T6",
+        "slope": 1.4688718902083437
+      },
+      {
+        "segment": "T6->T7",
+        "slope": 1.5511586655640928
+      },
+      {
+        "segment": "T7->T8",
+        "slope": 2.072150906642683
+      },
+      {
+        "segment": "T8->T9",
+        "slope": 2.427564515841538
+      }
+    ]
+  },
+  "hypotheses": {
+    "H1": {
+      "statement": "post-fix edges exponent (all_runs, n=27) is at or below the bar — no residual worth naming",
+      "bar": 1.15,
+      "observed": 1.0184476977482846,
+      "fires": true,
+      "residual_if_refuted": null
+    },
+    "H2": {
+      "statement": "the pre/post separation reproduces — guards H1 against a harness or machine artifact",
+      "min_separation": 0.2,
+      "b_verify": 1.3814453328704095,
+      "b_ladder": 1.0184476977482846,
+      "observed": 0.3629976351221249,
+      "fires": true
+    },
+    "H3": {
+      "statement": "no bend — the fix removes the knee rather than postponing it above T9",
+      "bar": 1.3,
+      "observed": 1.5812588532983702,
+      "at_segment": "T7->T8",
+      "fires": false,
+      "all_segments": [
+        {
+          "segment": "T1->T2",
+          "slope": 0.9067244706222094
+        },
+        {
+          "segment": "T2->T3",
+          "slope": 1.159658258325458
+        },
+        {
+          "segment": "T3->T4",
+          "slope": 0.9543327855131049
+        },
+        {
+          "segment": "T4->T5",
+          "slope": 0.5340325307953206
+        },
+        {
+          "segment": "T5->T6",
+          "slope": 1.3169577336025011
+        },
+        {
+          "segment": "T6->T7",
+          "slope": 0.9833529482023675
+        },
+        {
+          "segment": "T7->T8",
+          "slope": 1.5812588532983702
+        },
+        {
+          "segment": "T8->T9",
+          "slope": 0.8675905446725903
+        }
+      ]
+    }
+  },
+  "gate_L": {
+    "band": 0.15,
+    "rungs": [
+      {
+        "rung": "T1",
+        "e1_scan_arm_r_ms": 112,
+        "e1_ladder_ms": 110,
+        "deviation": -0.017857142857142856
+      },
+      {
+        "rung": "T5",
+        "e1_scan_arm_r_ms": 446,
+        "e1_ladder_ms": 417,
+        "deviation": -0.06502242152466367
+      },
+      {
+        "rung": "T8",
+        "e1_scan_arm_r_ms": 1461,
+        "e1_ladder_ms": 1758,
+        "deviation": 0.2032854209445585
+      },
+      {
+        "rung": "T9",
+        "e1_scan_arm_r_ms": 2217,
+        "e1_ladder_ms": 2439,
+        "deviation": 0.10013531799729364
+      }
+    ],
+    "findings": [
+      "T8: E1-LADDER 1758 ms vs E1-SCAN arm R 1461 ms — 20.3%, outside +/-15%"
+    ],
+    "ok": false
+  },
+  "descriptive": {
+    "note": "Adjudicates nothing. Retires the prose-only figures in FINDINGS.md §2.3.",
+    "two_term_model": {
+      "unweighted": {
+        "a": 0.0017053154597365396,
+        "b": 0.000013415995556819091,
+        "per_rung": [
+          {
+            "rung": "T1",
+            "chunks": 3679,
+            "actual_ms": 113,
+            "predicted_ms": 20.16141419787393,
+            "error": -0.8215804053285493
+          },
+          {
+            "rung": "T2",
+            "chunks": 5332,
+            "actual_ms": 158,
+            "predicted_ms": 40.69871566996312,
+            "error": -0.7424131919622587
+          },
+          {
+            "rung": "T3",
+            "chunks": 7761,
+            "actual_ms": 230,
+            "predicted_ms": 79.27068998998857,
+            "error": -0.6553448261304845
+          },
+          {
+            "rung": "T4",
+            "chunks": 11278,
+            "actual_ms": 331,
+            "predicted_ms": 165.53262910914728,
+            "error": -0.499901422630975
+          },
+          {
+            "rung": "T5",
+            "chunks": 16529,
+            "actual_ms": 514,
+            "predicted_ms": 364.4217755982711,
+            "error": -0.29100821868040644
+          },
+          {
+            "rung": "T6",
+            "chunks": 23854,
+            "actual_ms": 881,
+            "predicted_ms": 778.3130993834385,
+            "error": -0.1165572084183445
+          },
+          {
+            "rung": "T7",
+            "chunks": 34691,
+            "actual_ms": 1575,
+            "predicted_ms": 1687.4505948342867,
+            "error": 0.07139720306938836
+          },
+          {
+            "rung": "T8",
+            "chunks": 50299,
+            "actual_ms": 3401,
+            "predicted_ms": 3704.286328600735,
+            "error": 0.08917563322573803
+          },
+          {
+            "rung": "T9",
+            "chunks": 73359,
+            "actual_ms": 8501,
+            "predicted_ms": 8755.674385649852,
+            "error": 0.02995816793904863
+          }
+        ],
+        "T1_error": -0.8215804053285493,
+        "T9_error": 0.02995816793904863,
+        "vscode_out_of_sample": {
+          "file_count": 8653,
+          "edge_count": 174844,
+          "actual_ms": 28829,
+          "predicted_ms": 20595.561024954113,
+          "error": -0.2855957187223243
+        }
+      },
+      "relative": {
+        "a": 0.04598524827521784,
+        "b": 0.000006713158839050516,
+        "per_rung": [
+          {
+            "rung": "T1",
+            "chunks": 3679,
+            "actual_ms": 113,
+            "predicted_ms": 96.69664542890553,
+            "error": -0.14427747408048205
+          },
+          {
+            "rung": "T2",
+            "chunks": 5332,
+            "actual_ms": 158,
+            "predicted_ms": 147.00522267232773,
+            "error": -0.06958719827640675
+          },
+          {
+            "rung": "T3",
+            "chunks": 7761,
+            "actual_ms": 230,
+            "predicted_ms": 215.0936694772651,
+            "error": -0.064810132707543
+          },
+          {
+            "rung": "T4",
+            "chunks": 11278,
+            "actual_ms": 331,
+            "predicted_ms": 346.35535971897184,
+            "error": 0.04639081486094212
+          },
+          {
+            "rung": "T5",
+            "chunks": 16529,
+            "actual_ms": 514,
+            "predicted_ms": 590.0278433942955,
+            "error": 0.14791409220680052
+          },
+          {
+            "rung": "T6",
+            "chunks": 23854,
+            "actual_ms": 881,
+            "predicted_ms": 995.8035027876314,
+            "error": 0.1303104458429414
+          },
+          {
+            "rung": "T7",
+            "chunks": 34691,
+            "actual_ms": 1575,
+            "predicted_ms": 1774.498489015581,
+            "error": 0.12666570731148005
+          },
+          {
+            "rung": "T8",
+            "chunks": 50299,
+            "actual_ms": 3401,
+            "predicted_ms": 3227.1586102451197,
+            "error": -0.05111478675533088
+          },
+          {
+            "rung": "T9",
+            "chunks": 73359,
+            "actual_ms": 8501,
+            "predicted_ms": 6569.96888162162,
+            "error": -0.227153407643616
+          }
+        ],
+        "T1_error": -0.14427747408048205,
+        "T9_error": -0.227153407643616,
+        "vscode_out_of_sample": {
+          "file_count": 8653,
+          "edge_count": 174844,
+          "actual_ms": 28829,
+          "predicted_ms": 18196.75147213966,
+          "error": -0.3688039310368151
+        }
+      }
+    },
+    "curvature": {
+      "note": "descriptive, unregistered — H3 is the registered bend test",
+      "post_fix_pct": 8.731649643904294,
+      "pre_fix_pct": 45.581095133908356
+    }
+  }
+}

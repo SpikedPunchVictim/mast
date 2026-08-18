@@ -10647,3 +10647,177 @@ condition under which controls earn their place, so H2 is registered as a hard f
 H3 is written to catch the specific way a fix like this fails silently — by moving a knee rather
 than removing it. E1-SCAN's block-1 read had both its controls outside the band before the full n
 brought them in; partial series will not be reported as trends here either.
+
+---
+
+### E1-LADDER RESULT (2026-08-17) — H1 FIRES, H2 FIRES, H3 IS REFUTED BY ITS OWN NOISE
+
+Scored by `eval/e1-ladder-score.mjs` from `eval/results/e1-ladder-runs.jsonl`; verdict at
+`eval/results/e1-ladder-verdict.json`. **27/27 runs, 0 VOID, 0 interrupted, `scoreable: true`.**
+Three Gate 3 triple-failures (T3#2, T4#2, T4#3) logged and retained per A4-MAT-6 — all three in the
+T3/T4 region, which is a machine-contention signal and matters below.
+
+#### The primary series
+
+`phase_ms.edges`, median of 3 reps. Pre-fix column is `e1-verify`'s committed nine-rung ladder.
+
+| rung | chunks | files | pre-fix | post-fix | ratio |
+|---|---|---|---|---|---|
+| T1 | 3,679 | 656 | 113 | 110 | 1.027 |
+| T2 | 5,332 | 954 | 158 | 154 | 1.026 |
+| T3 | 7,761 | 1,393 | 230 | 238 | 0.966 |
+| T4 | 11,278 | 1,986 | 331 | 340 | 0.974 |
+| T5 | 16,529 | 2,880 | 514 | 417 | 1.233 |
+| T6 | 23,854 | 4,191 | 881 | 676 | 1.303 |
+| T7 | 34,691 | 5,976 | 1,575 | 977 | 1.612 |
+| T8 | 50,299 | 8,945 | 3,401 | 1,758 | 1.935 |
+| T9 | 73,359 | 13,330 | 8,501 | 2,439 | **3.485** |
+
+- **H1 FIRES.** Post-fix exponent **1.0184** (all_runs, n=27, `se_hc3` 0.0351, R² 0.9817,
+  `ci_hc3` [0.9461, 1.0908] — context-only). Bar was 1.15. Rung-medians estimator agrees at
+  **1.0339** (R² 0.9930).
+- **H2 FIRES.** Separation **0.3630** against a 0.20 minimum, with `b_verify = 1.3814453328704095`
+  read from `e1-unread-fit.json` and reproduced from the journal by the scorer's self-check to
+  within 1e-9.
+- **H3 IS REFUTED.** Max adjacent local slope **1.5813** at T7→T8, against a bar of 1.30. **The
+  refutation carries no mechanism content — the bar was finer than the statistic can resolve.**
+  See below.
+
+#### The residual, named: there isn't one
+
+`b - 1 = 0.018`. Nine rungs say the post-fix edges phase is **linear in chunks**, and unlike
+E1-SCAN's four-rung fit this one is stable:
+
+| slice | E1-SCAN (4 rungs) | E1-LADDER (9 rungs) |
+|---|---|---|
+| leave-one-rung-out range | 0.9785 – 1.1051 | **0.9944 – 1.0449** |
+
+Every one of the nine leave-one-out fits lands within 0.026 of the full-ladder value. E1-SCAN's
+RESULT refused to quote `0.9972` as a four-figure exponent and was right to; **b = 1.02 is now
+quotable**, and that precision is what the extra five rungs bought.
+
+**The one slice that still hints at a residual, reported because it is the strongest counter-
+evidence available:** fitting only the top half (T5–T9) gives **1.1692** — above H1's bar — while
+the bottom half (T1–T5) gives **0.8982**. Neither was registered. With 15 runs a side at this
+session's noise level the split is not distinguishable from noise, and the leave-one-out stability
+argues against reading it as structure. But it is the honest residual candidate and it is not
+resolved here.
+
+#### Why H3 was refuted, and why that refutation says nothing about the mechanism
+
+The registered statistic — the largest single adjacent-rung local slope — has a noise width
+approaching **1.6**, recomputed here across all nine rep pairings per segment:
+
+| segment | median-based | range over rep pairings | width |
+|---|---|---|---|
+| T1→T2 | 0.907 | [−0.172, 1.388] | **1.560** |
+| T5→T6 | 1.317 | [0.803, 2.111] | 1.308 |
+| T7→T8 | **1.581** | [0.924, 1.931] | 1.006 |
+| T8→T9 | 0.868 | [0.447, 1.819] | 1.371 |
+
+Adjacent rungs differ by only ~1.4× in chunks, so `ln` of that ratio is ~0.34 and a 20% error in one
+rung's median moves the slope by ~0.5. **I registered a bar of 1.30 on a quantity whose own
+uncertainty is ±0.5 or worse.** That is a design error in the registration, and it is mine: the
+noise was computable before the run from E1-VERIFY's rep spreads and I did not compute it.
+
+The substantive claim H3 encoded is *also* false, and for a reason visible without any statistics:
+**a knee that unbends is not a knee.** The T7→T8 slope of 1.581 is immediately followed by T8→T9 at
+**0.868**. Pre-fix, the profile rises monotonically to the top rung; post-fix it oscillates around
+its own mean:
+
+| segment | T1→T2 | T2→T3 | T3→T4 | T4→T5 | T5→T6 | T6→T7 | T7→T8 | T8→T9 |
+|---|---|---|---|---|---|---|---|---|
+| pre-fix | 0.903 | 1.000 | 0.974 | 1.151 | 1.469 | 1.551 | 2.072 | **2.428** |
+| post-fix | 0.907 | 1.160 | 0.954 | 0.534 | 1.317 | 0.983 | **1.581** | 0.868 |
+
+**Post-hoc and unregistered, labelled as such:** Spearman rank correlation of local slope against
+ladder position is **0.976 pre-fix** (near-perfectly monotone — a real bend) and **0.143 post-fix**
+(no trend). Post-fix slopes have mean 1.0380, which is the fitted exponent, and SD 0.3158, which is
+the noise. The registered descriptive curvature statistic agrees: quadratic departure
+**45.58% pre-fix, 8.73% post-fix**.
+
+Had H3 been registered as a trend test rather than a max-of-eight, it would have fired. It was not,
+so **it is recorded as refuted**, and the trend figures above are reported as post-hoc context that
+adjudicates nothing.
+
+#### Gate L — cross-experiment replication, one excursion
+
+Same source (`git log c4b4816..HEAD -- src/` empty), Gate 0 hash pinned across all 27 runs.
+
+| rung | E1-SCAN arm R | E1-LADDER | deviation |
+|---|---|---|---|
+| T1 | 112 | 110 | −1.8% |
+| T5 | 446 | 417 | −6.5% |
+| T8 | 1,461 | **1,758** | **+20.3%** |
+| T9 | 2,217 | 2,439 | +10.0% |
+
+**T8 is outside the ±15% band — reported as the finding Gate L was registered to produce.** What
+can be said: the two rungs' rep sets *overlap* — E1-LADDER T8 is [1390, 1758, 1936] against
+E1-SCAN's [1503, 1441, 1461] — so the minimum here sits below E1-SCAN's median. This session was
+measurably noisier: within-rung spread reached 60.9% (T1), 38.2% (T6), 31.1% (T8) against E1-SCAN
+arm R's tight T8 spread of 4.3%, and three runs failed Gate 3 on all three attempts. What **cannot**
+be said is that this is proven to be contention rather than something real about T8; the binary is
+identical and no code explains it, but a null explanation is not a measurement. T8's median is also
+the single largest contributor to H3's 1.581.
+
+#### The two-term model, recomputed — and two of the four prose figures do not reproduce
+
+`edges_ms = a·E + b·E·F`, fitted on `e1-verify`'s 27 **pre-fix** runs. **Descriptive; adjudicates
+nothing.** This retires the prose-only figures in `FINDINGS.md` §2.3.
+
+| fit | a | b | T1 error | T9 error | vscode (out of sample) |
+|---|---|---|---|---|---|
+| unweighted OLS | 1.7053e-3 | 1.3416e-5 | **−82.2%** | **+3.0%** | **−28.6%** |
+| relative-error weighted | 4.5985e-2 | 6.7132e-6 | −14.4% | **−22.7%** | **−36.9%** |
+
+Against what §2.3 asserts in prose:
+
+| prose claim | recomputed | verdict |
+|---|---|---|
+| relative weighting under-predicts T9 by 23% | −22.7% | **reproduces** |
+| unweighted fits T9 to −1.1% | **+3.0%** | **does not reproduce** — wrong sign |
+| unweighted misses T1 by −74% | **−82.2%** | **does not reproduce** |
+| vscode under-predicted 30–37% either way | −28.6% / −36.9% | **partially** — one end outside |
+
+The qualitative conclusion is unchanged and now has a script behind it: **no single `(a, b)`
+describes the whole ladder** (T1 off by −82% while T9 sits at +3%), and vscode is under-predicted
+out of sample by roughly 29–37% under either weighting. The provenance of the two non-reproducing
+figures cannot be reconstructed — no script computed them — which is exactly the argument for not
+having prose-only numbers.
+
+#### A defect the self-check caught before it could matter
+
+The scorer refuses to run unless it reproduces `e1-unread-fit.json` exactly, because H2 subtracts
+that script's number from this one's. On first execution it failed: `rung_medians` matched to zero
+while `all_runs` differed by 0.00088. Cause — reading `measurement.phase_ms` instead of the
+top-level fitted value. On a Gate 3 failure `selectFitted` puts the fitted attempt at the top level
+and leaves the last raw attempt under `measurement`, so the raw field scores the **wrong attempt on
+exactly the runs the retake machinery exists to handle**. E1-VERIFY has one (T3 rep 3: 240 fitted
+vs 233 raw), which does not move T3's median — hence the medians matching while the 27-point fit
+shifted.
+
+**Completeness check, per §11.3:** no committed scorer reads `measurement.phase_ms`, so **no
+published result is affected**. Divergent rows by journal: **`e1-ladder` 3/27** (its three Gate 3
+triple-failures, T3#2/T4#2/T4#3), `e1-verify` 1/27, `e1-ab` 0/30, `e1-fts` 0/31, `e1-phase` 0/15,
+`e1-scan` 0/24.
+
+**This paragraph's first draft said `e1-ladder` 0/27, and that was false.** The audit behind it was
+run before the ladder journal existed; the zero was pattern-matched from the other five rather than
+measured. The §11.8 recomputation required before commit caught it while this block was still
+uncommitted. Recorded rather than silently corrected, because the failure mode — quoting a count
+for an artifact that did not exist when the count was taken — is the one §11.1 exists to prevent,
+and E1-LADDER is the journal with the *most* divergent rows of any in the program.
+
+#### What this does not answer
+
+- **One corpus family.** n8n only. The top-half slice at 1.1692 and vscode's 1.73× edge density both
+  point at the same untested question, and `vscode-build.json` remains a **pre-fix** build.
+- **The T5–T9 sub-fit is unresolved**, not dismissed. Separating a ~0.15 residual from this
+  session's noise needs more reps per rung, not more rungs.
+- **H3's real question was answered post-hoc.** The registered form was a bad instrument; the trend
+  and curvature figures that answer it were not pre-registered and are labelled throughout.
+- **Nothing here isolates `importResolvedPathFor`'s `JSON.parse`** (task #6), and nothing here
+  measures `resolveCallTarget` invocations. No per-call cost is claimed.
+- **The pre/post contrast is cross-session.** The pre-fix column is E1-VERIFY's, measured days
+  earlier on a different binary build of the same source. E1-SCAN's within-session A/B remains the
+  stronger causal evidence; this experiment's contribution is resolution, not causation.

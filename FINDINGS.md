@@ -46,7 +46,7 @@ question that may already be answerable without running anything.
 | `potential_call_count` | all five journals | **144** | `e1-unread-fit.mjs` (e1-verify's 27 only) | see 1.1 |
 | `phase_ms.*` (all 5 phases) | `e1-ab` 30, `e1-fts` 30, `e1-verify` 27 | **87** | **`e1-unread-fit.mjs` — all 87** | **CLOSED 08-17**, see 1.2 |
 | `write_spans.*` (6 spans) | `e1-verify` | **27** | **`e1-unread-fit.mjs`** | **CLOSED 08-17**, see 1.4 |
-| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` | 27 | nothing (the 27/27 identity check in §2.1 is hand analysis) | **still open**, see 1.4 |
+| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` 27, **`e1-ladder` 27** | **54** | nothing (the 27/27 identity check in §2.1 is hand analysis) | **still open and now larger**, see 1.4 |
 | `external_ms` | all five journals | 144 | `e1-schedule.mjs` only, for scheduling — never scored | low value |
 | guard-era per-phase exponents | `eval/vscode-build.mjs` constants | — | **`e1-unread-fit.mjs` reproduces all five** | **CLOSED 08-17**, see 1.3 |
 | `symbol_count` | all five journals | 144 | runners only; descriptive | unscored by design |
@@ -70,6 +70,18 @@ five scorers for it; corrected 2026-08-17 after adversarial review. To re-verify
 journal, repeat that diff — and grep the *scorers*, not just the runners, before calling anything
 unread.
 
+**Re-run 2026-08-17 for the sixth journal, `e1-ladder-runs.jsonl` (27 runs).** It records the same
+`measurement.*` shape as the others, so it adds no new *kind* of unread series — but it does enlarge
+one: `chunk_fts_count` / `identifier_fts_count` doubles to **54 rows** (task #7). Its primary
+series (`phase_ms.edges`, `chunk_count`, `file_count`) is read by `e1-ladder-score.mjs`. Two caveats
+on the method, stated so the next person does not over-trust it: the grep matches key **names across
+all scorers**, so a name read for one journal counts as read everywhere, and `stdout_tail`,
+`stderr_tail`, `env`, `resolved_config`, `wal_boundary`, `exit_status`, `state_dir`, `project_root`
+and `extra_args` remain diagnostics rather than measurement series and are not tracked here.
+
+**`e1-ladder` rows carry BOTH `tier` and `corpus`**, deliberately, so neither grouping convention can
+reproduce the collapse trap described below.
+
 **Count rows, not lines, and then subtract the dead ones.** A journal line is not a run: the files
 carry `attempt_start` records, gate rows and calibration rows alongside measurements, so `wc -l`
 over-counts by roughly 2×. But filtering on `r.measurement?.phase_ms != null` is still not the
@@ -91,6 +103,29 @@ across all three reps of a rung (the tiers are deterministic nested subsets).
 top level yields `undefined`, and any rate built on it silently becomes `NaN`. Fits should refuse a
 non-positive series rather than drop it; `e1-unread-fit.mjs` reports `non_positive_values`, which is
 how this trap was caught rather than published.
+
+**And `measurement.phase_ms` is NOT the scored value — the top-level `phase_ms` is.** On a run where
+Gate 3 failed, `selectFitted` puts the **fitted** attempt at the top level and leaves the **last raw
+attempt** under `measurement`. Reading `measurement` therefore scores the wrong attempt on precisely
+the runs the retake machinery exists to handle. `e1-verify` has exactly one such row — T3 rep 3,
+**240 ms fitted vs 233 ms raw** — and because it is not T3's median, it moves the 27-point fit
+(1.3823 instead of 1.3814) while leaving the rung-median fit identical. That asymmetry is the
+diagnostic: *medians agree, all-runs does not* means an attempt-selection bug, not an arithmetic one.
+
+Audited across all six journals: **no committed scorer reads `measurement.phase_ms`**, so no
+published result was affected. Divergent rows by journal — **`e1-ladder` 3/27**, `e1-verify` 1/27,
+`e1-ab` 0/30, `e1-fts` 0/31, `e1-phase` 0/15, `e1-scan` 0/24. The three in `e1-ladder` are exactly
+its Gate 3 triple-failures (T3#2, T4#2, T4#3), which is the expected pattern: divergence is possible
+only where a retake was fitted.
+
+Caught by `e1-ladder-score.mjs`'s self-check, which refuses to score unless it reproduces
+`e1-unread-fit.json` to 1e-9 — **a cross-script reproduction assertion is worth more than a comment
+saying the estimators match.**
+
+> **This paragraph itself carried the error once.** Its first draft claimed `e1-ladder` 0/27. That
+> audit was run before the ladder journal existed, and the zero was pattern-matched from the other
+> five rather than measured; the adversarial recomputation required before commit (§11.8) caught it
+> pre-publication. A count for an artifact that did not exist when you counted is not a count.
 
 ### 1.1 `potential_call_count` — recorded on 144 scoreable runs, never read
 
@@ -313,10 +348,23 @@ Against a per-phase projection from T9: total **−9.0%**, walk −42.5%, parse 
 recorded as absent behind two write errors. The Stage 4.5 S1 batching fix (SQLITE_MAX_VARIABLES =
 32,766, applied across 8 sites) is proven at real scale.
 
-### 2.3 The edges phase — the one open scaling question
+### 2.3 The edges phase — CLOSED as a scaling question (2026-08-17)
 
-The only component still near the 1.35 bar. **Nothing here is settled**; this section records what
-is known so the next registration starts from it.
+**Settled by E1-SCAN and E1-LADDER.** The `files` prefix scan was the exponent; removing it makes
+the phase linear. Post-fix exponent **1.0184** (all_runs, n=27, R² 0.9817, `se_hc3` 0.0351), against
+a pre-fix **1.3814** on the same nine rungs — `eval/results/e1-ladder-verdict.json`, RESULT at
+`IMPLEMENTATION_PLAN.md` § E1-LADDER RESULT. Leave-one-rung-out spans **[0.9944, 1.0449]**, so
+`b ≈ 1.02` is quotable to three figures; E1-SCAN's four-rung `b ≈ 1.0–1.1` is superseded, not
+contradicted.
+
+**One residual candidate survives and is not resolved:** a top-half-only fit (T5–T9) gives
+**1.1692** against a bottom-half **0.8982**. Unregistered, 15 runs a side, not separable from this
+session's noise — but it is where a real residual would show, and it is the reason §2.3 is closed
+as a *scaling* question rather than closed outright. More reps per rung would settle it; more rungs
+would not.
+
+The rest of this section is the pre-fix record, retained because it is what the next registration
+starts from.
 
 - Scored exponent **1.4360**, HC3 [1.2333, 1.6388] (E1-PHASE, pre-guard). The CI **straddles 1.35**.
   E1-PHASE's H2 (edges carries the exponent) **did not fire** — its bar was 1.6.
@@ -385,16 +433,28 @@ Confidence, apportioned (`.claude/CLAUDE.md` §11.5):
   constant baseline. The implied baseline, ~0.05 ms/edge, matches the flat part of the ms/edge
   curve. (An earlier revision gave these in **µs** — a 1000× unit error. `113 ms / (1919 × 656)` is
   8.98e-5 ms = 89.8 ns. The shape of the argument is unaffected.)
-- **Refuted as a complete explanation** — a two-term model `edges_ms = a·E + b·E·F` cannot fit both
-  ends of the ladder under any weighting. Relative-error weighting under-predicts T9 by **23%**;
-  unweighted least squares fits T9 to **−1.1%** but misses T1 by **−74%**. Out of sample, vscode is
-  under-predicted by **30–37%** either way. **Quote the weighting-independent statement**, not the
-  23%: no single `(a, b)` describes the whole ladder, so the true curve is steeper than the scan
-  alone and something else is also super-linear. It has not been named. These figures are
-  **prose-only — no committed script computes them**, which is the §11.1 failure this very file
-  warns about; persisting them through `e1-unread-fit.mjs` is outstanding work.
-- **Unmeasured** — the actual call count, the actual time inside the scan, and the residual. No
-  counter exists for any of them.
+- **Superseded as an inference — and its conclusion is now refuted by measurement.** A two-term
+  model `edges_ms = a·E + b·E·F` cannot fit both ends of the pre-fix ladder under any weighting,
+  and that was read as "something else is also super-linear." **E1-LADDER tested that claim
+  directly: post-fix the phase is linear (b = 1.0184 over nine rungs).** There is no unnamed
+  super-linear second mechanism at n8n scale. The model's misfit is a statement about the model.
+
+  **Recomputed by `e1-ladder-score.mjs` (descriptive section of `e1-ladder-verdict.json`), and two
+  of the four figures this file previously carried in prose do not reproduce:**
+
+  | prose claim | recomputed | verdict |
+  |---|---|---|
+  | relative weighting under-predicts T9 by 23% | −22.7% | reproduces |
+  | unweighted fits T9 to −1.1% | **+3.0%** | **does not reproduce** — wrong sign |
+  | unweighted misses T1 by −74% | **−82.2%** | **does not reproduce** |
+  | vscode under-predicted 30–37% either way | −28.6% / −36.9% | partially — one end outside |
+
+  Unweighted `a = 1.7053e-3, b = 1.3416e-5`; relative-weighted `a = 4.5985e-2, b = 6.7132e-6`. The
+  weighting-independent statement stands and now has a script behind it: **no single `(a, b)`
+  describes the whole ladder.** The provenance of the two non-reproducing figures cannot be
+  reconstructed, because no script ever computed them — which is the §11.1 argument in miniature.
+- **Unmeasured** — the actual call count and the actual time inside the scan. No counter exists for
+  either. (The *residual* is no longer in this list: it was measured, and it is ~0.02.)
 
 #### The scan is also a correctness bug, and there are two of them
 
@@ -633,6 +693,25 @@ regression.
 | E1-PHASE's H2/H3/H4 | H2 (edges carries it) b = 1.436 < 1.6 bar. H3 (parse) b = 1.014. H4 (no phase reaches the bar) — write did. |
 | The **edges** exponent has a cause other than the `files` full scan | E1-SCAN: removing the scan takes edges from b = 1.4382 to **b ≈ 1.0–1.1**, T8→T9 local slope 2.4709 → 1.1051, at 24 runs with T1/T5 controls null. The scan *was* the exponent. |
 | E1-SCAN's own **H3** — "removing the scan does not make edges linear" | Registered band [1.15, 1.55] on the post-fix T8→T9 slope; observed **1.1051**, missing low. The `POTENTIAL_CALL` floor the hypothesis rested on does not exist — see §1.1. |
+| **Something other than the scan is also super-linear** in the edges phase | Inferred from the two-term model's misfit (§2.3). E1-LADDER measured it instead: post-fix **b = 1.0184** over nine rungs, leave-one-out [0.9944, 1.0449]. The misfit was a property of the model, not of the code. |
+| E1-LADDER's own **H3** — "the fix postpones the knee rather than removing it" | Registered bar 1.30 on the max adjacent local slope; observed **1.5813** (T7→T8), so **refuted as registered**. But the bar was unresolvable: that statistic's width across rep pairings reaches **1.560**. A knee that unbends is not a knee — T8→T9 is **0.868**. See the caution below. |
+
+#### Do not register a bar finer than its statistic can resolve
+
+E1-LADDER's H3 is the cautionary entry. An **adjacent-rung local slope** on this ladder is a noisy
+quantity by construction: neighbouring rungs differ by only ~1.4× in chunks, so `ln` of that ratio
+is ~0.34 and a 20% error in one rung's median moves the slope by ~0.5. Recomputed across all nine
+rep pairings per segment, the widths run to **1.560**. A bar of 1.30 on the *maximum of eight* such
+slopes was never going to mean anything, and the noise was computable in advance from E1-VERIFY's
+own rep spreads.
+
+The registered form is refuted and recorded as refuted. The question it meant to ask — is there a
+bend? — was answered **post-hoc**: Spearman rank correlation of local slope against ladder position
+is **0.976 pre-fix** versus **0.143 post-fix**, and quadratic departure is **45.58%** versus
+**8.73%**. Both say the bend is gone. Neither was pre-registered, and neither adjudicates.
+
+Before registering a threshold on a derived statistic, **compute that statistic's noise from data
+already committed.** Here that was nine journal rows and five minutes.
 
 #### The edges/cache refutation in full
 
