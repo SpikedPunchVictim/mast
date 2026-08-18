@@ -10821,3 +10821,42 @@ and E1-LADDER is the journal with the *most* divergent rows of any in the progra
 - **The pre/post contrast is cross-session.** The pre-fix column is E1-VERIFY's, measured days
   earlier on a different binary build of the same source. E1-SCAN's within-session A/B remains the
   stronger causal evidence; this experiment's contribution is resolution, not causation.
+
+---
+
+### CORRECTION (2026-08-18) — `POTENTIAL_CALL` was described backwards, in §1.1 and in E1-SCAN's RESULT
+
+Found while characterising `importResolvedPathFor` for task #6. Appended, not edited, because the
+E1-SCAN RESULT block is part of the committed record.
+
+**The claim, as written** (E1-SCAN RESULT, this file ~:10407, and `FINDINGS.md` §1.1):
+"`POTENTIAL_CALL` is what the resolver emits when it *cannot* pin a call, and its share rises with
+corpus size; unresolved calls are evidently cheaper per row than resolved ones."
+
+**It is inverted.** A stored `POTENTIAL_CALL` row is a **successfully resolved** call:
+
+- `src/graph/populate.ts:728-736` — `to_id` comes from `callToMap`, then
+  `if (to_id === undefined) return []`. An unresolved call produces **no row at all**.
+- `src/ast/extractors/typescript.ts:1344-1360` — the extractor pushes a `POTENTIAL_CALL` candidate
+  only in the `edge_emitted` bucket, i.e. only where `resolveCall` already linked the callee.
+
+The edge type names the *class of call requiring file-evidence resolution*, not a failure to
+resolve. So the rising 0.259 → 0.370 rows/chunk means a growing fraction of call sites **succeed**,
+which is the sensible direction: a larger corpus contains more of its own targets.
+
+**A `to_id IS NULL` count is not evidence** and was briefly mistaken for it during this check —
+`edges.to_id` is declared `INTEGER NOT NULL`, so zero nulls is vacuous. The code path is the
+evidence. Recorded because the vacuous check *agreed* with the right answer, which is the most
+dangerous kind of wrong evidence.
+
+**What this does and does not disturb.**
+
+- **E1-SCAN's H3 refutation is unaffected.** H3 died on a measured slope (1.1051 against a
+  registered [1.15, 1.55] band). That is a measurement and it stands. Only the *explanatory sentence*
+  attached to it was wrong.
+- **§1.1's headline warning survives and is strengthened.** `potential_call_count` is still not a
+  work counter — and now for a sharper reason than the one recorded. It counts *successes* and omits
+  every failed resolution attempt, each of which costs real time and leaves no trace. The count
+  understates work, and it understates it by an amount no committed artifact measures.
+- **The "unresolved calls are cheaper per row" explanation is withdrawn.** The falling post-fix cost
+  per surviving row (117.5 → 81.7 µs) is still measured; the mechanism offered for it was not.

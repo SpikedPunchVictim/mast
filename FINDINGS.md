@@ -154,10 +154,29 @@ Their share of all edges trends upward but is **not** monotonic: across all nine
 0.259, 0.258, 0.259, 0.275, 0.281, 0.291, 0.314, 0.329, 0.370 rows/chunk — flat over the first three
 rungs, then climbing.
 
-`POTENTIAL_CALL` is what the resolver emits when it *cannot* pin a call to a definite target, so
-this says: **at larger corpora a growing fraction of call sites fail to resolve.** That constrains
-any hypothesis about the edges phase. It does not measure the phase's cost, and must not be
-presented as if it does.
+> **[CORRECTION, 2026-08-18 — this paragraph said the opposite, and it was wrong.]** It read:
+> *"`POTENTIAL_CALL` is what the resolver emits when it cannot pin a call to a definite target, so
+> this says: at larger corpora a growing fraction of call sites fail to resolve."* **Both halves are
+> inverted.**
+
+A stored `POTENTIAL_CALL` row is a **successfully resolved** call. The evidence is the code, not a
+column: `populate.ts:728-736` computes `to_id` from `callToMap` and then `if (to_id === undefined)
+return []` — an unresolved call produces **no row at all**. On the emit side the extractor pushes a
+`POTENTIAL_CALL` candidate only in the `edge_emitted` bucket, i.e. only when `resolveCall` already
+linked the callee (`src/ast/extractors/typescript.ts:1344-1360`). The edge type names the *class of
+call that needs file-evidence resolution*, not a resolution failure.
+
+*(A `to_id IS NULL` count is **not** evidence here and was briefly mistaken for it: `edges.to_id` is
+declared `INTEGER NOT NULL`, so zero nulls is vacuous. The code path is the evidence.)*
+
+So the rising rate 0.259 → 0.370 rows/chunk says the opposite of what was recorded: **at larger
+corpora a growing fraction of call sites successfully resolve** — which is the sensible direction,
+since a bigger corpus contains more of its own dependency targets.
+
+**The section's headline warning survives and is strengthened.** The count is still not a work
+counter, and now for a sharper reason: it omits every *failed* resolution attempt, and those cost
+time while leaving no trace. The count is a record of successes; the work includes the failures. It
+does not measure the phase's cost, and must not be presented as if it does.
 
 **CLOSED (2026-08-17).** Two readers, and the distinction matters. `eval/e1-unread-fit.mjs:178-179`
 already fits it as `potential_call_share` and `potential_call_per_chunk` over e1-verify's 27 rows —
