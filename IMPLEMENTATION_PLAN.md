@@ -10860,3 +10860,201 @@ dangerous kind of wrong evidence.
   understates work, and it understates it by an amount no committed artifact measures.
 - **The "unresolved calls are cheaper per row" explanation is withdrawn.** The falling post-fix cost
   per surviving row (117.5 → 81.7 µs) is still measured; the mechanism offered for it was not.
+
+---
+
+# E1-HOIST PRE-REGISTRATION (2026-08-18)
+
+**Does the per-file import index (`08b0cd8`) show up in the T9 edges phase, and by how much?**
+
+Registered before any run (Gate 5). Task #6.
+
+## What `FINDINGS.md` said before this was written
+
+Required by `.claude/CLAUDE.md`. Both sections were read in full; here is what was found and what it
+changed.
+
+**§1 (unread data) — three items bear on this design, all three altered it.**
+
+1. **`measurement.phase_ms` is not the scored value; the top-level `phase_ms` is.** On a Gate 3
+   failure `selectFitted` puts the *fitted* attempt at the top level and leaves the *last raw*
+   attempt under `measurement`. The scorer for this experiment reads **top-level `phase_ms.edges`**
+   and asserts it, exactly as `e1-ladder-score.mjs` does.
+2. **`potential_call_count` is a surviving-row count, not a work counter** (§1.1), and it has already
+   killed one hypothesis that routed through it (E1-SCAN's H3). **No statistic in this registration
+   is normalised by it.** The outcome is a phase time and a paired ratio of phase times.
+3. **`chunk_fts_count` / `identifier_fts_count` remain unread at 54 rows.** This experiment adds 40
+   more and does not read them. That is task #7 and is not smuggled in here; it is recorded so the
+   §1 re-run after this journal lands does not report it as new.
+
+**§3 (dead hypotheses) — one entry is directly load-bearing, and it set the sample size.**
+
+*"Do not register a bar finer than its statistic can resolve"* — the caution E1-LADDER's H3 paid
+for. Applied here **before** any bar was written, which is the whole point of the entry:
+
+- The noise was computed from committed data first. `e1-ladder-runs.jsonl`, `phase_ms.edges`,
+  3 reps/rung: median CV **7.45%**, T9 **9.61%**, T8 16.43%. `e1-scan-runs.jsonl` does better
+  because its arms are blocked and adjacent — within-cell CV at T9 **2.86%**, and the **paired
+  within-block ratio CV 5.6%**.
+- The effect was measured before it was hypothesised (below).
+- The sample size follows from those two numbers rather than from convention.
+
+Also checked and deliberately **not** re-proposed: the edges exponent is **closed as a scaling
+question** (§2.3, `b = 1.0184`). This registration makes **no claim about any exponent.** It is a
+constant-factor question at one rung, and a design that produced an exponent here would be
+re-opening a settled matter with a worse instrument.
+
+## The effect size, measured first
+
+Both implementations were replayed verbatim against the retained `run-T{1,5,8,9}-r3` databases
+through the real Kysely + better-sqlite3 stack — paired, warmed, with arm order alternating between
+reps. Not a registered experiment; an instrument calibration, so the bars below face a number
+instead of a guess.
+
+| rung | queries | import rows fetched | saved (median) | % of edges phase | % of total build |
+|---|---|---|---|---|---|
+| T1 | 1.67× | — | 0.2 ms | 0.18% | 0.008% |
+| T5 | 2.32× | 2.82× | 5.2 ms | 1.25% | 0.045% |
+| T8 | 3.07× | 4.65× | 31.0 ms | 1.76% | 0.080% |
+| **T9** | **3.50×** | **5.93×** | **87.1 ms** | **3.57%** | **0.151%** |
+
+Three caveats on that table, each of which weakens it in a stated direction:
+
+- **The workload is a LOWER bound.** It is reconstructed from stored `edges` rows, and a stored row
+  is a *successfully resolved* call (§1.1). Failed resolutions called `importResolvedPathFor` too and
+  left nothing behind. The true saving is ≥ these figures.
+- **The lookup keys are approximate.** The replay feeds target-symbol names, which are not always the
+  real lookup key for qualified resolutions, so arm N's short-circuit may land in the wrong row.
+  Bounded by re-running T9 with **every lookup forced to miss** — arm N's worst case — which gives
+  **81.7 ms** against 87.1. The estimate is insensitive because the query dominates, not the parse.
+- **The first version of this table was wrong, by 6×.** It reported 194 ms at T8 and 289 ms at T9.
+  The rep loop ran arm N then arm H every time, so N warmed the cache for H, and the host was at
+  load average ~15. Alternating the order and re-measuring on a quiet moment reproduced the original
+  reading (31.0 vs 32.7 ms at T8). Recorded rather than quietly corrected: **a benchmark that does
+  not alternate arm order is measuring its own schedule.**
+
+## Why T9 only, and what is deliberately not run
+
+Blocks per arm for 80% power at α = .05, from the measured effect and the E1-SCAN paired-ratio CV:
+
+| rung | effect | paired ratio CV | n/arm — outcome `phase_ms.edges` | n/arm — outcome `duration_ms` |
+|---|---|---|---|---|
+| T5 | 1.25% | 25.2% | 3,191 | — |
+| T8 | 1.76% | 2.8% | 20 | 7,422 |
+| **T9** | **3.57%** | **5.6%** | **20** | **1,091** |
+
+> **[CORRECTION, made before any run — the closed form above is the wrong one.]**
+> `n = 7.849 (CV/effect)²` is the sample size for a **mean**. The registered primary is a
+> **median**, which is ~64% as efficient on normal data, so the formula understates what this
+> design needs. Simulating the *actual registered decision rule* — "the 95% BCa interval on the
+> median of n paired ratios lies entirely below 1.0", 400 trials per point at the design point
+> (effect 3.57%, ratio CV 5.6%):
+>
+> | n | 20 | 30 | 40 | 50 |
+> |---|---|---|---|---|
+> | power (median, primary) | **72%** | **87%** | 93% | 98% |
+> | power (geomean, secondary) | 83% | **94%** | 99% | — |
+>
+> **20 blocks would have been an 80%-power claim delivering 72%.** The design is therefore 30
+> blocks, and the table above is retained rather than rewritten because the wrong closed form is
+> the more useful thing to leave in the record.
+>
+> This is E1-LADDER's H3 failure caught one step earlier: the same error — a bar or a bound whose
+> statistic cannot deliver what is claimed of it — found *before* the runs rather than in the
+> verdict, because §3 now says to look. The check that found it cost one simulation.
+>
+> If the realised ratio CV comes in at 8% rather than 5.6%, n=30 delivers ~75% (geomean) and the
+> result will be reported as **underpowered**, not as negative. The scorer computes realised power
+> from the observed CV and writes `adequately_powered` into the verdict for exactly this reason.
+
+Two consequences, both registered as design commitments rather than discovered later:
+
+- **A total-build-duration A/B is refused as unpowered.** At T9 it needs ~1,091 blocks per arm —
+  roughly 35 hours of builds — to resolve an effect worth **0.151% of a build**. It is not run, and
+  no statement about total build time will be made from this experiment. This is the §11.9 call
+  stated up front.
+- **T1/T5/T8 are not run.** T5 needs 3,191 blocks; T1's effect (0.18%) is smaller than the rung's own
+  noise by two orders of magnitude. Running them would produce three null cells that look like
+  evidence of no effect and are actually evidence of no power. **A null at an unpowered rung is not a
+  finding, and this design refuses to manufacture three of them.**
+
+The cost of this restraint is real and is stated: **there is no dose-response arm.** E1-SCAN could
+show its mechanism switching off at T1; this one cannot, because the mechanism is ~40× smaller. H3
+below is the substitute — a within-run placebo control instead of a cross-rung one.
+
+## Design
+
+- **Rung:** T9 (13,330 files / 73,359 chunks), pinned by `eval/results/e1-tiers.json`, seed 811.
+- **Arms:** `N` = no-hoist, `cc4332f29db75f209eb76ec2a2a62cb027c75f6f`;
+  `H` = hoist, `08b0cd8e99aba9e0c5b0ae2a50d5f7f26ae4ab9c`. The two commits differ in exactly
+  `src/graph/populate.ts` and one new test file — verified with `git diff --name-only`.
+- **Blocks:** 30. Each block runs both arms adjacent in time; **arm order flips between blocks**
+  (E1-SCAN's rule — a fixed order loads thermal drift onto whichever arm always runs second).
+- **Total runs:** 60.
+- **Outcome:** top-level `phase_ms.edges`.
+- **Primary statistic:** the **median over blocks of the within-block paired ratio**
+  `edges_H / edges_N`, with a 95% BCa bootstrap CI over the 30 block ratios, 10,000 resamples.
+- **Pre-registered secondary:** the **geometric-mean ratio** with a log-space t-interval.
+  Registered *now*, before any run, precisely because it is the more powerful of the two — an
+  estimator that becomes available only after the primary disappoints is a second chance, not a
+  robustness check. The median stays primary because it is robust to the single wild run this rig
+  does produce (E1-LADDER's T1 rung: 95 / 110 / 162 ms). **Both are reported whichever way the
+  primary goes**, and disagreement between them is itself reported.
+
+**This CI is inferential, and that is a genuine difference from every prior E1 experiment.** The
+E1/E1-VERIFY/E1-LADDER intervals all carry `ci_is_context_only: true` because nested subsets are not
+independent draws. Here the 20 blocks *are* independent repeated runs of the same pair, so the
+interval means what an interval normally means. Its scope is **this host, this corpus, this rung** —
+it does not generalise across machines, and no claim below extends it.
+
+## Hypotheses
+
+**H1 (primary) — the hoist reduces the T9 edges phase.**
+FIRES if the 95% CI on the paired median ratio lies **entirely below 1.0**.
+
+**H2 (magnitude) — the reduction agrees with the mechanism measurement.**
+The replay predicts 87.1 ms saved (worst-case bound 81.7 ms). FIRES if the observed median saving
+falls in **[40, 350] ms**. The band is wide on purpose and asymmetric for a reason: the prediction is
+a *lower* bound, so overshoot is expected and undershoot is the informative failure. Below 40 ms the
+replay over-predicts by >2× and the mechanism is not what is being measured; above 350 ms the saving
+is 4× the mechanism and something other than the hoist moved.
+
+**H3 (specificity / placebo) — the hoist touches only the edges phase.**
+`walk`, `parse`, `write` and `finalise` each get the same paired-ratio treatment. FIRES if **all
+four** 95% CIs contain 1.0. This is the internal control that replaces the missing dose-response arm:
+the hoist cannot touch those phases, so if one of them also shifts, the shift is session drift and
+H1 is confounded. **H3 failing invalidates H1 rather than merely adding a caveat** — registered that
+way now so the temptation to read it as a footnote later is foreclosed.
+
+## Gates
+
+Inherited from E1-SCAN unless noted.
+
+- **Gate 0 / 0b** — per-arm `dist/**/*.js` content hash, pinned in the schedule module; each arm's
+  `dist/` must not be older than its own `src/`.
+- **Gate S1 / S2** — arm identity (each arm's rel-hash matches its registered value) and arm delta
+  (the arms' `dist/` must actually differ, and only where expected). An A/B whose arms are the same
+  binary is the failure these catch.
+- **Gate 1** — corpus pin: `MAST_STATE_DIR` unset, no stray config, and the indexed file set matches
+  the T9 manifest exactly (A4-MAT-4).
+- **Gate 3** — external vs fitted clock, with A4-MAT-6 retakes; failures logged and the fitted
+  attempt retained, never dropped.
+- **Gate P** — the five phases must account for ≥ 0.95 of the fitted clock.
+- **Gate C (blocking, correctness)** — **the two arms must build an identical graph**:
+  `file_count`, `chunk_count`, `symbol_count`, `edge_count` and `potential_call_count` equal across
+  arms in every block. This is the strongest available check that the hoist preserved behaviour —
+  73,359 chunks against the 200-file replay used during development — and **it outranks every timing
+  number here.** A Gate C failure ends the experiment as a correctness finding regardless of H1.
+- **Gate 5** — this registration is committed before any run.
+
+## What would make this experiment worthless
+
+Stated in advance so it cannot be rationalised afterwards:
+
+- Gate C fails → the hoist is not behaviour-preserving; timing is irrelevant and the commit is a bug.
+- H3 fails → the session drifted; H1's interval is not attributable to the arms.
+- The host is under variable load (it was at load average ~15 while this was written) → the paired
+  ratio CV exceeds E1-SCAN's 5.6%, power drops below the registered 80%, and **the honest report is
+  an underpowered null, not a negative result.** The realised ratio CV will be reported alongside the
+  verdict so power can be checked after the fact rather than assumed.
+
