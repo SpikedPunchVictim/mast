@@ -11205,3 +11205,76 @@ At 0.151% of a T9 build by the replay's accounting, or ~0.4% by this experiment'
 **the hoist remains immaterial to wall-clock and always was.** What this experiment establishes is
 that it is real, that it is confined to the phase it should touch, and that it changes no output.
 
+
+---
+
+# FTS INVARIANT — closing §1's last actionable row (2026-08-18)
+
+**Not an experiment.** No registration, no hypothesis, no threshold, no verdict. Task #7. It closes
+the two `FINDINGS.md` §1 rows that arithmetic over committed journals could close, and it corrects
+every row-count in that table, including one this session published two commits ago.
+
+Instrument: `eval/e1-fts-invariant.mjs` → `eval/results/e1-fts-invariant.json`, with
+`eval/__tests__/e1-fts-invariant.test.mjs` (11 tests).
+
+## What was closed
+
+**`chunk_fts_count === chunk_count` holds in 138 of 138 rows** — `e1-verify` 27, `e1-ladder` 27,
+`e1-scan` 24, `e1-hoist` 60, spanning both arms of two A/Bs. §2.1 carried this as "27 of 27" hand
+analysis; it is now a script that exits non-zero if it breaks.
+
+Why it is worth a script rather than a sentence: this is the check that distinguishes a **correct**
+FTS delete guard from a merely fast one. The guard at `43eb928` skips
+`DELETE FROM chunk_fts WHERE file_path = ?` when the file was never indexed, taking T9 from 538.6 s
+to 62.1 s. A guard that skipped the delete when the file *had* been indexed would be exactly as fast
+and would silently orphan rows. Nothing was running that check.
+
+**`identifier_fts_count === chunk_count − markdown_chunk_count`, exactly.** The 0.9446–0.9568 ratio
+recorded in §1.4 was never a fuzzy proportion. Measured against three retained databases: every
+chunk lacking an identifier row is markdown, and every markdown chunk lacks one — T1 204/204,
+T5 744/744, T9 3484/3484, **zero non-markdown misses in all three**. The variation across rungs is
+just the markdown share of each nested subset.
+
+**Confidence classes kept separate (§11.5):** the identity is *measured* on 3 databases and
+*inferred* on the other 135 journal rows, which record no markdown chunk count. The script reports
+the ratio it can compute and states the identity it cannot assert.
+
+## The counting failure this exposed, in two stages
+
+**Stage 1 — the row being closed.** Its tally was tracked at 27, then 54, then **114**, and all
+three omitted `e1-scan`'s 24 rows. The true total is **138**. The most recent of those wrong
+figures was written by this session, one commit earlier (`a677831`), while performing the §1
+maintenance the rule in §6 requires.
+
+The cause was not arithmetic. Each re-count asked *"does this new journal add a new series?"* and
+incremented a running total. That is §11.3 exactly: **"is X true?" and "what else is like X?" are
+different questions, and only the second yields a complete list.** The maintenance rule was followed
+to the letter and still propagated the omission, because it diffs the *new* journal against the
+register instead of re-deriving the register from *all* journals.
+
+**Stage 2 — and then the same question, asked of the rest of the table.** Closing one row prompted
+"what else is like this?", and the answer was: every other row. The table said "all five journals /
+144" long after there were eight. Re-derived across all eight, folding each journal properly:
+
+| row | table said | actually |
+|---|---|---|
+| `potential_call_count` | 144 | **255** |
+| `external_ms` | 144 | **255** |
+| `symbol_count` | 144 | **255** |
+| `edge_count` | 144 | **255** |
+| `phase_ms.*` | 87 | **213** |
+| `write_spans.*` | 27 | **168** |
+
+`symbol_count` was wrong in the other direction — listed "unscored by design" when Gate C in both
+two-arm experiments reads it as a **correctness input**.
+
+**A register maintained one row at a time decays everywhere except the row you touched.** §6's rule
+is amended: re-derive every row from every journal; never increment.
+
+## Scope, stated
+
+The "Read by" column was re-verified by grepping every scorer and report for each field name. That
+check is **name-based and therefore coarse** — a field read for one journal counts as read
+everywhere — which is the caveat §1's method paragraph already carried and which this pass did not
+remove. Spot-checked, not exhaustively verified.
+

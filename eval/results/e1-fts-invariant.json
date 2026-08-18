@@ -1,0 +1,107 @@
+{
+  "created": "2026-08-18T16:01:04.570Z",
+  "what": "Closes FINDINGS.md §1 rows chunk_fts_count / identifier_fts_count. Descriptive, not registered.",
+  "journals": [
+    "e1-verify",
+    "e1-ladder",
+    "e1-scan",
+    "e1-hoist"
+  ],
+  "total_rows": 138,
+  "chunk_fts_identity": {
+    "statement": "chunk_fts_count === chunk_count on every scoreable run",
+    "why_it_matters": "the check that separates a correct FTS delete guard (43eb928) from a merely fast one — a guard that skipped the delete for an already-indexed file would be equally fast and would orphan rows",
+    "holds": true,
+    "rows_checked": 138,
+    "violations": [],
+    "per_journal": [
+      {
+        "journal": "e1-verify",
+        "runs": 27,
+        "identity_holds": 27,
+        "voided": 0,
+        "read_from": [
+          "top-level"
+        ]
+      },
+      {
+        "journal": "e1-ladder",
+        "runs": 27,
+        "identity_holds": 27,
+        "voided": 0,
+        "read_from": [
+          "measurement"
+        ]
+      },
+      {
+        "journal": "e1-scan",
+        "runs": 24,
+        "identity_holds": 24,
+        "voided": 0,
+        "read_from": [
+          "top-level"
+        ]
+      },
+      {
+        "journal": "e1-hoist",
+        "runs": 60,
+        "identity_holds": 60,
+        "voided": 0,
+        "read_from": [
+          "top-level"
+        ]
+      }
+    ]
+  },
+  "identifier_fts_ratio": {
+    "statement": "identifier_fts_count === chunk_count - markdown_chunk_count",
+    "verified_on": [
+      "e1/run-T1-r3 (204/204 md)",
+      "e1/run-T5-r3 (744/744 md)",
+      "e1/run-T9-r3 (3484/3484 md)"
+    ],
+    "verified_confidence": "measured on 3 retained databases; INFERRED on the other 135 journal rows, which record no markdown chunk count",
+    "non_markdown_misses": 0,
+    "ratio_min": 0.944550149497146,
+    "ratio_max": 0.9567899455190106,
+    "ratio_n": 138,
+    "by_rung": {
+      "T1": {
+        "mean": 0.9445501494971461,
+        "n": 12
+      },
+      "T2": {
+        "mean": 0.9472993248312079,
+        "n": 6
+      },
+      "T3": {
+        "mean": 0.9484602499677877,
+        "n": 6
+      },
+      "T4": {
+        "mean": 0.9523851746763611,
+        "n": 6
+      },
+      "T5": {
+        "mean": 0.9549882025530886,
+        "n": 12
+      },
+      "T6": {
+        "mean": 0.9544311226628658,
+        "n": 6
+      },
+      "T7": {
+        "mean": 0.9567899455190106,
+        "n": 6
+      },
+      "T8": {
+        "mean": 0.9565398914491342,
+        "n": 12
+      },
+      "T9": {
+        "mean": 0.952507531454899,
+        "n": 72
+      }
+    }
+  }
+}

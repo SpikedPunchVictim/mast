@@ -43,15 +43,31 @@ question that may already be answerable without running anything.
 
 | Series | Where it is recorded | Scoreable rows | Read by | Status |
 |---|---|---|---|---|
-| `potential_call_count` | all five journals | **144** | `e1-unread-fit.mjs` (e1-verify's 27 only) | see 1.1 |
-| `phase_ms.*` (all 5 phases) | `e1-ab` 30, `e1-fts` 30, `e1-verify` 27 | **87** | **`e1-unread-fit.mjs` — all 87** | **CLOSED 08-17**, see 1.2 |
-| `write_spans.*` (6 spans) | `e1-verify` | **27** | **`e1-unread-fit.mjs`** | **CLOSED 08-17**, see 1.4 |
-| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` 27, `e1-ladder` 27, **`e1-hoist` 60** | **114** | nothing (the 27/27 identity check in §2.1 is hand analysis) | **still open and now 4.2x its original size**, see 1.4 |
-| `external_ms` | all five journals | 144 | `e1-schedule.mjs` only, for scheduling — never scored | low value |
+| `potential_call_count` | all 8 journals | **255** | `e1-unread-fit.mjs` (e1-verify's 27), `e1-scan-score.mjs`, `e1-ladder-score.mjs` | see 1.1 |
+| `phase_ms.*` (all 5 phases) | 7 journals (all but `e1`) | **213** | `e1-phase-score` 15, `e1-fts-score` (write only), `e1-ladder-score` 27, `e1-hoist-score` 60 (all 5), `e1-unread-fit` 87 | **largely read**, see 1.2 |
+| `write_spans.*` (6 spans) | `e1-fts` 30, `e1-verify` 27, `e1-ladder` 27, `e1-scan` 24, `e1-hoist` 60 | **168** | `e1-fts-score.mjs`, `e1-unread-fit.mjs` (e1-verify's 27) | **partly read**, see 1.4 |
+| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` 27, `e1-ladder` 27, `e1-scan` 24, `e1-hoist` 60 | **138** | **`e1-fts-invariant.mjs` — all 138** | **CLOSED 08-18**, see 1.4 |
+| `external_ms` | all 8 journals | 255 | `e1-schedule.mjs` only, for scheduling — never scored | low value |
 | guard-era per-phase exponents | `eval/vscode-build.mjs` constants | — | **`e1-unread-fit.mjs` reproduces all five** | **CLOSED 08-17**, see 1.3 |
-| `symbol_count` | all five journals | 144 | runners only; descriptive | unscored by design |
-| `edge_count` | all five journals | 144 | `e1-unread-fit.mjs` (ms/edge, edges/chunk) | partly read |
-| `measurement.wal_boundary`, `measurement.stderr_lines` | all five journals | 144 | nothing | diagnostics-grade; not a measurement series |
+| `symbol_count` | all 8 journals | 255 | `e1-scan-score.mjs` and `e1-hoist-score`'s **Gate C** | **a correctness input**, not descriptive |
+| `edge_count` | all 8 journals | 255 | `e1-unread-fit.mjs` (ms/edge, edges/chunk), `e1-ladder-score`, `e1-scan-score` | partly read |
+| `measurement.wal_boundary`, `measurement.stderr_lines` | all 8 journals | 255 | nothing | diagnostics-grade; not a measurement series |
+
+> **[CORRECTION, 2026-08-18 — every row-count in the table above was stale, not just the one that
+> was being closed.]** The table was written when there were five journals and carried "all five
+> journals / 144" for four rows long after there were eight. Re-derived by enumerating all eight
+> journals and folding each (last write wins, voids removed): the four "144" rows are **255**,
+> `phase_ms` is **213** rather than 87, `write_spans` **168** rather than 27.
+>
+> This was found only because closing the FTS row prompted the question *"what else is like this?"*
+> — the row that was asked about was wrong, and so was every row beside it, for the same reason.
+> **A register that is maintained one row at a time decays everywhere except the row you touched.**
+> `symbol_count`'s status was wrong in the other direction: listed as "unscored by design" when
+> Gate C in both two-arm experiments reads it as a correctness input.
+>
+> The "Read by" column was re-verified by grepping every scorer and report for each field name.
+> That check is name-based and therefore still coarse — a field read for one journal counts as read
+> everywhere — which is the caveat the method paragraph below already carries.
 
 `eval/e1-unread-fit.mjs` → `eval/results/e1-unread-fit.json` (2026-08-17) fits every series above that
 arithmetic alone could close. It is **descriptive, not registered** — no hypothesis, no threshold, no
@@ -66,9 +82,11 @@ table listed `file_count` as descriptive and unscored; that was wrong, and it wa
 one section this file's own rule tells you to trust.
 
 Verified 2026-08-17 by enumerating every key in each `eval/results/*-runs.jsonl` and grepping the
-five scorers for it; corrected 2026-08-17 after adversarial review. To re-verify after adding a
-journal, repeat that diff — and grep the *scorers*, not just the runners, before calling anything
-unread.
+scorers for it; corrected 2026-08-17 after adversarial review, and **re-derived in full 2026-08-18
+across all eight journals** after the per-row maintenance described above was found to have decayed
+every count in the table. To re-verify after adding a journal, **re-derive every row from every
+journal** — do not diff the new journal against the register and increment. Grep the *scorers*, not
+just the runners, before calling anything unread.
 
 **Re-run 2026-08-17 for the sixth journal, `e1-ladder-runs.jsonl` (27 runs).** It records the same
 `measurement.*` shape as the others, so it adds no new *kind* of unread series — but it does enlarge
@@ -137,9 +155,10 @@ saying the estimators match.**
 > five rather than measured; the adversarial recomputation required before commit (§11.8) caught it
 > pre-publication. A count for an artifact that did not exist when you counted is not a count.
 
-### 1.1 `potential_call_count` — recorded on 144 scoreable runs, never read
+### 1.1 `potential_call_count` — recorded on 255 scoreable runs, read three ways
 
-Recorded by `readGraphCounts` (`eval/e1-common.mjs:688`) into all five journals. It appears in
+Recorded by `readGraphCounts` (`eval/e1-common.mjs:688`) into all eight journals (255 scoreable
+rows, re-derived 2026-08-18; this section's heading said 144 while there were five). It appears in
 `e1-common.mjs`, `e1-p0-build.mjs`, `e1-run.mjs` and `e1-phase-run.mjs` — all **runners**. No
 scorer, no report, no verdict file references it.
 
@@ -208,10 +227,17 @@ at the top of the ladder. H3 was refuted for precisely the reason this section n
 was quoted in the registration and walked into anyway** — treat any argument that routes through
 this count as suspect, including one that cites this warning.
 
-### 1.2 `phase_ms` outside E1-PHASE — 87 unscored runs, including a full guard-era ladder
+### 1.2 `phase_ms` outside E1-PHASE — was 87 unscored runs; now 213 recorded and largely read
 
-`phase_ms.{walk,parse,write,edges,finalise}` is recorded on 102 scoreable rows, of which **15** are
-fitted by `e1-phase-score.mjs` across all five phases.
+`phase_ms.{walk,parse,write,edges,finalise}` is recorded on **213** scoreable rows across seven
+journals (every one but `e1`), of which **15** are fitted by `e1-phase-score.mjs` across all five
+phases.
+
+**This subsection's premise has largely expired, and is retained for the trap it documents rather
+than the gap it reported.** When written, 87 rows were unread. Since then `e1-unread-fit.mjs` fitted
+those 87, `e1-ladder-score.mjs` fits its 27 (`edges`), and `e1-hoist-score.mjs` fits all five phases
+on its 60 — `edges` as a registered outcome and the other four as a placebo control. The figure
+below (102) was itself a five-journal-era count.
 
 One partial exception, easy to miss: `e1-fts-score.mjs` does not merely read `phase_ms.write` as a
 denominator — it **fits** it, at `:265-266`, producing `b_write_a` and `b_write_g`, and
@@ -309,9 +335,35 @@ sum of near-linear parts. Whatever remains in the write phase is not another `ft
 and no slope exists. The fit reports `non_positive_values` and refuses to emit a number. A scorer
 that silently dropped those rows would publish an exponent fitted on an empty series.
 
-The same journal's `chunk_fts_count` and `identifier_fts_count` **remain unread** — this fit does not
-close them. §2.1's "`chunk_fts_count === chunk_count` in 27 of 27" is still hand analysis, not a
-scorer output.
+The same journal's `chunk_fts_count` and `identifier_fts_count` are **now closed** (2026-08-18) by
+`eval/e1-fts-invariant.mjs` → `eval/results/e1-fts-invariant.json`. Descriptive, not registered.
+
+- **`chunk_fts_count === chunk_count` holds in 138 of 138 rows**, across four journals and both arms
+  of two A/Bs. §2.1's "27 of 27" was hand analysis; it is now a script that exits non-zero if the
+  identity ever breaks. This is the check that separates a correct FTS delete guard from a merely
+  fast one — a guard that skipped the delete for a file that *had* been indexed would be equally
+  fast and would orphan rows.
+- **`identifier_fts_count === chunk_count − markdown_chunk_count`, exactly.** The 0.9446–0.9568
+  ratio was never a fuzzy proportion: measured against three retained databases, *every* chunk
+  lacking an identifier row is markdown and *every* markdown chunk lacks one — T1 204/204,
+  T5 744/744, T9 3484/3484, with zero non-markdown misses. The spread across rungs is just the
+  markdown share of each nested subset. **Measured on 3 databases, INFERRED on the other 135 rows**,
+  which record no markdown chunk count (§11.5).
+
+> **[CORRECTION, 2026-08-18 — this row's own tally was wrong four times running, including once
+> by me one commit ago.]** It was tracked at 27, then 54, then **114**, and every one of those
+> figures omitted `e1-scan`'s 24 rows. The true total is **138**.
+>
+> The cause is not arithmetic. Each re-count asked *"does the new journal add a new series?"* and
+> incremented a running total — which is the §11.3 failure exactly: **"is X true?" and "what else
+> is like X?" are different questions, and only the second produces a complete list.** The register
+> re-run performed one commit ago followed the letter of the maintenance rule (§6: "a new journal
+> is committed → re-run the §1 diff") and still propagated a three-journal omission, because it
+> diffed the *new* journal against the register instead of re-deriving the register from *all*
+> journals.
+>
+> `e1-fts-invariant.mjs` now enumerates the journals in a constant and counts from them, so the
+> total is derived rather than incremented. The maintenance rule in §6 is amended accordingly.
 
 ---
 
@@ -352,8 +404,9 @@ quadratically. The fix (`43eb928`) skips the delete entirely when the file was n
 - b = **1.0825**, HC3 [1.0651, 1.0998], bootstrap [1.0424, 1.1222] — all four intervals below 1.35.
 - Lack of fit **quiet**: F = 1.9141, p = 0.1264, departure 1.40%.
 - `fts_del` = **0 ms in all 27 runs** (max 0, sum 0).
-- `chunk_fts_count === chunk_count` in **27 of 27** — the guard skips *work*, not rows. This is the
-  check that separates a correct guard from a merely fast one.
+- `chunk_fts_count === chunk_count` in **138 of 138** (2026-08-18; was 27 of 27 by hand) — the guard
+  skips *work*, not rows. This is the check that separates a correct guard from a merely fast one,
+  and it is now `eval/e1-fts-invariant.mjs`, which exits non-zero if it ever breaks.
 - T9: **538.6 s → 62.1 s**.
 - Write's share of T9 fell from **94.01%** to **51.3%**; parse is now **34.5%**.
   (`IMPLEMENTATION_PLAN.md:5552` says 36.3% — that figure does not reproduce from the journal;
@@ -854,7 +907,10 @@ Two standing hazards, both of which have already cost a run:
 - A hypothesis is refuted → §3, with the number that killed it. This is the section that pays for
   itself; an unrecorded refutation gets re-proposed.
 - A new journal is committed → re-run the §1 diff (enumerate journal keys, grep the scorers) and
-  update the register.
+  update the register. **Re-derive each row's total from every journal; never increment the
+  previous total.** Diffing only the new journal against the register is how the FTS row carried an
+  omission of `e1-scan`'s 24 rows through four separate re-counts (§1.4). A row's count is a
+  property of the whole corpus of journals, not of the last one added.
 - Amendments are **appended, never edited in place**. That applies to the plan. This file is a
   *derived index* and is edited in place — it must always reflect current state, and the plan
   retains the history.
