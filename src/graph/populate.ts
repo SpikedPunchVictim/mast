@@ -2,6 +2,7 @@ import { sql, type Db } from './db.js';
 import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../ast/types.js';
 import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
+import { pathPrefixUpperBound } from './path-range.js';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -949,12 +950,13 @@ async function resolveInFileOrReExportChain(
   toName: string,
 ): Promise<number | null> {
   // The import resolver (`src/indexer/import-resolver.ts`) always returns an
-  // extension-inclusive path, but LIKE-prefix matching mirrors the existing
+  // extension-inclusive path, but prefix matching mirrors the existing
   // precedent (`resolveTypeContext`, `insertReExportFiles`) defensively.
   const targetFile = await db
     .selectFrom('files')
     .select('id')
-    .where('path', 'like', `${resolvedPath}%`)
+    .where('path', '>=', resolvedPath)
+    .where('path', '<', pathPrefixUpperBound(resolvedPath))
     .orderBy('path', 'asc')
     .executeTakeFirst();
   if (targetFile === undefined) return null;
@@ -1083,12 +1085,13 @@ export async function insertReExportFiles(
 
   for (const star of stars) {
     if (star.resolvedPath === null) continue;
-    // resolved_path may lack an extension — LIKE prefix matches `x.ts`,
+    // resolved_path may lack an extension — the prefix range matches `x.ts`,
     // `x/index.ts`, etc. (same convention as resolveTypeContext, §13.7).
     const target = await db
       .selectFrom('files')
       .select('id')
-      .where('path', 'like', `${star.resolvedPath}%`)
+      .where('path', '>=', star.resolvedPath)
+      .where('path', '<', pathPrefixUpperBound(star.resolvedPath))
       .orderBy('path', 'asc')
       .executeTakeFirst();
     if (target === undefined || target.id === fromFile.id) continue;

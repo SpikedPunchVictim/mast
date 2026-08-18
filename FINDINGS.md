@@ -447,6 +447,67 @@ Still unmeasured and unnamed: the residual itself; `importResolvedPathFor` JSON-
 row of the file on **every** resolver call, which is per-call CPU that `EXPLAIN` cannot see and is a
 live candidate for the constant baseline.
 
+#### DECIDED and SHIPPED: the range query, at four sites (2026-08-17)
+
+The semantics decision above was taken: **the range query**. Case-insensitive path matching is
+withdrawn deliberately.
+
+**The site census in the table above was wrong — there are four prefix-match sites, not two.**
+Enumerating every `'like'` in `src/` (rather than only the two already under discussion) found two
+more, both with the same two defects:
+
+| site | function | note |
+|---|---|---|
+| `graph/populate.ts:958` | `resolveInFileOrReExportChain` | the resolver; the measured `SCAN` |
+| `graph/populate.ts:1093` | `insertReExportFiles` | inside the `phase.edges` window |
+| `graph/queries.ts:485` | `resolveTypeContext` | **missed by the earlier census** |
+| `graph/queries.ts:569` | `queryProjectSkeleton` | **missed**; prefix is *caller-supplied*, so `%` or `_` in a directory argument silently widened the filter |
+
+(Line numbers are post-fix — each row points at the `>=` bound that replaced the `LIKE`.)
+
+`search/fts.ts:55` also builds a LIKE pattern but is deliberately **left alone**: `globToLike`
+translates a user glob, where the wildcards are the point.
+
+Shipped as `graph/path-range.ts` (`pathPrefixUpperBound`) plus the four rewires, with nine tests in
+`graph/__tests__/path-prefix-match.test.ts`. All four wrong-file counterexamples were reproduced as
+failing tests against the shipped code **before** the fix, including the end-to-end one: a
+`POTENTIAL_CALL` edge binding to `src/my.util.ts` when the import named `src/my_util.ts`.
+
+**Measured.**
+
+* The plan changes at the resolver site: `SCAN files USING COVERING INDEX sqlite_autoindex_files_1`
+  → `SEARCH … (path>? AND path<?)`, confirmed on the 8,651-file vscode DB with **bound parameters**
+  through `better-sqlite3`, not just literal SQL.
+* Over 16,848 distinct prefixes drawn from the vscode `files` table (full paths, directory prefixes,
+  extension-stripped variants), the range selects **exactly** the same set as a correctly-escaped
+  `case_sensitive_like=ON` LIKE. Zero disagreements.
+* **No behaviour change on any real corpus.** Comparing old-LIKE against new-range resolution of
+  every internal resolved import: **0** regressions (old matched, new does not) and **0** wrong-file
+  differences (both matched, different first row). vscode contributes 79,884 such imports and n8n T9
+  22,248 — 102,132 distinct; T8 (9,558) and T1 (43) are nested subsets of T9 and are not added to
+  that total.
+
+**Inferred, not measured.** The wrong-file bug is real and unit-demonstrated, but it is *latent* in
+every corpus checked — none of these repos names two files differing only by case or by `.`/`_`. The
+correctness argument for the fix therefore rests on the counterexamples, not on observed corruption.
+
+**Unmeasured — the performance claim is still open.** `SEARCH` instead of `SCAN` is a query-plan
+fact, not a phase measurement. **The T8/T9 fix-vs-no-fix build has not been run**, so how much of
+the edges exponent this removes remains unknown, and §2.3's headline question stays open.
+
+**A named residual risk.** On a case-insensitive filesystem a mis-cased import (`./foo` for
+`Foo.ts`) yields a `resolvedPath` in the *specifier's* casing while the walker records the *on-disk*
+casing; LIKE papered over that, the range will not, and the edge is silently dropped. This is not
+hypothetical — `realpathSync` was measured on this machine and does **not** canonicalize case. It is
+unobserved in all four corpora (the 0/102,132 above), and TypeScript's default
+`forceConsistentCasingInFileNames` makes it a compile error in a well-formed TS project, but mast
+indexes arbitrary repos and JS has no such guard.
+
+**A footgun worth knowing.** SQLite's BINARY collation is `memcmp` over UTF-8; JavaScript's `<`
+compares UTF-16 code units, and the two disagree — U+FFFF sorts *above* the surrogate pair for
+U+10FFFF. The bound is valid for SQL comparison only. A first draft of the helper's unit test
+asserted the JS ordering and failed against a correct bound; the test now compares UTF-8 bytes.
+
 ### 2.4 Open: the incremental path still pays the full-scan delete
 
 **The FTS guard fixes cold builds. It does not fix incremental re-indexing.** `populate.ts:503`:

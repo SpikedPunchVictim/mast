@@ -1,6 +1,7 @@
 import { sql } from 'kysely';
 import type { Db } from './db.js';
 import { EdgeType } from './db.js';
+import { pathPrefixUpperBound } from './path-range.js';
 import type {
   DependencyEntry,
   ImplementorResult,
@@ -474,14 +475,15 @@ async function resolveOneType(
     const importedSymbols = JSON.parse(imp.symbols) as string[];
     if (!importedSymbols.includes(typeName)) continue;
 
-    // The resolved_path may lack an extension — use LIKE prefix to match
+    // The resolved_path may lack an extension — use a prefix range to match
     // `resolved/path.ts`, `resolved/path/index.ts`, etc.
     const importedRow = await db
       .selectFrom('symbols as s')
       .innerJoin('files as f', 'f.id', 's.file_id')
       .select(['s.name', 'f.path as file_path', 's.line'])
       .where('s.name', '=', typeName)
-      .where('f.path', 'like', `${imp.resolved_path}%`)
+      .where('f.path', '>=', imp.resolved_path)
+      .where('f.path', '<', pathPrefixUpperBound(imp.resolved_path))
       .executeTakeFirst();
 
     if (importedRow !== undefined) {
@@ -561,7 +563,11 @@ export async function queryProjectSkeleton(
     .where('s.kind', '!=', 'method'); // methods surface via class_shell
 
   if (directoryPrefix !== undefined) {
-    q = q.where('f.path', 'like', `${directoryPrefix}%`);
+    // The prefix is caller-supplied, so LIKE here also meant a `_` or `%` in a
+    // directory name silently widened the filter.
+    q = q
+      .where('f.path', '>=', directoryPrefix)
+      .where('f.path', '<', pathPrefixUpperBound(directoryPrefix));
   }
 
   return q.orderBy('f.path', 'asc').orderBy('s.line', 'asc').execute();
