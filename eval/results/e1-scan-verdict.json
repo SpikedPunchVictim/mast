@@ -1,0 +1,433 @@
+{
+  "created": "2026-08-18T01:16:18.118Z",
+  "registration": "IMPLEMENTATION_PLAN.md § E1-SCAN PRE-REGISTRATION (2026-08-17)",
+  "complete": true,
+  "runs_scored": 24,
+  "total_expected": 24,
+  "gate_c": {
+    "ok": true,
+    "rows": [
+      {
+        "tier": "T1",
+        "ok": true,
+        "values": {
+          "file_count": {
+            "N": [
+              656
+            ],
+            "R": [
+              656
+            ]
+          },
+          "chunk_count": {
+            "N": [
+              3679
+            ],
+            "R": [
+              3679
+            ]
+          },
+          "symbol_count": {
+            "N": [
+              2642
+            ],
+            "R": [
+              2642
+            ]
+          },
+          "edge_count": {
+            "N": [
+              1919
+            ],
+            "R": [
+              1919
+            ]
+          },
+          "potential_call_count": {
+            "N": [
+              953
+            ],
+            "R": [
+              953
+            ]
+          }
+        },
+        "mismatches": []
+      },
+      {
+        "tier": "T5",
+        "ok": true,
+        "values": {
+          "file_count": {
+            "N": [
+              2880
+            ],
+            "R": [
+              2880
+            ]
+          },
+          "chunk_count": {
+            "N": [
+              16529
+            ],
+            "R": [
+              16529
+            ]
+          },
+          "symbol_count": {
+            "N": [
+              11934
+            ],
+            "R": [
+              11934
+            ]
+          },
+          "edge_count": {
+            "N": [
+              9033
+            ],
+            "R": [
+              9033
+            ]
+          },
+          "potential_call_count": {
+            "N": [
+              4641
+            ],
+            "R": [
+              4641
+            ]
+          }
+        },
+        "mismatches": []
+      },
+      {
+        "tier": "T8",
+        "ok": true,
+        "values": {
+          "file_count": {
+            "N": [
+              8945
+            ],
+            "R": [
+              8945
+            ]
+          },
+          "chunk_count": {
+            "N": [
+              50299
+            ],
+            "R": [
+              50299
+            ]
+          },
+          "symbol_count": {
+            "N": [
+              35613
+            ],
+            "R": [
+              35613
+            ]
+          },
+          "edge_count": {
+            "N": [
+              30435
+            ],
+            "R": [
+              30435
+            ]
+          },
+          "potential_call_count": {
+            "N": [
+              16564
+            ],
+            "R": [
+              16564
+            ]
+          }
+        },
+        "mismatches": []
+      },
+      {
+        "tier": "T9",
+        "ok": true,
+        "values": {
+          "file_count": {
+            "N": [
+              13330
+            ],
+            "R": [
+              13330
+            ]
+          },
+          "chunk_count": {
+            "N": [
+              73359
+            ],
+            "R": [
+              73359
+            ]
+          },
+          "symbol_count": {
+            "N": [
+              51551
+            ],
+            "R": [
+              51551
+            ]
+          },
+          "edge_count": {
+            "N": [
+              48497
+            ],
+            "R": [
+              48497
+            ]
+          },
+          "potential_call_count": {
+            "N": [
+              27127
+            ],
+            "R": [
+              27127
+            ]
+          }
+        },
+        "mismatches": []
+      }
+    ]
+  },
+  "per_rung": [
+    {
+      "tier": "T1",
+      "chunks": 3679,
+      "files": 656,
+      "potential_calls": 953,
+      "n_reps": {
+        "N": 3,
+        "R": 3
+      },
+      "edges_ms": {
+        "N": 111,
+        "R": 112
+      },
+      "edges_ms_all": {
+        "N": [
+          106,
+          111,
+          122
+        ],
+        "R": [
+          122,
+          112,
+          107
+        ]
+      },
+      "ratio": 0.9910714285714286,
+      "duration_ms": {
+        "N": 2449,
+        "R": 2397
+      },
+      "duration_ratio": 1.0216937838965374,
+      "edges_share_of_duration": {
+        "N": 0.04532462229481421,
+        "R": 0.046725073007926575
+      }
+    },
+    {
+      "tier": "T5",
+      "chunks": 16529,
+      "files": 2880,
+      "potential_calls": 4641,
+      "n_reps": {
+        "N": 3,
+        "R": 3
+      },
+      "edges_ms": {
+        "N": 502,
+        "R": 446
+      },
+      "edges_ms_all": {
+        "N": [
+          502,
+          680,
+          494
+        ],
+        "R": [
+          552,
+          446,
+          437
+        ]
+      },
+      "ratio": 1.1255605381165918,
+      "duration_ms": {
+        "N": 11763,
+        "R": 11623
+      },
+      "duration_ratio": 1.0120450830250365,
+      "edges_share_of_duration": {
+        "N": 0.042676188047266854,
+        "R": 0.03837219306547363
+      }
+    },
+    {
+      "tier": "T8",
+      "chunks": 50299,
+      "files": 8945,
+      "potential_calls": 16564,
+      "n_reps": {
+        "N": 3,
+        "R": 3
+      },
+      "edges_ms": {
+        "N": 3473,
+        "R": 1461
+      },
+      "edges_ms_all": {
+        "N": [
+          3473,
+          3483,
+          3356
+        ],
+        "R": [
+          1503,
+          1441,
+          1461
+        ]
+      },
+      "ratio": 2.377138945927447,
+      "duration_ms": {
+        "N": 40821,
+        "R": 38865
+      },
+      "duration_ratio": 1.0503280586646082,
+      "edges_share_of_duration": {
+        "N": 0.0850787584821538,
+        "R": 0.03759166345040525
+      }
+    },
+    {
+      "tier": "T9",
+      "chunks": 73359,
+      "files": 13330,
+      "potential_calls": 27127,
+      "n_reps": {
+        "N": 3,
+        "R": 3
+      },
+      "edges_ms": {
+        "N": 8824,
+        "R": 2217
+      },
+      "edges_ms_all": {
+        "N": [
+          9346,
+          8824,
+          8632
+        ],
+        "R": [
+          2210,
+          2325,
+          2217
+        ]
+      },
+      "ratio": 3.980153360396933,
+      "duration_ms": {
+        "N": 65217,
+        "R": 57645
+      },
+      "duration_ratio": 1.1313557116835806,
+      "edges_share_of_duration": {
+        "N": 0.1353021451462042,
+        "R": 0.038459536820192555
+      }
+    }
+  ],
+  "h1": {
+    "statement": "Removing the files full scan removes the bulk of the edges knee.",
+    "bar": "T9 no-fix/fix ratio >= 2",
+    "point_forecast": 2.74,
+    "observed": 3.980153360396933,
+    "fires": true,
+    "falsified": false
+  },
+  "h2": {
+    "statement": "The effect scales with file count and is absent where F is small.",
+    "bar": "ratio(T9) > ratio(T8) > ratio(T5), and ratio(T1), ratio(T5) both in [0.9, 1.15]",
+    "point_forecasts": {
+      "T1": 1.04,
+      "T5": 0.97,
+      "T8": 1.79,
+      "T9": 2.74
+    },
+    "observed": {
+      "T1": 0.9910714285714286,
+      "T5": 1.1255605381165918,
+      "T8": 2.377138945927447,
+      "T9": 3.980153360396933
+    },
+    "monotone_in_F": true,
+    "controls_null": true,
+    "fires": true
+  },
+  "h3": {
+    "statement": "Removing the scan does not make the edges phase linear.",
+    "bar": "post-fix T8->T9 local slope in [1.15, 1.55]",
+    "point_forecast": 1.3072,
+    "rationale": "POTENTIAL_CALL rows grow super-linearly in chunks (FINDINGS §1.1 endpoint slope 1.12 across T1->T9; 1.3072 locally over T8->T9), so a cost per surviving row that is flat in F still leaves that slope behind.",
+    "observed_post_fix": 1.105076574228941,
+    "observed_no_fix": 2.470868905496547,
+    "baseline_no_fix_e1_verify": 2.4276,
+    "fires": false
+  },
+  "plateau_descriptive": [
+    {
+      "tier": "T1",
+      "us_per_surviving_row": {
+        "N": 116.47429171038824,
+        "R": 117.52360965372507
+      }
+    },
+    {
+      "tier": "T5",
+      "us_per_surviving_row": {
+        "N": 108.1663434604611,
+        "R": 96.09997845291963
+      }
+    },
+    {
+      "tier": "T8",
+      "us_per_surviving_row": {
+        "N": 209.67157691378895,
+        "R": 88.20333252837479
+      }
+    },
+    {
+      "tier": "T9",
+      "us_per_surviving_row": {
+        "N": 325.2847716297416,
+        "R": 81.72669296273087
+      }
+    }
+  ],
+  "caveat_potential_call_count": "potential_call_count is a surviving-row count after primary-key dedup (FINDINGS §1.1), not a work counter. us_per_surviving_row is a normalisation, never a per-call cost.",
+  "query_plan_sample": {
+    "N": {
+      "like": [
+        "SCAN files USING COVERING INDEX sqlite_autoindex_files_1"
+      ],
+      "range": [
+        "SEARCH files USING COVERING INDEX sqlite_autoindex_files_1 (path>? AND path<?)"
+      ]
+    },
+    "R": {
+      "like": [
+        "SCAN files USING COVERING INDEX sqlite_autoindex_files_1"
+      ],
+      "range": [
+        "SEARCH files USING COVERING INDEX sqlite_autoindex_files_1 (path>? AND path<?)"
+      ]
+    }
+  },
+  "scoreable": true
+}

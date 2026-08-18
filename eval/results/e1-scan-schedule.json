@@ -1,0 +1,188 @@
+{
+  "created": "2026-08-18T01:03:45.701Z",
+  "arms": [
+    {
+      "id": "N",
+      "label": "no-fix (LIKE)",
+      "commit": "24ebc66e3a8278163e113628c66adae0421e45b8",
+      "rel_hash": "75040aff0ed9089ace829a72b9666e161935fb2c60950c076ec273e9f6678fcb"
+    },
+    {
+      "id": "R",
+      "label": "range fix",
+      "commit": "c4b4816",
+      "rel_hash": "2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9"
+    }
+  ],
+  "identity": {
+    "arm_hashes": {
+      "N": "75040aff0ed9089ace829a72b9666e161935fb2c60950c076ec273e9f6678fcb",
+      "R": "2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9"
+    },
+    "arm_file_counts": {
+      "N": 54,
+      "R": 55
+    },
+    "arm_delta": [
+      "graph/path-range.js",
+      "graph/populate.js",
+      "graph/queries.js"
+    ]
+  },
+  "tiers": [
+    "T1",
+    "T5",
+    "T8",
+    "T9"
+  ],
+  "blocks": 3,
+  "reps": 3,
+  "total_runs": 24,
+  "schedule": [
+    {
+      "slot": 1,
+      "block": 1,
+      "tier": "T1",
+      "arm": "N"
+    },
+    {
+      "slot": 2,
+      "block": 1,
+      "tier": "T1",
+      "arm": "R"
+    },
+    {
+      "slot": 3,
+      "block": 1,
+      "tier": "T5",
+      "arm": "N"
+    },
+    {
+      "slot": 4,
+      "block": 1,
+      "tier": "T5",
+      "arm": "R"
+    },
+    {
+      "slot": 5,
+      "block": 1,
+      "tier": "T8",
+      "arm": "N"
+    },
+    {
+      "slot": 6,
+      "block": 1,
+      "tier": "T8",
+      "arm": "R"
+    },
+    {
+      "slot": 7,
+      "block": 1,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 8,
+      "block": 1,
+      "tier": "T9",
+      "arm": "R"
+    },
+    {
+      "slot": 9,
+      "block": 2,
+      "tier": "T1",
+      "arm": "R"
+    },
+    {
+      "slot": 10,
+      "block": 2,
+      "tier": "T1",
+      "arm": "N"
+    },
+    {
+      "slot": 11,
+      "block": 2,
+      "tier": "T5",
+      "arm": "R"
+    },
+    {
+      "slot": 12,
+      "block": 2,
+      "tier": "T5",
+      "arm": "N"
+    },
+    {
+      "slot": 13,
+      "block": 2,
+      "tier": "T8",
+      "arm": "R"
+    },
+    {
+      "slot": 14,
+      "block": 2,
+      "tier": "T8",
+      "arm": "N"
+    },
+    {
+      "slot": 15,
+      "block": 2,
+      "tier": "T9",
+      "arm": "R"
+    },
+    {
+      "slot": 16,
+      "block": 2,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 17,
+      "block": 3,
+      "tier": "T1",
+      "arm": "N"
+    },
+    {
+      "slot": 18,
+      "block": 3,
+      "tier": "T1",
+      "arm": "R"
+    },
+    {
+      "slot": 19,
+      "block": 3,
+      "tier": "T5",
+      "arm": "N"
+    },
+    {
+      "slot": 20,
+      "block": 3,
+      "tier": "T5",
+      "arm": "R"
+    },
+    {
+      "slot": 21,
+      "block": 3,
+      "tier": "T8",
+      "arm": "N"
+    },
+    {
+      "slot": 22,
+      "block": 3,
+      "tier": "T8",
+      "arm": "R"
+    },
+    {
+      "slot": 23,
+      "block": 3,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 24,
+      "block": 3,
+      "tier": "T9",
+      "arm": "R"
+    }
+  ],
+  "node_version": "v24.18.0"
+}

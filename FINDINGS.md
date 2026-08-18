@@ -124,6 +124,26 @@ this says: **at larger corpora a growing fraction of call sites fail to resolve.
 any hypothesis about the edges phase. It does not measure the phase's cost, and must not be
 presented as if it does.
 
+**CLOSED (2026-08-17).** Two readers, and the distinction matters. `eval/e1-unread-fit.mjs:178-179`
+already fits it as `potential_call_share` and `potential_call_per_chunk` over e1-verify's 27 rows —
+both *ratios of counts*, which is a sound use. `eval/e1-scan-score.mjs` is the first to divide a
+**phase time** by it, as an explicitly labelled descriptive normaliser and never as a per-call cost.
+
+*(The sentence opening this subsection — "No scorer, no report, no verdict file references it" —
+was already stale when E1-SCAN read it: it predates `e1-unread-fit.mjs`, and §1's own table above
+records the newer state. Corrected here rather than left to contradict the table. E1-SCAN's
+registration repeated the stale claim, asserting it was "the first reader of the field"; the
+registration is append-only, so that error is corrected in the RESULT block, not edited away.)*
+
+**The warning above then proved itself, the hard way.** E1-SCAN's H3 used this count to argue a *floor*: rows grow at local slope
+1.3072 over T8→T9, so a per-row cost flat in F must leave a ≥1.31 slope behind. No such floor
+exists — the measured post-fix slope is **1.1051**, below it, because post-fix cost per surviving
+row *falls* with scale (117.5 → 96.1 → 88.2 → **81.7** µs). Unresolved calls are cheaper per row
+than resolved ones, and their share rises with corpus size, so normalising by them overstates work
+at the top of the ladder. H3 was refuted for precisely the reason this section names. **The trap
+was quoted in the registration and walked into anyway** — treat any argument that routes through
+this count as suspect, including one that cites this warning.
+
 ### 1.2 `phase_ms` outside E1-PHASE — 87 unscored runs, including a full guard-era ladder
 
 `phase_ms.{walk,parse,write,edges,finalise}` is recorded on 102 scoreable rows, of which **15** are
@@ -491,9 +511,26 @@ failing tests against the shipped code **before** the fix, including the end-to-
 every corpus checked — none of these repos names two files differing only by case or by `.`/`_`. The
 correctness argument for the fix therefore rests on the counterexamples, not on observed corruption.
 
-**Unmeasured — the performance claim is still open.** `SEARCH` instead of `SCAN` is a query-plan
-fact, not a phase measurement. **The T8/T9 fix-vs-no-fix build has not been run**, so how much of
-the edges exponent this removes remains unknown, and §2.3's headline question stays open.
+**MEASURED — the performance claim is settled, and §2.3's headline question is CLOSED.** E1-SCAN
+(2026-08-17) built both arms in detached worktrees and ran 24 cells: 2 arms × 4 rungs × 3 blocks,
+interleaved with the arm order flipping between blocks. **The scan was the edges exponent.**
+
+| rung | files | no-fix | fix | ratio |
+|---|---|---|---|---|
+| T1 | 656 | 111 | 112 | 0.991 |
+| T5 | 2,880 | 502 | 446 | 1.126 |
+| T8 | 8,945 | 3,473 | 1,461 | **2.377** |
+| T9 | 13,330 | 8,824 | 2,217 | **3.980** |
+
+The edges exponent (OLS on medians, 4 rungs) goes **1.4382 → ≈1.0** — quoted as a range,
+**b ≈ 1.0–1.1**, because re-slicing gives 0.9785–1.1051 and four significant figures would be false
+precision. Arm N over the same slices runs 1.2989–2.4709. The T8→T9 local slope collapses
+**2.4709 → 1.1051**. Cleanest single view: the edges share of total index time, no-fix
+4.53 → 4.27 → 8.51 → **13.53%**, fix 4.67 → 3.84 → 3.76 → **3.85%** — flat.
+
+At T9 this is **11.6% of total build time** (65.2 s → 57.6 s). Arm N reproduces E1-VERIFY within
+±4%, and the T1/T5 controls (0.991, 1.126) rule out a spurious global speedup. Full RESULT in
+`IMPLEMENTATION_PLAN.md § E1-SCAN RESULT`.
 
 **A named residual risk.** On a case-insensitive filesystem a mis-cased import (`./foo` for
 `Foo.ts`) yields a `resolvedPath` in the *specifier's* casing while the walker records the *on-disk*
@@ -502,6 +539,15 @@ hypothetical — `realpathSync` was measured on this machine and does **not** ca
 unobserved in all four corpora (the 0/102,132 above), and TypeScript's default
 `forceConsistentCasingInFileNames` makes it a compile error in a well-formed TS project, but mast
 indexes arbitrary repos and JS has no such guard.
+
+**Now measured on a full corpus, not just inferred.** E1-SCAN's Gate C required both arms to agree
+on `file_count`, `chunk_count`, `symbol_count`, `edge_count` and `potential_call_count` at every
+rung, and **all five matched at all four**, including T9's 13,330 files (48,497 edges, 27,127
+`POTENTIAL_CALL`). The regression did not bite. **Read the limit precisely: Gate C compares counts,
+not sets** — two graphs can share a cardinality and differ in membership. The set-level evidence is
+the 0/102,132 import comparison above; counts-identical *plus* sets-identical is what the claim
+rests on, neither alone. The risk is not retired (n8n is one well-formed TS monorepo), but task #9
+now has a measurement under it.
 
 **A footgun worth knowing.** SQLite's BINARY collation is `memcmp` over UTF-8; JavaScript's `<`
 compares UTF-16 code units, and the two disagree — U+FFFF sorts *above* the surrogate pair for
@@ -585,6 +631,8 @@ regression.
 | The **vector subsystem** is the only component that degrades | Vectors were deleted at `5d00775`. Corrected in Stage 4.5 CORRECTION §2. |
 | Incremental indexing is **O(changed files)** at any corpus size | The FTS guard is conditional on the file being *new*, so a changed file still pays two full-scan deletes. See §2.4. |
 | E1-PHASE's H2/H3/H4 | H2 (edges carries it) b = 1.436 < 1.6 bar. H3 (parse) b = 1.014. H4 (no phase reaches the bar) — write did. |
+| The **edges** exponent has a cause other than the `files` full scan | E1-SCAN: removing the scan takes edges from b = 1.4382 to **b ≈ 1.0–1.1**, T8→T9 local slope 2.4709 → 1.1051, at 24 runs with T1/T5 controls null. The scan *was* the exponent. |
+| E1-SCAN's own **H3** — "removing the scan does not make edges linear" | Registered band [1.15, 1.55] on the post-fix T8→T9 slope; observed **1.1051**, missing low. The `POTENTIAL_CALL` floor the hypothesis rested on does not exist — see §1.1. |
 
 #### The edges/cache refutation in full
 

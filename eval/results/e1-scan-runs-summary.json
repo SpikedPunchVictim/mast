@@ -1,0 +1,29 @@
+{
+  "created": "2026-08-18T01:15:59.440Z",
+  "complete": 24,
+  "total": 24,
+  "gate_c": [
+    {
+      "tier": "T1",
+      "ok": true,
+      "mismatches": []
+    },
+    {
+      "tier": "T5",
+      "ok": true,
+      "mismatches": []
+    },
+    {
+      "tier": "T8",
+      "ok": true,
+      "mismatches": []
+    },
+    {
+      "tier": "T9",
+      "ok": true,
+      "mismatches": []
+    }
+  ],
+  "findings": [],
+  "scoreable": true
+}

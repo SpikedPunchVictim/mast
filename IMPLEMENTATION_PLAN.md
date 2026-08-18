@@ -10332,3 +10332,153 @@ RESULT lands.
 `eval/e1-scan-score.mjs` (scorer), `eval/results/e1-scan-runs.jsonl` (journal, own file — it never
 appends to another experiment's record), `eval/results/e1-scan-schedule.json`,
 `eval/results/e1-scan-verdict.json`.
+
+---
+
+### E1-SCAN RESULT (2026-08-17) — H1 FIRES, H2 FIRES, H3 IS REFUTED
+
+Scored by `eval/e1-scan-score.mjs` from `eval/results/e1-scan-runs.jsonl`; verdict at
+`eval/results/e1-scan-verdict.json`. **24/24 runs, 0 VOID, 0 interrupted, Gate C clean at every
+rung, `scoreable: true`.** One Gate 3 retake (slot 1, T1 arm N, delta 532 ms > 500 ms allowance),
+logged and retained per A4-MAT-6.
+
+#### The primary series
+
+`phase_ms.edges`, median of 3 blocks. Ratio is no-fix ÷ fix.
+
+| rung | chunks | files | no-fix N | fix R | **ratio** | forecast |
+|---|---|---|---|---|---|---|
+| T1 | 3,679 | 656 | 111 | 112 | **0.991** | 1.04 |
+| T5 | 16,529 | 2,880 | 502 | 446 | **1.126** | 0.97 |
+| T8 | 50,299 | 8,945 | 3,473 | 1,461 | **2.377** | 1.79 |
+| T9 | 73,359 | 13,330 | 8,824 | 2,217 | **3.980** | 2.74 |
+
+All three reps, to show the spread the medians rest on:
+T9 no-fix [9346, 8824, 8632], T9 fix [2210, 2325, 2217];
+T8 no-fix [3473, 3483, 3356], T8 fix [1503, 1441, 1461].
+
+- **H1 FIRES.** T9 ratio **3.980** against a registered bar of 2.0. It beats the 2.74 point
+  forecast by 45%.
+- **H2 FIRES.** Monotone in F (3.980 > 2.377 > 1.126) and both controls inside the registered
+  [0.90, 1.15] band (T1 0.991, T5 1.126).
+- **H3 IS REFUTED.** Registered band for the post-fix T8→T9 local slope was [1.15, 1.55], point
+  forecast 1.3072. Observed **1.1051** — it missed **low**, and the substantive claim it encoded
+  ("removing the scan does not make edges linear") is false. See below; this is the most
+  informative outcome in the experiment.
+
+#### The exponent, which is the headline
+
+OLS of ln(`edges_ms`) on ln(chunks), median per rung, **4 points**:
+
+| arm | b | R² |
+|---|---|---|
+| N (no-fix) | **1.4382** | 0.9714 |
+| R (range fix) | **0.9972** | 0.9983 |
+
+**Do not quote `0.9972` as a precise exponent.** An adversarial re-slice run before this block was
+written shows it is not stable to four figures: dropping T1 gives 1.0738, dropping T9 gives 0.9785,
+the top two rungs alone give 1.1051. The defensible statement is **b ≈ 1.0–1.1**. What survives
+every slice is the *contrast*: arm N over the same slices runs 1.4382 / 1.8814 / 1.2989 / 2.4709 —
+always far above, and violently slice-sensitive because it is bending. Arm R is not bending.
+
+Local slopes make the same point without any fit:
+
+| segment | no-fix | fix | POTENTIAL_CALL growth |
+|---|---|---|---|
+| T1→T5 | 1.0044 | 0.9197 | 1.0536 |
+| T5→T8 | 1.7380 | 1.0662 | 1.1433 |
+| T8→T9 | **2.4709** | **1.1051** | 1.3072 |
+
+And the cleanest single view — **the edges share of total index time, which the fix flattens
+outright**: no-fix 4.53% → 4.27% → 8.51% → **13.53%** across T1/T5/T8/T9; fix 4.67% → 3.84% →
+3.76% → **3.85%**.
+
+#### Why H3 was wrong, which is worth more than H1 being right
+
+H3 reasoned that `POTENTIAL_CALL` rows grow super-linearly in chunks (1.3072 locally over T8→T9),
+so a per-row cost flat in F would still leave a 1.31 slope. That floor does not exist: the observed
+post-fix slope **1.1051 is below it**, because the post-fix cost per surviving row *falls* with
+scale — 117.5, 96.1, 88.2, **81.7** µs across T1/T5/T8/T9 (no-fix: 116.5, 108.2, 209.7, **325.3**).
+
+The registration is on record predicting that floor, and `FINDINGS.md` §1.1 is on record explaining
+exactly why the prediction was unsound: `potential_call_count` is a **surviving-row count after
+dedup, an output, not a work counter**. The registration quoted that warning, used the count only
+as a labelled descriptive normaliser for the primary outcome — and then leaned on it anyway to
+build H3's floor. `POTENTIAL_CALL` is what the resolver emits when it *cannot* pin a call, and its
+share rises with corpus size (§1.1: 0.259 → 0.370 rows/chunk); unresolved calls are evidently
+cheaper per row than resolved ones, so normalising by them overstates work at the top of the
+ladder. **§1.1's trap has now been walked into twice in one experiment, once knowingly.** That is
+the durable lesson here.
+
+#### Gate C — the correctness result, and its precise limit
+
+**All five counts identical across arms at all four rungs**, including T9's full 13,330-file tree:
+`file_count` 13,330, `chunk_count` 73,359, `symbol_count` 51,551, `edge_count` 48,497,
+`potential_call_count` 27,127.
+
+**What that does and does not establish.** Gate C compares **counts, not sets** — two graphs can
+share a cardinality and differ in membership, so this is strong evidence, not proof, that the arms
+built the same edges. The set-level evidence is separate and already recorded in `FINDINGS.md`
+§2.3: old-LIKE vs new-range resolution of every internal resolved import agreed exactly on n8n T9's
+22,248 and vscode's 79,884. Counts identical here **plus** sets identical there is what the
+correctness claim rests on; neither alone.
+
+The named residual risk — a mis-cased import on a case-insensitive filesystem silently dropping an
+edge — **did not bite on n8n at any rung**. That is a measurement on 13,330 real files where
+previously there was only inference. It does not retire the risk (n8n is one well-formed TS
+monorepo; mast indexes arbitrary repos, and JS has no `forceConsistentCasingInFileNames`), but it
+is the first evidence beyond the unit counterexamples.
+
+#### Whole-index effect
+
+At T9 the fix removes **6,607 ms** from the edges phase and **7,572 ms** from wall-clock index time
+— **11.6% of total build time**, 65.2 s → 57.6 s. Total-duration exponent over these four rungs
+moves 1.0922 → 1.0646 (uncalibrated: the empty-corpus constant `c` is not subtracted, because a
+ratio design does not need it and measuring it unused invites post-hoc use).
+
+#### Validity checks
+
+- **Arm N reproduces E1-VERIFY**, which measured the same source commit: T1 −1.8%, T5 −2.3%,
+  T8 +2.1%, T9 +3.8%. The control is behaving like the binary it is a rebuild of.
+- **Gates S1/S2 held before every one of the 24 runs**: arm hashes matched their registered pins
+  and the arms differed in exactly `graph/populate.js`, `graph/queries.js`, `graph/path-range.js`.
+- **The plan change is confirmed on this corpus too**, not only vscode:
+  `SCAN files USING COVERING INDEX sqlite_autoindex_files_1` →
+  `SEARCH files USING COVERING INDEX sqlite_autoindex_files_1 (path>? AND path<?)`.
+- **H1 is robust to rep selection.** Worst case for the fix (min no-fix ÷ max fix) is still
+  **3.713** at T9, clearing the 2.0 bar; best case 4.229.
+
+#### Direction-of-error, honoured
+
+The registration recorded that I shipped `c4b4816` and expected it to win. It won by more than
+forecast, which is exactly the situation where the controls earn their place: T1 at 0.991 and T5 at
+1.126 are what rule out a spurious global speedup. A provisional read of block 1 alone had both
+controls *below* the band (0.87, 0.91) and I had drafted language conceding H2 would fail as
+registered; the three-block medians moved them inside it. **The block-1 read was noise and the
+registered n was right** — recorded because the temptation to report a partial series as a trend is
+the failure this ceremony exists to prevent.
+
+#### A correction to this experiment's own registration
+
+The registration claimed E1-SCAN was "the first reader" of `potential_call_count` and that it
+therefore closed §1.1's "no scorer references it". **That is wrong**, found while updating
+`FINDINGS.md` for this commit: `eval/e1-unread-fit.mjs:178-179` already fits the field as
+`potential_call_share` and `potential_call_per_chunk` over e1-verify's 27 rows. §1's summary table
+recorded that; §1.1's body prose still said otherwise, and the registration copied the body. The
+accurate statement is narrower: **E1-SCAN is the first to divide a phase time by the count.** The
+registration is append-only, so the error is corrected here; §1.1's stale sentence is fixed in
+place, since `FINDINGS.md` is a derived index.
+
+This is the second §1.1 failure in one experiment, and it has the same root as H3's: a warning was
+read, quoted, and then not applied to the sentence being written.
+
+#### What this does not answer
+
+- **Edges is not fully explained, it is fully *linearised*.** b ≈ 1.0–1.1 over four rungs is
+  consistent with a residual too small to separate from noise at this n, not with a proof of
+  linearity. Nine rungs would measure it properly; four were registered.
+- **`importResolvedPathFor`'s per-call `JSON.parse` was never isolated** (task #6). It is inside
+  the ~82–118 µs/row constant that remains, and this design cannot see it.
+- **One corpus family.** n8n rungs only; vscode contributed the plan evidence, not timings, and the
+  two are not pooled.
+- **Nothing here measures `resolveCallTarget` invocations.** No per-call cost is claimed.
