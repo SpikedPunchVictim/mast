@@ -10136,3 +10136,199 @@ have contaminated the frozen snapshot) but it means the organic counter did not 
 blocker as 2026-08-01, now with Q4 showing exactly why it matters: the harvest is the only
 instrument that can supply identifier-bearing queries, which is the only class the ranking
 evidence lacks.
+
+---
+
+### E1-SCAN — does removing the `files` full scan remove the edges knee? PRE-REGISTRATION (written 2026-08-17, BEFORE any measurement)
+
+**Nothing below may be edited after the first scored measurement.** Amendments appended with
+timestamp, reason, direction.
+
+#### The mandatory FINDINGS check (repo rule, `.claude/CLAUDE.md`)
+
+Read before writing this: `FINDINGS.md` §1 (unread data) and §3 (dead hypotheses).
+
+**§1 — what I found, and what it changed.**
+
+- **§1.2 named the artifact this registration is built on.** `e1-verify-runs.jsonl` is "the only
+  full nine-rung per-phase ladder measured against the shipped binary, and **no scorer touches
+  it**", missed because its records carry `corpus`, not `tier`. Every baseline number below is
+  derived from it **in this session**, not copied from prose. §1.2's instruction — "Before
+  registering anything about any phase, fit these first" — is discharged here.
+- **§1.1 is a trap this registration walked into and backed out of.** The first draft normalised
+  `edges_ms` by `potential_call_count` and called the quotient "µs per call". §1.1 states plainly
+  that this count is `SELECT COUNT(*) FROM edges WHERE edge_type='POTENTIAL_CALL'` — a
+  **surviving-row count after primary-key dedup, an output, not a work counter** — and that
+  "dividing a phase time by it does not yield a per-call cost." The primary outcome below was
+  changed to the **raw `edges_ms` ratio**, which needs no normaliser. Where the count still
+  appears it is labelled a *descriptive* normaliser and never called a per-call cost. This
+  registration is the first reader of the field, which closes §1.1's "no scorer references it".
+- **§1.4 remains open and is untouched here**: `chunk_fts_count` / `identifier_fts_count`, 27 rows.
+  Not read by this experiment.
+
+**§3 — what it forbids, and why this is not that.**
+
+§3 records **"The edges exponent is the page cache"** as *dead*: E1-AB moved `cache_size` over a
+512× span (D −2048 → B −1048576) and the T5→T9 knee ratio went 3.287 → 3.315, under 1%; at T9 the
+arm ratios were A/B 1.0103 and D/B 1.0202 against a registered bar of 1.5. By E1-EDGES' own
+registered rule the mechanism is therefore **ALGORITHMIC**. This registration proposes a *specific
+algorithmic* mechanism and does not re-propose the cache. No arm here varies any pragma; all arms
+run the pinned defaults.
+
+§3 also kills **homonym amplification** (1.124 rows/name measured). Not re-proposed.
+
+#### The claim under test
+
+`FINDINGS.md` §2.3's headline question is open: `SEARCH` replacing `SCAN` in the query plan is a
+**query-plan fact, not a phase measurement**. `c4b4816` replaced `path LIKE P || '%'` with a
+half-open range at four sites; two of them (`populate.ts:958` `resolveInFileOrReExportChain`,
+`populate.ts:1093` `insertReExportFiles`) sit inside the `phase.edges` timing window. Measured on
+the 8,651-file vscode DB with bound parameters, the resolver's plan moves from
+`SCAN files USING COVERING INDEX sqlite_autoindex_files_1` to
+`SEARCH … (path>? AND path<?)`. **How much of the edges phase that is worth has never been
+measured.**
+
+#### The baseline, derived this session from `e1-verify-runs.jsonl` (27 runs, 9 rungs, 3 reps)
+
+Median per rung. `edges_ms` is `phase_ms.edges` from the fitted attempt.
+
+| tier | chunks N | files F | `edges_ms` | share of `duration_ms` |
+|---|---|---|---|---|
+| T1 | 3,679 | 656 | 113 | 4.71% |
+| T2 | 5,332 | 954 | 158 | 4.59% |
+| T3 | 7,761 | 1,393 | 230 | 4.14% |
+| T4 | 11,278 | 1,986 | 331 | 4.22% |
+| T5 | 16,529 | 2,880 | 514 | 4.13% |
+| T6 | 23,854 | 4,191 | 881 | 4.92% |
+| T7 | 34,691 | 5,976 | 1,575 | 6.05% |
+| T8 | 50,299 | 8,945 | 3,401 | 8.70% |
+| T9 | 73,359 | 13,330 | 8,501 | 13.68% |
+
+Estimators, named: **OLS of ln(`edges_ms`) on ln(N), median per rung, 9 points** gives
+**b = 1.3949, R² = 0.9690**. That single exponent hides the shape that matters — the curve is not a
+power law. **Local endpoint slopes**: T1→T5 = **1.0082** (linear), T8→T9 = **2.4276**. The knee is
+real and it is at the top of the ladder.
+
+A full scan predicts exactly this shape: per-resolution scan cost grows with F while everything
+else does not, so the scan is invisible when F is small and dominant when F is large.
+
+#### Hypotheses, with pre-committed thresholds
+
+Primary series: **`phase_ms.edges`, median of 3 reps per (arm, rung)**. Ratio is
+**no-fix ÷ fix**, so >1 means the fix is faster.
+
+- **H1 (primary).** The scan is the dominant cost in the edges knee.
+  **Fires if the T9 ratio ≥ 2.0.** Point forecast **2.74×** (8,501 → ~3,103 ms).
+- **H2 (dose–response).** The effect scales with F, and is absent where F is small.
+  **Fires if** T9 ratio > T8 ratio > T5 ratio, **and** the T1 and T5 ratios both lie in
+  [0.90, 1.15]. Point forecasts: T1 **1.04×**, T5 **0.97×**, T8 **1.79×**, T9 **2.74×**.
+  H2 is the discriminating test. A uniform speedup at every rung would mean the fix changed
+  something other than the scan, and H1 firing alone would not establish the mechanism.
+- **H3 (residual).** Removing the scan does **not** make edges linear.
+  **Fires if** the post-fix T8→T9 local slope is in [1.15, 1.55]. Point forecast **1.3072**.
+  This is not a hedge: `POTENTIAL_CALL` rows grow super-linearly in chunks — §1.1's endpoint slope
+  1.12 across T1→T9, re-derived here as **1.1189**, and **1.3072** locally over T8→T9. Even a cost
+  per surviving row that is perfectly flat in F leaves that slope behind. H3 is what hands task #5
+  ("name the residual") a measured target instead of a prose one.
+
+**Falsification.** If the T9 ratio is **< 1.2**, the scan is not the mechanism, `SEARCH`-vs-`SCAN`
+is a plan improvement with no phase consequence at this scale, and §2.3's open question stays open
+with the cache *and* the scan both eliminated. That outcome is recorded as a refutation of H1 in
+§3, not softened into "a modest improvement".
+
+**Direction-of-error statement.** I shipped `c4b4816` and I expect it to win; the pro-fix result is
+the one I am predisposed to. The T1/T5 control rungs exist to make a spurious global speedup
+visible, and the correctness gate below can fail the fix outright regardless of any timing.
+
+#### The descriptive plateau model (secondary, explicitly not a mechanism)
+
+Cost per surviving `POTENTIAL_CALL` row is flat across T1–T5 — 118.6, 115.0, 114.4, 106.8,
+110.8 µs — median **114.4 µs** — then climbs: T6 127.0, T7 144.5, T8 205.3, T9 313.4. The point
+forecasts above are that quantity returning to the T1–T5 plateau. Per §1.1 this is a
+**normalisation, not a per-invocation cost**; the number of `resolveCallTarget` invocations is
+unmeasured and this experiment does not measure it.
+
+#### Design
+
+Two arms × four rungs × three reps = **24 runs**.
+
+| arm | commit | dist rel-hash (SHA-256, paths relative to `dist/`) | files |
+|---|---|---|---|
+| **N** (no-fix) | `24ebc66` = `c4b4816~1` | `75040aff0ed9089ace829a72b9666e161935fb2c60950c076ec273e9f6678fcb` | 54 |
+| **R** (range fix) | `c4b4816` | `2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9` | 55 |
+
+Rungs **T1, T5** (controls, F = 656 / 2,880) and **T8, T9** (treatment, F = 8,945 / 13,330).
+
+Both arms are built in **detached git worktrees outside the repo** — `/private/tmp/mast-scan-nofix`
+and `/private/tmp/mast-scan-fix` — each with its own `dist/`, so no arm can observe or overwrite the
+other's build, and neither writes to the repo's `eval/results/`. `node_modules` is symlinked from
+the main checkout; the build is plain `tsc`, so the link affects resolution only, not output.
+
+**Why not the repo's own `dist/`.** It was found this session to be **the no-fix binary** — its
+`distContentHash` is `b77f0ae3…`, byte-identical to the hash E1-VERIFY pinned, because `dist/` was
+never rebuilt after `c4b4816` landed. Gate 0b catches this and does name `src/graph/path-range.ts`.
+Separately, the repo's `dist/` carries **6 orphaned `.js` files** with no surviving source —
+`indexer/{background-embedder,background-embedder-worker,embedder}`, `search/{hybrid,vector}`,
+`store/lance`, all dead since the vector deletion at `5d00775`; `tsc` does not remove outputs whose
+inputs vanished. They are unreachable (the only mentions in live emitted code are two comments in
+`store/sqliteChunkStore.js`), but they make the repo tree a 60-file build against the worktrees' 54.
+Building **both** arms in worktrees is what makes the arm delta exactly three files.
+
+**Ordering.** Interleaved and rung-blocked, following E1-AB: within a block the rungs run in a fixed
+order and the two arms alternate, with arm order flipping between blocks (block 1 N-first, block 2
+R-first, block 3 N-first). Thermal drift and background load therefore hit both arms roughly
+equally instead of loading onto whichever ran second.
+
+#### Gates
+
+Inherited unchanged, imported not re-implemented: **Gate 1** (corpus pin — n8n at
+`9d9e9bf97e8ae5382a930cd662637a9cf7046ef9`, verified clean this session — plus the tier file-set
+clause A4-MAT-4 and the config pin A4-C4), **Gate 3** (external vs fitted clock, with A4-MAT-6
+retakes and `selectFitted`), **Gate P** (phase attribution).
+
+**Gate 0 is deliberately modified, and this is the one waiver in this registration.** Gate 0's
+`dist_hash` equality exists to stop the binary moving mid-schedule. Here **the binary is the
+independent variable**, so cross-arm equality cannot be required. It is replaced by:
+
+- **Gate S1 (arm identity).** Each arm's dist rel-hash must equal the value pinned in the table
+  above, re-checked before every run. A mismatch is a hard stop, not a VOID.
+- **Gate S2 (arm delta).** The set of `dist/**/*.js` files differing between the arms must be
+  exactly `graph/populate.js`, `graph/queries.js`, `graph/path-range.js` (added). Any fourth
+  differing file means the worktrees differ by something other than the fix.
+- **Gate 0b (staleness) survives per-arm**: each worktree's newest build-input `.ts` must not be
+  newer than its newest emitted `.js`.
+
+**Gate C (correctness) — new, and it can fail the fix on its own.** At every rung, arm N and arm R
+must agree exactly on `file_count`, `chunk_count`, `symbol_count`, `edge_count` and
+`potential_call_count`. The range query is a **deliberate semantics change** (case-insensitive path
+matching was withdrawn), and `FINDINGS.md` §2.3 records the named residual risk: on a
+case-insensitive filesystem a mis-cased import yields a `resolvedPath` in the specifier's casing
+while the walker records the on-disk casing, so LIKE papered over a mismatch that the range drops.
+It was unobserved across four corpora, but never tested on n8n's 13,330 files. **A count divergence
+is a finding about correctness that outranks every timing number here**, and it is the measured
+answer to task #9 rather than the current inference.
+
+#### What this experiment cannot answer
+
+- It does not measure `resolveCallTarget` invocations (§1.1). Nothing here yields a per-call cost.
+- It does not attribute the *residual* — H3 quantifies what is left, it does not name it. That
+  stays task #5.
+- It measures one corpus family (n8n rungs). The vscode plan evidence is a different corpus and is
+  not pooled with these numbers.
+- Absolute timings are **not comparable to E1-PHASE's ladder**, whose binary predates the FTS
+  guard. E1-VERIFY's are comparable to arm N and are used as a consistency check only: arm N should
+  reproduce E1-VERIFY's edges medians, because it is a rebuild of the same commit's source.
+
+#### Cost
+
+~11.6 minutes of indexing (2 arms × 3 reps × (2.4 + 12.4 + 39.1 + 62.1) s), plus tier
+materialisation already on disk. Peak transient disk one T9 state dir (~420 MiB); state dirs are
+removed after each run. Two worktrees at ~1 GiB each, removed with `git worktree remove` when the
+RESULT lands.
+
+#### Artifacts
+
+`eval/e1-scan-run.mjs` (driver, committed with this registration, before any run),
+`eval/e1-scan-score.mjs` (scorer), `eval/results/e1-scan-runs.jsonl` (journal, own file — it never
+appends to another experiment's record), `eval/results/e1-scan-schedule.json`,
+`eval/results/e1-scan-verdict.json`.
