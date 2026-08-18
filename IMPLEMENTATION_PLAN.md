@@ -11058,3 +11058,150 @@ Stated in advance so it cannot be rationalised afterwards:
   an underpowered null, not a negative result.** The realised ratio CV will be reported alongside the
   verdict so power can be checked after the fact rather than assumed.
 
+
+---
+
+# E1-HOIST RESULT (2026-08-18)
+
+**All three registered hypotheses fire. The per-file import index removes 9.13% of the T9 edges
+phase — 2.5× more than the mechanism replay predicted — and the two arms build a byte-identical
+graph over 73,359 chunks.**
+
+Instruments: `eval/e1-hoist-{schedule,run,score}.mjs`, registered and committed at `8346ebf`
+before any run. Journal `eval/results/e1-hoist-runs.jsonl`, verdict
+`eval/results/e1-hoist-verdict.json`. **60/60 runs, 30/30 complete blocks, 0 VOID, 0 interrupted,
+0 Gate 3 misses, 0 Gate P failures, `scoreable: true`.**
+
+## Verdict
+
+| | statistic | 95% CI | registered bar | |
+|---|---|---|---|---|
+| **H1** | paired median ratio **0.9087** | [0.8860, 0.9495] | CI entirely below 1.0 | **FIRES** |
+| **H2** | median saving **219.0 ms** | [—] | in [40, 350] ms | **FIRES** |
+| **H3** | placebo phases all null | — | every non-edges CI contains 1.0 | **FIRES** |
+
+Arm medians: **N 2617 ms, H 2329.5 ms.** Pre-registered secondary (geometric-mean ratio)
+**0.9192**, 95% t [0.8725, 0.9684] — agrees with the primary, as registered it would be reported
+either way.
+
+H3's placebo set, which is what makes H1 attributable rather than merely observed:
+
+| phase | ratio | 95% CI | blocks with H < N |
+|---|---|---|---|
+| `walk` | 1.0072 | [0.9905, 1.0394] | 12/30 |
+| `parse` | 1.0030 | [0.9929, 1.0179] | 14/30 |
+| `write` | 0.9987 | [0.9879, 1.0142] | 16/30 |
+| `finalise` | 0.9964 | [0.9203, 1.0528] | 15/30 |
+| **`edges`** | **0.9087** | **[0.8860, 0.9495]** | **25/30** |
+
+Four phases sitting at 12–16 of 30 is coin-flip behaviour; the edges phase at 25/30 is not. **The
+placebo control is the most valuable single row in this table** — it is what separates "the hoist
+did this" from "the session drifted", on a rig that Gate L shows drifted 18%.
+
+## GATE C — the result that outranks the timing
+
+**The arms built an identical graph in every one of the 60 runs.** Recomputed independently of the
+scorer, across all five counts:
+
+| | `file_count` | `chunk_count` | `symbol_count` | `edge_count` | `potential_call_count` |
+|---|---|---|---|---|---|
+| arm N | 13,330 | 73,359 | 51,551 | 48,497 | 27,127 |
+| arm H | 13,330 | 73,359 | 51,551 | 48,497 | 27,127 |
+
+Every column is a single distinct value across both arms and all 60 runs. The hoist rewrote how
+import evidence is looked up — from a query per call name to one index per file, with first-write-
+wins replacing a row-scan short-circuit — and the resulting graph is unchanged at 73,359 chunks.
+**This is a far heavier equivalence check than the 200-file replay used while developing the
+change**, and per the registration it outranks every timing number here. Had it failed, `08b0cd8`
+would have been a bug regardless of how fast it was.
+
+## Two post-hoc analyses, labelled as post-hoc
+
+Neither was registered; neither adjudicates. Both are reported because they bear on whether H1 is
+believable.
+
+**A distribution-free confirmation.** 25 of 30 blocks favour the hoist; an exact two-sided sign test
+gives **p = 3.2 × 10⁻⁴**. This uses no bootstrap, no normality assumption and no estimator choice,
+so it is the one statement here that survives any objection to the BCa machinery.
+
+**The effect is not an artifact of the machine freeing up.** Wall-clock per build fell from ~92 s to
+~55 s over the schedule as background load drained. Splitting the schedule in half:
+
+| | median ratio | median arm-N edges |
+|---|---|---|
+| blocks 1–15 (loaded) | 0.9025 | 2662 ms |
+| blocks 16–30 (quiet) | 0.9210 | 2334 ms |
+
+The effect is present in both halves, and slightly *larger* under load — consistent with the
+mechanism, since a redundant query costs more on a contended machine. Arm order flips every block,
+so ordering is balanced within each half.
+
+## Where the extra 2.5× came from — INFERRED, not measured
+
+The replay predicted 87.1 ms; the experiment measured 219.0 ms, a factor of **2.51×**. Gate L puts
+this session **+18.0%** slower than the one that produced the prediction, which lifts the
+drift-adjusted forecast to 102.8 ms and leaves a residual factor of **2.13×**.
+
+That residual is consistent with the caveat the registration attached to the prediction: the replay
+reconstructs its workload from stored `edges` rows, and a stored row is a **successfully resolved**
+call (§1.1). Every failed resolution called `importResolvedPathFor`, cost real time, and left
+nothing to count. A residual near 2× implies roughly half of all calls resolve to nothing.
+
+**This is inference from a mechanism, not a measurement**, and it is recorded in the §11.5 sense:
+the 219.0 ms is measured, the 2.13× is arithmetic, and the attribution of that 2.13× to unresolved
+calls is *unmeasured*. The registration predicted the direction (it declared the forecast a lower
+bound) and the direction held; that is weaker evidence than a count, and it is not upgraded here.
+
+## Three defects in this experiment's own instruments
+
+Recorded because a future reader will otherwise inherit them silently.
+
+**1. The runner and the scorer compute different medians.** The runner reports arm N's T9 edges
+median as **2623 ms**, the scorer as **2617 ms**. Both are right about their own definition and
+neither is wrong about the data: `n = 30` is even, the runner takes `element[n/2]` and the scorer
+averages `element[14]` and `element[15]` (2611 and 2623). The Gate L delta is 18.31% by one
+convention and 18.04% by the other — both outside the ±15% band, so no verdict moves. **But two
+instruments in one experiment disagreeing by 6 ms on the headline arm median is a defect**, and it
+was found only because the two numbers were printed side by side.
+
+**2. The scorer's post-hoc power figure uses the wrong closed form** — the same `n = 7.849
+(CV/effect)²` that the registration corrected for the *design*. It is a mean-based formula reported
+against a median-based decision rule, so `n_required_for_80pct_power: 19` in the verdict understates
+the requirement. Simulating the registered rule at the realised parameters (effect 9.13%, ratio CV
+13.95%) gives **85% at n = 19 and 91% at n = 30**. The conclusion — adequately powered — survives,
+but it survives on a number the scorer did not compute. **The scorer was deliberately NOT patched
+and NOT re-run**: it produced the registered verdict, and editing an analysis instrument after
+seeing its output is the thing pre-registration exists to prevent. The correction lives here instead.
+
+**3. H2's band was the wrong shape.** `[40, 350] ms` is absolute, on a rig whose own Gate L exists
+because it drifts between sessions. It fired, but block 1 alone read 380 ms — outside the band — and
+had the machine stayed at its initial load the registered H2 would plausibly have failed for a reason
+that has nothing to do with the hypothesis. **A magnitude bar on a drifting rig should be expressed
+relative to a same-session comparator**, not in milliseconds. The registration's own Gate L had the
+information needed to see this and it was not used.
+
+## Realised noise, against what was assumed
+
+Registered assumption: paired ratio CV **5.6%** (from E1-SCAN's n=3 blocks). Realised: **13.95%** —
+2.5× worse. The design survived only because the effect also came in 2.6× larger than forecast; the
+two errors happened to cancel. **That is luck, not method.** An E1-SCAN CV estimated from three
+blocks was never a sound basis for sizing thirty, and the honest reading is that this experiment was
+powered by accident.
+
+Arm N's own run-to-run CV was 10.8% (range 2108–3258 ms); arm H's range was 1864–3634 ms, its
+maximum *exceeding* arm N's, driven by a single block-2 outlier (H 3634 vs N 2662, ratio 1.365).
+**That outlier is why the median is the registered primary**, and it is the case the robust
+estimator was chosen for before the data existed.
+
+## Scope
+
+`ci_is_context_only: false` — unlike E1/E1-VERIFY/E1-LADDER, whose nested-subset rungs are not
+independent draws, these 30 blocks are independent repeated runs of the same pair, so the interval
+is inferential in the ordinary sense. Its scope is **this host, this corpus, this rung**. Nothing
+here generalises across machines, and **no claim is made about total build time** — the registration
+refused that outcome as unpowered (~1,091 blocks per arm) before any run, and the refusal stands.
+
+At 0.151% of a T9 build by the replay's accounting, or ~0.4% by this experiment's measured saving,
+**the hoist remains immaterial to wall-clock and always was.** What this experiment establishes is
+that it is real, that it is confined to the phase it should touch, and that it changes no output.
+

@@ -46,7 +46,7 @@ question that may already be answerable without running anything.
 | `potential_call_count` | all five journals | **144** | `e1-unread-fit.mjs` (e1-verify's 27 only) | see 1.1 |
 | `phase_ms.*` (all 5 phases) | `e1-ab` 30, `e1-fts` 30, `e1-verify` 27 | **87** | **`e1-unread-fit.mjs` — all 87** | **CLOSED 08-17**, see 1.2 |
 | `write_spans.*` (6 spans) | `e1-verify` | **27** | **`e1-unread-fit.mjs`** | **CLOSED 08-17**, see 1.4 |
-| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` 27, **`e1-ladder` 27** | **54** | nothing (the 27/27 identity check in §2.1 is hand analysis) | **still open and now larger**, see 1.4 |
+| `chunk_fts_count`, `identifier_fts_count` | `e1-verify` 27, `e1-ladder` 27, **`e1-hoist` 60** | **114** | nothing (the 27/27 identity check in §2.1 is hand analysis) | **still open and now 4.2x its original size**, see 1.4 |
 | `external_ms` | all five journals | 144 | `e1-schedule.mjs` only, for scheduling — never scored | low value |
 | guard-era per-phase exponents | `eval/vscode-build.mjs` constants | — | **`e1-unread-fit.mjs` reproduces all five** | **CLOSED 08-17**, see 1.3 |
 | `symbol_count` | all five journals | 144 | runners only; descriptive | unscored by design |
@@ -82,6 +82,16 @@ and `extra_args` remain diagnostics rather than measurement series and are not t
 **`e1-ladder` rows carry BOTH `tier` and `corpus`**, deliberately, so neither grouping convention can
 reproduce the collapse trap described below.
 
+**Re-run 2026-08-18 for the seventh journal, `e1-hoist-runs.jsonl` (60 runs).** Key-for-key
+**identical in shape to `e1-scan-runs.jsonl`** — it introduces no new series and therefore no new
+unread ones. Its primary (`phase_ms.*`, all five phases, both arms) is read by
+`e1-hoist-score.mjs`, which fits every phase: `edges` as the registered outcome and the other four
+as H3's placebo control. It enlarges exactly one open row, `chunk_fts_count` /
+`identifier_fts_count`, from 54 to **114** (task #7) — that row has now grown with every journal
+added since it was opened, which is an argument for closing it rather than re-counting it again.
+`potential_call_count` is recorded on all 60 and is **deliberately unread by the scorer**: §1.1's
+warning was quoted in the registration and, this time, obeyed.
+
 **Count rows, not lines, and then subtract the dead ones.** A journal line is not a run: the files
 carry `attempt_start` records, gate rows and calibration rows alongside measurements, so `wc -l`
 over-counts by roughly 2×. But filtering on `r.measurement?.phase_ms != null` is still not the
@@ -112,9 +122,9 @@ the runs the retake machinery exists to handle. `e1-verify` has exactly one such
 (1.3823 instead of 1.3814) while leaving the rung-median fit identical. That asymmetry is the
 diagnostic: *medians agree, all-runs does not* means an attempt-selection bug, not an arithmetic one.
 
-Audited across all six journals: **no committed scorer reads `measurement.phase_ms`**, so no
+Audited across all seven journals: **no committed scorer reads `measurement.phase_ms`**, so no
 published result was affected. Divergent rows by journal — **`e1-ladder` 3/27**, `e1-verify` 1/27,
-`e1-ab` 0/30, `e1-fts` 0/31, `e1-phase` 0/15, `e1-scan` 0/24. The three in `e1-ladder` are exactly
+`e1-ab` 0/30, `e1-fts` 0/31, `e1-phase` 0/15, `e1-scan` 0/24, **`e1-hoist` 0/60**. The three in `e1-ladder` are exactly
 its Gate 3 triple-failures (T3#2, T4#2, T4#3), which is the expected pattern: divergence is possible
 only where a retake was fitted.
 
@@ -381,6 +391,31 @@ contradicted.
 session's noise — but it is where a real residual would show, and it is the reason §2.3 is closed
 as a *scaling* question rather than closed outright. More reps per rung would settle it; more rungs
 would not.
+
+#### The import-index hoist — a real constant factor inside the now-linear phase (2026-08-18)
+
+Separate from the scaling question above and settled independently. `importResolvedPathFor` ran one
+`imports` query per distinct call name per file, re-reading and re-parsing rows that were invariant
+across the file. `08b0cd8` builds one index per file, lazily.
+
+**E1-HOIST, 60 runs, 30 paired blocks at T9** — `eval/results/e1-hoist-verdict.json`, RESULT at
+`IMPLEMENTATION_PLAN.md` § E1-HOIST RESULT:
+
+- **Paired median ratio 0.9087**, 95% BCa [0.8860, 0.9495] — a **9.13% reduction** in the edges
+  phase. Geometric-mean secondary 0.9192 [0.8725, 0.9684], pre-registered, agrees.
+- **Median saving 219.0 ms**, against a replay forecast of 87.1 ms that was declared a *lower* bound
+  before the run. Direction predicted, magnitude under-predicted 2.5x.
+- **Placebo control holds**: `walk` 1.0072, `parse` 1.0030, `write` 0.9987, `finalise` 0.9964 — all
+  four CIs contain 1.0, at 12–16 of 30 blocks each, against edges' 25/30.
+- Distribution-free confirmation (post-hoc): exact sign test **p = 3.2e-4**.
+- **Gate C: the arms build a byte-identical graph** — `file_count`, `chunk_count`, `symbol_count`,
+  `edge_count` and `potential_call_count` each a single value across all 60 runs at 73,359 chunks.
+
+**It is immaterial to wall-clock and always was**: ~0.4% of a T9 build by the measured saving,
+0.151% by the replay's. The registration **refused a total-duration A/B as unpowered** (~1,091
+blocks per arm) before running anything, and that refusal stands — no claim about total build time
+comes from this experiment. What it establishes is that the effect is real, confined to the phase it
+should touch, and output-preserving.
 
 The rest of this section is the pre-fix record, retained because it is what the next registration
 starts from.
@@ -731,6 +766,33 @@ is **0.976 pre-fix** versus **0.143 post-fix**, and quadratic departure is **45.
 
 Before registering a threshold on a derived statistic, **compute that statistic's noise from data
 already committed.** Here that was nine journal rows and five minutes.
+
+#### Two corollaries, both earned by E1-HOIST (2026-08-18)
+
+No hypothesis died here — all three fired — so there is no row in the table above. These are
+**design** failures found inside a successful experiment, which is the only place they are cheap.
+
+**Compute the noise of the DECISION RULE, not of the statistic.** E1-HOIST was almost registered at
+20 blocks on `n = 7.849 (CV/effect)²`. That closed form sizes a **mean**; the registered primary was
+a **median**, ~64% as efficient. Simulating the actual rule — "the 95% BCa interval on the median of
+n paired ratios lies below 1.0" — gave **72%** where 80% was claimed. Corrected to 30 blocks before
+any run. The lesson refines the entry above: knowing the statistic's noise is not enough if the
+estimator and the interval method are then chosen separately. **Simulate the rule you actually
+registered.** One simulation, five minutes, caught before 40 wasted builds.
+
+**A bar in absolute units is a bar on the rig, not on the hypothesis.** E1-HOIST's H2 was registered
+as a saving in `[40, 350] ms`. It fired — but its own Gate L then measured the session running
+**+18% slower** than the one that produced the 87.1 ms forecast, and block 1 alone read 380 ms.
+Had the load held, a registered hypothesis would plausibly have failed for a reason unconnected to
+what it asked. **On a rig with a drift gate, express magnitude bars relative to a same-session
+comparator.** The information needed to see this was already in the registration, in the gate
+written three paragraphs above the bar.
+
+**And a warning about how E1-HOIST survived.** Its registered noise assumption (paired ratio CV
+5.6%, taken from E1-SCAN's *three* blocks) was wrong by 2.5x — the realised CV was **13.95%**. The
+design held only because the effect also came in 2.6x larger than forecast, so the two errors
+cancelled. That is luck. A CV estimated from n=3 is not a basis for sizing n=30, and the next
+experiment that borrows a noise figure from a three-block cell should widen it or measure it.
 
 #### The edges/cache refutation in full
 

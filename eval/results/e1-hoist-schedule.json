@@ -1,0 +1,399 @@
+{
+  "created": "2026-08-18T09:21:52.563Z",
+  "arms": [
+    {
+      "id": "N",
+      "label": "no hoist (query per call)",
+      "commit": "cc4332f29db75f209eb76ec2a2a62cb027c75f6f",
+      "rel_hash": "2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9"
+    },
+    {
+      "id": "H",
+      "label": "per-file import index",
+      "commit": "08b0cd8e99aba9e0c5b0ae2a50d5f7f26ae4ab9c",
+      "rel_hash": "24fd80818c89175a960c4420b3bba4163c9fe615c3a97a003438e87fbbaf8bbc"
+    }
+  ],
+  "identity": {
+    "arm_hashes": {
+      "N": "2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9",
+      "H": "24fd80818c89175a960c4420b3bba4163c9fe615c3a97a003438e87fbbaf8bbc"
+    },
+    "arm_file_counts": {
+      "N": 55,
+      "H": 55
+    },
+    "arm_delta": [
+      "graph/populate.js"
+    ]
+  },
+  "tiers": [
+    "T9"
+  ],
+  "blocks": 30,
+  "reps": 3,
+  "total_runs": 60,
+  "schedule": [
+    {
+      "slot": 1,
+      "block": 1,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 2,
+      "block": 1,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 3,
+      "block": 2,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 4,
+      "block": 2,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 5,
+      "block": 3,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 6,
+      "block": 3,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 7,
+      "block": 4,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 8,
+      "block": 4,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 9,
+      "block": 5,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 10,
+      "block": 5,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 11,
+      "block": 6,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 12,
+      "block": 6,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 13,
+      "block": 7,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 14,
+      "block": 7,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 15,
+      "block": 8,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 16,
+      "block": 8,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 17,
+      "block": 9,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 18,
+      "block": 9,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 19,
+      "block": 10,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 20,
+      "block": 10,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 21,
+      "block": 11,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 22,
+      "block": 11,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 23,
+      "block": 12,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 24,
+      "block": 12,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 25,
+      "block": 13,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 26,
+      "block": 13,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 27,
+      "block": 14,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 28,
+      "block": 14,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 29,
+      "block": 15,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 30,
+      "block": 15,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 31,
+      "block": 16,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 32,
+      "block": 16,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 33,
+      "block": 17,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 34,
+      "block": 17,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 35,
+      "block": 18,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 36,
+      "block": 18,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 37,
+      "block": 19,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 38,
+      "block": 19,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 39,
+      "block": 20,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 40,
+      "block": 20,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 41,
+      "block": 21,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 42,
+      "block": 21,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 43,
+      "block": 22,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 44,
+      "block": 22,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 45,
+      "block": 23,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 46,
+      "block": 23,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 47,
+      "block": 24,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 48,
+      "block": 24,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 49,
+      "block": 25,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 50,
+      "block": 25,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 51,
+      "block": 26,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 52,
+      "block": 26,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 53,
+      "block": 27,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 54,
+      "block": 27,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 55,
+      "block": 28,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 56,
+      "block": 28,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 57,
+      "block": 29,
+      "tier": "T9",
+      "arm": "N"
+    },
+    {
+      "slot": 58,
+      "block": 29,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 59,
+      "block": 30,
+      "tier": "T9",
+      "arm": "H"
+    },
+    {
+      "slot": 60,
+      "block": 30,
+      "tier": "T9",
+      "arm": "N"
+    }
+  ],
+  "node_version": "v24.18.0"
+}

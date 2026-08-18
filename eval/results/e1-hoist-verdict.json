@@ -1,0 +1,528 @@
+{
+  "created": "2026-08-18T10:26:28.431Z",
+  "registration": "IMPLEMENTATION_PLAN.md § E1-HOIST PRE-REGISTRATION (2026-08-18)",
+  "self_check": {
+    "comparator": "e1-scan-verdict.json h2.observed.T9",
+    "want": 3.980153360396933,
+    "got": 3.980153360396933,
+    "tolerance": 1e-9
+  },
+  "arms": [
+    {
+      "id": "N",
+      "label": "no hoist (query per call)",
+      "commit": "cc4332f29db75f209eb76ec2a2a62cb027c75f6f",
+      "rel_hash": "2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9"
+    },
+    {
+      "id": "H",
+      "label": "per-file import index",
+      "commit": "08b0cd8e99aba9e0c5b0ae2a50d5f7f26ae4ab9c",
+      "rel_hash": "24fd80818c89175a960c4420b3bba4163c9fe615c3a97a003438e87fbbaf8bbc"
+    }
+  ],
+  "runs_scored": 60,
+  "total_expected": 60,
+  "blocks_expected": 30,
+  "pairs_scored": 30,
+  "incomplete_blocks": [],
+  "unresolved_voids": [],
+  "primary_statistic": "median over blocks of the within-block paired ratio edges_H / edges_N",
+  "ci_is_context_only": false,
+  "ci_scope": "this host, this corpus, this rung — blocks are independent repeated runs, so the interval is inferential; it does not generalise across machines",
+  "per_phase": {
+    "walk": {
+      "n_pairs": 30,
+      "ratio": {
+        "point": 1.0072128594980767,
+        "lo": 0.990521327014218,
+        "hi": 1.0394088669950738,
+        "z0": -0.08583195982086059,
+        "a": 4.0614794504887395e-15,
+        "resamples": 10000,
+        "seed": 811,
+        "method": "BCa"
+      },
+      "ratio_geomean": {
+        "point": 1.0495516264585465,
+        "lo": 0.9682066337686203,
+        "hi": 1.1377309121650043,
+        "method": "geometric mean, log-space t",
+        "df": 29,
+        "tcrit": 2.0452
+      },
+      "ratio_cv_pct": 28.812934727851676,
+      "saving_ms": {
+        "median": -1.5,
+        "ci": {
+          "point": -1.5,
+          "lo": -8,
+          "hi": 1.5,
+          "z0": -0.06647457397142077,
+          "a": 0,
+          "resamples": 10000,
+          "seed": 811,
+          "method": "BCa"
+        }
+      },
+      "arm_medians_ms": {
+        "N": 205.5,
+        "H": 209
+      }
+    },
+    "parse": {
+      "n_pairs": 30,
+      "ratio": {
+        "point": 1.0029559763485816,
+        "lo": 0.9928607228015494,
+        "hi": 1.0178860327161603,
+        "z0": -0.07954391898871518,
+        "a": 2.873828497677882e-13,
+        "resamples": 10000,
+        "seed": 811,
+        "method": "BCa"
+      },
+      "ratio_geomean": {
+        "point": 1.018874378833996,
+        "lo": 0.987948164879635,
+        "hi": 1.050768690856202,
+        "method": "geometric mean, log-space t",
+        "df": 29,
+        "tcrit": 2.0452
+      },
+      "ratio_cv_pct": 9.068978461259478,
+      "saving_ms": {
+        "median": -66.5,
+        "ci": {
+          "point": -66.5,
+          "lo": -422,
+          "hi": 134,
+          "z0": -0.07401305174478497,
+          "a": 0,
+          "resamples": 10000,
+          "seed": 811,
+          "method": "BCa"
+        }
+      },
+      "arm_medians_ms": {
+        "N": 22287.5,
+        "H": 22367.5
+      }
+    },
+    "write": {
+      "n_pairs": 30,
+      "ratio": {
+        "point": 0.9986705062480732,
+        "lo": 0.9879158025527198,
+        "hi": 1.014232294535206,
+        "z0": -0.09489276918222897,
+        "a": 2.658605296457467e-13,
+        "resamples": 10000,
+        "seed": 811,
+        "method": "BCa"
+      },
+      "ratio_geomean": {
+        "point": 1.0102562098163754,
+        "lo": 0.9812461223569579,
+        "hi": 1.0401239670848534,
+        "method": "geometric mean, log-space t",
+        "df": 29,
+        "tcrit": 2.0452
+      },
+      "ratio_cv_pct": 8.442784175443407,
+      "saving_ms": {
+        "median": 45,
+        "ci": {
+          "point": 45,
+          "lo": -498,
+          "hi": 338,
+          "z0": -0.05291453927374816,
+          "a": 0,
+          "resamples": 10000,
+          "seed": 811,
+          "method": "BCa"
+        }
+      },
+      "arm_medians_ms": {
+        "N": 35876.5,
+        "H": 35797
+      }
+    },
+    "edges": {
+      "n_pairs": 30,
+      "ratio": {
+        "point": 0.9086902142197368,
+        "lo": 0.8859579801466129,
+        "hi": 0.9494855004677268,
+        "z0": -0.11934756672171819,
+        "a": -3.2357403297534407e-15,
+        "resamples": 10000,
+        "seed": 811,
+        "method": "BCa"
+      },
+      "ratio_geomean": {
+        "point": 0.9191917184188239,
+        "lo": 0.8725276478560752,
+        "hi": 0.9683514525709566,
+        "method": "geometric mean, log-space t",
+        "df": 29,
+        "tcrit": 2.0452
+      },
+      "ratio_cv_pct": 13.948537317864703,
+      "saving_ms": {
+        "median": 219,
+        "ci": {
+          "point": 219,
+          "lo": 108,
+          "hi": 279.5,
+          "z0": -0.06119991182332348,
+          "a": 0,
+          "resamples": 10000,
+          "seed": 811,
+          "method": "BCa"
+        }
+      },
+      "arm_medians_ms": {
+        "N": 2617,
+        "H": 2329.5
+      }
+    },
+    "finalise": {
+      "n_pairs": 30,
+      "ratio": {
+        "point": 0.9963768115942029,
+        "lo": 0.9202898550724637,
+        "hi": 1.0528045137736475,
+        "z0": -0.0735103604242153,
+        "a": 2.7981008140981313e-15,
+        "resamples": 10000,
+        "seed": 811,
+        "method": "BCa"
+      },
+      "ratio_geomean": {
+        "point": 0.9954464040999258,
+        "lo": 0.9132489658388387,
+        "hi": 1.085042064652433,
+        "method": "geometric mean, log-space t",
+        "df": 29,
+        "tcrit": 2.0452
+      },
+      "ratio_cv_pct": 26.16922174334712,
+      "saving_ms": {
+        "median": 0.5,
+        "ci": {
+          "point": 0.5,
+          "lo": -6.5,
+          "hi": 8,
+          "z0": -0.1309687858101915,
+          "a": 0,
+          "resamples": 10000,
+          "seed": 811,
+          "method": "BCa"
+        }
+      },
+      "arm_medians_ms": {
+        "N": 133.5,
+        "H": 133
+      }
+    }
+  },
+  "per_block_edges": [
+    {
+      "block": 1,
+      "N_ms": 3258,
+      "H_ms": 2878,
+      "ratio": 0.8833640270104358,
+      "saving_ms": 380
+    },
+    {
+      "block": 2,
+      "N_ms": 2662,
+      "H_ms": 3634,
+      "ratio": 1.3651389932381668,
+      "saving_ms": -972
+    },
+    {
+      "block": 3,
+      "N_ms": 2753,
+      "H_ms": 2493,
+      "ratio": 0.9055575735561205,
+      "saving_ms": 260
+    },
+    {
+      "block": 4,
+      "N_ms": 2638,
+      "H_ms": 2344,
+      "ratio": 0.88855193328279,
+      "saving_ms": 294
+    },
+    {
+      "block": 5,
+      "N_ms": 2680,
+      "H_ms": 2819,
+      "ratio": 1.0518656716417911,
+      "saving_ms": -139
+    },
+    {
+      "block": 6,
+      "N_ms": 2679,
+      "H_ms": 2626,
+      "ratio": 0.9802164986935423,
+      "saving_ms": 53
+    },
+    {
+      "block": 7,
+      "N_ms": 2640,
+      "H_ms": 2488,
+      "ratio": 0.9424242424242424,
+      "saving_ms": 152
+    },
+    {
+      "block": 8,
+      "N_ms": 2545,
+      "H_ms": 2291,
+      "ratio": 0.900196463654224,
+      "saving_ms": 254
+    },
+    {
+      "block": 9,
+      "N_ms": 2676,
+      "H_ms": 2241,
+      "ratio": 0.8374439461883408,
+      "saving_ms": 435
+    },
+    {
+      "block": 10,
+      "N_ms": 2780,
+      "H_ms": 2509,
+      "ratio": 0.9025179856115108,
+      "saving_ms": 271
+    },
+    {
+      "block": 11,
+      "N_ms": 2805,
+      "H_ms": 2355,
+      "ratio": 0.839572192513369,
+      "saving_ms": 450
+    },
+    {
+      "block": 12,
+      "N_ms": 2623,
+      "H_ms": 2304,
+      "ratio": 0.8783835303088067,
+      "saving_ms": 319
+    },
+    {
+      "block": 13,
+      "N_ms": 2566,
+      "H_ms": 2451,
+      "ratio": 0.9551831644583009,
+      "saving_ms": 115
+    },
+    {
+      "block": 14,
+      "N_ms": 2611,
+      "H_ms": 2524,
+      "ratio": 0.9666794331673688,
+      "saving_ms": 87
+    },
+    {
+      "block": 15,
+      "N_ms": 2567,
+      "H_ms": 2304,
+      "ratio": 0.8975457732761979,
+      "saving_ms": 263
+    },
+    {
+      "block": 16,
+      "N_ms": 2703,
+      "H_ms": 2315,
+      "ratio": 0.8564557898631151,
+      "saving_ms": 388
+    },
+    {
+      "block": 17,
+      "N_ms": 2540,
+      "H_ms": 2503,
+      "ratio": 0.9854330708661417,
+      "saving_ms": 37
+    },
+    {
+      "block": 18,
+      "N_ms": 2653,
+      "H_ms": 2867,
+      "ratio": 1.0806633999246136,
+      "saving_ms": -214
+    },
+    {
+      "block": 19,
+      "N_ms": 2529,
+      "H_ms": 2306,
+      "ratio": 0.9118228548833531,
+      "saving_ms": 223
+    },
+    {
+      "block": 20,
+      "N_ms": 2571,
+      "H_ms": 2368,
+      "ratio": 0.9210423959548814,
+      "saving_ms": 203
+    },
+    {
+      "block": 21,
+      "N_ms": 2334,
+      "H_ms": 2161,
+      "ratio": 0.9258783204798628,
+      "saving_ms": 173
+    },
+    {
+      "block": 22,
+      "N_ms": 2108,
+      "H_ms": 2373,
+      "ratio": 1.1257115749525617,
+      "saving_ms": -265
+    },
+    {
+      "block": 23,
+      "N_ms": 2701,
+      "H_ms": 1905,
+      "ratio": 0.7052943354313217,
+      "saving_ms": 796
+    },
+    {
+      "block": 24,
+      "N_ms": 2208,
+      "H_ms": 1874,
+      "ratio": 0.8487318840579711,
+      "saving_ms": 334
+    },
+    {
+      "block": 25,
+      "N_ms": 2313,
+      "H_ms": 2025,
+      "ratio": 0.8754863813229572,
+      "saving_ms": 288
+    },
+    {
+      "block": 26,
+      "N_ms": 2134,
+      "H_ms": 2048,
+      "ratio": 0.9597000937207123,
+      "saving_ms": 86
+    },
+    {
+      "block": 27,
+      "N_ms": 2138,
+      "H_ms": 2030,
+      "ratio": 0.9494855004677268,
+      "saving_ms": 108
+    },
+    {
+      "block": 28,
+      "N_ms": 2126,
+      "H_ms": 1911,
+      "ratio": 0.8988711194731891,
+      "saving_ms": 215
+    },
+    {
+      "block": 29,
+      "N_ms": 3140,
+      "H_ms": 1864,
+      "ratio": 0.5936305732484076,
+      "saving_ms": 1276
+    },
+    {
+      "block": 30,
+      "N_ms": 2168,
+      "H_ms": 2170,
+      "ratio": 1.0009225092250922,
+      "saving_ms": -2
+    }
+  ],
+  "h1": {
+    "statement": "The per-file import index reduces the T9 edges phase.",
+    "bar": "95% BCa CI on the paired median ratio (H/N) lies entirely below 1.0",
+    "observed_ratio": 0.9086902142197368,
+    "ci": [
+      0.8859579801466129,
+      0.9494855004677268
+    ],
+    "fires": true,
+    "secondary_geomean": {
+      "estimator": "geometric-mean ratio, log-space t-interval (pre-registered secondary)",
+      "ratio": 0.9191917184188239,
+      "ci": [
+        0.8725276478560752,
+        0.9683514525709566
+      ],
+      "would_fire": true,
+      "agrees_with_primary": true
+    }
+  },
+  "h2": {
+    "statement": "The reduction agrees with the mechanism measured by replay.",
+    "bar": "median paired saving in [40, 350] ms",
+    "prediction_ms": 87.1,
+    "prediction_worst_case_ms": 81.7,
+    "prediction_is_a_lower_bound": true,
+    "observed_ms": 219,
+    "ci": [
+      108,
+      279.5
+    ],
+    "fires": true
+  },
+  "h3": {
+    "statement": "The hoist moves the edges phase and nothing else.",
+    "bar": "every non-edges phase ratio CI contains 1.0",
+    "per_phase": {
+      "walk": {
+        "ratio": 1.0072128594980767,
+        "ci": [
+          0.990521327014218,
+          1.0394088669950738
+        ],
+        "contains_one": true
+      },
+      "parse": {
+        "ratio": 1.0029559763485816,
+        "ci": [
+          0.9928607228015494,
+          1.0178860327161603
+        ],
+        "contains_one": true
+      },
+      "write": {
+        "ratio": 0.9986705062480732,
+        "ci": [
+          0.9879158025527198,
+          1.014232294535206
+        ],
+        "contains_one": true
+      },
+      "finalise": {
+        "ratio": 0.9963768115942029,
+        "ci": [
+          0.9202898550724637,
+          1.0528045137736475
+        ],
+        "contains_one": true
+      }
+    },
+    "fires": true,
+    "note": "If H3 does not fire, the session drifted and H1 is CONFOUNDED, not merely caveated."
+  },
+  "power": {
+    "assumed_ratio_cv_pct": 5.6,
+    "simulated_power_at_design_point": {
+      "median": 0.87,
+      "geomean": 0.94
+    },
+    "realised_ratio_cv_pct": 13.948537317864703,
+    "observed_effect_pct": 9.130978578026316,
+    "n_pairs": 30,
+    "n_required_for_80pct_power": 19,
+    "adequately_powered": true
+  },
+  "scoreable": true
+}

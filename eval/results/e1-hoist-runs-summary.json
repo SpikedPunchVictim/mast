@@ -1,0 +1,24 @@
+{
+  "created": "2026-08-18T10:25:54.700Z",
+  "complete": 60,
+  "total": 60,
+  "gate_c": [
+    {
+      "tier": "T9",
+      "ok": true,
+      "mismatches": []
+    }
+  ],
+  "gate_l": {
+    "comparator": "e1-scan arm R, T9, phase_ms.edges median",
+    "comparator_ms": 2217,
+    "observed_ms": 2623,
+    "delta": 0.18313035633739289,
+    "band": 0.15,
+    "within_band": false
+  },
+  "findings": [
+    "GATE L: arm N's T9 edges median is 2623 ms against E1-SCAN arm R's 2217 ms (18.3%, band +/-15%). Same binary, different session. A FINDING, not a blocker — but the paired ratio is the only statistic here that survives this much drift, and it is the registered primary."
+  ],
+  "scoreable": true
+}
