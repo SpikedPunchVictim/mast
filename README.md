@@ -521,4 +521,4 @@ Use `mast metrics --since 7d` for a human-readable table, or `mast_efficiency` f
 
 ## History
 
-MAST originally fused BM25 with a vector-embedding search leg (LanceDB + a local ONNX embedding model). Measurement did not support keeping it: the vector store was removed 2026-08-06 per the M2 decision (see `IMPLEMENTATION_PLAN.md`, "Stage 7: Vector-store deletion"). The pre-deletion system — including the embedding pipeline and the eval instruments that measured it — is preserved at the git tag `mast-pre-vector-delete` for anyone re-running that evidence.
+MAST originally fused BM25 with a vector-embedding search leg (LanceDB + a local ONNX embedding model). Measurement did not support keeping it: the vector store was removed 2026-08-06 per the M2 decision (see [ADR 003](adr/003-2026-08-04-vector-store-deletion.md)). The pre-deletion system — including the embedding pipeline and the eval instruments that measured it — is preserved at the git tag `mast-pre-vector-delete` for anyone re-running that evidence.

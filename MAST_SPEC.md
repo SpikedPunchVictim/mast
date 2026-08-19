@@ -17,8 +17,8 @@ so each new container inherits the index built by previous tasks.
 
 **Note on prior discussions of a semantic/vector search leg:** an earlier revision of
 this system fused BM25 with a vector-embedding ranker (LanceDB + a local ONNX model).
-That subsystem was removed 2026-08-06 per the M2 decision (IMPLEMENTATION_PLAN.md,
-"Stage 7: Vector-store deletion"); the pre-deletion system is preserved at the git tag
+That subsystem was removed 2026-08-06 per the M2 decision (`adr/003-2026-08-04-vector-store-deletion.md`);
+the pre-deletion system is preserved at the git tag
 `mast-pre-vector-delete`. Everything below describes the system as it exists today.
 
 ---
@@ -436,7 +436,7 @@ Indexing is a single phase — there is no separate embedding step. `runIndex`:
    `imports`, `identifier_fts`, and `edges`) are batched under SQLite's 32,766
    bound-parameter ceiling, batch-by-batch inside the same per-file transaction
    (`graph/sqliteBatch.ts`), so file size never caps how many chunks get indexed
-   (Stage 4.5 S1, IMPLEMENTATION_PLAN.md).
+   (Stage 4.5 S1 — `adr/011-2026-08-17-indexing-scale.md`).
 6. Populate `graph.db` from AST imports and relationships, wrapped in a single
    transaction per file (delete-and-replace). Record `RE_EXPORTS` edges from
    `export { x }` clauses and `re_export_files` rows from `export * from '...'`
@@ -518,8 +518,8 @@ construction) is symbol-gated and purely lexical-structural:
   BM25); `chunk_type`/`only_exported` post-filters apply downstream unchanged.
   When `declaration_exact_ranker` is off, `mast_search` is BM25-only.
 
-Provenance: pre-registered and measured as Q1/DECLEX (IMPLEMENTATION_PLAN.md);
-shipped per the M2 decision memo as F18. The measured **escape variant**
+Provenance: pre-registered and measured as Q1/DECLEX; shipped per the M2 decision
+memo as F18 (`adr/004-2026-08-06-ranker-d.md`). The measured **escape variant**
 (lowercase-token recovery under a match-count cap) is deliberately NOT shipped —
 it is measured harmful off-stratum and requires a fresh pre-registration.
 Per-call firing telemetry is persisted to `metrics.declex_json` (§14.3).
@@ -1006,7 +1006,8 @@ What existed before C1 was a set of independently-evolved signals, computed
 in different tools for different reasons, some sharing one misleading field
 name. C1's only change is documentation and one field split — no new enum,
 no wrapper object, no field beyond the rename (see the F7 result's
-"Known naming tension" note above, and IMPLEMENTATION_PLAN.md's C1 result).
+"Known naming tension" note above, and `adr/008-2026-08-09-honest-surfaces.md`;
+the C1 result block is `adr/proposals/honest-surfaces/PLAN-EXCERPT.md` § "C1 result").
 This table is the single place that lists every signal an agent may see
 across all MCP tools, and what to do with each one:
 
@@ -1668,8 +1669,9 @@ been migrated by a newer one. That case is invisible to every other field (the i
 looks healthy, because it *is* healthy — it is the server that is stale), and the
 startup guard cannot catch it because the guard only runs at startup. Reading the
 value off disk would report the migrated version and hide the divergence, so it is
-deliberately sourced from the binary's own constant. See IMPLEMENTATION_PLAN.md's
-"D8 result" for the incident that motivated it.
+deliberately sourced from the binary's own constant. See
+`adr/proposals/measurement-harness/PLAN-EXCERPT.md` § "D8 result" for the incident that
+motivated it, and `adr/009-2026-08-10-measurement-harness.md` for the decision it produced.
 
 `parse_errors` is the count of files skipped during the last index run due to tree-sitter
 parse failures; `write_errors` is the count skipped due to a chunk/graph/FTS write
@@ -2822,7 +2824,7 @@ mast_implementors           88     6,213    10.8        9       26        96.9%
 Tokenizer: @anthropic-ai/tokenizer (claude-2 era, approximate for current models)
 ```
 
-`p50`/`p95` (D6, IMPLEMENTATION_PLAN.md Stage 4) are nearest-rank percentiles (sort
+`p50`/`p95` (D6 — `adr/009-2026-08-10-measurement-harness.md`) are nearest-rank percentiles (sort
 ascending, take the value at rank `ceil(P/100 * N)`, no interpolation) computed in JS
 over the window's raw `duration_ms` values — `--by-tool`'s existing `Avg ms` column
 alone hides tail latency (this is the column that would have caught F8's 28 s
