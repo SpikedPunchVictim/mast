@@ -234,3 +234,96 @@ exhibited; an unearned shape in a review brief costs attention and returns nothi
 **S-F — Absence treated as evidence.**
 > Ask: this code concludes something from data it did not see. Distinguish "it is not there" from "we
 > did not look". Which one is this, and what happens when it is the second?
+
+---
+
+## Rigour on load-bearing claims
+
+**Applies to** any artifact someone will act on without re-deriving it: findings, reviews,
+measurements, corrections, benchmark results, architecture decisions, migration plans. **Does not
+apply** to exploratory work, throwaway analysis, or a first pass you are about to throw away — if
+which mode you are in is unclear, say so in one line and continue.
+
+The failure this prevents is not sloppiness, which is easy to spot. It is **plausible work**:
+internally consistent, confidently written, correct in the places you checked, and wrong in the two
+or three you did not. Plausible work is more dangerous than obviously bad work, because it is
+adopted.
+
+### Derive, don't recall
+
+- A number you assert must be derived **in this session, from the primary artifact**. Copying a
+  figure out of your own earlier message is the most common way an error propagates — **your
+  earlier self is not a source.**
+- If a number originates in prose (a plan, a comment, a summary, a README), recompute it before
+  repeating it. If it does not reproduce, that is a finding. Do not round it into agreement.
+- Name the estimator whenever one exists. "Median per rung, OLS over nine points" is a claim that
+  can be checked; "the exponent" is not.
+
+### Read your own tool output
+
+- Search results are evidence, not a lookup. If a grep prints a file that contradicts the claim you
+  are about to write, **that line is the most important thing in the output.** Do not summarise
+  past it.
+- Before writing "X is unused / unread / uncalled / absent", grep for X and read **every** hit,
+  including hits in files you did not expect. Most false negatives of this form are visible in
+  output the author already generated.
+
+### Ask the completeness question
+
+- "Is X true?" and "what else is like X?" are different questions, and only the second produces a
+  complete list. Enumerate the space first, then subtract what you have verified.
+- A register of exceptions that is actually a *sample* of exceptions is worse than none — it will
+  be read as exhaustive.
+- After any list, ask explicitly: what would belong here that I never looked for?
+
+### Count precisely
+
+Every count must state what it counts. Lines, records, rows, and *valid* rows are four different
+numbers. Cross-check any `n` against an independent source — a scored artifact, a test count, a
+second query — before quoting it.
+
+### Keep confidence classes separate
+
+Label each claim **measured**, **inferred from code/spec**, or **unmeasured**, and never blur them
+inside one sentence. A mechanism measured in one context and asserted in another is *inference*,
+however strong the mechanism. Report the classes separately even when they point the same way.
+
+### Primary vs supporting figures
+
+When a source defines a primary statistic, quote the primary. Read what the source calls its own
+headline before adopting a number from it. Pairing one experiment's primary with another's
+supporting output is not a comparison, even when both are correct in isolation.
+
+### Verify every citation you write
+
+`file:line`, commit SHAs, section numbers, test names, URLs. Cite it, then open it and confirm it
+says what you claim. Citations decay, and a confidently wrong one costs a future reader more than
+no citation at all. This applies to citations handed to you by a tool, a subagent, or a reviewer —
+**verify borrowed citations before adopting them.**
+
+### Switch stance before you finish, not after
+
+The highest-leverage item in this section. Authoring and checking are different jobs, and the
+author is the worst available checker, because they check the parts they thought about.
+
+Before committing a load-bearing artifact:
+
+1. **Name the three claims that would be most damaging if wrong.** Usually the ones the artifact's
+   authority rests on — not the ones that were hardest to produce.
+2. **Attack those three as someone who believes they are false.** Recompute; do not re-read.
+3. **Write down what you could not check, and why.** An acknowledged gap is worth more than a
+   confident guess, and omitting the gap *is* the error.
+4. **Distinguish factual errors from judgment disagreements** in whatever you report.
+
+For anything durable, prefer a **separate adversarial pass** — a subagent given a review brief
+works well precisely because it cannot see what you meant, only what you wrote. Brief it to
+recompute rather than confirm, to test the list for completeness, to verify cited line numbers,
+and to report what it could not check. Run it **before** the commit: a review that arrives after
+publication is a correction, not a check.
+
+### Budget it deliberately
+
+This section is expensive and is meant to be. Spend it on artifacts that will be trusted without
+re-derivation, and say plainly when you are choosing not to — "spot-checked, not exhaustively
+verified" is an honest and often correct thing to write. Silence about depth reads as a claim of
+depth.
