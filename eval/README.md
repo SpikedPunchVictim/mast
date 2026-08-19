@@ -16,6 +16,32 @@ shipped `Embedder` (identical `pooling:'mean' + normalize:true` logic) — neede
 because the shipped `Embedder` hardcodes `dtype:'fp32'` and cannot vary
 quantization, pooling, or task prompts.
 
+## Before you re-run anything: is it safe?
+
+Most scripts here write into `results/`, which holds **committed, published** artifacts.
+Re-running one during a review overwrites a record, and the damage is provenance — the
+values may regenerate identically while the run timestamp moves, which reads as a fresh
+measurement that never happened. So a reviewer must not re-run a script that writes there.
+
+Answer the question mechanically, never by grep:
+
+```
+node eval/results-writers.mjs                  # classify every script
+node eval/results-writers.mjs e1-scan-score    # classify some, with evidence
+node eval/results-writers.mjs --writers        # names only, for scripting
+```
+
+Each verdict comes with the line that produced it, and **proven** writers are reported
+apart from those whose target the scanner could not resolve and therefore assumed. Both
+kinds are unsafe to re-run; the distinction is there so conservatism is visible rather
+than disguised as evidence.
+
+This exists because D025 answered the same question with
+`grep 'writeFileSync|appendFileSync|createWriteStream'`, found nothing in five scorers,
+and overwrote five verdicts that all wrote through `writeResult(...)`. The grep was not
+wrong, it was *incomplete*, and a vocabulary composed from memory at the moment of asking
+is incomplete again the next time someone adds a way to write. See `docs/defects/LEDGER.md`.
+
 ## Layout
 
 | File | Purpose |
