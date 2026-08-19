@@ -1,0 +1,77 @@
+# CI gate for mast.
+#
+# Why this workflow exists:
+#   mast's suite and its type discipline were verified only by whoever happened
+#   to run them locally, in a package whose defect ledger records that *zero* of
+#   its known defects were found by a failing test — so the suite's job is
+#   regression protection, and regression protection that only runs on one
+#   laptop is not protection (docs/defects/LEDGER.md).
+#
+# Carried over from kluster's `.github/workflows/mast.yml` at the split. Three
+# things changed and nothing else: the path filter and `--filter @kluster/mast`
+# are gone because there is no workspace to scope to, the Node version comes
+# from this repo's own `.nvmrc`, and there is no `align:check` decision to
+# explain — align was a kluster-wide concern and did not travel.
+
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: typecheck + lint + build + test
+    runs-on: ubuntu-latest
+    # Four sequential steps, none of them soft. No `continue-on-error`, no
+    # `if: always()` — if any step exits non-zero the job fails and the PR is
+    # blocked. The suite runs in ~15s locally; the headroom is for the native
+    # rebuilds below, not for the tests.
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpm before setup-node, because setup-node's `cache: pnpm` shells out to
+      # `pnpm store path` to compute its cache key. pnpm/action-setup@v4 reads
+      # the version from `packageManager` in package.json.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      # mast pulls two native modules — better-sqlite3 and tree-sitter — so this
+      # step is where a missing prebuild for the runner's Node ABI surfaces, as a
+      # build failure here rather than a confusing test error later.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Cheapest checks first, so a type or lint error does not wait on a build.
+      # `typecheck` is `tsc --noEmit && tsc -p tsconfig.test.json` — the second
+      # config is why this is not folded into the build step below.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      # Load-bearing. `dist/` is gitignored and two eval tests import from it
+      # directly (eval/__tests__/declex-ranker.test.mjs and idfuse-ranker.test.mjs,
+      # both `import { openDatabase } from '../../dist/graph/db.js'`), so without
+      # this step the suite fails on a clean checkout.
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test

@@ -1,6 +1,7 @@
 {
-  "name": "@kluster/mast",
+  "name": "mast",
   "version": "0.1.0",
+  "packageManager": "pnpm@9.0.2",
   "description": "MAST — Monorepo AST Search Tool: semantic code search MCP server and CLI",
   "private": true,
   "type": "module",
