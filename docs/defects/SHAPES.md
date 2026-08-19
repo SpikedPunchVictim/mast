@@ -12,7 +12,7 @@ it into the review brief. Copy the questions, not the prose, and not the whole f
 
 ## S-01 — Damage that leaves the exit code alone
 
-**Instances**: D002, D003, D012. **Rung**: brief.
+**Instances**: D002, D003, D012, D022. **Rung**: brief, with one instance promoted (below).
 
 The package's own operating manual calls this the worst class most systems have, and it is the one
 `mast` is structurally most exposed to: an index is a *derived* artifact, so nothing downstream can
@@ -27,6 +27,19 @@ lives in a path with no observer.
 > **Ask**: when this code fails partway, what does the caller receive? Trace one concrete partial
 > failure to the process exit code and to the artifact on disk. If the two disagree — the artifact
 > is short and the exit code is 0 — name the check that would notice, and if there is none, say so.
+
+### Promotion (2026-08-19)
+
+**D022's half is promoted; the family stays a brief.** `src/__tests__/build-emit.test.ts` asserts
+the build config enables neither `composite` nor `incremental`, which is what made "delete `dist/`,
+run build, get nothing, exit 0" representable. That specific state is now unrepresentable without a
+red test.
+
+The general shape is **declined for promotion, deliberately**: "does this code report success while
+leaving the artifact short?" is not mechanically decidable across a package — D002 was a rolled-back
+transaction, D003 a nondeterministic ordering, D012 an import side effect. They share a consequence,
+not a syntax. Promoting the consequence would mean an integrity assertion at every write site, which
+is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a review question.
 
 ---
 

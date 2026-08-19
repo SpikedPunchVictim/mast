@@ -6,7 +6,11 @@
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
-    "composite": true,
+    // Deliberately NOT `composite`/`incremental` — see
+    // src/__tests__/build-emit.test.ts and docs/defects D022. The buildinfo
+    // those options write is authoritative for tsc, so deleting dist/ without
+    // it makes `tsc` emit nothing and exit 0. Nothing in this repo references
+    // mast as a composite project, and the saving measured 0.9s.
 
     "strict": true,
     "noImplicitAny": true,
