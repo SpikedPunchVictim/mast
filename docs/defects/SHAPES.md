@@ -203,3 +203,34 @@ exactly where real input stops being any of those.
 > **Ask**: do the fixtures contain the characters the domain actually contains — `_`, `.`, mixed
 > case, unicode, spaces? If every fixture is `a.ts`, the tests are exercising a language this
 > package does not index.
+
+---
+
+## S-10 — The check you ran is not the check that governs
+
+**Instances**: D021, D022. **Rung**: brief. *(Added 2026-08-19.)*
+
+A green result is reported, and it is real — it just came from a narrower instrument than the one
+that decides. D021 ran `tsc --noEmit`, the first half of a `typecheck` script whose second half
+(`tsc -p tsconfig.test.json`) was the half that was red, and "tsc clean" was reported from it more
+than once. D022 is the environmental form: a local `pnpm build` exits 0 without emitting because a
+gitignored `tsconfig.tsbuildinfo` says the project is current — a state a fresh CI checkout can
+never be in, so local green and CI green mean different things.
+
+This class is unusually well-camouflaged because nothing is *wrong* with the result. The command
+succeeded, the output was read correctly, the conclusion followed from the evidence. Only the
+question was smaller than the claim.
+
+It is also the class that a defect ledger is worst at catching by itself, because the author has no
+reason to look: they have a passing command in their scrollback.
+
+> **Ask**: name the exact command the project's gate runs, character for character, and compare it
+> to what you ran. A subset that passes is not the gate passing — `&&`-joined scripts and multi-config
+> typechecks are where this hides.
+
+> **Ask**: what state does your working copy hold that a fresh checkout will not — a build cache, a
+> gitignored artifact, a previously-built `dist/`, an installed binary, a warm database? Which of
+> your green results would change without it?
+
+> **Ask**: was any output you concluded from truncated — `head`, `tail`, a scrolled pane? Re-read it
+> whole before the conclusion ships.

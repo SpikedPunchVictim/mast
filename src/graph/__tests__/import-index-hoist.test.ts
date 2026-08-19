@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { openDatabase, type Db } from '../db.js';
 import { insertEdges } from '../populate.js';
-import type { EdgeRecord } from '../types.js';
+import type { EdgeRecord } from '../../ast/types.js';
 
 /**
  * `importResolvedPathFor` used to run one `imports` SELECT per unique call target,
@@ -37,7 +37,12 @@ function countingDb(inner: Db): { db: Db; count: () => number } {
     get(target, prop, receiver) {
       const value: unknown = Reflect.get(target, prop, receiver);
       if (typeof value !== 'function') return value;
-      const bound = (value as (this: Db, ...args: readonly never[]) => unknown).bind(target);
+      // `never[]`, not `readonly never[]`: under `strictBindCallApply`, TS's
+      // `bind` overload requires the rest parameter to be a mutable tuple
+      // (`A extends any[]`). A readonly rest matches no overload, so `bound`
+      // degrades to a `this: void` signature and every call site fails
+      // TS2684 — visible only under `tsc -p tsconfig.test.json`.
+      const bound = (value as (this: Db, ...args: never[]) => unknown).bind(target);
       if (prop !== 'selectFrom') return bound;
       return (table: string) => {
         if (table === 'imports') n++;

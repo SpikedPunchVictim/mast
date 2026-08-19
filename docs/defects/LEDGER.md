@@ -36,6 +36,8 @@ not be re-quoted as fact.
 
 | ID | Date | Sev | Discovery instrument | What was wrong | Shape | Which check should have caught it | Fix + pin | Conf |
 |---|---|---|---|---|---|---|---|---|
+| D022 | 2026-08-19 | S1 | Simulating the CI gate locally and noticing `build` exit 0 with no output | `pnpm build` is `tsc` under `composite: true`. With `tsconfig.tsbuildinfo` present and `dist/` deleted, tsc concludes the project is up to date and **emits nothing, exiting 0**. Reproduced: dist absent → `build` exit 0 → `dist/graph/db.js` still absent → the two eval tests that import it fail to load. | S-01, S-10 | Nothing. `tsconfig.tsbuildinfo` is gitignored, so a fresh CI checkout always emits and structurally cannot see this. It bites only local developers — which is exactly where this package's empirical record is produced. | **OPEN.** Not fixed here; the CI gate is unaffected. Gate 0b (`eval/__tests__/e1-dist-staleness.test.mjs`) pins the *consequence* — and its header records that a stale dist already ran two E1-VERIFY cells against a two-day-old binary — but nothing pins this *cause*. | measured |
+| D021 | 2026-08-19 | S2 | Building a CI gate, and running the package's own `typecheck` script for the first time | `src/graph/__tests__/import-index-hoist.test.ts` carried two type errors from the day it was added (`08b0cd8`, task #6): TS2307 `Cannot find module '../types.js'` — that module does not exist, `EdgeRecord` lives in `src/ast/types.ts` — and TS2684 on a `.bind()` whose `readonly never[]` rest parameter matches no `strictBindCallApply` overload. | S-10 | `tsconfig.test.json` was never run. I ran `tsc --noEmit`, the **first half** of the package's two-command `typecheck` script, and reported "tsc clean" from it more than once. The suite stayed green throughout because `import type` is erased before runtime, so the broken import was never resolved by anything. `6b6a126` had deliberately added test typechecking, and it was green until `08b0cd8`. | Both fixed. Pinned by the new CI gate's Typecheck step, which invokes the package script rather than a hand-typed subset of it. | measured |
 | D020 | 2026-08-18 | S1 | Measuring a mechanism before implementing the design chosen from it | The query plan `SCAN chunk_fts VIRTUAL TABLE INDEX 0:=` was read as "constraint consumed, not a scan", and that reading was put into a design option the user then selected. FTS5 cannot use a rowid *range*; the operative word is `SCAN`. Measured T9: `BETWEEN` 75.96 ms vs unconstrained scan 75.01 ms — no saving. Exact `rowid = ?` is a seek: 0.0293 ms for the same 11 rows. | S-04 | Nothing. The plan string was read as if it were a verdict; no check existed between "read a query plan" and "recommend a design". | Design amended to per-rowid equality deletes before any code was written. Pinned by `fts-rowid-block.test.ts` + the measurement recorded in Stage 4.6. | measured |
 | D019 | 2026-08-18 | S1 | Reading FINDINGS §2.4's own "unmeasured" label and then measuring it | The FTS delete guard (Stage 4.5) skips the delete-scan only when a file was **never** indexed, so every *changed* file paid two full FTS5 scans costing O(corpus). Measured 3.0 ms at T1 → **151.6 ms at T9**, b = 1.32, R² = 0.9975; 384 ms projected at 150k chunks. | S-02 | `fts-delete-guard.test.ts:93` asserted `spans.fts_del > 0` for a previously-indexed file — it pinned that the scan *happens*, never what it costs. A passing test documented the defect. | Rowid block on `files`; scan arm b = 0.97 → block arm b = **−0.09**. Pinned by 6 tests in `fts-rowid-block.test.ts` (4 fail under a one-rowid widening mutation). `bebcce8` | measured |
 | D018 | 2026-08-18 | S3 | Measuring a claim while documenting it | Stage 4.5 asserted "379 ms for one file **at any corpus size**", uncited anywhere in the plan. The magnitude is plausible (measurement projects 384 ms at 150k); the *invariance* is false and was the load-bearing half — it is what made the incremental path look already-solved. | S-03 | Nothing. No rule required a performance figure in the plan to carry a citation or a corpus size. | Killed in FINDINGS §3; replaced by the measured curve in §2.4. `bebcce8` | measured |
@@ -70,10 +72,11 @@ Sorted by discovery instrument, the uncomfortable table the operating manual pre
 | An adversarial review pass by a second model | 2 | D004, D005 |
 | Simulating the registered decision rule instead of trusting a closed form | 2 | D014, D015 |
 | Cross-experiment drift measurement (Gate L) | 1 | D011 |
+| Building a CI gate, and running the package's own scripts | 2 | D021, D022 |
 | Bootstrapping this ledger | 1 | D001 |
 | **A failing test** | **0** | — |
 
-(20 rows, each counted once.)
+(22 rows, each counted once.)
 
 One row is arguable and is called out rather than buried: **D012** surfaced as unexpected output
 during a test run, so a test *run* was the occasion even though no assertion failed. Counting it
@@ -89,7 +92,7 @@ Two rows sharpen it. **D006**'s existing tests were all green and every one of t
 single half of the input space where the bug was invisible. **D019**'s test asserted the defect's
 *presence* (`fts_del > 0`) and passed from the day it was written (`43eb928`, 2026-08-16) until the defect was measured two days later. A green suite is not evidence of absence.
 
-Second observation: **8 of the 20 rows are a wrong number or a wrong claim in a document rather
+Second observation: **8 of the 22 rows are a wrong number or a wrong claim in a document rather
 than wrong code** — D005, D008, D009, D011, D015, D017, D018, D020. (D001 is the *absence* of a
 record, not a wrong one, and is deliberately excluded from this count.) For a package whose
 output is an empirical record that others act on without re-deriving, prose is a first-class
