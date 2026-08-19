@@ -699,11 +699,30 @@ At T9 this is **11.6% of total build time** (65.2 s → 57.6 s). Arm N reproduce
 ±4%, and the T1/T5 controls (0.991, 1.126) rule out a spurious global speedup. Full RESULT in
 `IMPLEMENTATION_PLAN.md § E1-SCAN RESULT`.
 
-**A named residual risk.** On a case-insensitive filesystem a mis-cased import (`./foo` for
-`Foo.ts`) yields a `resolvedPath` in the *specifier's* casing while the walker records the *on-disk*
-casing; LIKE papered over that, the range will not, and the edge is silently dropped. This is not
-hypothetical — `realpathSync` was measured on this machine and does **not** canonicalize case. It is
-unobserved in all four corpora (the 0/102,132 above), and TypeScript's default
+**That residual risk is now closed (2026-08-19, D023).** On a case-insensitive filesystem a
+mis-cased import (`./foo` for `Foo.ts`) yielded a `resolvedPath` in the *specifier's* casing while
+the walker records the *on-disk* casing; LIKE papered over that, the range did not, and the edge was
+silently dropped. It was never hypothetical — the JS `realpathSync` was measured on this machine and
+does **not** canonicalize case.
+
+**Fixed at the source, not at the joins.** `safeRealpath` now calls `realpathSync.native`, which
+reports the on-disk spelling, so the corrected casing is what gets *stored* in `imports.resolved_path`
+and all **four** consumers are right by construction — the three joins against `files.path`
+(`resolveInFileOrReExportChain`, `insertReExportFiles`, and the query-time `resolveTypeContext`) plus
+`queryDependencies`, which does not join but returns `resolved_path` to the caller and so emitted a
+path matching no indexed file. Two of the four run at query time, where a populate-side guard could
+not have reached them. This never has to choose between two candidates the way a case-folded lookup would: on
+a case-insensitive filesystem `Foo.ts` and `foo.ts` cannot coexist, and on a case-sensitive one
+`statSync` already matched the literal name. Mis-casings are counted and reported rather than
+silently corrected (`IndexResult.miscasedImports`), because the import is a genuine defect in the
+indexed repository — it fails to compile on Linux.
+
+*Confidence.* The canonicalisation is **measured** on APFS (5 tests fail under a one-word mutation,
+including an end-to-end assertion that `verified_callers` is non-empty across a mis-cased import).
+The behaviour on a case-sensitive filesystem — the import does not resolve, and no edge is the
+correct answer — is **measured only in the complementary branch these same tests assert on ext4**;
+CI runs there, so CI never exercises the canonicalising path. Frequency in the wild stays
+**unmeasured**: it is unobserved in all four corpora (the 0/102,132 above), and TypeScript's default
 `forceConsistentCasingInFileNames` makes it a compile error in a well-formed TS project, but mast
 indexes arbitrary repos and JS has no such guard.
 

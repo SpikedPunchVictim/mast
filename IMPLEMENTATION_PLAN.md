@@ -11391,3 +11391,69 @@ block, the block moves on re-index, and a NULL block still cleans correctly via 
 
 Suite 1,095 passing (was 1,089). `tsc --noEmit` clean, `eslint src` clean. `pnpm align:check`
 remains red at its pre-existing baseline, **unchanged: 324 → 324 (0)**.
+
+---
+
+## Stage 4.7 — the mis-cased import, closed at the resolver (2026-08-19)
+
+**Status**: Complete. Ledger row **D023** (S0, `measured`).
+
+`FINDINGS.md` §2.3 had carried a named residual risk since the D004 range-query fix: on a
+case-insensitive filesystem a mis-cased import resolves, `statSync` cannot report that the match was
+inexact, and the resolver returns the *specifier's* casing while the walker records the *on-disk*
+casing. The registered plan was a case-folded lookup on the resolution-miss path. It was not built,
+for two reasons found while building it.
+
+**1. The site count was wrong.** The risk was written as if one join consumed `resolvedPath`. Four
+sites consume it. Three are joins against `files.path` that match nothing when the casing disagrees —
+`resolveInFileOrReExportChain` (`populate.ts:1105`), `insertReExportFiles` (`populate.ts:1240`), and
+`resolveTypeContext` (`queries.ts:486`). The fourth, `queryDependencies` (`queries.ts:334`, the
+`mast_dependencies` tool), does not join at all: it hands `resolved_path` back to the caller, so a
+mis-cased import made it emit a path that matches no indexed file — wrong output rather than absent
+output. Two of the four run at *query* time and have no populate-side file map to fold against, so the
+registered mechanism could not have covered them. Fixing some of four is S-05's "fixed one arm" in a
+package whose severity zero is a silently incomplete answer.
+
+**2. A cheaper mechanism exists, and it cannot guess.** `realpathSync.native` calls the platform
+`realpath(3)`, which reports the name as spelled on disk; the JS `realpathSync` echoes the casing it
+was handed. Measured directly:
+
+```
+statSync isFile      : true
+realpathSync         : .../src/utils/foo.ts      <- specifier casing
+realpathSync.native  : .../src/Utils/Foo.ts      <- on-disk casing
+```
+
+`safeRealpath` already existed, already sat on the path of every resolution, and already had to
+resolve symlinks. Switching its implementation corrects the casing *before* `imports.resolved_path`
+is written, so all four consumers are right by construction and no consumer needs a guard. That the
+fourth was found only by enumerating every read of `resolved_path` — after the write-up already
+asserted "three" — is itself the argument for fixing at the source: a per-site guard is only ever as
+complete as the site list, and this site list was wrong twice.
+
+It also retires the ambiguity the registered design carried. A case-folded map must choose when
+`Foo.ts` and `foo.ts` both exist — a guess, and D004 exactly. Asking the OS never chooses: on a
+case-insensitive filesystem the two files cannot coexist, and on a case-sensitive one `statSync`
+already matched the literal name, so at most one candidate is ever in play.
+
+**Reported, not silently corrected.** A mis-cased import is a defect in the *indexed repository* —
+it fails to compile on Linux — so the run counts them and names them:
+`IndexResult.miscasedImports` (count plus up to 20 samples), a stderr warning from `mast index`, and
+`miscased_imports` on the MCP `mast_reindex` wire. Detection costs no extra syscall: the specifier's
+own spelling is compared against the canonical one, and a difference of *more than* case is a symlink
+collapse and is not reported. The stated price of that shortcut is that a mis-casing reached through
+a symlinked directory resolves correctly but goes unnamed.
+
+**Pins.** 6 resolver tests and one end-to-end test that indexes `src/Handler.ts`, imports it as
+`./handler`, and asserts `verified_callers` is non-empty. **5 fail under the one-word mutation**
+(`.native` removed), which was run and recorded rather than assumed.
+
+**The coverage limit, stated plainly.** CI is ubuntu/ext4, where a mis-cased import does not resolve
+at all. Every one of these tests branches on a runtime probe of the filesystem's case sensitivity, so
+on CI they assert the complementary branch (no resolution, no edge — the correct answer there) and
+the canonicalising path is exercised only on case-insensitive developer machines. There is no way to
+close that from a Linux runner without a disk image, and it is recorded rather than papered over.
+
+Suite **1,108 passing** across 71 files (was 1,097 / 70). `pnpm typecheck` — both halves — clean,
+`pnpm lint` clean, `pnpm build` emits. `pnpm align:check` remains red at its pre-existing baseline,
+**unchanged: 324 → 324 (0)**.

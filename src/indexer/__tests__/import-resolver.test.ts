@@ -1,8 +1,8 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, statSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getImportResolver, clearImportResolverCache } from '../import-resolver.js';
+import { getImportResolver, clearImportResolverCache, MISCASED_SAMPLE_LIMIT } from '../import-resolver.js';
 import { extractFile } from '../../ast/extract.js';
 
 function write(root: string, rel: string, content = ''): void {
@@ -118,5 +118,164 @@ describe('import resolver (§13.7)', () => {
     const imp = imports.find((i) => i.module === './repo');
     expect(imp?.resolvedPath).toBe('src/repo.ts');
     expect(imp?.isExternal).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// On-disk case canonicalisation
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether `dir` lives on a case-insensitive filesystem (APFS/HFS+ as shipped on
+ * macOS, NTFS on Windows). Probed, not inferred from `process.platform`: macOS
+ * can format a case-sensitive volume and Linux can mount a case-insensitive
+ * one, so the platform is not the property these tests turn on.
+ */
+function isCaseInsensitiveFs(dir: string): boolean {
+  const probe = join(dir, 'CaseProbe.tmp');
+  writeFileSync(probe, '');
+  try {
+    return statSync(join(dir, 'caseprobe.tmp')).isFile();
+  } catch {
+    return false;
+  } finally {
+    rmSync(probe, { force: true });
+  }
+}
+
+describe('import resolver — on-disk case canonicalisation', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'mast-case-'));
+    clearImportResolverCache();
+  });
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+    clearImportResolverCache();
+  });
+
+  // A mis-cased import (`./utils/foo` naming `src/Utils/Foo.ts`) resolves on a
+  // case-insensitive filesystem, and `statSync` cannot report that it matched
+  // case-insensitively. If the resolver echoes the *specifier's* casing, the
+  // stored `resolved_path` disagrees with the walker's `files.path` (fast-glob
+  // reports the on-disk name), and every path-range join against `files.path`
+  // — resolveInFileOrReExportChain, insertReExportFiles, resolveTypeContext —
+  // matches nothing. The edge is dropped with no error.
+  it('returns the on-disk casing for a mis-cased relative import', () => {
+    write(root, 'src/Utils/Foo.ts', 'export const foo = 1;');
+    const r = getImportResolver(root).resolve('./utils/foo', 'src/a.ts');
+
+    if (isCaseInsensitiveFs(root)) {
+      expect(r.resolvedPath).toBe('src/Utils/Foo.ts');
+    } else {
+      // On a case-sensitive filesystem the import is genuinely broken — tsc
+      // rejects it too — so "no edge" is the correct answer, not a lookup.
+      expect(r.resolvedPath).toBeNull();
+    }
+  });
+
+  // The mis-casing may be in a directory segment alone, which the specifier
+  // contributes just as it contributes the basename.
+  it('canonicalises a mis-cased directory segment', () => {
+    write(root, 'src/DeepDir/mod.ts', 'export const m = 1;');
+    const r = getImportResolver(root).resolve('./deepdir/mod', 'src/a.ts');
+
+    if (isCaseInsensitiveFs(root)) {
+      expect(r.resolvedPath).toBe('src/DeepDir/mod.ts');
+    } else {
+      expect(r.resolvedPath).toBeNull();
+    }
+  });
+
+  // The realpath call exists to collapse pnpm's symlinked package directories
+  // so the result matches the walker's `files.path`. Canonicalising case must
+  // not cost that.
+  it('still collapses a symlinked directory to its real path', () => {
+    write(root, 'real/mod.ts', 'export const m = 1;');
+    symlinkSync(join(root, 'real'), join(root, 'link'), 'dir');
+    const r = getImportResolver(root).resolve('./link/mod', 'a.ts');
+    expect(r.resolvedPath).toBe('real/mod.ts');
+  });
+
+  // Guards the inverse error: canonicalisation must not rewrite a path that was
+  // already correct, on either kind of filesystem.
+  it('leaves a correctly-cased import untouched', () => {
+    write(root, 'src/Utils/Foo.ts', 'export const foo = 1;');
+    const r = getImportResolver(root).resolve('./Utils/Foo', 'src/a.ts');
+    expect(r.resolvedPath).toBe('src/Utils/Foo.ts');
+  });
+});
+
+describe('import resolver — mis-cased import reporting', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'mast-miscase-'));
+    clearImportResolverCache();
+  });
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+    clearImportResolverCache();
+  });
+
+  it('names the importing file, the specifier, and the on-disk path', () => {
+    write(root, 'src/Utils/Foo.ts', 'export const foo = 1;');
+    const resolver = getImportResolver(root);
+    resolver.resolve('./utils/foo', 'src/a.ts');
+    const report = resolver.drainMiscased();
+
+    if (isCaseInsensitiveFs(root)) {
+      expect(report.count).toBe(1);
+      expect(report.samples[0]).toEqual({
+        fromFile: 'src/a.ts',
+        specifier: './utils/foo',
+        onDiskPath: 'src/Utils/Foo.ts',
+      });
+    } else {
+      // The import does not resolve at all on a case-sensitive filesystem, so
+      // there is no case discrepancy to report — only an unresolved import.
+      expect(report.count).toBe(0);
+    }
+  });
+
+  it('reports nothing for a correctly-cased import', () => {
+    write(root, 'src/Utils/Foo.ts', 'export const foo = 1;');
+    const resolver = getImportResolver(root);
+    resolver.resolve('./Utils/Foo', 'src/a.ts');
+    expect(resolver.drainMiscased()).toEqual({ count: 0, samples: [] });
+  });
+
+  // A symlink collapse legitimately changes the path by more than case; if it
+  // were reported, every pnpm workspace import would be a false positive.
+  it('does not mistake a symlink collapse for mis-casing', () => {
+    write(root, 'real/mod.ts', 'export const m = 1;');
+    symlinkSync(join(root, 'real'), join(root, 'link'), 'dir');
+    const resolver = getImportResolver(root);
+    expect(resolver.resolve('./link/mod', 'a.ts').resolvedPath).toBe('real/mod.ts');
+    expect(resolver.drainMiscased().count).toBe(0);
+  });
+
+  it('clears observations when drained, so each run reports only its own', () => {
+    write(root, 'src/Utils/Foo.ts', 'export const foo = 1;');
+    const resolver = getImportResolver(root);
+    resolver.resolve('./utils/foo', 'src/a.ts');
+    resolver.drainMiscased();
+    expect(resolver.drainMiscased()).toEqual({ count: 0, samples: [] });
+  });
+
+  it('caps retained samples while keeping the count exact', () => {
+    const overflow = MISCASED_SAMPLE_LIMIT + 5;
+    for (let i = 0; i < overflow; i++) write(root, `src/Dir${i}/Mod.ts`, 'export const m = 1;');
+    const resolver = getImportResolver(root);
+    for (let i = 0; i < overflow; i++) resolver.resolve(`./dir${i}/mod`, 'src/a.ts');
+    const report = resolver.drainMiscased();
+
+    if (isCaseInsensitiveFs(root)) {
+      expect(report.count).toBe(overflow);
+      expect(report.samples).toHaveLength(MISCASED_SAMPLE_LIMIT);
+    } else {
+      expect(report.count).toBe(0);
+    }
   });
 });

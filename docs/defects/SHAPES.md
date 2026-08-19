@@ -110,19 +110,26 @@ because the person best placed to check it is the person who wrote it.
 
 ---
 
-## S-05 — Two implementations of one statistic
+## S-05 — Two producers of one value, drifting apart
 
-**Instances**: D014, D016. **Rung**: **promoted — see below.**
+**Instances**: D014, D016, D023. **Rung**: **promoted in part — see below.**
 
-The same quantity computed in two places, by two authors, drifting apart. D016's median differed
+The same quantity computed in two places, by two authors, drifting apart. Renamed from "two
+implementations of one statistic" when D023 arrived: the value that disagreed there was a **file
+path**, not a statistic — the walker spelled it from a directory entry and the resolver spelled it
+from the import specifier, and nothing compared them. The family is any value two components must
+agree on byte-for-byte for a join, a lookup, or a comparison to work. D016's median differed
 between runner and scorer because n was even and the two disagreed about what "median" means.
 D014's power calculation used a mean-based formula in an instrument whose decision rule is a
 median — the identical error that had already been corrected once, in the design, without anyone
 asking what else used it.
 
-> **Ask**: is this quantity computed anywhere else in the package? If yes, do the two agree on
-> every edge case — even n, empty input, ties, a single element? Name the check that keeps them
-> agreeing.
+> **Ask**: is this value produced anywhere else in the package? If yes, do the two agree on every
+> edge case — even n, empty input, ties, a single element, mixed case, a symlink? Name the check
+> that keeps them agreeing.
+
+> **Ask**: two components join on this value. Which one *defines* its canonical form, and what
+> forces the other to that form rather than merely happening to match today?
 
 > **Ask**: this bug was just fixed in one place. Grep for the formula, not the symbol. What else
 > uses it?
@@ -137,6 +144,19 @@ committed to it.
 **That check exists for one statistic and should exist for the medians D016 caught.** The
 machine-decidable half is promoted; the second Ask (grep for the formula) stays a brief, because
 "the same formula, written differently" is not mechanically detectable.
+
+### Promotion, second instance (2026-08-19)
+
+D023's half is promoted too, by the same reasoning and in a different currency:
+`src/graph/__tests__/miscased-import-edge.test.ts` indexes a fixture whose on-disk casing disagrees
+with its import specifier and asserts the edge survives the whole pipeline — the walker's spelling
+and the resolver's spelling are now forced into agreement by a test rather than by coincidence.
+
+**The family is declined for promotion, and the reason is worth recording:** enumerating "every pair
+of components that must agree on a value" is not mechanically decidable — a grep finds the symbol,
+not the agreement. What *is* decidable is one invariant per known pair, so each instance earns its
+own executable check and the family stays a brief. Two pairs are pinned; a third would justify
+asking whether a general mechanism exists rather than a third bespoke test.
 
 ---
 
@@ -200,12 +220,15 @@ Both look like results. Neither is noisy or obviously broken; they are precise a
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004. **Rung**: brief.
+**Instances**: D002, D004, D023. **Rung**: brief.
 
-Both S0s in this ledger share it. D004's four sites had tests, and not one used a path containing
+All three S0s in this ledger share it. D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,
 where `snake_case` is routine. D002's tests never used a file large enough to blow a parameter
 ceiling, in a package whose stated corpus includes a 146,620-line file.
+
+D023 is the same miss one layer up: after D004 the *range query* was tested with mixed-case paths,
+but every fixture still fed it a path the resolver had spelled correctly.
 
 The fixture is chosen to be readable, so it is small, ASCII, and lowercase — and the defect lives
 exactly where real input stops being any of those.

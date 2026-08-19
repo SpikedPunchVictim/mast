@@ -11,7 +11,8 @@ import { loadConfig, createMatchPath, type MatchPath } from 'tsconfig-paths';
 //   2. tsconfig `paths` aliases (`@api/types`) — via tsconfig-paths;
 //   3. pnpm workspace package names (`@kluster/shared`) — via the workspace map;
 //   4. everything else — external (node_modules / built-ins).
-// `realpathSync` collapses pnpm symlinks so resolved paths point at real files.
+// `realpathSync.native` collapses pnpm symlinks so resolved paths point at real
+// files, and reports the on-disk casing (see safeRealpath).
 
 const CANDIDATE_EXTS = ['.ts', '.tsx', '.js', '.jsx'] as const;
 
@@ -30,6 +31,38 @@ const JS_TO_TS_EXTS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['.cjs', ['.cts']],
 ];
 
+/**
+ * A specifier that resolved only because the filesystem ignored its casing.
+ *
+ * The import is broken on a case-sensitive filesystem — a Linux CI box will
+ * fail to compile it — so this is a defect in the indexed repository, not in
+ * MAST. MAST resolves it to the on-disk path anyway (see `safeRealpath`) and
+ * reports it rather than dropping the edge.
+ */
+export interface MiscasedImport {
+  /** Project-relative path of the importing file. */
+  readonly fromFile: string;
+  /** The module specifier exactly as written. */
+  readonly specifier: string;
+  /** The target as it is actually spelled on disk. */
+  readonly onDiskPath: string;
+}
+
+export interface MiscasedImportReport {
+  /** Total observations. Not capped. */
+  readonly count: number;
+  /** The first `MISCASED_SAMPLE_LIMIT` observations, in first-seen order. */
+  readonly samples: readonly MiscasedImport[];
+}
+
+/**
+ * Samples are capped because a resolver outlives a single index run in the MCP
+ * server (it is cached per project root for the process lifetime), and a repo
+ * that mis-cases one import usually mis-cases many. The count stays exact; only
+ * the retained detail is bounded.
+ */
+export const MISCASED_SAMPLE_LIMIT = 20;
+
 export interface ResolvedImport {
   /** Project-relative path (with extension) of the resolved file, or null. */
   readonly resolvedPath: string | null;
@@ -39,6 +72,14 @@ export interface ResolvedImport {
 
 export interface ImportResolver {
   resolve(moduleSpecifier: string, fromFileRel: string): ResolvedImport;
+  /**
+   * Mis-cased specifiers observed since the last drain, clearing them.
+   *
+   * Draining rather than reading keeps the accumulator bounded across the many
+   * index runs one cached resolver serves, and makes each run's report describe
+   * that run alone.
+   */
+  drainMiscased(): MiscasedImportReport;
 }
 
 // Built once per project root — reading tsconfig and globbing the workspace is
@@ -60,6 +101,12 @@ export function clearImportResolverCache(): void {
   cache.clear();
 }
 
+/** The call being resolved, carried so a case discrepancy can name its source. */
+interface ResolveContext {
+  readonly specifier: string;
+  readonly fromFileRel: string;
+}
+
 function buildResolver(projectRoot: string): ImportResolver {
   const matchPath = buildTsconfigMatcher(projectRoot);
   const workspace = buildWorkspaceMap(projectRoot);
@@ -69,12 +116,42 @@ function buildResolver(projectRoot: string): ImportResolver {
   // walker's `files.path`. realpathSync also collapses pnpm package symlinks.
   const realRoot = safeRealpath(projectRoot);
 
-  const toRel = (abs: string): string => {
-    return relative(realRoot, safeRealpath(abs)).split('\\').join('/');
+  let miscasedCount = 0;
+  const miscasedSamples: MiscasedImport[] = [];
+
+  const norm = (p: string): string => p.split('\\').join('/');
+
+  /**
+   * Project-relative path of `abs` as it is spelled on disk, noting the case
+   * discrepancy when the specifier's own spelling differed by case alone.
+   *
+   * The comparison uses the raw `abs` rather than a second (case-preserving)
+   * realpath call, so detection costs no extra syscall on the resolution path.
+   * The price is that a mis-casing reached THROUGH a symlinked directory
+   * differs by more than case and so goes unreported — it still resolves to the
+   * right file, it just is not named in the report.
+   */
+  const toRel = (abs: string, ctx: ResolveContext): string => {
+    const onDisk = norm(relative(realRoot, safeRealpath(abs)));
+    // Relative to `projectRoot`, not `realRoot`: `abs` was built from
+    // `projectRoot`, and on a symlinked root (macOS /tmp -> /private/tmp) the
+    // two roots differ, which would make every path look like a mismatch.
+    const asWritten = norm(relative(projectRoot, abs));
+    if (asWritten !== onDisk && asWritten.toLowerCase() === onDisk.toLowerCase()) {
+      miscasedCount++;
+      if (miscasedSamples.length < MISCASED_SAMPLE_LIMIT) {
+        miscasedSamples.push({
+          fromFile: ctx.fromFileRel,
+          specifier: ctx.specifier,
+          onDiskPath: onDisk,
+        });
+      }
+    }
+    return onDisk;
   };
 
   /** Resolve a base path (possibly without extension) to a real indexed file. */
-  const probe = (base: string): string | null => {
+  const probe = (base: string, ctx: ResolveContext): string | null => {
     // NodeNext source-first precedence: when the specifier carries a compiled
     // JS extension (`./x.js`), prefer the TypeScript source (`x.ts`) that would
     // emit it, ahead of any literal `x.js` on disk (see JS_TO_TS_EXTS).
@@ -82,48 +159,60 @@ function buildResolver(projectRoot: string): ImportResolver {
       if (base.endsWith(jsExt)) {
         const stem = base.slice(0, -jsExt.length);
         for (const tsExt of tsExts) {
-          if (isFile(stem + tsExt)) return toRel(stem + tsExt);
+          if (isFile(stem + tsExt)) return toRel(stem + tsExt, ctx);
         }
         break; // a base ends in at most one of these extensions
       }
     }
-    if (isFile(base)) return toRel(base);
+    if (isFile(base)) return toRel(base, ctx);
     for (const ext of CANDIDATE_EXTS) {
-      if (isFile(base + ext)) return toRel(base + ext);
+      if (isFile(base + ext)) return toRel(base + ext, ctx);
     }
     for (const ext of CANDIDATE_EXTS) {
       const idx = join(base, `index${ext}`);
-      if (isFile(idx)) return toRel(idx);
+      if (isFile(idx)) return toRel(idx, ctx);
     }
     return null;
   };
 
   return {
     resolve(spec, fromFileRel) {
+      const ctx: ResolveContext = { specifier: spec, fromFileRel };
+
       // 1. Relative / absolute imports.
       if (spec.startsWith('.')) {
         const fromDir = dirname(join(projectRoot, fromFileRel));
-        return { resolvedPath: probe(resolve(fromDir, spec)), isExternal: false };
+        return { resolvedPath: probe(resolve(fromDir, spec), ctx), isExternal: false };
       }
       if (spec.startsWith('/')) {
-        return { resolvedPath: probe(spec), isExternal: false };
+        return { resolvedPath: probe(spec, ctx), isExternal: false };
       }
 
       // 2. tsconfig path alias.
       if (matchPath !== null) {
         const aliasBase = matchPath(spec, undefined, undefined, [...CANDIDATE_EXTS]);
         if (aliasBase !== undefined) {
-          const rel = probe(aliasBase);
+          const rel = probe(aliasBase, ctx);
           if (rel !== null) return { resolvedPath: rel, isExternal: false };
         }
       }
 
       // 3. pnpm workspace package.
-      const ws = resolveWorkspace(spec, workspace, probe);
+      const ws = resolveWorkspace(spec, workspace, (base) => probe(base, ctx));
       if (ws !== null) return { resolvedPath: ws, isExternal: false };
 
       // 4. External.
       return { resolvedPath: null, isExternal: true };
+    },
+
+    drainMiscased() {
+      const report: MiscasedImportReport = {
+        count: miscasedCount,
+        samples: [...miscasedSamples],
+      };
+      miscasedCount = 0;
+      miscasedSamples.length = 0;
+      return report;
     },
   };
 }
@@ -262,10 +351,27 @@ function isFile(path: string): boolean {
   }
 }
 
-/** realpathSync that falls back to the input when the path does not exist. */
+/**
+ * realpath that falls back to the input when the path does not exist.
+ *
+ * `.native` is load-bearing, not an optimisation. The JS `realpathSync`
+ * resolves symlinks but echoes back whatever casing it was handed, whereas the
+ * platform `realpath(3)` reports the name as it is spelled on disk. That
+ * matters because `statSync` succeeds for a mis-cased path on a
+ * case-insensitive filesystem (APFS, NTFS): `./utils/foo` finds `Utils/Foo.ts`
+ * and nothing in the return value says the match was inexact. Echoing the
+ * specifier's casing then puts a `resolved_path` in the database that disagrees
+ * with the walker's `files.path` — fast-glob reports the on-disk name — and
+ * every path-range join against `files.path` (`resolveInFileOrReExportChain`,
+ * `insertReExportFiles`, `resolveTypeContext`) matches nothing and drops the
+ * edge silently. Canonicalising here fixes all three at the source, and never
+ * has to guess between two candidates the way a case-folded lookup would: on a
+ * case-insensitive filesystem `Foo.ts` and `foo.ts` cannot coexist, and on a
+ * case-sensitive one `statSync` already matched the literal name.
+ */
 function safeRealpath(path: string): string {
   try {
-    return realpathSync(path);
+    return realpathSync.native(path);
   } catch {
     return path;
   }

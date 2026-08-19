@@ -605,6 +605,12 @@ export interface ReindexResult {
   readonly chunks_removed: number;
   readonly parse_errors: number;
   readonly write_errors: number;
+  /**
+   * Count of imports that resolved only because the filesystem ignored their
+   * casing — broken on a case-sensitive filesystem. The count alone travels on
+   * the wire; `mast index` prints the offending files.
+   */
+  readonly miscased_imports: number;
   readonly duration_ms: number;
 }
 

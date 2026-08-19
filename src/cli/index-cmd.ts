@@ -218,8 +218,25 @@ export function registerIndexCommand(program: Command): void {
         `  duration: ${result.durationMs}ms` +
         (result.parseErrors > 0 ? `  parse_errors: ${result.parseErrors}` : '') +
         (result.writeErrors > 0 ? `  write_errors: ${result.writeErrors}` : '') +
+        (result.miscasedImports.count > 0 ? `  miscased_imports: ${result.miscasedImports.count}` : '') +
         '\n',
       );
+
+      // A mis-cased import is a defect in the indexed repository, not in MAST:
+      // it compiles on APFS/NTFS and fails on a case-sensitive filesystem. MAST
+      // indexes it correctly regardless (the edge points at the on-disk file),
+      // so this is advisory and does not affect the exit code. stderr, because
+      // stdout carries the machine-readable summary above.
+      if (result.miscasedImports.count > 0) {
+        const { count, samples } = result.miscasedImports;
+        process.stderr.write(
+          `warning: ${count} import${count === 1 ? '' : 's'} resolved only because this ` +
+          `filesystem ignores case; ${count === 1 ? 'it' : 'they'} will not resolve on a ` +
+          `case-sensitive one:\n` +
+          samples.map((m) => `  ${m.fromFile}: '${m.specifier}' -> ${m.onDiskPath}\n`).join('') +
+          (count > samples.length ? `  ... and ${count - samples.length} more\n` : ''),
+        );
+      }
 
       // Machine-readable phase breakdown, opt-in. E1 measured a growth exponent of ~1.75
       // from `duration` alone and could not say which phase carried it; the scaling harness

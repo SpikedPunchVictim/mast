@@ -11,6 +11,7 @@ import { populateFile, insertEdges, insertReExportFiles, removeDeletedFiles } fr
 import type { PopulateFileOptions, WriteSpansMs } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
+import { getImportResolver, type MiscasedImportReport } from './import-resolver.js';
 import type { IndexMeta, FreshnessCause } from '../ast/types.js';
 
 export interface IndexResult {
@@ -36,6 +37,17 @@ export interface IndexResult {
    * (mirrors `writeErrors`'s precedent).
    */
   readonly staleWriteRejections: number;
+  /**
+   * Imports that resolved only because the filesystem ignored their casing.
+   *
+   * A defect in the INDEXED repository rather than in MAST: the specifier is
+   * spelled differently from the file on disk, which compiles on APFS/NTFS and
+   * fails on a case-sensitive filesystem. MAST resolves such an import to the
+   * on-disk path, so the edge is correct either way; this exists so the
+   * anomaly is visible rather than silent, on the same reasoning as
+   * `staleWriteRejections`.
+   */
+  readonly miscasedImports: MiscasedImportReport;
   readonly durationMs: number;
   /**
    * The `cache_size` / `mmap_size` actually in force on this run's connection,
@@ -542,6 +554,9 @@ export async function runIndex(
     parseErrors,
     writeErrors,
     staleWriteRejections,
+    // Drained, not read: the resolver is cached for the process lifetime and
+    // serves every run, so each run must clear what it reported.
+    miscasedImports: getImportResolver(config.resolved_project_root).drainMiscased(),
     durationMs: Date.now() - startMs,
     phaseMs: phase,
     appliedPragmas,
