@@ -112,7 +112,7 @@ because the person best placed to check it is the person who wrote it.
 
 ## S-05 — Two producers of one value, drifting apart
 
-**Instances**: D014, D016, D023. **Rung**: **promoted in part — see below.**
+**Instances**: D014, D016, D023, D024. **Rung**: **promoted in part — see below.**
 
 The same quantity computed in two places, by two authors, drifting apart. Renamed from "two
 implementations of one statistic" when D023 arrived: the value that disagreed there was a **file
@@ -157,6 +157,26 @@ of components that must agree on a value" is not mechanically decidable — a gr
 not the agreement. What *is* decidable is one invariant per known pair, so each instance earns its
 own executable check and the family stays a brief. Two pairs are pinned; a third would justify
 asking whether a general mechanism exists rather than a third bespoke test.
+
+### The third instance arrived the next day (D024)
+
+Running this shape's *second* Ask against D016 — which had never had it run — turned a two-site
+defect into a nine-site one: nine value-median expressions across `eval/`, in three behaviours
+(five agreeing, three taking the upper element, one returning `undefined` on even n). The general
+mechanism is now worth building rather than a fourth bespoke test, because for THIS family the
+canonical form already exists: `eval/e1-schedule.mjs` exports a `median`, and `e1-fts-score.mjs`
+already imports it. The decidable rule is "no `eval/` script defines its own median", which a lint
+rule or an AST test can enforce, with the one deliberate exception (`medianRun`, which selects a run
+rather than a value) declared.
+
+**Not yet built, and the blocker is named:** the nine do not agree on the *empty* sample either —
+the canonical one throws, two return `null`, one returns `NaN`. Unifying is therefore a semantic
+decision per call site, not a sweep, and a rushed sweep through scorers whose output is already
+published is precisely D014's hazard.
+
+> **Ask**: when a defect names two components that disagree, has anyone enumerated the *family*
+> before scoping the fix to the pair in front of them? Count the implementations first; the pair you
+> found is a sample, not the population.
 
 ---
 
