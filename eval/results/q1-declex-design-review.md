@@ -1,5 +1,5 @@
 # Q1/DECLEX adversarial design review (Fable, 2026-08-03, pre-measurement) — verbatim
-Registration at IMPLEMENTATION_PLAN.md:3439-3622, commit 74c5d96. All quantities computed
+Registration at IMPLEMENTATION_PLAN.md:3439-3622, commit b90465b. All quantities computed
 read-only from chunks tables, frozen query JSON, and a deterministic replication of the
 generator's pool + seed-153 shuffle — no search/ranking/FTS operation ran.
 

@@ -1,6 +1,6 @@
-# HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/DECLEX RESULT, evidence `beccd52`)
+# HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/DECLEX RESULT, evidence `43c5c2d`)
 
-> **SUPERSEDING SESSION STATE (2026-08-12, `497389b`): read
+> **SUPERSEDING SESSION STATE (2026-08-12, `6082361`): read
 > [`HANDOFF_E1PHASE.md`](./HANDOFF_E1PHASE.md) FIRST.** E1 is complete and scored —
 > **SUPER-LINEAR REGRESSION, `b = 1.7529`, HC3 CI [1.6599, 1.8458]** against the
 > pre-registered 1.35 threshold — and **E1-PHASE is now RUN, scored and reviewed:
@@ -10,17 +10,17 @@
 > methodological rules below remain in force unchanged — **§5 has two new entries from the
 > E1-PHASE results review**; only the SESSION STATE section immediately following is stale.
 > Baseline is now **796 tests / 52 files**. (The count this block previously carried,
-> "728 tests / 50 files", was wrong in the file half: `2e87238` measures 728 tests /
+> "728 tests / 50 files", was wrong in the file half: `6f46af5` measures 728 tests /
 > **49** files.)
 
 ---
 
 ## ⚡ SESSION STATE (2026-08-11, paused mid-track) — resume here
 
-**Committed this session:** `f401b4a` (D8 — the shipped sweep was not the running
-tool) → `e63c5cf` (Q6 RESCOPE) → `84100e2` (results-review corrections; the WAL
-withdrawal grounded in measurement) → `f43a434` (D8a — `schema_version` on
-`mast_status`) → `219587d` (session state + confirmed E1/E2 scope) → `19f5542` (D8
+**Committed this session:** `4eca05b` (D8 — the shipped sweep was not the running
+tool) → `9b12159` (Q6 RESCOPE) → `35d9704` (results-review corrections; the WAL
+withdrawal grounded in measurement) → `218fb0a` (D8a — `schema_version` on
+`mast_status`) → `fbfce48` (session state + confirmed E1/E2 scope) → `1d63696` (D8
 restart loop closed) → **the E1/E2 pre-registration**. Baseline: **629 tests / 45
 files**, typecheck/lint/build clean, align 324→324 (+0). Tree clean for
 `packages/mast`.
@@ -53,7 +53,7 @@ What it fixes, and what a resuming session must NOT re-decide:
   absolute path, void any run whose version disagrees. Every `eval/*.mjs` imports from
   `../dist/` directly, so the harness carries D8's exact exposure.
 
-**AMENDMENT 1 DONE (`468d585`) — design review answered, registration revised in place.**
+**AMENDMENT 1 DONE (`c60cbbf`) — design review answered, registration revised in place.**
 Twelve findings, every code claim verified against source before acceptance; five ran
 toward the investigator's priors. **Two structural reversals, both owner-confirmed:**
 - **E1's decision-bearing axis is no longer the five repos.** It is a seeded **nested tier
@@ -69,14 +69,14 @@ sensitivity; fitted clock = `durationMs`, with a 10-run empty-corpus calibration
 Gate 3 = `max(5%, 500 ms)`, retakes capped at 2; R5 → 1,500 ms + per-corpus idle baseline,
 T1 **and** T5, ≥400 calls; new Gate 6 fixes R3/R4/E2-before-R5 ordering.
 
-**AMENDMENT 2 (`8bd17f8`)** added Gate 7 — known-answer scorer tests, in the normal suite
+**AMENDMENT 2 (`61e166d`)** added Gate 7 — known-answer scorer tests, in the normal suite
 (`vitest.config.ts` already includes `eval/**/*.test.mjs`). Self-found: the registration
 defined its decision-bearing test and registered nothing verifying the code that evaluates
 it, which is the `ab-score.mjs` defect class.
 
-**SECOND design review DONE (fable, against `8bd17f8`) → AMENDMENT 3 WRITTEN AND
+**SECOND design review DONE (fable, against `61e166d`) → AMENDMENT 3 WRITTEN AND
 COMMITTED.** 3 fatal + 9 material + 5 cosmetic, every code claim verified against source
-first. **All three fatals were fix-induced** — none is present in `fd46152`; AMENDMENT 1's
+first. **All three fatals were fix-induced** — none is present in `5b16b4d`; AMENDMENT 1's
 repairs broke new ground, and two of the three sat inside passages AMENDMENT 1 explicitly
 certified as "verified and unchanged." The registration block now carries the full
 discharge table; do **not** re-derive it from this summary.
@@ -184,7 +184,7 @@ as a surviving Q6 nor as dismissed; see the plan's Q6 RESCOPE block.
 ## ⚡ WORK QUEUE (2026-08-10) — refreshed after the remediation sweep; start here
 
 The remediation backlog is CLOSED except E1. Stages 1, 2, 3, 3.5, 4.5-S1 and all of
-Stage 4 except E1 are Complete (20 commits, `6913ba4..252be45`; per-item result
+Stage 4 except E1 are Complete (20 commits, `409ed59..1ce593f`; per-item result
 blocks with red-first evidence live in IMPLEMENTATION_PLAN.md — that file is the
 detailed record; this queue is only the pointer). What remains, prioritized:
 
@@ -226,7 +226,7 @@ RESOLVED — the owner fixed it.
 
 ## ⚡ UPDATE 2026-08-10 — REMEDIATION SWEEP COMPLETE; what changed and what to know
 
-Twenty commits (`6913ba4..252be45`, 2026-08-07 → 2026-08-10) closed the backlog.
+Twenty commits (`409ed59..1ce593f`, 2026-08-07 → 2026-08-10) closed the backlog.
 Verification baseline is now **627 tests / 45 files**, tsc clean, lint clean,
 `pnpm align:check` **324→324 (+0)** (same 2 pre-existing non-mast violations —
 still do not attribute them). **`CURRENT_SCHEMA_VERSION` is now `1.3.0`** (F5) —
@@ -421,11 +421,11 @@ rather than discharged (§2 item 6, §4a):
 - the outcome-at-scale question — still **Reserve**, nothing measured here touches agent
   outcomes.
 
-Commits: Q1/SCALE registration `3e497da` → AMENDMENT 1 `3d17220` → instrument `c15f684` →
-gates + scored evidence `f40f2bf` → Q1/IDFUSE registration `9ecceca` → AMENDMENT 1 `bed7d48`
-→ instrument `c726e6f` → gates + scored evidence `3f8e9f3` → Q1/IDFUSE RESULT + AMENDMENT 2 +
-handoff update → Q1/DECLEX registration `74c5d96` → AMENDMENT 1 `dd10796` → instrument
-`b148594` → gates + scored evidence `beccd52` → this commit (Q1/DECLEX RESULT + AMENDMENT 2 +
+Commits: Q1/SCALE registration `80cb9bd` → AMENDMENT 1 `8420cac` → instrument `a313926` →
+gates + scored evidence `8868404` → Q1/IDFUSE registration `8db1672` → AMENDMENT 1 `692f6f0`
+→ instrument `3b0cc46` → gates + scored evidence `5a34b9b` → Q1/IDFUSE RESULT + AMENDMENT 2 +
+handoff update → Q1/DECLEX registration `b90465b` → AMENDMENT 1 `f8af0da` → instrument
+`b05f7ac` → gates + scored evidence `43c5c2d` → this commit (Q1/DECLEX RESULT + AMENDMENT 2 +
 handoff update).
 
 Do **not** skip to M2's A-vs-C backend benchmark without first writing the M2 decision memo
@@ -523,16 +523,16 @@ moved and outcomes did not.
   kluster-normal *loses* significance (t = 2.206 vs crit 2.228). The defensible claim is
   "the home-field result is not robust to the choice of lexical baseline," **not** "vectors
   are dead."
-- **The 153k scale-out (Q1/SCALE, this session).** Pre-registered `3e497da`, adversarial
-  design review `3d17220`, instrument `c15f684`, gates + scored evidence `f40f2bf`. Verdict:
+- **The 153k scale-out (Q1/SCALE, this session).** Pre-registered `80cb9bd`, adversarial
+  design review `8420cac`, instrument `a313926`, gates + scored evidence `8868404`. Verdict:
   row 1, SCALE CAVEAT CONFIRMED (marginal — see §1, §2). **Do not re-run this hoping for a
   cleaner verdict.** The registered escalation path on an AMBIGUOUS-adjacent result is
   "increase n," never "reinterpret" or "re-score" — and this result is not AMBIGUOUS, it is a
   hit-rule-sensitive CONFIRMED with an honestly marginal magnitude. The marginal result is
   what it is; treat a request to re-run it as a sign the reader wants a different answer, not
   a more accurate one.
-- **IDFUSE-as-constructed (Q1/IDFUSE, this session).** Pre-registered `9ecceca`, AMENDMENT 1
-  `bed7d48`, instrument `c726e6f`, gates + scored evidence `3f8e9f3`. The OR-bag
+- **IDFUSE-as-constructed (Q1/IDFUSE, this session).** Pre-registered `8db1672`, AMENDMENT 1
+  `692f6f0`, instrument `3b0cc46`, gates + scored evidence `5a34b9b`. The OR-bag
   `identifier_fts` ranker folded into RRF is **REJECTED on measured grounds**: INERT-LEVER on
   the decision-bearing contrast, AND −7 to −12 pp harm at every tier of both non-identifier
   strata. **Do not re-propose the bag construction** (whole-identifier-bag OR-join, unicode61,
@@ -540,8 +540,8 @@ moved and outcomes did not.
   mechanism analysis behind the rejection is what motivates the **declaration-exact** variant
   in §4 — that variant is a different construction (field-boosted to the chunk's own
   `symbol_name`), not a re-run of this one.
-- **DECLEX-as-constructed (Q1/DECLEX, this session).** Pre-registered `74c5d96`, AMENDMENT 1
-  `dd10796`, instrument `b148594`, gates + scored evidence `beccd52`. Verdict
+- **DECLEX-as-constructed (Q1/DECLEX, this session).** Pre-registered `b90465b`, AMENDMENT 1
+  `f8af0da`, instrument `b05f7ac`, gates + scored evidence `43c5c2d`. Verdict
   `DECLEX_GAP_CLOSED_HARM_UNTESTED` — the declaration-exact ranker (F18, WITHOUT escape) closes
   the S-ident scale caveat on the fresh set. **Do not re-run this hoping for the registered
   a-fortiori prediction** (Δ′ ≈ −2..−4 pp) — the observed −1.33 pp plain CLOSED is the honest,
@@ -626,7 +626,7 @@ multi-seed T1 sensitivity.
   instrument itself. Fix `runSelfCheck` to count what Gate 2 actually requires before reuse.
 - **`scale-rank-check.mjs` and `scale-score.mjs` ship with no working CLI entry points** for
   the scored sweep / self-check / scorer their own header comments document. The working
-  invocation is the three runner-authored driver scripts committed at `f40f2bf`
+  invocation is the three runner-authored driver scripts committed at `8868404`
   (`scale-run-selfcheck.mjs`, `scale-run-measure.mjs`, `scale-run-score.mjs`) — use those, not
   the instrument files directly, until CLI entry points are added.
 - **`RESULTS_DIR` in `eval/paths.mjs` resolves to `~/.cache/mast-eval/results/`, not the
@@ -759,17 +759,17 @@ multi-seed T1 sensitivity.
   `declex-ranker.mjs`, `declex-score.mjs`). `eval/README.md` is STALE.
 - Verification baseline: `pnpm -F mast test` → **597 tests / 41 files** (was 505/38 before
   Q1/DECLEX); `typecheck`; `lint`; `pnpm align:check`. **align reports red at +3 baselined
-  debt (324→327) — PRE-EXISTING**, identical at `c21a199`, self-reported "provisional". Do
+  debt (324→327) — PRE-EXISTING**, identical at `99c02ae`, self-reported "provisional". Do
   not attribute it to your changes.
-- Session commits: `ad88009` (registration) → `e61008c` (instrument+gates) → `e26a3ca`
-  (outcome) → `f75cdc4` (AMENDMENT 3) → `b99db64` / `ed9eb03` (arm V) → `5c6ef80` (prompt
-  record + evidence) → `ca768e2` (Q4 + assets) → `77d4f63` (cold-start handoff) → `3e497da`
-  (Q1/SCALE registration) → `3d17220` (Q1/SCALE AMENDMENT 1) → `c15f684` (Q1/SCALE instrument)
-  → `f40f2bf` (Q1/SCALE gates + scored evidence) → `9ecceca` (Q1/IDFUSE registration) →
-  `bed7d48` (Q1/IDFUSE AMENDMENT 1) → `c726e6f` (Q1/IDFUSE instrument) → `3f8e9f3` (Q1/IDFUSE
-  gates + scored evidence) → Q1/IDFUSE RESULT + AMENDMENT 2 + handoff update → `74c5d96`
-  (Q1/DECLEX registration) → `dd10796` (Q1/DECLEX AMENDMENT 1) → `b148594` (Q1/DECLEX
-  instrument) → `beccd52` (Q1/DECLEX gates + scored evidence) → this commit (Q1/DECLEX RESULT
+- Session commits: `3a26e71` (registration) → `6319161` (instrument+gates) → `cffd467`
+  (outcome) → `eb65b8c` (AMENDMENT 3) → `46f6bf8` / `446cc96` (arm V) → `4ae97db` (prompt
+  record + evidence) → `b33dcc7` (Q4 + assets) → `70cf239` (cold-start handoff) → `80cb9bd`
+  (Q1/SCALE registration) → `8420cac` (Q1/SCALE AMENDMENT 1) → `a313926` (Q1/SCALE instrument)
+  → `8868404` (Q1/SCALE gates + scored evidence) → `8db1672` (Q1/IDFUSE registration) →
+  `692f6f0` (Q1/IDFUSE AMENDMENT 1) → `3b0cc46` (Q1/IDFUSE instrument) → `5a34b9b` (Q1/IDFUSE
+  gates + scored evidence) → Q1/IDFUSE RESULT + AMENDMENT 2 + handoff update → `b90465b`
+  (Q1/DECLEX registration) → `f8af0da` (Q1/DECLEX AMENDMENT 1) → `b05f7ac` (Q1/DECLEX
+  instrument) → `43c5c2d` (Q1/DECLEX gates + scored evidence) → this commit (Q1/DECLEX RESULT
   + AMENDMENT 2 + handoff update).
 
 ---

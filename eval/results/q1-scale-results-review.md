@@ -1,5 +1,5 @@
 # ADVERSARIAL RESULTS REVIEW — Q1/SCALE scored result (verdict row 1, SCALE_CAVEAT_CONFIRMED)
-(Fable, 2026-08-02, post-scoring. Artifacts audited at f40f2bf/c15f684. All headline numbers
+(Fable, 2026-08-02, post-scoring. Artifacts audited at 8868404/a313926. All headline numbers
 independently recomputed from eval/results/scale-measure-raw.json with review-authored code,
 then cross-checked against the committed scorer; every recomputation matched exactly.)
 
@@ -60,7 +60,7 @@ Independent recompute of all 24 cells, counts, W/p, BCa CIs (seeds 1001/1002, in
 across alternatives), HL [0,0] degenerate as pre-predicted; mode/arm integrity 1600/1600
 per arm in RAW, 0 duplicate keys, same tier objects per query-pair; driver fidelity
 (limit=200, rrf_k=60, explicit chunkStore, correct embedder per arm; drivers ARE committed
-at f40f2bf; instrument byte-identical c15f684→f40f2bf; seed 1001 pre-committed); query_id
+at 8868404; instrument byte-identical a313926→8868404; seed 1001 pre-committed); query_id
 deterministic and joins cleanly; s_approx↔s_ident pairing 0 mismatches; Gate 2 80/80 under
 the widened criterion (undercount disclosed, widening runs anti-false-pass); manually-copied
 gate file byte-identical to original; ceiling proximity QUANTIFIED and runs the OTHER way

@@ -1,5 +1,5 @@
 # Q1/IDFUSE adversarial design review (Fable, 2026-08-03, pre-measurement) — verbatim
-Reviewed: IMPLEMENTATION_PLAN.md:2975-3138 at commit 9ecceca. CI arithmetic uses the normal
+Reviewed: IMPLEMENTATION_PLAN.md:2975-3138 at commit 8db1672. CI arithmetic uses the normal
 approximation as a proxy for the seeded BCa (parent's realized BCa widths matched to ±0.1pp).
 
 ## F1 (HIGH) — Ranker I's term derivation from the query string is unregistered; the three natural choices produce three different experiments.
@@ -25,7 +25,7 @@ FAIL; k=4 knife-edge; k=5 PASS). If the true residual gap is small (parent CI al
 CLOSED. Direction: toward false GAP SURVIVES. Fix: map the cell to AMBIGUOUS with both
 contrasts reported (or demote efficacy to a mechanism-label diagnostic).
 
-## F3 (MEDIUM-HIGH) — Reuse of f40f2bf L/H rows is false economy guarded by a weak sample.
+## F3 (MEDIUM-HIGH) — Reuse of 8868404 L/H rows is false economy guarded by a weak sample.
 (a) raw rows carry only per-target ranks (no 200-lists) so Gate D is per-target;
 (b) 20 queries: drift at f=2% missed 67% of the time, f=5% 36%;
 (c) the paired Delta' subtracts a 2026-08-02 H row from a 2026-08-03 L+I row — run-level

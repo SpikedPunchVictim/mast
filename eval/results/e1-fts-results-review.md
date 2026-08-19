@@ -6,7 +6,7 @@ ratios all reimplemented — nothing read from `e1-fts-verdict.json` was trusted
 checked: `src/graph/populate.ts`, `src/indexer/index.ts`, `src/cli/index-cmd.ts`,
 `eval/e1-fts-{schedule,score,report,run}.mjs`, `eval/e1-phase-score.mjs`,
 `eval/e1-common.mjs`. Registration checked: IMPLEMENTATION_PLAN.md:5028–5357
-(base + AMENDMENTS 1–4). Claims attacked: the scoring commit `5963c65`, the
+(base + AMENDMENTS 1–4). Claims attacked: the scoring commit `49972f3`, the
 registration text, and the scorer's own comments.
 
 ---
@@ -44,7 +44,7 @@ are wrong as stated, and two more are licensed by weaker evidence than the text 
 
 ### W1 — "15/15 db-identity pairs byte-identical" — the gate verifies byte COUNT, not bytes
 
-Commit `5963c65` says "byte-identical"; the registration (line 5151) says
+Commit `49972f3` says "byte-identical"; the registration (line 5151) says
 "`db_bytes(G) == db_bytes(A)` ... is what makes arm G confound-free". What is actually
 measured: `db_bytes: statSync(join(stateDir, 'graph.db')).size`
 (`eval/e1-common.mjs:587`), compared for exact equality

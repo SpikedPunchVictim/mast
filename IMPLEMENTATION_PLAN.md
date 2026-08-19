@@ -2169,7 +2169,7 @@ a manual step.
 
 **What the stale binary contained — settled by the dist artifact, not by the git
 timeline.** The first draft justified `mast query`'s presence with "landed 08-07
-before the build", which the git record contradicts (D0 `3007e94` committed
+before the build", which the git record contradicts (D0 `e540c14` committed
 **14:36 -0700**, *after* the build's 13:53 mtime). Commit times cannot order against
 `dist` mtimes here. The **artifact** settles both questions, using a discriminator
 verified in this repo: the build is plain `tsc` with `tsconfig.tsbuildinfo`, and a
@@ -2184,7 +2184,7 @@ though the tool modules it imports changed through 08-10). Therefore:
   check (`mast query mast_status '{}'` → valid JSON, exit 0, run against the stale
   binary). The original claim was substantively right; only its stated reason was wrong.
 - **The stale binary was PRE-F11.** `dist/store/lock.js` **was** re-emitted at 18:58,
-  and F11 (`f4d730f`, 08-07 **17:08 -0700**) is the only commit that ever touched
+  and F11 (`b749bc6`, 08-07 **17:08 -0700**) is the only commit that ever touched
   `src/store/lock.ts` — so its content at the 13:53 build differed from post-F11
   content. **Consequence: all agent/MCP usage from 08-07 to 08-10 ran the pre-F11
   JIT-lock topology.** This bears directly on the Q6 RESCOPE — the post-F11 topology
@@ -2878,7 +2878,7 @@ costs **2.85×** more than linear and `b = 2` costs **20×**. 1.35 sits above th
 (The 18.0× / 1.120 / 2.75× / 18× figures from AMENDMENT 1 are withdrawn — A3-FATAL-2: they
 were computed on the raw-`find` **file** counts that same amendment disavowed, for a ladder
 that is cut on **chunks**. The threshold itself, 1.35, is unchanged; it was registered at
-`fd46152` and both the old and new rationales place it in the same gap.)
+`5b16b4d` and both the old and new rationales place it in the same gap.)
 
 **Power, and the reachability arithmetic** (A1-F4d; re-derived per A3-FATAL-2 and extended
 per A3-MAT-1). Because the rungs are evenly spaced in `ln N` by construction, `Sxx` follows
@@ -3272,7 +3272,7 @@ cost, checkpoint-inside-commit) — promoted only if R5 reproduces holds in that
 #### AMENDMENT 1 — 2026-08-11, pre-run, post-adversarial-review
 
 Adversarial design review commissioned per the standing §6 rule (Agent tool, model
-`fable`) against this section as committed at `fd46152`, **before any measurement had
+`fable`) against this section as committed at `5b16b4d`, **before any measurement had
 occurred**. Per the Q1/SCALE and Q1/OUTCOME precedents, no data existed, so the
 registration above was revised **in place** rather than appended to; this log is the audit
 trail. Every code claim the reviewer made was **independently verified against source
@@ -3315,7 +3315,7 @@ non-invasive in-flight backlog probe exists.
 #### AMENDMENT 2 — 2026-08-12, pre-run, self-identified
 
 Not from a review. Found while distilling the remaining build work for the project owner,
-against the registration as committed at `468d585`, **before any measurement had
+against the registration as committed at `c60cbbf`, **before any measurement had
 occurred** — so, per the same precedent as AMENDMENT 1, the gate was added in place and
 this log is the audit trail.
 
@@ -3341,13 +3341,13 @@ its own lesson about when these defects actually surface.
 #### AMENDMENT 3 — 2026-08-12, pre-run, post-second-adversarial-review
 
 Second adversarial design review commissioned per §6 (Agent tool, model `fable`) against
-this section as committed at `8bd17f8`, **before any measurement had occurred**. As with
+this section as committed at `61e166d`, **before any measurement had occurred**. As with
 AMENDMENT 1, no data existed, so the registration above was revised **in place** and this
 log is the audit trail. Every code claim the reviewer made was **independently verified
 against source before being accepted**; the reviewer has been wrong before.
 
 **The finding about the process, stated first because it is the important one: all three
-fatal defects were introduced by AMENDMENT 1's repairs.** They are not in `fd46152`. The
+fatal defects were introduced by AMENDMENT 1's repairs.** They are not in `5b16b4d`. The
 review that was supposed to harden the design broke new ground in it — and two of the three
 sat inside passages AMENDMENT 1 explicitly certified as "verified and unchanged." Trigger 1
 is the sharpest case: the reviewer checked its arithmetic in round 1 (`p = 1/120 ✓`) and
@@ -3370,7 +3370,7 @@ in which the *repairs* were the vector.
 | MAT-7 | Gate 7 exercised E2's and R5's verdict tables but **not E1's** — the only one carrying the headline verdict, and the only one whose AMBIGUOUS row has three independent feeding mechanisms. A scorer keying verdicts off the point estimate rather than the CI bounds passed all six registered cases. Case (c)'s "visibly lower" had no numeric margin. | New case **(g)**: E1's three rows and all three AMBIGUOUS mechanisms, including the **point-estimate killer** (`b̂ < 1.35`, CI upper > 1.35 ⇒ AMBIGUOUS, never HOLDS). New case **(h)**: trigger 1's lack-of-fit test, including the pair that verifies the 5% floor. Case (c) given numbers: adjusted recovers `b = 1.0` within ±0.05, raw at least 0.10 below adjusted. | **Toward HOLDS on every branch** — a point-estimate scorer fails toward HOLDS on exactly the noisy data where the distinction decides the experiment. |
 | MAT-8 | `extractFile` takes **no `onCallSite` parameter** (`ast/extract.ts:44-50`); the seam exists only on `extractEdges` (`typescript.ts:1148-1162`). **E2 cannot ride a Gate-0-verified build** — it is an ungated harness pass self-reporting *both* numerator and denominator. R2, a merely descriptive row, had Gate 2; E2's decision-bearing measurement had no fidelity gate at all. | New **Gate 8**: file/chunk/symbol counts must match the Gate-0 build exactly; `edge_emitted` must be **≥** the build's `POTENTIAL_CALL` row count (≥ because edge rows are lossy and deduped — A1-F2); harness import path and `dist/` timestamp recorded. Mismatch **voids E2**. Adding the seam to `extractFile` is explicitly out of scope — a product change to serve a measurement, same reasoning as `--parse-only`. | **Free lever on both terms of a ratio** — the single largest unchecked surface in the registration. |
 | MAT-9 | `n8n` was listed as panel rung **P5** *and* as the tier ladder's source, so the replication panel's top point was the ladder's top point. | **P5 dropped.** T9 *is* the full-n8n measurement. Panel = P1–P4 + `nest`, 15 replication runs. (`nest` still appears in both experiments — benign, because the E1 panel carries no verdict.) | **Flatters HOLDS** — the panel's job is to be external, and its heaviest point was internal. |
-| C1–C5 | Cosmetics: "each indexed once from cold" survived from `fd46152` against a 3-rep design; the "one registration, shared build" economy was dead post-A1 and post-MAT-8; the live index cited as both 14,605 and 14,610 chunks; "roughly doubles" understated the cost growth; `eval/make-subset.mjs` miscited as tier tooling. | All corrected: the shared-build rationale rewritten to name what *is* actually shared; the two chunk readings reconciled as the same index five chunks apart on 2026-08-11; cost restated in **n8n-index-equivalents** (≈ 13 t, ≈ 2.4× the original) rather than a minutes figure derived from the disavowed anchor; `scale-build-tiers.mjs` named as the tier constructor. | — |
+| C1–C5 | Cosmetics: "each indexed once from cold" survived from `5b16b4d` against a 3-rep design; the "one registration, shared build" economy was dead post-A1 and post-MAT-8; the live index cited as both 14,605 and 14,610 chunks; "roughly doubles" understated the cost growth; `eval/make-subset.mjs` miscited as tier tooling. | All corrected: the shared-build rationale rewritten to name what *is* actually shared; the two chunk readings reconciled as the same index five chunks apart on 2026-08-11; cost restated in **n8n-index-equivalents** (≈ 13 t, ≈ 2.4× the original) rather than a minutes figure derived from the disavowed anchor; `scale-build-tiers.mjs` named as the tier constructor. | — |
 
 **Verified and unchanged** (attacked and not broken): the pin SHAs; Gate 0 in full; the
 `durationMs` fitted clock and the calibration constant `c`; the 1.35 threshold itself, which
@@ -3457,7 +3457,7 @@ verdict comes from 27 scored runs through the committed scorer, or it does not c
 
 **Gate 5 addendum.** `eval/e1-run.mjs`, the run-manifest schema, `eval/results/e1-schedule.json`
 and `eval/results/e1-calibration.json` are committed **before scored run 1** — the standard
-P0 already met (AMENDMENT 3 committed at `b357071` before the peek).
+P0 already met (AMENDMENT 3 committed at `502ee6a` before the peek).
 
 **Verified and unchanged** (attacked and not broken): the threshold 1.35; seed 811; the rung
 fractions and the frozen manifest; Gate 1b's realized arithmetic, independently recomputed
@@ -3637,8 +3637,8 @@ immediately after T6#2, so cache warmth cannot explain it and nothing else is of
 unexplained, not merely "spread worth naming". Dropping T6 entirely gives `b` = 1.7478.
 
 **R5 — provenance, stated precisely.** Only the verdict machinery was pre-committed:
-`scoreE1` at `4b49bc1`, ~65 minutes before scored run 1. The **reporting seam**
-(`eval/e1-report.mjs`) was written after the data existed, at `227cf17`. On this journal it
+`scoreE1` at `d014d9d`, ~65 minutes before scored run 1. The **reporting seam**
+(`eval/e1-report.mjs`) was written after the data existed, at `8a97bea`. On this journal it
 had no discretion to exercise — 42 unique `(corpus, rep)` records, exactly 27 tier runs, no
 voids — and the reviewer reproduced the selection and every downstream number independently.
 Recorded anyway, because "it happened not to matter" is a finding about this dataset, not
@@ -3668,7 +3668,7 @@ on every estimator and every sensitivity constructed against it.
 reachability), `eval/results/e1-runs.jsonl` (42 runs + 55 attempt records),
 `eval/results/e1-runs-summary.json`, `eval/results/e1-calibration.json`,
 `eval/results/e1-tiers.json` (frozen manifest + Gate 1b arithmetic). Scored by
-`eval/e1-report.mjs` through `scoreE1`, which was committed at `4b49bc1` before scored run 1
+`eval/e1-report.mjs` through `scoreE1`, which was committed at `d014d9d` before scored run 1
 and is pinned by 56 known-answer cases.
 
 ### E1-PHASE PRE-REGISTRATION (2026-08-12) — which phase carries E1's exponent
@@ -3710,7 +3710,7 @@ not adjudicate.
 
 **A free confirmatory signal, registered as such:** these 15 runs also yield a total-clock
 exponent on a **different binary** from the one E1 measured (phase timers were added at
-`c71d59c`). It is reported as a mini-replication of E1's 1.75. It is **not** a re-test of
+`2655164`). It is reported as a mini-replication of E1's 1.75. It is **not** a re-test of
 the verdict — 5 rungs is a weaker design than 9 — and a discrepancy would be a finding about
 the *instrument*, not about `b`.
 
@@ -3760,12 +3760,12 @@ missed, and it is the same bar for every hypothesis.
 #### Gates
 
 - **Gate 0** — binary identity: `dist` content hash and `schema_version` recorded and
-  re-asserted at every start and restart. The binary **has changed** since E1 (`c71d59c`), so
+  re-asserted at every start and restart. The binary **has changed** since E1 (`2655164`), so
   `c` is re-calibrated from 10 empty-corpus runs; E1's `c = 23.5 ms` is **not** reused.
 - **Gate 1** — corpus integrity: n8n pin re-asserted per run; each run's `SELECT path FROM
   files` equals the frozen manifest's file set for its tier, exactly.
 - **Gate 3** — both clocks recorded, `max(5%, 500 ms)`, retakes capped at 2 then logged, and
-  orphaned attempts charged against that cap (A4-MAT-3, implemented at `3f7b1fa`).
+  orphaned attempts charged against that cap (A4-MAT-3, implemented at `77b44ef`).
 - **Gate P (new)** — **attribution**: on every scored run, `Σ phase_ms ≥ 0.95 × durationMs`.
   A run below that is VOID pending diagnosis, and joins A4-MAT-7's re-run queue.
 
@@ -3784,10 +3784,10 @@ missed, and it is the same bar for every hypothesis.
   rather than arbitrary. Unchanged.
 
 **Declared peek (P0 precedent).** The attribution runs above are T1 rung measurements taken
-*after* this registration was committed at `36c2f5a` but *before* the scored runs, and they
+*after* this registration was committed at `0298a98` but *before* the scored runs, and they
 necessarily revealed T1's phase shares. The mitigation is ordering, and it is already
 discharged: every threshold these numbers could tune — the 1.6 exponent bar, `b_parse ≤ 1.25`,
-**and the 60% write-share condition** — was committed at `36c2f5a`, before the measurement
+**and the 60% write-share condition** — was committed at `0298a98`, before the measurement
 existed. The three runs are excluded from every E1-PHASE fit and from the run count; they are
 gate calibration, not measurement, and `eval/results/e1-phase-attribution.json` records them
 in full so the peek is auditable rather than merely asserted.
@@ -3821,7 +3821,7 @@ consecutive rounds in which the unregistered choice was later resolved toward th
 - **H2's monotonicity is strict, on per-tier median shares, across all five rungs.** A tie
   breaks it.
 - **`ln(0)` is not permitted:** any scored run with a null `phase_ms` (a binary predating
-  `c71d59c`) or any phase `≤ 0` is **VOID**, never silently dropped. `parsePhaseMs` returns
+  `2655164`) or any phase `≤ 0` is **VOID**, never silently dropped. `parsePhaseMs` returns
   null by design so the harness can still read E1's own history; on an E1-PHASE scored run
   that null is a defect.
 - **A Gate P or Gate P2 VOID joins A4-MAT-7's re-run queue**, whose semantics apply
@@ -3886,7 +3886,7 @@ defended afterwards. **No threshold in the registration moves; these are reading
 the scored runs therefore measure one build, which is what makes the floor's ~5 points of
 headroom meaningful rather than a comparison across binaries.
 
-**`c` is re-measured, not inherited.** E1's `c = 23.5 ms` was measured on the pre-`c71d59c`
+**`c` is re-measured, not inherited.** E1's `c = 23.5 ms` was measured on the pre-`2655164`
 binary and is not reused; `eval/results/e1-phase-calibration.json` is written by this
 instrument's own 10 empty-corpus runs.
 
@@ -4049,7 +4049,7 @@ the first-attempts refit and the share-weighted cross-check — exactly — unde
 written OLS+HC3 and its own wild-cluster bootstrap ([1.037, 2.486] against the harness's
 [1.043, 2.511]). It confirmed the scorer is faithful to the registered rules line by line, that
 Gate P's VOID path is reachable and evaluated on the fitted attempt, and that the corrective
-commit `0ba97ec` moved the record **against** the investigator. **The arithmetic carries no
+commit `952f691` moved the record **against** the investigator. **The arithmetic carries no
 error running toward H1. The narrative did, in three places.**
 
 **RR1 — the declared peek partially answered the one "free" condition, and the RESULT above
@@ -4059,16 +4059,16 @@ and E1's already-known convex total curve, write's T9 share falling below 60% wo
 required another phase to out-grow write from a ~3.4% base — roughly `b_edges ≈ 2.7`. So
 "cleared it by 34 points rather than narrowly" is true arithmetic and **weak epistemics**: the
 share condition was close to foreordained once the peek existed. The registration's mitigation
-(every threshold committed at `36c2f5a`, verified: `00:12:17Z`, before the peek) protects
+(every threshold committed at `0298a98`, verified: `00:12:17Z`, before the peek) protects
 against threshold-tuning and **does not** protect against this. What remains genuinely
 informative is the localisation itself — parse at exactly 1.0144, write's 52% → 94% climb —
 not the fact that a bar was cleared.
 
 **RR2 — the estimator rules were registered later than the RESULT implies, and the
 point-estimate clause was never actually outcome-determinative.** Verified: the "Estimator and
-aggregation rules" section is **absent from `36c2f5a`** and was added at `ef02ef9`
+aggregation rules" section is **absent from `0298a98`** and was added at `5f7ef33`
 (`01:08:27Z`) — ~100 seconds *after* the attribution peek, though still ~90 minutes before the
-first scored run. The four numeric constants (1.6 / 1.25 / 0.60 / 1.7529) *are* in `36c2f5a`;
+first scored run. The four numeric constants (1.6 / 1.25 / 0.60 / 1.7529) *are* in `0298a98`;
 the rules built on them are not. Two mitigations verified: a single-rung peek yields no
 exponent and no interval, so the point-estimate clause could not have been tuned to `b_edges`'
 near-miss; and **H2 was independently refuted by non-monotone edge shares under both registered
@@ -4077,12 +4077,12 @@ above: **"the first case where that clause actually bound" is withdrawn.** It di
 H2 died on monotonicity regardless.
 
 **RR3 — Gate 5's margin was 24 seconds, and part of the calibration predates the commit.**
-Verified timestamps: `e1-phase-schedule.json` written `01:36:42Z`; commit `6c45422` landed
+Verified timestamps: `e1-phase-schedule.json` written `01:36:42Z`; commit `e69020a` landed
 `01:37:29Z`; calibration completed `01:37:52Z`; first scored `attempt_start` `01:37:53Z`. So
 "committed before any scored run" holds **by 24 seconds**, the driver process was loaded from
 the working tree before the commit existed, and most of the 10 empty-corpus runs behind
 `c = 15` ran pre-commit. Behavioural identity was checked rather than assumed: `git diff
-6c45422..HEAD -- eval/` is empty, the committed `buildPhaseSchedule` reproduces the pinned
+e69020a..HEAD -- eval/` is empty, the committed `buildPhaseSchedule` reproduces the pinned
 schedule bit-for-bit, and every Gate 3 decision in the journal matches the committed
 `gate3Verdict` arithmetic. Nothing indicates the running code differed from the committed
 code — but Gate 5 is a provenance gate, and a 24-second margin is worth disclosing rather
@@ -4119,7 +4119,7 @@ flattered its own hypothesis.
 
 ##### CORRECTION (2026-08-13) — the "~2 MB default page cache" figure is wrong by 8×, and it was load-bearing
 
-Found while building the A/B's lever (`ef8d83e`), before the A/B was designed. A test asserting
+Found while building the A/B's lever (`2127ef7`), before the A/B was designed. A test asserting
 that `openDatabase` leaves the page cache at SQLite's own default was written against a bare
 `better-sqlite3` connection rather than a hardcoded constant, and it reported **`cache_size =
 -16000`** — not the `-2000` the E1-PHASE registration assumed.
@@ -4356,7 +4356,7 @@ isolated.
 
 - **Gate 0 — binary identity.** `dist` content hash + `schema_version` recorded pre-run and
   re-asserted at every start and restart; all 24 runs assert one hash. **The hash HAS moved**:
-  `ef8d83e` added `OpenDatabaseOptions` and the two CLI flags, so this experiment runs on a
+  `2127ef7` added `OpenDatabaseOptions` and the two CLI flags, so this experiment runs on a
   different binary than E1-PHASE's 15-run ladder. **Registered consequence: no absolute timing
   here is comparable to the ladder's, and nobody may read across the two.** Both arms sharing
   one binary is what keeps the A/B internally valid; the control arm is **re-measured on this
@@ -4484,7 +4484,7 @@ folded in here. E1-PHASE is not re-run and E1 is not re-scored.
 
 #### AMENDMENT 1 — 2026-08-13, pre-run, post-adversarial-review
 
-The registration above was committed at `7ee03aa` **before** the review was commissioned, so
+The registration above was committed at `315272d` **before** the review was commissioned, so
 everything here is provably a response to it rather than absorbed into the original text. Per
 §6 and the standing rule that this reviewer has been wrong before, **every load-bearing claim
 was verified against source or recomputed before being accepted**. One was rejected on
@@ -4665,7 +4665,7 @@ registration assumed this and never said it.
 
 ##### A7 — Gate A's read-back coalesces a failed evidence read into a passing value. Fix registered; the review's severity corrected.
 
-`src/indexer/index.ts` (from `ef8d83e`):
+`src/indexer/index.ts` (from `2127ef7`):
 
 ```ts
 cache_size: (await sql`PRAGMA cache_size`.execute(db)).rows[0]?.cache_size ?? 0,
@@ -4715,7 +4715,7 @@ tightening the parser is a product change with no bearing on this experiment; an
 
 ##### Revised design, superseding the corresponding rows above
 
-| | registered `7ee03aa` | **as amended** |
+| | registered `315272d` | **as amended** |
 |---|---|---|
 | arms | A, B, C, D at both rungs | **A, B, D** at all rungs; **C at T5 only** |
 | rungs | T1, T9 | **T1, T5, T9** |
@@ -5609,7 +5609,7 @@ coherence that is hard to obtain by accident.
 
 ##### The near-miss that changed the gates
 
-The guard was written, tested, linted and committed at `43eb928` — and `dist/` was never rebuilt.
+The guard was written, tested, linted and committed at `1dba79b` — and `dist/` was never rebuilt.
 The first two E1-VERIFY cells measured a two-day-old binary. The only signal was `fts_del 956 ms`
 on a cold build, a span the guard makes exactly zero; a subtler effect would have run all 27 cells
 against the wrong binary and scored them.
@@ -5620,7 +5620,7 @@ detects `dist/` changing mid-schedule and says nothing about whether `dist/` eve
 `src/`. **A stale build is perfectly self-consistent.** Every experiment in this program ran under
 that blind spot.
 
-**GATE 0b** (`eb85738`) compares the newest `.ts` under `src/` to the newest artifact under `dist/`
+**GATE 0b** (`12bf47c`) compares the newest `.ts` under `src/` to the newest artifact under `dist/`
 and throws, naming the offending file. Zero tolerance, because `tsc` rewrites only outputs whose
 input changed — a tolerance window is precisely how a one-file edit slips through, and a one-file
 edit is what this was. The two invalid runs, the pin carrying the stale hash, and the calibration
@@ -5628,7 +5628,7 @@ taken on it are quarantined under `eval/results/discarded-stale-dist/` with the 
 
 ##### Commits
 
-`43eb928` guard + tests · `eb85738` Gate 0b + quarantine + rebuild · `62f2322` E1-VERIFY results.
+`1dba79b` guard + tests · `12bf47c` Gate 0b + quarantine + rebuild · `bf4854d` E1-VERIFY results.
 
 ---
 
@@ -5991,7 +5991,7 @@ recursive CTEs; incremental indexing is O(changed files) — 379 ms for one file
 corpus size. Post-M1 chunk storage is O(N).
 
 **The vector subsystem is the only component that degrades**, on three axes —
-***MOOT: the vector store was deleted at `5d00775` (Stage 7). Kept for the record.***
+***MOOT: the vector store was deleted at `1522ef1` (Stage 7). Kept for the record.***
 
 | | n8n 49.5k | backstage 89.5k | **vscode 153k** |
 |---|---|---|---|
@@ -6121,7 +6121,7 @@ The claim was wrong when written.
 The mechanism was found four experiments later: `DELETE FROM chunk_fts WHERE file_path = ?` is a
 **full scan of the FTS5 table**, because `xBestIndex` cannot consume an equality constraint on an
 ordinary column. E1-FTS measured that span at **91.7% of T9's write phase** with its own exponent
-of **2.3454**. The guard (`43eb928`) skips it, and E1-VERIFY re-ran the whole ladder to confirm:
+of **2.3454**. The guard (`1dba79b`) skips it, and E1-VERIFY re-ran the whole ladder to confirm:
 **`b = 1.0825`**, HC3 [1.0651, 1.0998], `HOLDS`, T9 **538.6 s → 62.1 s**.
 
 So the claim is true again **for cold builds** — but by repair, not because it was ever safe to
@@ -6129,7 +6129,7 @@ assume. See §5 for where it is still false.
 
 #### 2. "The vector subsystem is the only component that degrades" — MOOT
 
-The vector store was deleted at `5d00775` (Stage 7, M2 arm D). The table of embed times, vector
+The vector store was deleted at `1522ef1` (Stage 7, M2 arm D). The table of embed times, vector
 memory and brute-force cosine costs describes a subsystem that no longer exists. Search is
 **lexical BM25 + the declaration-exact ranker (ranker D)**.
 
@@ -8011,7 +8011,7 @@ tool (all 147 calls logged, all `arm_intact: true`, every answered file appeared
 run's own search results); the paraphrase audit's zero-overlap result reproduces
 independently; source-doc deletion held in all 12 worktrees with 0 doc chunks reaching any
 agent; noise-floor task selection was sealed before the first search; and the commit
-ordering (registration `ad88009` 08:41Z → instrument `e61008c` 09:02Z → seal → runs
+ordering (registration `3a26e71` 08:41Z → instrument `6319161` 09:02Z → seal → runs
 09:09–09:19Z → scoring 09:19:52Z) confirms nothing was scored before it was registered.
 
 **Unresolved gap, carried forward:** the 30 subagent prompts and model identity are not in
@@ -8448,7 +8448,7 @@ if the result is challenged as a seed artifact.
 #### AMENDMENT 1 — 2026-08-02, pre-run, post-adversarial-review
 
 Adversarial review commissioned per the standing §6 rule (Fable agent), against this section
-as committed at `3e497da`, **before any measurement had occurred**. Per the Q1/OUTCOME
+as committed at `80cb9bd`, **before any measurement had occurred**. Per the Q1/OUTCOME
 precedent, no data existed, so the registration above was revised in place rather than
 appended to; this log is the audit trail. The full review is committed verbatim at
 `eval/results/q1-scale-design-review.md`.
@@ -8599,7 +8599,7 @@ required caveats" (see the four caveats in the RESULT section above).
 |---|---|---|
 | 1 | **Gate 4 ran ~2.5 min AFTER scoring** (04:22:34Z vs scoring at 04:20:05Z); the registration required Gate 4 before scoring. | Toward false DISCHARGED — a coverage gap at scoring time would have depressed H's measured window membership. Closed post-hoc: coverage was in fact `pending_embeddings == 0` on all four tiers at the time scoring ran; the gate result did not change between the two timestamps. |
 | 2 | **Gate 0(c)/(d) never ran on T4**, and T4 reused the pre-registration full index, which carries `write_errors: 2` (the two known whale fixtures) — apparently inconsistent with Gate 0(b)'s exclusion wording. | Toward false DISCHARGED. Closed by the review's direct counts on `vscode-state-full`: **138,440 vectors, 138,440 distinct chunk_ids, 0 duplicates, 0 out-of-tier** by full anti-join; T1–T3 counts match the frozen manifest. The `write_errors: 2` is the pre-registered, arm-symmetric whale-fixture absence (F11), not a new defect — it affects both arms identically. |
-| 3 | **The committed instrument shipped without working CLI entry points** — `scale-rank-check.mjs` and `scale-score.mjs` document a scored-sweep/self-check/scorer invocation in their own header comments but expose no CLI to run it; measurement instead ran through three runner-authored driver scripts (`scale-run-selfcheck.mjs`, `scale-run-measure.mjs`, `scale-run-score.mjs`, committed at `f40f2bf`). | No direction found. The review audited the drivers line-level and found them faithful: `limit=200`, `rrf_k=60`, explicit `chunkStore`, correct embedder wired per arm, seed 1001 pre-committed before any measurement. |
+| 3 | **The committed instrument shipped without working CLI entry points** — `scale-rank-check.mjs` and `scale-score.mjs` document a scored-sweep/self-check/scorer invocation in their own header comments but expose no CLI to run it; measurement instead ran through three runner-authored driver scripts (`scale-run-selfcheck.mjs`, `scale-run-measure.mjs`, `scale-run-score.mjs`, committed at `8868404`). | No direction found. The review audited the drivers line-level and found them faithful: `limit=200`, `rrf_k=60`, explicit `chunkStore`, correct embedder wired per arm, seed 1001 pre-committed before any measurement. |
 | 4 | **`runSelfCheck`'s mismatch counter under-counts** — it excludes reconstruction failures and mode-integrity failures from its own tally; the runner computed the AMENDMENT-1-widened criterion externally to get Gate 2's reported 80/80. | Anti-false-pass (the widening is stricter, not looser) — but this is a latent instrument defect: fix `runSelfCheck` to count what Gate 2 actually requires before this instrument is reused. |
 | 5 | **`query_id`, the Δlog2 aggregate, and the monotonicity CI formula were runner constructions**, under-specified by the registration text itself. | Reviewed directly: deterministic, follows the committed F1 sign convention, seed-insensitive (200/200 alternative seeds agree), and zero-flags robust (no CI approximation could change which monotonicity flags fire). No direction found. |
 
@@ -8644,7 +8644,7 @@ SAME frozen tier states (T1–T4) and the SAME frozen query set (`eval/scale-que
 
 | arm | rankers in RRF (k = 60) |
 |---|---|
-| L  | chunk_fts BM25 (shipped lexical) — **RE-RUN in full** alongside the new arms (AMENDMENT 1, F3: no row reuse from f40f2bf) |
+| L  | chunk_fts BM25 (shipped lexical) — **RE-RUN in full** alongside the new arms (AMENDMENT 1, F3: no row reuse from 8868404) |
 | H  | chunk_fts + vectors (shipped hybrid) — **RE-RUN in full** (F3) |
 | L+I | chunk_fts + **identifier_fts** (lexical-only, two rankers) — NEW |
 | H+I | chunk_fts + vectors + identifier_fts — NEW, **DESCRIPTIVE ONLY** (arm-V precedent: answers "should the keep-branch also wire identifier_fts?"; barred from bearing the close/survive verdict) |
@@ -8768,8 +8768,8 @@ verdict says nothing about queries that paraphrase or split the identifier (S-ap
 benefit from ranker I, and no vector help either, per Q1/SCALE).
 
 **No row reuse (AMENDMENT 1, F3).** L and H are RE-RUN IN FULL alongside L+I and H+I — same
-pipeline, same frozen tier states, same frozen query set — rather than reusing f40f2bf's raw
-rows, for three registered reasons: (a) the f40f2bf rows carry only per-target ranks, not full
+pipeline, same frozen tier states, same frozen query set — rather than reusing 8868404's raw
+rows, for three registered reasons: (a) the 8868404 rows carry only per-target ranks, not full
 200-row lists, so any drift check against them is necessarily per-target, never a full
 reconstruction comparison; (b) a 20-query drift sample (the gate as originally drafted) misses
 real drift often — at a true drift rate of 2% it has only a 33% chance of catching it, at 5%
@@ -8878,7 +8878,7 @@ C. **Arm integrity per call** — explicit chunkStore; mode recorded (L/L+I lexi
 D. **Cross-run reproducibility REPORT — descriptive, not gating (AMENDMENT 1, F3).** Since L
    and H are now re-run in full rather than reused (see "No row reuse" under Ranker I
    mechanics), this gate no longer licenses anything. It compares the freshly-measured L/H
-   per-target ranks against the archived f40f2bf raw rows and reports agreement/divergence.
+   per-target ranks against the archived 8868404 raw rows and reports agreement/divergence.
    Any divergence is documented as run-level drift — informative context for interpreting Δ′,
    never a reason to discard the fresh rows, which are what the decision statistic uses
    regardless of what this report finds.
@@ -8887,10 +8887,10 @@ E. **Vector coverage** — pending_embeddings == 0 per tier (H arms only).
 #### Costs
 
 **6,400 scored searches (AMENDMENT 1, F3): 4 arms × 400 queries × 4 tiers** — L and H are now
-RE-RUN in full alongside L+I and H+I rather than reused from f40f2bf — **+ 80 probe calls**
+RE-RUN in full alongside L+I and H+I rather than reused from 8868404 — **+ 80 probe calls**
 (10 probes × 4 tiers × 2 arms, Gate A). Gate D's cross-run comparison (above) reuses the
 freshly-collected L/H rows already counted in the 6,400 and adds no further search cost — only
-a comparison against the archived f40f2bf rows. Still minutes to tens of minutes; zero embeds;
+a comparison against the archived 8868404 rows. Still minutes to tens of minutes; zero embeds;
 zero agents.
 
 #### Design Reserve (pre-thought, NOT commitments)
@@ -8919,7 +8919,7 @@ commitment, provenance: external LLM proposal evaluated against track evidence:*
 #### AMENDMENT 1 — 2026-08-03, pre-run, post-adversarial-review
 
 Adversarial review commissioned per the standing §6 rule (Fable agent), against this section
-as committed at `9ecceca`, **before any measurement had occurred**. Per the Q1/SCALE and
+as committed at `8db1672`, **before any measurement had occurred**. Per the Q1/SCALE and
 Q1/OUTCOME precedent, no data existed, so the registration above was revised in place rather
 than appended to; this log is the audit trail. The full review is committed verbatim at
 `eval/results/q1-idfuse-design-review.md`.
@@ -8937,7 +8937,7 @@ from elsewhere; both were gaps this registration's own drafting left open.
 |---|---|---|---|
 | 1 | Ranker I's term derivation from the query string was unregistered; the three natural choices (toFtsMatch-style split, `splitIdentifierTerms`, whitespace-split) produce three different experiments, and the only path already wired to `identifier_fts` in production (`splitIdentifierTerms`) camelCase-splits and can never match the unsplit indexed token — structurally inert on the S-ident anchor. Whitespace-split instead breaks 36/150 dotted `Class.method` targets. | Term derivation registered explicitly: `/[A-Za-z0-9_$]+/` token split of the raw query, no camelCase splitting, no lowercasing (unicode61 case-folds at match time); Gate B extended with dotted-method and camelCase known-answer cases. | **Most natural path → false INERT-LEVER / false GAP SURVIVES** — an unregistered implementation choice, the investigator's own drafting gap. |
 | 2 | Efficacy-fail + closure-criteria-met is a reachable cell (ranker I rescues ~3 queries — below the efficacy CI's ~4-5 threshold — while that same effect independently satisfies Δ′'s closed criteria) with two contradictory registered outputs (INERT-LEVER vs GAP CLOSED). | Cell mapped to AMBIGUOUS, both contrasts reported in full; efficacy demoted to verdict-relevant ONLY as this gate — INERT-LEVER fires only when efficacy fails AND closure criteria are also not met. | **Toward false GAP SURVIVES** — an unmapped decision cell, the investigator's own drafting gap. |
-| 3 | Reuse of f40f2bf's L/H rows is false economy guarded by a weak sample: raw rows carry only per-target ranks (Gate D is necessarily per-target, not a full reconstruction); 20 queries misses real drift 67% of the time at f=2%, 36% at f=5%; and the paired Δ′ would subtract a 2026-08-02 H row from a 2026-08-03 L+I row, landing run-level environment drift INSIDE the decision statistic. | L and H RE-RUN in full alongside L+I/H+I (6,400 total scored searches, still minutes, zero embeds); Gate D demoted to a cross-run reproducibility REPORT, descriptive, never gating. | **Unknowable** — collision/drift direction can't be signed in advance. |
+| 3 | Reuse of 8868404's L/H rows is false economy guarded by a weak sample: raw rows carry only per-target ranks (Gate D is necessarily per-target, not a full reconstruction); 20 queries misses real drift 67% of the time at f=2%, 36% at f=5%; and the paired Δ′ would subtract a 2026-08-02 H row from a 2026-08-03 L+I row, landing run-level environment drift INSIDE the decision statistic. | L and H RE-RUN in full alongside L+I/H+I (6,400 total scored searches, still minutes, zero embeds); Gate D demoted to a cross-run reproducibility REPORT, descriptive, never gating. | **Unknowable** — collision/drift direction can't be signed in advance. |
 | 4 | GAP SURVIVES had no magnitude gate (the parent's F-R2 lesson, unapplied here): a significant but sub-5pp residual would be dignified as a "defensible niche" identically to a large one. | Verdict language carries the realized θ̂/CI against the 5pp floor; significant + CI upper ≤ 5pp is recorded as "GAP SURVIVES (marginal, sub-precision-floor)" — still blocking, explicitly weaker language. | **Toward false GAP SURVIVES** (overstated confidence, not a wrong direction but an inflated one). |
 | 5 | Two reachable cells were unmapped or mapped perversely: (a) reverse-significant (L+I degrading LESS than H) fell to AMBIGUOUS though the parent had an a-fortiori discharge row for the analogous cell; (b) degenerate Wilcoxon (all-zero Δ′ — perfect closure) had no defined row. | Two rows added: reverse-significant → GAP CLOSED a fortiori (descriptive fusion finding, parent-precedent wording); degenerate/non-runnable Wilcoxon counts as "not significant" for the closure row, never blocks CI-based closure. | **Routed ideal closure to AMBIGUOUS** — away from GAP CLOSED, i.e. toward the incumbent. |
 | 6 | The 5pp bound's reachability corridor is tighter than stated: balanced outcomes pass only up to (7,7) non-zero pairs; a true-zero residual that perturbs individual pairs reaches CLOSED with only ~1/3 probability; "escalate by adding queries" had no pre-registered n or rule. | Escalation pre-registered now: committed generator (`eval/scale-build-queries.mjs`), pre-named seed 154, target n=300 S-ident queries from the same T1 pool excluding already-used targets, floor recalculated to ≈3.7pp; logged as an amendment if triggered. | **Toward perpetual AMBIGUOUS (pro-incumbent)** — structural, not a drafting slip. |
@@ -8959,7 +8959,7 @@ mode-integrity violations, 0 voided cells** over **8,000** scored searches (5 ar
 queries × 4 tiers, F7's L+Isym sensitivity arm included per the corrected costs line, AMENDMENT
 2 row 2). Gate D (cross-run reproducibility REPORT, descriptive only per AMENDMENT 1 F3 — L/H
 are freshly re-run in full, never reused): **3,200/3,200** per-target ranks identical against
-the archived `f40f2bf` blob; the adversarial results review independently verified
+the archived `8868404` blob; the adversarial results review independently verified
 byte-provenance of both the fresh and archived files (distinct SHA-256s, as expected for two
 runs on the same deterministic pipeline).
 
@@ -9366,7 +9366,7 @@ D-ordering variants (BM25-weighted same-name disambiguation); the outcome A/B at
 #### AMENDMENT 1 — 2026-08-03, pre-run, post-adversarial-review
 
 Adversarial review commissioned per the standing §6 rule (Fable agent), against this section
-as committed at `74c5d96`, **before any measurement or query-set generation had occurred** —
+as committed at `b90465b`, **before any measurement or query-set generation had occurred** —
 `eval/declex-queries.json` does not exist yet. Per the Q1/SCALE, Q1/OUTCOME, and Q1/IDFUSE
 precedent, no data existed, so the registration above was revised in place rather than
 appended to; this log is the audit trail. The full review is committed verbatim at
@@ -9885,7 +9885,7 @@ as measured (FTS BM25 + ranker D under RRF). AST/graph/FTS tools untouched.
 
 **Design decisions (recorded before implementation):**
 
-1. **Re-entry anchor is the git tag `mast-pre-vector-delete`** (= `a966237`, the F18
+1. **Re-entry anchor is the git tag `mast-pre-vector-delete`** (= `cb69cbc`, the F18
    commit). Instrument re-runs of vector arms and H-baseline reconstruction happen from
    that tag; HEAD does NOT keep the vector-dependent eval imports runnable. The `eval/`
    files stay in-repo as the record, but at HEAD their `dist/search/vector.js` etc.
@@ -10049,10 +10049,10 @@ alters product behaviour.
 ### Next action (do not skip to A-vs-C)
 
 1. ~~**Identifier-decomposition reserve arm**~~ — **DONE 2026-08-02**, pre-registered at
-   commit `c5f4486`. Stop rule fired: decomposition-as-a-fused-ranker is a **regression**
+   commit `755e5fb`. Stop rule fired: decomposition-as-a-fused-ranker is a **regression**
    ((L+D)−L = −0.1661, t=−2.333 on kluster-normal; Recall@10 1.000 → 0.727). See
    "Q1/RESERVE RESULT" above.
-2. ~~**RESERVE-2 — second-COLUMN construction**~~ — **DONE 2026-08-02** (registration `a042cb1`). Decomposition tested in both constructions across two tokenizers; does not live, reserve discharged. Old text: The Reserve
+2. ~~**RESERVE-2 — second-COLUMN construction**~~ — **DONE 2026-08-02** (registration `debeeb7`). Decomposition tested in both constructions across two tokenizers; does not live, reserve discharged. Old text: The Reserve
    specified a second FTS *column* (one joint `bm25()`); I built a second *table* (RRF
    fusion), and RRF vote-dilution is what caused the harm. The deviation runs **toward the
    incumbent**, so leaving it unrun repeats the original violation. Also fix the canary's
@@ -10180,7 +10180,7 @@ run the pinned defaults.
 #### The claim under test
 
 `FINDINGS.md` §2.3's headline question is open: `SEARCH` replacing `SCAN` in the query plan is a
-**query-plan fact, not a phase measurement**. `c4b4816` replaced `path LIKE P || '%'` with a
+**query-plan fact, not a phase measurement**. `88f4592` replaced `path LIKE P || '%'` with a
 half-open range at four sites; two of them (`populate.ts:958` `resolveInFileOrReExportChain`,
 `populate.ts:1093` `insertReExportFiles`) sit inside the `phase.edges` timing window. Measured on
 the 8,651-file vscode DB with bound parameters, the resolver's plan moves from
@@ -10236,7 +10236,7 @@ is a plan improvement with no phase consequence at this scale, and §2.3's open 
 with the cache *and* the scan both eliminated. That outcome is recorded as a refutation of H1 in
 §3, not softened into "a modest improvement".
 
-**Direction-of-error statement.** I shipped `c4b4816` and I expect it to win; the pro-fix result is
+**Direction-of-error statement.** I shipped `88f4592` and I expect it to win; the pro-fix result is
 the one I am predisposed to. The T1/T5 control rungs exist to make a spurious global speedup
 visible, and the correctness gate below can fail the fix outright regardless of any timing.
 
@@ -10254,8 +10254,8 @@ Two arms × four rungs × three reps = **24 runs**.
 
 | arm | commit | dist rel-hash (SHA-256, paths relative to `dist/`) | files |
 |---|---|---|---|
-| **N** (no-fix) | `24ebc66` = `c4b4816~1` | `75040aff0ed9089ace829a72b9666e161935fb2c60950c076ec273e9f6678fcb` | 54 |
-| **R** (range fix) | `c4b4816` | `2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9` | 55 |
+| **N** (no-fix) | `f774752` = `88f4592~1` | `75040aff0ed9089ace829a72b9666e161935fb2c60950c076ec273e9f6678fcb` | 54 |
+| **R** (range fix) | `88f4592` | `2f94a471694f117b69a5ef3eb1b0a83ab12195a9476b35239fbaf96242cd3de9` | 55 |
 
 Rungs **T1, T5** (controls, F = 656 / 2,880) and **T8, T9** (treatment, F = 8,945 / 13,330).
 
@@ -10266,10 +10266,10 @@ the main checkout; the build is plain `tsc`, so the link affects resolution only
 
 **Why not the repo's own `dist/`.** It was found this session to be **the no-fix binary** — its
 `distContentHash` is `b77f0ae3…`, byte-identical to the hash E1-VERIFY pinned, because `dist/` was
-never rebuilt after `c4b4816` landed. Gate 0b catches this and does name `src/graph/path-range.ts`.
+never rebuilt after `88f4592` landed. Gate 0b catches this and does name `src/graph/path-range.ts`.
 Separately, the repo's `dist/` carries **6 orphaned `.js` files** with no surviving source —
 `indexer/{background-embedder,background-embedder-worker,embedder}`, `search/{hybrid,vector}`,
-`store/lance`, all dead since the vector deletion at `5d00775`; `tsc` does not remove outputs whose
+`store/lance`, all dead since the vector deletion at `1522ef1`; `tsc` does not remove outputs whose
 inputs vanished. They are unreachable (the only mentions in live emitted code are two comments in
 `store/sqliteChunkStore.js`), but they make the repo tree a 60-file build against the worktrees' 54.
 Building **both** arms in worktrees is what makes the arm delta exactly three files.
@@ -10450,7 +10450,7 @@ ratio design does not need it and measuring it unused invites post-hoc use).
 
 #### Direction-of-error, honoured
 
-The registration recorded that I shipped `c4b4816` and expected it to win. It won by more than
+The registration recorded that I shipped `88f4592` and expected it to win. It won by more than
 forecast, which is exactly the situation where the controls earn their place: T1 at 0.991 and T5 at
 1.126 are what rule out a spurious global speedup. A provisional read of block 1 alone had both
 controls *below* the band (0.87, 0.91) and I had drafted language conceding H2 would fail as
@@ -10492,7 +10492,7 @@ before `e1-ladder-run.mjs` is invoked. Task #5, re-scoped after E1-SCAN.
 
 ### Why this exists
 
-E1-SCAN (`f79de4f`) measured the range fix against the `files` prefix scan and found the scan *was*
+E1-SCAN (`dc5536d`) measured the range fix against the `files` prefix scan and found the scan *was*
 the edges exponent: `b` falls 1.4382 → **≈1.0–1.1**. That result is registered, scored, and stands.
 What it cannot do is say whether the remaining curve is **flat** or **slightly bent**, because it
 measured four rungs (T1/T5/T8/T9) and its own RESULT records that the post-fix exponent is not
@@ -10543,7 +10543,7 @@ resolves it at full ladder resolution.
 
 ### Design
 
-**One arm.** The post-fix binary at `HEAD = f79de4f`. `git log c4b4816..HEAD -- src/` returns **zero
+**One arm.** The post-fix binary at `HEAD = dc5536d`. `git log 88f4592..HEAD -- src/` returns **zero
 commits**, so this binary is source-identical to E1-SCAN's arm R. Working tree clean.
 
 **Nine rungs x 3 reps = 27 runs**, the full E1 ladder, hardlinked from the pinned n8n worktree via
@@ -10742,7 +10742,7 @@ adjudicates nothing.
 
 #### Gate L — cross-experiment replication, one excursion
 
-Same source (`git log c4b4816..HEAD -- src/` empty), Gate 0 hash pinned across all 27 runs.
+Same source (`git log 88f4592..HEAD -- src/` empty), Gate 0 hash pinned across all 27 runs.
 
 | rung | E1-SCAN arm R | E1-LADDER | deviation |
 |---|---|---|---|
@@ -10865,7 +10865,7 @@ dangerous kind of wrong evidence.
 
 # E1-HOIST PRE-REGISTRATION (2026-08-18)
 
-**Does the per-file import index (`08b0cd8`) show up in the T9 edges phase, and by how much?**
+**Does the per-file import index (`c04d906`) show up in the T9 edges phase, and by how much?**
 
 Registered before any run (Gate 5). Task #6.
 
@@ -10985,8 +10985,8 @@ below is the substitute — a within-run placebo control instead of a cross-rung
 ## Design
 
 - **Rung:** T9 (13,330 files / 73,359 chunks), pinned by `eval/results/e1-tiers.json`, seed 811.
-- **Arms:** `N` = no-hoist, `cc4332f29db75f209eb76ec2a2a62cb027c75f6f`;
-  `H` = hoist, `08b0cd8e99aba9e0c5b0ae2a50d5f7f26ae4ab9c`. The two commits differ in exactly
+- **Arms:** `N` = no-hoist, `78745be26ffee3373cb9831f3a7ac4791bf57cdc`;
+  `H` = hoist, `c04d906c71d517ad3a2cb4a38966ef3c52689674`. The two commits differ in exactly
   `src/graph/populate.ts` and one new test file — verified with `git diff --name-only`.
 - **Blocks:** 30. Each block runs both arms adjacent in time; **arm order flips between blocks**
   (E1-SCAN's rule — a fixed order loads thermal drift onto whichever arm always runs second).
@@ -11067,7 +11067,7 @@ Stated in advance so it cannot be rationalised afterwards:
 phase — 2.5× more than the mechanism replay predicted — and the two arms build a byte-identical
 graph over 73,359 chunks.**
 
-Instruments: `eval/e1-hoist-{schedule,run,score}.mjs`, registered and committed at `8346ebf`
+Instruments: `eval/e1-hoist-{schedule,run,score}.mjs`, registered and committed at `235e8de`
 before any run. Journal `eval/results/e1-hoist-runs.jsonl`, verdict
 `eval/results/e1-hoist-verdict.json`. **60/60 runs, 30/30 complete blocks, 0 VOID, 0 interrupted,
 0 Gate 3 misses, 0 Gate P failures, `scoreable: true`.**
@@ -11112,7 +11112,7 @@ Every column is a single distinct value across both arms and all 60 runs. The ho
 import evidence is looked up — from a query per call name to one index per file, with first-write-
 wins replacing a row-scan short-circuit — and the resulting graph is unchanged at 73,359 chunks.
 **This is a far heavier equivalence check than the 200-file replay used while developing the
-change**, and per the registration it outranks every timing number here. Had it failed, `08b0cd8`
+change**, and per the registration it outranks every timing number here. Had it failed, `c04d906`
 would have been a bug regardless of how fast it was.
 
 ## Two post-hoc analyses, labelled as post-hoc
@@ -11224,7 +11224,7 @@ Instrument: `eval/e1-fts-invariant.mjs` → `eval/results/e1-fts-invariant.json`
 analysis; it is now a script that exits non-zero if it breaks.
 
 Why it is worth a script rather than a sentence: this is the check that distinguishes a **correct**
-FTS delete guard from a merely fast one. The guard at `43eb928` skips
+FTS delete guard from a merely fast one. The guard at `1dba79b` skips
 `DELETE FROM chunk_fts WHERE file_path = ?` when the file was never indexed, taking T9 from 538.6 s
 to 62.1 s. A guard that skipped the delete when the file *had* been indexed would be exactly as fast
 and would silently orphan rows. Nothing was running that check.
@@ -11243,7 +11243,7 @@ the ratio it can compute and states the identity it cannot assert.
 
 **Stage 1 — the row being closed.** Its tally was tracked at 27, then 54, then **114**, and all
 three omitted `e1-scan`'s 24 rows. The true total is **138**. The most recent of those wrong
-figures was written by this session, one commit earlier (`a677831`), while performing the §1
+figures was written by this session, one commit earlier (`7264154`), while performing the §1
 maintenance the rule in §6 requires.
 
 The cause was not arithmetic. Each re-count asked *"does this new journal add a new series?"* and

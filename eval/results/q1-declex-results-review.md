@@ -1,5 +1,5 @@
 # Q1/DECLEX adversarial results review (Fable, 2026-08-03, maximum-scrutiny, post-scoring) — verbatim
-Evidence beccd52, instrument b148594, registration dd10796. Everything recomputed from
+Evidence 43c5c2d, instrument b05f7ac, registration f8af0da. Everything recomputed from
 committed artifacts (merged raw sha256 79ab3789... = scorer's recorded source_sha256),
 re-run against live tier states, or reconstructed end-to-end. Nothing taken on faith.
 
@@ -66,7 +66,7 @@ s_prose -7.25pp [-13.5,-2.75] (hi negative across 20 alternative seeds) — the 
 fresh off-strata: 4 rank-differing, 0 window-differing rows. Footnote.
 
 ## RF-8 (provenance nit, resolved): frozen-set regeneration byte-identical except
-git_head_at_generation (committed dd10796 — generation at the amended registration, before
+git_head_at_generation (committed f8af0da — generation at the amended registration, before
 instrument and evidence); determinism gate hashes compact JSON so its hash legitimately
 differs from the pretty-printed file's. Cosmetic.
 

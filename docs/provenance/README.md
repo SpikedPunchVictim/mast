@@ -9,17 +9,40 @@ git filter-repo --path packages/mast --path-rename packages/mast/:
 
 187 commits carried over, with every path rewritten from `packages/mast/…` to `…/`.
 
-## The citations problem
+## The citations problem — rewritten 2026-08-19
 
-`FINDINGS.md`, `IMPLEMENTATION_PLAN.md`, `docs/defects/LEDGER.md` and `docs/defects/SHAPES.md`
-cite commits by SHA — "fixed in `c4b4816`", "`a677831`, `8cb7e0e`". **Those are kluster SHAs.**
-A history rewrite necessarily produces new commit objects, so none of them name a commit in
-*this* repo. They were deliberately left in place rather than rewritten at split time; this
-file is what makes them recoverable.
+`FINDINGS.md`, `IMPLEMENTATION_PLAN.md`, the handoffs, `docs/defects/` and the review
+documents under `eval/results/` cite commits by SHA. Those were **kluster** SHAs; a history
+rewrite mints new commit objects, so none of them named a commit in this repo.
 
-**53 distinct commits are cited. 52 have a counterpart here. One does not:** `07d705b`
-(`docs(foldv2): S5 handoff plan`) never touched `packages/mast` and was dropped by the filter.
-It is cited for context only.
+**217 citations across 15 files have been rewritten to this repo's SHAs.** They resolve
+here now, and `git show` on any of them works. The map below is retained for the reverse
+lookup — given a SHA quoted in an old message, an issue, or a chat log, it tells you which
+commit here it became.
+
+### The four that were deliberately not rewritten
+
+They have no counterpart in this history because they never touched `packages/mast`, so
+there is nothing to point them at. Each is annotated in place:
+
+| SHA | What it is |
+|---|---|
+| `07d705b` | **The kluster corpus pin**, not a citation — the commit `base-state-r2` is built from. `eval/ASSETS.md`, `IMPLEMENTATION_PLAN.md` |
+| `65d8d2c`, `8c6a35e`, `8d2e040` | foldv2 commits referenced by a spike write-up. `eval/spikes/capsule/PILOT_RUN_1.md` |
+
+`07d705b` is the one that matters. `eval/paths.mjs` sets `PROJECT_ROOT` to
+`~/.cache/mast-eval/corpus-kluster`, a worktree of the kluster repo at that commit, and
+per `eval/ASSETS.md` every headline Q1 ranking number comes from the corpus built there.
+**Reproducing the Q1 baseline requires the kluster repository.** The E1 track has no such
+dependency — its six corpora are external OSS repos pinned in `eval/e1-common.mjs`.
+
+### What was left alone, and why that was not automatic
+
+58 hex tokens in these documents are not commits at all — the external corpus SHAs
+(`5ebbe53` vscode, `f7fffd6` nest, `7f3e7eaa9f6b` opentelemetry-js and the rest), sha256
+digests, byte counts like `1048576`, and dates like `20260715`. Rewriting one of those
+would have silently repointed a frozen corpus. The rewrite only touched tokens that
+resolve to a commit **in kluster** and have a non-dropped entry in the map.
 
 ## Resolving one
 
@@ -28,22 +51,25 @@ new SHA, one row per commit in the source history. A new SHA of all zeros means 
 dropped because it touched nothing under `packages/mast`.
 
 ```sh
-# a cited SHA is usually abbreviated, so match on the prefix
+# forward: an old kluster SHA -> the commit here
 grep ^c4b4816 docs/provenance/kluster-commit-map.tsv
-git show <the second column>
+
+# reverse: a SHA in this repo -> where it came from
+grep 88f4592 docs/provenance/kluster-commit-map.tsv
 ```
 
-## Rewriting them for good
+## How the rewrite was done
 
-The map makes that mechanical whenever it is worth doing — for each citation, look up the
-prefix and substitute the new SHA. Two things to get right if you do:
+For each citation: expand the prefix to a full old SHA, look it up, re-abbreviate against
+this repo. Two things it would have been easy to get wrong, and were checked:
 
-* **Abbreviations are not unique across repos.** Expand to the full old SHA against the map,
-  then re-abbreviate against *this* repo's object database, or you will mint a citation that
-  is ambiguous or resolves to the wrong commit.
-* **`07d705b` has no counterpart.** Leave it, and mark it as a kluster reference, rather than
-  mapping it to something plausible.
+* **Abbreviations are not unique across repos.** Every prefix was expanded against kluster,
+  mapped, then re-abbreviated with `git rev-parse --short` against *this* object database
+  and re-resolved to confirm it is unambiguous here. Reusing the old abbreviation length
+  would eventually mint a citation pointing at the wrong commit. 0 came back ambiguous.
+* **A hex string is not a commit.** See above — the filter is "resolves in kluster", which
+  is what kept the external corpus pins intact.
 
-Until then a citation in this repo means "a commit in kluster", and this file is how you
-follow it. Do not quote one as if it resolved locally — verifying a citation before repeating
-it is §11.7, and this is the exact situation it is about.
+Verified afterwards by re-scanning every markdown file: 130 distinct citations resolve in
+this repo, 5 occurrences of the 4 SHAs above resolve only in kluster and are annotated,
+and 58 non-commit tokens were untouched.

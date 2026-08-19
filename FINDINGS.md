@@ -397,7 +397,7 @@ re-ran the whole ladder against the fix and returned `HOLDS`.
 **The mechanism.** `DELETE FROM chunk_fts WHERE file_path = ?` is a **full scan of the FTS5 table**:
 `xBestIndex` cannot consume an equality constraint on an ordinary column, so every per-file delete
 scans the entire index. Cost per file therefore grows with corpus size, and the total grows
-quadratically. The fix (`43eb928`) skips the delete entirely when the file was never indexed.
+quadratically. The fix (`1dba79b`) skips the delete entirely when the file was never indexed.
 
 **Result of the fix**, measured on E1's own ladder, 27 runs:
 
@@ -449,7 +449,7 @@ would not.
 
 Separate from the scaling question above and settled independently. `importResolvedPathFor` ran one
 `imports` query per distinct call name per file, re-reading and re-parsing rows that were invariant
-across the file. `08b0cd8` builds one index per file, lazily.
+across the file. `c04d906` builds one index per file, lazily.
 
 **E1-HOIST, 60 runs, 30 paired blocks at T9** — `eval/results/e1-hoist-verdict.json`, RESULT at
 `IMPLEMENTATION_PLAN.md` § E1-HOIST RESULT:
@@ -813,7 +813,7 @@ Confidence, stated separately because it still differs by claim (§11.5):
 ### 2.5 Retrieval
 
 The shipped strategy is **lexical BM25 + a declaration-exact ranker (ranker D)**. There is no vector
-store: it was deleted at `5d00775` (Stage 7).
+store: it was deleted at `1522ef1` (Stage 7).
 
 | experiment | verdict |
 |---|---|
@@ -844,7 +844,7 @@ regression.
 | The **edges** exponent is the page cache | E1-AB's own data, re-read — see below. By E1-EDGES' own registered rule: **ALGORITHMIC**. |
 | **Homonym amplification** drives edge resolution cost | Measured: **1.124 rows/name**, 11.1% discarded, top-1000 names = 5.6% of rows. Refuted. |
 | Post-M1 chunk storage is **O(N)** | Falsified by E1 (b = 1.76), then restored *by repair* — the FTS guard (b = 1.08). True for cold builds only; see §2.4. Corrected in Stage 4.5 CORRECTION §1. |
-| The **vector subsystem** is the only component that degrades | Vectors were deleted at `5d00775`. Corrected in Stage 4.5 CORRECTION §2. |
+| The **vector subsystem** is the only component that degrades | Vectors were deleted at `1522ef1`. Corrected in Stage 4.5 CORRECTION §2. |
 | Incremental indexing is **O(changed files)** at any corpus size | False when claimed — the FTS guard is conditional on the file being *new*, so a changed file paid two full-scan deletes (**measured b = 1.32**, 151.6 ms at T9). Made true *by repair* in Stage 4.6 (rowid block, **b = −0.09**). See §2.4. |
 | Stage 4.5's "**379 ms** for one file **at any corpus size**" | The magnitude is plausible (measurement projects 384 ms at 150k chunks); the invariance is the error, and it was the load-bearing half. Measured: 3.0 ms at T1 → 151.6 ms at T9, **b = 1.32, R² = 0.9975**. The figure carried no citation anywhere in `IMPLEMENTATION_PLAN.md`. Killed by Stage 4.6. |
 | A rowid **range** (`BETWEEN`) lets FTS5 skip the scan | The query plan `SCAN ... INDEX 0:=` was misread as "constraint consumed"; the operative word is `SCAN`. Measured at T9: range **75.96 ms** against an unconstrained scan's **75.01 ms** — no saving. Only exact `rowid = ?` seeks (0.0293 ms for the same 11 rows). Refuted before any code was written. |

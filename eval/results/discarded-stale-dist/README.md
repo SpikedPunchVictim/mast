@@ -4,7 +4,7 @@
 
 ## What happened
 
-The FTS delete guard (`src/graph/populate.ts`, commit `43eb928`) was written, tested, linted
+The FTS delete guard (`src/graph/populate.ts`, commit `1dba79b`) was written, tested, linted
 and committed. **`dist/` was never rebuilt.** The first two E1-VERIFY cells therefore measured a
 binary from two days earlier, without the guard.
 

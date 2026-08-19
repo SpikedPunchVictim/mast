@@ -1,6 +1,6 @@
 # Q1/SCALE adversarial design review (Fable, 2026-08-02, pre-run) — verbatim
 
-Reviewed: IMPLEMENTATION_PLAN.md 2469-2712 at commit 3e497da, before any measurement.
+Reviewed: IMPLEMENTATION_PLAN.md 2469-2712 at commit 80cb9bd, before any measurement.
 Commissioned per the standing §6 rule. Verified against hybrid.ts, fts.ts, vector.ts,
 ab-rank-check.mjs, build-normal-set-r2.mjs, vscode-tsdoc-density.mjs, vscode-embed-sample.mjs.
 

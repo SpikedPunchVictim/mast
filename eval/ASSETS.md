@@ -12,6 +12,14 @@ anything, what each asset is for and whether it is worth rebuilding.
 
 ## Embedded state dirs — the only expensive items (~45 min compute total)
 
+> **`07d705b` is a `kluster` SHA and does not resolve in this repo.** MAST was split out of
+> the kluster monorepo on 2026-08-19, and the citation rewrite that followed deliberately
+> left this one alone: it is not a reference to a mast commit, it is the corpus pin — the
+> commit you check out to rebuild `base-state-r2`. Reproducing any headline Q1 ranking
+> number therefore requires the kluster repository, which is the one eval asset that did
+> not become self-contained at the split. The E1 track is unaffected; its corpora are the
+> six external OSS repos pinned in `e1-common.mjs`. See `docs/provenance/`.
+
 ### `base-state-r2` — 291 MB
 kluster corpus pinned at `07d705b`. **10,943 chunks, 100% embedded.**
 Serves the `kluster-normal` (n=11) and `kluster-anti` (n=28) gold sets.

@@ -1,11 +1,11 @@
 # D004 — `LIKE` prefix match bound edges to the wrong file
 
-**Severity**: S0. **Filed**: 2026-08-18 (reconstructed). **Fixed**: `c4b4816`, 2026-08-17.
+**Severity**: S0. **Filed**: 2026-08-18 (reconstructed). **Fixed**: `88f4592`, 2026-08-17.
 **Shapes**: [S-04](SHAPES.md#s-04), [S-09](SHAPES.md#s-09).
 
 A detail page is earned here for one reason: **the first fix was wrong, and wrong in the direction
 that made the defect look safer than it was.** That sequence is invisible in the final diff and
-recoverable only by commit archaeology across `057236d` → `60f1ced` → `c4b4816`.
+recoverable only by commit archaeology across `f604034` → `080ca1f` → `88f4592`.
 
 ## The defect
 
@@ -46,7 +46,7 @@ Had the query been fast, nobody would have looked.
 
 ## The part worth recording: the first fix claimed to be behaviour-preserving
 
-`057236d` proposed swapping `LIKE` for a range query and described the change as *"provably
+`f604034` proposed swapping `LIKE` for a range query and described the change as *"provably
 behaviour-preserving"*. An adversarial review by a second model (Fable) returned it as FATAL, and
 the finding reproduced independently before being adopted.
 
@@ -66,7 +66,7 @@ every number derived in that session needs re-deriving. That is filed separately
 
 **Nothing did, and tests existed.** Three test files exercised `resolvedPath` before the fix
 (`re-export.test.ts`, `import-resolver.test.ts`, `tools.test.ts`). Verified on 2026-08-18 against
-`c4b4816~1`: **not one of them used a `.ts` fixture path containing an underscore**, and none used
+`88f4592~1`: **not one of them used a `.ts` fixture path containing an underscore**, and none used
 two paths differing only by case. The dedicated `path-prefix-match.test.ts` did not exist — it was
 created by the fix.
 

@@ -1,8 +1,12 @@
 # PILOT_RUN_1 — instrumented fold build (attempt 1): failed pre-implement, no telemetry produced
 
+> The `fold`/`foldv2` commits cited below (`65d8d2c`, `8c6a35e`, `8d2e040`) are `kluster`
+> SHAs. They never touched `packages/mast`, so they have no counterpart in this repo's
+> history and were left unrewritten at the split. See `docs/provenance/`.
+
 **Date:** 2026-07-18
 **Run manager:** Claude (run-manager session; no source edits made)
-**Purpose:** First fold build since (1) mast telemetry instrumentation (commit 673091c —
+**Purpose:** First fold build since (1) mast telemetry instrumentation (commit 09f4bc8 —
 real `tokens_full_file_upper_bound`, new `args_json`/`results_json` columns) and (2) the
 `--checker` index pass. The run's `.fold/.mast` metrics store was to be the first
 LINKED chain-rate data point for the `mast_capsule` promote/demote decision
@@ -487,7 +491,7 @@ model, BUILD path — a real point, not the verdict.
 Preflight caveat recorded: `--auto-resolve` verified present in the rebuilt host dist
 (commit 8d2e040) — the flag and its `autoResolutions` audit trail are host-side. The
 fold-runner **image was NOT freshly rebuilt** (still dated 2026-07-18 08:48, predating the
-Jul-20 mast commit cbac1b0 "typescript→dep"); proceeded anyway because that commit only
+Jul-20 mast commit a88f963 "typescript→dep"); proceeded anyway because that commit only
 affects the `--checker` pass, which the BUILD path never fires, and the telemetry
 instrumentation was already baked into the Jul-18 image.
 

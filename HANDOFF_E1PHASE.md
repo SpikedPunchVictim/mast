@@ -1,6 +1,6 @@
 # HANDOFF — E1-AB COMPLETE, SCORED AND REVIEWED; the successor probe is next
 
-**Rewritten 2026-08-13 at `bee40e3`.** Read this first, then `HANDOFF_Q1.md`, then
+**Rewritten 2026-08-13 at `e86999e`.** Read this first, then `HANDOFF_Q1.md`, then
 `IMPLEMENTATION_PLAN.md`, then `MAST_SPEC.md`. This file covers only the E1 track;
 `HANDOFF_Q1.md` §5 (instrument defects) and §6 (methodological rules) remain in force
 unchanged and are **not** superseded by anything here.
@@ -28,7 +28,7 @@ H2 (`b_edges = 1.4360`, non-monotone share), H3 and H4 are each refuted. 15/15 r
 
 **E1-AB is complete, scored, and its adversarial results review is folded in.** Outcome
 **CACHE_IMPLICATED / PARTIAL** with **EXPONENT_REDUCED**. The lever it needed
-(`OpenDatabaseOptions` on `openDatabase`, threaded from two CLI flags) shipped at `ef8d83e`.
+(`OpenDatabaseOptions` on `openDatabase`, threaded from two CLI flags) shipped at `2127ef7`.
 **The immediate next action is the successor probe** — see §1a.
 
 ### 1a. E1-AB — complete, scored, reviewed. What it settled and what it did not.
@@ -141,7 +141,7 @@ Discarded pre-AMENDMENT-3 runs, quarantined not deleted: `eval/results/discarded
 
 | check | expected |
 |---|---|
-| `pnpm -F mast test` | green — **898 tests / 58 files** at `bee40e3` |
+| `pnpm -F mast test` | green — **898 tests / 58 files** at `e86999e` |
 | `pnpm -F mast typecheck` | clean |
 | `pnpm -F mast lint` | clean |
 | `pnpm -F mast build` | clean |
@@ -154,7 +154,7 @@ not attribute those to your changes and do not add new debt.**
 
 > Re-measure rather than inheriting. Two previous handoffs recorded a file count that was
 > wrong (728/50 for an actual 728/49; 796/52 which was right, then left stale through
-> +102 tests). The numbers above were measured at `bee40e3`.
+> +102 tests). The numbers above were measured at `e86999e`.
 
 ---
 
@@ -268,11 +268,11 @@ essentially exactly linear.
   attribution peek had already shown write at **51.7–56.2%**, so clearing 60% at T9 was close
   to foreordained. The informative content is the localisation (parse at 1.0144, write's
   climb), **not** that a bar was cleared by 34 points.
-- **The estimator rules were registered at `ef02ef9`, not `36c2f5a`.** Only the four numeric
-  thresholds (1.6 / 1.25 / 0.60 / 1.7529) were in `36c2f5a`. Both are pre-data; the
+- **The estimator rules were registered at `5f7ef33`, not `0298a98`.** Only the four numeric
+  thresholds (1.6 / 1.25 / 0.60 / 1.7529) were in `0298a98`. Both are pre-data; the
   distinction matters in a program whose method is commit-ordered provenance.
 - **Gate 5's margin was 24 seconds**, and most of the calibration ran pre-commit. Behavioural
-  identity was verified (`git diff 6c45422..HEAD -- eval/` empty; the committed schedule
+  identity was verified (`git diff e69020a..HEAD -- eval/` empty; the committed schedule
   builder reproduces the pin bit-for-bit), but do better next time: commit, *then* launch.
 - **The coupling looks DB-wide, not write-exclusive.** `edges` (1.436) and `finalise` (1.2623)
   both exceed the near-linear growth of the items they process. At a 1.6% share this changes
@@ -300,7 +300,7 @@ essentially exactly linear.
 - **`SLOPE_MATERIAL_DELTA` is a fire/no-fire bar with no interval behind it.** E1-AB's outcome
   cleared it by 0.0204. Either publish an interval for the block-slope median or stop reporting
   the classification as though it were a test.
-- **`MAST_SPEC` does not document `--cache-size-mib` / `--mmap-size-mib`** (added `ef8d83e`),
+- **`MAST_SPEC` does not document `--cache-size-mib` / `--mmap-size-mib`** (added `2127ef7`),
   and still does not document `--phase-timing` / `ENABLE_MAST_PHASE_TIMING`. Settle together.
 - **R2 — parse-only pass + Gate 2** (A4-MAT-8): file/chunk/symbol counts must equal the full
   index's exactly; edge count deliberately excluded. **Note E1-PHASE partly overtakes its
@@ -321,23 +321,23 @@ essentially exactly linear.
 
 2026-08-13 — the E1-AB session:
 ```
-bee40e3  chore(mast/eval): pin E1-AB's binary and schedule before any run
-2f51c41  feat(mast/eval): the E1-AB driver, and AMENDMENT 2 — a gap the tests found in A6
-f6b8a2e  feat(mast/eval): E1-AB's arms, schedule and scorer — plus the Gate A fix the review earned
-545559a  docs(mast): amend E1-AB after the adversarial design review — one arm dies, one statistic is replaced
-7ee03aa  docs(mast): register E1-AB — is the page cache the mechanism, or not
-90f957e  docs(mast): withdraw the 2 MB page-cache claim at all three sites that made it
-b1164a4  docs(mast): correct the default page-cache figure — 16 MB, not 2 MB
-ef8d83e  feat(mast): make cache_size/mmap_size reachable, so the A/B has a lever
+e86999e  chore(mast/eval): pin E1-AB's binary and schedule before any run
+d5b7e6c  feat(mast/eval): the E1-AB driver, and AMENDMENT 2 — a gap the tests found in A6
+b99e66c  feat(mast/eval): E1-AB's arms, schedule and scorer — plus the Gate A fix the review earned
+3b32560  docs(mast): amend E1-AB after the adversarial design review — one arm dies, one statistic is replaced
+315272d  docs(mast): register E1-AB — is the page cache the mechanism, or not
+65d4822  docs(mast): withdraw the 2 MB page-cache claim at all three sites that made it
+bba6a78  docs(mast): correct the default page-cache figure — 16 MB, not 2 MB
+2127ef7  feat(mast): make cache_size/mmap_size reachable, so the A/B has a lever
 ```
 
 2026-08-12 — the E1-PHASE session:
 ```
-497389b  docs(mast): fold the E1-PHASE results review in — H1 stands, three claims around it do not
-0ba97ec  fix(mast): correct the E1-PHASE RESULT's Gate 3 record, and quantify the bias
-d3ce505  feat(mast/eval): score E1-PHASE — H1 fires, the exponent is in the write phase
-6c45422  feat(mast/eval): the E1-PHASE instrument, committed before any scored run
-2e87238  docs(mast): hand off the E1 track — E1 scored, E1-PHASE registered and unrun
+6082361  docs(mast): fold the E1-PHASE results review in — H1 stands, three claims around it do not
+952f691  fix(mast): correct the E1-PHASE RESULT's Gate 3 record, and quantify the bias
+e24e6ed  feat(mast/eval): score E1-PHASE — H1 fires, the exponent is in the write phase
+e69020a  feat(mast/eval): the E1-PHASE instrument, committed before any scored run
+6f46af5  docs(mast): hand off the E1 track — E1 scored, E1-PHASE registered and unrun
 ```
 
 ## 8. Artifacts

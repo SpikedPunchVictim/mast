@@ -1,5 +1,5 @@
 # Q1/IDFUSE adversarial results review (Fable, 2026-08-03, post-scoring) — verbatim
-Evidence 3f8e9f3, instrument c726e6f, registration bed7d48. Full independent recompute from
+Evidence 5a34b9b, instrument 3b0cc46, registration 692f6f0. Full independent recompute from
 idfuse-measure-raw.json (8,000 rows); line-level audit of all four instrument files + the
 runner driver; live re-execution of the fusion against the real tier states (53 queries
 reconstructed end-to-end, plus three full-cell counterfactual sweeps).
@@ -52,7 +52,7 @@ Registered trigger clauses attach only to GAP CLOSED/GAP SURVIVES; INERT-LEVER c
 no trigger language. Immaterial here: no supporting CI excludes 0 in either direction; every
 tier sequence weakly monotone. Caveat, not overturn.
 
-## F-R6 — Gate D's 100% is real. Archived file byte-identical to f40f2bf blob (sha
+## F-R6 — Gate D's 100% is real. Archived file byte-identical to 8868404 blob (sha
 3a7027fe...); fresh file distinct run (sha 4f86c819...). Independent 3,200-row comparison
 reproduces 3,200/3,200. Deterministic pipeline makes 100% credible.
 
