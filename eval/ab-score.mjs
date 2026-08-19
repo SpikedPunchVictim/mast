@@ -11,6 +11,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { median } from './e1-schedule.mjs';
 
 const RUNS = join(homedir(), '.cache', 'mast-eval', 'ab-runs');
 const doc = JSON.parse(readFileSync('./eval/ab-tasks.json', 'utf8'));
@@ -140,7 +141,7 @@ console.log(`  missing results        : ${rows.filter((r) => r.missing).length}`
 console.log(`  runs with fallback     : ${main.filter((r) => r.fallback_used).length}/${main.length}`);
 console.log(`  GATE 5 marginals       : ${ceiling ? '🔴 UNINFORMATIVE (ceiling/floor)' : 'ok — task set discriminated'}`);
 
-function median(a) { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+
 
 writeFileSync('./eval/results/ab-outcome.json', JSON.stringify({
   scored_at: new Date().toISOString(), k: pairs.length,

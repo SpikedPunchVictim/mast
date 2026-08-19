@@ -11,6 +11,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { RESULTS_DIR, writeResult } from './e1-common.mjs';
+import { median } from './e1-schedule.mjs';
 import {
   HOIST_ARMS, HOIST_BLOCKS, HOIST_TOTAL_RUNS, PHASES, PLACEBO_PHASES, hoistKey,
 } from './e1-hoist-schedule.mjs';
@@ -47,12 +48,6 @@ function readJournal(path) {
 }
 
 // --- statistics ---------------------------------------------------------------
-const median = (v) => {
-  const s = [...v].sort((a, b) => a - b);
-  const n = s.length;
-  if (n === 0) return null;
-  return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
-};
 const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
 const sd = (v) => Math.sqrt(v.reduce((s, x) => s + (x - mean(v)) ** 2, 0) / (v.length - 1));
 const cv = (v) => sd(v) / mean(v) * 100;

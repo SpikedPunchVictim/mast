@@ -20,6 +20,7 @@ import { PHASE_TIERS, PHASES, WALK_VOID_SHARE, REMAINDER_FINDING_SHARE } from '.
 import { REPS } from './e1-schedule.mjs';
 import { olsFit, hc3SlopeSe, studentTQuantile } from './e1-stats.mjs';
 import { fitOne } from './e1-score.mjs';
+import { median } from './e1-schedule.mjs';
 
 /** The one exponent bar, identical for every hypothesis. Registered. */
 export const EXPONENT_BAR = 1.6;
@@ -113,8 +114,6 @@ export function fitSeries(runs, extract) {
  * coincide; publishing one would leave the choice between them available after the fact.
  */
 export function tierShares(runs) {
-  const med = (vs) => vs.slice().sort((a, b) => a - b)[(vs.length - 1) / 2];
-
   return PHASE_TIERS.map((tier) => {
     const rungRuns = runs.filter((r) => r.tier === tier);
     const centre = medianRun(rungRuns);
@@ -122,7 +121,7 @@ export function tierShares(runs) {
     const medianOfShares = {};
     for (const name of SERIES) {
       medianRunShares[name] = valueOf(name)(centre) / centre.duration_ms;
-      medianOfShares[name] = med(rungRuns.map((r) => valueOf(name)(r) / r.duration_ms));
+      medianOfShares[name] = median(rungRuns.map((r) => valueOf(name)(r) / r.duration_ms));
     }
     return {
       tier,

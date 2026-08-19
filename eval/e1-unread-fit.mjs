@@ -30,6 +30,7 @@ import { olsFit, hc3SlopeSe, studentTQuantile } from './e1-stats.mjs';
 import { RESULTS_DIR, writeResult } from './e1-common.mjs';
 import { selectAbRuns } from './e1-ab-report.mjs';
 import { selectFtsRuns } from './e1-fts-report.mjs';
+import { median } from './e1-schedule.mjs';
 
 const PHASES = ['walk', 'parse', 'write', 'edges', 'finalise'];
 const SPANS = ['fts_del', 'fts_ins', 'commit', 'rest', 'txn', 'lock'];
@@ -66,11 +67,6 @@ const readJournal = (name) =>
   readFileSync(join(RESULTS_DIR, name), 'utf-8')
     .split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 
-const median = (vs) => {
-  const s = vs.slice().sort((a, b) => a - b);
-  const m = s.length >> 1;
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-};
 
 /**
  * OLS of `ln(y)` on `ln(chunk_count)`, with an HC3 interval.

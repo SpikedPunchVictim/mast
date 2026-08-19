@@ -14,6 +14,7 @@ import { SqliteChunkStore } from '/Users/spikedpunchvictim/projects/kluster/pack
 import { pipeline, env } from '@huggingface/transformers';
 import { join } from 'node:path';
 import os from 'node:os';
+import { median } from './e1-schedule.mjs';
 
 const STATE_DIR = '/Users/spikedpunchvictim/temp/mast-bench/embed-batching-eval-state';
 const MODEL_ID = 'jinaai/jina-embeddings-v2-base-code';
@@ -45,7 +46,6 @@ function pickNear(targetTokens) {
 }
 
 const opts = { pooling: 'mean', normalize: true };
-const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
 async function timed(texts) {
   const c0 = process.cpuUsage();

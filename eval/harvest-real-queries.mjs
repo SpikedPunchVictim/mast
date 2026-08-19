@@ -21,6 +21,7 @@
 
 import Database from 'better-sqlite3';
 import { writeFileSync } from 'node:fs';
+import { median } from './e1-schedule.mjs';
 
 const stateDir = process.argv[2] ?? '.mast';
 const db = new Database(`${stateDir}/graph.db`, { readonly: true, fileMustExist: true });
@@ -81,7 +82,7 @@ const shape = (set) => {
   const ident = set.filter((c) => /[a-z][A-Z]|_[a-z]|\b[a-z]+[A-Z]\w*/.test(c.query)).length;
   const words = set.map((c) => (c.query.match(/\S+/g) ?? []).length);
   return { n: set.length, with_identifier_token: ident,
-           median_words: words.length ? words.sort((a, b) => a - b)[Math.floor(words.length / 2)] : null };
+           median_words: words.length ? median(words) : null };
 };
 
 const out = {

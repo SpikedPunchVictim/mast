@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { RESULTS_DIR, writeResult } from './e1-common.mjs';
 import { FTS_TIERS, FTS_TOTAL_RUNS, dbIdentityVerdict } from './e1-fts-schedule.mjs';
 import { scoreFts, VALIDITY_TOLERANCE } from './e1-fts-score.mjs';
+import { median } from './e1-schedule.mjs';
 
 /** A cell's identity: arm x rung x block. */
 export const ftsKey = (r) => `${r.arm}#${r.tier}#b${r.block}`;
@@ -304,8 +305,7 @@ function main() {
     const r = scored.write_ratio[tier];
     const a = sel.runs.filter((x) => x.tier === tier && x.arm === 'A').map((x) => x.phase_ms.write);
     const g = sel.runs.filter((x) => x.tier === tier && x.arm === 'G').map((x) => x.phase_ms.write);
-    const med = (v) => (v.length ? [...v].sort((p, q) => p - q)[Math.floor(v.length / 2)] : NaN);
-    console.log(`  ${tier.padEnd(6)} ${String(med(a)).padEnd(12)} ${String(med(g)).padEnd(12)} ` +
+    console.log(`  ${tier.padEnd(6)} ${String(median(a)).padEnd(12)} ${String(median(g)).padEnd(12)} ` +
       `${f(r.median, 3).padEnd(11)} ${r.per_block.map((x) => f(x, 3)).join(' ')}`);
   }
 

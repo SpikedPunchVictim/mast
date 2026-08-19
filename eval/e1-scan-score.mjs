@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { RESULTS_DIR, writeResult } from './e1-common.mjs';
 import { SCAN_ARMS, SCAN_TIERS, SCAN_TOTAL_RUNS } from './e1-scan-schedule.mjs';
+import { median } from './e1-schedule.mjs';
 
 const JOURNAL = join(RESULTS_DIR, 'e1-scan-runs.jsonl');
 
@@ -24,11 +25,6 @@ const H3_SLOPE_BAND = [1.15, 1.55];
 /** The counts Gate C requires to agree across arms. */
 const GATE_C_COUNTS = ['file_count', 'chunk_count', 'symbol_count', 'edge_count', 'potential_call_count'];
 
-const median = (a) => {
-  const s = [...a].sort((x, y) => x - y);
-  if (s.length === 0) return null;
-  return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
-};
 
 function loadRuns() {
   if (!existsSync(JOURNAL)) throw new Error(`No journal at ${JOURNAL} — nothing to score.`);

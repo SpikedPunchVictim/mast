@@ -45,6 +45,7 @@ import {
   parseWriteSpans, parsePragmas, isBuildInput, writeResult, ColdIndexFailure,
 } from './e1-common.mjs';
 import { REPS, gate3Verdict, orphanedAttempts, remainingAttempts, selectFitted } from './e1-schedule.mjs';
+import { median } from './e1-schedule.mjs';
 import {
   HOIST_ARMS, HOIST_TIERS, HOIST_TOTAL_RUNS, HOIST_BLOCKS, EXPECTED_ARM_DELTA,
   GATE_L_SCAN_ARM_R_T9_EDGES, GATE_L_BAND, buildHoistSchedule, hoistKey, hoistStateDirName,
@@ -557,12 +558,17 @@ function summarise() {
   const armN = runs.filter((r) => r.arm === 'N').map((r) => r.phase_ms.edges).sort((a, b) => a - b);
   let gateL = null;
   if (armN.length > 0) {
-    const median = armN[Math.floor(armN.length / 2)];
-    const delta = (median - GATE_L_SCAN_ARM_R_T9_EDGES) / GATE_L_SCAN_ARM_R_T9_EDGES;
+    // D016: this used `armN[Math.floor(n / 2)]`, the UPPER element, while
+    // `e1-hoist-score.mjs` averaged the middle two. On E1-HOIST's even n = 30 the
+    // two disagreed — 2623 ms against 2617 ms, Gate L 18.31% against 18.04%. The
+    // scorer is authoritative and is already published, so the runner adopts its
+    // convention; only future runs' Gate L arithmetic changes.
+    const observed = median(armN);
+    const delta = (observed - GATE_L_SCAN_ARM_R_T9_EDGES) / GATE_L_SCAN_ARM_R_T9_EDGES;
     gateL = {
       comparator: 'e1-scan arm R, T9, phase_ms.edges median',
       comparator_ms: GATE_L_SCAN_ARM_R_T9_EDGES,
-      observed_ms: median,
+      observed_ms: observed,
       delta,
       band: GATE_L_BAND,
       within_band: Math.abs(delta) <= GATE_L_BAND,

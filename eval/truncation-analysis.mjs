@@ -14,6 +14,7 @@ import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { LanceStore } from '../dist/store/lance.js';
 import { BASE_STATE_DIR, MODEL_CACHE_DIR, RESULTS_DIR } from './paths.mjs';
+import { median } from './e1-schedule.mjs';
 
 const CTX_CAP = 2048;
 const GEMMA_ID = 'onnx-community/embeddinggemma-300m-ONNX';
@@ -77,7 +78,7 @@ const out = {
     count: goldTargetTokens.length,
     overCap: goldTargetTokens.filter((n) => n > CTX_CAP).length,
     maxTokens: Math.max(...goldTargetTokens),
-    medianTokens: goldTargetTokens.sort((a, b) => a - b)[Math.floor(goldTargetTokens.length / 2)],
+    medianTokens: median(goldTargetTokens),
   },
   perQuery,
   subset: truncStats(subsetChunks),
