@@ -1,7 +1,7 @@
 # HANDOFF — Q1 / M2 track, as of 2026-08-03 (post Q1/DECLEX RESULT, evidence `43c5c2d`)
 
 > **SUPERSEDING SESSION STATE (2026-08-12, `6082361`): read
-> [`HANDOFF_E1PHASE.md`](./HANDOFF_E1PHASE.md) FIRST.** E1 is complete and scored —
+> [`../indexing-scale/HANDOFF.md`](../indexing-scale/HANDOFF.md) FIRST.** E1 is complete and scored —
 > **SUPER-LINEAR REGRESSION, `b = 1.7529`, HC3 CI [1.6599, 1.8458]** against the
 > pre-registered 1.35 threshold — and **E1-PHASE is now RUN, scored and reviewed:
 > outcome H1, the exponent is in the WRITE phase** (`b_write = 1.9685`, `b_parse = 1.0144`,

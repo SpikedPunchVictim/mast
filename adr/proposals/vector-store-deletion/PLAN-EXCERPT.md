@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 003: Delete the vector store (M2 arm D).**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 9516–9762, 9881–9992 (concatenated in that order).
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 ## M2 DECISION MEMO (2026-08-04) — arm D (delete) recommended; the scoped-out gaps confronted on the record
 
 Written per HANDOFF_Q1.md §4a, BEFORE any A-vs-C benchmark and before any deletion or F18

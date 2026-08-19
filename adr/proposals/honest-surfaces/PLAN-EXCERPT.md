@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 008: Honest surfaces: tools report what they do not know.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 1173–1602.
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 ## Stage 3.5: Tool defects and honest surfaces
 **Goal**: Fix tools that are slow, silently lying, or advertising things they don't do.
 **Status**: Complete (2026-08-09) — F8/F9/M6/C1 all shipped.

@@ -1,8 +1,8 @@
 # HANDOFF — E1-AB COMPLETE, SCORED AND REVIEWED; the successor probe is next
 
-**Rewritten 2026-08-13 at `e86999e`.** Read this first, then `HANDOFF_Q1.md`, then
-`IMPLEMENTATION_PLAN.md`, then `MAST_SPEC.md`. This file covers only the E1 track;
-`HANDOFF_Q1.md` §5 (instrument defects) and §6 (methodological rules) remain in force
+**Rewritten 2026-08-13 at `e86999e`.** Read this first, then `../retrieval-q1/HANDOFF.md`, then
+the `PLAN-EXCERPT.md` shards (via `IMPLEMENTATION_PLAN.md`, now a routing stub), then `MAST_SPEC.md`. This file covers only the E1 track;
+`../retrieval-q1/HANDOFF.md` §5 (instrument defects) and §6 (methodological rules) remain in force
 unchanged and are **not** superseded by anything here.
 
 ---
@@ -107,7 +107,7 @@ Discarded pre-AMENDMENT-3 runs, quarantined not deleted: `eval/results/discarded
 
 ## 2. Binding constraints — carried forward, still in force
 
-- **Read order:** `HANDOFF_Q1.md` → `IMPLEMENTATION_PLAN.md` (read the result block for any
+- **Read order:** `../retrieval-q1/HANDOFF.md` → the relevant `PLAN-EXCERPT.md` shard (read the result block for any
   subsystem BEFORE touching it) → `MAST_SPEC.md`.
 - **Ceremony for measurements (§6):** pre-register and **COMMIT the registration before any
   run**; adversarial design review AND results review (Agent tool, model `fable`); **VERIFY

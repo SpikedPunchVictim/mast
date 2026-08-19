@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 011: Indexing scale: the target, the ladder, and the exponent.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 2509–5634, 5842–6241 (concatenated in that order).
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 ### E1/E2 — the scaling ladder and call-graph denominators: PRE-REGISTRATION (written 2026-08-11, BEFORE any measurement)
 
 **Nothing below may be edited after the first scored measurement.** Amendments are

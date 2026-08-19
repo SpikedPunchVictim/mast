@@ -1,3 +1,19 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 012: The edges knee, closed.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 5635–5841, 10142–11396 (concatenated in that order).
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited **except heading levels** — see `docs/provenance/verify-plan-shards.mjs`
+> for the losslessness proof, which passes at commit `69a587e`, before that repair.
+>
+> **Structural repair (2026-08-19).** E1-HOIST's pre-registration, its result, and the FTS-INVARIANT
+> block were appended at `#` level rather than `##`, which orphaned seventeen `##` subsections —
+> `Design`, `Hypotheses`, `Gates`, `Verdict`, `Scope` and the rest read as siblings of the experiments
+> instead of children. Three `#` headings became `##` and their seventeen children became `###`.
+> No prose, number, or ordering changed. This is the one edit the shards carry.
+
+---
+
 ### E1-EDGES PRE-REGISTRATION — 2026-08-17, written BEFORE any measurement
 
 **Question.** The `edges` phase's cost *per edge* is flat through T5 and then climbs 3x by T9.
@@ -929,13 +945,13 @@ dangerous kind of wrong evidence.
 
 ---
 
-# E1-HOIST PRE-REGISTRATION (2026-08-18)
+## E1-HOIST PRE-REGISTRATION (2026-08-18)
 
 **Does the per-file import index (`c04d906`) show up in the T9 edges phase, and by how much?**
 
 Registered before any run (Gate 5). Task #6.
 
-## What `FINDINGS.md` said before this was written
+### What `FINDINGS.md` said before this was written
 
 Required by `.claude/CLAUDE.md`. Both sections were read in full; here is what was found and what it
 changed.
@@ -970,7 +986,7 @@ question** (§2.3, `b = 1.0184`). This registration makes **no claim about any e
 constant-factor question at one rung, and a design that produced an exponent here would be
 re-opening a settled matter with a worse instrument.
 
-## The effect size, measured first
+### The effect size, measured first
 
 Both implementations were replayed verbatim against the retained `run-T{1,5,8,9}-r3` databases
 through the real Kysely + better-sqlite3 stack — paired, warmed, with arm order alternating between
@@ -999,7 +1015,7 @@ Three caveats on that table, each of which weakens it in a stated direction:
   reading (31.0 vs 32.7 ms at T8). Recorded rather than quietly corrected: **a benchmark that does
   not alternate arm order is measuring its own schedule.**
 
-## Why T9 only, and what is deliberately not run
+### Why T9 only, and what is deliberately not run
 
 Blocks per arm for 80% power at α = .05, from the measured effect and the E1-SCAN paired-ratio CV:
 
@@ -1048,7 +1064,7 @@ The cost of this restraint is real and is stated: **there is no dose-response ar
 show its mechanism switching off at T1; this one cannot, because the mechanism is ~40× smaller. H3
 below is the substitute — a within-run placebo control instead of a cross-rung one.
 
-## Design
+### Design
 
 - **Rung:** T9 (13,330 files / 73,359 chunks), pinned by `eval/results/e1-tiers.json`, seed 811.
 - **Arms:** `N` = no-hoist, `78745be26ffee3373cb9831f3a7ac4791bf57cdc`;
@@ -1073,7 +1089,7 @@ independent draws. Here the 20 blocks *are* independent repeated runs of the sam
 interval means what an interval normally means. Its scope is **this host, this corpus, this rung** —
 it does not generalise across machines, and no claim below extends it.
 
-## Hypotheses
+### Hypotheses
 
 **H1 (primary) — the hoist reduces the T9 edges phase.**
 FIRES if the 95% CI on the paired median ratio lies **entirely below 1.0**.
@@ -1092,7 +1108,7 @@ the hoist cannot touch those phases, so if one of them also shifts, the shift is
 H1 is confounded. **H3 failing invalidates H1 rather than merely adding a caveat** — registered that
 way now so the temptation to read it as a footnote later is foreclosed.
 
-## Gates
+### Gates
 
 Inherited from E1-SCAN unless noted.
 
@@ -1113,7 +1129,7 @@ Inherited from E1-SCAN unless noted.
   number here.** A Gate C failure ends the experiment as a correctness finding regardless of H1.
 - **Gate 5** — this registration is committed before any run.
 
-## What would make this experiment worthless
+### What would make this experiment worthless
 
 Stated in advance so it cannot be rationalised afterwards:
 
@@ -1127,7 +1143,7 @@ Stated in advance so it cannot be rationalised afterwards:
 
 ---
 
-# E1-HOIST RESULT (2026-08-18)
+## E1-HOIST RESULT (2026-08-18)
 
 **All three registered hypotheses fire. The per-file import index removes 9.13% of the T9 edges
 phase — 2.5× more than the mechanism replay predicted — and the two arms build a byte-identical
@@ -1138,7 +1154,7 @@ before any run. Journal `eval/results/e1-hoist-runs.jsonl`, verdict
 `eval/results/e1-hoist-verdict.json`. **60/60 runs, 30/30 complete blocks, 0 VOID, 0 interrupted,
 0 Gate 3 misses, 0 Gate P failures, `scoreable: true`.**
 
-## Verdict
+### Verdict
 
 | | statistic | 95% CI | registered bar | |
 |---|---|---|---|---|
@@ -1164,7 +1180,7 @@ Four phases sitting at 12–16 of 30 is coin-flip behaviour; the edges phase at 
 placebo control is the most valuable single row in this table** — it is what separates "the hoist
 did this" from "the session drifted", on a rig that Gate L shows drifted 18%.
 
-## GATE C — the result that outranks the timing
+### GATE C — the result that outranks the timing
 
 **The arms built an identical graph in every one of the 60 runs.** Recomputed independently of the
 scorer, across all five counts:
@@ -1181,7 +1197,7 @@ wins replacing a row-scan short-circuit — and the resulting graph is unchanged
 change**, and per the registration it outranks every timing number here. Had it failed, `c04d906`
 would have been a bug regardless of how fast it was.
 
-## Two post-hoc analyses, labelled as post-hoc
+### Two post-hoc analyses, labelled as post-hoc
 
 Neither was registered; neither adjudicates. Both are reported because they bear on whether H1 is
 believable.
@@ -1202,7 +1218,7 @@ The effect is present in both halves, and slightly *larger* under load — consi
 mechanism, since a redundant query costs more on a contended machine. Arm order flips every block,
 so ordering is balanced within each half.
 
-## Where the extra 2.5× came from — INFERRED, not measured
+### Where the extra 2.5× came from — INFERRED, not measured
 
 The replay predicted 87.1 ms; the experiment measured 219.0 ms, a factor of **2.51×**. Gate L puts
 this session **+18.0%** slower than the one that produced the prediction, which lifts the
@@ -1218,7 +1234,7 @@ the 219.0 ms is measured, the 2.13× is arithmetic, and the attribution of that 
 calls is *unmeasured*. The registration predicted the direction (it declared the forecast a lower
 bound) and the direction held; that is weaker evidence than a count, and it is not upgraded here.
 
-## Three defects in this experiment's own instruments
+### Three defects in this experiment's own instruments
 
 Recorded because a future reader will otherwise inherit them silently.
 
@@ -1246,7 +1262,7 @@ that has nothing to do with the hypothesis. **A magnitude bar on a drifting rig 
 relative to a same-session comparator**, not in milliseconds. The registration's own Gate L had the
 information needed to see this and it was not used.
 
-## Realised noise, against what was assumed
+### Realised noise, against what was assumed
 
 Registered assumption: paired ratio CV **5.6%** (from E1-SCAN's n=3 blocks). Realised: **13.95%** —
 2.5× worse. The design survived only because the effect also came in 2.6× larger than forecast; the
@@ -1259,7 +1275,7 @@ maximum *exceeding* arm N's, driven by a single block-2 outlier (H 3634 vs N 266
 **That outlier is why the median is the registered primary**, and it is the case the robust
 estimator was chosen for before the data existed.
 
-## Scope
+### Scope
 
 `ci_is_context_only: false` — unlike E1/E1-VERIFY/E1-LADDER, whose nested-subset rungs are not
 independent draws, these 30 blocks are independent repeated runs of the same pair, so the interval
@@ -1274,7 +1290,7 @@ that it is real, that it is confined to the phase it should touch, and that it c
 
 ---
 
-# FTS INVARIANT — closing §1's last actionable row (2026-08-18)
+## FTS INVARIANT — closing §1's last actionable row (2026-08-18)
 
 **Not an experiment.** No registration, no hypothesis, no threshold, no verdict. Task #7. It closes
 the two `FINDINGS.md` §1 rows that arithmetic over committed journals could close, and it corrects
@@ -1283,7 +1299,7 @@ every row-count in that table, including one this session published two commits 
 Instrument: `eval/e1-fts-invariant.mjs` → `eval/results/e1-fts-invariant.json`, with
 `eval/__tests__/e1-fts-invariant.test.mjs` (11 tests).
 
-## What was closed
+### What was closed
 
 **`chunk_fts_count === chunk_count` holds in 138 of 138 rows** — `e1-verify` 27, `e1-ladder` 27,
 `e1-scan` 24, `e1-hoist` 60, spanning both arms of two A/Bs. §2.1 carried this as "27 of 27" hand
@@ -1305,7 +1321,7 @@ just the markdown share of each nested subset.
 *inferred* on the other 135 journal rows, which record no markdown chunk count. The script reports
 the ratio it can compute and states the identity it cannot assert.
 
-## The counting failure this exposed, in two stages
+### The counting failure this exposed, in two stages
 
 **Stage 1 — the row being closed.** Its tally was tracked at 27, then 54, then **114**, and all
 three omitted `e1-scan`'s 24 rows. The true total is **138**. The most recent of those wrong
@@ -1337,7 +1353,7 @@ two-arm experiments reads it as a **correctness input**.
 **A register maintained one row at a time decays everywhere except the row you touched.** §6's rule
 is amended: re-derive every row from every journal; never increment.
 
-## Scope, stated
+### Scope, stated
 
 The "Read by" column was re-verified by grepping every scorer and report for each field name. That
 check is **name-based and therefore coarse** — a field read for one journal counts as read

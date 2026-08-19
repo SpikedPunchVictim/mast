@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 005: Staleness is a contract, not a best effort.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 22–587.
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 ## Stage 1: Staleness correctness (the P0)
 **Goal**: An agent can never be served stale line coordinates without knowing.
 **Status**: Complete (2026-08-07) — all eight items shipped; F11 closed the stage

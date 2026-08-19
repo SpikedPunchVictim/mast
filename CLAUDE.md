@@ -16,25 +16,38 @@ kluster packages that no longer exist alongside it. See `docs/provenance/`.
 
 # Instructions
 
+## Decisions live in `adr/`
+
+Every architectural and empirical decision is recorded as an ADR: `adr/NNN-YYYY-MM-DD-<feature>.md`,
+with supporting material under `adr/proposals/<feature>/`. **Start at `adr/README.md`** — it carries
+the index and a reading order, which is not the numeric order. `adr/010-2026-08-11-empirical-method.md`
+governs all empirical work and is the one to read first.
+
+`IMPLEMENTATION_PLAN.md` is **no longer the plan** — it is a routing stub mapping every heading of
+the former 11,459-line document to its shard. Do not append to it. New work appends to the relevant
+ADR, or opens a new one (next number, today's date).
+
 ## Empirical work in this repo — the findings index
 
 `FINDINGS.md` is the consolidated index of every settled empirical claim, every refuted
 hypothesis, and every measurement that is recorded in a committed journal but read by no
-scorer. It is derived from `IMPLEMENTATION_PLAN.md` and the `eval/results/` artifacts, and
-it is maintained in place.
+scorer. It is derived from the `adr/proposals/*/PLAN-EXCERPT.md` shards and the
+`eval/results/` artifacts, and it is maintained in place.
 
 * **Before writing any pre-registration, you MUST read `FINDINGS.md` §1 (unread data) and
   §3 (dead hypotheses), and state in the registration what you checked and what you
   found.** A registration that does not do this is incomplete.
-* **When a RESULT block lands in `IMPLEMENTATION_PLAN.md`, update `FINDINGS.md` in the same
+* **When a RESULT block lands in a `PLAN-EXCERPT.md` shard, update `FINDINGS.md` in the same
   commit.** Headline verdict to §2; any refuted hypothesis to §3, with the number that
   killed it.
 * When a new journal is committed, re-run the §1 diff — enumerate the keys in every
   `eval/results/*-runs.jsonl`, grep the scorers for each — and update the register of
   unread data.
-* `IMPLEMENTATION_PLAN.md` remains authoritative and append-only. `FINDINGS.md` is a
-  derived index and is edited in place. If the two disagree, the plan and the scored
+* The `PLAN-EXCERPT.md` shards remain authoritative and append-only. `FINDINGS.md` is a
+  derived index and is edited in place. If the two disagree, the shards and the scored
   artifacts win.
+* **Eval scripts stay in `eval/`.** They are not moved into proposal directories — see ADR 001.
+  Each decision's instruments are listed in `adr/proposals/<feature>/EVAL.md`.
 
 This rule exists because E1-EDGES was registered and then retired the same day, before any
 measurement, once it emerged that E1-AB had already answered the question on the same

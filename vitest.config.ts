@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     // eval/**/*.test.mjs: unit tests for the eval harness's pure logic (Q1/SCALE's
     // scale-rank-check.mjs / scale-score.mjs — statistics and the F4 hit rule must
-    // be tested before they ever touch real data, per HANDOFF_Q1.md §5's ab-score.mjs
+    // be tested before they ever touch real data, per adr/proposals/retrieval-q1/HANDOFF.md §5's ab-score.mjs
     // defect: a registered-but-never-implemented Wilcoxon test must not repeat).
     // eval/ is not part of the tsc build (tsconfig.json only includes src/**/*), so
     // this does not affect typecheck.

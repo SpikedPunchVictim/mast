@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 002: Retrieval: hybrid was never justified over lexical.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 6423–8611, 9993–10071, 10086–10141 (concatenated in that order).
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 ### Q1 — pre-registered experiment design (written 2026-08-01, BEFORE any arm was run)
 
 Pre-registration is the point. E7's value came from three falsification criteria

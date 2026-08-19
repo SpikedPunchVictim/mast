@@ -938,7 +938,9 @@ Reopening any of these requires new evidence *and* an explicit statement of what
 
 | kind | location |
 |---|---|
-| registrations, amendments, RESULT blocks | `IMPLEMENTATION_PLAN.md` (chronological; authoritative) |
+| the decisions, one per theme | `adr/NNN-YYYY-MM-DD-<feature>.md` — start at `adr/README.md` |
+| registrations, amendments, RESULT blocks | `adr/proposals/<feature>/PLAN-EXCERPT.md` (chronological; authoritative). `IMPLEMENTATION_PLAN.md` is now a routing stub mapping every original heading and line number to its shard |
+| which scripts + artifacts belong to a decision | `adr/proposals/<feature>/EVAL.md` |
 | raw per-run journals | `eval/results/*-runs.jsonl` |
 | scored verdicts | `eval/results/*-verdict.json` |
 | adversarial design + results reviews | `eval/results/*-review.md` |
@@ -948,13 +950,15 @@ Reopening any of these requires new evidence *and* an explicit statement of what
 Two standing hazards, both of which have already cost a run:
 
 - **Never** open `graph.db` with `?mode=ro&immutable=1` — it is WAL-blind and will read stale data.
-- **Run every eval script from `packages/mast`**, never the repo root.
+- **Run every eval script from the repository root**, never from a subdirectory. (This rule read
+  "from `packages/mast`" until 2026-08-19; `packages/mast` *became* the repository root when `mast`
+  was split out of `kluster`, so the wording was stale, not the rule.)
 
 ---
 
 ## 6. Maintaining this file
 
-- A RESULT block lands in `IMPLEMENTATION_PLAN.md` → its headline verdict lands here, same commit.
+- A RESULT block lands in a `PLAN-EXCERPT.md` shard → its headline verdict lands here, same commit.
 - A hypothesis is refuted → §3, with the number that killed it. This is the section that pays for
   itself; an unrecorded refutation gets re-proposed.
 - A new journal is committed → re-run the §1 diff (enumerate journal keys, grep the scorers) and

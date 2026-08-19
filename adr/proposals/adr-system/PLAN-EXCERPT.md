@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 001: Adopt an ADR system.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 1–21.
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 # MAST Remediation — Implementation Plan
 
 Tracks the fixes arising from the 2026-07-25/27 empirical investigation.

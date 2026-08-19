@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 009: Determinism and the measurement harness.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 1603–2508.
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 ## Stage 4: Determinism, hygiene, and the measurement harness
 **Goal**: Make future measurements trustworthy and stop spec drift recurring.
 **Status**: Not Started

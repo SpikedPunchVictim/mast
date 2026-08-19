@@ -1,3 +1,12 @@
+<!-- SHARD — do not edit the excerpt below. -->
+
+> **Plan excerpt — ADR 006: Move chunk storage from Lance to SQLite.**
+> Verbatim from `IMPLEMENTATION_PLAN.md` at commit `69a587e`, lines 588–707.
+> This is the append-only record the ADR was written from; the ADR is the summary, this is the evidence.
+> Nothing here has been edited — see `docs/provenance/verify-plan-shards.mjs` for the losslessness proof.
+
+---
+
 ## Stage 2: Chunk store migration (Lance → SQLite)
 **Goal**: Remove the O(n²) write path at its root.
 **Status**: Complete (2026-08-07) — M1 shipped earlier; M2 resolved as **arm D (delete)**
