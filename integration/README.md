@@ -4,13 +4,17 @@
 real project, mutates the filesystem underneath it, and asserts on what the **installed binary**
 then believes. No AI in the loop: every assertion is a plain data comparison.
 
-## Status: RED, on purpose
+## Status: green, and calibrated
 
-`move-file-preserves-symbols` fails against a correct build. That is not a harness bug — it is
-**LEDGER D030**, an S0 found by this scenario on its first run: after a file move,
-`mast index --incremental` skips the importer, keeps its pre-edit body forever, and
-`mast_callers` returns an empty `verified_callers` for a function that has a live caller. The
-scenario stays red until D030 is fixed, and it is the pin that proves the fix.
+Both scenarios pass against a correct build, and `case-only-rename-keeps-callers` still fails
+against `local-broken-d023-miscased-import` — so the suite is known to be capable of going red.
+A run that exercises no pinned-red pair says so explicitly and calls its own green uncalibrated.
+
+`move-file-preserves-symbols` was red from its first run until 2026-08-19. That was never a
+harness bug: it was **LEDGER D030**, an S0 this scenario found on run one — after a file move,
+`mast index --incremental` skipped the importer, kept its pre-edit body forever, and
+`mast_callers` returned an empty `verified_callers` for a function with a live caller. It is now
+the pin on that fix.
 
 ## Running
 

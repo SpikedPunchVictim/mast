@@ -52,7 +52,7 @@ adversarial review caught that (S-07 — "is it not there, or did we not look?")
 | delete then restore | **yes** — `fts-delete-guard.test.ts:143` |
 | edit without reindexing | **yes** — `cli.test.ts:262` `it('reports stale_files = 1 after modifying a file')` |
 | add a file with imports | **partly** — `chunk-store-growth.test.ts:86`, plus the resolver suites |
-| **move / rename a file** | **no.** `grep -rn "renameSync" --include='*.test.ts' src` returns nothing — the suite never moves a file |
+| **move / rename a file** | **no**, as of this ADR's date. `grep -rn "renameSync" --include='*.test.ts' src` returned nothing — the suite never moved a file. **Superseded later the same day:** the harness's first run turned this gap into LEDGER D030 (an S0), and its fix added the suite's only `renameSync` tests, in `src/indexer/__tests__/stability.test.ts`. The row is left as written because it is the prediction this ADR was making; the outcome is recorded here rather than by editing the claim away. |
 | **rename a symbol across call sites** | **no** |
 
 So the honest claim is narrower and still sufficient: **move and cross-file rename are untested

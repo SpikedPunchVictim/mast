@@ -564,17 +564,38 @@ export async function runIndex(
 }
 
 /**
- * True when `result` is byte-for-byte equivalent to what is already stored for
- * `filePath`, so re-writing it would be redundant (§7.1). Conservative:
+ * True when `result` is equivalent to what is already stored for `filePath`, so
+ * re-writing it would be redundant (§7.1). Conservative:
  *
  *  - bails (returns false) if the file has any `block` chunk, whose content is
  *    not captured by a symbol hash and so cannot be verified here;
  *  - requires the exact same set of chunk ids (catches additions, removals, and
  *    declarations that moved to a different line);
+ *  - requires every stored chunk's CONTENT to match byte-for-byte;
  *  - requires every symbol's declaration_hash AND body_hash to match the stored
- *    symbol of the same name+line.
+ *    symbol of the same name+line;
+ *  - requires the stored `imports` rows to match module-for-module.
  *
  * Any mismatch — or any uncertainty — falls through to a full rewrite.
+ *
+ * D030 — WHY THE LAST TWO CHECKS EXIST. This function decides that a write can
+ * be skipped, so its equivalence check must cover everything the write covers.
+ * It originally compared chunk IDs and symbol hashes only, and neither moves
+ * when an edit lands OUTSIDE every symbol body. An `import` statement always
+ * does. `populateFile` writes the `imports` table, and a skipped file is also
+ * never added to `edgeDataByFile`, so pass 2 never re-resolves its edges —
+ * which made an import-only edit invisible in both places at once. It never
+ * self-healed: the finalise phase stamps the manifest from a fresh re-stat of
+ * EVERY walked file, written or not, so the next run did not see the file as
+ * stale either. Measured: after moving a declaration and repointing its
+ * importer, `mast index --incremental` reported `0 indexed, 2 skipped`, the
+ * `imports` row still read `./alpha.js` after that path had stopped existing,
+ * and `mast_callers` returned `verified_callers: []` for a function with a
+ * live caller.
+ *
+ * Chunk IDs deliberately do NOT change on a content edit (`dedupeChunkIds`,
+ * ast/extract.ts — `vectorKey` depends on that), so ID equality can never
+ * stand in for content equality here.
  */
 async function isFileUnchanged(
   db: ReturnType<typeof openDatabase>,
@@ -586,11 +607,13 @@ async function isFileUnchanged(
   // all — neither can be content-verified here, so both bail to a full rewrite.
   if (result.chunks.some((c) => c.chunk_type === 'block' || c.chunk_type === 'doc')) return false;
 
-  // Structure: identical set of chunk ids.
+  // Structure: identical set of chunk ids, each carrying identical content.
+  // The content comparison is what catches an edit outside every symbol body
+  // — the import line, a top-level comment, a re-export (D030).
   const storedChunks = await chunkStore.getChunksByFilePath(filePath);
   if (storedChunks.length !== result.chunks.length) return false;
-  const storedIds = new Set(storedChunks.map((c) => c.chunk_id));
-  if (!result.chunks.every((c) => storedIds.has(c.chunk_id))) return false;
+  const storedContentById = new Map(storedChunks.map((c) => [c.chunk_id, c.content]));
+  if (!result.chunks.every((c) => storedContentById.get(c.chunk_id) === c.content)) return false;
 
   // Content: identical symbol hash signature.
   const storedSymbols = await db
@@ -600,7 +623,46 @@ async function isFileUnchanged(
     .where('f.path', '=', filePath)
     .execute();
 
-  return symbolSignature(result.symbols) === symbolSignature(storedSymbols);
+  if (symbolSignature(result.symbols) !== symbolSignature(storedSymbols)) return false;
+
+  // Imports: an import statement can sit outside every chunk entirely (a file
+  // whose only chunks are its declarations, with `context_lines: 0`), so the
+  // chunk-content check above does not subsume this one.
+  const storedImports = await db
+    .selectFrom('imports as i')
+    .innerJoin('files as f', 'f.id', 'i.file_id')
+    .select(['i.module', 'i.symbols', 'i.is_external', 'i.resolved_path'])
+    .where('f.path', '=', filePath)
+    .execute();
+
+  return importSignature(result.imports) === importSignature(storedImports);
+}
+
+/**
+ * Order-independent signature of a file's import set, over exactly the columns
+ * `populateFile` writes to `imports`. The extracted and stored shapes differ
+ * (camelCase vs snake_case, boolean vs 0/1, array vs JSON text), so both are
+ * normalised to one canonical string rather than compared field by field.
+ */
+function importSignature(
+  imports: readonly {
+    module: string;
+    symbols?: readonly string[] | string;
+    isExternal?: boolean;
+    is_external?: number;
+    resolvedPath?: string | null;
+    resolved_path?: string | null;
+  }[],
+): string {
+  return imports
+    .map((i) => {
+      const symbols = typeof i.symbols === 'string' ? i.symbols : JSON.stringify(i.symbols ?? []);
+      const external = i.isExternal ?? i.is_external === 1;
+      const resolved = i.resolvedPath ?? i.resolved_path ?? '';
+      return `${i.module}|${symbols}|${external ? 1 : 0}|${resolved}`;
+    })
+    .sort()
+    .join('\n');
 }
 
 /** Order-independent signature of a symbol set's identity + stability hashes. */
