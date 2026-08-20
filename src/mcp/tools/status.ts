@@ -2,8 +2,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { StatusResult } from '../../ast/types.js';
 import { loadIndexMeta, freshnessCause } from '../../indexer/index.js';
+import { measureFreshness } from '../../indexer/freshness.js';
 import { CURRENT_SCHEMA_VERSION } from '../../store/config.js';
-import { countStaleFiles } from './_helpers.js';
 
 export function registerStatusTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -13,7 +13,10 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
     {},
     async (_args) => {
       const meta = loadIndexMeta(ctx.config.resolved_state_dir);
-      const stale_files = await countStaleFiles(ctx.db, ctx.config.resolved_project_root);
+      // The same producer `mast status` uses — the two surfaces answer one
+      // question and must not compute it twice
+      // (`mcp/tools/__tests__/status-surface-parity.test.ts`).
+      const stale_files = (await measureFreshness(ctx.config, ctx.db)).total;
       const result: StatusResult = {
         state_dir:      ctx.config.resolved_state_dir,
         // From the binary, never from index.json — see StatusResult.schema_version.

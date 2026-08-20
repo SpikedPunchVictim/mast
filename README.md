@@ -689,7 +689,7 @@ Health snapshot of the index.
 
 **Returns:** `{ state_dir, last_indexed, indexed_files, chunk_count, stale_files, parse_errors, write_errors, index_fresh, freshness_cause, seed_commit? }`.
 
-`index_fresh` is `true` only when `stale_files = 0` and the index has been run at least once. `freshness_cause` is `"phase1_stale"` when stale files remain, `null` when fresh.
+`index_fresh` is `true` only when `stale_files = 0` and the index has been run at least once. `freshness_cause` is `"phase1_stale"` when stale files remain, `null` when fresh. `stale_files` counts changed files, files on disk that are not in the index at all, and indexed files that are gone from disk — the same number `mast status` reports, from the same producer.
 
 **Why:** Before a long agentic workflow that depends on accurate code navigation, an assistant can call `mast_status` to confirm the index is fresh, or surface the number of stale files to the user if not.
 

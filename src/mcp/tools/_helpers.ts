@@ -1,5 +1,3 @@
-import { statSync } from 'node:fs';
-import { join } from 'node:path';
 import type { Db } from '../../graph/db.js';
 import type { ResolvedConfig } from '../../store/config.js';
 import type { AppContext } from '../context.js';
@@ -68,23 +66,8 @@ export async function jitRefreshFile(
   return checkAndRefreshIfStale(db, config, filePath, row.mtime);
 }
 
-/**
- * Count files in the `files` table whose disk mtime exceeds the stored mtime.
- * Deleted files are also counted as stale.
- */
-export async function countStaleFiles(
-  db: Db,
-  projectRoot: string,
-): Promise<number> {
-  const rows = await db.selectFrom('files').select(['path', 'mtime']).execute();
-  let count = 0;
-  for (const row of rows) {
-    try {
-      const stat = statSync(join(projectRoot, row.path));
-      if (stat.mtimeMs / 1_000 > row.mtime) count++;
-    } catch {
-      count++;
-    }
-  }
-  return count;
-}
+// countStaleFiles removed 2026-08-20 (D035). It enumerated the `files` table,
+// so a file on disk that was never indexed was in no row and therefore
+// invisible to it — `mast_status` reported a fresh index while `mast status`
+// reported the same index stale. Freshness now has one producer for both
+// surfaces: `indexer/freshness.ts` `measureFreshness`.

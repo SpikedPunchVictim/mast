@@ -643,6 +643,15 @@ export interface StatusResult {
   readonly last_indexed: string | null;
   readonly indexed_files: number;
   readonly chunk_count: number;
+  /**
+   * Files whose on-disk state the index does not reflect: content changed
+   * since it was indexed, plus files present on disk but absent from the index
+   * (never indexed, or lost to a failed run), plus files the index still knows
+   * about that are gone from disk. Produced by `indexer/freshness.ts`
+   * `measureFreshness`, which `mast status` shares — the two surfaces answer
+   * one question and computed it differently until 2026-08-20
+   * (`docs/defects/LEDGER.md` D035).
+   */
   readonly stale_files: number;
   readonly parse_errors: number;
   readonly write_errors: number;

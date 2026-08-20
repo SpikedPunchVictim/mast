@@ -1700,6 +1700,20 @@ Docker-baked seed (§13.8) and reports the git revision the seed was built from.
 running `mast_reindex`) and `null` when the index is fully fresh. `index_fresh` is
 `true` only when `stale_files === 0` and the index has been run at least once.
 
+`stale_files` counts three things, not one: files whose content changed since they
+were indexed, files on disk that are **not in the index at all**, and files the index
+still lists that are gone from disk. It is computed by `indexer/freshness.ts`
+`measureFreshness`, which `mast status` and `mast_status` both call — one producer,
+because they answer one question. It reads the manifest and the `files.mtime` stamps
+and takes the union: only the manifest can see a file that was never indexed, and only
+the stamps can see a manifest entry with no row, or an edit that landed mid-run (the
+manifest is stamped from a finalise-time re-stat; the row carries the pre-parse stamp).
+
+**A file that fails to parse or write is not recorded in the manifest**, so the next
+run retries it, and an incremental run's work set includes any walked file with no
+`files` row — otherwise a hole left by an older build would be reported stale forever
+with no run willing to fix it.
+
 **When used:** diagnostic — agent checks this when search returns unexpected
 results, or before a long agentic workflow to confirm the index is current.
 

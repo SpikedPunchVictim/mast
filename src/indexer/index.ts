@@ -330,7 +330,28 @@ export async function runIndex(
     }
   });
 
-  const toIndex = options.incremental ? [...stale, ...added] : currentFiles;
+  // An incremental run's work set is the manifest diff PLUS any walked file
+  // with no `files` row. The manifest alone is not sufficient: a run that
+  // failed on a file before 2026-08-20 recorded it as up to date anyway
+  // (D034), so the diff reports it unchanged forever and the file never comes
+  // back. Without this, `mast_status` would correctly report such an index
+  // stale (`measureFreshness` reads the `files` stamps too) and every
+  // incremental run would do nothing about it — a state that never converges.
+  // On a full run every file is reindexed regardless, so this is scoped to the
+  // incremental path and costs one indexed `path` scan.
+  let toIndex: FileEntry[];
+  if (options.incremental) {
+    const queued = new Set([...stale, ...added].map((e) => e.relativePath));
+    const indexedPaths = new Set(
+      (await db.selectFrom('files').select('path').execute()).map((r) => r.path),
+    );
+    const neverWritten = currentFiles.filter(
+      (e) => !queued.has(e.relativePath) && !indexedPaths.has(e.relativePath),
+    );
+    toIndex = [...stale, ...added, ...neverWritten];
+  } else {
+    toIndex = currentFiles;
+  }
 
   let filesIndexed = 0;
   let parseErrors = 0;
@@ -338,6 +359,14 @@ export async function runIndex(
   let staleWriteRejections = 0;
   let chunksAdded = 0;
   let filesStable = 0;
+  /**
+   * Relative paths this run attempted and did not get into the index — a parse
+   * that threw, or a write that failed. They are withheld from the manifest at
+   * finalise, so the next run's `diffManifest` sees them as new and retries
+   * them. Recording them as up-to-date is what made one transient failure a
+   * permanent hole (`docs/defects/LEDGER.md` D034).
+   */
+  const failedPaths = new Set<string>();
 
   // Pass 1: parse, then write (chunks + graph + FTS together via
   // populateFile), processed in batches so a batch's worth of parse results
@@ -393,6 +422,7 @@ export async function runIndex(
       } catch (err) {
         process.stderr.write(`[mast] WARN: parse error in ${entry.path}: ${String(err)}\n`);
         parseErrors++;
+        failedPaths.add(entry.relativePath);
       }
       options.onProgress?.(filesIndexed + filesStable + parseErrors, toIndex.length);
     }
@@ -463,6 +493,7 @@ export async function runIndex(
         } catch (err) {
           process.stderr.write(`[mast] ERROR: chunk store write failed for ${entry.path} — file will be absent from the index: ${String(err)}\n`);
           writeErrors++;
+          failedPaths.add(entry.relativePath);
           continue;
         }
         edgeDataByFile.set(entry.relativePath, result);
@@ -503,10 +534,19 @@ export async function runIndex(
   // instead of reusing `currentFiles`' run-start walk snapshot, and why it
   // needs the lock at all (to not race a JIT write that is already in flight).
   await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
-    const freshEntries: FileEntry[] = currentFiles.map((entry) => ({
-      ...entry,
-      mtime: statMtimeSecondsOrFallback(entry.path, entry.mtime),
-    }));
+    // Files this run failed on are withheld: a manifest entry asserts "the
+    // index reflects this file at this mtime", which is false for them. Leaving
+    // the entry out makes the next run see the file as new and retry it, and —
+    // because a file with no manifest entry is also what `measureFreshness`
+    // counts as unindexed — keeps both status surfaces honest in the meantime.
+    // A file that was never attempted (unchanged on an incremental run) is not
+    // in `failedPaths` and keeps its entry, as it should.
+    const freshEntries: FileEntry[] = currentFiles
+      .filter((entry) => !failedPaths.has(entry.relativePath))
+      .map((entry) => ({
+        ...entry,
+        mtime: statMtimeSecondsOrFallback(entry.path, entry.mtime),
+      }));
     const newManifest = buildManifest(freshEntries);
     writeFileSync(manifestPath, JSON.stringify(newManifest, null, 2));
 

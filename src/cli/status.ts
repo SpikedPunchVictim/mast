@@ -1,9 +1,8 @@
 import type { Command } from 'commander';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { loadIndexMeta, freshnessCause } from '../indexer/index.js';
-import { walkProject, diffManifest } from '../indexer/walker.js';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { measureFreshness } from '../indexer/freshness.js';
+import { openDatabase } from '../graph/db.js';
 
 export interface StatusReport {
   readonly state_dir: string;
@@ -56,14 +55,17 @@ export async function buildStatus(
     };
   }
 
-  const manifestPath = join(config.resolved_state_dir, 'file_manifest.json');
-  const prevManifest: Record<string, number> = existsSync(manifestPath)
-    ? (JSON.parse(readFileSync(manifestPath, 'utf-8')) as Record<string, number>)
-    : {};
-
-  const currentFiles = await walkProject(config);
-  const { stale, added, deleted } = diffManifest(currentFiles, prevManifest);
-  const staleCount = stale.length + added.length + deleted.length;
+  // Freshness needs the `files` stamps as well as the manifest (see
+  // `measureFreshness`), so this opens the graph db — safe here and nowhere
+  // above, because the `meta === null` branch has already returned for a state
+  // dir that was never indexed.
+  const db = openDatabase(config.resolved_state_dir);
+  let staleCount: number;
+  try {
+    staleCount = (await measureFreshness(config, db)).total;
+  } finally {
+    await db.destroy();
+  }
 
   return {
     state_dir: config.resolved_state_dir,
