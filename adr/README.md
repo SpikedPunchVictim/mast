@@ -34,6 +34,7 @@ hypotheses, and unread measurements — and the only one of these files edited i
 | [012](012-2026-08-18-edges-knee.md) | 2026-08-18 | The edges knee, closed; and the incremental delete behind it |
 | [013](013-2026-08-19-declined-scope.md) | rolling | Deliberately not doing |
 | [014](014-2026-08-19-packaging-and-first-run.md) | 2026-08-19 | Packaging and the first-run experience |
+| [015](015-2026-08-19-integration-harness.md) | 2026-08-19 | An integration harness, and the mutation axis it exists for |
 
 ## Reading order — which is not the numbering
 
@@ -50,8 +51,10 @@ experiments. Read instead:
    scaling arc. 012 depends on 011 and corrects a gap it left.
 5. **[005](005-2026-08-07-staleness-contract.md) — [008](008-2026-08-09-honest-surfaces.md)** —
    the correctness stages. Independent of each other; read as needed.
-6. **[014](014-2026-08-19-packaging-and-first-run.md)** — how the package ships, installs,
-   and upgrades. The first ADR written under this system rather than backfilled into it.
+6. **[014](014-2026-08-19-packaging-and-first-run.md) →
+   [015](015-2026-08-19-integration-harness.md)** — how the package ships, installs, and
+   upgrades, and the harness that will verify it does. 014 is the first ADR written under this
+   system rather than backfilled into it; 015 is a design, not yet a thing that exists.
 7. **[013](013-2026-08-19-declined-scope.md)** — what is out of scope, and why. Read before
    proposing anything.
 

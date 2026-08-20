@@ -37,6 +37,7 @@ reading the plan's own list.
 | **Ranker D's escape variant** | measured **harmful as constructed** (ADR 004). Any escape-like extension needs a fresh pre-registration |
 | **Identifier fusion (IDFUSE)** | **INERT-LEVER** — fails as a scale rescue *and* harms off-stratum (ADR 004) |
 | **E1-EDGES** | **retired before measurement** — E1-AB had already answered it, on the same corpus, with a 2× stronger arm (ADR 012) |
+| **VS Code (or any editor GUI) in a container, to verify MCP registration** | driving an Electron GUI tests the editor, not mast. The mast-side contract — `mast serve` speaks MCP over stdio and completes a handshake — is assertable directly, and ADR 015's harness does exactly that |
 | **Re-tuning `rrf_k`** | both hypotheses falsified; the finding is that **`rrf_k = 60` should not be changed** (ADR 002) |
 | **Q6 mechanism isolation on the pre-F11 system** | isolating a mechanism that no longer reproduces, on a build whose topology has since changed, is **archaeology**. The useful form of the question is the HEAD-topology probe, measured forward |
 | **Q6 as "the smaller alternative to E1"** | no longer available — not because it is closed, but because what remains of it can only be answered inside E1's ladder |
