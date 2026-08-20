@@ -23,6 +23,7 @@
 
 import { sql, type SqlBool } from 'kysely';
 import type { Db } from '../graph/db.js';
+import { compileScopeMatcher, type ScopeMatcher, type SearchScope } from './scope.js';
 
 /**
  * Ranker D's candidate pool multiplier — 4x the caller's own `limit`, the
@@ -91,6 +92,16 @@ interface ChunkMatchCandidate {
   readonly symbol_name: string;
   readonly chunk_type: string;
   readonly parent_symbol: string | null;
+  /** Carried so {@link searchRankerD} can apply the caller's scope; not part of
+   * the ranker's output contract ({@link DeclexRow}). */
+  readonly file_path: string;
+  /** As above. `chunks.language` and `files.language` are written from one
+   * binding in one transaction — the extractor's per-file `language`, assigned
+   * to the `files` row (`graph/populate.ts` `insertInto('files')`) and to every
+   * chunk it produced (`ast/extractors/typescript.ts`, where the file-level
+   * return and each `chunks.push` close over the same variable) — so scoping D
+   * by `chunks.language` and FTS by `files.language` cannot disagree. */
+  readonly language: string;
   readonly match_type: 'full' | 'segment';
 }
 
@@ -112,7 +123,7 @@ async function matchToken(db: Db, token: string): Promise<ChunkMatchCandidate[]>
 
   const rows = await db
     .selectFrom('chunks')
-    .select(['chunk_id', 'symbol_name', 'chunk_type', 'parent_symbol'])
+    .select(['chunk_id', 'symbol_name', 'chunk_type', 'parent_symbol', 'file_path', 'language'])
     .where('symbol_name', 'is not', null)
     // NOTE: the doubled backslash below is JS template-literal escaping for a
     // SINGLE literal backslash in the resulting SQL text (`ESCAPE '\'`) — a
@@ -134,9 +145,32 @@ async function matchToken(db: Db, token: string): Promise<ChunkMatchCandidate[]>
         symbol_name: r.symbol_name,
         chunk_type: r.chunk_type,
         parent_symbol: r.parent_symbol,
+        file_path: r.file_path,
+        language: r.language,
         match_type: matchType,
       };
     });
+}
+
+/**
+ * Drop candidates outside the caller's scope.
+ *
+ * Applied to the merged pool BEFORE ordering and capping, not after, for two
+ * reasons. The cap would otherwise be spent on rows that are about to be
+ * discarded, so a narrow `file_pattern` over a crowded symbol name would
+ * silently return fewer in-scope declarations than the index holds — the same
+ * silently-incomplete answer the scope filter exists to prevent. And the
+ * ordering itself is scope-dependent: rank position 2 is "how many candidates
+ * share this matched name", which is a property of the pool being ranked, so a
+ * scoped search must count within its own scope to order consistently with what
+ * it returns.
+ */
+function applyScope(
+  candidates: readonly ChunkMatchCandidate[],
+  matcher: ScopeMatcher | null,
+): ChunkMatchCandidate[] {
+  if (matcher === null) return [...candidates];
+  return candidates.filter((c) => matcher(c.file_path, c.language));
 }
 
 /** The final dot-segment of a symbol name (itself, if no dot present). */
@@ -171,6 +205,14 @@ export interface DeclexSearchOptions {
    * pool — same convention as ranker I; multiply by
    * {@link RANKER_D_POOL_MULTIPLIER} before calling). */
   readonly limit: number;
+  /**
+   * Restrict candidates to files matching the caller's `file_pattern` /
+   * `language`. Omitted means unrestricted, which is what the Q1/DECLEX
+   * measurement arms and their frozen reconstructions
+   * (`eval/declex-rank-check.mjs`) ran with — they pass `{ limit }` only, so
+   * their behaviour is unchanged by this option existing.
+   */
+  readonly scope?: SearchScope | undefined;
 }
 
 export interface DeclexSearchResult {
@@ -194,6 +236,11 @@ export interface DeclexSearchResult {
  * to a different class). This groups the exact multiplicity class the
  * registration's own fixture (Gate B, high-multiplicity segment) is built to
  * exercise.
+ *
+ * `options.scope` restricts the candidate pool to the caller's `file_pattern` /
+ * `language` before any of the above is computed, so `diagnostics.candidate_count`
+ * and the ordering both describe the scoped pool — a scoped search behaves as
+ * though the index contained only the files in scope.
  *
  * @param query - the RAW query string (term derivation happens here).
  */
@@ -240,7 +287,7 @@ export async function searchRankerD(
       }
     }
   }
-  const candidates = [...byChunkId.values()];
+  const candidates = applyScope([...byChunkId.values()], compileScopeMatcher(options.scope ?? {}));
 
   // Ordering: matchedName grouping (see JSDoc above) — count how many
   // candidates in THIS query's pool share the same (case-insensitive)

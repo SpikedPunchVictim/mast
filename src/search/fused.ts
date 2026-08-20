@@ -4,6 +4,7 @@ import type { ChunkStore, ChunkRecord } from '../store/sqliteChunkStore.js';
 import { searchFts, searchIdentifierNearMiss, splitIdentifierTerms } from './fts.js';
 import { querySymbolsBySimilarity } from '../graph/queries.js';
 import { searchRankerD, type DeclexDiagnostics } from './declex.js';
+import { resolveScopedPaths, type SearchScope } from './scope.js';
 
 // ---------------------------------------------------------------------------
 // Reciprocal Rank Fusion helpers
@@ -100,8 +101,15 @@ export interface DeclexTelemetry {
  * now that it's gone.
  *
  * Post-filters (`chunk_type`, `only_exported`) are applied after RRF ranking,
- * on the full chunk records fetched from `chunkStore`. SQL-level filters
- * (`file_pattern`, `language`) are pushed into the FTS query.
+ * on the full chunk records fetched from `chunkStore`.
+ *
+ * The scope filters (`file_pattern`, `language`) are NOT post-filters: each
+ * ranker applies them to its own candidate pool, through the shared
+ * `./scope.ts`, before that pool is capped. Applying them here instead would
+ * spend each ranker's candidate budget on rows about to be discarded. Anything
+ * later fused into this function must be scoped the same way — the union below
+ * is what carries a leak into the result set, and `__tests__/search-scope.test.ts`
+ * asserts the union, not the individual legs, for exactly that reason.
  */
 export async function fusedSearch(
   db: Db,
@@ -121,11 +129,14 @@ export async function fusedSearch(
   // Over-fetch so post-filters don't starve the final result set.
   const candidateLimit = limit * 4;
 
+  // One scope, handed to every ranker — see this function's doc.
+  const scope: SearchScope = { filePattern: input.file_pattern, language: input.language };
+
   // --- BM25 ---
   const ftsRows = await searchFts(db, input.query, {
     limit: candidateLimit,
-    filePattern: input.file_pattern,
-    language: input.language,
+    filePattern: scope.filePattern,
+    language: scope.language,
   });
 
   // Build rank + metadata maps for RRF.
@@ -139,16 +150,14 @@ export async function fusedSearch(
   // identically — the absent-means-OFF contract `FusedSearchConfig`
   // documents above. `declex` is kept as the full result (not just its rows)
   // so a later telemetry stage can lift its diagnostics into the return value
-  // without re-plumbing this call. Mirrors the measured reconstruction
-  // (eval/declex-rank-check.mjs's `reconstructWithRankerD`): D applies no
-  // file_pattern/language pre-filter.
+  // without re-plumbing this call.
   const dMap = new Map<string, number>();
   // Lifted out of the `if` block (rather than left local) so the telemetry
   // block below can read `top_match_channel`/`candidate_count` without
   // re-running `searchRankerD` — see this function's return-type doc.
   let declexDiagnostics: DeclexDiagnostics | undefined;
   if (config.declaration_exact_ranker === true) {
-    const declex = await searchRankerD(db, input.query, { limit: candidateLimit });
+    const declex = await searchRankerD(db, input.query, { limit: candidateLimit, scope });
     declex.rows.forEach((r, i) => {
       dMap.set(r.chunk_id, i + 1);
     });
@@ -277,7 +286,7 @@ export async function fusedSearch(
   const declexField = declexTelemetry !== undefined ? { declex: declexTelemetry } : {};
 
   if (results.length === 0) {
-    const suggestions = await gatherSuggestions(db, chunkStore, input.query, limit);
+    const suggestions = await gatherSuggestions(db, chunkStore, input.query, limit, scope);
     return { results, suggestions, ...declexField };
   }
 
@@ -376,17 +385,28 @@ export function dedupShellMethodCollisions(
  *   (b) an FTS retry over camelCase/snake_case-split query terms,
  *   (c) an `identifier_fts` near-miss over the same split terms.
  * Results are de-duplicated by (symbol, file) and capped at `limit`.
+ *
+ * All three passes honour the caller's `scope`. A suggestion naming a file the
+ * caller excluded is the same misleading answer a *result* naming it would be —
+ * advisory or not, it points at code outside the boundary the caller asked
+ * about. Only pass (b) can take the filters natively; (a) and (c) return just a
+ * symbol and a path, so the scope is enforced in `add`, the one funnel all
+ * three go through.
  */
 async function gatherSuggestions(
   db: Db,
   chunkStore: ChunkStore,
   query: string,
   limit: number,
+  scope: SearchScope,
 ): Promise<SearchSuggestion[]> {
+  const scopedList = await resolveScopedPaths(db, scope);
+  const scopedPaths = scopedList === null ? null : new Set(scopedList);
   const out: SearchSuggestion[] = [];
   const seen = new Set<string>();
   const add = (symbol: string | null, filePath: string, reason: string): void => {
     if (symbol === null || out.length >= limit) return;
+    if (scopedPaths !== null && !scopedPaths.has(filePath)) return;
     const key = `${symbol}\u0000${filePath}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -400,7 +420,9 @@ async function gatherSuggestions(
   const terms = splitIdentifierTerms(query);
   if (terms.length > 0) {
     // (b) FTS retry over the split terms.
-    const ftsRows = await searchFts(db, terms.join(' '), { limit });
+    const ftsRows = await searchFts(db, terms.join(' '), {
+      limit, filePattern: scope.filePattern, language: scope.language,
+    });
     const ftsChunks = await chunkStore.getChunksByIds(ftsRows.map((r) => r.chunk_id));
     for (const c of ftsChunks) add(c.symbol_name, c.file_path, 'matched split query terms');
 

@@ -536,7 +536,7 @@ Lexical BM25 + declaration-exact search over the indexed codebase.
 - **BM25 (FTS5, trigram-tokenized)** — the general-purpose lexical ranker; handles keyword queries and sub-token/camelCase matches.
 - **Ranker D (declaration-exact)** — a direct match against a chunk's own `symbol_name` (full name or final dot-segment, case-insensitive). Catches exact-symbol queries BM25's trigram scoring can under-rank. Gated by the `declaration_exact_ranker` config key (default on); when off, `mast_search` is BM25-only.
 
-A chunk both rankers agree on outranks one only one of them found.
+A chunk both rankers agree on outranks one only one of them found. `file_pattern` and `language` bound the pool **both** rankers draw from, so a scoped search never returns a file outside the scope. `file_pattern` is a glob matched with the same primitive that applies `exclude_patterns` at index time: `*` does not cross `/`, `**` does, `?` is one non-`/` character, matching is case-sensitive, and everything else — `.`, `_`, `-` — is literal.
 
 ---
 

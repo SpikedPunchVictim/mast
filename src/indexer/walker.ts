@@ -13,20 +13,48 @@ export interface FileEntry {
 
 /**
  * Convert a glob pattern to a RegExp.
- * `*`  — matches any sequence not containing `/`
- * `**` — matches any sequence including `/`
- * `?`  — matches a single non-`/` character
+ * `**\/` — matches zero or more leading directories
+ * `**`   — matches any sequence including `/`
+ * `*`    — matches any sequence not containing `/`
+ * `?`    — matches a single non-`/` character
  *
  * Lives in the walker (file-discovery domain) because both watch mode and the
- * MCP tools' `file_pattern` filters need the same glob semantics.
+ * MCP tools' `file_pattern` filters need the same glob semantics — and because
+ * `walkProject` below hands the same patterns to fast-glob, so this function's
+ * output has to agree with fast-glob's for the same pattern. It is checked
+ * against fast-glob directly by `__tests__/glob-to-regex.test.ts`.
+ *
+ * Written as a single left-to-right scan rather than a chain of `.replace`
+ * calls. The chain was re-entrant: each rule rewrote the output of the ones
+ * before it, so `**` → `.*` left a `*` for the `*` rule to turn into
+ * `.[^/]*`, and `**\/` → `(.+/)?` left a `?` for the `?` rule to turn into
+ * `(.+/)[^/]`. Every shipped default in `exclude_patterns` (`store/config.ts`)
+ * contains one of those two sequences, so every one of them compiled to a
+ * regex that matched neither the directory it named nor its contents.
  */
 export function globToRegex(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-  const rx = escaped
-    .replace(/\*\*\//g, '(.+/)?')
-    .replace(/\*\*/g, '.*')
-    .replace(/\*/g, '[^/]*')
-    .replace(/\?/g, '[^/]');
+  let rx = '';
+  let i = 0;
+  while (i < pattern.length) {
+    if (pattern.startsWith('**/', i)) {
+      // Optional, so `**\/x` matches a bare `x` at the root — fast-glob's
+      // reading of the same pattern.
+      rx += '(?:.+/)?';
+      i += 3;
+    } else if (pattern.startsWith('**', i)) {
+      rx += '.*';
+      i += 2;
+    } else if (pattern.startsWith('*', i)) {
+      rx += '[^/]*';
+      i += 1;
+    } else if (pattern.startsWith('?', i)) {
+      rx += '[^/]';
+      i += 1;
+    } else {
+      rx += pattern.charAt(i).replace(/[.+^${}()|[\]\\]/g, '\\$&');
+      i += 1;
+    }
+  }
   return new RegExp(`^${rx}$`);
 }
 

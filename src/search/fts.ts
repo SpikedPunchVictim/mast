@@ -1,5 +1,6 @@
 import { sql, type SqlBool } from 'kysely';
 import type { Db } from '../graph/db.js';
+import { resolveScopedPaths } from './scope.js';
 
 // ---------------------------------------------------------------------------
 // BM25 full-text search (chunk_fts, trigram tokeniser)
@@ -25,10 +26,14 @@ export interface FtsSearchRow {
  * `bm25(chunk_fts)` returns negative scores — lower (more negative) is a
  * better match. Results are sorted ascending (best first) before RRF ranking.
  *
- * `filePattern` and `language` are applied as SQL predicates before the
- * ORDER BY and LIMIT clauses so the FTS5 optimizer can apply them correctly.
+ * `filePattern` and `language` are applied as an `IN` list on `file_path`,
+ * built before the ORDER BY and LIMIT clauses so the restriction is part of
+ * the ranked query rather than a post-filter on its window. Both are resolved
+ * through `./scope.ts`, which owns the glob and language semantics for every
+ * ranker `fusedSearch` fuses — this function must not translate the pattern
+ * itself, or the two rankers can disagree about what the caller asked for.
  * `chunk_type` and `only_exported` are post-filters applied by the caller
- * after fetching full chunk records from LanceDB.
+ * after fetching full chunk records from the chunk store.
  */
 export async function searchFts(
   db: Db,
@@ -44,33 +49,15 @@ export async function searchFts(
 
   // SQLite FTS5 UNINDEXED columns support IN with a literal list reliably,
   // but LIKE and subquery IN may not be applied by the FTS5 query planner.
-  // Both filePattern and language filters are therefore materialised via the
-  // regular `files` table first, then passed as IN lists to the FTS query.
-  let allowedPaths: string[] | null = null;
-
-  if (options.filePattern !== null && options.filePattern !== undefined) {
-    const rows = await db
-      .selectFrom('files')
-      .select('path')
-      .where('path', 'like', globToLike(options.filePattern))
-      .execute();
-    if (rows.length === 0) return [];
-    allowedPaths = rows.map((r) => r.path);
-  }
-
-  if (options.language !== null && options.language !== undefined) {
-    const rows = await db
-      .selectFrom('files')
-      .select('path')
-      .where('language', '=', options.language)
-      .execute();
-    if (rows.length === 0) return [];
-    const langSet = new Set(rows.map((r) => r.path));
-    allowedPaths = allowedPaths === null
-      ? [...langSet]
-      : allowedPaths.filter((p) => langSet.has(p));
-    if (allowedPaths.length === 0) return [];
-  }
+  // The scope is therefore materialised against the regular `files` table
+  // first, then passed as an IN list to the FTS query.
+  const allowedPaths = await resolveScopedPaths(db, {
+    filePattern: options.filePattern,
+    language: options.language,
+  });
+  // A scope that matched no indexed file is an empty result, not an
+  // unrestricted one — `null` means "no scope given" and must not be conflated.
+  if (allowedPaths !== null && allowedPaths.length === 0) return [];
 
   // Build all WHERE conditions before ORDER BY / LIMIT.
   let q = db
@@ -201,11 +188,6 @@ export function splitIdentifierTerms(query: string): string[] {
     out.push(term);
   }
   return out;
-}
-
-/** Convert a glob pattern to a SQL LIKE pattern (`*` → `%`, `?` → `_`). */
-function globToLike(pattern: string): string {
-  return pattern.replace(/\*/g, '%').replace(/\?/g, '_');
 }
 
 /**

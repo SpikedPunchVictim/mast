@@ -517,9 +517,21 @@ construction) is symbol-gated and purely lexical-structural:
   one of 140 `toJSON`s), then ascending `chunk_id`. The pool is capped at
   4× `limit` like BM25, and the list enters RRF **by rank** with the same
   `rrf_k`.
-- Ranker D applies no `file_pattern`/`language` pre-filter (same semantics as
-  BM25); `chunk_type`/`only_exported` post-filters apply downstream unchanged.
-  When `declaration_exact_ranker` is off, `mast_search` is BM25-only.
+- Ranker D applies the caller's `file_pattern`/`language` scope to its candidate
+  pool **before** ordering and capping, so a scoped search behaves as though the
+  index held only the files in scope. Both filters are compiled once per call by
+  `search/scope.ts` and applied identically by every ranker RRF fuses — a ranker
+  that skipped them would put out-of-scope chunks into a scoped result set, which
+  is what D did until 2026-08-20 (`docs/defects/LEDGER.md` D031; this bullet read
+  "applies no `file_pattern`/`language` pre-filter (same semantics as BM25)",
+  and the parenthetical was wrong about BM25 too — BM25 pre-filtered throughout).
+  `chunk_type`/`only_exported` post-filters apply downstream unchanged. When
+  `declaration_exact_ranker` is off, `mast_search` is BM25-only.
+- `file_pattern` is a **glob**, compiled by `globToRegex` (`indexer/walker.ts`) —
+  the same primitive that matches `exclude_patterns` at index time and backs
+  `mast_project_skeleton`'s own `file_pattern`, so one pattern selects one set of
+  files everywhere. `*` does not cross `/`, `**` does, `?` is a single non-`/`
+  character, matching is case-sensitive, and every other character is literal.
 
 Provenance: pre-registered and measured as Q1/DECLEX; shipped per the M2 decision
 memo as F18 (`adr/004-2026-08-06-ranker-d.md`). The measured **escape variant**
