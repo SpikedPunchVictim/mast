@@ -153,9 +153,11 @@ languages on the miss · `truncation-flag-fires`.
 1. **`lib/`** — exec, install (with both authenticity checks), project, spec-validate, assert,
    scenario-runner, and the filter guards including `--gate-target`. Machinery only; claims
    nothing.
-2. **The calibration pair.** `move-file-preserves-symbols` against a good build and against the
-   D023-reverted build: green on one, red on the other. Nothing downstream is trusted until this
-   has been observed.
+2. **The calibration pair.** `case-only-rename-keeps-callers` against a good build and against the
+   D023-reverted build: green on one, red on the other. It has to be *this* scenario and not
+   `move-file-preserves-symbols` — the breakage is a mis-casing defect and would leave a plain move
+   green, pinning nothing. Observed 2026-08-19: PASS on `local`, FAIL on
+   `local-broken-d023-miscased-import`, pin held, exit 0.
 3. **`tarball-install-works`** — now a result rather than a self-certification.
 4. The rest of the mutation family, including the five the review added.
 5. `capture` + `normalize` + `captureEquals`, then `serve-matches-query`.

@@ -143,11 +143,19 @@ an artifact ADR 014 records as never having been installed anywhere. When it goe
 you cannot tell whether the harness or the tarball is at fault, which is the opposite of easy to
 debug.
 
-So: **machinery first, claiming nothing. Then a calibration pair** — `move-file-preserves-symbols`
-(a genuine gap, per the table above) run against both a good build and the D023-reverted build,
-green on one and red on the other. Only after a scenario has been *observed* going red does any
-of its green mean anything. `tarball-install-works` lands third, where it is a result rather than
-a self-certification.
+So: **machinery first, claiming nothing. Then a calibration pair.** The review proposed pairing
+`move-file-preserves-symbols` with the D023-reverted build; that pairing does not work, and the
+reason is worth recording. D023 is a *mis-cased import* defect — reverting `realpathSync.native`
+changes nothing about a plain move, so the scenario would have stayed green and the pin would have
+been a pin against nothing. The calibration scenario has to be the one the breakage actually
+breaks: **`case-only-rename-keeps-callers`**, which renames a directory by case alone while the
+importer keeps the old spelling.
+
+Verified, not asserted: that scenario is **PASS against the correct build and FAIL against
+`local-broken-d023-miscased-import`** (`verified callers of 'deepHelper' do not include
+'src/uses-deep.ts'. Got: (none)`), and the run exits 0 with the pin held. Only after a scenario has
+been *observed* going red does any of its green mean anything. `tarball-install-works` lands third,
+where it is a result rather than a self-certification.
 
 ### 3a. The install must prove it installed what it packed
 
