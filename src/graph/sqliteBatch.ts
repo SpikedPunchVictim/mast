@@ -66,15 +66,25 @@ export function chunkRowsForSqlite<T extends object>(
  * `IN (?, ?, ...)` name list) rather than object rows — `paramsPerValue`
  * defaults to 1, the parameter each value contributes to an `IN` list.
  *
+ * `reservedParams` is the number of bound parameters the SAME statement binds
+ * outside this list — a `MATCH` expression, a `LIMIT`, any other predicate.
+ * It defaults to 0 because most call sites bind nothing else, but a batch
+ * sized to exactly the ceiling overflows the moment the statement binds one
+ * more: measured, `searchFts` (whose statement also binds its MATCH
+ * expression and its LIMIT) threw `too many SQL variables` at a batch of
+ * exactly {@link SQLITE_MAX_VARIABLES} paths until it declared its two.
+ *
  * Empty input returns `[]`, matching {@link chunkRowsForSqlite}.
  */
 export function chunkValuesForSqlite<T>(
   values: readonly T[],
   paramsPerValue = 1,
+  reservedParams = 0,
 ): readonly (readonly T[])[] {
   if (values.length === 0) return [];
+  const budget = SQLITE_MAX_VARIABLES - reservedParams;
   const valuesPerBatch = paramsPerValue > 0
-    ? Math.max(1, Math.floor(SQLITE_MAX_VARIABLES / paramsPerValue))
+    ? Math.max(1, Math.floor(budget / paramsPerValue))
     : values.length;
   return chunk(values, valuesPerBatch);
 }

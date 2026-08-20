@@ -8,6 +8,7 @@ import type { VerifiedCaller, CallerResolution } from '../ast/types.js';
 import { withLock } from '../store/lock.js';
 import { queryVerifiedCallers, querySymbolByName } from './queries.js';
 import { collectPotentialMatchCandidates, type ChunkByIdSource, type CandidateChunkRecord } from '../search/potential-matches.js';
+import { chunkValuesForSqlite } from './sqliteBatch.js';
 
 // ---------------------------------------------------------------------------
 // `mast index --checker` — opt-in TypeScript-checker enrichment pass
@@ -397,6 +398,43 @@ type PendingWrite =
  * 1. Classify every candidate for the project against its `ts.Program` (no lock).
  * 2. Flush the resulting edge/verdict writes under `structure.lock` (short batch).
  */
+/** One `files` row's identity and freshness stamp, keyed by path. */
+export interface FileMeta {
+  readonly id: number;
+  readonly mtime: number;
+}
+
+/**
+ * Look up `files` rows for `paths` in one pass, batched under SQLite's bound
+ * parameter ceiling.
+ *
+ * Extracted from the checker pass so the batching is testable without standing
+ * up a TypeScript program: the path list is every distinct candidate file in
+ * one tsconfig project, accumulated across every symbol the pass examines, so
+ * nothing in its construction bounds it below SQLite's bound-parameter ceiling
+ * (`SQLITE_MAX_VARIABLES`, `./sqliteBatch.ts`). A single `IN` list past that
+ * ceiling throws `too many SQL variables` and fails
+ * the whole project's checker pass.
+ *
+ * Paths with no row are simply absent from the returned map — the caller
+ * already treats that as "file row vanished mid-run" and skips the candidate.
+ */
+export async function loadFileMetaByPath(
+  db: Db,
+  paths: readonly string[],
+): Promise<Map<string, FileMeta>> {
+  const meta = new Map<string, FileMeta>();
+  for (const batch of chunkValuesForSqlite(paths)) {
+    const rows = await db
+      .selectFrom('files')
+      .select(['id', 'path', 'mtime'])
+      .where('path', 'in', [...batch])
+      .execute();
+    for (const r of rows) meta.set(r.path, { id: r.id, mtime: r.mtime });
+  }
+  return meta;
+}
+
 export async function runCheckerPass(
   db: Db,
   chunkStore: Pick<ChunkStore, 'getAllChunks'>,
@@ -503,8 +541,7 @@ export async function runCheckerPass(
         // File id/mtime cache — one query for the whole project's bucket
         // instead of one per candidate.
         const filePaths = [...new Set(bucket.map((c) => c.candidateFilePath))];
-        const fileRows = await db.selectFrom('files').select(['id', 'path', 'mtime']).where('path', 'in', filePaths).execute();
-        const fileMeta = new Map(fileRows.map((f) => [f.path, { id: f.id, mtime: f.mtime }]));
+        const fileMeta = await loadFileMetaByPath(db, filePaths);
 
         for (const c of bucket) {
           const meta = fileMeta.get(c.candidateFilePath);

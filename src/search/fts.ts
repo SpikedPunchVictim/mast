@@ -1,6 +1,7 @@
 import { sql, type SqlBool } from 'kysely';
 import type { Db } from '../graph/db.js';
 import { resolveScopedPaths } from './scope.js';
+import { chunkValuesForSqlite } from '../graph/sqliteBatch.js';
 
 // ---------------------------------------------------------------------------
 // BM25 full-text search (chunk_fts, trigram tokeniser)
@@ -59,25 +60,49 @@ export async function searchFts(
   // unrestricted one — `null` means "no scope given" and must not be conflated.
   if (allowedPaths !== null && allowedPaths.length === 0) return [];
 
+  const rowLimit = options.limit * 2;
+
   // Build all WHERE conditions before ORDER BY / LIMIT.
-  let q = db
-    .selectFrom('chunk_fts')
-    .select([
-      'chunk_id',
-      'symbol_name',
-      sql<number>`bm25(chunk_fts)`.as('bm25_score'),
-      sql<string>`snippet(chunk_fts, 0, '**', '**', '...', 12)`.as('match_snippet'),
-    ])
-    .where(sql<SqlBool>`chunk_fts MATCH ${matchExpr}`);
+  const ranked = (paths: readonly string[] | null): Promise<FtsSearchRow[]> => {
+    let q = db
+      .selectFrom('chunk_fts')
+      .select([
+        'chunk_id',
+        'symbol_name',
+        sql<number>`bm25(chunk_fts)`.as('bm25_score'),
+        sql<string>`snippet(chunk_fts, 0, '**', '**', '...', 12)`.as('match_snippet'),
+      ])
+      .where(sql<SqlBool>`chunk_fts MATCH ${matchExpr}`);
+    if (paths !== null) q = q.where('file_path', 'in', [...paths]);
+    return q.orderBy(sql`bm25(chunk_fts)`, 'asc').limit(rowLimit).execute();
+  };
 
-  if (allowedPaths !== null) {
-    q = q.where('file_path', 'in', allowedPaths);
-  }
+  if (allowedPaths === null) return ranked(null);
 
-  return q
-    .orderBy(sql`bm25(chunk_fts)`, 'asc')
-    .limit(options.limit * 2)
-    .execute();
+  // The scope can name every indexed file — a `language` filter on a large
+  // monorepo does exactly that — and an IN list is one bound parameter per
+  // path, so past SQLITE_MAX_VARIABLES the statement throws `too many SQL
+  // variables` and the search fails outright.
+  //
+  // Splitting is safe for a ranked, limited query: each batch is a subset of
+  // the scope, so the global best `rowLimit` rows are necessarily contained in
+  // the union of the per-batch best `rowLimit` rows. Re-sorting that union and
+  // re-applying the limit therefore reproduces the single-statement result
+  // exactly. bm25 is negative, best-first is ascending — the same convention
+  // the SQL above uses.
+  // Two parameters of the statement's budget are not path values: the MATCH
+  // expression and the LIMIT. Declaring them is not defensive padding — a
+  // batch of exactly SQLITE_MAX_VARIABLES paths threw here, and the test at
+  // `graph/__tests__/in-list-batching.test.ts` fails again if a future
+  // predicate binds a third without being counted.
+  const NON_PATH_BOUND_PARAMS = 2;
+  const batches = chunkValuesForSqlite(allowedPaths, 1, NON_PATH_BOUND_PARAMS);
+  if (batches.length === 1) return ranked(allowedPaths);
+
+  const merged: FtsSearchRow[] = [];
+  for (const batch of batches) merged.push(...await ranked(batch));
+  merged.sort((a, b) => a.bm25_score - b.bm25_score);
+  return merged.slice(0, rowLimit);
 }
 
 // ---------------------------------------------------------------------------

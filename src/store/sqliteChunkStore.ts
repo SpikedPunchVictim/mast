@@ -124,10 +124,15 @@ export class SqliteChunkStore implements ChunkStore {
 
   async getChunksByIds(ids: readonly string[]): Promise<ChunkRecord[]> {
     if (ids.length === 0) return [];
-    // Largest id set any call site passes is 50 (hybrid.ts candidateLimit,
-    // potential-matches.ts limit=50) — well under SQLite's bound
-    // parameter-count ceiling (MAX_VARIABLE_NUMBER=32766 on the installed
-    // better-sqlite3 12.11.1 / SQLite 3.53.2), so no batching is needed.
+    // Deliberately unbatched, and the bound is re-derived here rather than
+    // recalled: the largest id set any call site passes is 200 — `fused.ts`'s
+    // `candidateLimit = limit * 4` with `limit` capped at 50 by
+    // `mcp/tools/search.ts`'s schema — and `potential-matches.ts` passes at
+    // most its own limit of 50. That is well under SQLite's bound-parameter
+    // ceiling (`SQLITE_MAX_VARIABLES` = 32,766, `graph/sqliteBatch.ts`), so no
+    // batching is needed. This comment read "50" until 2026-08-20, which was
+    // the pre-`candidateLimit` figure; the conclusion was unaffected, but the
+    // number is what a future reader would check the ceiling against.
     const rows = await this.db
       .selectFrom('chunks')
       .selectAll()

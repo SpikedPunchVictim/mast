@@ -1297,7 +1297,17 @@ export async function removeDeletedFiles(db: Db, deletedPaths: readonly string[]
         filePath,
       );
     }
-    await trx.deleteFrom('files').where('path', 'in', deletedPaths).execute();
+    // Batched for the same reason every other IN list in this file is: the
+    // caller supplies `deletedPaths` and nothing bounds it — deleting a
+    // vendored directory, or re-indexing after an `exclude_patterns` change,
+    // hands this whatever the manifest diff produced. Over the ceiling the
+    // statement throws `too many SQL variables`, and because this runs inside
+    // the transaction above, the throw rolls back every chunk and FTS row the
+    // loop already deleted. D001, this ledger's founding S0, is that same
+    // ceiling breached from the insert side.
+    for (const batch of chunkValuesForSqlite(deletedPaths)) {
+      await trx.deleteFrom('files').where('path', 'in', [...batch]).execute();
+    }
     return chunksRemoved;
   });
 }
