@@ -33,6 +33,7 @@ hypotheses, and unread measurements — and the only one of these files edited i
 | [011](011-2026-08-17-indexing-scale.md) | 2026-08-17 | Indexing scale: the target, the ladder, and where the exponent lives |
 | [012](012-2026-08-18-edges-knee.md) | 2026-08-18 | The edges knee, closed; and the incremental delete behind it |
 | [013](013-2026-08-19-declined-scope.md) | rolling | Deliberately not doing |
+| [014](014-2026-08-19-packaging-and-first-run.md) | 2026-08-19 | Packaging and the first-run experience |
 
 ## Reading order — which is not the numbering
 
@@ -49,7 +50,9 @@ experiments. Read instead:
    scaling arc. 012 depends on 011 and corrects a gap it left.
 5. **[005](005-2026-08-07-staleness-contract.md) — [008](008-2026-08-09-honest-surfaces.md)** —
    the correctness stages. Independent of each other; read as needed.
-6. **[013](013-2026-08-19-declined-scope.md)** — what is out of scope, and why. Read before
+6. **[014](014-2026-08-19-packaging-and-first-run.md)** — how the package ships, installs,
+   and upgrades. The first ADR written under this system rather than backfilled into it.
+7. **[013](013-2026-08-19-declined-scope.md)** — what is out of scope, and why. Read before
    proposing anything.
 
 ## Writing a new one
