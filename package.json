@@ -43,7 +43,6 @@
     "MAST_SPEC.md"
   ],
   "scripts": {
-    "setup": "node install.mjs",
     "build": "tsc",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run",

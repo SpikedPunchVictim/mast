@@ -268,6 +268,25 @@ not find it", never as "it does not exist" — `mast skill` says this to the mod
 **Add `.mast/` to `.gitignore`.** It is derived state, it is large, and it is
 machine-specific.
 
+**A custom index location is not remembered between runs.** `--state-dir` applies to the
+one command you pass it to. Path settings are deliberately never read back out of a
+persisted config — an absolute path written by a previous run (or a previous container)
+can resolve somewhere that no longer exists, or worse, somewhere belonging to a different
+project. To make a custom location stick, put it in source control or the environment:
+
+```json
+// mast.config.json, at the project root
+{ "state_dir": ".cache/mast" }
+```
+
+```bash
+export MAST_STATE_DIR=/absolute/path/to/index
+```
+
+Resolution order is `--state-dir` → `MAST_STATE_DIR` → `mast.config.json` → `.mast`.
+`mast status` prints the directory it resolved, and says so plainly when nothing has been
+indexed there.
+
 **Scale.** A cold index of VS Code — 8,653 files, 152,969 chunks — takes about two
 minutes and produces a 794 MB state directory. Incremental reindexing of a changed file
 is milliseconds.
