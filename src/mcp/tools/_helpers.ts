@@ -3,6 +3,9 @@ import type { ResolvedConfig } from '../../store/config.js';
 import type { AppContext } from '../context.js';
 import { checkAndRefreshIfStale, type StalenessCheckResult } from '../staleness.js';
 
+/** @see {@link DEFAULT_RESULT_LIMIT} — re-exported so every capped tool reads one constant (D043). */
+export { DEFAULT_RESULT_LIMIT } from '../../search/potential-matches.js';
+
 // collectPotentialMatches/collectPotentialMatchCandidates moved to
 // search/potential-matches.ts (Stage 1.2) so the `mast index --checker` pass
 // (graph/checker-resolver.ts) can share the exact same "what counts as a

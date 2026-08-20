@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { extractFileSignatures } from '../../ast/extract.js';
-import { extractDoc, jitRefreshFile, isIndexEmpty } from './_helpers.js';
+import { extractDoc, jitRefreshFile, isIndexEmpty, DEFAULT_RESULT_LIMIT } from './_helpers.js';
 
 export function registerExportsTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -14,6 +14,7 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
     'All exported symbols from a single file with type signatures. No function bodies. Use to answer "what does this file expose?" before deciding whether to open it.',
     {
       file_path: z.string().describe('Path to the file, relative to the project root'),
+      limit: z.number().int().min(1).max(500).optional().describe('Max exports to return (default: 50). The response reports the real total in `exports_truncated` when it caps.'),
     },
     async (args) => {
       const start = Date.now();
@@ -32,7 +33,13 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
         (c) => c.is_exported && c.chunk_type !== 'method',
       );
 
-      const exports: ExportEntry[] = topLevel.map((c) => {
+      // D043. `topLevel` is already in memory, so the real total is its length —
+      // no second COUNT query, unlike F10's identifier-FTS path where the capped
+      // fetch genuinely hides the total.
+      const limit = args.limit ?? DEFAULT_RESULT_LIMIT;
+      const exportsTruncated = topLevel.length > limit ? topLevel.length : undefined;
+
+      const exports: ExportEntry[] = topLevel.slice(0, limit).map((c) => {
         const sig = c.symbol_name !== null ? sigByName.get(c.symbol_name) : undefined;
         return {
           name: c.symbol_name ?? '',
@@ -55,6 +62,8 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
       const response: ExportsResponse = {
         file_path: args.file_path,
         exports,
+        // Omitted when nothing was capped — never present-and-false (F10's convention).
+        ...(exportsTruncated !== undefined ? { exports_truncated: exportsTruncated } : {}),
         // §9.0 TOCTOU policy: omitted when false, never present-and-false.
         ...(busy ? { file_busy_returning_stale_cache: true as const } : {}),
         ...indexEmptyField,

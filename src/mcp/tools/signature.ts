@@ -7,7 +7,7 @@ import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from 
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, resolveTypeContext } from '../../graph/queries.js';
 import { extractFileSignatures, type ExtractedSignature } from '../../ast/extract.js';
-import { jitRefreshFile, isIndexEmpty } from './_helpers.js';
+import { jitRefreshFile, isIndexEmpty, DEFAULT_RESULT_LIMIT } from './_helpers.js';
 
 // TypeScript built-in types that are never worth resolving as user-defined types.
 const BUILTIN_TYPES = new Set([
@@ -40,6 +40,7 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
     {
       symbol: z.string().describe('Symbol name to look up (e.g. "handleLogin", "AuthService")'),
       file_path: z.string().nullable().optional().describe('Narrow to a specific file; omit to search across the whole codebase'),
+      limit: z.number().int().min(1).max(500).optional().describe('Max declarations to return (default: 50). The response reports the real total in `results_truncated` when it caps.'),
     },
     async (args) => {
       const start = Date.now();
@@ -55,7 +56,17 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
         topLevelBusy = r.busy;
       }
 
-      const symbols = await querySymbolByName(ctx.db, args.symbol, filePath ?? undefined);
+      const allSymbols = await querySymbolByName(ctx.db, args.symbol, filePath ?? undefined);
+
+      // D043: capped HERE, before the loop below, not after it. The loop parses
+      // a file and resolves type context PER SYMBOL, which is where the 78
+      // seconds went on n8n's `execute` (580 declarations across 516 files).
+      // Trimming the response afterwards would have fixed the payload and left
+      // the latency — and the latency is what made the tool unusable over MCP,
+      // where it blew the client's 60 s timeout and returned nothing at all.
+      const limit = args.limit ?? DEFAULT_RESULT_LIMIT;
+      const symbols = allSymbols.slice(0, limit);
+      const resultsTruncated = allSymbols.length > limit ? allSymbols.length : undefined;
 
       // Parse each referenced file at most once for its signatures.
       const sigsByFile = new Map<string, readonly ExtractedSignature[]>();
@@ -123,6 +134,8 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
         : {};
       const response: SignatureResponse = {
         results,
+        // Omitted when nothing was capped — never present-and-false (F10's convention).
+        ...(resultsTruncated !== undefined ? { results_truncated: resultsTruncated } : {}),
         // F14: with zero results the per-result busy carrier vanishes, and a
         // stale index would read as "symbol doesn't exist" — surface the
         // top-level busy signal on the envelope in exactly that case.

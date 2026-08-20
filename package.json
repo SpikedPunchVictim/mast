@@ -1,6 +1,6 @@
 {
   "name": "@spikedpunch/mast",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publishConfig": {
     "access": "public"
   },
@@ -22,7 +22,7 @@
     "claude"
   ],
   "packageManager": "pnpm@9.0.2",
-  "description": "MAST \u2014 Monorepo AST Search Tool: semantic code search MCP server and CLI",
+  "description": "MAST — Monorepo AST Search Tool: semantic code search MCP server and CLI",
   "type": "module",
   "bin": {
     "mast": "./dist/cli/index.js"

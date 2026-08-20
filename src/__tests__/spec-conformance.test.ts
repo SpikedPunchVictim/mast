@@ -12,6 +12,7 @@ import type { AppContext } from '../mcp/context.js';
 import { registerAllTools } from '../mcp/register-tools.js';
 import { IMMEDIATE_WRITE_BUSY_TIMEOUT_MS } from '../graph/populate.js';
 import { TOKENIZER_LABEL, FULL_FILE_TOKENIZE_BUDGET_PER_CALL } from '../telemetry/tokenizer.js';
+import { DEFAULT_RESULT_LIMIT } from '../search/potential-matches.js';
 
 /**
  * D3 (IMPLEMENTATION_PLAN.md Stage 4) — the testable half of the mechanism
@@ -351,19 +352,28 @@ describe('spec conformance — MAST_SPEC.md ↔ src/', () => {
     );
     expect(documented).toBe(50);
 
-    // collectPotentialMatchCandidates' cap is a default parameter value, not
-    // a named exported constant — read the declared default straight out of
-    // the source, same technique as the STALE_MS assertion above.
-    const potentialMatchesSource = readFileSync(join(SRC_ROOT, 'search', 'potential-matches.ts'), 'utf8');
-    const codeMatch = /export async function collectPotentialMatchCandidates\([\s\S]*?limit\s*=\s*(\d+)/.exec(
-      potentialMatchesSource,
-    );
-    if (codeMatch?.[1] === undefined) {
-      throw new Error(
-        'search/potential-matches.ts: could not find collectPotentialMatchCandidates\' default `limit` parameter — has the signature changed shape?',
-      );
+    // This used to regex the declared default out of the source, because the cap
+    // "is a default parameter value, not a named exported constant". D043 made it
+    // one — the same 50 now governs mast_signature, mast_implementors and
+    // mast_exports as well — so the assertion reads the binding directly. That is
+    // strictly stronger: a regex over source text cannot tell a renamed constant
+    // from a deleted one, and it was this test's own brittleness that flagged the
+    // change rather than any behaviour.
+    expect(documented).toBe(DEFAULT_RESULT_LIMIT);
+  });
+
+  it('§9.0 the capped read tools share ONE cap, not four agreeing literals (D043)', () => {
+    const spec = readSpec();
+
+    // The spec's confidence-signals row promises these three tools cap at "the same
+    // constant `potential_matches` uses". That is a claim about code, so it is checked
+    // against code: every tool imports DEFAULT_RESULT_LIMIT rather than writing 50.
+    for (const tool of ['signature', 'implementors', 'exports']) {
+      const src = readFileSync(join(SRC_ROOT, 'mcp', 'tools', `${tool}.ts`), 'utf8');
+      expect(src, `${tool}.ts should read the shared cap`).toContain('DEFAULT_RESULT_LIMIT');
+      expect(src, `${tool}.ts should not hard-code a page size`).not.toMatch(/limit\s*=\s*\d+/);
     }
-    expect(documented).toBe(Number(codeMatch[1]));
+    expect(spec).toContain('`results_truncated` / `exports_truncated`');
   });
 
   it('§14.2 per-call tokenize budget (32) ↔ FULL_FILE_TOKENIZE_BUDGET_PER_CALL', () => {

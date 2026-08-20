@@ -6,7 +6,7 @@ import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { queryImplementors } from '../../graph/queries.js';
 import { findStaleFiles } from '../staleness.js';
-import { isIndexEmpty } from './_helpers.js';
+import { isIndexEmpty, DEFAULT_RESULT_LIMIT } from './_helpers.js';
 
 export function registerImplementorsTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -14,11 +14,18 @@ export function registerImplementorsTool(server: McpServer, ctx: AppContext): vo
     'All classes that implement a named interface, with the list of methods each class provides.',
     {
       interface_name: z.string().describe('Name of the interface to find implementors of'),
+      limit: z.number().int().min(1).max(500).optional().describe('Max implementors to return (default: 50). The response reports the real total in `results_truncated` when it caps.'),
     },
     async (args) => {
       const start = Date.now();
 
-      const results = await queryImplementors(ctx.db, args.interface_name);
+      const allResults = await queryImplementors(ctx.db, args.interface_name);
+
+      // D043. Capped before the staleness stat below, so a truncated response
+      // does not pay to stat files it will not mention.
+      const limit = args.limit ?? DEFAULT_RESULT_LIMIT;
+      const results = allResults.slice(0, limit);
+      const resultsTruncated = allResults.length > limit ? allResults.length : undefined;
 
       const filesReferenced = [...new Set(results.map((r) => r.file_path))];
       // F7/C1: stat-and-flag, not JIT refresh — surfaced as `stale`, not
@@ -45,6 +52,7 @@ export function registerImplementorsTool(server: McpServer, ctx: AppContext): vo
         : {};
       const response: ImplementorsResponse = {
         results: flaggedResults,
+        ...(resultsTruncated !== undefined ? { results_truncated: resultsTruncated } : {}),
         ...indexEmptyField,
         _stats: buildToolStats('mast_implementors', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };

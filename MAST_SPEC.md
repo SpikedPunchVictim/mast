@@ -1047,9 +1047,10 @@ across all MCP tools, and what to do with each one:
 | `index_empty` | Every primary-result read tool's envelope (M6) | Nothing is indexed at all — the empty result set is not "no match", it is "no index (yet)". | Run `mast init`/`mast index`, or — if a startup reindex is in progress — wait and retry. |
 | `truncated` | `TypeContextEntry` (`mast_signature`'s `type_context`) | This referenced type's declaration was clipped at the 50-line cap. | Re-read the file directly (or call `mast_exports`/a narrower `mast_signature` query) for the full declaration if the clipped portion matters. |
 | `potential_truncated` | `CallersResponse.summary` / `RenameImpactResponse.summary` (`mast_callers`, `mast_rename_impact`) | The `identifier_fts` fetch behind `potential_matches` is capped at 50 entries; this carries the real, uncapped match count when the cap is hit (F10, Stage 3). Reports RAW fetch truncation only — `potential_matches` may still be smaller than the cap even when this field is present, because verified-overlap exclusion and checker-verdict filtering run AFTER the capped fetch (already visible via `checker_classified_*`). | The potential set is incomplete — narrow the query, or run `mast index --checker` to classify candidates away. |
+| `results_truncated` / `exports_truncated` | `SignatureResponse` / `ImplementorsResponse` / `ExportsResponse` envelopes (`mast_signature`, `mast_implementors`, `mast_exports`) | The result list is capped at `limit` (default 50, the same constant `potential_matches` uses); this carries the real, uncapped total when the cap is hit (D043). Unlike `potential_truncated` there is no post-cap filtering, so the returned page is always exactly `limit` long when this field is present. | A first page, not the answer. Pass a larger `limit` (max 500), or narrow with `file_path`. Before D043 these tools were unbounded: `mast_signature{symbol:'execute'}` over a 14k-file monorepo returned 580 declarations / 331k tokens in 78 s, which over MCP exceeded the client timeout and returned nothing. |
 
-`file_busy_returning_stale_cache`, `stale`, `index_empty`, and
-`potential_truncated` all follow the same **omitted-when-false /
+`file_busy_returning_stale_cache`, `stale`, `index_empty`,
+`potential_truncated`, `results_truncated` and `exports_truncated` all follow the same **omitted-when-false /
 present-only-when-true** convention (never present-and-false) established
 above — `potential_truncated`'s "false" case is "the fetch came back under
 the cap," where the fetch count already IS the real count. `resolution` and
@@ -1225,9 +1226,14 @@ All exported symbols from a single file with type signatures. No function bodies
 **Input:**
 ```json
 {
-  "file_path": "api/services/auth/src/index.ts"
+  "file_path": "api/services/auth/src/index.ts",
+  "limit": 50
 }
 ```
+
+`limit` is optional (default 50, max 500). When the file exports more than
+`limit` symbols the response carries `exports_truncated` with the real total —
+see §9.0's confidence-signals table (D043).
 
 **Output:** array of `Export`
 ```json
@@ -1266,14 +1272,22 @@ Declaration, TSDoc, and resolved parameter type context for a named symbol.
 ```json
 {
   "symbol": "handleLogin",
-  "file_path": "api/services/auth/src/handler.ts"
+  "file_path": "api/services/auth/src/handler.ts",
+  "limit": 50
 }
 ```
 
-`file_path` is optional. When omitted, all matching symbols across the codebase are
-returned. If multiple matches are found and the caller only expects one, pass `file_path`
-to disambiguate. There is no "first match" shortcut — an ambiguous query always returns
-the full match set so the agent can choose.
+`file_path` is optional. When omitted, matching symbols across the codebase are returned.
+If multiple matches are found and the caller only expects one, pass `file_path` to
+disambiguate. There is no "first match" shortcut — an ambiguous query returns the match
+set so the agent can choose, **up to `limit`** (default 50, max 500).
+
+**This paragraph used to promise "the full match set", and that promise was the defect
+(D043).** Uncapped, a common method name in a large monorepo returned 580 declarations and
+331k tokens after 78 seconds — and over MCP it exceeded the client's timeout and returned
+nothing at all, so the guarantee was not merely expensive, it was unkeepable. When the cap
+is hit the response carries `results_truncated` with the real total, so a first page is
+still distinguishable from a complete answer.
 
 **Output:** `SignatureResult[]` — always an array, even for a single match.
 ```json
@@ -1522,9 +1536,14 @@ Concrete classes that implement a given interface.
 **Input:**
 ```json
 {
-  "interface_name": "AuthRepository"
+  "interface_name": "AuthRepository",
+  "limit": 50
 }
 ```
+
+`limit` is optional (default 50, max 500). A widely-implemented interface exceeds it
+easily — `INodeType` in n8n has 625 implementors — and the response then carries
+`results_truncated` with the real total (D043).
 
 **Output:** array of `ImplementorResult`
 ```json

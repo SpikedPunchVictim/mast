@@ -303,6 +303,19 @@ export interface ExportsResponse {
   readonly file_path: string;
   readonly exports: readonly ExportEntry[];
   /**
+   * The REAL, uncapped number of exported symbols in the file, present ONLY when the response was
+   * capped to `limit` — never present-and-equal-to-the-page-size, and never
+   * present when nothing was omitted. Same contract as
+   * `CallersResponse.summary.potential_truncated` (F10), so a caller learns
+   * "this is a first page of N" from one shape across every tool that pages.
+   *
+   * D043: without this, a capped response and a complete one are
+   * indistinguishable, which is a worse failure than the unbounded response it
+   * replaced — the caller would conclude the file exports exactly `limit` symbols.
+   */
+  readonly exports_truncated?: number;
+
+  /**
    * §9.0 TOCTOU policy. `mast_exports` describes exactly one file and JITs it
    * with a single `checkAndRefreshIfStale` call, so staleness is a property
    * of the whole response, not of any one `ExportEntry` — set here rather
@@ -349,6 +362,19 @@ export interface SignatureResult {
 
 export interface SignatureResponse {
   readonly results: readonly SignatureResult[];
+  /**
+   * The REAL, uncapped number of matching declarations, present ONLY when the response was
+   * capped to `limit` — never present-and-equal-to-the-page-size, and never
+   * present when nothing was omitted. Same contract as
+   * `CallersResponse.summary.potential_truncated` (F10), so a caller learns
+   * "this is a first page of N" from one shape across every tool that pages.
+   *
+   * D043: without this, a capped response and a complete one are
+   * indistinguishable, which is a worse failure than the unbounded response it
+   * replaced — the caller would conclude the symbol has exactly `limit` declarations.
+   */
+  readonly results_truncated?: number;
+
   /**
    * §9.0 TOCTOU policy, empty-result case (F14). The busy signal normally
    * rides on each {@link SignatureResult}; with zero results it has no
@@ -587,6 +613,19 @@ export interface ImplementorResult {
 
 export interface ImplementorsResponse {
   readonly results: readonly ImplementorResult[];
+  /**
+   * The REAL, uncapped number of implementors, present ONLY when the response was
+   * capped to `limit` — never present-and-equal-to-the-page-size, and never
+   * present when nothing was omitted. Same contract as
+   * `CallersResponse.summary.potential_truncated` (F10), so a caller learns
+   * "this is a first page of N" from one shape across every tool that pages.
+   *
+   * D043: without this, a capped response and a complete one are
+   * indistinguishable, which is a worse failure than the unbounded response it
+   * replaced — the caller would conclude the interface has exactly `limit` implementors.
+   */
+  readonly results_truncated?: number;
+
   /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `results`. */
   readonly index_empty?: true;
   readonly _stats: ToolStats;

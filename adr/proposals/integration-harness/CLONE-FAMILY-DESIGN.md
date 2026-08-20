@@ -792,3 +792,44 @@ measurement series: no figure here has a repeat count, and the two timings that 
 and 18.4 s) are single observations on a warm cache. They are strong enough to file D043, whose
 claim is structural — *no cap exists in the source* — and not strong enough to be quoted as
 performance characteristics.
+
+
+---
+
+## 14. D043 fixed, 2026-08-20 — §13.1's block is lifted
+
+§13.1 filed D043 OPEN and recorded that it blocked two of §3's planned assertion kinds. It is
+now fixed, so this records what changed for the design rather than leaving the block standing.
+
+**What shipped:** an optional `limit` (default 50, max 500) on `mast_signature`,
+`mast_implementors` and `mast_exports`, plus `results_truncated` / `exports_truncated` carrying
+the real uncapped total on F10's omitted-when-false convention. The cap is **one exported
+constant** shared with `mast_callers`' potential-match cap, not a fourth literal — the defect was
+a cap on one tool of four, and copies would have re-created it.
+
+**Measured against the same index §13.1 measured:**
+
+| call | before | after |
+|---|---|---|
+| `mast_signature {"symbol":"execute"}` | 78 s, 580 results, 331,159 tokens, **MCP: timeout, no answer** | 8 s CLI / **6.7 s MCP**, 50 results, `results_truncated: 580`, **28,547 tokens** |
+| `mast_implementors` on `INodeType` | 0.9 s, 625, 30,213 tokens | 0.9 s, 50, `results_truncated: 625`, **2,853 tokens** |
+| `mast_exports` on `interfaces.ts` | 0.1 s, 370, 23,127 tokens | 50, `exports_truncated: 370`, **2,379 tokens** |
+
+**Consequences for this design:**
+
+- **`signatureResolves` and `implementorsInclude` are unblocked** and can be written. They must
+  read the truncation field: over n8n both tools truncate on the natural inputs, so an assertion
+  that ignores `results_truncated` would silently be asserting over a first page.
+- **`implementorsInclude`'s `count` key changes meaning.** §3 specified "membership + audited
+  count"; the audited count must now be the value of `results_truncated` (625), not
+  `results.length` (50), because the latter is just the page size and would pin nothing.
+- **A golden's caller set must still be low fan-in** (§13.4) — unchanged, and now for a second
+  reason: a high-fan-in golden would pin a truncated page.
+- **The truncation flag is itself newly assertable**, and is the natural host for a scenario the
+  design did not have: *a capped response says it is capped*. That is cheap, it is the
+  distinction between a first page and an answer, and it is exactly the class of signal
+  (`potential_truncated`, `index_empty`, `stale`) this package treats as load-bearing.
+
+**Not claimed:** the fix was measured on one corpus at one pin, single observations. The
+structural claim — three tools now share one cap and report the real total — is what the unit
+tests pin; the timings are supporting figures.

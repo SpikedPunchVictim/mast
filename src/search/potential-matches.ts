@@ -54,6 +54,22 @@ export interface PotentialMatchCandidate {
   readonly chunk_symbol_name: string | null;
 }
 
+/**
+ * The page size every capped read tool uses — `mast_callers` / `mast_rename_impact`'s
+ * potential matches (F10, since 2026-08), and `mast_signature` / `mast_implementors` /
+ * `mast_exports` (D043, 2026-08-20).
+ *
+ * ONE constant, exported and re-exported rather than repeated, and that is the point. D043 was
+ * not "a tool had no cap" — it was a cap applied to the tool where the problem was noticed and
+ * to none of its three siblings. A second literal `50` elsewhere would be the same defect
+ * wearing the same number, and would drift the first time one of them was tuned.
+ *
+ * 50 is inherited from F10 rather than re-derived. It is a page size, not a limit on what
+ * exists: every tool reports the real uncapped total alongside a truncated page, so a caller can
+ * always tell a full answer from a first page.
+ */
+export const DEFAULT_RESULT_LIMIT = 50;
+
 export interface PotentialMatchCandidatesResult {
   readonly candidates: readonly PotentialMatchCandidate[];
   /**
@@ -80,7 +96,7 @@ export async function collectPotentialMatchCandidates(
   chunkSource: ChunkByIdSource,
   symbolName: string,
   verified: readonly VerifiedCaller[],
-  limit = 50,
+  limit = DEFAULT_RESULT_LIMIT,
 ): Promise<PotentialMatchCandidatesResult> {
   const identRows = await searchIdentifiers(db, symbolName, limit);
   const chunks = await chunkSource.getChunksByIds(identRows.map((r) => r.chunk_id));
@@ -142,7 +158,7 @@ export async function collectPotentialMatches(
   symbolId: number,
   symbolName: string,
   verified: readonly VerifiedCaller[],
-  limit = 50,
+  limit = DEFAULT_RESULT_LIMIT,
 ): Promise<PotentialMatchesResult> {
   const { candidates, truncatedMatchCount } = await collectPotentialMatchCandidates(db, chunkSource, symbolName, verified, limit);
   const verdicts = await queryCheckerVerdicts(db, symbolId);
