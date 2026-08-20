@@ -16,6 +16,10 @@ export default {
   project: 'fixture',
   description: 'A case-only directory rename must not silently empty verified_callers (D023).',
   tags: ['mutation', 'calibration'],
+  // Both spellings of the renamed directory. On a case-insensitive filesystem the walk reports
+  // whichever casing is on disk at the time, so both subtrees are declared rather than guessing
+  // which one a given step will see.
+  writeSet: ['src/DeepDir/**', 'src/deepdir/**'],
   requires: 'case-insensitive-filesystem',
   expectFailOn: ['local-broken-d023-miscased-import'],
   steps: [

@@ -9,6 +9,7 @@ import { runMast } from './exec.mjs';
 import { evaluateAssert, evaluateExpect, captureCounts } from './assert.mjs';
 import { applyMutation } from './mutations.mjs';
 import { callMcpTool } from './mcp-client.mjs';
+import { snapshotTree, diffSnapshots, undeclaredWrites } from './writeset.mjs';
 
 export async function runScenario(scenario, ctx) {
   const { installRoot, workingDir, target, log = () => {} } = ctx;
@@ -16,6 +17,13 @@ export async function runScenario(scenario, ctx) {
   const saved = new Map();
   const steps = [];
   let pass = true;
+
+  // The declared write-set is checked after EVERY step, not once at the end, so the failure
+  // names the step that caused it. `writeSet` is required by spec-validate, so this is a
+  // universal implicit assertion on every scenario — which is what makes a scenario whose
+  // asserts all pass still capable of failing (LEDGER D041).
+  const declared = scenario.writeSet;
+  let treeBefore = snapshotTree(workingDir);
 
   try {
     for (let i = 0; i < scenario.steps.length; i++) {
@@ -50,6 +58,32 @@ export async function runScenario(scenario, ctx) {
         record = { index: i, kind: 'assert', spec: step.assert, pass: p, failures };
       } else {
         throw new Error(`step ${i} has no recognised action — spec-validate should have caught this`);
+      }
+
+      // Who moved the filesystem, and were they allowed to?
+      const treeAfter = snapshotTree(workingDir);
+      const stray = undeclaredWrites(diffSnapshots(treeBefore, treeAfter), declared);
+      treeBefore = treeAfter;
+      if (stray.length > 0) {
+        if (record.kind === 'mutate') {
+          // The scenario's own mutation touched something it did not declare. That is a
+          // statement about the SCENARIO, so it is ERROR — a mis-declared scenario must not be
+          // reported as a defect in mast.
+          throw new Error(
+            `step ${i} (mutate ${step.mutate.kind}) wrote outside the declared writeSet: ${stray.join(', ')}. ` +
+            `Declared: ${declared.length === 0 ? '(nothing)' : declared.join(', ')}. ` +
+            `Either the mutation is wrong or the declaration is — the harness cannot tell which, so this is ERROR, not FAIL.`,
+          );
+        }
+        // A mast command changed the indexed project. THIS is the assertion the write-set
+        // exists for: LEDGER.md's severity-zero rests on "mast never writes to the user's
+        // source", and until this line nothing checked it.
+        record.pass = false;
+        record.failures = [
+          ...record.failures,
+          `mast wrote into the indexed project outside the declared writeSet: ${stray.join(', ')}. ` +
+          `The state dir is excluded from this check, so these are writes to SOURCE.`,
+        ];
       }
 
       steps.push(record);

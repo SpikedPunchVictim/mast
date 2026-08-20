@@ -7,6 +7,9 @@ export default {
   project: 'fixture',
   description: 'Moving a declaration re-homes it: found at the new path, absent from the old, callers intact.',
   tags: ['mutation', 'core'],
+  // The three paths this scenario disturbs, and nothing else. Anything mast writes into the
+  // project beyond these fails the scenario (D041).
+  writeSet: ['src/alpha.ts', 'src/moved/alpha.ts', 'src/beta.ts'],
   steps: [
     { install: 'target' },
     { run: 'index .', expect: { exit: 0, stdoutContains: 'files:' } },

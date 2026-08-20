@@ -26,6 +26,20 @@ function sha256(path) {
  * above runs FIRST, so what gets broken is provably our own build.
  */
 const BREAKAGES = {
+  // A CONSTRUCTED fault, not a ledger revert, and the run record must keep saying so: it proves
+  // the harness can see THIS fault, not that any real defect of the class was ever caught. It
+  // exists to calibrate the declared write-set (D041), whose FAIL branch asserts the premise
+  // LEDGER.md's severity zero rests on — "mast never writes to the user's source". No shipped
+  // defect has ever made mast write into an indexed project, so there is no revert to pin it
+  // with; without a constructed one the branch would be enforced and never observed firing.
+  'writes-into-source': {
+    file: 'dist/cli/index-cmd.js',
+    from: '        process.stdout.write(`files: ${result.filesIndexed} indexed',
+    to: '        (await import(\'node:fs\')).writeFileSync(\'mast-stray-write.txt\', \'written into the indexed project\');\n'
+      + '        process.stdout.write(`files: ${result.filesIndexed} indexed',
+    why: 'CONSTRUCTED — makes `mast index` drop a file into the project root, so the declared '
+       + 'write-set has an observable red. Pins: any scenario whose writeSet omits it.',
+  },
   'd023-miscased-import': {
     file: 'dist/indexer/import-resolver.js',
     from: 'return realpathSync.native(path);',

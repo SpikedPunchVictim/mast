@@ -13,7 +13,12 @@ export async function callMcpTool(installRoot, workingDir, tool, args) {
 
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [mastEntryPath(installRoot), 'serve', workingDir],
+    // NO positional argument. `mast serve` (`src/cli/serve.ts`) registers `--state-dir`,
+    // `--no-startup-reindex` and `--watch` and takes ZERO positionals; passing the working
+    // directory made commander exit "too many arguments for 'serve'" before the transport ever
+    // spoke, so every `mcpCall` step failed as an unrunnable ERROR (LEDGER D042). The project
+    // root comes from `cwd`, set below, which always did the job.
+    args: [mastEntryPath(installRoot), 'serve'],
     cwd: workingDir,
     env: sanitizeEnv(process.env),
   });
@@ -36,7 +41,12 @@ export async function listMcpTools(installRoot, workingDir) {
   const { StdioClientTransport } = await import(require.resolve('@modelcontextprotocol/sdk/client/stdio.js'));
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [mastEntryPath(installRoot), 'serve', workingDir],
+    // NO positional argument. `mast serve` (`src/cli/serve.ts`) registers `--state-dir`,
+    // `--no-startup-reindex` and `--watch` and takes ZERO positionals; passing the working
+    // directory made commander exit "too many arguments for 'serve'" before the transport ever
+    // spoke, so every `mcpCall` step failed as an unrunnable ERROR (LEDGER D042). The project
+    // root comes from `cwd`, set below, which always did the job.
+    args: [mastEntryPath(installRoot), 'serve'],
     cwd: workingDir,
     env: sanitizeEnv(process.env),
   });

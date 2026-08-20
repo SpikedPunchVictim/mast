@@ -8,6 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { ASSERT_KINDS } from './assert.mjs';
 import { knownMutations } from './mutations.mjs';
+import { validateWriteSetEntry } from './writeset.mjs';
 
 const KNOWN_STEP_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert', 'expect', 'label'];
 const KNOWN_ACTION_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert'];
@@ -25,6 +26,19 @@ export function validateScenario(scenario, sourcePath) {
     if (typeof scenario[key] !== 'string' || scenario[key].length === 0) fail(`'${key}' must be a non-empty string`);
   }
   if (!Array.isArray(scenario.steps) || scenario.steps.length === 0) fail(`'steps' must be a non-empty array`);
+
+  // REQUIRED, and an empty array is a legitimate declaration meaning "this scenario disturbs
+  // nothing" — the strongest form. What is rejected is OMITTING it, because a missing write-set
+  // and a write-set of nothing are indistinguishable to a reader and only one of them was
+  // thought about. Fail-closed is the whole point: align's harness gets its universal implicit
+  // assertion from exactly this (see `validateHasAssertions` below).
+  if (!Array.isArray(scenario.writeSet)) {
+    fail(`'writeSet' is required and must be an array — declare [] if the scenario disturbs nothing. An omitted write-set fails open, which is the one direction this guard must never fail (LEDGER D041)`);
+  }
+  scenario.writeSet.forEach((entry, i) => {
+    const problem = validateWriteSetEntry(entry);
+    if (problem !== null) fail(`writeSet[${i}] ${problem}`);
+  });
 
   scenario.steps.forEach((step, i) => {
     for (const key of Object.keys(step)) {
@@ -69,9 +83,13 @@ export function validateScenario(scenario, sourcePath) {
 
 /**
  * A scenario that never asserts anything cannot fail, and a suite of them reports green forever.
- * align does not need this guard — its fail-closed write-set is a universal implicit assertion on
- * every scenario. mast's write-set is an allowlist over a state dir that changes on every command,
- * so it does not backstop the same way, and the guard has to be explicit.
+ *
+ * This guard was originally justified by mast's write-set NOT backstopping the way align's does.
+ * That justification is now void: the write-set is required, enforced after every step, and
+ * excludes only the state dir, so it IS a universal implicit assertion again (D041). The guard
+ * is kept anyway, on narrower grounds — a scenario that only ever asserts "nothing unexpected
+ * moved" is a fine tripwire but a poor test, and this keeps an author from mistaking the
+ * backstop for coverage.
  */
 function validateHasAssertions(scenario, fail) {
   const asserts = scenario.steps.filter((s) => s.assert !== undefined).length;

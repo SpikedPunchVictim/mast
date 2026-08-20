@@ -6,8 +6,15 @@ then believes. No AI in the loop: every assertion is a plain data comparison.
 
 ## Status: green, and calibrated
 
-Both scenarios pass against a correct build, and `case-only-rename-keeps-callers` still fails
-against `local-broken-d023-miscased-import` — so the suite is known to be capable of going red.
+Three scenarios pass against a correct build. Two calibration pins hold, and they are **not of
+equal strength** — the distinction is recorded rather than blurred, because a pin against a
+constructed fault reads exactly like a pin against a real defect in a green summary:
+
+| pin | kind | proves |
+|---|---|---|
+| `case-only-rename-keeps-callers` → `local-broken-d023-miscased-import` | **ledger revert** — D023's exact one-word regression | the harness can see a defect that really shipped |
+| `index-does-not-write-into-source` → `local-broken-writes-into-source` | **constructed** | the write-set guard can see the fault built for it. No shipped defect ever made mast write to source, so there is nothing real to revert. |
+
 A run that exercises no pinned-red pair says so explicitly and calls its own green uncalibrated.
 
 `move-file-preserves-symbols` was red from its first run until 2026-08-19. That was never a
@@ -47,6 +54,13 @@ node integration/run.mjs --targets local,local-broken-d023-miscased-import   # t
   the installed `dist/cli/index.js` must hash-match the working tree's. A version string is not
   evidence: between a publish and the next bump, the registry and the working tree report the
   same number.
+- **Declared write-sets, enforced.** Every scenario declares `writeSet` — required, with `[]`
+  the strongest form — and the working copy is diffed after *every step*, so a failure names the
+  step that caused it. The state dir is never walked (mast rewrites it by design), so what is
+  checked is writes to **source**. The two causes are kept apart: an undeclared write after a
+  `mutate` is the scenario mis-declaring itself (ERROR); after a mast command it is mast writing
+  into the indexed project (FAIL). That second branch asserts the premise this package's
+  severity-zero definition is derived from, and which nothing checked until D041.
 - **A scenario that cannot fail is rejected at load.** `spec-validate.mjs` enforces closed key
   vocabularies, rejects empty `expect` blocks and empty-string matchers, rejects duplicate
   top-level keys by reading the source text, and refuses any scenario with no `assert` and no
