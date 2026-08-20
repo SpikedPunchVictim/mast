@@ -105,6 +105,29 @@ The last line is real accounting, not a slogan: every response carries `_stats` 
 it returned and an upper bound on reading the referenced files whole. On a small file the
 saving can be *negative*, and MAST says so rather than rounding it into a win.
 
+An answer that MAST cannot fully stand behind says so, on the same surface that shows the
+result. A file edited since it was indexed is marked, because the body printed under it is
+the *old* one:
+
+```
+! 1 of 2 results are from files that changed since indexing —
+  the code shown below may be out of date. Run `mast index` to refresh.
+
+src/a.ts:1  alphaFunction  function  (exported)  [STALE]
+```
+
+And an empty answer distinguishes the two reasons it can be empty:
+
+```
+$ mast search "kept_symbol"
+no matches (mast indexes TypeScript, JavaScript, and Markdown only —
+a symbol in any other language is invisible to it, not absent from the repo)
+
+$ mast search "anything"          # in a directory with no index
+nothing is indexed at this path — this is not evidence the symbol is absent.
+run `mast index` first, or check `mast status` for the path being used.
+```
+
 Narrow it with `--type`, `--language`, `--exported`, `--file`, `-n`:
 
 ```bash

@@ -46,6 +46,16 @@ interface SearchHit {
   readonly chunk_type?: string;
   readonly is_exported?: boolean;
   readonly content?: string;
+  // PER-RESULT, not top-level — `mcp/tools/search.ts:43` spreads it into each hit
+  // whose file has changed since indexing. The formatter's top-level signal scan
+  // therefore cannot see it, which is the whole of defect D029.
+  readonly stale?: boolean;
+}
+
+/** Zero-result assist emitted by `mast_search`; dropping it silently was part of D029. */
+interface SearchSuggestion {
+  readonly symbol?: string;
+  readonly file_path?: string;
 }
 
 /**
@@ -59,6 +69,10 @@ interface SearchHit {
 export function formatSearchResults(responseText: string): string {
   const res = JSON.parse(responseText) as {
     results?: readonly SearchHit[];
+    suggestions?: readonly SearchSuggestion[];
+    // `mast_search` sets this only on the empty-result path (M6, ADR 008). Without
+    // it, "the index is empty" and "this symbol does not exist" print identically.
+    index_empty?: boolean;
     // Field names taken from a captured `mast_search` response, not from memory —
     // an earlier version of this file guessed `returned_tokens`/`full_file_tokens`
     // and silently printed nothing, because the guess only ever met a hand-written
@@ -68,19 +82,45 @@ export function formatSearchResults(responseText: string): string {
   };
   const lines: string[] = [];
 
+  // Top-level flags. `mast_search` emits none of these — it reserves
+  // `file_busy_returning_stale_cache` for the other tools (mcp/tools/search.ts:33) —
+  // so this branch is kept for shape compatibility and is NOT what protects search.
+  // The three signals search really emits are handled below.
   const signals = Object.keys(res).filter(
     (k) => /^(file_busy|stale|index_stale|truncated|potential_truncated)/.test(k) && res[k] === true,
   );
   if (signals.length > 0) lines.push(`! ${signals.join(', ')} — this answer may be incomplete`, '');
 
   const hits = res.results ?? [];
+  const staleHits = hits.filter((h) => h.stale === true).length;
+  if (staleHits > 0) {
+    lines.push(
+      `! ${String(staleHits)} of ${String(hits.length)} results are from files that changed since indexing —`,
+      `  the code shown below may be out of date. Run \`mast index\` to refresh.`,
+      '',
+    );
+  }
+
   if (hits.length === 0) {
-    lines.push('no matches');
+    if (res.index_empty === true) {
+      // The M6 case (ADR 008): an answer that is empty because the system has
+      // nothing to answer FROM must not read like a searched-and-not-found.
+      lines.push('nothing is indexed at this path — this is not evidence the symbol is absent.');
+      lines.push('run `mast index` first, or check `mast status` for the path being used.');
+    } else {
+      lines.push('no matches (mast indexes TypeScript, JavaScript, and Markdown only —');
+      lines.push('a symbol in any other language is invisible to it, not absent from the repo)');
+    }
+    for (const g of res.suggestions ?? []) {
+      lines.push(`  did you mean: ${g.symbol ?? '?'}${g.file_path !== undefined ? `  (${g.file_path})` : ''}`);
+    }
   } else {
     for (const h of hits) {
       const where = `${h.file_path ?? '?'}:${String(h.start_line ?? '?')}`;
       const what = [h.symbol_name, h.chunk_type].filter(Boolean).join('  ');
-      lines.push(`${where}  ${what}${h.is_exported === true ? '  (exported)' : ''}`);
+      const marks = [h.is_exported === true ? '(exported)' : '', h.stale === true ? '[STALE]' : '']
+        .filter(Boolean).join('  ');
+      lines.push(`${where}  ${what}${marks === '' ? '' : `  ${marks}`}`);
       for (const l of (h.content ?? '').split('\n')) lines.push(`    ${l}`);
       lines.push('');
     }
@@ -89,7 +129,10 @@ export function formatSearchResults(responseText: string): string {
   const s = res._stats;
   const got = s?.tokens_returned;
   const whole = s?.tokens_full_file_upper_bound;
-  if (got !== undefined && whole !== undefined) {
+  // Only meaningful when something matched: with no results the bound is 0 and the
+  // line renders "7 tokens returned vs 0 — 0% MORE", a comparison against nothing
+  // printed as a verdict.
+  if (hits.length > 0 && got !== undefined && whole !== undefined) {
     // `tokens_full_file_upper_bound` is a bound on reading the referenced files
     // whole. On small files a ranked result set can exceed it, and the saving is
     // then negative — reported as such rather than clamped, because a tool whose
