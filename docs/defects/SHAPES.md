@@ -12,7 +12,7 @@ it into the review brief. Copy the questions, not the prose, and not the whole f
 
 ## S-01 — Damage that leaves the exit code alone
 
-**Instances**: D002, D003, D012, D022. **Rung**: brief, with one instance promoted (below).
+**Instances**: D002, D003, D012, D022, D038. **Rung**: brief, with one instance promoted (below).
 
 The package's own operating manual calls this the worst class most systems have, and it is the one
 `mast` is structurally most exposed to: an index is a *derived* artifact, so nothing downstream can
@@ -90,7 +90,7 @@ The tell is that each was *internally* consistent. Nothing inside the document c
 
 ## S-04 — A confident claim about code nobody opened
 
-**Instances**: D004, D005, D009, D020. **Rung**: brief.
+**Instances**: D004, D005, D009, D020, D039, D040, D041. **Rung**: brief.
 
 The richest family here, and the one that produced this package's only two S0s. D009 had two
 documents describing a third file's behaviour exactly backwards. D004's four call sites assumed
@@ -107,6 +107,35 @@ because the person best placed to check it is the person who wrote it.
 
 > **Ask**: does the proposed explanation for this wrong value actually *reproduce* the wrong value?
 > If it does not, it is a story, not a diagnosis.
+
+### A sub-shape, and a partial promotion (2026-08-20)
+
+D039, D040 and D041 landed the same day and are narrower than the four above: not *a claim about
+code nobody opened*, but **a comment asserting a property that nothing anywhere implements**.
+D039's TSDoc said a counter "exists only so the rejection is visible" and no surface printed it.
+D040's said an invariant was "true for every case that reaches here" and nothing enforced it —
+verified reachable-in-principle, unreached in practice over 19,186 files. D041 is ADR 015 listing
+declared write-sets among the disciplines "carried over unchanged", where the key is accepted by
+the validator and read by nothing.
+
+These survive for a different reason than the parent shape: the claim is not about *distant* code,
+it is adjacent to the thing it describes — the position a reviewer is least likely to check,
+because proximity reads as authorship.
+
+**Promoted in part.** The decidable half is narrow but real, and worth a test rather than a
+brief: *a field documented as reaching a user surface must have a consumer outside its own
+module.* D039 was visible to `grep -rn staleWriteRejections src --include='*.ts'` — two test
+fixtures and nothing else — and D041 to the same grep over `integration/`. That is an AST/grep
+matrix test of the kind §5.6 endorses (one file, N assertions, automatic coverage as new code
+ships), and it is the shape's cheapest rung.
+
+**The rest is declined, with the reason.** D040's half is not decidable: "this comment asserts an
+invariant nothing enforces" requires understanding what the invariant *is*. The general instruction
+— open the code and confirm — stays a brief, and stays first.
+
+> **Ask**: this comment says a value is visible, reported, surfaced, or enforced. Name the line
+> that does it. If the only lines naming the value are its own declaration and a test fixture, the
+> property is asserted and unimplemented.
 
 ---
 

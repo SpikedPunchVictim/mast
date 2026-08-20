@@ -198,6 +198,27 @@ describe('remapIdentifierRows', () => {
     expect(remapped[1]!.chunk_id).not.toBe(shared);
   });
 
+  // The FIFO this replaced matched rows to chunks by walking a per-original-id queue,
+  // which is exact ONLY while every chunk in a collision group also produced a row. That
+  // invariant was asserted in a doc comment and implemented nowhere: a group whose first
+  // chunk emitted no row silently shifted every later row onto the WRONG chunk, and both
+  // ids are real, so nothing downstream could detect it. Measured over n8n at its pinned
+  // SHA (19,056 files, 4 collision groups) and mast's own src (130 files): zero
+  // violations — the invariant does hold today. It is made structural here so that it
+  // does not rest on an argument about a 1,637-line extractor (D040).
+  it('refuses a row list that is not one-per-chunk instead of misattributing it', () => {
+    const shared = chunkId('f.ts', 2);
+    const original: Chunk[] = [
+      mkChunk({ chunk_id: shared, start_line: 2, symbol_name: 'silent' }),
+      mkChunk({ chunk_id: shared, start_line: 2, symbol_name: 'speaks' }),
+    ];
+    const deduped = dedupeChunkIds(original);
+    // One row for two chunks — the shape the old FIFO accepted and mis-keyed.
+    const rows: IdentifierRow[] = [{ chunk_id: shared, identifiers: 'speaks' }];
+
+    expect(() => remapIdentifierRows(original, deduped, rows)).toThrow(/one identifier row per chunk/);
+  });
+
   it('passes non-colliding rows through untouched', () => {
     const original: Chunk[] = [mkChunk({ chunk_id: chunkId('f.ts', 1), start_line: 1 })];
     const deduped = dedupeChunkIds(original);

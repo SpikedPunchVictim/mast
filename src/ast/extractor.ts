@@ -44,6 +44,13 @@ export interface FileExtraction {
   readonly symbols: readonly SymbolRecord[];
   readonly imports: readonly ImportRecord[];
   readonly edges: readonly EdgeRecord[];
+  /**
+   * Either empty, or **exactly one row per chunk, in chunk order** — including
+   * chunks whose identifier bag is empty. `extractFile` relies on that positional
+   * correspondence to re-key rows after `dedupeChunkIds`, and drops the empty ones
+   * afterwards; a partial list cannot be re-keyed, because `chunk_id` does not
+   * identify a chunk uniquely before dedup (D040).
+   */
   readonly identifierRows: readonly IdentifierRow[];
   readonly starReExports: readonly StarReExportRecord[];
 }

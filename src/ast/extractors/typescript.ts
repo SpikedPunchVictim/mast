@@ -109,7 +109,12 @@ export class TypeScriptExtractor implements LanguageExtractor {
         ? qualifiedMentionsByFromName.get(chunk.symbol_name) ?? []
         : [];
       const identifiers = appendQualifiedCompounds(base, [...ownQualified, ...mentionQualified]);
-      return identifiers.length > 0 ? [{ chunk_id: chunk.chunk_id, identifiers }] : [];
+      // ONE row per chunk, in chunk order, even when the bag is empty. The empty
+      // ones are dropped in `extractFile` AFTER `remapIdentifierRows` has used the
+      // positional correspondence to re-key them (D040) — dropping them here is what
+      // made the correspondence partial, and a partial correspondence cannot be
+      // reconstructed from `chunk_id` alone once two chunks share one.
+      return [{ chunk_id: chunk.chunk_id, identifiers }];
     });
 
     return { language, chunks, symbols, imports, edges, identifierRows, starReExports };

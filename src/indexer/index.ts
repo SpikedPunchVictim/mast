@@ -354,6 +354,14 @@ export async function runIndex(
   }
 
   let filesIndexed = 0;
+  /**
+   * Files parsed and queued for a write. NOT `filesIndexed` — a queued file
+   * whose write then fails never lands, and conflating the two is what made
+   * `files: N indexed` and `files_indexed: N` overstate the index (D038).
+   * Kept solely so `onProgress` still advances during the parse phase, which
+   * is where the wall-clock is spent on a large batch.
+   */
+  let filesQueued = 0;
   let parseErrors = 0;
   let writeErrors = 0;
   let staleWriteRejections = 0;
@@ -416,15 +424,17 @@ export async function runIndex(
           filesStable++;
         } else {
           parsed.push({ entry, result, mtime: preParseMtime });
-          chunksAdded += result.chunks.length;
-          filesIndexed++;
+          // `filesIndexed` / `chunksAdded` are NOT incremented here. Both are
+          // counted in the write loop below, once `populateFile` reports the
+          // write actually landed — see D038.
+          filesQueued++;
         }
       } catch (err) {
         process.stderr.write(`[mast] WARN: parse error in ${entry.path}: ${String(err)}\n`);
         parseErrors++;
         failedPaths.add(entry.relativePath);
       }
-      options.onProgress?.(filesIndexed + filesStable + parseErrors, toIndex.length);
+      options.onProgress?.(filesQueued + filesStable + parseErrors, toIndex.length);
     }
 
     phase.parse += Date.now() - batchParseStart;
@@ -490,6 +500,12 @@ export async function runIndex(
             continue;
           }
           chunksRemoved += removed;
+          // Counted HERE, not in the parse loop: this is the first point at
+          // which the file is known to be in the index (D038). A stale-write
+          // rejection `continue`s above and a write failure `continue`s below,
+          // so neither reaches this line.
+          filesIndexed++;
+          chunksAdded += result.chunks.length;
         } catch (err) {
           process.stderr.write(`[mast] ERROR: chunk store write failed for ${entry.path} — file will be absent from the index: ${String(err)}\n`);
           writeErrors++;

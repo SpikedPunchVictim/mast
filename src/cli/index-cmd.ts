@@ -218,6 +218,7 @@ export function registerIndexCommand(program: Command): void {
         `  duration: ${result.durationMs}ms` +
         (result.parseErrors > 0 ? `  parse_errors: ${result.parseErrors}` : '') +
         (result.writeErrors > 0 ? `  write_errors: ${result.writeErrors}` : '') +
+        (result.staleWriteRejections > 0 ? `  stale_write_rejections: ${result.staleWriteRejections}` : '') +
         (result.miscasedImports.count > 0 ? `  miscased_imports: ${result.miscasedImports.count}` : '') +
         '\n',
       );

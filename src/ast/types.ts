@@ -606,6 +606,14 @@ export interface ReindexResult {
   readonly parse_errors: number;
   readonly write_errors: number;
   /**
+   * Files whose write was refused by the monotonic write-guard because the
+   * stored row already carried a newer mtime. NOT a failure — the index is
+   * correct — but the file was not written by THIS run, so it is excluded
+   * from `files_indexed` and reported here instead of vanishing from the
+   * accounting entirely (D039).
+   */
+  readonly stale_write_rejections: number;
+  /**
    * Count of imports that resolved only because the filesystem ignored their
    * casing — broken on a case-sensitive filesystem. The count alone travels on
    * the wire; `mast index` prints the offending files.

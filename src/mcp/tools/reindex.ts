@@ -35,6 +35,7 @@ export function toReindexResult(result: IndexResult): ReindexResult {
     chunks_removed:  result.chunksRemoved,
     parse_errors:    result.parseErrors,
     write_errors:    result.writeErrors,
+    stale_write_rejections: result.staleWriteRejections,
     miscased_imports: result.miscasedImports.count,
     duration_ms:     result.durationMs,
   };

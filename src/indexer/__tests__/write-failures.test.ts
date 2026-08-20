@@ -147,6 +147,36 @@ describe('chunk-store write failures are loud and correctly classified', () => {
     }
   });
 
+  // `filesIndexed` is the number the CLI prints as "files: N indexed" and the number
+  // `mast_reindex` returns as `files_indexed`. Both words claim the file LANDED. A count
+  // taken in the parse loop counts files QUEUED for a write, which is a different number
+  // whenever a write then fails — and the difference is invisible to every caller.
+  it('files_indexed counts files whose write LANDED, not files queued for one', async () => {
+    writeFileSync(join(dir, 'a.ts'), 'export function ok(): number { return 1; }\n');
+    writeFileSync(join(dir, 'b.ts'), 'export function bad(): number { return 2; }\n');
+    const config = resolveConfig({ projectRoot: dir });
+    const chunkStoreOverride = new FailingChunkStore(new Set(['b.ts']));
+
+    const result = await runIndex(config, { incremental: false, chunkStoreOverride });
+
+    expect(result.filesIndexed).toBe(1);
+  });
+
+  it('chunks_added excludes the chunks of a file whose write failed', async () => {
+    writeFileSync(join(dir, 'a.ts'), 'export function ok(): number { return 1; }\n');
+    writeFileSync(join(dir, 'b.ts'), 'export function bad(): number { return 2; }\n');
+    const config = resolveConfig({ projectRoot: dir });
+
+    const clean = await runIndex(config, { incremental: false });
+    rmSync(join(dir, '.mast'), { recursive: true, force: true });
+    const failed = await runIndex(config, {
+      incremental: false,
+      chunkStoreOverride: new FailingChunkStore(new Set(['b.ts'])),
+    });
+
+    expect(failed.chunksAdded).toBeLessThan(clean.chunksAdded);
+  });
+
   it('a clean run reports write_errors: 0 and does not regress existing counters', async () => {
     writeFileSync(join(dir, 'a.ts'), 'export function ok(): number { return 1; }\n');
     const config = resolveConfig({ projectRoot: dir });

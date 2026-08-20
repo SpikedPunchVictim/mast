@@ -34,6 +34,33 @@ describe('toReindexResult', () => {
     expect(mapped.parse_errors).toBe(4);
   });
 
+  // `staleWriteRejections`' own doc comment says it "exists only so the rejection is
+  // visible instead of silently indistinguishable from an ordinary write (mirrors
+  // `writeErrors`'s precedent)". It was mapped onto no wire field and printed by no
+  // surface, so the property the comment asserted was implemented nowhere (D039).
+  // Every other counter in this fixture holds a different number, so a mis-wired field
+  // cannot coincidentally agree.
+  it('maps staleWriteRejections to stale_write_rejections, distinct from write_errors', () => {
+    const result: IndexResult = {
+      filesIndexed: 3,
+      filesSkipped: 1,
+      chunksAdded: 5,
+      chunksRemoved: 2,
+      parseErrors: 4,
+      writeErrors: 7,
+      staleWriteRejections: 11,
+      miscasedImports: { count: 9, samples: [] },
+      durationMs: 123,
+      appliedPragmas: { cache_size: -2000, mmap_size: 0 },
+      phaseMs: { walk: 1, parse: 2, write: 3, edges: 4, finalise: 5 },
+    };
+
+    const mapped = toReindexResult(result);
+
+    expect(mapped.stale_write_rejections).toBe(11);
+    expect(mapped.write_errors).toBe(7);
+  });
+
   // The wire DTO carries the count only; the samples stay CLI-side. Asserting
   // the value guards the same copy-paste class as write_errors above — every
   // other counter in this fixture holds a different number, so a mis-wired

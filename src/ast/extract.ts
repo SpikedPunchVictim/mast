@@ -79,7 +79,10 @@ export function extractFile(
   // call sites. The first chunk at a given id is left unchanged, so the
   // ~99.97% of files with no collision see zero id churn.
   const chunks = dedupeChunkIds(extraction.chunks);
-  const identifierRows = remapIdentifierRows(extraction.chunks, chunks, extraction.identifierRows);
+  // Re-key BEFORE dropping empties: the re-keying is positional, and filtering
+  // first is what destroys the position (D040).
+  const identifierRows = remapIdentifierRows(extraction.chunks, chunks, extraction.identifierRows)
+    .filter((row) => row.identifiers.length > 0);
 
   return { ...extraction, chunks, identifierRows };
 }
@@ -115,13 +118,22 @@ export function dedupeChunkIds(chunks: readonly Chunk[]): readonly Chunk[] {
  * `chunk_id`s) to the post-dedup ids from `dedupeChunkIds`, so
  * `identifier_fts` rows stay attributable to the right chunk.
  *
- * Matches each row to its origin chunk by walking a per-original-id FIFO
- * queue of post-dedup ids, built in chunk order. This is exact as long as
- * every chunk sharing a colliding id also produced an identifier row — true
- * for every case that reaches here, since `dedupeChunkIds` only renames
- * chunks with substantive (post empty_statement-skip) content, which always
- * contains identifier tokens. A chunk whose id was never duplicated is
- * passed through untouched.
+ * **Positional**, not keyed by `chunk_id` — which is exactly the point. Before
+ * dedup a `chunk_id` does NOT identify a chunk uniquely (that is what dedup is
+ * for), so a row carrying a colliding id names a *group*, not a member. The
+ * previous implementation resolved that ambiguity with a per-id FIFO and was
+ * exact only while every chunk in a group also produced a row — an invariant
+ * stated in this comment and enforced by nothing. It held in practice (measured:
+ * zero violations over n8n at its pinned SHA, 19,056 files / 4 collision groups,
+ * and mast's own src, 130 files), but it rested on an argument about identifier
+ * emission inside a 1,637-line extractor rather than on anything a compiler or a
+ * test could see. `FileExtraction.identifierRows` now carries one row per chunk,
+ * so the correspondence is total and this function is a zip (D040).
+ *
+ * @throws Error if the list is neither empty nor one-per-chunk. That is a broken
+ * extractor contract, not a data condition: it is caught per-file by `runIndex`,
+ * counted as a parse error, and retried — loudly, rather than writing identifier
+ * rows onto the wrong chunk where nothing downstream could detect it.
  */
 export function remapIdentifierRows(
   originalChunks: readonly Chunk[],
@@ -130,19 +142,17 @@ export function remapIdentifierRows(
 ): readonly IdentifierRow[] {
   if (identifierRows.length === 0) return identifierRows;
 
-  const idQueues = new Map<string, string[]>();
-  for (let i = 0; i < originalChunks.length; i++) {
-    const original = originalChunks[i];
-    const deduped = dedupedChunks[i];
-    if (original === undefined || deduped === undefined) continue;
-    const queue = idQueues.get(original.chunk_id);
-    if (queue === undefined) idQueues.set(original.chunk_id, [deduped.chunk_id]);
-    else queue.push(deduped.chunk_id);
+  if (identifierRows.length !== originalChunks.length || dedupedChunks.length !== originalChunks.length) {
+    throw new Error(
+      `identifier row remap requires one identifier row per chunk: got ${identifierRows.length} rows, ` +
+      `${originalChunks.length} chunks, ${dedupedChunks.length} deduped chunks`,
+    );
   }
 
-  return identifierRows.map((row) => {
-    const newId = idQueues.get(row.chunk_id)?.shift();
-    return newId === undefined ? row : { ...row, chunk_id: newId };
+  return identifierRows.map((row, i) => {
+    const deduped = dedupedChunks[i];
+    if (deduped === undefined || deduped.chunk_id === row.chunk_id) return row;
+    return { ...row, chunk_id: deduped.chunk_id };
   });
 }
 
