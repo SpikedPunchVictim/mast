@@ -21,8 +21,80 @@
 
 import Database from 'better-sqlite3';
 import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { median } from './e1-schedule.mjs';
 
+/**
+ * Relative paths that together identify MAST's own source tree, wherever it sits inside
+ * an indexed corpus.
+ *
+ * D026 — WHY A SIGNATURE AND NOT A PATH. This used to be the literal `packages/mast/`,
+ * which encoded the layout of a HOST repository (kluster's monorepo) that this package
+ * does not control. The 2026-08-19 eject moved the package to its own repository root;
+ * the literal stopped matching anything; the path half of `isSelfReferential` went
+ * silently dead, and every test stayed green because none of them asserted that the
+ * literal still described the layout. Pointing the coupling at MAST's own directory
+ * structure moves it to something this repo owns and a test can pin
+ * (`__tests__/harvest-self-referential.test.mjs`).
+ *
+ * Deliberately NOT `package.json`'s `name`: the vendored copy in the pinned eval corpus
+ * (`corpus-kluster` @ 07d705b) is still named `@kluster/mast`, so a name match would
+ * silently miss the very corpus the harvest is most likely to be pointed at.
+ */
+export const MAST_SOURCE_SIGNATURE = [
+  'src/indexer/index.ts',
+  'src/ast/extract.ts',
+  'src/graph/populate.ts',
+  'src/mcp/server.ts',
+  'src/store/config.ts',
+];
+
+/**
+ * Locate MAST's source root within an indexed corpus, as a path prefix.
+ *
+ *   `''`               — MAST *is* the indexed project (dogfooding)
+ *   `'packages/mast/'` — MAST is vendored at a subpath (the pinned corpus)
+ *   `null`            — no MAST source in this corpus
+ *
+ * Requires EVERY signature path to be present and to agree on one prefix. A partial
+ * match returns null rather than a guess: it is indistinguishable from a coincidence or
+ * a moved layout, and "I could not locate MAST" is the honest answer to both.
+ */
+export function deriveMastPrefix(indexedPaths) {
+  const prefixes = new Set();
+  for (const sig of MAST_SOURCE_SIGNATURE) {
+    const matches = indexedPaths.filter((p) => p === sig || p.endsWith(`/${sig}`));
+    if (matches.length !== 1) return null;
+    prefixes.add(matches[0].slice(0, matches[0].length - sig.length));
+  }
+  return prefixes.size === 1 ? [...prefixes][0] : null;
+}
+
+/**
+ * A query is SELF-REFERENTIAL when it was issued by an agent investigating MAST itself
+ * (this investigation included). Scoring such a query against MAST's own code is a new
+ * flavour of the circularity that voided two earlier gold sets, so they are separated
+ * out rather than silently included.
+ *
+ * `mastPrefix` comes from {@link deriveMastPrefix}. When it is null the corpus contains
+ * no MAST source, so the path half cannot fire and only the vocabulary half applies —
+ * and the caller REPORTS that, because "no MAST source here" and "the locator is stale"
+ * are otherwise indistinguishable, which is the S-07 shape that produced D026.
+ */
+export function isSelfReferential(query, results, mastPrefix) {
+  const q = (query ?? '').toLowerCase();
+  if (/\bmast_|args_json|chunk_fts|identifier_fts|rrf|bm25|recordToolCall/i.test(q)) return true;
+  if (mastPrefix === null || mastPrefix === undefined) return false;
+  return results.length > 0 && results.every((r) => (r.file_path ?? '').startsWith(mastPrefix));
+}
+
+// Everything below runs only when this file is invoked directly (§8.3: no top-level side
+// effects), so the pure classifiers above can be imported by the D026 pin.
+const isMain = process.argv[1] !== undefined
+  && fileURLToPath(import.meta.url) === process.argv[1];
+if (isMain) main();
+
+function main() {
 const stateDir = process.argv[2] ?? '.mast';
 const db = new Database(`${stateDir}/graph.db`, { readonly: true, fileMustExist: true });
 
@@ -34,17 +106,8 @@ const rows = db.prepare(`
 const searches = rows.filter((r) => r.tool_name === 'mast_search');
 const follows = rows.filter((r) => r.tool_name !== 'mast_search');
 
-/**
- * A query is SELF-REFERENTIAL when it was issued by an agent investigating MAST itself
- * (this investigation included). Scoring such a query against MAST's own code is a new
- * flavour of the circularity that voided two earlier gold sets, so they are separated
- * out rather than silently included.
- */
-function isSelfReferential(query, results) {
-  const q = (query ?? '').toLowerCase();
-  if (/\bmast_|args_json|chunk_fts|identifier_fts|rrf|bm25|recordToolCall/i.test(q)) return true;
-  return results.length > 0 && results.every((r) => (r.file_path ?? '').includes('packages/mast/'));
-}
+const indexedPaths = db.prepare('SELECT path FROM files').all().map((r) => r.path);
+const mastPrefix = deriveMastPrefix(indexedPaths);
 
 const candidates = [];
 for (const s of searches) {
@@ -69,7 +132,7 @@ for (const s of searches) {
     relevant: chain.map((c) => { const a = JSON.parse(c.args_json);
       return { tool: c.tool_name, symbol: a.symbol ?? null, file_path: a.file_path ?? null }; }),
     chain_len: chain.length,
-    self_referential: isSelfReferential(args.query, results),
+    self_referential: isSelfReferential(args.query, results, mastPrefix),
   });
 }
 
@@ -90,6 +153,10 @@ const out = {
   totals: { metrics_rows_with_args: rows.length, searches: searches.length,
             self_referential: candidates.length - organic.length,
             organic: organic.length, organic_with_chain_label: labelled.length },
+  // D026: reported, not assumed. A null prefix means the path half of the
+  // self-referential filter did not run at all, which must never be silent.
+  mast_locator: { prefix: mastPrefix, indexed_files: indexedPaths.length,
+                  path_filter_active: mastPrefix !== null },
   power: { needed_for_80pct_at_observed_variance: 67, have: labelled.length,
            sufficient: labelled.length >= 67 },
   query_shape_all: shape(candidates),
@@ -103,4 +170,12 @@ console.log(`rows_with_args=${rows.length} searches=${searches.length} self_ref=
 console.log(`POWER: have ${labelled.length} / need ~67 -> ${out.totals.organic_with_chain_label >= 67 ? 'SUFFICIENT' : 'INSUFFICIENT — Q1 cannot be resolved from this source yet'}`);
 console.log(`query shape (all n=${out.query_shape_all.n}): identifier-bearing=${out.query_shape_all.with_identifier_token} median_words=${out.query_shape_all.median_words}`);
 console.log(`wrote ${f}`);
+if (mastPrefix === null) {
+  console.log('MAST LOCATOR: no MAST source found in this corpus — the path half of the '
+    + 'self-referential filter did NOT run; only the vocabulary half applied (D026)');
+} else {
+  console.log(`MAST LOCATOR: mast source at '${mastPrefix || '<project root>'}' `
+    + `(${indexedPaths.length} indexed files); path filter active`);
+}
 db.close();
+}
