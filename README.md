@@ -227,8 +227,16 @@ them, or how to read a flagged answer. `mast skill` prints instructions written 
 paste them into your system prompt, `CLAUDE.md`, `.cursorrules`, or a skill file:
 
 ```bash
-mast skill >> CLAUDE.md
+mast skill                    # print it
+mast skill --install          # splice it into this project's agent config files
+mast skill --install --dry-run
 ```
+
+`--install` writes only into files that **already exist** — `CLAUDE.md`, `AGENTS.md`,
+`.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md` — and writes inside a
+marked block, so re-running after an upgrade replaces the previous copy instead of adding
+a second one. It never runs on its own, and it never creates a config file you did not
+already keep.
 
 ---
 
@@ -436,10 +444,16 @@ different one. What `mast docs` prints is what the binary in your `node_modules`
 
 ---
 
-### `mast skill`
+### `mast skill [path]`
 
 Print the MAST instructions to paste into an agent prompt, `CLAUDE.md`, `.cursorrules`, or
 a skill file.
+
+```
+Options:
+  --install    Splice into this project's existing agent config files
+  --dry-run    With --install, report what would change without writing
+```
 
 **Why:** registering the MCP server gives a model the tools but not the judgement — when to
 search instead of reading, that code tokens beat prose in a query, and how to read a
