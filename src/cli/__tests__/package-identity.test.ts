@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
 import { CLI_VERSION, PACKAGE_NAME } from '../version.js';
+import { DOC_TOPICS } from '../docs-cmd.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../../package.json') as {
@@ -46,6 +47,21 @@ describe('publishability', () => {
 
   it('builds dist before publishing, so a clean checkout cannot ship a stale one', () => {
     expect(pkg.scripts?.prepublishOnly).toMatch(/\bbuild\b/);
+  });
+
+  /**
+   * `mast docs` reads files out of the installed package. A topic whose file is not
+   * in `files` resolves fine from the repo and 404s for every consumer — the failure
+   * only appears after publishing, which is the worst place to find it.
+   */
+  it('ships the file behind every docs topic', () => {
+    const shipped = pkg.files ?? [];
+    for (const topic of DOC_TOPICS) {
+      const top = topic.file.split('/')[0];
+      // npm always includes README.md regardless of `files`.
+      if (top === 'README.md') continue;
+      expect(shipped, `${topic.name} -> ${topic.file}`).toContain(top);
+    }
   });
 
   it('ships every path the bin entries point into', () => {

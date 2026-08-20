@@ -58,6 +58,29 @@ function createCaptureServer(): { readonly server: McpServer; readonly tools: Re
   return { server: capture as unknown as McpServer, tools };
 }
 
+/**
+ * Every tool name the MCP surface registers, sorted.
+ *
+ * Registration is pure: each `registerXTool(server, ctx)` passes `ctx` into the
+ * async handler's closure and never dereferences it while registering (verified
+ * across all 11). This enumerates without a database by handing registration a
+ * proxy that throws on ANY property access — so if a future tool starts reading
+ * `ctx` at registration time, this fails loudly instead of quietly returning a
+ * short list, and the drift guard in `docs-cmd.test.ts` keeps its meaning.
+ */
+export function listRegisteredToolNames(): readonly string[] {
+  const { server, tools } = createCaptureServer();
+  const forbidden = new Proxy({}, {
+    get(_t, prop) {
+      throw new Error(
+        `tool registration read ctx.${String(prop)}; listRegisteredToolNames assumes registration is pure`,
+      );
+    },
+  }) as AppContext;
+  registerAllTools(server, forbidden);
+  return [...tools.keys()].sort();
+}
+
 export interface RunQueryOptions {
   /** State directory override, same semantics as every other CLI command's `--state-dir`. */
   readonly stateDir?: string;

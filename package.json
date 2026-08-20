@@ -38,7 +38,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "assets",
+    "MAST_SPEC.md"
   ],
   "scripts": {
     "setup": "node install.mjs",

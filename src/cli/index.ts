@@ -9,6 +9,7 @@ import { registerInstallHooksCommand } from './install-hooks.js';
 import { registerMetricsCommand }       from './metrics-cmd.js';
 import { registerQueryCommand }        from './query.js';
 import { registerSearchCommand }       from './search-cmd.js';
+import { registerDocsCommand, registerSkillCommand } from './docs-cmd.js';
 
 const program = new Command()
   .name('mast')
@@ -23,5 +24,7 @@ registerStatusCommand(program);
 registerInstallHooksCommand(program);
 registerMetricsCommand(program);
 registerQueryCommand(program);
+registerDocsCommand(program);
+registerSkillCommand(program);
 
 await program.parseAsync(process.argv);
