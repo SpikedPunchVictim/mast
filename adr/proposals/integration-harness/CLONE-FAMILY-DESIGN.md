@@ -700,3 +700,95 @@ source. It asserts **nothing about whether the 13,985 files are the RIGHT 13,985
 `fileSetMatchesGit` oracle (R4), and it still cannot be written until the `file_count` population
 question is resolved against real output. One number matching e1-p0.json is a spot-check, not
 the oracle.
+
+
+---
+
+## 13. RESULT — build step 2, the capture audit, 2026-08-20
+
+**Step 2 is complete.** Every one of the 11 tools was run against the real n8n index
+(13,985 files / 73,359 chunks at pin `9d9e9bf9`) through both surfaces — CLI `mast query` and a
+real MCP stdio session — and the output read before any assertion kind was written against it.
+That sequencing is the whole point of the step: §3 predicted it would be where "the next D029
+falls out", and it produced **three defects, one of them the audit's headline**.
+
+### 13.1 The headline: three read tools are unbounded (LEDGER D043)
+
+| call | time | results | `tokens_returned` | truncation flag |
+|---|---|---|---|---|
+| `mast_signature {"symbol":"execute"}` | **78 s** | **580** | **331,159** | none |
+| `mast_implementors {"interface_name":"INodeType"}` | 0.9 s | 625 | 30,213 | none |
+| `mast_exports` on `packages/workflow/src/interfaces.ts` | 0.1 s | 370 | 23,127 | none |
+| `mast_callers {"symbol":"jsonParse"}` | 1 s | 4 verified + 50 potential | — | **`potential_truncated: 378`** |
+
+The first row is worse over MCP than the table shows: at 78 s it exceeds the SDK's 60 s client
+timeout, so an agent calling it gets `MCP error -32001: Request timed out` and **no answer at
+all**. Verified at source — `signature.ts`, `implementors.ts` and `exports.ts` contain no limit,
+slice or truncation logic; `callers.ts` caps and reports. The concern was understood and applied
+to one tool of four.
+
+And the response reports itself as a success: `efficiency_ratio: 0.278` on the 331k-token answer,
+i.e. "72% cheaper than reading the 516 files". Filed **OPEN**, not fixed — a cap needs a default,
+an override, a wire field on three DTOs, and a decision about what `efficiency_ratio` means once a
+response is truncated. That is a contract change, and `potential_truncated` is the precedent.
+
+**This blocks two of §3's planned kinds.** `signatureResolves` and `implementorsInclude` must not
+be written against the current unbounded shape — an assertion that calls
+`mast_signature{symbol:'execute'}` would itself time out, and one that pins a 625-element
+implementor list would pin a number nothing bounds.
+
+### 13.2 The other two defects
+
+- **D044** — `captureCounts` read `status.file_count`. There is no such field; it is
+  `indexed_files`. Every `snapshot` step recorded `undefined`, and the first assertion to read it
+  would have compared `undefined` with `undefined` and passed. Fixed, and it now throws.
+- **D045** — `assert.mjs`'s caller-field fallback chain (`file_path ?? caller_file ??
+  symbol_name`) was written against an assumed shape. The real shape is always `file_path`. The
+  fallbacks would have made **`callersExclude` return PASS** on a shape change — a silent green on
+  the one assertion whose job is catching a phantom caller. Fixed to read `file_path` and throw.
+
+### 13.3 Every open question in §3, resolved
+
+| question | answer |
+|---|---|
+| Which population is `file_count`? | Neither — **the field is `indexed_files`**, and it reports **13,985**, the walked population (not the 13,330 chunk-bearing tier). `fileSetMatchesGit` is writable against 13,985. |
+| Do the two status surfaces agree on the wire? | 10 of 11 fields identical in name and value. **CLI additionally emits `initialised`; MCP does not.** So `statusAgreesAcrossSurfaces` must compare **named fields**, never full sets. |
+| Does n8n contain a mis-cased import at the pin? | **No — zero.** `mast index` reported no `miscased_imports`. This **kills the `d023-miscased-import` contingency** in §4 and §6: the two closure scenarios cannot be calibrated by that revert and must use constructed faults, labelled as such. |
+| Which fields are volatile across identical runs? | **Only `_stats.duration_ms`.** Four commands run back-to-back differed in nothing else — not scores, not ordering, not `efficiency_ratio`, not `tokens_*`. §3's proposed mask list was **over-broad**: masking `tokens_returned` and `efficiency_ratio`, as the PLAN suggested, would have hidden D043 exactly. |
+| Can serve's background index change an answer mid-session? | Not observed. Three `mast_status` and two `mast_search` calls in one session returned byte-identical payloads (modulo `duration_ms`). **Only tested against an already-fresh index** — a stale index at startup exercises the background `runIndex` and remains untested. |
+| Do `mast_callers` and `mast_rename_impact` agree, and on which field? | **Yes.** For `jsonParse`: both return 4 verified callers, identical `(file_path, line)` sets, identical element shape `{file_path, line, caller_symbol, context, resolution}`. `callersMatchRenameImpact` is **writable**. |
+| `mast_signature` shapes | hit → `results:[…]` one element; miss → `results: []`; ambiguous → 580 elements (D043). |
+| `mast_dependencies` shape | `{file_path, imports, _stats}` — 30 imports on `interfaces.ts`, 951 tokens. |
+| `mast_efficiency` shape | `{scope, window_started_at, tokens_returned, tokens_full_file_upper_bound, efficiency_ratio, calls_total, calls_by_tool, tokenizer, counterfactual}`; `scope:'session'` works and returns in 2 ms. Session scope requires the `mcpSession` step, as §3 said. |
+
+### 13.4 A false-red source found before it was written into an assertion
+
+§2's R1 proposed a search→signature closure and treated widely-used symbols as safe inputs.
+Measured: **`NodeOperationError` has 0 verified callers and 918 truncated potential matches**;
+`WorkflowExecute`, 0 and 59; `getNodeParameter`, 0 verified, 0 potential, and `mast_signature`
+returns `[]` for it. These are correct under mast's own semantics — `verified_callers` is a
+checker-resolved *call* edge, so constructor use and interface-method dispatch do not produce one
+(ADR 007 / D009) — and they would each have produced a confident false red. This is the
+semantic-mismatch §R5 rejected a tsc differential over, showing up one layer earlier than
+expected. **Rule for the goldens: choose low-fan-in symbols with a verified caller set, and
+capture the receipt.** `jsonParse` (4 callers, 2 declaration sites) is the worked example, and is
+now asserted in `n8n-cold-index-truthful`.
+
+### 13.5 Observed, not filed as defects — with the reason
+
+- **`mast_callers {"symbol":"getNodeParameter"}` takes 18.4 s to return zero callers.** It is
+  correct and honest, and it is slow enough to matter for an interactive agent. Not filed because
+  "slow" without a stated budget is not a defect, and this package has never registered one for
+  query latency. It belongs in a latency budget decision, not the ledger.
+- **`index_empty` is emitted only when true** (verified against a genuinely empty index), so
+  `indexEmpty: {expected: false}` is satisfied by the field's absence and cannot distinguish
+  "non-empty" from "the field stopped being emitted". Not a defect in mast — the field means what
+  it says — but a real weakness in the assertion kind, now recorded in the scenario that uses it.
+
+### 13.6 What step 2 did not do
+
+It ran each tool **once**, on **one** corpus, at **one** pin, on macOS. It is an audit, not a
+measurement series: no figure here has a repeat count, and the two timings that matter most (78 s
+and 18.4 s) are single observations on a warm cache. They are strong enough to file D043, whose
+claim is structural — *no cap exists in the source* — and not strong enough to be quoted as
+performance characteristics.

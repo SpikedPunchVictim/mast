@@ -35,7 +35,22 @@ export default {
 
     // Not empty, and it says so through the same surface an agent would use. `index_empty` is
     // D029's fix: an empty index and a genuine miss stopped being indistinguishable.
+    //
+    // Measured limit of this assertion, stated rather than assumed: `index_empty` is emitted
+    // ONLY when true (verified 2026-08-20 against a genuinely empty index — `{"results":[],
+    // "suggestions":[],"index_empty":true,...}` — and absent from every non-empty response). So
+    // `expected: false` is satisfied by the field being absent, and cannot tell "non-empty" from
+    // "the tool stopped emitting the field". It catches the case it names and no shape drift,
+    // which is why the two positive assertions below carry the real weight.
     { assert: { kind: 'indexEmpty', expected: false, query: 'workflow' } },
+
+    // Two facts audited out of the real index at this pin, not guessed. `INodeType` is the
+    // interface n8n's whole node API is built on; `jsonParse` was chosen because it has a SMALL
+    // verified-caller set (4), which is the property that makes an exact claim about a 14k-file
+    // corpus stable — a high-fan-in symbol's caller list is a moving target, a low-fan-in one is
+    // not. Both were captured from this index on 2026-08-20 before being written here.
+    { assert: { kind: 'searchFinds', query: 'INodeType', symbol: 'INodeType', inFile: 'packages/workflow/src/interfaces.ts' } },
+    { assert: { kind: 'callersInclude', symbol: 'jsonParse', caller: 'packages/@n8n/node-cli/src/commands/dev/utils.ts' } },
 
     // Both status surfaces answer over a 400+ MB state dir. Field-set EQUALITY between them is
     // D035's pin and belongs to a later scenario — it needs the capture audit first, because the

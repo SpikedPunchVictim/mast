@@ -44,10 +44,31 @@ function searchSymbols(ctx, query) {
   };
 }
 
+/**
+ * The verified callers of `symbol`, as file paths.
+ *
+ * `file_path` is read directly, with NO fallback chain. The chain that used to be here
+ * (`c.file_path ?? c.caller_file ?? c.symbol_name ?? …`) was written against an assumed response
+ * shape and was measured on 2026-08-20 against the real one: both `mast_callers` and
+ * `mast_rename_impact` return `{file_path, line, caller_symbol, context, resolution}`, so the
+ * alternatives never fired. They were not harmless. Falling back to `symbol_name` would make
+ * `callersExclude` — whose entire job is detecting a phantom caller — find no entry containing
+ * the path and return PASS. A fallback that turns a breaking shape change into a silent green on
+ * the harness's most important assertion is worse than no fallback (LEDGER D045), so a missing
+ * `file_path` throws and surfaces as ERROR.
+ */
 function verifiedCallers(ctx, symbol) {
   const res = runMastJson(ctx.installRoot, ctx.workingDir, `query mast_callers '{"symbol":"${symbol}"}'`);
   const verified = res.verified_callers ?? [];
-  return verified.map((c) => c.file_path ?? c.caller_file ?? c.symbol_name ?? JSON.stringify(c));
+  return verified.map((c, i) => {
+    if (typeof c.file_path !== 'string') {
+      throw new Error(
+        `mast_callers verified_callers[${i}] has no string 'file_path' (got ${JSON.stringify(c).slice(0, 200)}). ` +
+        `The response shape changed; every caller assertion here reads that field, and guessing an alternative is how callersExclude would silently pass.`,
+      );
+    }
+    return c.file_path;
+  });
 }
 
 export function evaluateAssert(spec, ctx) {
@@ -171,7 +192,20 @@ function stripVolatile(value) {
 /** Snapshot of the numbers a later assertion can compare against. */
 export function captureCounts(ctx) {
   const status = runMastJson(ctx.installRoot, ctx.workingDir, 'status --json');
-  return { chunk_count: status.chunk_count, file_count: status.file_count, stale_files: status.stale_files };
+  // `indexed_files`, NOT `file_count` — there is no `file_count` on this surface and never was,
+  // so every snapshot used to record `undefined` and the first assertion to read it would have
+  // compared undefined to undefined and passed (LEDGER D044). Measured field set, 2026-08-20:
+  // state_dir, initialised, schema_version, last_indexed, indexed_files, chunk_count,
+  // stale_files, parse_errors, write_errors, index_fresh, freshness_cause.
+  const counts = { chunk_count: status.chunk_count, indexed_files: status.indexed_files, stale_files: status.stale_files };
+  for (const [field, value] of Object.entries(counts)) {
+    if (typeof value !== 'number') {
+      throw new Error(
+        `status --json has no numeric '${field}' (got ${JSON.stringify(value)}). A snapshot of undefined compares equal to the next snapshot of undefined, so this must fail loudly here rather than pass quietly later.`,
+      );
+    }
+  }
+  return counts;
 }
 
 /** `expect` on a `run` step. */

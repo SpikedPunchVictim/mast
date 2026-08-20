@@ -90,7 +90,7 @@ The tell is that each was *internally* consistent. Nothing inside the document c
 
 ## S-04 — A confident claim about code nobody opened
 
-**Instances**: D004, D005, D009, D020, D039, D040, D041. **Rung**: brief.
+**Instances**: D004, D005, D009, D020, D039, D040, D041, D044. **Rung**: brief.
 
 The richest family here, and the one that produced this package's only two S0s. D009 had two
 documents describing a third file's behaviour exactly backwards. D004's four call sites assumed
@@ -141,7 +141,7 @@ invariant nothing enforces" requires understanding what the invariant *is*. The 
 
 ## S-05 — Two producers of one value, drifting apart
 
-**Instances**: D014, D016, D023, D024. **Rung**: **promoted in part — see below.**
+**Instances**: D014, D016, D023, D024, D043. **Rung**: **promoted in part — see below.**
 
 The same quantity computed in two places, by two authors, drifting apart. Renamed from "two
 implementations of one statistic" when D023 arrived: the value that disagreed there was a **file
@@ -232,7 +232,7 @@ sits in the join between the instrument and the registration — a place neither
 
 ## S-07 — Absence read as evidence
 
-**Instances**: D001, D002, D010, D017. **Rung**: brief.
+**Instances**: D001, D002, D010, D017, D045. **Rung**: brief.
 
 The package's severity zero, generalised past code. D010 registered an experiment whose answer was
 already committed and unread for four days — "we have no result" was actually "we did not look".
