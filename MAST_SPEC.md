@@ -673,6 +673,18 @@ live PID, and ensures clean recovery from abrupt container exits on shared volum
   to retry after the current index run completes.
 - **`mast serve` startup reindex**: blocking, same retry policy as `mast_reindex`.
 
+**If the lock is compromised while held** — another process judged it stale and took it,
+or the lock directory was removed — the operation fails with `LockCompromisedError` and
+must be re-run; its result is not trustworthy, because the run was not exclusive.
+`proper-lockfile` detects this on its refresh timer, inside an `fs.stat` callback with no
+caller on the stack, so `onCompromised` must record rather than rethrow: the library's
+default rethrow reached the process as an uncaught exception and killed it
+(`docs/defects/LEDGER.md` D036). The error is raised at release instead. **Work already in
+flight is not interrupted** — that would require an `AbortSignal` through `withLock` and is
+not implemented. The exposure is bounded: SQLite writes stay serialised by `populateFile`'s
+`BEGIN IMMEDIATE` regardless of this advisory lock, so what is at risk is the plain-JSON
+manifest/`index.json` phase, which the re-run rewrites.
+
 **JIT re-parse from a read tool does NOT acquire `structure.lock`.** `structure.lock`
 is one global lock per state dir with no per-file component, so — measured directly
 (`eval/e7-concurrency.json`) — it made a JIT re-parse of file A block a JIT re-parse of
