@@ -1,0 +1,93 @@
+# Publishes @spikedpunch/mast to npm when a `v*` tag is pushed.
+#
+# PREREQUISITE — this workflow cannot make the FIRST release. npm's Trusted
+# Publishing is a trust relationship between an existing package and a specific
+# workflow file in a specific repository, so the package has to exist before it
+# can be configured, and the configuration has to exist before this can publish.
+# Publish v0.1.0 from a laptop once, register this workflow as the package's
+# Trusted Publisher, and every release after that is a tag push. See RELEASING.md.
+#
+# There is no NPM_TOKEN, and there should never be one: the `id-token: write`
+# permission below lets npm exchange a short-lived OIDC token for publish
+# credentials and sign a provenance attestation. A long-lived token in repository
+# secrets is the thing this replaces.
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release:
+    name: verify + publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpm before setup-node — setup-node's `cache: pnpm` shells out to
+      # `pnpm store path`. Version comes from `packageManager` in package.json.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Fails fast on the mistake this is most likely to see: tagging v0.2.0
+      # without bumping package.json, which would publish 0.1.0 a second time and
+      # be rejected by the registry after a full build had already run.
+      - name: Verify the tag matches the package version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag v$tag does not match package.json version $pkg — bump the version, commit, and re-tag"
+            exit 1
+          fi
+          echo "Releasing v$pkg"
+
+      # The same gate a PR clears, in the same order. A release that skips checks
+      # is how a broken build reaches users who cannot easily roll back.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      # Belt and braces against this package's own defect D8 (the installed
+      # binary having drifted from source): prove the freshly built CLI reports
+      # the version being released before handing it to the registry.
+      - name: Verify the built binary reports the released version
+        run: |
+          built="$(node dist/cli/index.js --version)"
+          if [ "$built" != "${GITHUB_REF_NAME#v}" ]; then
+            echo "::error::built binary reports $built, expected ${GITHUB_REF_NAME#v}"
+            exit 1
+          fi
+
+      # --provenance attaches a signed attestation linking this tarball to this
+      # commit and workflow; it requires the id-token permission above.
+      # --no-git-checks: a tag checkout is a detached HEAD.
+      - name: Publish to npm (Trusted Publishing + provenance)
+        run: pnpm publish --access public --no-git-checks --provenance

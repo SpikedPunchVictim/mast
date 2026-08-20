@@ -87,14 +87,17 @@ path keys always come from the current resolution.
 
 ```json
 {
-  "state_dir": ".kluster/.mast",
+  "state_dir": ".mast",
   "project_root": ".",
   "file_extensions": [".ts", ".tsx", ".js", ".jsx", ".md"],
   "exclude_patterns": [
     "**/node_modules/**",
     "**/dist/**",
+    "**/build/**",
     "**/coverage/**",
-    ".kluster/**",
+    "**/.next/**",
+    "**/.turbo/**",
+    ".mast/**",
     "**/*.test.ts",
     "**/*.spec.ts"
   ],

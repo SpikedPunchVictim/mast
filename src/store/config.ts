@@ -37,11 +37,18 @@ const DEFAULTS: MastConfig = {
   // READMEs live under node_modules/** which is already excluded; no
   // markdown-specific exclusion logic is applied.
   file_extensions: ['.ts', '.tsx', '.js', '.jsx', '.md'],
+  // Build output, dependencies, and tests. `.mast/**` excludes this tool's own
+  // state directory, which is the one path guaranteed to exist in every project
+  // that runs it. (`.kluster/**` sat here until 2026-08-19 — a leftover from the
+  // repository mast was extracted from, meaningless to any other consumer.)
   exclude_patterns: [
     '**/node_modules/**',
     '**/dist/**',
+    '**/build/**',
     '**/coverage/**',
-    '.kluster/**',
+    '**/.next/**',
+    '**/.turbo/**',
+    '.mast/**',
     '**/*.test.ts',
     '**/*.spec.ts',
   ],

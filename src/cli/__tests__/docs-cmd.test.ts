@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DOC_TOPICS, readDoc, listDocs, DocsError } from '../docs-cmd.js';
 import { listRegisteredToolNames } from '../query.js';
+import { registeredCommandNames } from '../program.js';
 import { CLI_VERSION } from '../version.js';
 
 describe('readDoc', () => {
@@ -61,5 +62,25 @@ describe('the skill text matches the tools that actually exist', () => {
   it('mentions no tool that is not registered', () => {
     const mentioned = [...new Set(skill.match(/\bmast_[a-z_]+\b/g) ?? [])];
     expect(mentioned.sort()).toEqual([...registered].sort());
+  });
+});
+
+/**
+ * The README and the CLI are two producers of one command list — the same S-05 shape
+ * as the skill text, and it had already drifted once: `mast query` shipped documented
+ * nowhere, and four commands added in one sitting were only caught by hand. The README
+ * is the first thing a new user reads, so a command missing from it effectively does
+ * not exist.
+ */
+describe('the README documents every CLI command', () => {
+  const readme = readDoc('readme');
+  const commands = registeredCommandNames();
+
+  it('finds commands to check, so an empty list cannot vacuously pass', () => {
+    expect(commands.length).toBeGreaterThan(5);
+  });
+
+  it.each(commands)('documents `mast %s`', (name) => {
+    expect(readme).toMatch(new RegExp('^### `mast ' + name + '\\b', 'm'));
   });
 });

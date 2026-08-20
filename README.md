@@ -10,8 +10,11 @@ The core design principle: **return exactly the code an assistant needs, nothing
 
 - [Why MAST?](#why-mast)
 - [Requirements](#requirements)
-- [Installation](#installation)
+- [Install](#install)
 - [Quick Start](#quick-start)
+- [Use it from your AI assistant](#use-it-from-your-ai-assistant)
+- [Upgrading](#upgrading)
+- [Using MAST in a monorepo](#using-mast-in-a-monorepo)
 - [CLI Reference](#cli-reference)
 - [MCP Tool Reference](#mcp-tool-reference)
 - [Configuration](#configuration)
@@ -37,59 +40,237 @@ MAST takes a different approach:
 
 ## Requirements
 
-- **Node.js** ≥ 22.0.0
-- **pnpm** (this package is part of a pnpm workspace)
-- The `tree-sitter` native addon requires a C++ build toolchain (`node-gyp`)
+- **Node.js ≥ 22** (this repo pins the version it develops against in `.nvmrc`)
+- **A C++ toolchain**, for the two native modules (`better-sqlite3`, `tree-sitter`).
+  Prebuilt binaries cover most platforms; when none matches your Node ABI, `node-gyp`
+  builds from source and needs:
+  - **macOS** — `xcode-select --install`
+  - **Debian/Ubuntu** — `sudo apt install build-essential python3`
+  - **Windows** — install the "Desktop development with C++" workload from Visual Studio
+    Build Tools
+
+No services, no API keys, no network at query time. Everything is local SQLite.
 
 ---
 
-## Installation
+## Install
 
-Within the monorepo:
+As a dev dependency of the project you want to index — recommended, because the version
+is then pinned in your lockfile alongside everything else:
 
 ```bash
-pnpm --filter @kluster/mast build
+pnpm add -D @spikedpunch/mast     # or: npm i -D / yarn add -D
 ```
 
-After building, the `mast` CLI is available as `./dist/cli/index.js` or via the workspace `bin` link.
+Or globally, if you want one `mast` across many checkouts:
 
-To use as an MCP server in Claude Desktop or another MCP client, add it to your MCP config:
+```bash
+pnpm add -g @spikedpunch/mast
+```
 
-```json
-{
-  "mcpServers": {
-    "mast": {
-      "command": "node",
-      "args": ["/path/to/kluster/packages/mast/dist/cli/index.js", "serve"],
-      "env": {
-        "MAST_STATE_DIR": "/path/to/project/.mast"
-      }
-    }
-  }
-}
+Verify:
+
+```bash
+mast --version
 ```
 
 ---
 
 ## Quick Start
 
+Three commands from nothing to a searchable index:
+
 ```bash
-# Initialise and index a project (run once)
-mast init /path/to/project
+cd /path/to/your/project
 
-# Start the MCP server (background; connects to Claude Desktop via stdio)
-mast serve
-
-# Search from the CLI
-mast index --incremental          # update changed files only
-mast status                       # check freshness
-mast metrics --since 7d           # token-efficiency report
+mast init                    # write .mast/, then run the first full index
+mast status                  # confirm it is fresh
+mast search "createUser"     # search it
 ```
 
-After `mast init`, the state directory (`.mast/` by default) contains the SQLite graph database and lock markers. Everything is local — no external services required.
+`mast search` prints the matching declaration, not the file it lives in:
+
+```
+$ mast search "compareVersions" -n 1
+src/cli/upgrade-cmd.ts:39  compareVersions  function  (exported)
+    /** Semver compare, prerelease-aware. Returns <0, 0, or >0. */
+    export function compareVersions(a: string, b: string): number {
+      ...
+    }
+
+270 tokens returned vs 2140 to read the files whole — 87% saved
+```
+
+The last line is real accounting, not a slogan: every response carries `_stats` with what
+it returned and an upper bound on reading the referenced files whole. On a small file the
+saving can be *negative*, and MAST says so rather than rounding it into a win.
+
+Narrow it with `--type`, `--language`, `--exported`, `--file`, `-n`:
+
+```bash
+mast search "greet" --type method --exported -n 5
+mast search "config" --file "src/store/**"
+```
+
+Keep it current as you work — or let a git hook do it:
+
+```bash
+mast index --incremental     # reindex only what changed
+mast install-hooks           # reindex automatically after commits and checkouts
+```
+
+Everything shipped with your build is readable offline, so you never have to work out
+which docs match your version:
+
+```bash
+mast docs                    # list the topics
+mast docs spec               # the full behavioural specification
+mast skill                   # the instructions to paste into an agent prompt
+```
 
 ---
 
+## Use it from your AI assistant
+
+MAST speaks MCP over stdio. `mast serve` is the server command; the configuration below
+differs only in where each tool keeps its config file.
+
+If you installed MAST as a dev dependency rather than globally, replace `mast` with
+`npx @spikedpunch/mast` (or `pnpm exec mast`) in any of these.
+
+### Claude Code
+
+```bash
+claude mcp add mast -- mast serve
+```
+
+Add `--scope project` to write `.mcp.json` into the repository so your team picks it up
+from the checkout.
+
+### Claude Desktop
+
+`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS,
+`%APPDATA%\Claude\claude_desktop_config.json` on Windows:
+
+```json
+{
+  "mcpServers": {
+    "mast": {
+      "command": "mast",
+      "args": ["serve"],
+      "env": { "MAST_STATE_DIR": "/absolute/path/to/your/project/.mast" }
+    }
+  }
+}
+```
+
+Claude Desktop does not run in your project directory, so `MAST_STATE_DIR` must be
+absolute. The CLI and editor integrations below infer it from the working directory.
+
+### Cursor
+
+`.cursor/mcp.json` in the project, or `~/.cursor/mcp.json` globally:
+
+```json
+{
+  "mcpServers": {
+    "mast": { "command": "mast", "args": ["serve"] }
+  }
+}
+```
+
+### VS Code (GitHub Copilot)
+
+`.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "mast": { "type": "stdio", "command": "mast", "args": ["serve"] }
+  }
+}
+```
+
+### Windsurf
+
+`~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "mast": { "command": "mast", "args": ["serve"] }
+  }
+}
+```
+
+### Zed
+
+`settings.json`:
+
+```json
+{
+  "context_servers": {
+    "mast": { "command": { "path": "mast", "args": ["serve"] } }
+  }
+}
+```
+
+### Any other MCP client
+
+Run `mast serve` over stdio from the project root. It advertises eleven read tools and
+needs no arguments beyond `serve`.
+
+### Tell the assistant how to use it
+
+Registering the server gives the model the tools; it does not tell it *when* to reach for
+them, or how to read a flagged answer. `mast skill` prints instructions written for that —
+paste them into your system prompt, `CLAUDE.md`, `.cursorrules`, or a skill file:
+
+```bash
+mast skill >> CLAUDE.md
+```
+
+---
+
+## Upgrading
+
+```bash
+mast upgrade
+```
+
+This checks for a newer release and prints the exact command for how *you* installed it —
+it does not upgrade in place, because a CLI cannot reliably tell a global install from a
+dev dependency, and guessing wrong runs the wrong command in your repository.
+
+More importantly, it tells you the one thing your package manager cannot: whether the
+upgrade changes the **index schema**. When it does, MAST discards the index and rebuilds
+it on the next `serve` or `index`. Nothing is lost that cannot be rebuilt — the index is
+derived state — but on a large monorepo it is minutes, and it is better known in advance
+than discovered as an unexplained stall.
+
+---
+
+## Using MAST in a monorepo
+
+**One index at the repository root** is usually right. Cross-package imports resolve, so
+`mast_callers` finds callers in sibling packages — which is the reason to use a monorepo
+tool rather than one index per package.
+
+**What is indexed.** `.ts`, `.tsx`, `.js`, `.jsx`, and `.md`, minus `node_modules`,
+`dist`, `build`, `coverage`, `.next`, `.turbo`, `.mast`, and test files. Override with
+`--extensions` and `--exclude` on `mast init`, or edit `.mast/config.json`.
+
+**Other languages are not indexed, and this matters.** MAST parses TypeScript and
+JavaScript only. A symbol defined in Python, Go, Java, or Rust is absent from the index,
+which looks exactly like absent from the repository. Treat an empty result as "MAST did
+not find it", never as "it does not exist" — `mast skill` says this to the model too.
+
+**Add `.mast/` to `.gitignore`.** It is derived state, it is large, and it is
+machine-specific.
+
+**Scale.** A cold index of VS Code — 8,653 files, 152,969 chunks — takes about two
+minutes and produces a 794 MB state directory. Incremental reindexing of a changed file
+is milliseconds.
 ## CLI Reference
 
 ### `mast init [path]`
@@ -99,12 +280,37 @@ Initialise MAST for a project and run the initial full index.
 ```
 Options:
   --state-dir <dir>        Where to write index state (default: <path>/.mast)
-  --extensions <ext,...>   File extensions to index (default: .ts,.tsx,.js,.jsx)
+  --extensions <ext,...>   File extensions to index (default: .ts,.tsx,.js,.jsx,.md)
   --exclude <pattern,...>  Glob patterns to exclude
   --no-index               Create config only; skip initial indexing
 ```
 
 **Why:** Creates the state directory structure, writes `config.json`, and runs a full parse + symbol extraction pass. Running this once upfront means subsequent incremental runs only touch changed files.
+
+---
+
+### `mast search <query> [path]`
+
+Search the index and print readable results.
+
+```
+Options:
+  -n, --limit <n>        Max results, 1-50 (default: 10)
+  -t, --type <kind>      function | method | class_shell | interface | type | export | block | doc
+  -l, --language <lang>  typescript | javascript | markdown
+  -e, --exported         Only exported symbols
+  -f, --file <glob>      Restrict to files matching a glob
+      --state-dir <dir>  State directory
+      --json             Emit the raw MCP response instead of text
+```
+
+**Why:** the fastest way to check what the index actually contains, and the same code path
+the MCP `mast_search` tool uses — it dispatches through the registered handler rather than
+re-implementing ranking, so CLI and assistant results cannot disagree. Staleness and
+truncation flags are printed above the results; an empty result that is empty *because* the
+index was busy says so.
+
+For scripting, `mast query mast_search '{...}'` gives byte-identical MCP output.
 
 ---
 
@@ -176,6 +382,62 @@ Prints a column-aligned table: tool name, call count, tokens returned, average d
 ### `mast install-hooks [path]`
 
 Install git `post-commit` / `post-checkout` hooks that run `mast index --incremental` automatically, so the index stays fresh across commits and branch switches without a manual step.
+
+---
+
+### `mast query <tool> [json] [path]`
+
+Invoke any MCP read tool directly, with byte-identical output to the MCP transport.
+
+```
+Options:
+  --state-dir <dir>   State directory
+  --json              Emit the exact single-line MCP response (default pretty-prints)
+```
+
+```bash
+mast query mast_callers '{"symbol":"resolveConfig"}'
+mast query mast_project_skeleton '{}'
+```
+
+**Why:** the scripting and debugging surface. `mast search` is the readable front door to
+one tool; this reaches all eleven, and returns exactly what an assistant would receive —
+so a disagreement between what you see and what the model saw is not possible. Naming a
+tool that does not exist lists the ones that do.
+
+---
+
+### `mast docs [topic]`
+
+Print documentation shipped with the installed build — `readme`, `spec`, or `skill`. No
+argument lists the topics with the version they belong to.
+
+**Why:** removes the step where a reader looks up their version and then finds docs for a
+different one. What `mast docs` prints is what the binary in your `node_modules` does.
+
+---
+
+### `mast skill`
+
+Print the MAST instructions to paste into an agent prompt, `CLAUDE.md`, `.cursorrules`, or
+a skill file.
+
+**Why:** registering the MCP server gives a model the tools but not the judgement — when to
+search instead of reading, that code tokens beat prose in a query, and how to read a
+staleness or truncation flag. It also tells the model that an empty result means "MAST did
+not find it", not "it does not exist", which is the single most consequential thing to get
+right about a search tool.
+
+---
+
+### `mast upgrade [path]`
+
+Check for a newer release; print how to install it, and what it will cost.
+
+**Why:** it detects how MAST was installed and prints the matching command rather than
+running it, because a CLI cannot reliably distinguish a global install from a dev
+dependency. It also reports whether the upgrade bumps the index schema — which forces a
+full reindex on the next `serve` — and your package manager cannot tell you that.
 
 ---
 
