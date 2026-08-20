@@ -5,6 +5,30 @@
 import { renameSync, rmSync, writeFileSync, readFileSync, existsSync, mkdirSync, symlinkSync, cpSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+/**
+ * Write to `abs` WITHOUT writing through a hardlink.
+ *
+ * `writeFileSync` opens the existing inode and truncates it. When the working copy was
+ * materialised by hardlink — which is how a large pinned corpus is made cheap
+ * (`eval/e1-common.mjs`'s `materialiseTier`: "hardlinks copy no data") — every content-writing
+ * mutation would then edit the SHARED file, corrupting the cached corpus for every later run and
+ * for every other scenario. The corruption outlives the process and changes nothing about the
+ * exit code, which is S-01 pointed at the harness itself.
+ *
+ * Unlinking first breaks the link before the new content is written, so the working copy gets a
+ * fresh inode and the cache keeps its own. On a copied fixture this is a no-op costing one
+ * `unlink`.
+ *
+ * Measured both ways on 2026-08-20 rather than reasoned about: through a hardlink,
+ * `writeFileSync` left the *cache* file reading `MUTATED` — the corruption is real, not
+ * theoretical. Through `writeUnlinked`, `nlink` on the shared inode went 2 -> 1, the two paths
+ * stopped sharing an inode, the cache kept `original`, and the working copy got `MUTATED`.
+ */
+function writeUnlinked(abs, content) {
+  rmSync(abs, { force: true });
+  writeFileSync(abs, content);
+}
+
 const MUTATIONS = {
   /** Delete a file outright. */
   deleteFile: ({ dir, spec }) => {
@@ -48,7 +72,7 @@ const MUTATIONS = {
       const before = readFileSync(abs, 'utf8');
       const after = before.split(from).join(to);
       if (after === before) throw new Error(`renameSymbol: '${from}' does not appear in ${rel} — the mutation would assert nothing`);
-      writeFileSync(abs, after);
+      writeUnlinked(abs, after);
     }
   },
 
@@ -58,14 +82,14 @@ const MUTATIONS = {
     const before = readFileSync(abs, 'utf8');
     const after = before.split(req(spec, 'find')).join(req(spec, 'replace'));
     if (after === before) throw new Error(`editFile: '${spec.find}' does not appear in ${spec.file}`);
-    writeFileSync(abs, after);
+    writeUnlinked(abs, after);
   },
 
   /** Add a new file. */
   addFile: ({ dir, spec }) => {
     const abs = join(dir, req(spec, 'file'));
     mkdirSync(dirname(abs), { recursive: true });
-    writeFileSync(abs, req(spec, 'content'));
+    writeUnlinked(abs, req(spec, 'content'));
   },
 
   /** Restore a file from a copy taken earlier in the scenario. */
@@ -74,7 +98,7 @@ const MUTATIONS = {
     if (!saved.has(key)) throw new Error(`restoreFile: nothing saved for ${key} — use saveFile first`);
     const abs = join(dir, key);
     mkdirSync(dirname(abs), { recursive: true });
-    writeFileSync(abs, saved.get(key));
+    writeUnlinked(abs, saved.get(key));
   },
 
   /** Remember a file's contents so a later restore can put it back byte for byte. */

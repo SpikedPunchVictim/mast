@@ -23,6 +23,20 @@ harness bug: it was **LEDGER D030**, an S0 this scenario found on run one — af
 `mast_callers` returned an empty `verified_callers` for a function with a live caller. It is now
 the pin on that fix.
 
+## The two project kinds
+
+- **`fixture`** — files defined inline in `projects/fixture.mjs`. Small, fully known symbol set,
+  no network. The default, and the right home for the mutation family: over a large repo an
+  absence assertion false-reds the moment a name appears anywhere else.
+- **`n8n`** — a pinned corpus, resolved at run time from `~/.cache/mast-eval/` and materialised
+  by hardlink (26,321 links, no data copied). The SHA comes from `eval/pins.mjs`, which is where
+  the E1 registration committed it — the harness never writes a corpus SHA of its own.
+  A corpus that cannot be resolved is **SKIP, never PASS**; `--forbid-skip realism` is what makes
+  a release job refuse that outcome instead of reporting a green that excludes the family.
+
+  Measured 2026-08-20 on this machine: cold index **90.4 s** for 13,985 files / 73,359 chunks
+  through the installed artifact, 434 MB of state, 0.53 s for a second incremental index.
+
 ## Running
 
 ```sh
@@ -40,6 +54,7 @@ node integration/run.mjs --targets local,local-broken-d023-miscased-import   # t
 | `--gate-target` | which target decides the exit code; must be one of `--targets` |
 | `--out` | results directory (default `integration/results/<timestamp>`) |
 | `--keep-all` | keep working copies even for scenarios that passed |
+| `--forbid-skip` | a SKIP on a scenario carrying one of these tags fails the run |
 
 ## The rules this harness keeps
 

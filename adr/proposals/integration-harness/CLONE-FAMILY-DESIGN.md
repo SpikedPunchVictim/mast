@@ -640,3 +640,63 @@ correction both stay legible.
 ts-morph cost); the field-name inferences in §3, which §3 already schedules for step 2's
 capture audit; and the `e1-ladder` / `e1-hoist` runtime rows in §1.4, which were spot-checked
 for plausibility against `e1-p0.json`'s 636 s but not re-derived per-run.
+
+
+---
+
+## 12. RESULT — build step 1, measured 2026-08-20
+
+Appended, not edited in place: §1.4's projection stays visible above so the correction is legible
+(the append-only convention `adr/proposals/*/PLAN-EXCERPT.md` uses).
+
+**Step 1 is complete and its exit criterion is met.** `lib/corpus.mjs`, hardlink-safe mutations,
+`--forbid-skip`, `projects/n8n.mjs` and the corpus/`materializeCorpus` wiring are in, and the
+first scenario over a real corpus — `n8n-cold-index-truthful` — is **PASS on `local`**.
+
+### The number the design was blocked on
+
+| measurement | value | how |
+|---|---|---|
+| **Full-worktree cold index, today's binary, through the INSTALLED artifact** | **90.4 s** | `files: 13985 indexed, 0 skipped  chunks: +73359 -0  duration: 90410ms` |
+| Second index, unchanged tree (incremental) | **0.53 s**, 13,985 skipped | the §7.1 stability skip, at scale |
+| State dir after a cold index | **434 MB** | `du -sh` on the working copy's `.mast` |
+| Corpus materialisation | **26,321 hardlinked, 0 copied** | `materializeCorpus`, ~instant |
+
+**§1.4's projection was wrong, and in the unsafe direction.** It carried ~60–80 s
+`[unmeasured]`, reasoning from the 56–60 s hardlink *tier*. The real full-worktree number is
+**90.4 s** — 13% above the top of the projected band. The reasoning that produced the projection
+was sound (tier excludes 655 zero-chunk files) and still landed short, which is the argument for
+step 1 having a measurement as its exit criterion rather than a sanity check.
+
+Against the 2026-08-12 binary's 636.0 s on the same worktree, today's is **7.0× faster**. §1.4
+warned the figure had "moved 10× once already"; it has now moved 7× in the other direction, and
+the tiering plan should be re-derived from 90 s rather than 60 s. The nightly shared-index
+battery is unaffected (one index amortised); the per-release tier costs ~90 s *per* mutation
+scenario needing a private index, so five such scenarios is ~7.5 min of indexing alone.
+
+### An independent confirmation worth naming
+
+`file_count` and `chunk_count` from the installed artifact are **13,985 / 73,359** — matching
+`eval/results/e1-p0.json`'s `measurement.file_count 13985` / `chunk_count 73359` **exactly**.
+Two binaries seven days and a generation apart, one running in-tree under the eval harness and
+one installed from a tarball, indexing the same pinned corpus to the same population. That was
+not asserted anywhere and is not a scenario; it is a spot-check that the artifact indexes what
+eval thinks it indexes. It also confirms §0's recomputation from the artifact side: 13,985 files
+really is below the 32,766-parameter ceiling, so the D037 class genuinely cannot go red here.
+
+### The cache survived, checked rather than assumed
+
+After the run, `~/.cache/mast-eval/e1-wt/n8n` is at `9d9e9bf9…` with `git status --porcelain`
+empty. The scenario mutated nothing, so this exercises the guard's happy path only — the
+`writeUnlinked` fix was verified separately and in both directions (§9.2): through a hardlink,
+`writeFileSync` left the *cache* file reading `MUTATED`; through `writeUnlinked`, `nlink` went
+2 → 1, the inodes diverged, and the cache kept its content.
+
+### What step 1 did NOT settle
+
+Everything §3 marks as needing captured output — which is all of step 2, unchanged. This
+scenario asserts completion, non-emptiness, both status surfaces answering, and no writes into
+source. It asserts **nothing about whether the 13,985 files are the RIGHT 13,985**; that is the
+`fileSetMatchesGit` oracle (R4), and it still cannot be written until the `file_count` population
+question is resolved against real output. One number matching e1-p0.json is a spot-check, not
+the oracle.

@@ -8,7 +8,8 @@ import { mkdirSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installLocal, knownBreakages } from './lib/install.mjs';
-import { materialize } from './lib/project.mjs';
+import { materialize, materializeCorpus } from './lib/project.mjs';
+import { resolveCorpus, assertCorpusUntouched } from './lib/corpus.mjs';
 import { runScenario } from './lib/scenario-runner.mjs';
 import { validateScenario, validateNoDuplicateKeys } from './lib/spec-validate.mjs';
 import { checkRequirement } from './lib/requirements.mjs';
@@ -17,7 +18,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
 
 function parseArgs(argv) {
-  const args = { targets: ['local'], out: undefined, keepAll: false, scenarios: undefined, tags: undefined, gateTarget: undefined };
+  const args = { targets: ['local'], out: undefined, keepAll: false, scenarios: undefined, tags: undefined, gateTarget: undefined, forbidSkip: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => { const v = argv[++i]; if (v === undefined) throw new Error(`${a} needs a value`); return v; };
@@ -27,6 +28,7 @@ function parseArgs(argv) {
     else if (a === '--gate-target') args.gateTarget = next();
     else if (a === '--out') args.out = next();
     else if (a === '--keep-all') args.keepAll = true;
+    else if (a === '--forbid-skip') args.forbidSkip = next().split(',').map((s) => s.trim()).filter(Boolean);
     else if (a === '--help' || a === '-h') { usage(); process.exit(0); }
     else throw new Error(`unknown flag '${a}'`);
   }
@@ -45,6 +47,9 @@ function usage() {
   --gate-target <t>     which target decides the exit code (default: local if present)
   --out <dir>           where to write results (default: integration/results/<timestamp>)
   --keep-all            keep working copies even for scenarios that passed
+  --forbid-skip <tag>   a SKIP on a scenario carrying one of these tags fails the run.
+                        For release jobs: without it, a runner with no network reports
+                        green while silently omitting every corpus scenario.
 `);
 }
 
@@ -117,11 +122,37 @@ async function main() {
       }
       const workingDir = join(outDir, `work-${target}-${scenario.id}`);
       const project = (await import(join(HERE, 'projects', `${scenario.project}.mjs`))).default;
-      materialize(project, workingDir);
+      let corpus;
+      if (project.corpus !== undefined) {
+        // A corpus that cannot be resolved is an environment fact, exactly like an unmet
+        // `requires` — SKIP, never PASS, and never a silent narrowing. `--forbid-skip` is what
+        // stops a release job accepting it.
+        corpus = resolveCorpus(project.corpus, { log });
+        if (corpus.skip !== undefined) {
+          log(`\n[${target}] ${scenario.id}: SKIP — ${corpus.skip}`);
+          matrix.push({ scenarioId: scenario.id, target, pass: false, skipped: true, reason: corpus.skip, errored: false, steps: [], tags: scenario.tags ?? [] });
+          continue;
+        }
+        const { linked, copied } = materializeCorpus(corpus.root, workingDir);
+        log(`[${target}] ${scenario.id}: corpus materialised — ${linked} hardlinked, ${copied} copied`);
+      } else {
+        materialize(project, workingDir);
+      }
       log(`\n[${target}] ${scenario.id} — ${scenario.description}`);
       const result = await runScenario(scenario, { installRoot, workingDir, target, log });
       const pinnedRed = (scenario.expectFailOn ?? []).includes(target);
-      matrix.push({ ...result, pinnedRed, workingDir });
+      matrix.push({ ...result, pinnedRed, workingDir, tags: scenario.tags ?? [] });
+      if (corpus !== undefined) {
+        // Belt to `writeUnlinked`'s braces. A scenario that wrote THROUGH a hardlink has
+        // corrupted the shared cache for every later run, and nothing else would notice.
+        try {
+          assertCorpusUntouched(corpus);
+        } catch (err) {
+          log(`[${target}] ${scenario.id}: CORPUS GUARD: ${err.message}`);
+          result.errored = true;
+          result.errorMessage = err.message;
+        }
+      }
       const verdict = result.errored ? 'ERROR' : result.pass ? 'PASS' : 'FAIL';
       log(`[${target}] ${scenario.id}: ${verdict}${pinnedRed ? ' (pinned red)' : ''}`);
       if (result.errored) log(`  ERROR: ${result.errorMessage}`);
@@ -149,7 +180,15 @@ async function main() {
   }
   if (unexercised.length > 0) log(`[run] NOTE: pinned-red pairs not exercised this run: ${unexercised.join(', ')} — their green is uncalibrated.`);
 
+  const forbiddenSkips = matrix
+    .filter((m) => m.skipped === true && (m.tags ?? []).some((t) => args.forbidSkip.includes(t)))
+    .map((m) => `${m.scenarioId}@${m.target} (${m.reason})`);
+
   let exit = 0;
+  if (forbiddenSkips.length > 0) {
+    log(`\n[run] FORBIDDEN SKIP: ${forbiddenSkips.join('; ')}. --forbid-skip named these tags precisely so a run that could not host them fails instead of reporting a green that excludes them.`);
+    exit = 1;
+  }
   if (calibrationBreaks.length > 0) {
     log(`\n[run] RED/GREEN CALIBRATION BROKEN: ${calibrationBreaks.join(', ')} are pinned to prove a real defect by going RED, and they PASSED. The harness can no longer demonstrate the regression it exists to catch — treat this as a blocker, not a note.`);
     exit = 1;

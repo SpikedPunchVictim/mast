@@ -41,15 +41,14 @@ export const E1_ROOT = join(homedir(), '.cache', 'mast-eval', 'e1');
  */
 export const RESULTS_DIR = resolve(new URL('./results', import.meta.url).pathname);
 
-/** The six pins this registration commits. `n8n` is the ladder's source, not a panel rung. */
-export const PINS = {
-  P1:   { repo: 'opentelemetry-js', sha: '7f3e7eaa9f6bbc9622136479ed846f98c760a408', role: 'panel' },
-  P2:   { repo: 'langchainjs',      sha: '62fc484b2a0d1ec5b8bebff4a8a0efe6300ada72', role: 'panel' },
-  P3:   { repo: 'strapi',           sha: '0a8a9b40d0642b221c1841ae72295f830352e8ce', role: 'panel' },
-  P4:   { repo: 'backstage',        sha: '25463a867ce73ad4bd14179889f84cd815affbb7', role: 'panel' },
-  nest: { repo: 'nest',             sha: 'f7fffd63937ce6133624d23eb1d46fdd3c271526', role: 'panel+e2' },
-  n8n:  { repo: 'n8n',              sha: '9d9e9bf97e8ae5382a930cd662637a9cf7046ef9', role: 'ladder-source' },
-};
+/**
+ * The six pins this registration commits. `n8n` is the ladder's source, not a panel rung.
+ *
+ * Re-exported, not defined here: the literals moved to `./pins.mjs` on 2026-08-20 so a consumer
+ * outside the eval track can read a SHA without importing this module's `better-sqlite3`. Every
+ * importer of `PINS` from here is unchanged; there is still one place the SHAs are written.
+ */
+export { PINS } from './pins.mjs';
 
 /** Deterministic PRNG — same generator Q1/SCALE's tier constructor used. */
 export function mulberry32(a) {
