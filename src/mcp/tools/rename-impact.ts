@@ -12,7 +12,7 @@ import type {
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers, queryBarrelExports } from '../../graph/queries.js';
-import { jitRefreshFile, collectPotentialMatches, isIndexEmpty } from './_helpers.js';
+import { jitRefreshFile, collectPotentialMatches, isIndexEmpty , unindexedFilesField} from './_helpers.js';
 
 /**
  * Compose the "N verified sites, M review-required sites, K barrel exports"
@@ -126,6 +126,9 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
         // §9.0 TOCTOU policy: omitted when false, never present-and-false.
         ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
         ...indexEmptyField,
+        // Always, not only when empty: a rename checklist that is missing the
+        // files nobody indexed is the exact input that produces a broken rename.
+        ...unindexedFilesField(ctx, 'exhaustive-set', false),
         summary: {
           declaration_count: declaration_sites.length,
           verified_count: verified_callers.length,

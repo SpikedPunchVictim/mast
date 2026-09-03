@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { extractFileSignatures } from '../../ast/extract.js';
-import { extractDoc, jitRefreshFile, isIndexEmpty, DEFAULT_RESULT_LIMIT } from './_helpers.js';
+import { extractDoc, jitRefreshFile, isIndexEmpty, DEFAULT_RESULT_LIMIT , unindexedFilesField} from './_helpers.js';
 
 export function registerExportsTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -66,6 +66,7 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
         ...(exportsTruncated !== undefined ? { exports_truncated: exportsTruncated } : {}),
         // §9.0 TOCTOU policy: omitted when false, never present-and-false.
         ...(busy ? { file_busy_returning_stale_cache: true as const } : {}),
+        ...unindexedFilesField(ctx, 'named-lookup', exports.length === 0),
         ...indexEmptyField,
         _stats: buildToolStats('mast_exports', tokens, tokensFullFileBound, [args.file_path], durationMs),
       };

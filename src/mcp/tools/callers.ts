@@ -10,7 +10,7 @@ import type {
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
-import { jitRefreshFile, collectPotentialMatches, isIndexEmpty } from './_helpers.js';
+import { jitRefreshFile, collectPotentialMatches, isIndexEmpty , unindexedFilesField} from './_helpers.js';
 
 export function registerCallersTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -49,6 +49,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
           // §9.0 TOCTOU policy: omitted when false, never present-and-false.
           ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
           ...indexEmptyField,
+          ...unindexedFilesField(ctx, 'exhaustive-set', true),
           summary: {
             verified_count: 0,
             potential_count: 0,
@@ -111,6 +112,10 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
         // §9.0 TOCTOU policy: omitted when false, never present-and-false.
         ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
         ...indexEmptyField,
+        // Always, not only when empty: "3 verified callers" over a corpus
+        // missing forty files reads exactly like a complete answer, and is the
+        // one that gets acted on.
+        ...unindexedFilesField(ctx, 'exhaustive-set', false),
         summary: {
           verified_count: verified_callers.length,
           potential_count: potential_matches.length,

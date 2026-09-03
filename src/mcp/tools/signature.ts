@@ -7,7 +7,7 @@ import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from 
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, resolveTypeContext } from '../../graph/queries.js';
 import { extractFileSignatures, type ExtractedSignature } from '../../ast/extract.js';
-import { jitRefreshFile, isIndexEmpty, DEFAULT_RESULT_LIMIT } from './_helpers.js';
+import { jitRefreshFile, isIndexEmpty, DEFAULT_RESULT_LIMIT , unindexedFilesField} from './_helpers.js';
 
 // TypeScript built-in types that are never worth resolving as user-defined types.
 const BUILTIN_TYPES = new Set([
@@ -142,6 +142,7 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
         ...(topLevelBusy && results.length === 0
           ? { file_busy_returning_stale_cache: true as const }
           : {}),
+        ...unindexedFilesField(ctx, 'named-lookup', results.length === 0),
         ...indexEmptyField,
         _stats: buildToolStats('mast_signature', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };

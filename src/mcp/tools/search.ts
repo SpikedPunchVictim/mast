@@ -6,7 +6,7 @@ import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson, buildD
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { fusedSearch } from '../../search/fused.js';
 import { findStaleFiles } from '../staleness.js';
-import { isIndexEmpty } from './_helpers.js';
+import { isIndexEmpty , unindexedFilesField} from './_helpers.js';
 
 export function registerSearchTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -60,13 +60,10 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       // documents the residual cost). `null` means no measurement has landed
       // yet: unknown, so say nothing rather than imply a clean index we have
       // not verified.
-      // `null` (no measurement yet, or one just invalidated by a reindex) and `0`
-      // (measured, index complete) are both rendered as an omitted field, but they
-      // are kept distinct here rather than collapsed with `?? 0`: "unknown" reading
-      // as "clean" is the exact conflation this signal exists to prevent, and the
-      // next reader to add an `else` branch would inherit the wrong default.
-      const unindexed = ctx.freshness?.peekUnindexed() ?? null;
-      const unindexedField = unindexed !== null && unindexed > 0 ? { unindexed_files: unindexed } : {};
+      // Search claims exhaustiveness, so this fires with results as well as
+      // without: a ranked list drawn from an incomplete corpus is thin rather
+      // than empty, and reads the same as a complete one.
+      const unindexedField = unindexedFilesField(ctx, 'exhaustive-set', flaggedResults.length === 0);
       const response: SearchResponse = {
         results: flaggedResults,
         ...suggestionsField,

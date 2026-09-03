@@ -554,7 +554,7 @@ in the ordinary case, so read it, don't test for it.
 | `stale` | per result of `mast_search`, `mast_implementors` | this result's file changed on disk since it was indexed. The content and line numbers shown may be out of date; no re-parse was attempted (see [JIT Staleness Checks](#jit-staleness-checks)) |
 | `file_busy_returning_stale_cache` | `mast_signature`, `mast_callers`, `mast_exports`, `mast_dependencies`, `mast_rename_impact` | a re-parse *was* attempted and lost to a concurrent writer, so the previous chunk was returned. Contended, not wrong by design — retry shortly |
 | `index_empty` | the empty answer of any of the eight tools that return a result set | nothing is indexed at all. The answer is empty because there was nothing to answer from, not because nothing matched |
-| `unindexed_files` | `mast_search` | this many files exist on disk and are not in the index. The results were ranked over an incomplete corpus — an empty or thin answer may mean "not indexed" rather than "not present" |
+| `unindexed_files` | `mast_search`, `mast_callers`, `mast_implementors`, `mast_rename_impact`, `mast_project_skeleton` (always); `mast_signature`, `mast_exports`, `mast_dependencies` (on an empty answer only) | this many files exist on disk and are not in the index. The answer was computed over an incomplete corpus — an empty or thin result may mean "not indexed" rather than "not present". The tools that claim an exhaustive set report it even when they found something, because a short list reads exactly like a complete one; the three that answer about one named thing report it only when that thing was not found |
 | `results_truncated` | `mast_signature`, `mast_implementors` | the list was capped at `limit`; the field carries the real, uncapped total |
 | `exports_truncated` | `mast_exports` | the same, for a module's export list |
 | `potential_truncated` | `mast_callers`, `mast_rename_impact` | the unresolved-candidate fetch was capped at 50; the field carries the real match count |
@@ -856,8 +856,8 @@ is expected to re-read or call a re-parsing tool.
 
 Both mechanisms only ever touch files the index **already knows**. Neither can discover a file that
 was never indexed, so a file created during a session is invisible to every read tool until
-something reindexes it — which is why `mast serve` watches by default, and why `mast_search`
-reports `unindexed_files` when the index is nonetheless behind.
+something reindexes it — which is why `mast serve` watches by default, and why every
+primary-result tool reports `unindexed_files` when the index is nonetheless behind.
 
 ### Startup Ladder
 

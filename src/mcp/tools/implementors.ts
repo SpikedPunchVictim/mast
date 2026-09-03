@@ -6,7 +6,7 @@ import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { queryImplementors } from '../../graph/queries.js';
 import { findStaleFiles } from '../staleness.js';
-import { isIndexEmpty, DEFAULT_RESULT_LIMIT } from './_helpers.js';
+import { isIndexEmpty, DEFAULT_RESULT_LIMIT , unindexedFilesField} from './_helpers.js';
 
 export function registerImplementorsTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -54,6 +54,7 @@ export function registerImplementorsTool(server: McpServer, ctx: AppContext): vo
         results: flaggedResults,
         ...(resultsTruncated !== undefined ? { results_truncated: resultsTruncated } : {}),
         ...indexEmptyField,
+        ...unindexedFilesField(ctx, 'exhaustive-set', flaggedResults.length === 0),
         _stats: buildToolStats('mast_implementors', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       void recordToolCall(ctx.db, {

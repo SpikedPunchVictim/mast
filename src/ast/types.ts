@@ -300,6 +300,18 @@ export interface ProjectSkeletonResponse {
   readonly files: readonly FileSkeleton[];
   /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `files`. */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, when the count is known and
+   * non-zero (D054). Omitted when the index is complete, and equally when no
+   * measurement has landed yet — absent means *not warned*, never *verified
+   * clean*.
+   *
+   * The results below were computed over a corpus missing this many files, so
+   * an empty or thin answer may mean "not indexed" rather than "not present".
+   * Distinct from {@link SearchResponse.index_empty}, which is the
+   * all-or-nothing case; this is the partial one.
+   */
+  readonly unindexed_files?: number;
   readonly _stats: ToolStats;
 }
 
@@ -343,6 +355,18 @@ export interface ExportsResponse {
   readonly file_busy_returning_stale_cache?: true;
   /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `exports`. */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, when the count is known and
+   * non-zero (D054). Omitted when the index is complete, and equally when no
+   * measurement has landed yet — absent means *not warned*, never *verified
+   * clean*.
+   *
+   * The results below were computed over a corpus missing this many files, so
+   * an empty or thin answer may mean "not indexed" rather than "not present".
+   * Distinct from {@link SearchResponse.index_empty}, which is the
+   * all-or-nothing case; this is the partial one.
+   */
+  readonly unindexed_files?: number;
   readonly _stats: ToolStats;
 }
 
@@ -405,6 +429,18 @@ export interface SignatureResponse {
   readonly file_busy_returning_stale_cache?: true;
   /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `results`. Independent of the `file_busy_returning_stale_cache` envelope flag above; either, both, or neither may be present. */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, when the count is known and
+   * non-zero (D054). Omitted when the index is complete, and equally when no
+   * measurement has landed yet — absent means *not warned*, never *verified
+   * clean*.
+   *
+   * The results below were computed over a corpus missing this many files, so
+   * an empty or thin answer may mean "not indexed" rather than "not present".
+   * Distinct from {@link SearchResponse.index_empty}, which is the
+   * all-or-nothing case; this is the partial one.
+   */
+  readonly unindexed_files?: number;
   readonly _stats: ToolStats;
 }
 
@@ -482,6 +518,18 @@ export interface CallersResponse {
   readonly file_busy_returning_stale_cache?: true;
   /** @see {@link SearchResponse.index_empty} — same empty-index signal; set only when BOTH `verified_callers` and `potential_matches` are empty. */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, when the count is known and
+   * non-zero (D054). Omitted when the index is complete, and equally when no
+   * measurement has landed yet — absent means *not warned*, never *verified
+   * clean*.
+   *
+   * The results below were computed over a corpus missing this many files, so
+   * an empty or thin answer may mean "not indexed" rather than "not present".
+   * Distinct from {@link SearchResponse.index_empty}, which is the
+   * all-or-nothing case; this is the partial one.
+   */
+  readonly unindexed_files?: number;
   readonly summary: {
     readonly verified_count: number;
     readonly potential_count: number;
@@ -558,6 +606,18 @@ export interface RenameImpactResponse {
   readonly file_busy_returning_stale_cache?: true;
   /** @see {@link SearchResponse.index_empty} — same empty-index signal; set only when ALL FOUR of `declaration_sites`, `verified_callers`, `potential_matches`, and `barrel_exports` are empty. */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, when the count is known and
+   * non-zero (D054). Omitted when the index is complete, and equally when no
+   * measurement has landed yet — absent means *not warned*, never *verified
+   * clean*.
+   *
+   * The results below were computed over a corpus missing this many files, so
+   * an empty or thin answer may mean "not indexed" rather than "not present".
+   * Distinct from {@link SearchResponse.index_empty}, which is the
+   * all-or-nothing case; this is the partial one.
+   */
+  readonly unindexed_files?: number;
   readonly summary: {
     readonly declaration_count: number;
     readonly verified_count: number;
@@ -595,6 +655,18 @@ export interface DependenciesResponse {
   readonly file_busy_returning_stale_cache?: true;
   /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `imports`. */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, when the count is known and
+   * non-zero (D054). Omitted when the index is complete, and equally when no
+   * measurement has landed yet — absent means *not warned*, never *verified
+   * clean*.
+   *
+   * The results below were computed over a corpus missing this many files, so
+   * an empty or thin answer may mean "not indexed" rather than "not present".
+   * Distinct from {@link SearchResponse.index_empty}, which is the
+   * all-or-nothing case; this is the partial one.
+   */
+  readonly unindexed_files?: number;
   readonly _stats: ToolStats;
 }
 
@@ -646,6 +718,18 @@ export interface ImplementorsResponse {
 
   /** @see {@link SearchResponse.index_empty} — same empty-index signal, keyed on `results`. */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, when the count is known and
+   * non-zero (D054). Omitted when the index is complete, and equally when no
+   * measurement has landed yet — absent means *not warned*, never *verified
+   * clean*.
+   *
+   * The results below were computed over a corpus missing this many files, so
+   * an empty or thin answer may mean "not indexed" rather than "not present".
+   * Distinct from {@link SearchResponse.index_empty}, which is the
+   * all-or-nothing case; this is the partial one.
+   */
+  readonly unindexed_files?: number;
   readonly _stats: ToolStats;
 }
 

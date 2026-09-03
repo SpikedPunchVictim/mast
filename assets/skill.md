@@ -63,7 +63,7 @@ presence is never `false`. `truncated` is the exception: it is always present on
 | `stale` | per result of `mast_search`, `mast_implementors` | this result's file changed since indexing; line numbers may be wrong |
 | `file_busy_returning_stale_cache` | the five re-parsing tools | a refresh was attempted and lost to a writer; retry shortly |
 | `index_empty` | the empty answer of any of the eight tools that return a result set | **nothing is indexed at all.** This is not "no match" — run `mast_reindex`, or check that `mast_status` names the tree you meant |
-| `unindexed_files` | `mast_search` | that many files on disk are not in the index. Your results were ranked over an incomplete corpus |
+| `unindexed_files` | `mast_search`, `mast_callers`, `mast_implementors`, `mast_rename_impact`, `mast_project_skeleton` (always); `mast_signature`, `mast_exports`, `mast_dependencies` (on an empty answer only) | that many files on disk are not in the index, so this answer was computed over an incomplete corpus. **An empty result carrying this is not evidence of absence.** The set-returning tools report it even with hits — a short list of callers reads exactly like a complete one |
 | `results_truncated` | `mast_signature`, `mast_implementors` | you got the first page, not the answer. The field carries the real total; raise `limit` or narrow the query |
 | `exports_truncated` | `mast_exports` | the same, for a module's export list |
 | `potential_truncated` | `mast_callers`, `mast_rename_impact` | the unresolved-candidate set was capped; the real count is larger |
@@ -79,4 +79,6 @@ Two more things that are not flags:
   Markdown only — a symbol defined in Python, Go, Java, or any other language is absent
   from the index, not absent from the repository. Check `index_empty` and
   `unindexed_files` before concluding "it isn't there", and **never delete or rewrite
-  code on the strength of an empty result alone.**
+  code on the strength of an empty result alone.** Every result-set tool carries
+  `unindexed_files` now, not just `mast_search` — so an empty `mast_callers` answer that
+  carries it is not a green light to delete the function.

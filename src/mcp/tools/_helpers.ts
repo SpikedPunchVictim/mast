@@ -40,6 +40,54 @@ export async function isIndexEmpty(ctx: AppContext): Promise<boolean> {
   return (await ctx.chunkStore.chunkCount()) === 0;
 }
 
+/**
+ * How exhaustive a tool's answer claims to be. This is what decides whether a
+ * partial index is worth mentioning alongside a *non-empty* result, and the two
+ * cases are genuinely different claims rather than a style choice.
+ *
+ * - `exhaustive-set` — the answer is "these are the ones there are"
+ *   (`mast_callers`, `mast_rename_impact`, `mast_implementors`, `mast_search`,
+ *   `mast_project_skeleton`). A **non-empty** answer is the dangerous one here:
+ *   "3 verified callers" computed over a corpus missing forty files is what
+ *   drives a delete, and it reads exactly like a complete answer.
+ * - `named-lookup` — the answer is about one thing the caller named
+ *   (`mast_signature`, `mast_exports`, `mast_dependencies`). If it was found,
+ *   the answer is correct however much else is unindexed; only *not finding* it
+ *   is ambiguous between "absent" and "never indexed".
+ */
+export type CompletenessClaim = 'exhaustive-set' | 'named-lookup';
+
+/**
+ * The partial-index warning (D054), for every tool that returns a primary
+ * result set — not just `mast_search`, which had it first only because that is
+ * where it was written.
+ *
+ * The severity zero: a caller reads an empty or thin answer, concludes "it
+ * isn't there", and edits or deletes code that is in fact referenced from a
+ * file the index never saw. `index_empty` covers the all-or-nothing case; this
+ * covers the far commoner partial one, where the index is populated and merely
+ * behind.
+ *
+ * Free to call. `peekUnindexed` reads a TTL-cached count synchronously and
+ * never awaits a walk (see `mcp/freshness-probe.ts`), so unlike `isIndexEmpty`
+ * this costs nothing on a populated response and needs no empty-path guard for
+ * performance — only for meaning.
+ *
+ * `null` from the probe means *no measurement has landed yet*, which is
+ * unknown, not zero. Both render as an omitted field, but they are kept
+ * distinct here because the next reader to add a branch would otherwise inherit
+ * "unknown means clean" — the exact conflation this signal exists to prevent.
+ */
+export function unindexedFilesField(
+  ctx: AppContext,
+  claim: CompletenessClaim,
+  isEmpty: boolean,
+): { readonly unindexed_files?: number } {
+  if (claim === 'named-lookup' && !isEmpty) return {};
+  const unindexed = ctx.freshness?.peekUnindexed() ?? null;
+  return unindexed !== null && unindexed > 0 ? { unindexed_files: unindexed } : {};
+}
+
 /** Extract the first JSDoc comment block from chunk content, if present. */
 export function extractDoc(content: string): string | null {
   const match = /\/\*\*([\s\S]*?)\*\//.exec(content);

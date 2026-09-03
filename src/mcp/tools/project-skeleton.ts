@@ -5,7 +5,7 @@ import type { ProjectSkeletonResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { queryProjectSkeleton } from '../../graph/queries.js';
-import { globToRegex, isIndexEmpty } from './_helpers.js';
+import { globToRegex, isIndexEmpty , unindexedFilesField} from './_helpers.js';
 
 export function registerProjectSkeletonTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -64,6 +64,7 @@ export function registerProjectSkeletonTool(server: McpServer, ctx: AppContext):
       const response: ProjectSkeletonResponse = {
         files,
         ...indexEmptyField,
+        ...unindexedFilesField(ctx, 'exhaustive-set', files.length === 0),
         _stats: buildToolStats('mast_project_skeleton', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       void recordToolCall(ctx.db, {
