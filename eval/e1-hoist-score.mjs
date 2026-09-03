@@ -130,7 +130,7 @@ function bcaMedianCI(values, { resamples = 10000, alpha = 0.05, seed = 811 } = {
  * A ratio is multiplicative, so the log scale is its natural home; the geometric mean of
  * ratios is the only mean of ratios that is invariant to which arm goes in the numerator.
  */
-function geoMeanRatioCI(values, { alpha = 0.05 } = {}) {
+function geoMeanRatioCI(values, { alpha: _alpha = 0.05 } = {}) {
   const L = values.map(Math.log);
   const n = L.length;
   const m = mean(L);

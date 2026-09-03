@@ -14,7 +14,7 @@
 //
 // Writes results/<model>__recipe_<tag>.json (pure_vector only).
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { cpSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { LanceStore, chunkRecordToChunk } from '../dist/store/lance.js';
 import { stampVectorHashes } from '../dist/indexer/embedder.js';

@@ -17,11 +17,11 @@
 import { existsSync, mkdirSync, readFileSync, appendFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  E1_ROOT, PINS, RESULTS_DIR, assertGate0, assertCorpusPinned, materialiseTier,
+  E1_ROOT, RESULTS_DIR, assertGate0, assertCorpusPinned, materialiseTier,
   runColdIndex, readIndexedPaths, writeResult,
 } from './e1-common.mjs';
 import {
-  TIERS, REPS, TOTAL_RUNS, buildSchedule, gate3Verdict, retainStateDir, median, MAX_RETAKES,
+  TIERS, REPS, TOTAL_RUNS, buildSchedule, gate3Verdict, retainStateDir, median,
   orphanedAttempts, remainingAttempts, selectFitted,
 } from './e1-schedule.mjs';
 

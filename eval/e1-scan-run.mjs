@@ -23,7 +23,7 @@
 // an unused number in an artifact, which is an invitation to post-hoc use — E1-AB's
 // reasoning, carried over.
 
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync,

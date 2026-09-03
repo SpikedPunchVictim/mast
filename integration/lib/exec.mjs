@@ -93,7 +93,7 @@ export function runMastJson(installRoot, workingDir, argsString) {
   try {
     return JSON.parse(res.stdout);
   } catch (err) {
-    throw new Error(`\`mast ${argsString}\` did not emit parseable JSON: ${err.message}\n--- stdout ---\n${res.stdout.slice(0, 2000)}`);
+    throw new Error(`\`mast ${argsString}\` did not emit parseable JSON: ${err.message}\n--- stdout ---\n${res.stdout.slice(0, 2000)}`, { cause: err });
   }
 }
 

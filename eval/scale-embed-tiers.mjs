@@ -31,7 +31,7 @@
 //   node eval/scale-embed-tiers.mjs           # all tiers T1-T3
 //   node eval/scale-embed-tiers.mjs T2         # a single tier
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDatabase } from '../dist/graph/db.js';

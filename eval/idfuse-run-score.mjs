@@ -32,7 +32,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scoreIdfuse, parseResultsFile, VERDICTS } from './idfuse-score.mjs';
+import { scoreIdfuse, parseResultsFile } from './idfuse-score.mjs';
 import { ARMS } from './idfuse-rank-check.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

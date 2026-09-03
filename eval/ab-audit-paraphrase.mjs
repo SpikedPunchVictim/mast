@@ -33,7 +33,7 @@ const dfStmt = db.prepare("SELECT COUNT(*) AS n FROM chunk_fts WHERE chunk_fts M
 const dfCache = new Map();
 function df(tok) {
   if (dfCache.has(tok)) return dfCache.get(tok);
-  let n = 0;
+  let n;
   try { n = dfStmt.get(`"${tok.replace(/"/g, '""')}"`).n; } catch { n = -1; }
   dfCache.set(tok, n);
   return n;

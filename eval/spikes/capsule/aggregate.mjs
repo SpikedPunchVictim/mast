@@ -57,7 +57,7 @@ function loadPoolStores(pool) {
     } catch {
       continue;
     }
-    let rows = [];
+    let rows;
     let dailyRowCount = 0;
     try {
       rows = db

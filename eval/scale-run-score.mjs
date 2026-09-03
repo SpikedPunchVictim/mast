@@ -26,7 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   scoreStratum, bcaBootstrap, log2CensoredRank, trivialDischargeCheck,
-  evaluateVerdict, VERDICTS, T4_CEILING_FRACTION,
+  evaluateVerdict, T4_CEILING_FRACTION,
 } from './scale-score.mjs';
 import { validateResultRow } from './scale-rank-check.mjs';
 

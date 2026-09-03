@@ -120,7 +120,7 @@ The tell is that each was *internally* consistent. Nothing inside the document c
 
 ## S-04 — A confident claim about code nobody opened
 
-**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046. **Right**
+**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046, D052. **Rung**: brief.
 
 The richest family here, and the one that produced this package's only two S0s. D009 had two
 documents describing a third file's behaviour exactly backwards. D004's four call sites assumed
@@ -351,7 +351,7 @@ exactly where real input stops being any of those.
 
 ## S-10 — The check you ran is not the check that governs
 
-**Instances**: D021, D022. **Rung**: brief. *(Added 2026-08-19.)*
+**Instances**: D021, D022, D053. **Rung**: brief. *(Added 2026-08-19.)*
 
 A green result is reported, and it is real — it just came from a narrower instrument than the one
 that decides. D021 ran `tsc --noEmit`, the first half of a `typecheck` script whose second half
@@ -371,6 +371,16 @@ reason to look: they have a passing command in their scrollback.
 > to what you ran. A subset that passes is not the gate passing — `&&`-joined scripts and multi-config
 > typechecks are where this hides.
 
+D053 is the degenerate case: the gate ran the whole command and the command enforced nothing.
+`pnpm lint` was `eslint src eval`, and no configuration block matched a `.mjs` file, so ESLint
+applied zero rules and exited 0 over sixty scripts. Every symptom of a healthy lint was present —
+correct command, no output, exit 0 — because a lint with no rules and a lint with nothing to
+report are the same observation. It had been that way long enough for a live `ReferenceError` to
+sit in the corpus-integrity gate for thirteen days (D052).
+
+> **Ask**: does this gate enforce anything? Ask the tool what it applies to the file — ESLint's
+> `--print-config`, `tsc --showConfig`, the resolved include globs — rather than inferring coverage
+> from the directory named on the command line. Green over an empty rule set is the same green.
 
 > **Ask**: what state does your working copy hold that a fresh checkout will not — a build cache, a
 > gitignored artifact, a previously-built `dist/`, an installed binary, a warm database? Which of

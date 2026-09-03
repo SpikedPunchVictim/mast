@@ -31,7 +31,7 @@ import { searchFts } from '../../../dist/search/fts.js';
 import { searchVectors } from '../../../dist/search/vector.js';
 import { HarnessEmbedder } from '../../harness-embedder.mjs';
 import { MODEL_CACHE_DIR, BASE_STATE_DIR, RESULTS_DIR, modelStateDir } from '../../paths.mjs';
-import { computeInDegreeCentrality, scoreChunks, coverageStats, chunkKey } from './centrality.mjs';
+import { computeInDegreeCentrality, scoreChunks, coverageStats } from './centrality.mjs';
 
 const INCUMBENT = 'jinaai/jina-embeddings-v2-base-code';
 const RRF_K = 60;

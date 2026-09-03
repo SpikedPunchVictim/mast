@@ -20,7 +20,7 @@ import { resolve } from 'node:path';
 import {
   SEED, RUNGS, SPAN, rungFractions, seededShuffle, readPerFileChunkCounts, writeResult,
 } from './e1-common.mjs';
-import { olsFit, studentTQuantile } from './e1-stats.mjs';
+import { studentTQuantile } from './e1-stats.mjs';
 
 /** Projected cluster-level Sxx for a perfectly-spaced ladder; Gate 1b's tolerance anchor. */
 const PROJECTED_SXX_CLUSTER = 8.414;

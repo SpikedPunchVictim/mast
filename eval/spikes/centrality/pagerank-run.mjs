@@ -17,7 +17,7 @@ import { searchFts } from '../../../dist/search/fts.js';
 import { searchVectors } from '../../../dist/search/vector.js';
 import { HarnessEmbedder } from '../../harness-embedder.mjs';
 import { MODEL_CACHE_DIR, BASE_STATE_DIR, modelStateDir } from '../../paths.mjs';
-import { scoreChunks, coverageStats } from './centrality.mjs';
+import { scoreChunks } from './centrality.mjs';
 import { computePageRank } from './pagerank.mjs';
 
 const INCUMBENT = 'jinaai/jina-embeddings-v2-base-code';

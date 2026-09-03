@@ -12,7 +12,6 @@
 //   node eval/f16-rrf-sweep.mjs
 
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { openDatabase } from '../dist/graph/db.js';
 import { SqliteChunkStore } from '../dist/store/sqliteChunkStore.js';
 import { LanceStore } from '../dist/store/lance.js';

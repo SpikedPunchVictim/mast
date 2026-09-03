@@ -14,7 +14,6 @@
 
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync, readFileSync, statSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
 import { openDatabase } from '../dist/graph/db.js';
 import { LanceStore, chunkRecordToChunk } from '../dist/store/lance.js';
 import { stampVectorHashes } from '../dist/indexer/embedder.js';
@@ -75,7 +74,7 @@ try {
   }
 
   // --- Load (gating proof: must load ONNX in Transformers.js) ---
-  const rssBefore = process.memoryUsage().rss;
+  const _rssBefore = process.memoryUsage().rss;
   const cacheBefore = dirSizeBytes(modelCacheSubdir);
   const embedder = new HarnessEmbedder(modelId, MODEL_CACHE_DIR, stateDir, dtype);
   const tLoad0 = Date.now();

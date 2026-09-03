@@ -14,7 +14,7 @@ import { RESULTS_DIR, writeResult } from './e1-common.mjs';
 import { median } from './e1-schedule.mjs';
 import { olsFit, hc3SlopeSe, studentTQuantile, quadraticDeparturePct } from './e1-stats.mjs';
 import {
-  LADDER_TIERS, LADDER_TOTAL_RUNS, H1_EXPONENT_BAR, H2_MIN_SEPARATION, H3_MAX_LOCAL_SLOPE,
+  LADDER_TOTAL_RUNS, H1_EXPONENT_BAR, H2_MIN_SEPARATION, H3_MAX_LOCAL_SLOPE,
   GATE_L_SCAN_ARM_R, GATE_L_BAND,
 } from './e1-ladder-schedule.mjs';
 

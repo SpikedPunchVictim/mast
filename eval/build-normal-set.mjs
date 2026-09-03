@@ -75,7 +75,7 @@ for (const src of SOURCES) {
   let buf = '';
   const flush = () => {
     if (!buf.trim()) return;
-    for (const s of buf.split(/(?<=[.!?])\s+(?=[A-Z*`"'(\[])/)) units.push(s.trim());
+    for (const s of buf.split(/(?<=[.!?])\s+(?=[A-Z*`"'([])/)) units.push(s.trim());
     buf = '';
   };
   for (const u of units.splice(0, units.length)) {
@@ -95,7 +95,7 @@ for (const src of SOURCES) {
     // and it must read as a clause rather than a fragment (starts with a word
     // or an identifier, ends on sentence punctuation or a table cell).
     if (query.split(/\s+/).filter((w) => /[a-zA-Z]{3,}/.test(w)).length < 6) continue;
-    if (!/^[A-Za-z*`(\[]/.test(query)) continue;
+    if (!/^[A-Za-z*`([]/.test(query)) continue;
     candidates.push({
       source: src,
       query,

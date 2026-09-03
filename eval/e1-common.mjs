@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, linkSync, mkdirSync, readdirSync, rmSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { PINS } from './pins.mjs';
 
 /** Seed committed with the registration (AMENDMENT 1 F11). */
 export const SEED = 811;
@@ -47,8 +48,12 @@ export const RESULTS_DIR = resolve(new URL('./results', import.meta.url).pathnam
  * Re-exported, not defined here: the literals moved to `./pins.mjs` on 2026-08-20 so a consumer
  * outside the eval track can read a SHA without importing this module's `better-sqlite3`. Every
  * importer of `PINS` from here is unchanged; there is still one place the SHAs are written.
+ *
+ * IMPORTED and then re-exported, not `export ... from`. The bare re-export form binds nothing in
+ * this module's own scope, and `assertCorpusPinned` below reads `PINS[name]` — so Gate 1 threw
+ * `ReferenceError: PINS is not defined` for every caller between 2026-08-20 and 2026-09-02 (D052).
  */
-export { PINS } from './pins.mjs';
+export { PINS };
 
 /** Deterministic PRNG — same generator Q1/SCALE's tier constructor used. */
 export function mulberry32(a) {

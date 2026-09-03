@@ -6,7 +6,6 @@
 // E1-AB's 30 records are a finished, scored artifact and must not sit behind a
 // moving definition. Same rule that gave E1-AB its own module.
 
-import { join } from 'node:path';
 
 /**
  * The two arms. `pkgRoot` is a detached worktree OUTSIDE the repo, each with its own

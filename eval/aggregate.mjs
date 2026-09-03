@@ -47,7 +47,7 @@ function ratio(cand, base, higherBetter, cap = 3) {
 // the miscalibrated gate removed). Quality axis + decision rule use it.
 const QUALITY_VARIANT = 'hybrid_thresh0';
 const incQualityH = quality(incumbent, QUALITY_VARIANT);
-const incQualityV = quality(incumbent, 'pure_vector');
+const _incQualityV = quality(incumbent, 'pure_vector');
 
 const rows = fp32.map((r) => {
   if (r.gate !== 'passed') return { r, gate: r.gate };

@@ -176,7 +176,6 @@ const ARMS = {
 };
 
 const report = {};
-const selfCheck = {};
 
 for (const set of SETS) {
   const gold = JSON.parse(readFileSync(new URL(set.file, import.meta.url), 'utf-8'));

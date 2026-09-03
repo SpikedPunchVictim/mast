@@ -10,6 +10,8 @@
 // root `.eslintrc.json`, which permits `as`. Tightening the assertion policy is
 // a separate cleanup, not part of restoring a runnable lint.
 
+import js from '@eslint/js';
+import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 
@@ -43,10 +45,20 @@ const syntacticGates = {
 export default [
   // Flat config does not inherit `.eslintignore`.
   {
-    // Fixtures are sample source files (intentionally unconventional, with
-    // deliberately unused/non-exported declarations) — they are test data, not
-    // code to lint.
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '.mast/**', 'src/**/__tests__/fixtures/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      '.mast/**',
+      // Fixtures are sample source files (intentionally unconventional, with
+      // deliberately unused/non-exported declarations) — they are test data, not
+      // code to lint.
+      'src/**/__tests__/fixtures/**',
+      // Not merely generated: this holds installed node_modules and materialised OSS corpora
+      // (26321 files for n8n alone). Linting it would be slow and would report on third-party
+      // source the harness only ever reads.
+      'integration/results/**',
+    ],
   },
 
   // Production source: full type-checked ruleset. Test files are excluded from
@@ -89,6 +101,31 @@ export default [
       // Test carve-out (§3.1): non-null assertions are allowed where the
       // invariant is obvious from setup.
       '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+
+  // The eval and integration harnesses: plain ESM JavaScript, outside tsconfig's `include`, so
+  // no type-aware rule can reach them. Before this block they matched no configuration at all —
+  // `eslint eval` ran with an EMPTY rule set and was a parse check wearing a lint's name, which
+  // is the S-04 shape aimed at our own tooling. These directories decide what the release gate
+  // asserts and what an experiment measures, so "unlinted" was the wrong default for them.
+  //
+  // `js.configs.recommended` is the likely-bug set and is maintained upstream rather than
+  // hand-listed here; the two rules below are the local policy on top of it.
+  {
+    files: ['eval/**/*.mjs', 'integration/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      // stdout IS the interface for both harnesses — the run log is the artifact a reader
+      // reviews. `no-console` would fire on every line of it.
+      'no-console': 'off',
+      // The repo-wide `_`-prefix opt-out, matching `syntacticGates` above.
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
 ];
