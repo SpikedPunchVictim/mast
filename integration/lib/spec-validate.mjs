@@ -10,8 +10,8 @@ import { ASSERT_KINDS } from './assert.mjs';
 import { knownMutations } from './mutations.mjs';
 import { validateWriteSetEntry } from './writeset.mjs';
 
-const KNOWN_STEP_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert', 'expect', 'label'];
-const KNOWN_ACTION_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert'];
+const KNOWN_STEP_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert', 'expect', 'label', 'serve', 'serveStop', 'retry'];
+const KNOWN_ACTION_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert', 'serve', 'serveStop'];
 const KNOWN_EXPECT_KEYS = ['exit', 'stdoutContains', 'stderrContains', 'stdoutMatches'];
 const KNOWN_SCENARIO_KEYS = ['id', 'project', 'description', 'tags', 'writeSet', 'steps', 'expectFailOn', 'requires'];
 
@@ -66,6 +66,25 @@ export function validateScenario(scenario, sourcePath) {
       if (required === undefined) fail(`step ${i}: unknown assert kind '${kind}' — known: ${Object.keys(ASSERT_KINDS).join(', ')}`);
       for (const key of required) {
         if (step.assert[key] === undefined) fail(`step ${i}: assert '${kind}' requires '${key}'`);
+      }
+    }
+
+    // `retry` polls an `expect` to a deadline. On a step with no `expect` it would loop doing
+    // nothing and then report a pass, which is the "asserts less than it claims" failure this
+    // file exists to prevent.
+    if (step.retry !== undefined) {
+      if (step.mcpCall === undefined) fail(`step ${i}: 'retry' is only meaningful on an 'mcpCall'`);
+      if (step.expect === undefined) fail(`step ${i}: 'retry' without an 'expect' polls for nothing and always passes`);
+      if (typeof step.retry.timeoutMs !== 'number' || step.retry.timeoutMs <= 0) {
+        fail(`step ${i}: 'retry' requires a positive 'timeoutMs' — an unbounded poll hangs the suite`);
+      }
+    }
+
+    if (step.serve !== undefined) {
+      if (typeof step.serve !== 'object' || step.serve === null) fail(`step ${i}: 'serve' must be an object (use '{}' for default flags)`);
+      if (step.serve.args !== undefined && !Array.isArray(step.serve.args)) fail(`step ${i}: 'serve.args' must be an array of CLI flags`);
+      if (step.serve.settleMs !== undefined && (typeof step.serve.settleMs !== 'number' || step.serve.settleMs < 0)) {
+        fail(`step ${i}: 'serve.settleMs' must be a non-negative number of milliseconds`);
       }
     }
 

@@ -65,3 +65,46 @@ export async function listMcpTools(installRoot, workingDir) {
     await client.close().catch(() => {});
   }
 }
+
+/**
+ * A PERSISTENT `mast serve` session: one server process, many calls, closed explicitly.
+ *
+ * `callMcpTool` above spawns a server per call and kills it, which is right for asserting on a
+ * tool's answer and useless for asserting on `serve` itself. Everything `serve` actually owns is
+ * a property of a SESSION and cannot survive a process that lives for one request: the file
+ * watcher (§11.4) reindexing after the client connected, the startup reindex's effect on a later
+ * query, and the freshness probe's cached `unindexed_files` count, which is primed in the
+ * background at startup and read by whatever search comes next.
+ *
+ * `serveArgs` is passed verbatim so a scenario chooses its own flags. Nothing is defaulted —
+ * notably NOT `--no-watch`, which the one-shot helpers hard-code: a scenario testing the watcher
+ * must be able to leave it on, and one that would be made nondeterministic by it must be able to
+ * say so itself.
+ */
+export async function openMcpSession(installRoot, workingDir, serveArgs = []) {
+  const require = createRequire(`${installRoot}/node_modules/@spikedpunch/mast/package.json`);
+  const { Client } = await import(require.resolve('@modelcontextprotocol/sdk/client/index.js'));
+  const { StdioClientTransport } = await import(require.resolve('@modelcontextprotocol/sdk/client/stdio.js'));
+
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    // See LEDGER D042: `mast serve` takes ZERO positionals; the project root comes from `cwd`.
+    args: [mastEntryPath(installRoot), 'serve', ...serveArgs],
+    cwd: workingDir,
+    env: sanitizeEnv(process.env),
+  });
+  const client = new Client({ name: 'mast-integration-harness', version: '0.0.0' }, { capabilities: {} });
+  await client.connect(transport);
+
+  return {
+    serveArgs,
+    async call(tool, args) {
+      const result = await client.callTool({ name: tool, arguments: args ?? {} });
+      const text = (result.content ?? []).map((c) => c.text ?? '').join('');
+      return { text, raw: result };
+    },
+    async close() {
+      await client.close().catch(() => {});
+    },
+  };
+}

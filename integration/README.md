@@ -97,6 +97,29 @@ node integration/run.mjs --targets local,local-broken-d023-miscased-import   # t
   something.
 - **Working copies survive a failure** and are deleted on a pass.
 
+## Testing `mast serve` as a session
+
+Most steps here spawn a process per action: `run` shells out to the CLI, and a bare `mcpCall`
+starts a `mast serve`, asks one question, and kills it. That is the right shape for asserting on a
+tool's answer, and it cannot see `serve` itself — everything `serve` owns is a property of a
+process that outlives one request: the file watcher (§11.4), the startup reindex's effect on a
+later query, and the freshness probe's cached `unindexed_files` count.
+
+Three step keys cover it:
+
+| step | does |
+|---|---|
+| `{ serve: { args: [...] } }` | Opens ONE long-lived `mast serve`. Every later `mcpCall` routes through it until it is closed. `args` is passed verbatim and nothing is defaulted — including `--no-watch`, so a scenario testing the watcher can leave it on. |
+| `{ serveStop: {} }` | Closes it. The runner also closes any open session in a `finally`, so a scenario that throws cannot leak a watcher-holding process into the next working copy. |
+| `retry: { timeoutMs, intervalMs }` | On an `mcpCall`, polls its `expect` to a deadline. |
+
+`retry` exists because a watcher's effect is asynchronous **by design** — chokidar debounces, the
+batch takes `structure.lock`, and the reindex takes as long as it takes. A fixed sleep would be
+either flaky or slow, and a sleep long enough to be safe would hide a watcher that had regressed
+to "eventually, after 30 seconds". Polling to a deadline states the real contract: *this becomes
+true, within this long*. `spec-validate` rejects a `retry` with no `expect`, which would poll for
+nothing and then report a pass.
+
 ## Deliberate differences from align's harness
 
 - **One install per target per run**, shared across scenarios, rather than align's per-working-copy
