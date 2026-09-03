@@ -11,6 +11,7 @@ import { SqliteChunkStore } from '../../../store/sqliteChunkStore.js';
 import { acquireLock } from '../../../store/lock.js';
 import type { AppContext } from '../../context.js';
 import { registerSearchTool } from '../search.js';
+import type { FreshnessProbe } from '../../freshness-probe.js';
 import { registerProjectSkeletonTool } from '../project-skeleton.js';
 import { registerExportsTool } from '../exports.js';
 import { registerSignatureTool } from '../signature.js';
@@ -1700,5 +1701,99 @@ describe('index_empty — M6 Part B', () => {
       expect(res.declaration_sites.some((d) => d.file_path === 'math.ts')).toBe(true);
       expect(res).not.toHaveProperty('index_empty');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mast_search — the unindexed-files warning (freshness probe)
+// ---------------------------------------------------------------------------
+
+/**
+ * The severity-zero this field exists for: a caller reads `results: []`,
+ * concludes "it isn't there", and deletes code that is in fact referenced from
+ * a file the index never saw. `index_empty` covers the all-or-nothing case;
+ * this covers the far commoner partial one, where the index is populated and
+ * merely behind.
+ */
+describe('mast_search — unindexed_files warning', () => {
+  function stubProbe(value: number | null): FreshnessProbe {
+    return {
+      peekUnindexed: () => value,
+      invalidate: () => {},
+      refresh: () => {},
+      settled: () => Promise.resolve(),
+    };
+  }
+
+  function searchWith(probe: FreshnessProbe | undefined): (q: string) => Promise<{
+    results: Array<{ file_path: string }>;
+    unindexed_files?: number;
+  }> {
+    const mock = createMockServer();
+    registerSearchTool(mock.server, { ...ctx, ...(probe !== undefined ? { freshness: probe } : {}) });
+    return (q) => mock.call('mast_search', { query: q }) as Promise<{
+      results: Array<{ file_path: string }>;
+      unindexed_files?: number;
+    }>;
+  }
+
+  it('reports the count when the index is behind the working tree', async () => {
+    const search = searchWith(stubProbe(4));
+
+    const res = await search('add');
+
+    expect(res.unindexed_files).toBe(4);
+  });
+
+  it('warns even on a query that found results, because the miss may be the file that matters', async () => {
+    const search = searchWith(stubProbe(1));
+
+    const res = await search('add');
+
+    expect(res.results.length).toBeGreaterThan(0);
+    expect(res.unindexed_files).toBe(1);
+  });
+
+  it('omits the field entirely when nothing is unindexed', async () => {
+    const search = searchWith(stubProbe(0));
+
+    const res = await search('add');
+
+    expect(res).not.toHaveProperty('unindexed_files');
+  });
+
+  it('omits the field when freshness is unknown, rather than claiming zero', async () => {
+    // A probe that has not completed its first measurement returns null.
+    // Rendering that as `unindexed_files: 0` would assert a clean index we have
+    // not verified — the exact overclaim this package's S0 is about.
+    const search = searchWith(stubProbe(null));
+
+    const res = await search('add');
+
+    expect(res).not.toHaveProperty('unindexed_files');
+  });
+
+  it('omits the field when the surface has no probe wired at all', async () => {
+    const search = searchWith(undefined);
+
+    const res = await search('add');
+
+    expect(res).not.toHaveProperty('unindexed_files');
+  });
+
+  it('peeks without awaiting, so a search never pays for a project walk', async () => {
+    let peeks = 0;
+    const probe: FreshnessProbe = {
+      peekUnindexed: () => { peeks++; return 2; },
+      invalidate: () => { throw new Error('search must not invalidate the probe'); },
+      refresh: () => { throw new Error('search must not force a measurement'); },
+      settled: () => Promise.reject(new Error('search must not await the probe')),
+    };
+    const mock = createMockServer();
+    registerSearchTool(mock.server, { ...ctx, freshness: probe });
+
+    await mock.call('mast_search', { query: 'add' });
+
+    expect(peeks).toBe(1);
   });
 });

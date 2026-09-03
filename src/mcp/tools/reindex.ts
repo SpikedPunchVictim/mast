@@ -13,6 +13,9 @@ export function registerReindexTool(server: McpServer, ctx: AppContext): void {
     },
     async (args) => {
       const result = await runIndex(ctx.config, { incremental: !(args.full ?? false) });
+      // Whatever the cached freshness count was, this run just changed it —
+      // and leaving it would warn `mast_search` about files this call indexed.
+      ctx.freshness?.invalidate();
 
       const reindexResult = toReindexResult(result);
       return { content: [{ type: 'text' as const, text: JSON.stringify(reindexResult) }] };

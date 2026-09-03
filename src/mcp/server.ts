@@ -10,6 +10,7 @@ import { runIndex, loadIndexMeta } from '../indexer/index.js';
 import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
 import { bootstrapState } from './startup.js';
 import type { AppContext } from './context.js';
+import { createFreshnessProbe } from './freshness-probe.js';
 import { registerAllTools } from './register-tools.js';
 
 // ---------------------------------------------------------------------------
@@ -102,9 +103,19 @@ export interface ServeOptions {
   /** Skip the startup incremental reindex (not recommended). */
   readonly noStartupReindex?: boolean;
   /**
-   * Watch source files and incrementally reindex on change (§11.4). Opt-in,
-   * for interactive (non-container) use — the SDD container relies on the
-   * startup ladder instead.
+   * Watch source files and incrementally reindex on change (§11.4).
+   *
+   * **Defaults to on** (`undefined` means watch). It was opt-in until
+   * 2026-09-03, on the theory that the startup ladder plus JIT staleness kept
+   * reads correct. Measurement said otherwise: JIT only re-parses files the
+   * index already knows, so a file CREATED during a session is invisible to
+   * every read tool until something reindexes — and nothing does. A watcher is
+   * the only mechanism here that closes that window without a per-query cost.
+   * Watcher construction failures degrade to serving without it, so the
+   * default cannot make the server fail to start.
+   *
+   * Set `false` (CLI `--no-watch`) for container or batch use, where the tree
+   * does not change under the server and the fd cost is not worth paying.
    */
   readonly watch?: boolean;
 }
@@ -143,11 +154,18 @@ export async function serve(options: ServeOptions): Promise<void> {
 
   // ── Step 3: open MCP transport and register tools ─────────────────────────
 
+  // Freshness signal for `mast_search`'s `unindexed_files` warning. Created
+  // before the tools are registered because handlers capture `ctx` at
+  // registration; primed below so the first search of a session already has a
+  // real answer rather than `null`.
+  const freshness = createFreshnessProbe(config, db);
+
   const ctx: AppContext = {
     db,
     chunkStore,
     config,
     sessionId: randomUUID(),
+    freshness,
   };
 
   const server = new McpServer({ name: 'mast', version: '0.1.0' });
@@ -164,7 +182,7 @@ export async function serve(options: ServeOptions): Promise<void> {
   // correctness; watch mode only keeps the FTS/graph index fresh between reads.
 
   const startWatchIfRequested = (): void => {
-    if (options.watch !== true) return;
+    if (options.watch === false) return;
     let watchHandle: WatchHandle | null = null;
     try {
       watchHandle = startWatchMode({
@@ -172,6 +190,9 @@ export async function serve(options: ServeOptions): Promise<void> {
         runBatch: async (paths) => {
           process.stderr.write(`[mast] watch: reindexing after ${paths.length} change(s)\n`);
           await runIndex(config, { incremental: true });
+          // The cached count is now wrong in the direction that produces a
+          // false warning about files this batch just indexed.
+          freshness.invalidate();
         },
         onWarn: (message) => process.stderr.write(`${message}\n`),
       });
@@ -197,6 +218,8 @@ export async function serve(options: ServeOptions): Promise<void> {
   // ── Step 4: background reindex ────────────────────────────────────────────
 
   if (options.noStartupReindex) {
+    // No reindex is coming, so measure the drift the user has chosen to keep.
+    freshness.refresh();
     startWatchIfRequested();
     return;
   }
@@ -206,6 +229,13 @@ export async function serve(options: ServeOptions): Promise<void> {
       await runIndex(config, { incremental: !needsFullReindex });
     } catch (err) {
       process.stderr.write(`[mast] startup indexing failed: ${String(err)}\n`);
+    } finally {
+      // Measured AFTER the reindex, in the same background task: a probe run
+      // before it would race the indexer and cache a count that the very next
+      // moment invalidates. On the failure path this is the more important
+      // call — the index is behind and nothing else will say so.
+      freshness.invalidate();
+      freshness.refresh();
     }
   })();
 

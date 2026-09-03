@@ -11,7 +11,7 @@ import { isIndexEmpty } from './_helpers.js';
 export function registerSearchTool(server: McpServer, ctx: AppContext): void {
   server.tool(
     'mast_search',
-    'Lexical BM25 + declaration-exact search over the indexed codebase. Returns chunks (not full files) ranked by relevance. Use this for code discovery — replaces Grep, Glob, and exploratory Read.',
+    'Lexical BM25 + declaration-exact search over the indexed codebase. Returns chunks (not full files) ranked by relevance. Use this for code discovery — replaces Grep, Glob, and exploratory Read. If a response carries `unindexed_files`, that many files on disk are not in the index yet, so an empty or thin result set may mean "not indexed" rather than "not present" — run mast_reindex before concluding a symbol is absent.',
     {
       query: z.string().describe('Natural language or identifier-based search query'),
       limit: z.number().int().min(1).max(50).optional().describe('Max results to return (default: 10)'),
@@ -54,10 +54,19 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       const indexEmptyField = flaggedResults.length === 0 && await isIndexEmpty(ctx)
         ? { index_empty: true as const }
         : {};
+      // The partial-index warning. `peekUnindexed` is synchronous and returns
+      // the server's last cached measurement; it may schedule a background
+      // refresh, but this handler never awaits one (freshness-probe.ts, which
+      // documents the residual cost). `null` means no measurement has landed
+      // yet: unknown, so say nothing rather than imply a clean index we have
+      // not verified.
+      const unindexed = ctx.freshness?.peekUnindexed() ?? 0;
+      const unindexedField = unindexed > 0 ? { unindexed_files: unindexed } : {};
       const response: SearchResponse = {
         results: flaggedResults,
         ...suggestionsField,
         ...indexEmptyField,
+        ...unindexedField,
         _stats: buildToolStats('mast_search', tokens, tokensFullFileBound, filesReferenced, durationMs),
       };
       // Identity pairs in rank order — the "did a later chain-analysis call

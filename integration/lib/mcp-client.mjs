@@ -13,12 +13,15 @@ export async function callMcpTool(installRoot, workingDir, tool, args) {
 
   const transport = new StdioClientTransport({
     command: process.execPath,
+    // `--no-watch` because `serve` watches by default as of 2026-09-03: a chokidar watcher over
+    // a 26k-file corpus would reindex underneath a running scenario and make its assertions
+    // nondeterministic. The harness drives indexing explicitly, step by step.
     // NO positional argument. `mast serve` (`src/cli/serve.ts`) registers `--state-dir`,
     // `--no-startup-reindex` and `--watch` and takes ZERO positionals; passing the working
     // directory made commander exit "too many arguments for 'serve'" before the transport ever
     // spoke, so every `mcpCall` step failed as an unrunnable ERROR (LEDGER D042). The project
     // root comes from `cwd`, set below, which always did the job.
-    args: [mastEntryPath(installRoot), 'serve'],
+    args: [mastEntryPath(installRoot), 'serve', '--no-watch'],
     cwd: workingDir,
     env: sanitizeEnv(process.env),
   });
@@ -41,12 +44,15 @@ export async function listMcpTools(installRoot, workingDir) {
   const { StdioClientTransport } = await import(require.resolve('@modelcontextprotocol/sdk/client/stdio.js'));
   const transport = new StdioClientTransport({
     command: process.execPath,
+    // `--no-watch` because `serve` watches by default as of 2026-09-03: a chokidar watcher over
+    // a 26k-file corpus would reindex underneath a running scenario and make its assertions
+    // nondeterministic. The harness drives indexing explicitly, step by step.
     // NO positional argument. `mast serve` (`src/cli/serve.ts`) registers `--state-dir`,
     // `--no-startup-reindex` and `--watch` and takes ZERO positionals; passing the working
     // directory made commander exit "too many arguments for 'serve'" before the transport ever
     // spoke, so every `mcpCall` step failed as an unrunnable ERROR (LEDGER D042). The project
     // root comes from `cwd`, set below, which always did the job.
-    args: [mastEntryPath(installRoot), 'serve'],
+    args: [mastEntryPath(installRoot), 'serve', '--no-watch'],
     cwd: workingDir,
     env: sanitizeEnv(process.env),
   });

@@ -41,13 +41,14 @@ the pre-deletion system is preserved at the git tag
 - Code generation or explanation.
 - PR review, wiki generation, story generation.
 - A persistent background daemon — freshness is handled by the startup check and
-  `mast_reindex`. *Narrow carve-out:* `mast serve --watch` (§11.4) is an opt-in
-  file watcher for **interactive, non-container** use only. It is scoped to the
-  serve process lifetime (not a daemon), the SDD pipeline never uses it, and it
-  is a discovery-freshness optimization — it lets new files and symbols become
-  searchable sooner than waiting for an explicit `mast_reindex`. JIT staleness
-  handling (§9.0) already guarantees line-coordinate and content correctness for
-  already-indexed files without it.
+  `mast_reindex`. *Narrow carve-out:* `mast serve`'s file watcher (§11.4, on by
+  default since 2026-09-03; `--no-watch` opts out, and the SDD pipeline passes
+  it). It is scoped to the serve process lifetime (not a daemon) and is a
+  discovery-freshness optimization — it lets new files and symbols become
+  searchable without waiting for an explicit `mast_reindex`. JIT staleness
+  handling (§9.0) guarantees line-coordinate and content correctness for
+  already-indexed files without it, but is structurally blind to files the
+  index has never seen, which is what the watcher covers.
 - Support for non-TypeScript/JavaScript projects in v1 (AST layer is extensible but
   v1 targets the SDD stack).
 
@@ -596,8 +597,15 @@ startup
           (mast_search, mast_callers verified+potential, etc.)
 ```
 
-If `--watch` was passed to `mast serve`, the file watcher (§11.4) starts
-immediately after Step 3's transport opens, independent of Step 4.
+Unless `--no-watch` was passed, the file watcher (§11.4) starts immediately
+after Step 3's transport opens, independent of Step 4.
+
+The freshness probe (`mcp/freshness-probe.ts`) behind `mast_search`'s
+`unindexed_files` signal (§9.0) is primed here too — in the same background
+task as Step 4 and strictly AFTER it, so the measurement reflects the index the
+reindex just produced rather than racing it. Under `--no-startup-reindex` it is
+primed immediately: no reindex is coming, so the drift the operator chose to
+keep is exactly what wants measuring.
 
 **`--no-startup-reindex` refusal (M6 Part A).** The empty-during-Step-4 window
 above is legitimate and by design — but `--no-startup-reindex` disables Step 4
@@ -773,8 +781,9 @@ Start the MCP server over stdio.
 Options:
   --state-dir <dir>       State directory
   --no-startup-reindex    Skip the startup staleness check (not recommended)
+  --no-watch              Do not watch source files (batch/container use — see §11.4)
   --watch                 Watch source files and incrementally reindex on change
-                          (interactive use — see §11.4)
+                          (the default; accepted for compatibility)
 ```
 
 The server runs until the parent process (Claude CLI) closes stdin.
@@ -787,10 +796,12 @@ state dir with the startup reindex left enabled (the default) is unaffected
 and starts normally, as does `--no-startup-reindex` against an already-indexed
 state dir (including one indexed over a genuinely empty file set).
 
-`--watch` is opt-in and intended for interactive local development; the SDD
-container does not use it (§3, §11.4). The watcher is closed on stdin close,
-SIGTERM, and SIGINT; a watcher startup failure logs a warning and the server
-continues without watch.
+Watching is **on by default** as of 2026-09-03 (§11.4); `--no-watch` opts out and
+is what the SDD container passes (§3). `--watch` is still accepted and selects
+the default, so existing MCP client configurations keep working unchanged. The
+watcher is closed on stdin close, SIGTERM, and SIGINT; a watcher startup failure
+logs a warning and the server continues without watch — which is what makes the
+default safe: it cannot prevent the server from starting.
 
 ---
 
@@ -1058,11 +1069,12 @@ across all MCP tools, and what to do with each one:
 | `file_busy_returning_stale_cache` | JIT-refresh tools' results/envelopes (`mast_signature`, `mast_exports`, `mast_callers`, `mast_dependencies`, `mast_rename_impact`) | A refresh **was attempted** (this file's JIT re-parse) and lost to genuine write contention (`populateFile`'s `BEGIN IMMEDIATE` exhausted its `busy_timeout`), so the previous, possibly-stale chunk was returned instead. | Contended, not wrong-by-design. Retry shortly — the contention is expected to clear (§7.6). |
 | `stale` | `mast_search` / `mast_implementors` per-result (F7) | This result's `file_path` stat'd newer-on-disk than its indexed mtime, or the stat failed — **no refresh was attempted by design** (stat-and-flag, not JIT re-parse; see above). | Treat this result's line coordinates as untrustworthy. A `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it. |
 | `index_empty` | Every primary-result read tool's envelope (M6) | Nothing is indexed at all — the empty result set is not "no match", it is "no index (yet)". | Run `mast init`/`mast index`, or — if a startup reindex is in progress — wait and retry. |
+| `unindexed_files` | `mast_search`'s envelope | This many files exist on disk and are **not in the index** — measured by the serve process and TTL-cached; the request never awaits a measurement, though it may schedule one (amortised, not free — `mcp/freshness-probe.ts` documents the residual). Where `index_empty` says "nothing is indexed", this says "the index is populated but behind": these results were ranked over a corpus missing N files. Advisory — it does not claim any of the N would have matched. Absent means either nothing is unindexed or no measurement has landed yet; the two are deliberately not distinguished on the wire, because both mean "no warning to give". | Do not conclude a symbol is absent. Call `mast_reindex`, then re-query. |
 | `truncated` | `TypeContextEntry` (`mast_signature`'s `type_context`) | This referenced type's declaration was clipped at the 50-line cap. | Re-read the file directly (or call `mast_exports`/a narrower `mast_signature` query) for the full declaration if the clipped portion matters. |
 | `potential_truncated` | `CallersResponse.summary` / `RenameImpactResponse.summary` (`mast_callers`, `mast_rename_impact`) | The `identifier_fts` fetch behind `potential_matches` is capped at 50 entries; this carries the real, uncapped match count when the cap is hit (F10, Stage 3). Reports RAW fetch truncation only — `potential_matches` may still be smaller than the cap even when this field is present, because verified-overlap exclusion and checker-verdict filtering run AFTER the capped fetch (already visible via `checker_classified_*`). | The potential set is incomplete — narrow the query, or run `mast index --checker` to classify candidates away. |
 | `results_truncated` / `exports_truncated` | `SignatureResponse` / `ImplementorsResponse` / `ExportsResponse` envelopes (`mast_signature`, `mast_implementors`, `mast_exports`) | The result list is capped at `limit` (default 50, the same constant `potential_matches` uses); this carries the real, uncapped total when the cap is hit (D043). Unlike `potential_truncated` there is no post-cap filtering, so the returned page is always exactly `limit` long when this field is present. | A first page, not the answer. Pass a larger `limit` (max 500), or narrow with `file_path`. Before D043 these tools were unbounded: `mast_signature{symbol:'execute'}` over a 14k-file monorepo returned 580 declarations / 331k tokens in 78 s, which over MCP exceeded the client timeout and returned nothing. |
 
-`file_busy_returning_stale_cache`, `stale`, `index_empty`,
+`file_busy_returning_stale_cache`, `stale`, `index_empty`, `unindexed_files`,
 `potential_truncated`, `results_truncated` and `exports_truncated` all follow the same **omitted-when-false /
 present-only-when-true** convention (never present-and-false) established
 above — `potential_truncated`'s "false" case is "the fetch came back under
@@ -2308,16 +2320,27 @@ mast index "$(git rev-parse --show-toplevel)" --incremental
 Not required for the automated SDD pipeline — the startup hook covers the same
 scenario (files changed since last index).
 
-### 11.4 Optional Interactive Hook — `mast serve --watch`
+### 11.4 File Watching — `mast serve` (default on, `--no-watch` to opt out)
 
 Local interactive development has no equivalent of the container's startup
 ladder: git hooks are opt-in and fire only on commit/checkout, so a long-lived
 interactive session can leave newly-created files and symbols undiscoverable
 between explicit `mast_reindex` calls, even though JIT re-parse (§9.0) keeps
-every already-indexed file correct on read. `--watch` closes that gap as an
-**opt-in** flag — it is a discovery-freshness optimization, never a correctness
+every already-indexed file correct on read.
+
+Watching closes that gap and is **on by default** as of 2026-09-03. It was
+opt-in until then, on the reasoning that JIT staleness plus the startup ladder
+kept reads correct. That reasoning holds only for files the index already
+knows: JIT re-parses a *known* file whose mtime moved, and is structurally
+blind to one that was never indexed. So in the default configuration a file
+created mid-session was invisible to every read tool for the rest of the
+session, and `mast_search` returned `{"results":[]}` for symbols that plainly
+existed on disk — the §0 failure mode, reached through a default.
+
+It remains a discovery-freshness optimization rather than a correctness
 mechanism, and it does not reopen the §3 no-daemon non-goal (it lives and dies
-with the serve process).
+with the serve process). `--no-watch` is for batch and container use, where the
+tree does not change under the server and the fd cost buys nothing.
 
 Behaviour:
 

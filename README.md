@@ -33,7 +33,7 @@ MAST takes a different approach:
 - **AST-level chunking** — every function, class, interface, and type alias is its own chunk. The assistant gets the exact declaration it needs, not the file it happens to live in.
 - **Ranked search** — BM25 (FTS5) handles keyword and identifier queries; a declaration-exact ranker ("ranker D") catches exact-symbol-name queries that BM25's trigram tokenizer can rank inconsistently. Both are fused via Reciprocal Rank Fusion so a chunk that both rankers agree on outranks one that only one of them found.
 - **Structural queries** — "who calls this function?", "what implements this interface?", "what does this file import?" are answered from a pre-built symbol graph, not by grepping source. Answers are instantaneous and structurally correct.
-- **JIT staleness detection** — on every read, MAST checks whether the file on disk has changed since it was last indexed. If it has, the file is transparently re-parsed in the background before the result is returned. The index never goes stale without the assistant knowing.
+- **Staleness handling that says what it actually does** — five read tools (`mast_signature`, `mast_callers`, `mast_exports`, `mast_dependencies`, `mast_rename_impact`) re-parse a changed file inline before answering; `mast_search` and `mast_implementors` flag affected results with `stale: true` rather than re-parsing. Both only cover files the index *already knows*: a brand-new file is invisible until a reindex, which is why `mast serve` watches by default and why `mast_search` carries an `unindexed_files` warning when it does not.
 - **Token accounting** — every tool response includes `_stats` with the token count returned and the counterfactual "what would a naive full-file read have cost?", giving a concrete measure of efficiency over time.
 
 ---
@@ -402,9 +402,15 @@ Start the MCP server over stdio.
 Options:
   --state-dir <dir>         State directory
   --no-startup-reindex      Skip the startup staleness check (not recommended)
+  --no-watch                Do not watch source files (batch/container use)
   --watch                   Watch source files and incrementally reindex on change
-                             (interactive use; not needed in the container ladder)
+                             (the default; accepted for compatibility)
 ```
+
+Watching is **on by default**. JIT staleness only re-parses files the index already knows,
+so without a watcher a file created during a session stays invisible to every read tool
+until something reindexes — and nothing does. A watcher failure (EMFILE, permissions) logs
+a warning and the server keeps serving, so the default cannot stop `serve` from starting.
 
 The server implements a four-step startup ladder so MCP clients get a usable server in under a second even for large projects. See [Startup Ladder](#startup-ladder) for details.
 
@@ -788,13 +794,34 @@ with default `k = 60`. A chunk appearing at rank 1 in both lists scores twice as
 
 ### JIT Staleness Checks
 
-Every read tool (search, exports, signature, callers, dependencies, implementors) calls `jitRefreshFile` before returning results. This function:
+Read tools handle a file that changed since it was indexed in one of **two** ways. Which one a tool
+uses is fixed per tool, not decided at runtime:
 
-1. Reads the stored mtime for the file from the `files` table.
+**Re-parse inline** — `mast_signature`, `mast_callers`, `mast_exports`, `mast_dependencies`,
+`mast_rename_impact`. Before returning, each calls `jitRefreshFile`, which:
+
+1. Reads the stored mtime for the file from the `files` table. **If there is no row, it returns
+   immediately** — an unindexed file has no stored mtime to compare against, which is the whole of
+   why JIT cannot discover new files.
 2. Calls `stat()` on the file on disk.
-3. If the disk mtime is newer, acquires the `structure.lock` and re-parses the file immediately.
+3. If the disk mtime is newer, acquires the `structure.lock` and re-parses the file immediately,
+   on the request path — the answer waits for it.
 
-This means an assistant editing a file and immediately querying it will always see the current version, without waiting for a scheduled reindex. (JIT staleness handles files already known to the index; a brand-new file or symbol still needs `mast_reindex` or the next scheduled/watch reindex to be discoverable.)
+If the lock is held by a concurrent writer the previous chunk is returned with
+`file_busy_returning_stale_cache` set, so the caller is told rather than quietly served stale data.
+
+**Stat and flag** — `mast_search`, `mast_implementors`. These call `findStaleFiles`, which stats the
+files behind the results and sets `stale: true` on the affected ones. **No re-parse is attempted**:
+taking a write lock on a ranked result set would serialise the cheapest tools in the package behind
+the most expensive operation in it. The line coordinates on a flagged result may be off; the caller
+is expected to re-read or call a re-parsing tool.
+
+**Neither** — `mast_project_skeleton` (documented exempt) and `mast_efficiency`.
+
+Both mechanisms only ever touch files the index **already knows**. Neither can discover a file that
+was never indexed, so a file created during a session is invisible to every read tool until
+something reindexes it — which is why `mast serve` watches by default, and why `mast_search`
+reports `unindexed_files` when the index is nonetheless behind.
 
 ### Startup Ladder
 

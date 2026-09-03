@@ -262,6 +262,24 @@ export interface SearchResponse {
    * nothing extra.
    */
   readonly index_empty?: true;
+  /**
+   * Files on disk that the index has never seen, as of the server's last
+   * freshness measurement. Present only when the count is one or more, and
+   * only when the surface has a freshness probe wired (`AppContext.freshness`)
+   * that has completed a measurement — omitted, never present-and-zero, per
+   * the `stale`/`index_empty` omitted-when-false convention (MAST_SPEC.md
+   * §9.0).
+   *
+   * Where `index_empty` says "nothing is indexed", this says "the index is
+   * populated but behind": these `results` were ranked over a corpus that is
+   * missing N files, so a zero-hit or thin result set may mean "not indexed"
+   * rather than "not present". Advisory only — it does not say whether any of
+   * the N would have matched this query.
+   *
+   * Read from a TTL-cached value (`mcp/freshness-probe.ts`); computing it on
+   * the request path would cost a full project walk per search.
+   */
+  readonly unindexed_files?: number;
   readonly _stats: ToolStats;
 }
 
