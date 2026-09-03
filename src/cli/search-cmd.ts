@@ -146,20 +146,27 @@ export function formatSearchResults(responseText: string): string {
   return lines.join('\n');
 }
 
-export function registerSearchCommand(program: Command): void {
+/**
+ * @param run Injected so the `--reindex` wiring can be tested without a real
+ *   index (§4.4). Production passes {@link runQuery}.
+ */
+export function registerSearchCommand(program: Command, run: typeof runQuery = runQuery): void {
   program
     .command('search <query> [path]')
     .description('Search the index and print readable results (see `mast query mast_search` for raw MCP output)')
     .option('--state-dir <dir>', 'State directory')
+    .option('--reindex', 'Incrementally reindex before searching — the CLI has no watcher (see `mast serve`)')
     .option('-n, --limit <n>', 'Max results (1-50, default 10)')
     .option('-t, --type <kind>', 'Restrict to a chunk kind: function, method, class_shell, interface, type, export, block, doc')
     .option('-l, --language <lang>', 'Restrict to typescript, javascript, or markdown')
     .option('-e, --exported', 'Only exported symbols')
     .option('-f, --file <glob>', 'Restrict to files matching a glob')
     .option('--json', 'Emit the raw MCP response instead of text')
-    .action(async (query: string, path: string | undefined, opts: SearchFlags & { stateDir?: string; json?: boolean }) => {
+    .action(async (query: string, path: string | undefined, opts: SearchFlags & { stateDir?: string; json?: boolean; reindex?: boolean }) => {
       try {
-        const text = await runQuery('mast_search', buildSearchArgs(query, opts), { stateDir: opts.stateDir, path });
+        const text = await run('mast_search', buildSearchArgs(query, opts), {
+          stateDir: opts.stateDir, path, reindex: opts.reindex === true,
+        });
         process.stdout.write((opts.json === true ? text : formatSearchResults(text)) + '\n');
       } catch (err) {
         process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);

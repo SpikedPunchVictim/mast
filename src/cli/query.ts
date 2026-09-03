@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { z, ZodError, type ZodRawShape } from 'zod';
 import type { Command } from 'commander';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resolveConfig } from '../store/config.js';
+import { resolveConfig, type ResolvedConfig } from '../store/config.js';
+import { runIndex, type IndexResult } from '../indexer/index.js';
 import { openDatabase } from '../graph/db.js';
 import { SqliteChunkStore } from '../store/sqliteChunkStore.js';
 import type { AppContext } from '../mcp/context.js';
@@ -86,6 +87,37 @@ export interface RunQueryOptions {
   readonly stateDir?: string;
   /** Project root path (the CLI's positional `[path]`); defaults to cwd via `resolveConfig`. */
   readonly path?: string;
+  /**
+   * Refresh the index incrementally before dispatching the query.
+   *
+   * The CLI has neither of the freshness mechanisms the MCP server has — no
+   * watcher, and no cached freshness probe, because a one-shot process has no
+   * lifetime to amortise a TTL over. This flag is its answer.
+   *
+   * Opt-in rather than default, because it adds a whole incremental index run
+   * to an invocation that would otherwise be a single query. Measured on this
+   * repository (212 indexable files) on 2026-09-03: a no-op incremental run
+   * reports 25-34 ms of index work inside ~0.5 s of process wall clock, and a
+   * run that found 11 changed files reported 424 ms. It scales with the tree,
+   * so on a large monorepo it is materially more — which is punishing in the
+   * scripts and loops where `mast search` gets used.
+   *
+   * Incremental, never full. Refreshes an existing index; it does not create
+   * one — see the never-indexed guard in {@link runQuery}.
+   */
+  readonly reindex?: boolean;
+  /**
+   * Test-only injection point (§4.4 DI): substitutes for the real incremental
+   * `runIndex`, so the lock-contention degradation path can be driven without
+   * standing up a competing writer. Production passes nothing.
+   */
+  readonly reindexer?: (config: ResolvedConfig) => Promise<IndexResult>;
+  /**
+   * Where `--reindex` reports itself. Defaults to stderr, deliberately: the
+   * refresh is a side effect of the query, not part of its answer, and
+   * `--json` consumers must keep a parseable stdout.
+   */
+  readonly warn?: (message: string) => void;
 }
 
 /**
@@ -113,6 +145,32 @@ export async function runQuery(toolName: string, jsonArgs: string, options: RunQ
     throw new QueryError(
       `no index found at ${config.resolved_state_dir}; run \`mast init\` / \`mast index\` first`,
     );
+  }
+
+  // AFTER the never-indexed guard above, and deliberately so. Running the
+  // indexer first would create graph.db as a side effect and let the guard
+  // pass, silently promoting `--reindex` from "refresh" to "bootstrap" and
+  // masking the very state the guard reports — the same ordering hazard its
+  // own comment describes for `openDatabase`. `mast index` creates; this
+  // refreshes.
+  if (options.reindex === true) {
+    const warn = options.warn ?? ((message: string) => process.stderr.write(`${message}\n`));
+    const reindex = options.reindexer ?? ((c: ResolvedConfig) => runIndex(c, { incremental: true }));
+    try {
+      const result = await reindex(config);
+      warn(
+        `[mast] reindexed: ${String(result.filesIndexed)} file(s) indexed, ` +
+        `${String(result.filesSkipped)} unchanged, +${String(result.chunksAdded)}/` +
+        `-${String(result.chunksRemoved)} chunks (${String(result.durationMs)} ms)`,
+      );
+    } catch (err) {
+      // Never fatal. `runIndex` takes `structure.lock`, and `mast serve` now
+      // watches by default, so losing the race to a concurrent writer is an
+      // ordinary outcome. Failing the query over a refresh that did not happen
+      // would be a worse answer than a slightly stale one — but staying silent
+      // about it would be worse than both, because the caller asked for fresh.
+      warn(`[mast] --reindex failed, querying the existing index instead: ${String(err)}`);
+    }
   }
 
   let parsedArgs: unknown;
@@ -162,20 +220,29 @@ export async function runQuery(toolName: string, jsonArgs: string, options: RunQ
   }
 }
 
-export function registerQueryCommand(program: Command): void {
+/**
+ * @param run Injected so the flag wiring can be tested without a real index
+ *   (§4.4). Production passes {@link runQuery}. A `--reindex` flag that is
+ *   declared but never threaded through would be an asserted-and-unimplemented
+ *   property (SHAPES S-04), which is why it is pinned rather than assumed.
+ */
+export function registerQueryCommand(program: Command, run: typeof runQuery = runQuery): void {
   program
     .command('query <tool> [json] [path]')
     .description('Invoke an MCP read tool directly from the CLI — identical output to the MCP transport (MAST_SPEC.md §8)')
     .option('--state-dir <dir>', 'State directory')
+    .option('--reindex', 'Incrementally reindex before querying — the CLI has no watcher (see `mast serve`)')
     .option('--json', 'Emit the exact single-line MCP response text (machine use); default pretty-prints for humans')
     .action(async (
       toolName: string,
       jsonArg: string | undefined,
       path: string | undefined,
-      opts: { stateDir?: string; json?: boolean },
+      opts: { stateDir?: string; json?: boolean; reindex?: boolean },
     ) => {
       try {
-        const text = await runQuery(toolName, jsonArg ?? '{}', { stateDir: opts.stateDir, path });
+        const text = await run(toolName, jsonArg ?? '{}', {
+          stateDir: opts.stateDir, path, reindex: opts.reindex === true,
+        });
         if (opts.json) {
           process.stdout.write(text + '\n');
         } else {

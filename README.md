@@ -363,8 +363,18 @@ Options:
   -e, --exported         Only exported symbols
   -f, --file <glob>      Restrict to files matching a glob
       --state-dir <dir>  State directory
+      --reindex          Incrementally reindex before searching
       --json             Emit the raw MCP response instead of text
 ```
+
+`--reindex` exists because the CLI has neither freshness mechanism the MCP server has:
+no file watcher, and no cached freshness probe (a one-shot process has no lifetime to
+amortise one over). Without it, a file created since the last index run is invisible —
+JIT staleness only re-parses files the index already knows. It is opt-in because it adds
+a whole incremental index run to what is otherwise a single query, and it reports what it
+did on **stderr**, so `--json` consumers keep a parseable stdout. A reindex that loses
+`structure.lock` to a concurrent writer — likelier now that `mast serve` watches by
+default — warns and queries the existing index rather than failing the search.
 
 **Why:** the fastest way to check what the index actually contains, and the same code path
 the MCP `mast_search` tool uses — it dispatches through the registered handler rather than
@@ -460,6 +470,7 @@ Invoke any MCP read tool directly, with byte-identical output to the MCP transpo
 ```
 Options:
   --state-dir <dir>   State directory
+  --reindex           Incrementally reindex before querying (see `mast search --reindex`)
   --json              Emit the exact single-line MCP response (default pretty-prints)
 ```
 

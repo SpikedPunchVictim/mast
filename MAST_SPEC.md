@@ -858,11 +858,30 @@ Invoke any MCP tool (§9) directly from the CLI — the read tools (`mast_search
 
 ```
 Options:
-  --state-dir <dir>    State directory
+  --state-dir <dir>     State directory
+  --reindex             Run an incremental index (§7.1) before dispatching
   --json                Emit the exact single-line MCP response text (machine
                         use); default pretty-prints the parsed response with
                         2-space indent for humans
 ```
+
+`--reindex` (also on `mast search`) is the CLI's freshness mechanism. The CLI
+has neither of the server's: no watcher (§11.4) and no freshness probe
+(§9.0 `unindexed_files`), because a one-shot process has no lifetime over
+which to amortise a TTL-cached measurement. Semantics:
+
+- **Incremental, never full.** `mast index --full` remains the way to rebuild.
+- **Refreshes, does not bootstrap.** It runs strictly *after* the never-indexed
+  guard below, so a missing `graph.db` still fails fast with that guard's
+  message rather than being silently created as a side effect of the flag.
+- **Reports on stderr**, never stdout — the refresh is a side effect of the
+  query, not part of its answer, and `--json` consumers must keep a parseable
+  stdout.
+- **Never fatal.** The run takes `structure.lock`, and with `mast serve`
+  watching by default (§11.4) losing that race to a concurrent writer is an
+  ordinary outcome. A failed refresh warns and the query is answered from the
+  existing index; failing the query over a refresh that did not happen would
+  be a worse answer than a slightly stale one.
 
 `json` (positional, default `'{}'`) is the tool's argument object as a JSON
 string; `path` is the project root (same resolution as every other command's
