@@ -120,7 +120,7 @@ The tell is that each was *internally* consistent. Nothing inside the document c
 
 ## S-04 — A confident claim about code nobody opened
 
-**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046, D052. **Rung**: brief.
+**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046, D052, D054. **Rung**: brief.
 
 The richest family here, and the one that produced this package's only two S0s. D009 had two
 documents describing a third file's behaviour exactly backwards. D004's four call sites assumed
@@ -166,6 +166,25 @@ invariant nothing enforces" requires understanding what the invariant *is*. The 
 > **Ask**: this comment says a value is visible, reported, surfaced, or enforced. Name the line
 > that does it. If the only lines naming the value are its own declaration and a test fixture, the
 > property is asserted and unimplemented.
+
+### The document that refutes itself (2026-09-03, D054)
+
+D054 is the sub-shape aimed at user-facing prose rather than a TSDoc, and it adds one thing the
+instances above do not have: **the refutation was already in the same file.** `README.md:36`
+claimed the index never goes stale without the assistant knowing; `README.md:690` and
+`README.md:797` both state the actual limitation correctly. Nobody had to open other code to
+falsify the claim — a grep for the claim's own keyword inside its own document was enough.
+
+That is worth separating from the parent shape because it changes the cost of checking. "Open the
+distant module and confirm" is a real expense and gets deferred; "grep this document for the term
+it is making a claim about" costs nothing and is not in anyone's habit. Long documents accumulate
+statements about the same mechanism at different times, and the newest statement is not
+necessarily the one nearest the top — a summary bullet written early and never revisited outranks,
+by position, the accurate paragraph added later.
+
+> **Ask**: for each capability this document claims, grep the same document for that capability's
+> name and read every other mention. If two mentions disagree, at least one is wrong and the
+> summary near the top is the likelier culprit — it was written when the feature was younger.
 
 ---
 
