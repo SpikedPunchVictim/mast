@@ -7,8 +7,10 @@ graph, so prefer it over reading files or grepping.
 ## Rules
 
 - Call `mast_status` at the start of a session to confirm the index is fresh. Read
-  `freshness_cause` — `"unindexed_files"` means files exist that MAST has never seen, and
-  no amount of querying will find them.
+  **`stale_breakdown.unindexed`**: any non-zero value means files exist that MAST has never
+  seen, and no amount of querying will find them. Read that field rather than
+  `freshness_cause`, which reports a single ranked cause and shows `"phase1_stale"` ahead of
+  `"unindexed_files"` whenever both are non-zero.
 - **Search before opening any file.** No file path without a MAST result behind it.
 - **Use code tokens in queries** — function names, type names, column names.
   `createTable uuid primaryKey` beats `migration pattern`. An exact symbol name in the
@@ -51,9 +53,10 @@ explicit `mast_reindex`.
 
 ## Reading the answers honestly
 
-MAST reports what it does not know. These signals are load-bearing, and each is
-**omitted entirely when it does not apply** — so their absence is meaningful, and their
-presence is never `false`.
+MAST reports what it does not know. These signals are load-bearing. All but the last are
+**omitted entirely when they do not apply** — so their absence is meaningful, and their
+presence is never `false`. `truncated` is the exception: it is always present on a
+`type_context` entry, so check its value rather than its presence.
 
 | signal | on | means |
 |---|---|---|

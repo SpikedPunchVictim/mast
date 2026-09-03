@@ -116,11 +116,29 @@ The tell is that each was *internally* consistent. Nothing inside the document c
 > **Ask**: does this figure carry a qualifier — "at any size", "always", "per file"? Qualifiers are
 > claims too, and they are the half nobody re-checks.
 
+### A sub-shape: the ratio whose halves never met (2026-09-03, D057)
+
+**One instance so far** — named rather than promoted, and recorded here because the parent shape's
+questions do not reach it. D057's justifying comment paired `fusedSearch` "~4 ms" (a small tree)
+with `measureFreshness` "~183 ms on a 14k-file tree" and concluded a **45×** cost. Both inputs were
+real, both were derived from primary artifacts, and both were separately true — so S-03's "recompute
+one of them" passes. Only the *quotient* is fiction: recomputed on one corpus (this repo, 213 files)
+the two are 15.3 ms and 7.6 ms, a ratio of 0.5×, inverted and wrong by ~90×.
+
+What makes it survive is that a ratio reads as a single derived fact rather than as two measurements
+plus an assumption that they are commensurable. The assumption is never written down, so it is never
+checked. This is CLAUDE.md §11.6 as a defect rather than as advice.
+
+> **Ask**: this comparison has two halves. Name the corpus, the machine, the build, and the date for
+> **each**, separately. If they differ in any of those, the ratio is not a measurement — either
+> re-measure both on one, or drop the ratio and argue from how each side *scales*.
+
 ---
 
 ## S-04 — A confident claim about code nobody opened
 
-**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046, D052, D054. **Rung**: brief.
+**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046, D052, D054, D056, D058, D059.
+**Rung**: brief, plus **two partial promotions** (2026-08-20 and 2026-09-03) recorded below.
 
 The richest family here, and the one that produced this package's only two S0s. D009 had two
 documents describing a third file's behaviour exactly backwards. D004's four call sites assumed
@@ -170,9 +188,12 @@ invariant nothing enforces" requires understanding what the invariant *is*. The 
 ### The document that refutes itself (2026-09-03, D054)
 
 D054 is the sub-shape aimed at user-facing prose rather than a TSDoc, and it adds one thing the
-instances above do not have: **the refutation was already in the same file.** `README.md:36`
-claimed the index never goes stale without the assistant knowing; `README.md:690` and
-`README.md:797` both state the actual limitation correctly. Nobody had to open other code to
+instances above do not have: **the refutation was already in the same file.** The feature
+bullet at the top of `README.md` claimed the index never goes stale without the assistant
+knowing; the `### mast_reindex` "Why" paragraph and the `### JIT Staleness Checks` section
+both state the actual limitation correctly. (Cited by heading, not line: the line numbers
+this row originally carried — `README.md:690` and `:797` — resolved to a blank line and an
+unrelated `MAST_STATE_DIR` paragraph within a day, which is S-C happening to this file.) Nobody had to open other code to
 falsify the claim — a grep for the claim's own keyword inside its own document was enough.
 
 That is worth separating from the parent shape because it changes the cost of checking. "Open the
@@ -185,6 +206,21 @@ by position, the accurate paragraph added later.
 > **Ask**: for each capability this document claims, grep the same document for that capability's
 > name and read every other mention. If two mentions disagree, at least one is wrong and the
 > summary near the top is the likelier culprit — it was written when the feature was younger.
+
+**Promoted in part (2026-09-03), on the sub-shape's second instance.** D056 gave this sub-shape its
+second instance — the signal tables in `README.md` and `assets/skill.md` promised every signal is
+omitted when absent, while `src/ast/types.ts` declares `truncated` required — and the promotion
+follows the standing rule rather than a judgement call. `src/mcp/__tests__/signal-docs-parity.test.ts`
+derives the signal set from both documents and asserts that every name is declared in `types.ts`,
+that the two tables agree with each other, and that optional-vs-required matches the carve-out the
+prose makes. Verified by mutation against the pre-fix wording.
+
+**The rest is declined, with the reason.** Whether a signal's prose *description* is accurate, and
+whether a newly added field in `types.ts` is a signal at all, both require knowing what the field
+means — not machine-decidable, so they stay a brief. D058 and D059 landed the same day and are
+outside the promoted half for exactly that reason: one is a claim about which *tools* do something,
+the other a claim about a function's *precedence*. Neither is a table. The general instruction — open
+the code and confirm — stays first.
 
 ---
 

@@ -1,11 +1,13 @@
 // The cached freshness probe, and the two properties that make it safe to call
 // from `mast_search`.
 //
-// 1. It NEVER blocks a search. `fusedSearch` is ~4ms on a small tree; a
-//    `measureFreshness` walk is ~183ms on a 14k-file monorepo (measured
-//    2026-09-02). A probe that awaited its own measurement would make the first
-//    search of every window 45x slower, so `peekUnindexed` returns the
-//    last-known answer synchronously and refreshes behind it.
+// 1. It NEVER blocks a search. The cost it avoids scales with the tree, not
+//    with the query: `measureFreshness` walks every file (~183ms on a 14k-file
+//    monorepo, measured 2026-09-02) while a search costs what its matches cost
+//    (on THIS repo, 213 files, the walk is actually the cheaper of the two —
+//    see freshness-probe.ts). A probe that awaited its own measurement would
+//    put that walk on the request path of every search, so `peekUnindexed`
+//    returns the last-known answer synchronously and refreshes behind it.
 // 2. A failing measurement is never fatal and never poisons the cache. The
 //    probe is advisory — it exists to warn that the index may be missing files.
 //    Turning that warning into a thrown search is strictly worse than not
@@ -148,6 +150,61 @@ describe('createFreshnessProbe', () => {
     probe.peekUnindexed();
 
     expect(measure).toHaveBeenCalledTimes(2);
+  });
+
+  // The defect these three pin (D055): `invalidate()` used to clear the value but
+  // leave an in-flight measurement running, so a walk that started BEFORE a
+  // reindex could land after it, overwrite the cleared value with its
+  // pre-reindex count, and stamp itself fresh for a full TTL. The observable
+  // result was `mast_search` warning `unindexed_files: N` about files it had
+  // just finished indexing — a false warning on the exact signal added to stop
+  // callers trusting an incomplete answer.
+  it('discards a measurement that was superseded by invalidate mid-flight', async () => {
+    const { measure, calls } = controllable();
+    const probe = createFreshnessProbe(CONFIG, DB, { measure, now: () => 0 });
+
+    probe.peekUnindexed();
+    probe.invalidate();
+    calls[0]?.resolve(freshness(200));
+    await probe.settled();
+
+    expect(probe.peekUnindexed()).toBeNull();
+  });
+
+  it('does not stamp a superseded measurement as fresh, so the next peek re-measures', async () => {
+    const { measure, calls } = controllable();
+    const probe = createFreshnessProbe(CONFIG, DB, { measure, now: () => 0 });
+
+    probe.peekUnindexed();
+    probe.invalidate();
+    calls[0]?.resolve(freshness(200));
+    await probe.settled();
+
+    // Same clock: without the generation gate the superseded walk would have set
+    // `settledAt`, and this peek would sit inside the TTL and start nothing.
+    probe.peekUnindexed();
+    calls[1]?.resolve(freshness(0));
+    await probe.settled();
+
+    expect(measure).toHaveBeenCalledTimes(2);
+    expect(probe.peekUnindexed()).toBe(0);
+  });
+
+  it('leaves a superseded measurement to finish rather than running two walks at once', async () => {
+    const { measure } = controllable();
+    const probe = createFreshnessProbe(CONFIG, DB, { measure, now: () => 0 });
+
+    probe.peekUnindexed();
+    probe.invalidate();
+    probe.refresh();
+
+    // Coalescing is deliberate, not an oversight: `measureFreshness` statSyncs
+    // every hit synchronously, so one walk per `invalidate()` running
+    // concurrently would starve the event loop under a watch-driven edit loop.
+    // The cost of the choice is that priming is deferred to the next peek --
+    // and `null` reads as "unknown", never as a wrong warning.
+    expect(measure).toHaveBeenCalledTimes(1);
+    expect(probe.peekUnindexed()).toBeNull();
   });
 
   it('settled() resolves even when the measurement rejects', async () => {

@@ -158,7 +158,7 @@ The claude-runner passes `--state-dir` at serve time:
   "mcpServers": {
     "mast": {
       "command": "mast",
-      "args": ["serve", "--state-dir", "/workspace/.kluster/.mast"],
+      "args": ["serve", "--no-watch", "--state-dir", "/workspace/.kluster/.mast"],
       "type": "stdio"
     }
   }
@@ -2320,9 +2320,11 @@ candidates out of `potential_matches` and report honest counts in
 
 Defined in full in §7.4. Summary: a four-step ladder that brings the whole index
 (graph + FTS) online in 2–4 seconds via a Docker-baked seed index (§13.8), with all
-11 tools registered and ready to serve as soon as Step 3 completes — there is no
-reduced-capability warm-up window. Step 4 then catches up any files changed since
-the seed was built, in the background.
+11 tools registered and ready to serve as soon as Step 3 completes — no tool is
+unavailable or degraded during startup. One *signal* does warm up: `mast_search`'s
+`unindexed_files` is served from a cached probe, and until the first measurement
+lands the count is unknown and the field is omitted (ADR 016). Step 4 then catches
+up any files changed since the seed was built, in the background.
 
 This is the **only hook required for the SDD pipeline**.
 
@@ -2680,7 +2682,9 @@ Two important properties of the seed:
 1. **The index runs fully at build time.** The seed contains a fully-populated
    `graph.db` (chunks, symbols, edges, `chunk_fts`, `identifier_fts`). The runtime
    container is ready to serve at full capability immediately (Step 3 of §7.4) — no
-   warm-up window.
+   tool is degraded while it starts. The one exception is `mast_search`'s
+   `unindexed_files` count, which is omitted until the freshness probe's first
+   measurement lands (ADR 016); it reads as unknown, never as zero.
 2. **Frozen at build commit.** The seed reflects whatever code was in the image at
    `docker build` time. Files modified since the build commit are picked up by
    §7.4 Step 4's filesystem scan (a few seconds for typical incremental staleness),
@@ -2695,7 +2699,7 @@ Two important properties of the seed:
 if [ -z "$(ls -A /workspace/.kluster/.mast 2>/dev/null)" ]; then
   cp -r /opt/mast-seed/. /workspace/.kluster/.mast/
 fi
-exec mast serve --state-dir /workspace/.kluster/.mast
+exec mast serve --no-watch --state-dir /workspace/.kluster/.mast
 ```
 
 The copy is conditional on the workspace state being empty. Subsequent container

@@ -60,8 +60,13 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       // documents the residual cost). `null` means no measurement has landed
       // yet: unknown, so say nothing rather than imply a clean index we have
       // not verified.
-      const unindexed = ctx.freshness?.peekUnindexed() ?? 0;
-      const unindexedField = unindexed > 0 ? { unindexed_files: unindexed } : {};
+      // `null` (no measurement yet, or one just invalidated by a reindex) and `0`
+      // (measured, index complete) are both rendered as an omitted field, but they
+      // are kept distinct here rather than collapsed with `?? 0`: "unknown" reading
+      // as "clean" is the exact conflation this signal exists to prevent, and the
+      // next reader to add an `else` branch would inherit the wrong default.
+      const unindexed = ctx.freshness?.peekUnindexed() ?? null;
+      const unindexedField = unindexed !== null && unindexed > 0 ? { unindexed_files: unindexed } : {};
       const response: SearchResponse = {
         results: flaggedResults,
         ...suggestionsField,

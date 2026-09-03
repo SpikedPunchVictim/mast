@@ -8,8 +8,11 @@
 ## Context
 
 [ADR 005](005-2026-08-07-staleness-contract.md) settled what happens when an indexed file
-*changes*: every read tool either JIT-refreshes it or stat-and-flags it, and no busy signal
-is droppable. That contract holds and is not revisited here.
+*changes*: seven of the read tools either JIT-refresh it (`mast_signature`, `mast_callers`,
+`mast_exports`, `mast_dependencies`, `mast_rename_impact`) or stat-and-flag it (`mast_search`,
+`mast_implementors`), and no busy signal is droppable. `mast_project_skeleton` is documented
+exempt (`MAST_SPEC.md` §9.0) and `mast_efficiency` reports on the session rather than the
+tree, so neither does either. That contract holds and is not revisited here.
 
 It does not cover a file that was never indexed at all, and the distinction had been
 allowed to blur. `jitRefreshFile` reads the `files` row for a path and **returns early when
@@ -68,7 +71,8 @@ closed.**
 | `fusedSearch` on a small tree | ~4 ms |
 | `measureFreshness` walk, 13,985 files | ~183 ms |
 
-Answering on the request path would make a search roughly 45× slower to report a warning
+Answering on the request path would put a whole-tree walk in front of every search — on a
+large tree that dominates the query it precedes — to report a warning
 that is almost always absent. The probe returns the last measurement synchronously and
 refreshes behind the caller on a 30 s TTL.
 

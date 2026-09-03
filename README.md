@@ -544,8 +544,10 @@ MAST registers 11 tools with the MCP server. Every read tool includes a `_stats`
 ### The signals
 
 Beyond the results, a response carries fields describing what MAST **does not know** about
-the answer it just gave. Every one is omitted entirely when it does not apply — none is ever
-present-and-`false` — so their absence carries meaning and their presence is never noise.
+the answer it just gave. All but the last are omitted entirely when they do not apply, so
+their absence carries meaning and their presence is never noise. `truncated` is the one
+exception — it is a required field on every `type_context` entry and is present-and-`false`
+in the ordinary case, so read it, don't test for it.
 
 | signal | carried by | means |
 |---|---|---|
