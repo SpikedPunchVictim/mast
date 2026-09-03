@@ -8,7 +8,7 @@ import { mkdirSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installLocal, knownBreakages } from './lib/install.mjs';
-import { materialize, materializeCorpus } from './lib/project.mjs';
+import { materialize, materializeCorpus, prewarmCorpus } from './lib/project.mjs';
 import { resolveCorpus, assertCorpusUntouched } from './lib/corpus.mjs';
 import { runScenario } from './lib/scenario-runner.mjs';
 import { validateScenario, validateNoDuplicateKeys } from './lib/spec-validate.mjs';
@@ -18,7 +18,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
 
 function parseArgs(argv) {
-  const args = { targets: ['local'], out: undefined, keepAll: false, scenarios: undefined, tags: undefined, gateTarget: undefined, forbidSkip: [] };
+  const args = { targets: ['local'], out: undefined, keepAll: false, scenarios: undefined, tags: undefined, gateTarget: undefined, forbidSkip: [], prewarm: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => { const v = argv[++i]; if (v === undefined) throw new Error(`${a} needs a value`); return v; };
@@ -28,6 +28,7 @@ function parseArgs(argv) {
     else if (a === '--gate-target') args.gateTarget = next();
     else if (a === '--out') args.out = next();
     else if (a === '--keep-all') args.keepAll = true;
+    else if (a === '--no-prewarm') args.prewarm = false;
     else if (a === '--forbid-skip') args.forbidSkip = next().split(',').map((s) => s.trim()).filter(Boolean);
     else if (a === '--help' || a === '-h') { usage(); process.exit(0); }
     else throw new Error(`unknown flag '${a}'`);
@@ -47,6 +48,9 @@ function usage() {
   --gate-target <t>     which target decides the exit code (default: local if present)
   --out <dir>           where to write results (default: integration/results/<timestamp>)
   --keep-all            keep working copies even for scenarios that passed
+  --no-prewarm          skip the corpus warm-up pass. Restores the D051 confound: the
+                        first target then pays the cold-cache cost inside a timed step.
+                        Here so the warm-up can be observed doing something.
   --forbid-skip <tag>   a SKIP on a scenario carrying one of these tags fails the run.
                         For release jobs: without it, a runner with no network reports
                         green while silently omitting every corpus scenario.
@@ -100,6 +104,43 @@ async function main() {
   log(`[run] ${selected.length} scenario(s) x ${args.targets.length} target(s); gate: ${gateTarget}`);
   log(`[run] results: ${outDir}`);
 
+  // A project definition is a module and a corpus is a directory of bytes; neither varies by
+  // target. Both are therefore prepared ONCE, before the first install, and reused.
+  const projectCache = new Map();
+  const loadProject = async (name) => {
+    if (!projectCache.has(name)) {
+      projectCache.set(name, (await import(join(HERE, 'projects', `${name}.mjs`))).default);
+    }
+    return projectCache.get(name);
+  };
+
+  // The run's first task: resolve every corpus the selection needs and read it once.
+  //
+  // D051. The corpus is hardlinked into each working copy, so every target shares the cache's
+  // inodes and the FIRST one absorbs the whole cost of faulting the corpus in from disk —
+  // inside a step governed by exec.mjs's timeout. Measured: the same scenario ERRORed on a
+  // timeout in position one and passed in 83s in position three. Target order was part of what
+  // the gate measured, which is S-08, and the fix is to pay that cost here, before any target
+  // exists and outside any timed step, so every target starts from the same cache state.
+  //
+  // Resolution is hoisted with it because a SKIP is a property of the environment, not of a
+  // target: a corpus that cannot be resolved should say so once, not once per target.
+  const corpusCache = new Map();
+  for (const scenario of selected) {
+    const project = await loadProject(scenario.project);
+    if (project.corpus === undefined || corpusCache.has(project.corpus)) continue;
+    const resolved = resolveCorpus(project.corpus, { log });
+    if (resolved.skip === undefined && args.prewarm) {
+      const warm = prewarmCorpus(resolved.root);
+      resolved.prewarm = warm;
+      log(`[prewarm] ${project.corpus}: read ${warm.files} files (${(warm.bytes / 1e6).toFixed(0)} MB) in ${(warm.ms / 1000).toFixed(1)}s — page cache warmed so target order is not part of the measurement (D051)`);
+    } else if (resolved.skip === undefined) {
+      log(`[prewarm] ${project.corpus}: SKIPPED by --no-prewarm — the first target will pay the cold-cache cost inside a timed step`);
+    }
+    corpusCache.set(project.corpus, resolved);
+  }
+  writeFileSync(join(outDir, 'corpora.json'), JSON.stringify(Object.fromEntries(corpusCache), null, 2));
+
   const matrix = [];
   for (const target of args.targets) {
     const breakage = target === 'local' ? undefined : target.replace(/^local-broken-/, '');
@@ -121,13 +162,14 @@ async function main() {
         continue;
       }
       const workingDir = join(outDir, `work-${target}-${scenario.id}`);
-      const project = (await import(join(HERE, 'projects', `${scenario.project}.mjs`))).default;
+      const project = await loadProject(scenario.project);
       let corpus;
       if (project.corpus !== undefined) {
         // A corpus that cannot be resolved is an environment fact, exactly like an unmet
         // `requires` — SKIP, never PASS, and never a silent narrowing. `--forbid-skip` is what
-        // stops a release job accepting it.
-        corpus = resolveCorpus(project.corpus, { log });
+        // stops a release job accepting it. Resolved once above; this is the cached answer, so
+        // every target sees the same corpus and the same verdict about it.
+        corpus = corpusCache.get(project.corpus);
         if (corpus.skip !== undefined) {
           log(`\n[${target}] ${scenario.id}: SKIP — ${corpus.skip}`);
           matrix.push({ scenarioId: scenario.id, target, pass: false, skipped: true, reason: corpus.skip, errored: false, steps: [], tags: scenario.tags ?? [] });

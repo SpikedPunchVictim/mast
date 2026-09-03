@@ -54,6 +54,7 @@ node integration/run.mjs --targets local,local-broken-d023-miscased-import   # t
 | `--gate-target` | which target decides the exit code; must be one of `--targets` |
 | `--out` | results directory (default `integration/results/<timestamp>`) |
 | `--keep-all` | keep working copies even for scenarios that passed |
+| `--no-prewarm` | skip the corpus warm-up pass, restoring the D051 confound |
 | `--forbid-skip` | a SKIP on a scenario carrying one of these tags fails the run |
 
 ## The rules this harness keeps
@@ -85,6 +86,15 @@ node integration/run.mjs --targets local,local-broken-d023-miscased-import   # t
   `realpathSync`, D023's exact one-word regression. If that pin ever passes, the run fails: the
   harness can no longer demonstrate the defect it exists to catch. A run that does not exercise a
   pinned pair says so, because an uncalibrated green is not a green.
+- **Corpora are resolved and read once, before the first install.** The corpus is hardlinked into
+  every working copy, so all targets share the cache's inodes and the first one would otherwise
+  absorb the entire cost of faulting it in from disk — inside a step governed by a timeout. That
+  made target order part of what the gate measured: the same scenario ERRORed on a timeout in
+  position one and passed in 83s in position three (D051). The warm-up pays that cost outside any
+  timed step, so every target starts from the same cache state. It reads bytes; it deliberately
+  does not run `mast index`, because the harness's own preparation must not depend on the artifact
+  it is judging. `--no-prewarm` puts the confound back, so the warm-up can be observed doing
+  something.
 - **Working copies survive a failure** and are deleted on a pass.
 
 ## Deliberate differences from align's harness
@@ -105,7 +115,8 @@ node integration/run.mjs --targets local,local-broken-d023-miscased-import   # t
 run.mjs                  entry point, filters, calibration gate, summary
 lib/exec.mjs             capture-everything process execution; env allowlist; absolute-path invocation
 lib/install.mjs          pack + install + three authenticity checks; the named breakages
-lib/project.mjs          materialize a project definition into a working copy
+lib/project.mjs          materialize a project definition into a working copy; the corpus
+                         file-set walk, shared by materialize and prewarm
 lib/mutations.mjs        delete / move / caseOnlyRename / renameSymbol / edit / add / symlink / …
 lib/assert.mjs           the assertion kinds, all over parsed JSON — never stdout scraping
 lib/spec-validate.mjs    the module that stops a scenario passing while asserting nothing
@@ -114,5 +125,6 @@ lib/mcp-client.mjs       real stdio JSON-RPC, SDK resolved from the INSTALLED pa
 lib/scenario-runner.mjs  step walker
 projects/                project definitions
 scenarios/               one plain data object per file; filename must match `id`
+__tests__/               unit tests for the harness's own pure logic (run by `pnpm test`)
 results/                 gitignored
 ```

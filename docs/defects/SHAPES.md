@@ -280,7 +280,7 @@ a symbol that does not exist from one whose file failed to write.
 
 ## S-08 — A measurement contaminated by its own schedule
 
-**Instances**: D006, D013. **Rung**: brief.
+**Instances**: D006, D013, D051. **Rung**: brief, with one clause promotable (below).
 
 The order in which arms run becomes part of what is measured. D013's micro-benchmark ran arm N
 before arm H every repetition, so N warmed the cache for H, and the result was **~6× wrong** in the
@@ -295,6 +295,33 @@ Both look like results. Neither is noisy or obviously broken; they are precise a
 > **Ask**: does the executed schedule equal the registered schedule? Compare them directly rather
 > than trusting the planner; D006 was found by watching four seconds of a live run.
 
+D051 moved this shape out of measurement and into tooling: the contaminated schedule was the
+integration gate's own `--targets` order, where the first target faults a 26321-file corpus in from
+disk and every later target reads it warm. The contamination is not a wrong number there but a
+wrong *verdict* — the same scenario ERRORed in position one and PASSed in position two, and the
+target that decides the exit code is the one that runs first.
+
+> **Ask**: when a fixed resource cap (timeout, memory, retry budget) decides an outcome, was it
+> chosen against the *worst* position in the schedule or the typical one? Name the run that pays
+> the cold cost, and check the cap against that run rather than the average.
+
+### Promotable clause (candidate, still not written)
+
+D051 was fixed by removing the confound rather than by promoting a rule: the corpus is now read
+once before any target runs, so arm order no longer decides the verdict. That is the better fix,
+and it leaves the clause below unpromoted and still worth writing.
+
+The general Ask stays a brief — "does every arm run in every position" is not machine-decidable.
+One clause is: **no step may inherit an implicit timeout.** `integration/lib/exec.mjs:47` supplies a
+5-minute default to every command. The override exists and is used exactly once —
+`lib/install.mjs:81` gives `npm install` 15 minutes because native addons build there — so the
+mechanism is present and the omission elsewhere is a default nobody revisited, not a missing
+feature. One cap chosen without reference to corpus size still governs both a 6-file fixture and a
+26321-file monorepo, and a machine slower than this one can still hit it; what changed is only that
+it can no longer hit it *for one target and not the others*. Requiring each project definition to
+declare `timeoutMs` explicitly is enforceable at load in `lib/spec-validate.mjs`, which already
+rejects unknown keys against closed vocabularies (`KNOWN_SCENARIO_KEYS`, line 16, which would
+itself have to admit the key) — the same rung, the same file.
 
 ---
 

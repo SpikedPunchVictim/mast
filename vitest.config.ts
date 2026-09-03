@@ -8,7 +8,11 @@ export default defineConfig({
     // defect: a registered-but-never-implemented Wilcoxon test must not repeat).
     // eval/ is not part of the tsc build (tsconfig.json only includes src/**/*), so
     // this does not affect typecheck.
-    include: ['src/**/*.test.ts', 'eval/**/*.test.mjs'],
+    // integration/**/*.test.mjs: unit tests for the integration harness's pure logic, on the
+    // same footing and for the same reason as eval's. The harness decides what the release
+    // gate asserts, so its own file-set walk is worth pinning (D051). Like eval/, integration/
+    // is outside tsconfig.json's include, so this does not affect typecheck.
+    include: ['src/**/*.test.ts', 'eval/**/*.test.mjs', 'integration/**/*.test.mjs'],
     // Stage 7.1 (vector-store deletion, IMPLEMENTATION_PLAN.md Stage 7 decision 1):
     // these five files test RETIRED Q1 instruments whose import chains reach modules
     // deleted at HEAD (dist/search/vector.js, dist/store/lance.js, the embedder).
