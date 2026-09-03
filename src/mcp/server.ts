@@ -10,7 +10,7 @@ import { runIndex, loadIndexMeta } from '../indexer/index.js';
 import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
 import { bootstrapState } from './startup.js';
 import type { AppContext } from './context.js';
-import { createFreshnessProbe } from './freshness-probe.js';
+import { createFreshnessProbe, type FreshnessProbe } from './freshness-probe.js';
 import { registerAllTools } from './register-tools.js';
 
 // ---------------------------------------------------------------------------
@@ -97,6 +97,49 @@ export function assertServableIndex(
 // ---------------------------------------------------------------------------
 // Startup ladder (§7.4)
 // ---------------------------------------------------------------------------
+
+/**
+ * Run an incremental/full index pass and then correct the cached freshness
+ * count, which that pass has just made wrong.
+ *
+ * Extracted from `serve` because the ordering here is the whole contract and it
+ * was previously expressed three times in three closures, one of which got it
+ * wrong (D060): the invalidate must be in a `finally`. A reindex that FAILS is
+ * the case where the cached count is most likely to be stale and most costly to
+ * keep — the watcher only fired because files on disk changed, and `runIndex`
+ * losing `structure.lock` to a concurrent writer is an ordinary outcome, not an
+ * exceptional one. Invalidating only on success leaves `mast_search` reporting
+ * a pre-change count as authoritative for a full TTL, and after
+ * `maxConsecutiveFailures` the watcher drops the batch, so nothing retries.
+ *
+ * Errors propagate deliberately. `WatchScheduler` needs the rejection to
+ * requeue the batch, and the startup path wants to warn on its own terms; a
+ * function that both corrects the cache and swallows the failure would give
+ * neither caller what it needs.
+ *
+ * @param prime `true` measures immediately (startup, so the first search of the
+ *   session has a real answer instead of `null`); `false` leaves the next
+ *   `peekUnindexed` to schedule it, which is right for a watch batch that may
+ *   be one of many in a burst.
+ */
+export async function reindexAndRemeasure(
+  config: ResolvedConfig,
+  freshness: FreshnessProbe,
+  options: {
+    readonly incremental: boolean;
+    readonly prime?: boolean;
+    /** §4.4 DI seam: tests drive the failure path without standing up a writer. */
+    readonly runIndexFn?: (config: ResolvedConfig, opts: { incremental: boolean }) => Promise<unknown>;
+  },
+): Promise<void> {
+  const run = options.runIndexFn ?? runIndex;
+  try {
+    await run(config, { incremental: options.incremental });
+  } finally {
+    freshness.invalidate();
+    if (options.prime === true) freshness.refresh();
+  }
+}
 
 export interface ServeOptions {
   readonly config: ResolvedConfig;
@@ -189,10 +232,9 @@ export async function serve(options: ServeOptions): Promise<void> {
         config,
         runBatch: async (paths) => {
           process.stderr.write(`[mast] watch: reindexing after ${paths.length} change(s)\n`);
-          await runIndex(config, { incremental: true });
-          // The cached count is now wrong in the direction that produces a
-          // false warning about files this batch just indexed.
-          freshness.invalidate();
+          // Not primed: a burst of saves produces a burst of batches, and the
+          // next `peekUnindexed` will schedule one measurement for all of them.
+          await reindexAndRemeasure(config, freshness, { incremental: true });
         },
         onWarn: (message) => process.stderr.write(`${message}\n`),
       });
@@ -226,16 +268,14 @@ export async function serve(options: ServeOptions): Promise<void> {
 
   void (async () => {
     try {
-      await runIndex(config, { incremental: !needsFullReindex });
-    } catch (err) {
-      process.stderr.write(`[mast] startup indexing failed: ${String(err)}\n`);
-    } finally {
       // Measured AFTER the reindex, in the same background task: a probe run
       // before it would race the indexer and cache a count that the very next
-      // moment invalidates. On the failure path this is the more important
-      // call — the index is behind and nothing else will say so.
-      freshness.invalidate();
-      freshness.refresh();
+      // moment invalidates. On the failure path the correction is the more
+      // important half — the index is behind and nothing else will say so —
+      // which is why it lives in `reindexAndRemeasure`'s `finally`.
+      await reindexAndRemeasure(config, freshness, { incremental: !needsFullReindex, prime: true });
+    } catch (err) {
+      process.stderr.write(`[mast] startup indexing failed: ${String(err)}\n`);
     }
   })();
 
