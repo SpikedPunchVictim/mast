@@ -41,6 +41,16 @@ export interface IndexFreshness {
   readonly deleted: number;
   /** `stale + unindexed + deleted` — what both surfaces report as `stale_files`. */
   readonly total: number;
+  /**
+   * Indexable files this walk found, whatever their index state — the
+   * denominator the three counts above are drawn against.
+   *
+   * Carried so a caller can tell "some of this tree is unindexed" from "none of
+   * this tree is indexed", which is the difference between a stale index and an
+   * index built for a different project root (D048). Without it `unindexed` is
+   * a bare count with nothing to compare it to.
+   */
+  readonly walked: number;
 }
 
 /**
@@ -82,5 +92,11 @@ export async function measureFreshness(config: ResolvedConfig, db: Db): Promise<
   for (const path of Object.keys(manifest)) if (!onDisk.has(path)) gone.add(path);
   for (const path of indexed.keys()) if (!onDisk.has(path)) gone.add(path);
 
-  return { stale, unindexed, deleted: gone.size, total: stale + unindexed + gone.size };
+  return {
+    stale,
+    unindexed,
+    deleted: gone.size,
+    total: stale + unindexed + gone.size,
+    walked: onDisk.size,
+  };
 }

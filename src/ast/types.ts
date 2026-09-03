@@ -670,8 +670,46 @@ export interface ReindexResult {
  * backlog distinct from Phase 1 (chunk line coordinates lagging disk,
  * corrected by JIT on read) no longer exists, so a two-cause union asserted a
  * distinction the code can no longer draw.
+ *
+ * Widened again 2026-09-01 (D049) under that same rule, in the other
+ * direction: `measureFreshness` *does* draw three distinctions, and collapsing
+ * them onto `'phase1_stale'` asserted a cause nothing had determined — it
+ * reported "chunk coordinates lag disk" for a count that was 99.97% deleted and
+ * never-indexed files. Each member below is decided by a counted category, not
+ * inferred.
+ *
+ * - `root_mismatch`  — nothing on disk here is known to the index, and the
+ *   index knows files that are not here: it was built for a different project
+ *   root. Reindexing will not change it; the path or `--state-dir` is wrong.
+ * - `phase1_stale`   — indexed files whose content has changed since. Corrected
+ *   by JIT re-parse on read (§9.0) or by reindexing.
+ * - `unindexed_files`— files on disk this index has never seen.
+ * - `deleted_files`  — files the index still lists that are gone from disk.
  */
-export type FreshnessCause = 'phase1_stale' | null;
+export type FreshnessCause =
+  | 'root_mismatch'
+  | 'phase1_stale'
+  | 'unindexed_files'
+  | 'deleted_files'
+  | null;
+
+/**
+ * The three categories `stale_files` sums, reported alongside it.
+ *
+ * `stale_files` has always counted three things (MAST_SPEC §9 `mast_status`),
+ * but both surfaces published only the total, so a caller could read the spec
+ * and still not act on the distinction it draws — a 3391 that was 1 changed
+ * file and 3390 paths belonging to another tree read exactly like 3391 stale
+ * files (D049).
+ */
+export interface StaleBreakdown {
+  /** Indexed, on disk, content changed since indexing. */
+  readonly changed: number;
+  /** On disk, absent from the index. */
+  readonly unindexed: number;
+  /** In the index, absent from disk. */
+  readonly deleted: number;
+}
 
 export interface StatusResult {
   readonly state_dir: string;
@@ -700,6 +738,8 @@ export interface StatusResult {
    * (`docs/defects/LEDGER.md` D035).
    */
   readonly stale_files: number;
+  /** `stale_files` split into the three categories it sums. */
+  readonly stale_breakdown: StaleBreakdown;
   readonly parse_errors: number;
   readonly write_errors: number;
   readonly index_fresh: boolean;

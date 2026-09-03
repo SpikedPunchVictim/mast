@@ -279,3 +279,65 @@ describe('import resolver — mis-cased import reporting', () => {
     }
   });
 });
+
+// D047: a specifier written with a trailing slash names a directory and nothing
+// else. `path.resolve` normalises the slash away before `probe` sees it, so a
+// sibling file used to win over the directory the author explicitly asked for.
+describe('import resolver — directory-only specifiers (trailing slash, D047)', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'mast-resolver-dir-'));
+    clearImportResolverCache();
+  });
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+    clearImportResolverCache();
+  });
+
+  it('prefers the directory index over an identically-named sibling file', () => {
+    write(root, 'src/app.ts', `import { handler } from './routes/';`);
+    write(root, 'src/routes.ts', 'export const legacy = 1;');
+    write(root, 'src/routes/index.ts', 'export const handler = 2;');
+
+    const r = getImportResolver(root).resolve('./routes/', 'src/app.ts');
+
+    expect(r.resolvedPath).toBe('src/routes/index.ts');
+  });
+
+  it('prefers the directory index over a sibling differing only by case', () => {
+    // The shape that shipped: `Routes.ts` importing `./routes/` resolved to
+    // itself on a case-insensitive filesystem, and reported a mis-cased import.
+    write(root, 'src/Routes.ts', `import { UserRoutes } from './routes/';`);
+    write(root, 'src/routes/index.ts', 'export const UserRoutes = 1;');
+
+    const resolver = getImportResolver(root);
+    const r = resolver.resolve('./routes/', 'src/Routes.ts');
+
+    expect(r.resolvedPath).toBe('src/routes/index.ts');
+    expect(resolver.drainMiscased().count).toBe(0);
+  });
+
+  it('returns null when only a sibling file exists and no such directory does', () => {
+    // Node refuses this specifier outright (MODULE_NOT_FOUND); resolving it to
+    // `routes.ts` would be inventing an edge the runtime does not have.
+    write(root, 'src/app.ts', `import { legacy } from './routes/';`);
+    write(root, 'src/routes.ts', 'export const legacy = 1;');
+
+    const r = getImportResolver(root).resolve('./routes/', 'src/app.ts');
+
+    expect(r).toEqual({ resolvedPath: null, isExternal: false });
+  });
+
+  it('still prefers a sibling file over a directory when no slash is written', () => {
+    // The complement, pinned so the fix cannot invert ordinary precedence:
+    // without a trailing slash, `./routes` is file-first, which is what tsc does.
+    write(root, 'src/app.ts', `import { legacy } from './routes';`);
+    write(root, 'src/routes.ts', 'export const legacy = 1;');
+    write(root, 'src/routes/index.ts', 'export const handler = 2;');
+
+    const r = getImportResolver(root).resolve('./routes', 'src/app.ts');
+
+    expect(r.resolvedPath).toBe('src/routes.ts');
+  });
+});

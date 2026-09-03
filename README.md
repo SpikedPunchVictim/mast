@@ -289,7 +289,10 @@ tool rather than one index per package.
 
 **What is indexed.** `.ts`, `.tsx`, `.js`, `.jsx`, and `.md`, minus `node_modules`,
 `dist`, `build`, `coverage`, `.next`, `.turbo`, `.mast`, and test files. Override with
-`--extensions` and `--exclude` on `mast init`, or edit `.mast/config.json`.
+`--extensions` and `--exclude` on `mast init`, or — for a setting the whole team should
+get — `file_extensions` / `exclude_patterns` in `mast.config.json` at the project root.
+Editing `.mast/config.json` also works and is read back, but that file is gitignored and
+per-machine, so the change will not travel; `mast.config.json` outranks it.
 
 **Other languages are not indexed, and this matters.** MAST parses TypeScript and
 JavaScript only. A symbol defined in Python, Go, Java, or Rust is absent from the index,
@@ -297,7 +300,16 @@ which looks exactly like absent from the repository. Treat an empty result as "M
 not find it", never as "it does not exist" — `mast skill` says this to the model too.
 
 **Add `.mast/` to `.gitignore`.** It is derived state, it is large, and it is
-machine-specific.
+machine-specific — on a 14k-file monorepo it is around 420 MB, almost all of it `graph.db`.
+Ignore the whole directory, including `.mast/config.json`: that file is a *resolved*
+snapshot and carries absolute paths (`project_root`, `resolved_state_dir`) that mean
+nothing on anyone else's machine. The file meant to be committed is `mast.config.json` at
+the project root — see the next paragraph.
+
+**If you move the index, move the ignore rule with it.** `.mast/` is the default location,
+not the only one: a `state_dir` in `mast.config.json`, a `MAST_STATE_DIR` in the
+environment, or a `--state-dir` flag all put the index somewhere else, and a `.gitignore`
+naming `.mast/` then protects nothing.
 
 **A custom index location is not remembered between runs.** `--state-dir` applies to the
 one command you pass it to. Path settings are deliberately never read back out of a

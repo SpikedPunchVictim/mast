@@ -152,22 +152,36 @@ function buildResolver(projectRoot: string): ImportResolver {
 
   /** Resolve a base path (possibly without extension) to a real indexed file. */
   const probe = (base: string, ctx: ResolveContext): string | null => {
-    // NodeNext source-first precedence: when the specifier carries a compiled
-    // JS extension (`./x.js`), prefer the TypeScript source (`x.ts`) that would
-    // emit it, ahead of any literal `x.js` on disk (see JS_TO_TS_EXTS).
-    for (const [jsExt, tsExts] of JS_TO_TS_EXTS) {
-      if (base.endsWith(jsExt)) {
-        const stem = base.slice(0, -jsExt.length);
-        for (const tsExt of tsExts) {
-          if (isFile(stem + tsExt)) return toRel(stem + tsExt, ctx);
+    // D047: a specifier written with a trailing slash names a DIRECTORY and
+    // nothing else — `require.resolve('./routes/')` throws MODULE_NOT_FOUND
+    // when only `routes.ts` exists. `base` cannot carry that intent, because
+    // `path.resolve`/`join` normalise the slash away before we are called, so
+    // it is read off the specifier the caller preserved on `ctx`. Without this
+    // the sibling probes below win over the directory the author explicitly
+    // asked for: `Routes.ts` importing `./routes/` resolved to *itself* on a
+    // case-insensitive filesystem, and `routes/index.ts` — which had a live
+    // importer — was recorded with none.
+    const directoryOnly = ctx.specifier.endsWith('/');
+
+    if (!directoryOnly) {
+      // NodeNext source-first precedence: when the specifier carries a compiled
+      // JS extension (`./x.js`), prefer the TypeScript source (`x.ts`) that would
+      // emit it, ahead of any literal `x.js` on disk (see JS_TO_TS_EXTS).
+      for (const [jsExt, tsExts] of JS_TO_TS_EXTS) {
+        if (base.endsWith(jsExt)) {
+          const stem = base.slice(0, -jsExt.length);
+          for (const tsExt of tsExts) {
+            if (isFile(stem + tsExt)) return toRel(stem + tsExt, ctx);
+          }
+          break; // a base ends in at most one of these extensions
         }
-        break; // a base ends in at most one of these extensions
+      }
+      if (isFile(base)) return toRel(base, ctx);
+      for (const ext of CANDIDATE_EXTS) {
+        if (isFile(base + ext)) return toRel(base + ext, ctx);
       }
     }
-    if (isFile(base)) return toRel(base, ctx);
-    for (const ext of CANDIDATE_EXTS) {
-      if (isFile(base + ext)) return toRel(base + ext, ctx);
-    }
+
     for (const ext of CANDIDATE_EXTS) {
       const idx = join(base, `index${ext}`);
       if (isFile(idx)) return toRel(idx, ctx);

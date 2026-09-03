@@ -45,16 +45,20 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019. **Rung**: brief, and one clause has earned promotion (below).
+**Instances**: D006, D007, D019, D047, D048. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever
 indexed*, which is exactly right for cold builds and exactly wrong for the incremental path it was
 credited with fixing. D007's orphan counter is correct for a schedule where each cell runs once.
 D006's control-first ordering is correct for repair groups and destroyed the Latin square
-everywhere else.
+everywhere else. D047's probe order is correct for an extensionless `./routes` and wrong for the
+slash-terminated `./routes/`, where it hands back a sibling file instead of the directory the
+author explicitly asked for. D048's `initialised` guard is correct for "no index here" and blind to
+"an index for a different tree", which produces the same user confusion the guard was written to
+end.
 
-All three shipped green. In D006 every existing test exercised the half of the input space where
+All of them shipped green. In D006 every existing test exercised the half of the input space where
 the guard was correct — the suite was not weak, it was *aimed* at the author's case, because the
 author wrote both.
 
@@ -64,6 +68,32 @@ author wrote both.
 
 > **Ask**: this guard is credited with fixing a problem. Is the credited fix in the same case as
 > the guard's condition, or is it in the complement?
+
+> **Ask**: does this predicate compare two counts for exact equality? Both sides move with the
+> input; name the input where they differ by one for a reason that has nothing to do with the
+> property being tested.
+
+### Declined for promotion (2026-09-01), and the reason
+
+**Declined.** "Is this predicate right for the general case as well as the author's?" requires
+knowing what the general case *is*, which is not mechanically decidable — the same reasoning that
+kept S-01 a brief. The narrow decidable sliver, an exact-equality comparison between two
+input-varying counts, is real but would fire on far more correct code than incorrect, so it is
+posed as the third Ask above rather than as a lint rule.
+
+What this shape gained instead is a better **instrument**, and it is worth more than a rule.
+D048's *fix* exhibited D048's own shape while being written: the first predicate,
+`unindexed === walked`, passed a clean three-file fixture and did not fire on the 1822-file index
+the defect came from, because one walked path coincidentally matched an indexed one. No test caught
+that — re-running the finished fix against the production-scale artifact did, before the commit.
+
+> **Ask**: this fix was verified against a fixture. Re-run it against the largest real artifact
+> available and read the output. A guard tuned on a clean fixture meets its first accidental
+> collision in production.
+
+*(Housekeeping, same date: this Rung line previously read "one clause has earned promotion
+(below)" and no such subsection existed under this shape — the pointer had been dangling since
+2026-08-18. See LEDGER D050.)*
 
 ---
 
@@ -90,7 +120,7 @@ The tell is that each was *internally* consistent. Nothing inside the document c
 
 ## S-04 — A confident claim about code nobody opened
 
-**Instances**: D004, D005, D009, D020, D039, D040, D041, D044. **Rung**: brief.
+**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046. **Right**
 
 The richest family here, and the one that produced this package's only two S0s. D009 had two
 documents describing a third file's behaviour exactly backwards. D004's four call sites assumed
@@ -232,7 +262,7 @@ sits in the join between the instrument and the registration — a place neither
 
 ## S-07 — Absence read as evidence
 
-**Instances**: D001, D002, D010, D017, D045. **Rung**: brief.
+**Instances**: D001, D002, D010, D017, D045, D048, D049. **Rung**: brief.
 
 The package's severity zero, generalised past code. D010 registered an experiment whose answer was
 already committed and unread for four days — "we have no result" was actually "we did not look".
@@ -265,13 +295,14 @@ Both look like results. Neither is noisy or obviously broken; they are precise a
 > **Ask**: does the executed schedule equal the registered schedule? Compare them directly rather
 > than trusting the planner; D006 was found by watching four seconds of a live run.
 
+
 ---
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004, D023. **Rung**: brief.
+**Instances**: D002, D004, D023, D047. **Rung**: brief.
 
-All three S0s in this ledger share it. D004's four sites had tests, and not one used a path containing
+The first three S0s in this ledger share it, and D047 — filed 2026-09-01, and the first slash-terminated import specifier any fixture in this package has ever contained — is the fourth. (The ledger now holds ten S0s; the six from the 2026-08-20 bug hunt have not been assessed against this shape.) D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,
 where `snake_case` is routine. D002's tests never used a file large enough to blow a parameter
 ceiling, in a package whose stated corpus includes a 146,620-line file.
@@ -312,6 +343,7 @@ reason to look: they have a passing command in their scrollback.
 > **Ask**: name the exact command the project's gate runs, character for character, and compare it
 > to what you ran. A subset that passes is not the gate passing — `&&`-joined scripts and multi-config
 > typechecks are where this hides.
+
 
 > **Ask**: what state does your working copy hold that a fresh checkout will not — a build cache, a
 > gitignored artifact, a previously-built `dist/`, an installed binary, a warm database? Which of

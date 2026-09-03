@@ -13,6 +13,7 @@ import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
 import { getImportResolver, type MiscasedImportReport } from './import-resolver.js';
 import type { IndexMeta, FreshnessCause } from '../ast/types.js';
+import type { IndexFreshness } from './freshness.js';
 
 export interface IndexResult {
   readonly filesIndexed: number;
@@ -740,16 +741,55 @@ function symbolSignature(
 // ---------------------------------------------------------------------------
 
 /**
- * Derive the `freshness_cause` discriminator (§9 mast_status) from the stale
- * file count. Stage 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store
+ * Derive the `freshness_cause` discriminator (§9 mast_status) from the measured
+ * freshness. Stage 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store
  * deletion") dropped the second parameter this used to take
  * (`pendingEmbeddings`) along with the `'embedding_backlog'`/`'both'` cases —
  * the Phase 2 embedder that could produce a backlog distinct from Phase 1
  * staleness was excised in Stage 7.1, so a two-cause signature asserted a
  * distinction the code could no longer draw.
+ *
+ * It took the bare total from then until 2026-09-01 (D049), which asserted the
+ * opposite error: `'phase1_stale'` for any non-zero count, including counts
+ * with no stale file in them at all. It now takes the whole measurement,
+ * because every distinction it draws is one `measureFreshness` already counted.
+ *
+ * `root_mismatch` is tested first and is the only compound condition. Let
+ * `matched` be the files on disk the index actually knows (`walked -
+ * unindexed`); the index describes a different tree when it disagrees with this
+ * one in *both* directions more than it agrees in either — more unknown files
+ * here than known ones, and more files listed that are absent than known ones.
+ *
+ * Both halves are load-bearing, and each excludes a different neighbour:
+ * dropping the `unindexed` half would call a mass deletion a root mismatch
+ * (many `deleted`, but every remaining file still matches); dropping the
+ * `deleted` half would call a never-indexed project one (everything unknown,
+ * but the index claims no files elsewhere).
+ *
+ * Stated as strict majorities against `matched` rather than as a ratio against
+ * a tuned constant, and deliberately NOT as `unindexed === walked`: that was the
+ * first form, and on the 1822-file index this was written for it did not fire,
+ * because exactly one walked path coincidentally matched an indexed one and
+ * `1569 === 1570` is false. A guard that a single accidental collision defeats
+ * is the shape this ledger calls S-02.
+ *
+ * It is decided from counted content rather than by comparing the project root
+ * against the one in the persisted state config: that path is recorded from a
+ * previous process and is meaningless under the shared-volume mounts
+ * `pickStateConfigCustomization` exists to survive.
+ *
+ * The remaining three are ordered by what a caller should do about them, not by
+ * size: `phase1_stale` first because it is the one JIT re-parse silently
+ * corrects on read, so it is the least alarming reading of a mixed count. The
+ * exact split always travels beside it in `stale_breakdown`.
  */
-export function freshnessCause(staleFiles: number): FreshnessCause {
-  return staleFiles > 0 ? 'phase1_stale' : null;
+export function freshnessCause(freshness: IndexFreshness): FreshnessCause {
+  if (freshness.total === 0) return null;
+  const matched = freshness.walked - freshness.unindexed;
+  if (freshness.unindexed > matched && freshness.deleted > matched) return 'root_mismatch';
+  if (freshness.stale > 0) return 'phase1_stale';
+  if (freshness.unindexed > 0) return 'unindexed_files';
+  return 'deleted_files';
 }
 
 /**

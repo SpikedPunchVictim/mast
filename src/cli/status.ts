@@ -1,11 +1,21 @@
 import type { Command } from 'commander';
+import type { StaleBreakdown } from '../ast/types.js';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { loadIndexMeta, freshnessCause } from '../indexer/index.js';
-import { measureFreshness } from '../indexer/freshness.js';
+import { measureFreshness, type IndexFreshness } from '../indexer/freshness.js';
 import { openDatabase } from '../graph/db.js';
 
 export interface StatusReport {
   readonly state_dir: string;
+  /**
+   * The tree this report was measured against.
+   *
+   * Reported because `state_dir` alone does not identify it, and the two are
+   * independently settable: a relative `--state-dir` resolves against the path
+   * argument, so it is entirely possible to read one project's index while
+   * asking about another project's files (D048).
+   */
+  readonly project_root: string;
   /** False when nothing has ever been indexed at `state_dir`. */
   readonly initialised: boolean;
   readonly schema_version: string;
@@ -14,6 +24,11 @@ export interface StatusReport {
   readonly chunk_count: number | null;
   /** `null` when there is no index — a stale count against nothing is meaningless. */
   readonly stale_files: number | null;
+  /**
+   * `stale_files` split into the three categories it sums. `null` on the same
+   * condition, and for the same reason.
+   */
+  readonly stale_breakdown: StaleBreakdown | null;
   readonly parse_errors: number | null;
   readonly write_errors: number | null;
   readonly index_fresh: boolean;
@@ -42,12 +57,14 @@ export async function buildStatus(
   if (meta === null) {
     return {
       state_dir: config.resolved_state_dir,
+      project_root: config.resolved_project_root,
       initialised: false,
       schema_version: CURRENT_SCHEMA_VERSION,
       last_indexed: null,
       indexed_files: null,
       chunk_count: null,
       stale_files: null,
+      stale_breakdown: null,
       parse_errors: null,
       write_errors: null,
       index_fresh: false,
@@ -60,26 +77,32 @@ export async function buildStatus(
   // above, because the `meta === null` branch has already returned for a state
   // dir that was never indexed.
   const db = openDatabase(config.resolved_state_dir);
-  let staleCount: number;
+  let freshness: IndexFreshness;
   try {
-    staleCount = (await measureFreshness(config, db)).total;
+    freshness = await measureFreshness(config, db);
   } finally {
     await db.destroy();
   }
 
   return {
     state_dir: config.resolved_state_dir,
+    project_root: config.resolved_project_root,
     initialised: true,
     // From the binary, never from index.json — see StatusResult.schema_version.
     schema_version: CURRENT_SCHEMA_VERSION,
     last_indexed: meta.last_indexed ?? null,
     indexed_files: meta.file_count ?? 0,
     chunk_count: meta.chunk_count ?? 0,
-    stale_files: staleCount,
+    stale_files: freshness.total,
+    stale_breakdown: {
+      changed: freshness.stale,
+      unindexed: freshness.unindexed,
+      deleted: freshness.deleted,
+    },
     parse_errors: meta.parse_errors ?? 0,
     write_errors: meta.write_errors ?? 0,
-    index_fresh: staleCount === 0,
-    freshness_cause: freshnessCause(staleCount),
+    index_fresh: freshness.total === 0,
+    freshness_cause: freshnessCause(freshness),
     seed_commit: meta.seed_commit,
   };
 }
@@ -120,18 +143,37 @@ export function registerStatusCommand(program: Command): void {
         ? ` (${formatAge(new Date(status.last_indexed))} ago)`
         : '';
 
+      // The split is printed inline rather than on its own line: `stale_files`
+      // names one of the three things it counts, and the total alone has been
+      // read as "3391 files changed" when it was one changed file and 3390
+      // paths belonging to another tree (D049).
+      const b = status.stale_breakdown;
+      const split = b !== null && (status.stale_files ?? 0) > 0
+        ? `  (changed ${String(b.changed)}, unindexed ${String(b.unindexed)}, deleted ${String(b.deleted)})`
+        : '';
+
       process.stdout.write([
         `state_dir:      ${status.state_dir}`,
+        `project_root:   ${status.project_root}`,
         `schema_version: ${status.schema_version}`,
         `last_indexed:   ${status.last_indexed ?? 'never'}${ago}`,
         `indexed_files:  ${String(status.indexed_files)}`,
         `chunk_count:    ${String(status.chunk_count)}`,
-        `stale_files:    ${String(status.stale_files)}`,
+        `stale_files:    ${String(status.stale_files)}${split}`,
         `parse_errors:   ${String(status.parse_errors)}`,
         `write_errors:   ${String(status.write_errors)}`,
         `index_fresh:    ${String(status.index_fresh)}`,
         `freshness_cause: ${status.freshness_cause ?? 'none'}`,
         ...(status.seed_commit != null ? [`seed_commit:    ${status.seed_commit}`] : []),
+        ...(status.freshness_cause === 'root_mismatch' ? [
+          '',
+          `! This index does not describe the tree at ${status.project_root}.`,
+          '  Most files here are unknown to it, and most files it lists are not here —',
+          '  it was built for a different project root, so reindexing will not move',
+          '  these numbers. Check the path argument and --state-dir: a relative',
+          '  --state-dir resolves against the path argument, not the shell\'s',
+          '  working directory.',
+        ] : []),
       ].join('\n') + '\n');
     });
 }

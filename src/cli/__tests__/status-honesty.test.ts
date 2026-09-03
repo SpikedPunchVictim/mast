@@ -3,6 +3,8 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildStatus } from '../status.js';
+import { resolveConfig } from '../../store/config.js';
+import { runIndex } from '../../indexer/index.js';
 
 function project(): string {
   const dir = mkdtempSync(join(tmpdir(), 'mast-status-'));
@@ -57,5 +59,56 @@ describe('mast status on an initialised index', () => {
     expect(s.initialised).toBe(true);
     expect(s.freshness_cause).not.toBe('not_initialised');
     expect(typeof s.stale_files).toBe('number');
+  });
+});
+
+/**
+ * D048/D049. The guard above catches "there is no index here". It does not catch
+ * the neighbouring case: an index that exists, is perfectly fresh, and describes a
+ * *different tree* than the one being asked about — which is what
+ * `--state-dir`-resolves-against-the-path-argument makes easy to produce.
+ *
+ * Measured on a real consumer index before the fix: pointed at the root it was
+ * built for, `{stale:0, unindexed:0, deleted:0}`; pointed one directory down,
+ * `{stale:1, unindexed:1569, deleted:1821}` reported as `stale_files: 3391` with
+ * `freshness_cause: phase1_stale` — a cause accounting for 1 of the 3391.
+ */
+describe('mast status pointed at a project root the index was not built for', () => {
+  async function indexedElsewhere(): Promise<string> {
+    const dir = mkdtempSync(join(tmpdir(), 'mast-status-root-'));
+    mkdirSync(join(dir, 'typescript', 'src'), { recursive: true });
+    writeFileSync(join(dir, 'typescript', 'src', 'a.ts'), 'export function alpha(): number { return 1; }\n');
+    writeFileSync(join(dir, 'typescript', 'src', 'b.ts'), 'export function beta(): number { return 2; }\n');
+    // Indexed with the SUBDIRECTORY as project root, so every stored path is
+    // relative to it — exactly what the consumer repo had on disk.
+    const config = resolveConfig({ projectRoot: join(dir, 'typescript'), stateDirOverride: '.mast' });
+    await runIndex(config, { incremental: false });
+    return dir;
+  }
+
+  it('names the mismatch instead of blaming stale content', async () => {
+    const dir = await indexedElsewhere();
+    const s = await buildStatus({ path: dir, stateDir: 'typescript/.mast' });
+
+    expect(s.freshness_cause).toBe('root_mismatch');
+  });
+
+  it('reports the breakdown, so the count can be read rather than guessed at', async () => {
+    const dir = await indexedElsewhere();
+    const s = await buildStatus({ path: dir, stateDir: 'typescript/.mast' });
+
+    // Nothing on disk here is known to the index, and the index knows two files
+    // that are not here — the signature of an index built for another root.
+    expect(s.stale_breakdown).toEqual({ changed: 0, unindexed: 2, deleted: 2 });
+    expect(s.stale_files).toBe(4);
+  });
+
+  it('still reports a plain stale count when the root is right', async () => {
+    const dir = await indexedElsewhere();
+    const s = await buildStatus({ path: join(dir, 'typescript'), stateDir: '.mast' });
+
+    expect(s.freshness_cause).toBeNull();
+    expect(s.stale_breakdown).toEqual({ changed: 0, unindexed: 0, deleted: 0 });
+    expect(s.index_fresh).toBe(true);
   });
 });

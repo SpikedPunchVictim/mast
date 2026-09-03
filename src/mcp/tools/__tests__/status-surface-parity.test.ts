@@ -34,9 +34,13 @@ import { registerStatusTool } from '../status.js';
 
 type Handler = (args: Record<string, unknown>) => Promise<{ content: { text: string }[] }>;
 
+/** The `{changed, unindexed, deleted}` split both surfaces publish beside the total. */
+type Breakdown = { changed: number; unindexed: number; deleted: number };
+
 /** Call the registered `mast_status` handler and parse its JSON payload. */
 async function callMcpStatus(config: ReturnType<typeof resolveConfig>): Promise<{
   stale_files: number; index_fresh: boolean; freshness_cause: string | null;
+  stale_breakdown: Breakdown;
 }> {
   const db = openDatabase(config.resolved_state_dir);
   try {
@@ -54,14 +58,17 @@ async function callMcpStatus(config: ReturnType<typeof resolveConfig>): Promise<
     if (handler === null) throw new Error('status tool not registered');
     const res = await (handler as Handler)({});
     const parsed = JSON.parse(res.content[0]!.text) as Record<string, unknown>;
-    // Only the three freshness fields are compared — the two surfaces
-    // legitimately differ elsewhere (the CLI carries `initialised`, the MCP
-    // tool carries `state_dir`), and comparing whole payloads would assert a
-    // parity neither is supposed to have.
+    // Only the freshness fields are compared — the two surfaces legitimately
+    // differ elsewhere (the CLI carries `initialised`, the MCP tool carries
+    // `state_dir`), and comparing whole payloads would assert a parity neither
+    // is supposed to have. `stale_breakdown` is included because publishing it
+    // on one surface and not the other is exactly the divergence this file
+    // exists to catch — D035 in a new currency.
     return {
       stale_files: parsed['stale_files'] as number,
       index_fresh: parsed['index_fresh'] as boolean,
       freshness_cause: parsed['freshness_cause'] as string | null,
+      stale_breakdown: parsed['stale_breakdown'] as Breakdown,
     };
   } finally {
     await db.destroy();
@@ -70,13 +77,24 @@ async function callMcpStatus(config: ReturnType<typeof resolveConfig>): Promise<
 
 /** Both surfaces, reduced to the three fields they are supposed to agree on. */
 async function bothSurfaces(config: ReturnType<typeof resolveConfig>, projectRoot: string): Promise<{
-  cli: { stale_files: number | null; index_fresh: boolean; freshness_cause: string | null };
-  mcp: { stale_files: number; index_fresh: boolean; freshness_cause: string | null };
+  cli: {
+    stale_files: number | null; index_fresh: boolean; freshness_cause: string | null;
+    stale_breakdown: Breakdown | null;
+  };
+  mcp: {
+    stale_files: number; index_fresh: boolean; freshness_cause: string | null;
+    stale_breakdown: Breakdown;
+  };
 }> {
   const mcp = await callMcpStatus(config);
   const cli = await buildStatus({ path: projectRoot });
   return {
-    cli: { stale_files: cli.stale_files, index_fresh: cli.index_fresh, freshness_cause: cli.freshness_cause },
+    cli: {
+      stale_files: cli.stale_files,
+      index_fresh: cli.index_fresh,
+      freshness_cause: cli.freshness_cause,
+      stale_breakdown: cli.stale_breakdown,
+    },
     mcp,
   };
 }

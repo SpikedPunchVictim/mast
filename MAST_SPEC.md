@@ -807,6 +807,7 @@ Options:
 Output:
 ```
 state_dir:      /workspace/.kluster/.mast
+project_root:   /workspace/.kluster
 schema_version: 1.3.0
 last_indexed:   2026-05-13T14:22:00Z (3 minutes ago)
 indexed_files:  142
@@ -818,10 +819,22 @@ index_fresh:    true
 freshness_cause: none
 ```
 
+`stale_files` prints its split inline when non-zero — `stale_files: 47  (changed
+0, unindexed 27, deleted 20)` — because the field names one of the three things
+it counts (§9, `mast_status`).
+
+`project_root` names the tree the report was measured against. It is reported
+because `state_dir` alone does not identify it and the two are set
+independently: a relative `--state-dir` resolves against the **path argument**,
+not the shell's working directory, so one project's index can be read while
+another project's files are asked about.
+
 `freshness_cause` carries the same semantics as the `mast_status` MCP tool (§9) —
-it prints `none` in human output when the JSON value would be `null`; the JSON
-value is `"phase1_stale"` when `stale_files > 0`. On a never-indexed project the
-state directory is not created as a side effect of running `status`.
+it prints `none` in human output when the JSON value would be `null`. When it is
+`root_mismatch` the table is followed by a plain-language block naming the tree
+that was measured and saying that reindexing will not move the numbers. On a
+never-indexed project the state directory is not created as a side effect of
+running `status`.
 
 ---
 
@@ -1698,6 +1711,7 @@ Index health snapshot.
   "indexed_files": 142,
   "chunk_count": 1840,
   "stale_files": 0,
+  "stale_breakdown": { "changed": 0, "unindexed": 0, "deleted": 0 },
   "parse_errors": 0,
   "write_errors": 0,
   "index_fresh": true,
@@ -1726,14 +1740,34 @@ conflated). Non-zero in either indicates files the agent should investigate.
 `seed_commit` is present only when the state directory was bootstrapped from a
 Docker-baked seed (§13.8) and reports the git revision the seed was built from.
 
-**Freshness diagnostics.** `freshness_cause` is `"phase1_stale"` when `stale_files > 0`
-(chunk line coordinates lag disk — corrected by JIT re-parse on read, §9.0, or by
-running `mast_reindex`) and `null` when the index is fully fresh. `index_fresh` is
-`true` only when `stale_files === 0` and the index has been run at least once.
+**Freshness diagnostics.** `freshness_cause` names which of `stale_files`'
+categories the count is actually made of, and `null` when the index is fully
+fresh. `index_fresh` is `true` only when `stale_files === 0` and the index has
+been run at least once.
+
+| value | meaning |
+|---|---|
+| `"root_mismatch"` | The index disagrees with this tree in both directions more than it agrees in either: more files here are unknown to it than known (`unindexed > walked - unindexed`), **and** it lists more absent files than known ones (`deleted > walked - unindexed`). It was built for a different project root, so reindexing will not move the numbers — the path argument or `--state-dir` is wrong. Both halves are required: the first alone would flag a mass deletion, the second alone a never-indexed project. |
+| `"phase1_stale"` | Indexed files whose content changed since — chunk line coordinates lag disk, corrected by JIT re-parse on read (§9.0) or by `mast_reindex`. |
+| `"unindexed_files"` | Files on disk this index has never seen. |
+| `"deleted_files"` | Files the index still lists that are gone from disk. |
+
+`root_mismatch` is tested first and is the only compound condition; the other
+three are ordered by what the caller should do about them, `phase1_stale` first
+because it is the one JIT re-parse corrects silently on read. The exact split
+always travels beside the cause in `stale_breakdown`, so a caller never has to
+infer the composition from the chosen label.
+
+Until 2026-09-01 this field was `"phase1_stale"` for **any** non-zero count,
+including counts containing no changed file at all (`docs/defects/LEDGER.md`
+D049); it is now decided from counted categories rather than from the total.
 
 `stale_files` counts three things, not one: files whose content changed since they
 were indexed, files on disk that are **not in the index at all**, and files the index
-still lists that are gone from disk. It is computed by `indexer/freshness.ts`
+still lists that are gone from disk. `stale_breakdown` reports that split as
+`{changed, unindexed, deleted}` — the total alone was documented as a union here
+and published as a scalar by both surfaces, so a caller who had read this
+paragraph still could not act on the distinction it draws (D049). It is computed by `indexer/freshness.ts`
 `measureFreshness`, which `mast status` and `mast_status` both call — one producer,
 because they answer one question. It reads the manifest and the `files.mtime` stamps
 and takes the union: only the manifest can see a file that was never indexed, and only
@@ -2514,6 +2548,23 @@ scope — MAST indexes implementation files. Without this rule, ESM `.js` specif
 `resolved_path` NULL and star re-export barrels written with `.js` produced no
 `re_export_files` rows. See the TypeScript Modules Reference, "File extension
 substitution".
+
+**0a. Trailing-slash specifiers are directory-only**
+
+A specifier written with a trailing slash (`./routes/`) names a **directory** and
+nothing else. Node refuses it outright when only a sibling file exists —
+`require.resolve('./routes/')` throws `MODULE_NOT_FOUND` — so the resolver skips
+every file probe for such a specifier and considers only `<base>/index.<ext>`,
+returning `null` rather than inventing an edge the runtime does not have.
+
+This is a rule about the *specifier*, not the path: `path.resolve`/`join`
+normalise the slash away, so the intent must be read before the base path is
+built. Without it the extension probes ran first and a sibling file won over the
+directory the author explicitly asked for — a `Routes.ts` importing `./routes/`
+resolved to **itself**, and `routes/index.ts`, which had a live importer, was
+recorded with none (`docs/defects/LEDGER.md` D047). Note the ordering is
+deliberate only for the slash-terminated form: without a slash, `./routes` stays
+file-first, which is what tsc does.
 
 **1. tsconfig `paths` aliases** (e.g. `@api/types` → `./src/types/index.ts`)
 

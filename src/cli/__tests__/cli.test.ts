@@ -16,6 +16,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resolveConfig, writeStateConfig, loadStateConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { initLockMarkers, acquireLock, withLock } from '../../store/lock.js';
 import { runIndex, loadIndexMeta, freshnessCause } from '../../indexer/index.js';
+import type { IndexFreshness } from '../../indexer/freshness.js';
 import { walkProject, diffManifest, globToRegex } from '../../indexer/walker.js';
 import { openDatabase } from '../../graph/db.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
@@ -288,9 +289,63 @@ describe('status — staleness detection', () => {
 // ---------------------------------------------------------------------------
 
 describe('freshnessCause', () => {
-  it('maps the stale-file count to its cause', () => {
-    expect(freshnessCause(0)).toBeNull();
-    expect(freshnessCause(3)).toBe('phase1_stale');
+  const freshness = (
+    partial: Partial<IndexFreshness>,
+  ): IndexFreshness => {
+    const stale = partial.stale ?? 0;
+    const unindexed = partial.unindexed ?? 0;
+    const deleted = partial.deleted ?? 0;
+    return {
+      stale,
+      unindexed,
+      deleted,
+      total: stale + unindexed + deleted,
+      walked: partial.walked ?? stale + unindexed,
+    };
+  };
+
+  it('reports no cause when the index is fully fresh', () => {
+    expect(freshnessCause(freshness({}))).toBeNull();
+  });
+
+  it('names changed content when content changed', () => {
+    expect(freshnessCause(freshness({ stale: 3 }))).toBe('phase1_stale');
+  });
+
+  // D049: the whole count used to come back as `phase1_stale`, including counts
+  // containing no stale file at all.
+  it('does not blame changed content for a count with no changed file in it', () => {
+    expect(freshnessCause(freshness({ unindexed: 4 }))).toBe('unindexed_files');
+    expect(freshnessCause(freshness({ deleted: 4, walked: 0 }))).toBe('deleted_files');
+  });
+
+  // D048: nothing on disk is indexed AND the index knows files that are not on
+  // disk — the index was built somewhere else.
+  it('names a root mismatch when the index describes a different tree', () => {
+    expect(freshnessCause(freshness({ unindexed: 12, walked: 12, deleted: 90 })))
+      .toBe('root_mismatch');
+  });
+
+  it('does not call a never-indexed project a root mismatch', () => {
+    // Same "nothing here is indexed" half, but the index claims no files
+    // elsewhere, so the honest reading is that indexing has not happened yet.
+    expect(freshnessCause(freshness({ unindexed: 12, walked: 12, deleted: 0 })))
+      .toBe('unindexed_files');
+  });
+
+  it('survives one walked path coincidentally matching an indexed one', () => {
+    // The real numbers this was written for, which the first version of the
+    // predicate (`unindexed === walked`) did not fire on: a single accidental
+    // path collision between the two trees left 1569 !== 1570 and the caller
+    // got `phase1_stale` for a count that was 3390 parts other-tree.
+    expect(freshnessCause(freshness({ stale: 1, unindexed: 1569, walked: 1570, deleted: 1821 })))
+      .toBe('root_mismatch');
+  });
+
+  it('does not call a mass deletion a root mismatch', () => {
+    // Every file still on disk is known to the index; the repo just shrank.
+    expect(freshnessCause(freshness({ unindexed: 0, walked: 10, deleted: 90 })))
+      .toBe('deleted_files');
   });
 });
 

@@ -16,7 +16,8 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
       // The same producer `mast status` uses — the two surfaces answer one
       // question and must not compute it twice
       // (`mcp/tools/__tests__/status-surface-parity.test.ts`).
-      const stale_files = (await measureFreshness(ctx.config, ctx.db)).total;
+      const freshness = await measureFreshness(ctx.config, ctx.db);
+      const stale_files = freshness.total;
       const result: StatusResult = {
         state_dir:      ctx.config.resolved_state_dir,
         // From the binary, never from index.json — see StatusResult.schema_version.
@@ -25,10 +26,15 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
         indexed_files:  meta?.file_count ?? 0,
         chunk_count:    meta?.chunk_count ?? 0,
         stale_files,
+        stale_breakdown: {
+          changed:   freshness.stale,
+          unindexed: freshness.unindexed,
+          deleted:   freshness.deleted,
+        },
         parse_errors:   meta?.parse_errors ?? 0,
         write_errors:   meta?.write_errors ?? 0,
         index_fresh:    meta !== null && stale_files === 0,
-        freshness_cause: freshnessCause(stale_files),
+        freshness_cause: freshnessCause(freshness),
         seed_commit:    meta?.seed_commit,
       };
       return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
