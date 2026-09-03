@@ -240,8 +240,8 @@ absolute. The CLI and editor integrations below infer it from the working direct
 
 ### Any other MCP client
 
-Run `mast serve` over stdio from the project root. It advertises eleven read tools and
-needs no arguments beyond `serve`.
+Run `mast serve` over stdio from the project root. It advertises eleven tools — ten that
+read and `mast_reindex`, which writes — and needs no arguments beyond `serve`.
 
 ### Tell the assistant how to use it
 
@@ -541,6 +541,29 @@ MAST registers 11 tools with the MCP server. Every read tool includes a `_stats`
 }
 ```
 
+### The signals
+
+Beyond the results, a response carries fields describing what MAST **does not know** about
+the answer it just gave. Every one is omitted entirely when it does not apply — none is ever
+present-and-`false` — so their absence carries meaning and their presence is never noise.
+
+| signal | carried by | means |
+|---|---|---|
+| `stale` | per result of `mast_search`, `mast_implementors` | this result's file changed on disk since it was indexed. The content and line numbers shown may be out of date; no re-parse was attempted (see [JIT Staleness Checks](#jit-staleness-checks)) |
+| `file_busy_returning_stale_cache` | `mast_signature`, `mast_callers`, `mast_exports`, `mast_dependencies`, `mast_rename_impact` | a re-parse *was* attempted and lost to a concurrent writer, so the previous chunk was returned. Contended, not wrong by design — retry shortly |
+| `index_empty` | the empty answer of any of the eight tools that return a result set | nothing is indexed at all. The answer is empty because there was nothing to answer from, not because nothing matched |
+| `unindexed_files` | `mast_search` | this many files exist on disk and are not in the index. The results were ranked over an incomplete corpus — an empty or thin answer may mean "not indexed" rather than "not present" |
+| `results_truncated` | `mast_signature`, `mast_implementors` | the list was capped at `limit`; the field carries the real, uncapped total |
+| `exports_truncated` | `mast_exports` | the same, for a module's export list |
+| `potential_truncated` | `mast_callers`, `mast_rename_impact` | the unresolved-candidate fetch was capped at 50; the field carries the real match count |
+| `truncated` | a `type_context` entry of `mast_signature` | that referenced type's declaration was clipped at 50 lines. The one signal that *is* always present, as a boolean |
+
+Two distinctions that are not flags but carry the same weight: in `mast_callers` and
+`mast_rename_impact`, a **`verified_caller`** carries a `resolution` naming how the edge was
+statically proven and is safe to act on, while a **`potential_match`** carries a `reason` and
+is a name match with no proven edge — review before editing. And an empty result is never
+proof of absence: MAST indexes TypeScript, JavaScript, and Markdown only.
+
 ---
 
 ### `mast_search`
@@ -558,7 +581,7 @@ Lexical BM25 + declaration-exact search over the indexed codebase.
 }
 ```
 
-**Returns:** `{ results[], suggestions?, _stats }`. Each result includes `file_path`, `start_line`, `end_line`, `content`, `chunk_type`, `symbol_name`, `parent_symbol`, `is_exported`, `match_score` (BM25 score, negative; `null` when the hit came only from ranker D), `rank`, `match_snippet`, and an optional `related` hint when a method and its class shell both matched (only the higher-ranked one is returned). `suggestions` is present, possibly empty, only when `results` is empty — a zero-result "did you mean" assist.
+**Returns:** `{ results[], suggestions?, index_empty?, unindexed_files?, _stats }`. Each result includes `file_path`, `start_line`, `end_line`, `content`, `chunk_type`, `symbol_name`, `parent_symbol`, `is_exported`, `match_score` (BM25 score, negative; `null` when the hit came only from ranker D), `rank`, `match_snippet`, an optional `stale` flag, and an optional `related` hint when a method and its class shell both matched (only the higher-ranked one is returned). `suggestions` is present, possibly empty, only when `results` is empty — a zero-result "did you mean" assist. See [The signals](#the-signals) for `stale`, `index_empty`, and `unindexed_files`.
 
 **Why:** `grep` and `glob` find exact strings and require the caller to already know the pattern. `mast_search` ranks by relevance across two signals fused with Reciprocal Rank Fusion:
 

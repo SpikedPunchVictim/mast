@@ -640,13 +640,21 @@ reindex runs in the background.
 **Fast first-task latency.** With a baked seed (§13.8), Steps 1–3 typically complete
 in **2–4 seconds** on a cold container. Step 4 then catches up any files changed
 since the seed was built in the background — the agent can begin useful work as
-soon as Step 3 completes; JIT staleness handling (§9.0) guarantees any individual
-file it queries is correct even before Step 4 reaches it.
+soon as Step 3 completes.
+
+Be precise about what covers that window, because the obvious summary is wrong.
+JIT re-parse (§9.0) makes an individual *already-indexed* file correct on read,
+and only on the five re-parsing tools; `mast_search` and `mast_implementors`
+flag such a file rather than refreshing it, and a file the seed never contained
+is invisible to all seven until Step 4 reaches it. The window is therefore
+bounded by Step 4, not eliminated by §9.0.
 
 This is the **only hook required for the SDD pipeline**. The BT orchestrator needs no
 reindex calls. Files committed by the previous task are picked up by Step 4's
-filesystem scan. JIT staleness handling (§9) covers files modified mid-task before
-Step 4 has caught up to them.
+filesystem scan. JIT re-parse (§9) covers files *modified* mid-task before Step 4
+has caught up to them — on the five re-parsing tools; elsewhere they are flagged.
+Files **created** mid-task are covered by neither and need `mast_reindex` (§11.2)
+or the watcher (§11.4).
 
 ### 7.5 Mid-Task Reindex (`mast_reindex` MCP tool)
 
@@ -991,8 +999,9 @@ how many files a single call's results can span:
 
 JIT re-parse covers files already known to the index. It does not discover a
 brand-new file or a newly-created symbol — those become searchable via the next
-`mast_reindex` call or the background/`--watch` reindex (§7.4/§11.4) reaching
-them. The agent prompt should still recommend `mast_reindex` after writing new
+`mast_reindex` call, the startup reindex, or the watcher (§7.4/§11.4, on by
+default) reaching them. `mast_search` reports the size of that blind spot as
+`unindexed_files` when a serve process has measured it. The agent prompt should still recommend `mast_reindex` after writing new
 files or symbols — not because JIT leaves existing files stale (it doesn't), but
 because discovery of new ones requires an actual indexing pass.
 
@@ -1779,9 +1788,17 @@ been run at least once.
 | value | meaning |
 |---|---|
 | `"root_mismatch"` | The index disagrees with this tree in both directions more than it agrees in either: more files here are unknown to it than known (`unindexed > walked - unindexed`), **and** it lists more absent files than known ones (`deleted > walked - unindexed`). It was built for a different project root, so reindexing will not move the numbers — the path argument or `--state-dir` is wrong. Both halves are required: the first alone would flag a mass deletion, the second alone a never-indexed project. |
-| `"phase1_stale"` | Indexed files whose content changed since — chunk line coordinates lag disk, corrected by JIT re-parse on read (§9.0) or by `mast_reindex`. |
+| `"phase1_stale"` | Indexed files whose content changed since — chunk line coordinates lag disk, corrected by JIT re-parse on read by the five re-parsing tools (§9.0), flagged `stale` by the other two, or fixed for all of them by `mast_reindex`. |
 | `"unindexed_files"` | Files on disk this index has never seen. |
 | `"deleted_files"` | Files the index still lists that are gone from disk. |
+
+The `"unindexed_files"` **cause** here and `mast_search`'s `unindexed_files`
+**count** (§9.0) name the same population — files on disk this index has never
+seen — and are deliberately spelled the same. They differ in shape and in
+freshness: `mast_status` reports a cause label chosen from a measurement taken
+during that call, while `mast_search` reports an integer from the serve
+process's TTL-cached probe, which may be up to one TTL old. When the two
+disagree, `mast_status` is the newer measurement.
 
 `root_mismatch` is tested first and is the only compound condition; the other
 three are ordered by what the caller should do about them, `phase1_stale` first
@@ -2314,7 +2331,7 @@ This is the **only hook required for the SDD pipeline**.
 The agent calls this explicitly after writes. JIT staleness handling (§9.0) already
 keeps already-indexed files correct on read; `mast_reindex` is what makes a
 **brand-new** file or symbol discoverable by `mast_search`/`mast_callers`/etc. before
-the next scheduled or `--watch` reindex reaches it. The implement prompt instructs:
+the next scheduled reindex or the watcher (§11.4, on by default) reaches it. The implement prompt instructs:
 
 > After writing or editing files, call `mast_reindex` before any search query that
 > depends on symbols you just created. This is the only way to guarantee the index
@@ -2456,7 +2473,7 @@ TypeScript (Node.js LTS). Rationale:
 | Locking | `proper-lockfile` | PID-based advisory lock; set `stale: 10000` (10s) to handle abrupt container exits |
 | CLI | `commander` | Standard TS CLI |
 | File walking | `fast-glob` | Glob pattern support for `exclude_patterns` |
-| File watching | `chokidar` | Powers `mast serve --watch` (§11.4) |
+| File watching | `chokidar` | Powers `mast serve`'s watcher (§11.4, default on; `--no-watch` opts out) |
 | Token counting | `@anthropic-ai/tokenizer` | Counts `tokens_returned`/`tokens_full_file_upper_bound` for `_stats` (§14.5) |
 | Identifiers | `uuid` | Per-`mast serve`-session `session_id` for metrics attribution |
 
@@ -2493,7 +2510,7 @@ packages/mast/
 │   ├── indexer/
 │   │   ├── index.ts                 # orchestrates the single indexing pass (§7.1)
 │   │   ├── walker.ts                # file discovery, exclude pattern matching, manifest diff
-│   │   ├── watcher.ts               # chokidar-backed `mast serve --watch` (§11.4)
+│   │   ├── watcher.ts               # chokidar-backed `mast serve` watcher (§11.4)
 │   │   └── import-resolver.ts       # tsconfig paths + pnpm workspace resolution (§13.7)
 │   ├── graph/
 │   │   ├── db.ts                    # better-sqlite3 + Kysely connection, schema init
@@ -2667,7 +2684,9 @@ Two important properties of the seed:
 2. **Frozen at build commit.** The seed reflects whatever code was in the image at
    `docker build` time. Files modified since the build commit are picked up by
    §7.4 Step 4's filesystem scan (a few seconds for typical incremental staleness),
-   and uncommitted-tree edits trigger JIT re-parse on first query (§9.0).
+   and uncommitted-tree edits to files the seed already contains are re-parsed on
+   first query by the five re-parsing tools, or flagged `stale` by the other two
+   (§9.0). An uncommitted **new** file is in neither category until Step 4 runs.
 
 **Runtime copy.** The container entrypoint runs:
 

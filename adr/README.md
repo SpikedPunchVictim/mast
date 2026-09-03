@@ -35,6 +35,7 @@ hypotheses, and unread measurements — and the only one of these files edited i
 | [013](013-2026-08-19-declined-scope.md) | rolling | Deliberately not doing |
 | [014](014-2026-08-19-packaging-and-first-run.md) | 2026-08-19 | Packaging and the first-run experience |
 | [015](015-2026-08-19-integration-harness.md) | 2026-08-19 | An integration harness, and the mutation axis it exists for |
+| [016](016-2026-09-03-discovery-freshness.md) | 2026-09-03 | Discovery freshness: the gap JIT was never able to close |
 
 ## Reading order — which is not the numbering
 
@@ -55,7 +56,10 @@ experiments. Read instead:
    [015](015-2026-08-19-integration-harness.md)** — how the package ships, installs, and
    upgrades, and the harness that will verify it does. 014 is the first ADR written under this
    system rather than backfilled into it; 015 is a design, not yet a thing that exists.
-7. **[013](013-2026-08-19-declined-scope.md)** — what is out of scope, and why. Read before
+7. **[016](016-2026-09-03-discovery-freshness.md)** — reads as a continuation of 005: what
+   the staleness contract covers, what it structurally cannot, and what now reports the
+   difference.
+8. **[013](013-2026-08-19-declined-scope.md)** — what is out of scope, and why. Read before
    proposing anything.
 
 ## Writing a new one

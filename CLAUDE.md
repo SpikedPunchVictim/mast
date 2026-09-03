@@ -78,8 +78,16 @@ node eval/results-writers.mjs [script...]
     `mast_exports`          a module's public API without reading the file
     `mast_project_skeleton` directory map of all exported symbols
     `mast_rename_impact`    rename checklist: verified callers + review sites + barrel exports
-- Call `mast_reindex` after writing files to keep the index current.
+- Call `mast_reindex` after **creating or renaming** files, before any query that depends
+  on them. Editing the body of a file mast already knows is handled on read; a new file is
+  not, and is invisible to every read tool until an index pass runs.
 - When a query returns nothing, change vocabulary — don't repeat it.
+- Read the signals before concluding anything is absent. `index_empty` means nothing is
+  indexed at all; `unindexed_files` on a `mast_search` response means the results were
+  ranked over a corpus missing that many files; `stale` on a result means its line numbers
+  may be wrong. `mast serve` watches by default, so in a normal session these stay quiet —
+  which is exactly why one appearing is worth stopping for. From the CLI, `mast search
+  --reindex` refreshes first (the CLI has no watcher).
 
 ---
 

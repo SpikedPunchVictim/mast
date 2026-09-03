@@ -1,6 +1,9 @@
 # ADR 005 — Staleness is a contract, not a best effort
 
-- **Status:** Accepted and shipped (Stage 1, all eight items, 2026-08-07)
+- **Status:** Accepted and shipped (Stage 1, all eight items, 2026-08-07). **Extended, not
+  superseded, by [ADR 016](016-2026-09-03-discovery-freshness.md)** — this ADR settles what
+  happens to an indexed file that *changes*; 016 covers the file that was never indexed, which
+  neither mechanism below can see.
 - **Decided:** 2026-08-07
 - **Recorded:** 2026-08-19, backfilled from `IMPLEMENTATION_PLAN.md`
 - **Evidence:** [`PLAN-EXCERPT.md`](proposals/staleness-contract/PLAN-EXCERPT.md) · `eval/f1-lock-scope.json`, `eval/e7-concurrency.json`, `eval/baseline-locks.json`
