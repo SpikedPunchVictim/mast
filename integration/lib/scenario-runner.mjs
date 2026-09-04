@@ -49,19 +49,18 @@ export async function runScenario(scenario, ctx) {
         const args = step.serve.args ?? [];
         log(`  step ${i}: serve ${args.join(' ') || '(defaults)'}`);
         session = await openMcpSession(installRoot, workingDir, args);
-        // `settleMs` is a SLEEP, and unlike `retry` it cannot be a poll, because there is
-        // nothing to poll: `mast serve` connects its transport before the watcher starts, and
-        // chokidar announces readiness to nobody outside the process. With `ignoreInitial: true`
-        // a file created before that initial scan finishes is treated as pre-existing and fires
-        // no event at all — so a scenario that mutates too early tests nothing and reports FAIL.
-        // Observed exactly that: this scenario passed run alone and failed when it ran after the
-        // 26k-file n8n scenario, purely because the scan was slower under load. See LEDGER D061,
-        // which records the missing readiness signal as the actual defect; this is the harness
-        // living with it, not a fix.
-        if (step.serve.settleMs !== undefined) {
-          await new Promise((r) => setTimeout(r, step.serve.settleMs));
+        // `mast serve` accepts MCP calls before its watcher is delivering events: chokidar's
+        // initial scan runs after the transport connects, and with `ignoreInitial: true` a file
+        // created inside that window is treated as pre-existing and fires nothing. A scenario
+        // that mutates too early therefore tests nothing and reports FAIL — observed exactly
+        // that, passing alone and failing after the 26k-file n8n scenario, purely from load.
+        // This waits for the server's own readiness line rather than sleeping for a guess
+        // (D061). A timeout throws, so an unready watcher is an ERROR about the harness's
+        // assumption and never a silent pass.
+        if (step.serve.waitForWatcher === true) {
+          await session.waitForWatcher(step.serve.timeoutMs ?? 30_000);
         }
-        record = { index: i, kind: 'serve', args, settleMs: step.serve.settleMs ?? 0, pass: true, failures: [] };
+        record = { index: i, kind: 'serve', args, waitedForWatcher: step.serve.waitForWatcher === true, pass: true, failures: [] };
       } else if (step.serveStop !== undefined) {
         log(`  step ${i}: serveStop`);
         if (session === null) throw new Error(`step ${i}: no serve session is open`);

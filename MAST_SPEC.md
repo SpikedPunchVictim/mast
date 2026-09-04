@@ -2382,6 +2382,15 @@ tree does not change under the server and the fd cost buys nothing.
 
 Behaviour:
 
+- **Readiness is announced.** The watcher starts *after* the MCP transport is
+  accepting calls, and chokidar's initial scan runs with `ignoreInitial: true`
+  — correct, because the startup ladder has already indexed the tree, but it
+  means a file created before that scan completes is treated as pre-existing
+  and fires **no event at all**. When the scan finishes, `mast serve` writes
+  `[mast] watch: watching for changes` to stderr, once. Before this existed
+  (D061) silence covered three different states — watching, not watching yet,
+  and watcher failed to start — because only the failure paths wrote anything.
+  A tool or operator that must not miss a change waits for this line.
 - A chokidar watcher covers `file_extensions` under the project root,
   respecting `exclude_patterns` **and the state directory itself** — watching
   the state dir would self-trigger on every index write.

@@ -30,12 +30,14 @@ export default {
     { run: 'index .', expect: { exit: 0 } },
 
     // ---- Part 1: the watcher, which is on unless asked otherwise ------------
-    // `settleMs`: the watcher starts AFTER the transport connects, and chokidar's initial scan
-    // (`ignoreInitial: true`) has no readiness signal anything outside the process can see. A
-    // file created inside that window fires no event, so this scenario would report FAIL for a
-    // watcher that is working. Not a hypothetical — it passed alone and failed when it ran after
-    // the 26k-file n8n scenario. LEDGER D061 records the missing signal as the real defect.
-    { serve: { settleMs: 3000 } },
+    // The watcher starts AFTER the transport connects, and chokidar's initial scan
+    // (`ignoreInitial: true`) means a file created inside that window fires no event at all —
+    // so mutating too early would report FAIL for a watcher that is working. Not hypothetical:
+    // this scenario passed alone and failed when it ran after the 26k-file n8n scenario, purely
+    // from load. `waitForWatcher` blocks on `serve`'s own readiness line (D061), so the wait is
+    // as long as the scan actually takes and no longer, and a watcher that never comes up is an
+    // explicit timeout rather than a silent pass.
+    { serve: { waitForWatcher: true } },
 
     // Baseline through the SESSION, not a fresh process: the symbol genuinely does not exist yet,
     // so the assertion below cannot be satisfied by a stale index or a lucky prefix match.

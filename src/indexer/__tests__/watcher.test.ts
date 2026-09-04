@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { WatchScheduler, shouldWatchPath, type WatchPathFilter } from '../watcher.js';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { resolveConfig } from '../../store/config.js';
+import {
+  WatchScheduler, shouldWatchPath, startWatchMode,
+  type WatchPathFilter, type WatchHandle, type StartWatchModeOptions,
+} from '../watcher.js';
 
 // ---------------------------------------------------------------------------
 // WatchScheduler — debounce / coalesce / single-flight (fake timers, no chokidar)
@@ -204,4 +211,87 @@ describe('shouldWatchPath', () => {
   it('rejects paths outside the project root', () => {
     expect(shouldWatchPath(filter, '/elsewhere/file.ts')).toBe(false);
   });
+});
+
+// ---------------------------------------------------------------------------
+// startWatchMode — the chokidar wiring itself (D061)
+// ---------------------------------------------------------------------------
+
+/**
+ * Until now this function had no test: `WatchScheduler` and `shouldWatchPath`
+ * above are pure and were covered, and everything that made them a *watcher*
+ * was not. D061 lived in that gap — the watcher starts after `serve` accepts
+ * connections and chokidar's initial scan (`ignoreInitial: true`) announced
+ * readiness to nobody, so a file created inside that window is treated as
+ * pre-existing and fires no event at all. Silence covered three different
+ * states: watching, not watching yet, and failed to start.
+ */
+describe('startWatchMode', () => {
+  let dir: string;
+  let handles: WatchHandle[];
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-watch-ready-'));
+    writeFileSync(join(dir, 'seed.ts'), 'export const seed = 1;\n');
+    handles = [];
+  });
+
+  afterEach(async () => {
+    for (const h of handles) await h.close().catch(() => {});
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function start(options: Partial<StartWatchModeOptions> = {}): WatchHandle {
+    const handle = startWatchMode({
+      config: resolveConfig({ projectRoot: dir }),
+      runBatch: async () => {},
+      onWarn: () => {},
+      debounceMs: 20,
+      ...options,
+    });
+    handles.push(handle);
+    return handle;
+  }
+
+  it('announces readiness once the initial scan has finished', async () => {
+    let readyCount = 0;
+    const ready = new Promise<void>((resolve) => {
+      start({ onReady: () => { readyCount++; resolve(); } });
+    });
+
+    await expect(ready).resolves.toBeUndefined();
+    expect(readyCount).toBe(1);
+  }, 20_000);
+
+  /**
+   * The point of the signal, not just its existence: an observer that waits for
+   * it can create a file and rely on the event arriving. A readiness callback
+   * that fired before the scan completed would satisfy the test above and still
+   * leave D061 exactly where it was.
+   */
+  it('delivers events for files created after readiness was announced', async () => {
+    const batches: string[][] = [];
+    await new Promise<void>((resolve) => {
+      start({
+        onReady: resolve,
+        runBatch: async (paths) => { batches.push([...paths]); },
+      });
+    });
+
+    writeFileSync(join(dir, 'created-after-ready.ts'), 'export const later = 2;\n');
+
+    await vi.waitFor(() => {
+      expect(batches.flat().some((p) => p.endsWith('created-after-ready.ts'))).toBe(true);
+    }, { timeout: 10_000, interval: 50 });
+  }, 20_000);
+
+  it('is optional — a caller that does not want the signal still watches', async () => {
+    const batches: string[][] = [];
+    start({ runBatch: async (paths) => { batches.push([...paths]); } });
+
+    await vi.waitFor(() => {
+      writeFileSync(join(dir, 'no-ready-callback.ts'), 'export const x = 3;\n');
+      expect(batches.flat().some((p) => p.endsWith('no-ready-callback.ts'))).toBe(true);
+    }, { timeout: 10_000, interval: 100 });
+  }, 20_000);
 });

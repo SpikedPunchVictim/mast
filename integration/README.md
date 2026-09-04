@@ -109,9 +109,21 @@ Three step keys cover it:
 
 | step | does |
 |---|---|
-| `{ serve: { args: [...] } }` | Opens ONE long-lived `mast serve`. Every later `mcpCall` routes through it until it is closed. `args` is passed verbatim and nothing is defaulted — including `--no-watch`, so a scenario testing the watcher can leave it on. |
+| `{ serve: { args: [...], waitForWatcher } }` | Opens ONE long-lived `mast serve`. Every later `mcpCall` routes through it until it is closed. `args` is passed verbatim and nothing is defaulted — including `--no-watch`, so a scenario testing the watcher can leave it on. `waitForWatcher: true` blocks until the server reports its watcher ready. |
 | `{ serveStop: {} }` | Closes it. The runner also closes any open session in a `finally`, so a scenario that throws cannot leak a watcher-holding process into the next working copy. |
 | `retry: { timeoutMs, intervalMs }` | On an `mcpCall`, polls its `expect` to a deadline. |
+
+`waitForWatcher` exists because `mast serve` accepts MCP calls *before* it is watching: chokidar's
+initial scan runs after the transport connects, and with `ignoreInitial: true` a file created
+inside that window is treated as pre-existing and fires no event at all. A scenario that mutates
+too early therefore tests nothing and reports FAIL — this one passed run alone and failed when it
+ran after the 26k-file n8n scenario, purely because the scan was slower under load (D061). It
+waits on the server's own readiness line, so the wait is as long as the scan takes and no longer,
+and a watcher that never comes up is an explicit timeout rather than a silent pass.
+
+Waiting on a log line is normally the wrong move (CLAUDE.md §5.6), and the exception here is
+exact: that line **is** the readiness contract for an out-of-process observer, because there is
+nothing else to observe. The literal lives in `lib/mcp-client.mjs`, not in scenarios.
 
 `retry` exists because a watcher's effect is asynchronous **by design** — chokidar debounces, the
 batch takes `structure.lock`, and the reindex takes as long as it takes. A fixed sleep would be

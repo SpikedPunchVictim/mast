@@ -83,8 +83,12 @@ export function validateScenario(scenario, sourcePath) {
     if (step.serve !== undefined) {
       if (typeof step.serve !== 'object' || step.serve === null) fail(`step ${i}: 'serve' must be an object (use '{}' for default flags)`);
       if (step.serve.args !== undefined && !Array.isArray(step.serve.args)) fail(`step ${i}: 'serve.args' must be an array of CLI flags`);
-      if (step.serve.settleMs !== undefined && (typeof step.serve.settleMs !== 'number' || step.serve.settleMs < 0)) {
-        fail(`step ${i}: 'serve.settleMs' must be a non-negative number of milliseconds`);
+      if (step.serve.waitForWatcher !== undefined && typeof step.serve.waitForWatcher !== 'boolean') {
+        fail(`step ${i}: 'serve.waitForWatcher' must be a boolean`);
+      }
+      // Waiting for a watcher that was explicitly disabled can only ever time out.
+      if (step.serve.waitForWatcher === true && (step.serve.args ?? []).includes('--no-watch')) {
+        fail(`step ${i}: 'serve.waitForWatcher' with '--no-watch' — no watcher will ever be ready`);
       }
     }
 

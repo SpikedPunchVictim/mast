@@ -237,6 +237,14 @@ export async function serve(options: ServeOptions): Promise<void> {
           await reindexAndRemeasure(config, freshness, { incremental: true });
         },
         onWarn: (message) => process.stderr.write(`${message}\n`),
+        // The success path now announces itself, because the failure path
+        // always did: `startWatchMode`'s EMFILE degradation writes a warning,
+        // so before this line silence meant "watching", "not watching yet" and
+        // "watcher failed to start" alike, and an operator could not tell which
+        // (D061). Emitted once, after chokidar's initial scan — files created
+        // before it are treated as pre-existing and fire no event, so this is
+        // the point from which a change is guaranteed to be seen.
+        onReady: () => process.stderr.write('[mast] watch: watching for changes\n'),
       });
     } catch (err) {
       // Degrade gracefully (EMFILE, permissions, …) — serve without watch.

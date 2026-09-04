@@ -144,6 +144,22 @@ export interface StartWatchModeOptions {
   /** One incremental Phase 1 + embed run; supplied by the serve lifecycle. */
   readonly runBatch: (paths: readonly string[]) => Promise<void>;
   readonly onWarn: (message: string) => void;
+  /**
+   * Called once, when chokidar has finished its initial scan and is actually
+   * delivering events.
+   *
+   * The watcher starts AFTER `serve` accepts MCP connections, and it is
+   * constructed with `ignoreInitial: true` — correct, since the startup ladder
+   * has already indexed the tree, but it means a file created before the scan
+   * finishes is treated as pre-existing and fires no event at all. Without this
+   * callback nothing outside the process could tell that window apart from
+   * "watching, nothing has changed" or from "the watcher failed to start": the
+   * EMFILE path warns, and the success path was silent, so silence meant three
+   * different things (D061).
+   *
+   * Optional. A caller that does not want the signal still gets a watcher.
+   */
+  readonly onReady?: () => void;
   /** Override for tests; production default 500ms. */
   readonly debounceMs?: number;
 }
@@ -189,6 +205,14 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
   watcher.on('add', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
   watcher.on('change', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
   watcher.on('unlink', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
+  // Fires after the initial scan completes; from here on, a created file
+  // produces an `add`. A construction failure (EMFILE, permissions) throws out
+  // of `chokidarWatch` above and never reaches this line, so `onReady` cannot
+  // announce a watcher that failed to start — the caller's catch handles that
+  // case. Handler registration order is NOT what provides that guarantee, and a
+  // runtime `error` after a successful scan does not un-fire `ready`: this
+  // signal means "the initial scan finished", not "the watcher is healthy".
+  watcher.on('ready', () => { options.onReady?.(); });
   watcher.on('error', (err) => {
     // Watcher errors (EMFILE, EPERM, …) degrade to no-watch; JIT staleness
     // handling keeps reads correct, so serving continues.

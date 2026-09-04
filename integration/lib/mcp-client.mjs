@@ -92,12 +92,62 @@ export async function openMcpSession(installRoot, workingDir, serveArgs = []) {
     args: [mastEntryPath(installRoot), 'serve', ...serveArgs],
     cwd: workingDir,
     env: sanitizeEnv(process.env),
+    // Piped rather than inherited so `waitForWatcher` can read it. Every line is still forwarded
+    // to the harness's own stderr below, so a run looks exactly as it did before.
+    stderr: 'pipe',
   });
   const client = new Client({ name: 'mast-integration-harness', version: '0.0.0' }, { capabilities: {} });
   await client.connect(transport);
 
+  let stderrBuffer = '';
+  const stderrWaiters = [];
+  transport.stderr?.on('data', (chunk) => {
+    const text = String(chunk);
+    stderrBuffer += text;
+    process.stderr.write(text);
+    for (const w of [...stderrWaiters]) {
+      if (stderrBuffer.includes(w.needle)) {
+        stderrWaiters.splice(stderrWaiters.indexOf(w), 1);
+        w.resolve();
+      }
+    }
+  });
+
+  /** Resolve when `needle` has appeared on the server's stderr, or reject at the deadline. */
+  function waitForStderr(needle, timeoutMs) {
+    if (stderrBuffer.includes(needle)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const waiter = { needle, resolve: () => { clearTimeout(timer); resolve(); } };
+      const timer = setTimeout(() => {
+        const i = stderrWaiters.indexOf(waiter);
+        if (i >= 0) stderrWaiters.splice(i, 1);
+        reject(new Error(
+          `timed out after ${timeoutMs}ms waiting for ${JSON.stringify(needle)} on \`mast serve ${serveArgs.join(' ')}\`'s stderr. ` +
+          `Got:\n${stderrBuffer || '(nothing)'}`,
+        ));
+      }, timeoutMs);
+      stderrWaiters.push(waiter);
+    });
+  }
+
   return {
     serveArgs,
+    /**
+     * Block until the file watcher is actually delivering events.
+     *
+     * The string is `serve`'s watcher-ready line (`src/mcp/server.ts`, via `startWatchMode`'s
+     * `onReady`). Coupling a test to a log line is normally the wrong move — CLAUDE.md §5.6 —
+     * and the exception is exact: this line IS the readiness contract for an out-of-process
+     * observer, because chokidar's initial scan finishes long after the MCP transport starts
+     * accepting calls and there is no other way to observe it. It replaces a fixed sleep that
+     * was flaky under load (D061).
+     */
+    waitForWatcher(timeoutMs = 30_000) {
+      if (serveArgs.includes('--no-watch')) {
+        throw new Error(`waitForWatcher on a session started with --no-watch: no watcher will ever be ready`);
+      }
+      return waitForStderr('[mast] watch: watching for changes', timeoutMs);
+    },
     async call(tool, args) {
       const result = await client.callTool({ name: tool, arguments: args ?? {} });
       const text = (result.content ?? []).map((c) => c.text ?? '').join('');
