@@ -5,7 +5,7 @@
 // assertion that came back false: a statement about mast. ERROR is the harness failing to run
 // the check at all: a statement about the harness. Reporting the second as the first is how a
 // suite quietly stops testing anything.
-import { runMast } from './exec.mjs';
+import { runMast, DEFAULT_TIMEOUT_MS } from './exec.mjs';
 import { evaluateAssert, evaluateExpect, captureCounts } from './assert.mjs';
 import { applyMutation } from './mutations.mjs';
 import { callMcpTool, openMcpSession } from './mcp-client.mjs';
@@ -37,10 +37,14 @@ export async function runScenario(scenario, ctx) {
         // records that the scenario depends on it, so a scenario file still reads top to bottom.
         record = { index: i, kind: 'install', target, pass: true, failures: [] };
       } else if (step.run !== undefined) {
-        log(`  step ${i}: run mast ${step.run}`);
-        const result = runMast(installRoot, workingDir, step.run);
+        const capMs = step.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+        log(`  step ${i}: run mast ${step.run}${step.timeoutMs === undefined ? '' : ` (cap ${capMs / 1000}s)`}`);
+        const result = runMast(installRoot, workingDir, step.run, step.timeoutMs === undefined ? {} : { timeoutMs: step.timeoutMs });
         const { pass: p, failures } = evaluateExpect(step.expect, result);
-        record = { index: i, kind: 'run', command: step.run, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, durationMs: result.durationMs, pass: p, failures };
+        // `capMs` is recorded alongside `durationMs` so the artifact carries the margin, not just
+        // the cost. A step at 78s under a 300s cap and one at 290s read identically otherwise,
+        // and only the second is about to start failing on a loaded machine.
+        record = { index: i, kind: 'run', command: step.run, exitCode: result.exitCode, stdout: result.stdout, stderr: result.stderr, durationMs: result.durationMs, capMs, pass: p, failures };
       } else if (step.serve !== undefined) {
         // Opens ONE long-lived `mast serve`. Every subsequent `mcpCall` routes through it, so
         // the scenario observes a session rather than eight unrelated processes — the only way

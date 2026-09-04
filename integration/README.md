@@ -112,6 +112,26 @@ Three step keys cover it:
 | `{ serve: { args: [...], waitForWatcher } }` | Opens ONE long-lived `mast serve`. Every later `mcpCall` routes through it until it is closed. `args` is passed verbatim and nothing is defaulted — including `--no-watch`, so a scenario testing the watcher can leave it on. `waitForWatcher: true` blocks until the server reports its watcher ready. |
 | `{ serveStop: {} }` | Closes it. The runner also closes any open session in a `finally`, so a scenario that throws cannot leak a watcher-holding process into the next working copy. |
 | `retry: { timeoutMs, intervalMs }` | On an `mcpCall`, polls its `expect` to a deadline. |
+| `timeoutMs` | On a `run`, raises that command's cap above the 5-minute default. Rejected anywhere else, because a cap nothing reads is worse than no cap. |
+
+### Caps, and why a timeout is not a failure
+
+Every command runs under a cap (`DEFAULT_TIMEOUT_MS`, 5 minutes). When it expires the harness
+reports ERROR, not FAIL, and the two mean different things: the process was killed, so it never
+reached a verdict an `expect` could read.
+
+The cap is sized from the worst cost a step has been **observed** to have, never its typical one.
+`mast index .` over the n8n corpus (19,056 indexed files) took **78.7s** on an idle machine and
+**739s** an hour earlier at load average 13 — a 9.4x swing from contention alone, on the same
+commit and the same corpus. Only the second exceeded the old 300s cap, and it did so twice,
+each time reported as `spawnSync ... ETIMEDOUT` with no elapsed time and no cap in the message.
+Both times the first hypothesis was a regression in mast, and both times it was the machine.
+
+So the timeout message now names elapsed and cap, and says plainly that the harness cannot tell a
+hung command from a cap set too low — it reports the two numbers rather than guessing. Each `run`
+record in `results.json` carries `capMs` beside `durationMs` for the same reason: a step at 78s
+under a 300s cap and one at 290s read identically without it, and only one of them is about to
+start failing on somebody's CI box.
 
 `waitForWatcher` exists because `mast serve` accepts MCP calls *before* it is watching: chokidar's
 initial scan runs after the transport connects, and with `ignoreInitial: true` a file created

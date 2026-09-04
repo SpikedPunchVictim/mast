@@ -10,7 +10,7 @@ import { ASSERT_KINDS } from './assert.mjs';
 import { knownMutations } from './mutations.mjs';
 import { validateWriteSetEntry } from './writeset.mjs';
 
-const KNOWN_STEP_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert', 'expect', 'label', 'serve', 'serveStop', 'retry'];
+const KNOWN_STEP_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert', 'expect', 'label', 'serve', 'serveStop', 'retry', 'timeoutMs'];
 const KNOWN_ACTION_KEYS = ['install', 'run', 'mutate', 'mcpCall', 'snapshot', 'assert', 'serve', 'serveStop'];
 const KNOWN_EXPECT_KEYS = ['exit', 'stdoutContains', 'stderrContains', 'stdoutMatches'];
 const KNOWN_SCENARIO_KEYS = ['id', 'project', 'description', 'tags', 'writeSet', 'steps', 'expectFailOn', 'requires'];
@@ -66,6 +66,21 @@ export function validateScenario(scenario, sourcePath) {
       if (required === undefined) fail(`step ${i}: unknown assert kind '${kind}' — known: ${Object.keys(ASSERT_KINDS).join(', ')}`);
       for (const key of required) {
         if (step.assert[key] === undefined) fail(`step ${i}: assert '${kind}' requires '${key}'`);
+      }
+    }
+
+    // `timeoutMs` raises the per-command cap in `exec.mjs`, which only `run` steps go through.
+    // Accepting it anywhere else would let an author raise a cap that nothing reads — the step
+    // would silently keep its default and the spec would say otherwise, which is the failure
+    // mode this whole file exists to make impossible. The neighbouring `retry.timeoutMs` and
+    // `serve.timeoutMs` are nested for the same reason, and the message points at them because
+    // reaching for the wrong one is the likely mistake, not inventing the key from nothing.
+    if (step.timeoutMs !== undefined) {
+      if (step.run === undefined) {
+        fail(`step ${i}: 'timeoutMs' is only meaningful on a 'run' — an mcpCall's budget is 'retry.timeoutMs', a watcher's is 'serve.timeoutMs'`);
+      }
+      if (typeof step.timeoutMs !== 'number' || step.timeoutMs <= 0) {
+        fail(`step ${i}: 'timeoutMs' must be a positive number of milliseconds`);
       }
     }
 

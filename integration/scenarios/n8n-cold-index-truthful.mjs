@@ -31,7 +31,15 @@ export default {
     // full-worktree figure from the 2026-08-12 binary and a ~60 s figure for a hardlinked TIER
     // on the 2026-08-18 one, and had to carry the tiering plan as a projection. `durationMs`
     // lands in results.json for this step.
-    { run: 'index .', expect: { exit: 0, stdoutContains: 'files:' } },
+    // The cap is raised from the harness default of 5 minutes, and the number comes from the
+    // worst OBSERVED cost rather than the typical one: this same step indexed 19,056 files in
+    // 78.7s on an idle machine and 739s an hour earlier under load average 13 (a 9.4x swing
+    // from contention alone, same commit, same corpus). A cap sized to the idle figure expires
+    // on any busy CI box and reports it as an error indistinguishable from a hang, which is
+    // what this scenario did twice before the cap moved. 20 minutes leaves ~1.6x headroom over
+    // the worst run seen; a step that ever approaches it is reporting a real regression, which
+    // a cap sized to the good case never could.
+    { run: 'index .', expect: { exit: 0, stdoutContains: 'files:' }, timeoutMs: 20 * 60 * 1000 },
 
     // Not empty, and it says so through the same surface an agent would use. `index_empty` is
     // D029's fix: an empty index and a genuine miss stopped being indistinguishable.

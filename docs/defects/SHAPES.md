@@ -443,3 +443,42 @@ sit in the corpus-integrity gate for thirteen days (D052).
 
 > **Ask**: was any output you concluded from truncated — `head`, `tail`, a scrolled pane? Re-read it
 > whole before the conclusion ships.
+
+---
+
+## S-11 — One message for two causes that demand opposite responses
+
+**Instances**: D061, D063. **Rung**: brief, with one clause promotable (below). *(Added 2026-09-04.)*
+
+A signal is emitted faithfully and read correctly, and still tells the reader nothing, because more
+than one state produces it and those states call for opposite actions. D061 is the silent form:
+`mast serve` wrote nothing when the watcher came up, and nothing while it had not come up yet, and
+nothing when it had failed to start — three states, one observation, and the only one that spoke was
+the EMFILE degradation. D063 is the noisy form: a harness cap expiring produced the same
+`failed to run ... ETIMEDOUT` as any other launch failure, so "the command hung" and "the cap is
+below what this machine costs" were the same string. The second cost two investigations that both
+opened by suspecting a regression; the true answer was a 9.4× swing in machine load, and the number
+that would have settled it — elapsed against cap — was available at the throw site and not printed.
+
+What makes this class survive review is that the message is *accurate*. Nothing in it is false. It
+is under-determined, which reads as terseness rather than as a defect, and the author knows which
+cause they had in mind when they wrote it, so it never looks ambiguous to the one person reviewing.
+
+The fix is never to guess the cause. It is to print the fact that separates them, and — where the
+emitter genuinely cannot know — to say so, which is strictly more useful than a confident guess.
+
+> **Ask**: how many distinct states produce this exact output? If more than one, do they call for
+> different actions from the reader? Name the fact that distinguishes them and check it is in the
+> message — and if the emitter cannot know which state it is in, check that it says that rather
+> than implying the likelier one.
+
+> **Ask**: what does *silence* mean here? Enumerate every state in which this code emits nothing.
+> If "working", "not started yet", and "failed" are among them, silence is not a signal.
+
+**Promotion**: declined as a whole on 2026-09-04 — "does this message determine its cause" is a
+judgement, not a decidable property, and a lint rule over error strings would be noise. The
+machine-decidable clause is narrower and is promoted: **a long-running subsystem must emit on its
+success path if it emits on any failure path.** D061's watcher violated exactly that and is now
+pinned by a test asserting readiness fires. Applied to new subsystems, it is checkable by reading
+one file.
+
