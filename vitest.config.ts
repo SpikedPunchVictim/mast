@@ -22,6 +22,14 @@ export default defineConfig({
     // dependency (declex-ranker, idfuse-ranker, …) still run at HEAD.
     exclude: [
       ...configDefaults.exclude,
+      // `integration/results/` is the harness's scratch output, and a corpus scenario
+      // materialises a real third-party repo into it — n8n ships ~35 of its own `*.test.mjs`,
+      // which `integration/**/*.test.mjs` above matches exactly. The directory is gitignored,
+      // so this is invisible until a run leaves a working copy behind, which happens precisely
+      // when a scenario FAILS. Measured before this line: 66 failed test files, every one of
+      // them n8n's, against 97 of ours — a gate that goes red for a reason unrelated to any
+      // change in this repo is a gate people learn to ignore (LEDGER D062).
+      'integration/results/**',
       'eval/__tests__/declex-cli.test.mjs',
       'eval/__tests__/declex-score.test.mjs',
       'eval/__tests__/scale-score.test.mjs',

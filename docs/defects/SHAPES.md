@@ -406,7 +406,7 @@ exactly where real input stops being any of those.
 
 ## S-10 — The check you ran is not the check that governs
 
-**Instances**: D021, D022, D053. **Rung**: brief. *(Added 2026-08-19.)*
+**Instances**: D021, D022, D053, D062. **Rung**: brief. *(Added 2026-08-19.)*
 
 A green result is reported, and it is real — it just came from a narrower instrument than the one
 that decides. D021 ran `tsc --noEmit`, the first half of a `typecheck` script whose second half
