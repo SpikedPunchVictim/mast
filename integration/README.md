@@ -6,7 +6,7 @@ then believes. No AI in the loop: every assertion is a plain data comparison.
 
 ## Status: green, and calibrated
 
-Three scenarios pass against a correct build. Two calibration pins hold, and they are **not of
+Five scenarios pass against a correct build. Two calibration pins hold, and they are **not of
 equal strength** — the distinction is recorded rather than blurred, because a pin against a
 constructed fault reads exactly like a pin against a real defect in a green summary:
 
@@ -16,6 +16,34 @@ constructed fault reads exactly like a pin against a real defect in a green summ
 | `index-does-not-write-into-source` → `local-broken-writes-into-source` | **constructed** | the write-set guard can see the fault built for it. No shipped defect ever made mast write to source, so there is nothing real to revert. |
 
 A run that exercises no pinned-red pair says so explicitly and calls its own green uncalibrated.
+
+### The write-set guard's blast radius
+
+The second pin is weaker than the first in a way the summary line does not show, and it is worth
+stating because a red pin reads as proof that *that scenario* detected *that fault*.
+
+Measured on 2026-09-04, running every scenario against both broken targets:
+
+| broken target | scenarios that went red |
+|---|---|
+| `local-broken-d023-miscased-import` | **1 of 5** — only `case-only-rename-keeps-callers` |
+| `local-broken-writes-into-source` | **5 of 5** |
+
+The first is discriminating: exactly one scenario sees D023's reverted `realpathSync.native`, and
+it is the one pinned to it. Its red is evidence about that scenario.
+
+The second is not, and cannot be. The write-set guard is **cross-cutting by construction** — every
+scenario declares a `writeSet`, and the working copy is diffed after every step of every scenario,
+so a build that writes into source violates all of them simultaneously. That is the correct
+design: a stray write is a violation wherever it happens, and a guard that only fired inside the
+one scenario named after it would be a guard at the wrong granularity (S-A). But it means
+`index-does-not-write-into-source` going red against that target proves the **guard** works, not
+that this scenario contributes any detection the other four lack. A scenario whose own assertions
+detected nothing at all would still go red there.
+
+Read the two pins accordingly. `2 calibration pin(s) held` is a true statement about the harness's
+ability to fail, and only the first of the two is also a statement about a scenario.
+
 
 `move-file-preserves-symbols` was red from its first run until 2026-08-19. That was never a
 harness bug: it was **LEDGER D030**, an S0 this scenario found on run one — after a file move,
