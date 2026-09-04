@@ -405,7 +405,7 @@ Adhere rigidly. These are not preferences.
 5. **Test first.** Write the failing test (§5.1).
 6. **Implement minimally.** Make the test pass with the smallest viable change.
 7. **Refactor.** With green tests, improve the design.
-8. **Verify.** Run the full test suite, the linter, and the type-checker. Report the results explicitly.
+8. **Verify.** Run **`pnpm gate`** — one command, and the only one that means "the gate passed". It is `typecheck && lint && build && test`, matching the release workflow step for step, and `src/__tests__/gate-parity.test.ts` fails if the two ever diverge. Do not assemble an equivalent from memory: `npx tsc --noEmit` is *half* of `pnpm typecheck`, and reporting it as clean is how D021 and D065 both shipped (SHAPES S-10). Report the results explicitly.
 9. **Document.** Add *why*-comments where the code's intent is non-obvious. Update README/docs if public behaviour changed.
 10. **Summarise.** State what changed, what tests cover it, and what was deliberately left out of scope.
 
@@ -418,9 +418,11 @@ If at any step you find the task as specified is impossible, contradicts an exis
 A change is done when, and only when, all of the following are true:
 
 - [ ] Tests are written, fail without the change, and pass with it.
-- [ ] The full test suite passes.
-- [ ] `tsc --noEmit` passes with no errors and no new warnings.
-- [ ] The linter passes with no errors and no new warnings.
+- [ ] **`pnpm gate` passes** — the whole thing, exit 0. This line previously read "`tsc --noEmit`
+      passes", which is the first half of a two-command `typecheck` script and was the wrong
+      instrument to name: the manual itself was pointing at the narrower check that D021 and D065
+      both slipped through. If you find yourself running the pieces separately while iterating,
+      that is fine — but the box is ticked by the gate, not by the pieces.
 - [ ] New behaviour is consumed via an interface where §4 applies; no concrete classes leaked into business logic.
 - [ ] Every non-obvious decision is justified in a *why*-comment or commit message.
 - [ ] No `any`, no unjustified `as`, no `@ts-ignore`, no commented-out code.

@@ -406,7 +406,7 @@ exactly where real input stops being any of those.
 
 ## S-10 — The check you ran is not the check that governs
 
-**Instances**: D021, D022, D053, D062, D065. **Rung**: brief — **promotion candidate, see below.** *(Added 2026-08-19.)*
+**Instances**: D021, D022, D053, D062, D065. **Rung**: **executable invariant** (promoted 2026-09-04), plus the briefs below for the part that stays a judgement. *(Added 2026-08-19.)*
 
 A green result is reported, and it is real — it just came from a narrower instrument than the one
 that decides. D021 ran `tsc --noEmit`, the first half of a `typecheck` script whose second half
@@ -444,14 +444,28 @@ sit in the corpus-integrity gate for thirteen days (D052).
 > **Ask**: was any output you concluded from truncated — `head`, `tail`, a scrolled pane? Re-read it
 > whole before the conclusion ships.
 
-**Promotion (2026-09-04, five instances, two of them on one day):** the recurring mechanism is that
-*nothing names the gate*. Contributors and agents assemble an approximation of it from memory —
-`npx tsc --noEmit` for a two-command `typecheck`, `eslint src eval` for a three-directory `lint` —
-and the approximation passes. The machine-decidable fix is a single `gate` script that runs exactly
-what the release workflow runs, in the same order, so "run the gate" has one referent and drift
-between local and CI becomes a diff rather than a memory. Not implemented at the time of writing
-because it landed mid-release; it is the next rung for this shape and should not wait for a sixth
-instance.
+**Promoted 2026-09-04, at five instances, two of them on one day.** The recurring mechanism was not
+carelessness — it was that *nothing named the gate*. Contributors and agents assembled an
+approximation from memory (`npx tsc --noEmit` for a two-command `typecheck`, `eslint src eval` for a
+three-directory `lint`), got a real green from a narrower instrument, and reported it as the gate
+passing. D021 and D065 are that same mistake on the same script, months apart.
+
+Two things now exist where prose used to:
+
+1. **`pnpm gate`** — `pnpm typecheck && pnpm lint && pnpm build && pnpm test`, the release
+   workflow's four gate steps in the release workflow's order. "Run the gate" has one referent.
+2. **`src/__tests__/gate-parity.test.ts`** — the script and the two workflows are two producers of
+   one value (S-05), so the script alone would just relocate the drift. This asserts the `gate`
+   chain equals the ordered `pnpm` steps of *both* `release.yml` and `ci.yml`, with `install` and
+   `publish` the only exclusions. Mutation-verified in both directions: a CI step not mirrored in
+   `gate` turns one red, a reordered `gate` turns two red. It also asserts it found at least four
+   steps, because a regex matching nothing would compare `[]` to `[]` and pass — D053's shape,
+   rebuilt inside the guard against D053.
+
+What is **not** promoted, and stays a brief: the three Asks above about a gate that enforces
+nothing, working-copy state a fresh checkout lacks, and truncated output. Those are judgements about
+whether an instrument means what you think, and no script decides them. The promotion covers only
+the mechanical half — that local and CI run the same list.
 
 ---
 
