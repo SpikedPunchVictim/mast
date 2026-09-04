@@ -406,7 +406,7 @@ exactly where real input stops being any of those.
 
 ## S-10 — The check you ran is not the check that governs
 
-**Instances**: D021, D022, D053, D062. **Rung**: brief. *(Added 2026-08-19.)*
+**Instances**: D021, D022, D053, D062, D065. **Rung**: brief — **promotion candidate, see below.** *(Added 2026-08-19.)*
 
 A green result is reported, and it is real — it just came from a narrower instrument than the one
 that decides. D021 ran `tsc --noEmit`, the first half of a `typecheck` script whose second half
@@ -443,6 +443,15 @@ sit in the corpus-integrity gate for thirteen days (D052).
 
 > **Ask**: was any output you concluded from truncated — `head`, `tail`, a scrolled pane? Re-read it
 > whole before the conclusion ships.
+
+**Promotion (2026-09-04, five instances, two of them on one day):** the recurring mechanism is that
+*nothing names the gate*. Contributors and agents assemble an approximation of it from memory —
+`npx tsc --noEmit` for a two-command `typecheck`, `eslint src eval` for a three-directory `lint` —
+and the approximation passes. The machine-decidable fix is a single `gate` script that runs exactly
+what the release workflow runs, in the same order, so "run the gate" has one referent and drift
+between local and CI becomes a diff rather than a memory. Not implemented at the time of writing
+because it landed mid-release; it is the next rung for this shape and should not wait for a sixth
+instance.
 
 ---
 

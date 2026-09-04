@@ -123,10 +123,23 @@ describe('unindexed_files — the partial-index warning across every result-set 
     // for `mast_callers` silently assert the empty case instead.
     const arrays = ['results', 'exports', 'imports', 'files', 'verified_callers',
                     'potential_matches', 'declaration_sites', 'barrel_exports'];
+    // A response carrying NONE of these keys would count 0 and make every MISS
+    // assertion below pass without testing anything — the vacuous pass this
+    // guard exists to prevent, reintroduced one level up. The HIT case would
+    // catch it, but only as a bare `0 is not > 0` naming no cause, so fail here
+    // with the tool that returned an unrecognised shape.
+    const present = arrays.filter((k) => Array.isArray(res[k]));
+    if (present.length === 0) {
+      throw new Error(
+        `${tool} returned none of the known result arrays (${arrays.join(', ')}) — ` +
+          `got keys [${Object.keys(res).join(', ')}]. Add its array to resultCount, ` +
+          `or every MISS assertion for it is passing on an empty count it never read.`,
+      );
+    }
     // Narrowed to the only property this uses. The element shapes differ across
     // the eight tools and are irrelevant here — the question is just "did it
     // return anything?".
-    return arrays.reduce((n, k) => n + (Array.isArray(res[k]) ? (res[k] as { length: number }).length : 0), 0);
+    return present.reduce((n, k) => n + (res[k] as { length: number }).length, 0);
   }
 
   it.each([...EXHAUSTIVE_SET, ...NAMED_LOOKUP])('fixture check: %s HIT actually finds something', async (tool) => {
