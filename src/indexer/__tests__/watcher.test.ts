@@ -280,10 +280,17 @@ describe('startWatchMode', () => {
 
     writeFileSync(join(dir, 'created-after-ready.ts'), 'export const later = 2;\n');
 
+    // The budget is deliberately far larger than the latency this ever exhibits (delivery is
+    // sub-second in isolation). It is not a claim about speed — the assertion is "eventually
+    // delivered", and any bound tight enough to fail under load is asserting a latency the
+    // test never meant to. At 10 s this failed once in five full-suite runs while passing
+    // 3/3 alone: 98 forked test processes starve a chokidar callback for longer than seems
+    // plausible, and a flaky pin on a defect fix is worse than none, because the first
+    // response to it is to re-run rather than to read (LEDGER D064).
     await vi.waitFor(() => {
       expect(batches.flat().some((p) => p.endsWith('created-after-ready.ts'))).toBe(true);
-    }, { timeout: 10_000, interval: 50 });
-  }, 20_000);
+    }, { timeout: 45_000, interval: 50 });
+  }, 60_000);
 
   it('is optional — a caller that does not want the signal still watches', async () => {
     const batches: string[][] = [];
