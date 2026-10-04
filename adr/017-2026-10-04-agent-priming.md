@@ -1,6 +1,7 @@
 # ADR 017 — Agent priming: telling the model to use mast through hooks, not prose
 
-- **Status:** Proposed (2026-10-04). Stages 1–4 of five are implemented; see the stage table.
+- **Status:** Accepted and implemented (2026-10-04), all five stages; see the stage table.
+  What it does not claim is unchanged by that: delivery is built, effect is unmeasured.
 - **Decided:** 2026-10-04
 - **Evidence:** the vendor documentation cited inline, each opened on 2026-10-04 ·
   `gastownhall/beads` `cmd/bd/setup/claude.go`, `docs/integrations/claude-code.md` (prior art) ·
@@ -133,7 +134,7 @@ Each stage is test-first, ends on `pnpm gate`, and is small enough to review who
 | 2 | `mast prime` and `assets/prime.md`. **Done 2026-10-04** | pure renderer over a `StatusReport`: fresh, stale, not initialised |
 | 3 | `mast hook` — per-harness envelopes, the quiet conditions, the light entry. **Done 2026-10-04** | pure `decide(harness, event, input, indexExists)` table test; import-graph test for §5 |
 | 4 | `mast setup claude|cursor|vscode` with `--global --check --remove --dry-run`. **Done 2026-10-04** | merge/idempotence/foreign-hook-preserved/unparseable-file tests against temp dirs |
-| 5 | static-only harnesses in `setup`; new rules targets; skill cut; README, `MAST_SPEC.md` | `docs-cmd.test.ts` drift guard, `spec-conformance.test.ts` |
+| 5 | static-only harnesses in `setup`; new rules targets; skill cut (signal reference moved to `mast docs signals`); `mast upgrade` lists what to re-check; README. `MAST_SPEC.md` needed no change. **Done 2026-10-04** | `docs-cmd.test.ts` drift guard, `spec-conformance.test.ts` |
 
 ## What this does not claim
 
@@ -153,10 +154,19 @@ Each stage is test-first, ends on `pnpm gate`, and is small enough to review who
   `node_modules/.bin/mast` for Cursor and VS Code; a source checkout writes an absolute
   `node "<dist/cli/index.js>"`. Claude Code documents the variable and Cursor documents that
   project hooks resolve from the project root. VS Code documents no working directory, so
-  its relative spelling is a guess. None of the three has been run inside its harness, and
-  only the source-checkout spelling has been executed at all.
+  its relative spelling is a guess. **Measured for Claude Code only, 2026-10-04**, with the
+  source-checkout spelling: after `mast setup claude` in this repo, a headless
+  `claude -p` session reported a `SessionStart` hook response carrying the envelope, and
+  the model quoted back both the primer and the search reminder it received around a Grep
+  call. One session, one model, one spelling. The global and project-dependency spellings,
+  the `compact` re-fire, and Cursor and VS Code have not been run.
 - **That a rewritten settings file keeps its layout.** Indentation, key order, line endings
   and the trailing newline survive. Line breaks inside the JSON do not: an array or object
   the user kept on one line is expanded when `setup` writes.
+- **Which files Zed reads.** `mast setup zed` splices into the first existing file of a list
+  written from memory; Zed's rules page returned 404 when it was fetched on 2026-10-04. The
+  Cursor (`.mdc`, `alwaysApply`) and Windsurf (`trigger: always_on`, 12,000-character limit,
+  `.devin/rules` preferred over `.windsurf/rules`) formats were read from the vendors' docs
+  that day; neither was run inside the tool.
 - **Deny mode.** Declined for now, not refuted: a wrong deny on a stale index or a non-TS file
   makes mast worse than absent. Revisit only with a measurement in hand.

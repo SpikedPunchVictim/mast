@@ -1,4 +1,5 @@
 import type { Harness, HookEvent } from './hook.js';
+import { join } from 'node:path';
 import type { InstallKind } from './upgrade-cmd.js';
 
 export type SetupScope = 'project' | 'global';
@@ -15,6 +16,14 @@ export interface HookCommandInput {
 export type HookCommandResult =
   | { readonly ok: true; readonly command: string }
   | { readonly ok: false; readonly problem: string };
+
+/** The hook file `setup` writes for a harness: project-level, or under the user's home. */
+export function hookFilePath(harness: Harness, scope: SetupScope, projectRoot: string, home: string): string {
+  const base = scope === 'global' ? home : projectRoot;
+  if (harness === 'claude') return join(base, '.claude', 'settings.json');
+  if (harness === 'cursor') return join(base, '.cursor', 'hooks.json');
+  return scope === 'global' ? join(home, '.copilot', 'hooks', 'mast.json') : join(projectRoot, '.github', 'hooks', 'mast.json');
+}
 
 // Claude Code expands this variable itself when it runs a project hook, so the spelling
 // holds wherever the project is checked out. A template literal would interpolate it.

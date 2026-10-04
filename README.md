@@ -148,6 +148,7 @@ which docs match your version:
 ```bash
 mast docs                    # list the topics
 mast docs spec               # the full behavioural specification
+mast docs signals            # how to read the flags on an answer (stale, truncated, empty)
 mast skill                   # the instructions to paste into an agent prompt
 ```
 
@@ -170,6 +171,8 @@ claude mcp add mast -- mast serve
 Add `--scope project` to write `.mcp.json` into the repository so your team picks it up
 from the checkout.
 
+To prime the agent at session start and remind it before a search: `mast setup claude`.
+
 ### Claude Desktop
 
 `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS,
@@ -190,6 +193,10 @@ from the checkout.
 Claude Desktop does not run in your project directory, so `MAST_STATE_DIR` must be
 absolute. The CLI and editor integrations below infer it from the working directory.
 
+Claude Desktop has no hook system and no rules file mast can write. The instructions string
+`mast serve` sends in the MCP handshake is its only channel, and it needs no setup;
+`mast setup desktop` just says so.
+
 ### Cursor
 
 `.cursor/mcp.json` in the project, or `~/.cursor/mcp.json` globally:
@@ -201,6 +208,8 @@ absolute. The CLI and editor integrations below infer it from the working direct
   }
 }
 ```
+
+To add the hooks and a rules file: `mast setup cursor`.
 
 ### VS Code (GitHub Copilot)
 
@@ -214,6 +223,8 @@ absolute. The CLI and editor integrations below infer it from the working direct
 }
 ```
 
+To add the session-primer hook: `mast setup vscode`.
+
 ### Windsurf
 
 `~/.codeium/windsurf/mcp_config.json`:
@@ -225,6 +236,8 @@ absolute. The CLI and editor integrations below infer it from the working direct
   }
 }
 ```
+
+To add a rules file: `mast setup windsurf`.
 
 ### Zed
 
@@ -238,6 +251,9 @@ absolute. The CLI and editor integrations below infer it from the working direct
 }
 ```
 
+To add mast's instructions to a rules file you already keep (`.rules`, `AGENTS.md`, and the
+others Zed reads): `mast setup zed`.
+
 ### Any other MCP client
 
 Run `mast serve` over stdio from the project root. It advertises eleven tools — ten that
@@ -246,8 +262,32 @@ read and `mast_reindex`, which writes — and needs no arguments beyond `serve`.
 ### Tell the assistant how to use it
 
 Registering the server gives the model the tools; it does not tell it *when* to reach for
-them, or how to read a flagged answer. `mast skill` prints instructions written for that —
-paste them into your system prompt, `CLAUDE.md`, `.cursorrules`, or a skill file:
+them. `mast setup <harness>` installs what each harness can take:
+
+| harness | session primer | search reminder | static instructions |
+|---|---|---|---|
+| `claude` (Claude Code) | yes | yes, before `Grep` and `Glob` | none written |
+| `cursor` | yes | yes, but after the search runs | `.cursor/rules/mast.mdc` |
+| `vscode` (VS Code Copilot) | yes | no | none written |
+| `windsurf` | no | no | `.windsurf/rules/mast.md`, or `.devin/rules/mast.md` if `.devin/` exists |
+| `zed` | no | no | a marked block in the first rules file that exists |
+| `desktop` (Claude Desktop) | no | no | none written |
+
+The session primer is the rule set plus the live index state, given at session start. The
+search reminder is one line naming `mast_search`, attached to a built-in search. Windsurf,
+Zed and Claude Desktop have no hook system mast can use, so for them `mast setup` installs
+the static file only, and says so. `mast serve` also sends a short instructions string when
+the MCP connection opens; whether a harness passes that to the model is the harness's choice.
+
+```bash
+mast setup claude             # project scope; add --global for ~/.claude/settings.json
+mast setup cursor --check     # exit 0 only if the hooks and the rules file are current
+mast setup windsurf --dry-run
+mast setup zed --remove
+```
+
+Anything else, or a harness not listed, can use `mast skill`, which prints the same short
+instructions to paste into a system prompt, `CLAUDE.md`, or a skill file:
 
 ```bash
 mast skill                    # print it
@@ -261,8 +301,11 @@ marked block, so re-running after an upgrade replaces the previous copy instead 
 a second one. It never runs on its own, and it never creates a config file you did not
 already keep.
 
-To have the harness restate the rule at session start and before a search, instead of
-relying on text it read once, install hooks with `mast setup claude|cursor|vscode`.
+**What is verified.** In Claude Code, both hooks were observed delivering their text to the
+model in one session. For Cursor, VS Code and Windsurf, the hook formats and rules-file
+locations were read from the vendor's documentation and nothing was run inside the tool.
+The list of files Zed reads was not checked against Zed's documentation. Whether any of
+this changes how often an agent uses mast has not been measured.
 
 ---
 
@@ -281,6 +324,13 @@ upgrade changes the **index schema**. When it does, MAST discards the index and 
 it on the next `serve` or `index`. Nothing is lost that cannot be rebuilt — the index is
 derived state — but on a large monorepo it is minutes, and it is better known in advance
 than discovered as an unexplained stall.
+
+If mast's hooks, rules files or skill blocks are installed in the project (or hook files
+under your home directory), the report ends with an "After upgrading" block listing the
+commands to re-run, such as `mast setup claude --check` and `mast skill --install`. It runs
+on the version you have now, so it cannot know what the new version would write: it only
+knows the files exist, and `--check` is what compares them. A project with none of these
+gets no such block.
 
 ---
 
@@ -491,8 +541,9 @@ tool that does not exist lists the ones that do.
 
 ### `mast docs [topic]`
 
-Print documentation shipped with the installed build — `readme`, `spec`, or `skill`. No
-argument lists the topics with the version they belong to.
+Print documentation shipped with the installed build — `readme`, `spec`, `skill`, or
+`signals` (the staleness, truncation and emptiness flags on an answer). No argument lists
+the topics with the version they belong to.
 
 **Why:** removes the step where a reader looks up their version and then finds docs for a
 different one. What `mast docs` prints is what the binary in your `node_modules` does.
@@ -511,10 +562,11 @@ Options:
 ```
 
 **Why:** registering the MCP server gives a model the tools but not the judgement — when to
-search instead of reading, that code tokens beat prose in a query, and how to read a
-staleness or truncation flag. It also tells the model that an empty result means "MAST did
-not find it", not "it does not exist", which is the single most consequential thing to get
-right about a search tool.
+search instead of reading, and that code tokens beat prose in a query. The text is short
+(under 4,000 characters) so it fits a rules file. It also tells the model that an empty
+result means "MAST did not find it", not "it does not exist", which is the single most
+consequential thing to get right about a search tool, and points at `mast docs signals` for
+how to read the individual flags.
 
 ---
 
@@ -563,28 +615,45 @@ before every Grep, so it is dispatched before the rest of the CLI loads.
 
 ### `mast setup <harness> [path]`
 
-Install the hooks that prime an agent at session start and remind it to try `mast_search`
-before a built-in search. `<harness>` is `claude`, `cursor` or `vscode`; `[path]` is the
-project root (default: the current directory).
+Install what tells an agent to use mast: hooks that prime it at session start and remind it
+before a built-in search, and rules files for harnesses that read them. `<harness>` is
+`claude`, `cursor`, `vscode`, `windsurf`, `zed` or `desktop`; `[path]` is the project root
+(default: the current directory).
 
-| harness | project file (default) | `--global` file |
+| harness | project file (default) | `--global` |
 |---|---|---|
 | `claude` | `.claude/settings.json` | `~/.claude/settings.json` |
-| `cursor` | `.cursor/hooks.json` | `~/.cursor/hooks.json` |
+| `cursor` | `.cursor/hooks.json` and `.cursor/rules/mast.mdc` | `~/.cursor/hooks.json` only; Cursor has no user-level rules file, and a note says so |
 | `vscode` | `.github/hooks/mast.json` | `~/.copilot/hooks/mast.json` |
+| `windsurf` | `.windsurf/rules/mast.md`, or `.devin/rules/mast.md` if a `.devin` directory exists | refused (exit 1) |
+| `zed` | a marked block in the first existing of `.rules`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.github/copilot-instructions.md`, `AGENT.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` | refused (exit 1) |
+| `desktop` | nothing | nothing |
 
 ```
 Options:
   --global    Write the user-level file instead of the project one
-  --check     Write nothing; exit 0 only if the hooks are installed and current
-  --remove    Remove the hooks mast installed
-  --dry-run   Print the file that would be written, and write nothing
+  --check     Write nothing; exit 0 only if everything is installed and current
+  --remove    Remove what mast installed
+  --dry-run   Print what would be written, and write nothing
 ```
 
 `claude` and `cursor` get both hooks (`mast hook <harness> session-start` and
 `mast hook <harness> search`). **`vscode` gets the session primer only:** VS Code ignores hook
 matchers, so a search hook would run before every tool call, and the name of its search tool
-is not documented.
+is not documented. **`windsurf`, `zed` and `desktop` have no hook system mast can use**, so
+the first line of output says that only static instructions are installed. `desktop` writes
+nothing: its only channel is the instructions string `mast serve` sends in the MCP handshake,
+which needs no setup, and every flag exits 0 after saying so.
+
+The rules files carry the text `mast skill` prints. `mast.mdc` (frontmatter `description` and
+`alwaysApply: true`) and the Windsurf `mast.md` (frontmatter `trigger: always_on`) belong to
+mast outright, and are overwritten if they differ; there is no marker, the name is the claim.
+The Windsurf file stays under Windsurf's documented 12,000-character limit, checked in a test.
+`zed` never creates a file: if none of Zed's candidates exists it writes nothing and exits 1,
+telling you to create `.rules` and run it again, and otherwise it splices the same marked
+block `mast skill --install` uses into the first one that exists. `--remove` takes out that
+block, from every candidate that carries it, and leaves the file. The Zed file list is
+from memory of Zed's documentation and has not been checked against it.
 
 **Why:** the hook command depends on how mast is installed. A global install writes
 `mast hook ...`; a source checkout writes `node "<path to dist/cli/index.js>" hook ...`, a
@@ -594,14 +663,16 @@ user-level hook pointing into one project's `node_modules` breaks in every other
 For VS Code the relative `node_modules/.bin/mast` is unverified, because its docs do not
 say what directory hooks run in.
 
-It only ever touches entries whose command ends in `hook <harness> session-start` or
-`hook <harness> search`. Every other key, hook and field in the file is kept, in order, and
+For hook files it only ever touches entries whose command ends in `hook <harness> session-start`
+or `hook <harness> search`. Every other key, hook and field in the file is kept, in order, and
 the file keeps its indentation and trailing newline. Re-running changes nothing and does not
-write the file; a changed install (say, source to global) replaces the entry in place. A file
+write any file; a changed install (say, source to global) replaces the entry in place. A file
 that is not valid JSON, or whose `hooks` have an unexpected shape, is reported and left
 untouched (exit 1). `--remove` deletes only mast's entries, and for `vscode` deletes
 `mast.json` once nothing else is in it. `--check` cannot be combined with `--remove` or
-`--dry-run` (exit 2), nor can an unknown harness be given (exit 2).
+`--dry-run` (exit 2), nor can an unknown harness be given (exit 2). For `cursor`, `--check`
+exits 0 only if both the hooks file and the rules file are current. Nothing here has been
+run inside Cursor, VS Code, Windsurf or Zed.
 
 ---
 
@@ -612,7 +683,9 @@ Check for a newer release; print how to install it, and what it will cost.
 **Why:** it detects how MAST was installed and prints the matching command rather than
 running it, because a CLI cannot reliably distinguish a global install from a dev
 dependency. It also reports whether the upgrade bumps the index schema — which forces a
-full reindex on the next `serve` — and your package manager cannot tell you that.
+full reindex on the next `serve` — and your package manager cannot tell you that. When
+mast's hooks, rules files or skill blocks are installed, it lists the `mast setup <harness>
+--check` and `mast skill --install` commands to re-run afterwards.
 
 ---
 

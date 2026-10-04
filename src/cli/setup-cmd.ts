@@ -4,19 +4,23 @@ import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Harness, HookEvent } from './hook.js';
-import { buildHookCommand, type SetupScope } from './setup-command.js';
+import { readDoc } from './docs-cmd.js';
+import { buildHookCommand, hookFilePath, type SetupScope } from './setup-command.js';
 import { HOOK_DEFS, planFor, type Commands, type PlanMode, type PlanResult } from './setup-plan.js';
+import { runCursorRules, runStaticSetup, STATIC_HARNESSES } from './setup-static.js';
 import { detectInstallKind, type InstallKind } from './upgrade-cmd.js';
 import { PACKAGE_NAME } from './version.js';
 
 /**
- * `mast setup <harness>` writes hook configuration only, and follows the rules
+ * `mast setup <harness>` writes hook configuration and, for harnesses with a rules file
+ * mast can own (or Zed's, via a marked block), that file too. It follows the rules
  * `skill-install.ts` states: touch nothing it does not own, and be a byte-level no-op on
  * re-run. Unlike `skill --install` it creates its file when absent, because a hook file
  * is tool configuration and not a hand-curated prompt (ADR 017 section 3).
  */
 
-const HARNESSES: readonly Harness[] = ['claude', 'cursor', 'vscode'];
+const HOOK_HARNESSES: readonly Harness[] = ['claude', 'cursor', 'vscode'];
+const ALL_HARNESSES: readonly string[] = [...HOOK_HARNESSES, ...STATIC_HARNESSES];
 
 export interface SetupOptions {
   readonly harness: string;
@@ -32,6 +36,8 @@ export interface SetupEnv {
   readonly installKind: InstallKind;
   readonly home: string;
   readonly cliEntry: string;
+  /** The text of `assets/skill.md`, which every rules file is rendered from. */
+  readonly skillText: string;
 }
 
 export interface SetupIo {
@@ -41,15 +47,9 @@ export interface SetupIo {
   writeFileAtomic(path: string, content: string): void;
   removeFile(path: string): void;
   fileExists(path: string): boolean;
+  directoryExists(path: string): boolean;
   out(line: string): void;
   err(line: string): void;
-}
-
-function targetPath(harness: Harness, scope: SetupScope, projectRoot: string, home: string): string {
-  const base = scope === 'global' ? home : projectRoot;
-  if (harness === 'claude') return join(base, '.claude', 'settings.json');
-  if (harness === 'cursor') return join(base, '.cursor', 'hooks.json');
-  return scope === 'global' ? join(home, '.copilot', 'hooks', 'mast.json') : join(projectRoot, '.github', 'hooks', 'mast.json');
 }
 
 /** Re-emits `value` in the file's own indentation, line endings and trailing-newline state. */
@@ -109,18 +109,30 @@ function reportProblem(io: SetupIo, path: string, problem: string): void {
 
 /** Returns the process exit code: 0 done, 1 refused or failed, 2 usage error. */
 export function runSetup(opts: SetupOptions, env: SetupEnv, io: SetupIo): number {
-  const harness = HARNESSES.find((h) => h === opts.harness);
-  if (harness === undefined) {
-    io.err(`mast setup: unknown harness "${opts.harness}". Supported: ${HARNESSES.join(', ')}.`);
+  const hookHarness = HOOK_HARNESSES.find((h) => h === opts.harness);
+  const staticHarness = STATIC_HARNESSES.find((h) => h === opts.harness);
+  if (hookHarness === undefined && staticHarness === undefined) {
+    io.err(`mast setup: unknown harness "${opts.harness}". Supported: ${ALL_HARNESSES.join(', ')}.`);
     return 2;
   }
   if (opts.check && (opts.remove || opts.dryRun)) {
     io.err('mast setup: --check cannot be combined with --remove or --dry-run.');
     return 2;
   }
+  if (staticHarness !== undefined) return runStaticSetup(staticHarness, opts, env, io);
+  if (hookHarness === undefined) return 2;
 
+  const hookCode = runHookSetup(hookHarness, opts, env, io);
+  if (hookHarness !== 'cursor') return hookCode;
+  // A failed hooks step stops the rules step, except under --check, which reports both.
+  if (hookCode !== 0 && !opts.check) return hookCode;
+  const rulesCode = runCursorRules(opts, env, io);
+  return hookCode !== 0 ? hookCode : rulesCode;
+}
+
+function runHookSetup(harness: Harness, opts: SetupOptions, env: SetupEnv, io: SetupIo): number {
   const scope: SetupScope = opts.global ? 'global' : 'project';
-  const path = targetPath(harness, scope, opts.projectRoot, env.home);
+  const path = hookFilePath(harness, scope, opts.projectRoot, env.home);
 
   let mode: PlanMode = { kind: 'remove' };
   if (!opts.remove) {
@@ -202,6 +214,7 @@ export function createNodeSetupIo(): SetupIo {
     },
     removeFile: (path) => { rmSync(path); },
     fileExists: existsSync,
+    directoryExists: (path) => existsSync(path) && statSync(path).isDirectory(),
     out: (line) => { process.stdout.write(`${line}\n`); },
     err: (line) => { process.stderr.write(`${line}\n`); },
   };
@@ -210,10 +223,10 @@ export function createNodeSetupIo(): SetupIo {
 export function registerSetupCommand(program: Command): void {
   program
     .command('setup <harness> [path]')
-    .description('Install the session-primer and search-reminder hooks for an agent harness (claude|cursor|vscode)')
+    .description('Install the hooks and rules files that tell an agent to use mast (claude|cursor|vscode|windsurf|zed|desktop)')
     .option('--global', 'Write the user-level file instead of the project one')
-    .option('--check', 'Write nothing; exit 0 only if the hooks are installed and current')
-    .option('--remove', 'Remove the hooks mast installed')
+    .option('--check', 'Write nothing; exit 0 only if everything is installed and current')
+    .option('--remove', 'Remove what mast installed')
     .option('--dry-run', 'Print the file that would be written, and write nothing')
     .action((harness: string, path: string | undefined, opts: { global?: boolean; check?: boolean; remove?: boolean; dryRun?: boolean }) => {
       const projectRoot = resolve(path ?? '.');
@@ -221,7 +234,7 @@ export function registerSetupCommand(program: Command): void {
       // The home directory is resolved here, at the edge, and nowhere below.
       process.exitCode = runSetup(
         { harness, projectRoot, global: opts.global === true, check: opts.check === true, remove: opts.remove === true, dryRun: opts.dryRun === true },
-        { installKind: detectInstallKind(moduleDir, projectRoot), home: homedir(), cliEntry: join(moduleDir, 'index.js') },
+        { installKind: detectInstallKind(moduleDir, projectRoot), home: homedir(), cliEntry: join(moduleDir, 'index.js'), skillText: readDoc('skill') },
         createNodeSetupIo(),
       );
     });

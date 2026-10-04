@@ -36,6 +36,9 @@ const CANDIDATES: readonly { file: string; agent: string }[] = [
   { file: '.github/copilot-instructions.md',  agent: 'GitHub Copilot' },
 ];
 
+/** The files `--install` is willing to write into, relative to the project root. */
+export const SKILL_TARGET_FILES: readonly string[] = CANDIDATES.map((c) => c.file);
+
 /** Agent config files that exist in this project. Never invents one. */
 export function detectSkillTargets(projectRoot: string): readonly SkillTarget[] {
   return CANDIDATES

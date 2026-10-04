@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, statSync, utimesSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, statSync, utimesSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { runSetup, createNodeSetupIo, type SetupEnv, type SetupIo, type SetupOptions } from '../setup-cmd.js';
 import { decide, type HookFacts } from '../hook.js';
+import { BEGIN_MARKER } from '../skill-install.js';
 
 const ENTRY = '/opt/mast/dist/cli/index.js';
+const SKILL = '# Using MAST\n\nBody line.\n';
 
 interface Sandbox {
   root: string;
@@ -39,7 +41,7 @@ function sandbox(): Sandbox {
     run: (harness, flags = {}, env = {}) =>
       runSetup(
         { harness, projectRoot: root, global: false, check: false, remove: false, dryRun: false, ...flags },
-        { installKind: 'global', home, cliEntry: ENTRY, ...env },
+        { installKind: 'global', home, cliEntry: ENTRY, skillText: SKILL, ...env },
         io,
       ),
     read: (path) => readFileSync(path, 'utf8'),
@@ -382,9 +384,9 @@ describe('mast setup usage errors', () => {
   it('rejects an unknown harness with exit 2, naming the supported ones', () => {
     const sb = sandbox();
 
-    expect(sb.run('windsurf')).toBe(2);
+    expect(sb.run('emacs')).toBe(2);
 
-    expect(sb.err.join('\n')).toContain('claude, cursor, vscode');
+    expect(sb.err.join('\n')).toContain('claude, cursor, vscode, windsurf, zed, desktop');
   });
 
   it.each([{ remove: true }, { dryRun: true }])('rejects --check with %j', (flags) => {
@@ -417,5 +419,285 @@ describe('installer and hook entry agree', () => {
       expect(m, command).not.toBeNull();
       expect(decide(m?.[1] ?? '', m?.[2] ?? '', { tool_name: 'Grep', tool_input: { pattern: 'x' } }, facts), command).not.toBeNull();
     }
+  });
+});
+
+describe('mast setup cursor: the rules file', () => {
+  let sb: Sandbox;
+  let rules: string;
+  let hooks: string;
+  beforeEach(() => {
+    sb = sandbox();
+    rules = join(sb.root, '.cursor', 'rules', 'mast.mdc');
+    hooks = join(sb.root, '.cursor', 'hooks.json');
+  });
+
+  it('writes .cursor/rules/mast.mdc beside the hooks, one line per file', () => {
+    expect(sb.run('cursor')).toBe(0);
+
+    expect(sb.read(rules)).toContain('alwaysApply: true');
+    expect(sb.read(rules)).toContain('Body line.');
+    expect(sb.out.filter((l) => l.startsWith(sb.root))).toEqual([`${hooks}: installed`, `${rules}: installed`]);
+  });
+
+  it('is a byte-level no-op the second time and does not write the rules file', () => {
+    sb.run('cursor');
+    sb.writes.length = 0;
+
+    expect(sb.run('cursor')).toBe(0);
+
+    expect(sb.writes).toEqual([]);
+    expect(sb.out).toContain(`${rules}: already up to date`);
+  });
+
+  it('--check is 0 only when both files are current', () => {
+    sb.run('cursor');
+    expect(sb.run('cursor', { check: true })).toBe(0);
+  });
+
+  it('--check is 1 when the hooks are current and the rules file is missing', () => {
+    sb.run('cursor');
+    rmSync(rules);
+
+    expect(sb.run('cursor', { check: true })).toBe(1);
+    expect(sb.out).toContain(`${rules}: not installed`);
+  });
+
+  it('--check is 1 when the rules file is current and the hooks are missing', () => {
+    sb.run('cursor');
+    rmSync(hooks);
+
+    expect(sb.run('cursor', { check: true })).toBe(1);
+  });
+
+  it('--remove deletes the rules file as well as the hooks', () => {
+    sb.run('cursor');
+
+    expect(sb.run('cursor', { remove: true })).toBe(0);
+
+    expect(existsSync(rules)).toBe(false);
+    expect(sb.out).toContain(`${rules}: removed`);
+  });
+
+  it('--global handles the hooks, writes no rules file, and says Cursor has no user-level one', () => {
+    expect(sb.run('cursor', { global: true })).toBe(0);
+
+    expect(existsSync(join(sb.home, '.cursor', 'hooks.json'))).toBe(true);
+    expect(existsSync(rules)).toBe(false);
+    expect(existsSync(join(sb.home, '.cursor', 'rules'))).toBe(false);
+    expect(sb.out.join('\n')).toMatch(/no user-level rules file/);
+  });
+
+  it('--dry-run writes neither file', () => {
+    expect(sb.run('cursor', { dryRun: true })).toBe(0);
+
+    expect(sb.writes).toEqual([]);
+    expect(sb.out).toContain(`${rules}: installed (dry run, nothing written)`);
+  });
+});
+
+describe('mast setup windsurf', () => {
+  let sb: Sandbox;
+  let rules: string;
+  beforeEach(() => {
+    sb = sandbox();
+    rules = join(sb.root, '.windsurf', 'rules', 'mast.md');
+  });
+
+  it('says first that there is no hook system, then installs the rules file', () => {
+    expect(sb.run('windsurf')).toBe(0);
+
+    expect(sb.out[0]).toMatch(/no hook system.*only static instructions/);
+    expect(sb.read(rules)).toMatch(/^---\ntrigger: always_on\n---\n/);
+    expect(sb.out).toContain(`${rules}: installed`);
+  });
+
+  it('writes under .devin/rules when a .devin directory exists', () => {
+    mkdirSync(join(sb.root, '.devin'));
+
+    sb.run('windsurf');
+
+    expect(existsSync(join(sb.root, '.devin', 'rules', 'mast.md'))).toBe(true);
+    expect(existsSync(rules)).toBe(false);
+  });
+
+  it('refuses --global with exit 1 and writes nothing', () => {
+    expect(sb.run('windsurf', { global: true })).toBe(1);
+
+    expect(sb.writes).toEqual([]);
+    expect(sb.err.join('\n')).toMatch(/no user-level rules file/);
+  });
+
+  it('is a byte-level no-op the second time', () => {
+    sb.run('windsurf');
+    sb.writes.length = 0;
+
+    expect(sb.run('windsurf')).toBe(0);
+
+    expect(sb.writes).toEqual([]);
+    expect(sb.out).toContain(`${rules}: already up to date`);
+  });
+
+  it('overwrites an out-of-date file and reports updated', () => {
+    put(rules, 'stale\n');
+
+    sb.run('windsurf');
+
+    expect(sb.read(rules)).toContain('Body line.');
+    expect(sb.out).toContain(`${rules}: updated`);
+  });
+
+  it('--check exits 1 when absent or different, 0 when current', () => {
+    expect(sb.run('windsurf', { check: true })).toBe(1);
+    put(rules, 'stale\n');
+    expect(sb.run('windsurf', { check: true })).toBe(1);
+    expect(sb.out).toContain(`${rules}: out of date`);
+    sb.run('windsurf');
+    expect(sb.run('windsurf', { check: true })).toBe(0);
+  });
+
+  it('--remove deletes the file, and is a no-op that exits 0 when it is absent', () => {
+    sb.run('windsurf');
+
+    expect(sb.run('windsurf', { remove: true })).toBe(0);
+    expect(existsSync(rules)).toBe(false);
+    sb.out.length = 0;
+    expect(sb.run('windsurf', { remove: true })).toBe(0);
+    expect(sb.out).toContain(`${rules}: not installed`);
+  });
+
+  it('--remove deletes the file from the other location too', () => {
+    const devin = join(sb.root, '.devin', 'rules', 'mast.md');
+    put(devin, 'x\n');
+
+    sb.run('windsurf', { remove: true });
+
+    expect(existsSync(devin)).toBe(false);
+  });
+
+  it('--dry-run writes nothing', () => {
+    expect(sb.run('windsurf', { dryRun: true })).toBe(0);
+
+    expect(existsSync(rules)).toBe(false);
+    expect(sb.out).toContain(`${rules}: installed (dry run, nothing written)`);
+  });
+});
+
+describe('mast setup zed', () => {
+  let sb: Sandbox;
+  beforeEach(() => {
+    sb = sandbox();
+  });
+
+  it('writes nothing and exits 1 when no rules file exists, saying to create .rules', () => {
+    expect(sb.run('zed')).toBe(1);
+
+    expect(sb.out[0]).toMatch(/no hook system.*only static instructions/);
+    expect(readdirSync(sb.root)).toEqual([]);
+    expect(sb.err.join('\n')).toMatch(/create .*\.rules.* and run/i);
+  });
+
+  it('splices the marked block into the first existing candidate, keeping its text', () => {
+    put(join(sb.root, 'AGENTS.md'), 'Mine.\n');
+    put(join(sb.root, 'CLAUDE.md'), 'Other.\n');
+
+    expect(sb.run('zed')).toBe(0);
+
+    const agents = sb.read(join(sb.root, 'AGENTS.md'));
+    expect(agents.startsWith('Mine.\n\n' + BEGIN_MARKER)).toBe(true);
+    expect(sb.read(join(sb.root, 'CLAUDE.md'))).toBe('Other.\n');
+    expect(sb.out).toContain(`${join(sb.root, 'AGENTS.md')}: installed`);
+  });
+
+  it('prefers .rules over AGENTS.md', () => {
+    put(join(sb.root, '.rules'), 'R\n');
+    put(join(sb.root, 'AGENTS.md'), 'A\n');
+
+    sb.run('zed');
+
+    expect(sb.read(join(sb.root, 'AGENTS.md'))).toBe('A\n');
+    expect(sb.read(join(sb.root, '.rules'))).toContain(BEGIN_MARKER);
+  });
+
+  it('refuses --global with exit 1', () => {
+    put(join(sb.root, '.rules'), 'R\n');
+
+    expect(sb.run('zed', { global: true })).toBe(1);
+
+    expect(sb.read(join(sb.root, '.rules'))).toBe('R\n');
+    expect(sb.err.join('\n')).toMatch(/no user-level rules file/);
+  });
+
+  it('is a byte-level no-op the second time', () => {
+    const file = join(sb.root, '.rules');
+    put(file, 'R\n');
+    sb.run('zed');
+    sb.writes.length = 0;
+
+    expect(sb.run('zed')).toBe(0);
+
+    expect(sb.writes).toEqual([]);
+    expect(sb.out).toContain(`${file}: already up to date`);
+  });
+
+  it('--check exits 1 with the block absent, 1 when stale, 0 when current', () => {
+    const file = join(sb.root, '.rules');
+    put(file, 'R\n');
+    expect(sb.run('zed', { check: true })).toBe(1);
+    sb.run('zed');
+    expect(sb.run('zed', { check: true })).toBe(0);
+    writeFileSync(file, sb.read(file).replace('Body line.', 'changed'));
+    expect(sb.run('zed', { check: true })).toBe(1);
+  });
+
+  it('--check exits 1 when there is no rules file at all', () => {
+    expect(sb.run('zed', { check: true })).toBe(1);
+  });
+
+  it('--remove takes out the block and leaves the file and its other text', () => {
+    const file = join(sb.root, '.rules');
+    put(file, 'R\n');
+    sb.run('zed');
+
+    expect(sb.run('zed', { remove: true })).toBe(0);
+
+    expect(sb.read(file)).toBe('R\n');
+    expect(sb.out).toContain(`${file}: removed`);
+  });
+
+  it('--remove finds the block in a file that is no longer the first candidate', () => {
+    put(join(sb.root, 'AGENTS.md'), 'A\n');
+    sb.run('zed');
+    put(join(sb.root, '.rules'), 'R\n');
+
+    sb.run('zed', { remove: true });
+
+    expect(sb.read(join(sb.root, 'AGENTS.md'))).toBe('A\n');
+  });
+
+  it('--remove with no rules file is a no-op that exits 0', () => {
+    expect(sb.run('zed', { remove: true })).toBe(0);
+  });
+
+  it('--dry-run writes nothing', () => {
+    put(join(sb.root, '.rules'), 'R\n');
+
+    expect(sb.run('zed', { dryRun: true })).toBe(0);
+
+    expect(sb.read(join(sb.root, '.rules'))).toBe('R\n');
+    expect(sb.out.join('\n')).toContain('dry run, nothing written');
+  });
+});
+
+describe('mast setup desktop', () => {
+  it.each([{}, { check: true }, { remove: true }, { dryRun: true }])('explains the handshake, writes nothing and exits 0 for %j', (flags) => {
+    const sb = sandbox();
+
+    expect(sb.run('desktop', flags)).toBe(0);
+
+    expect(sb.out[0]).toMatch(/no hook system/);
+    expect(sb.out.join('\n')).toMatch(/instructions string.*mast serve.*handshake/s);
+    expect(sb.writes).toEqual([]);
+    expect(readdirSync(sb.root)).toEqual([]);
   });
 });
