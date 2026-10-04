@@ -1,6 +1,6 @@
 # ADR 017 — Agent priming: telling the model to use mast through hooks, not prose
 
-- **Status:** Proposed (2026-10-04). Stages 1–3 of five are implemented; see the stage table.
+- **Status:** Proposed (2026-10-04). Stages 1–4 of five are implemented; see the stage table.
 - **Decided:** 2026-10-04
 - **Evidence:** the vendor documentation cited inline, each opened on 2026-10-04 ·
   `gastownhall/beads` `cmd/bd/setup/claude.go`, `docs/integrations/claude-code.md` (prior art) ·
@@ -132,7 +132,7 @@ Each stage is test-first, ends on `pnpm gate`, and is small enough to review who
 | 1 | `instructions` on the server; version from the manifest; ledger row for the literal (D066). **Done 2026-10-04** | `mcp/__tests__/server-identity.test.ts`: the `initialize` result carries the string and the manifest version |
 | 2 | `mast prime` and `assets/prime.md`. **Done 2026-10-04** | pure renderer over a `StatusReport`: fresh, stale, not initialised |
 | 3 | `mast hook` — per-harness envelopes, the quiet conditions, the light entry. **Done 2026-10-04** | pure `decide(harness, event, input, indexExists)` table test; import-graph test for §5 |
-| 4 | `mast setup claude|cursor|vscode` with `--global --check --remove --dry-run` | merge/idempotence/foreign-hook-preserved/unparseable-file tests against temp dirs |
+| 4 | `mast setup claude|cursor|vscode` with `--global --check --remove --dry-run`. **Done 2026-10-04** | merge/idempotence/foreign-hook-preserved/unparseable-file tests against temp dirs |
 | 5 | static-only harnesses in `setup`; new rules targets; skill cut; README, `MAST_SPEC.md` | `docs-cmd.test.ts` drift guard, `spec-conformance.test.ts` |
 
 ## What this does not claim
@@ -147,9 +147,16 @@ Each stage is test-first, ends on `pnpm gate`, and is small enough to review who
 - **The VS Code search reminder works end to end.** The field is documented; the tool name to
   match is not, and has to be read from VS Code's agent debug log by someone running it.
   Stage 4 ships VS Code's session primer and leaves its reminder behind that lookup.
-- **How the installed hook command should be spelled for a dev-dependency install.** A global
-  install can use `mast hook …`. A project install has no `mast` on `PATH`; Claude Code offers
-  `$CLAUDE_PROJECT_DIR` to build a path from, and the working directory of Cursor and VS Code
-  hooks was not checked. To be settled in stage 4, against each vendor's docs.
+- **That the installed hook commands run in a real harness.** Settled in stage 4 as: a
+  global install writes `mast hook …`; a project dependency writes
+  `"${CLAUDE_PROJECT_DIR}"/node_modules/.bin/mast` for Claude Code and the project-relative
+  `node_modules/.bin/mast` for Cursor and VS Code; a source checkout writes an absolute
+  `node "<dist/cli/index.js>"`. Claude Code documents the variable and Cursor documents that
+  project hooks resolve from the project root. VS Code documents no working directory, so
+  its relative spelling is a guess. None of the three has been run inside its harness, and
+  only the source-checkout spelling has been executed at all.
+- **That a rewritten settings file keeps its layout.** Indentation, key order, line endings
+  and the trailing newline survive. Line breaks inside the JSON do not: an array or object
+  the user kept on one line is expanded when `setup` writes.
 - **Deny mode.** Declined for now, not refuted: a wrong deny on a stale index or a non-TS file
   makes mast worse than absent. Revisit only with a measurement in hand.

@@ -261,6 +261,9 @@ marked block, so re-running after an upgrade replaces the previous copy instead 
 a second one. It never runs on its own, and it never creates a config file you did not
 already keep.
 
+To have the harness restate the rule at session start and before a search, instead of
+relying on text it read once, install hooks with `mast setup claude|cursor|vscode`.
+
 ---
 
 ## Upgrading
@@ -555,6 +558,50 @@ Arguments:
 ordinary condition (empty or malformed stdin, an unknown harness or event, a missing index)
 and leaves stdout empty, with one line on stderr where something went wrong. `search` runs
 before every Grep, so it is dispatched before the rest of the CLI loads.
+
+---
+
+### `mast setup <harness> [path]`
+
+Install the hooks that prime an agent at session start and remind it to try `mast_search`
+before a built-in search. `<harness>` is `claude`, `cursor` or `vscode`; `[path]` is the
+project root (default: the current directory).
+
+| harness | project file (default) | `--global` file |
+|---|---|---|
+| `claude` | `.claude/settings.json` | `~/.claude/settings.json` |
+| `cursor` | `.cursor/hooks.json` | `~/.cursor/hooks.json` |
+| `vscode` | `.github/hooks/mast.json` | `~/.copilot/hooks/mast.json` |
+
+```
+Options:
+  --global    Write the user-level file instead of the project one
+  --check     Write nothing; exit 0 only if the hooks are installed and current
+  --remove    Remove the hooks mast installed
+  --dry-run   Print the file that would be written, and write nothing
+```
+
+`claude` and `cursor` get both hooks (`mast hook <harness> session-start` and
+`mast hook <harness> search`). **`vscode` gets the session primer only:** VS Code ignores hook
+matchers, so a search hook would run before every tool call, and the name of its search tool
+is not documented.
+
+**Why:** the hook command depends on how mast is installed. A global install writes
+`mast hook ...`; a source checkout writes `node "<path to dist/cli/index.js>" hook ...`, a
+path specific to your machine, so do not commit that file; a project dependency writes a path
+into `node_modules/.bin`. A project dependency cannot be installed with `--global`: a
+user-level hook pointing into one project's `node_modules` breaks in every other project.
+For VS Code the relative `node_modules/.bin/mast` is unverified, because its docs do not
+say what directory hooks run in.
+
+It only ever touches entries whose command ends in `hook <harness> session-start` or
+`hook <harness> search`. Every other key, hook and field in the file is kept, in order, and
+the file keeps its indentation and trailing newline. Re-running changes nothing and does not
+write the file; a changed install (say, source to global) replaces the entry in place. A file
+that is not valid JSON, or whose `hooks` have an unexpected shape, is reported and left
+untouched (exit 1). `--remove` deletes only mast's entries, and for `vscode` deletes
+`mast.json` once nothing else is in it. `--check` cannot be combined with `--remove` or
+`--dry-run` (exit 2), nor can an unknown harness be given (exit 2).
 
 ---
 
