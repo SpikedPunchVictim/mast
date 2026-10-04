@@ -1,4 +1,11 @@
 #!/usr/bin/env node
-import { buildProgram } from './program.js';
-
-await buildProgram().parseAsync(process.argv);
+// `hook` is dispatched before the program is imported: a hook runs ahead of every Grep,
+// and importing the program (commander, zod, typescript, kysely, the MCP SDK) costs about
+// a second. See ADR 017 section 5 and hook-import-graph.test.ts.
+if (process.argv[2] === 'hook') {
+  const { runHookFromProcess } = await import('./hook.js');
+  await runHookFromProcess(process.argv[3] ?? '', process.argv[4] ?? '');
+} else {
+  const { buildProgram } = await import('./program.js');
+  await buildProgram().parseAsync(process.argv);
+}

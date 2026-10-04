@@ -532,6 +532,31 @@ what is wrong. It exits 0 in every state, unlike `mast status`.
 
 ---
 
+### `mast hook <harness> <event>`
+
+The entry point for agent hooks. Reads the harness's hook JSON on stdin and writes that
+harness's JSON envelope on stdout, or writes nothing. `<harness>` is `claude`, `cursor` or
+`vscode`; `<event>` is `session-start` or `search`.
+
+- `session-start` emits the same text `mast prime` prints for the project (the hook's `cwd`,
+  else the first workspace root, else the current directory), in every index state.
+- `search` emits a one-line reminder to try `mast_search` first. It stays silent when no
+  index exists for the project, or when the search is scoped by `type`, `glob` or `path` to
+  a language mast does not index.
+
+```
+Arguments:
+  harness   claude | cursor | vscode
+  event     session-start | search
+```
+
+**Why:** a hook that fails breaks the user's session, so this command exits 0 for every
+ordinary condition (empty or malformed stdin, an unknown harness or event, a missing index)
+and leaves stdout empty, with one line on stderr where something went wrong. `search` runs
+before every Grep, so it is dispatched before the rest of the CLI loads.
+
+---
+
 ### `mast upgrade [path]`
 
 Check for a newer release; print how to install it, and what it will cost.

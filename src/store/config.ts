@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
+import { DEFAULT_FILE_EXTENSIONS, DEFAULT_STATE_DIR } from './defaults.js';
 
 // 1.3.0 (F5, Stage 3): identifier_fts rows now carry QUALIFIED compound
 // strings ("Class.method") appended after the bare-identifier bag — see
@@ -31,12 +32,10 @@ import { ConfigEnvSchema } from '../env.js';
 export const CURRENT_SCHEMA_VERSION = '1.3.0';
 
 const DEFAULTS: MastConfig = {
-  state_dir: '.mast',
+  state_dir: DEFAULT_STATE_DIR,
   project_root: '.',
-  // `.md` rides the existing exclude_patterns for vendored noise — dependency
-  // READMEs live under node_modules/** which is already excluded; no
-  // markdown-specific exclusion logic is applied.
-  file_extensions: ['.ts', '.tsx', '.js', '.jsx', '.md'],
+  // See defaults.ts for why this list lives outside config.ts.
+  file_extensions: DEFAULT_FILE_EXTENSIONS,
   // Build output, dependencies, and tests. `.mast/**` excludes this tool's own
   // state directory, which is the one path guaranteed to exist in every project
   // that runs it. (`.kluster/**` sat here until 2026-08-19 — a leftover from the

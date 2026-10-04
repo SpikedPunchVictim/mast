@@ -11,6 +11,7 @@ import { registerQueryCommand } from './query.js';
 import { registerDocsCommand, registerSkillCommand } from './docs-cmd.js';
 import { registerUpgradeCommand } from './upgrade-cmd.js';
 import { registerPrimeCommand } from './prime-cmd.js';
+import { registerHookCommand } from './hook-cmd.js';
 
 /**
  * Builds the CLI. This is the *only* place commands are registered.
@@ -38,6 +39,7 @@ export function buildProgram(): Command {
   registerDocsCommand(program);
   registerSkillCommand(program);
   registerPrimeCommand(program);
+  registerHookCommand(program);
   registerUpgradeCommand(program);
 
   return program;

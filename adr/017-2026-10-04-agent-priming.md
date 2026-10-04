@@ -1,6 +1,6 @@
 # ADR 017 — Agent priming: telling the model to use mast through hooks, not prose
 
-- **Status:** Proposed (2026-10-04). Stages 1 and 2 of five are implemented; see the stage table.
+- **Status:** Proposed (2026-10-04). Stages 1–3 of five are implemented; see the stage table.
 - **Decided:** 2026-10-04
 - **Evidence:** the vendor documentation cited inline, each opened on 2026-10-04 ·
   `gastownhall/beads` `cmd/bd/setup/claude.go`, `docs/integrations/claude-code.md` (prior art) ·
@@ -131,7 +131,7 @@ Each stage is test-first, ends on `pnpm gate`, and is small enough to review who
 |---|---|---|
 | 1 | `instructions` on the server; version from the manifest; ledger row for the literal (D066). **Done 2026-10-04** | `mcp/__tests__/server-identity.test.ts`: the `initialize` result carries the string and the manifest version |
 | 2 | `mast prime` and `assets/prime.md`. **Done 2026-10-04** | pure renderer over a `StatusReport`: fresh, stale, not initialised |
-| 3 | `mast hook` — per-harness envelopes, the quiet conditions, the light entry | pure `decide(harness, event, input, indexExists)` table test; import-graph test for §5 |
+| 3 | `mast hook` — per-harness envelopes, the quiet conditions, the light entry. **Done 2026-10-04** | pure `decide(harness, event, input, indexExists)` table test; import-graph test for §5 |
 | 4 | `mast setup claude|cursor|vscode` with `--global --check --remove --dry-run` | merge/idempotence/foreign-hook-preserved/unparseable-file tests against temp dirs |
 | 5 | static-only harnesses in `setup`; new rules targets; skill cut; README, `MAST_SPEC.md` | `docs-cmd.test.ts` drift guard, `spec-conformance.test.ts` |
 
