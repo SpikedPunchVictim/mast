@@ -36,6 +36,7 @@ hypotheses, and unread measurements — and the only one of these files edited i
 | [014](014-2026-08-19-packaging-and-first-run.md) | 2026-08-19 | Packaging and the first-run experience |
 | [015](015-2026-08-19-integration-harness.md) | 2026-08-19 | An integration harness, and the mutation axis it exists for |
 | [016](016-2026-09-03-discovery-freshness.md) | 2026-09-03 | Discovery freshness: the gap JIT was never able to close |
+| [017](017-2026-10-04-agent-priming.md) | 2026-10-04 | Agent priming: telling the model to use mast through hooks, not prose (**proposed**) |
 
 ## Reading order — which is not the numbering
 
