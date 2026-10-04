@@ -18,7 +18,7 @@ export class DocsError extends Error {}
 
 // `dist/cli/` and `src/cli/` both sit two levels below the package root, so this
 // resolves identically under vitest and in the published tarball.
-const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+export const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export interface DocTopic {
   readonly name: string;

@@ -515,6 +515,23 @@ right about a search tool.
 
 ---
 
+### `mast prime [path]`
+
+Print the session primer: a short rule set for using mast, plus the live index health.
+
+```
+Options:
+  --state-dir <dir>   State directory
+```
+
+**Why:** it is the text an agent should be given at the start of a session. When the index
+is fresh or stale it prints the rules and the file count and age of the index (a stale
+index adds the changed/unindexed/deleted split and a `mast_reindex` instruction). When
+there is no index, or the index describes a different tree, it withholds the rules and says
+what is wrong. It exits 0 in every state, unlike `mast status`.
+
+---
+
 ### `mast upgrade [path]`
 
 Check for a newer release; print how to install it, and what it will cost.

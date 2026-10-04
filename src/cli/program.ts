@@ -10,6 +10,7 @@ import { registerMetricsCommand } from './metrics-cmd.js';
 import { registerQueryCommand } from './query.js';
 import { registerDocsCommand, registerSkillCommand } from './docs-cmd.js';
 import { registerUpgradeCommand } from './upgrade-cmd.js';
+import { registerPrimeCommand } from './prime-cmd.js';
 
 /**
  * Builds the CLI. This is the *only* place commands are registered.
@@ -36,6 +37,7 @@ export function buildProgram(): Command {
   registerQueryCommand(program);
   registerDocsCommand(program);
   registerSkillCommand(program);
+  registerPrimeCommand(program);
   registerUpgradeCommand(program);
 
   return program;
