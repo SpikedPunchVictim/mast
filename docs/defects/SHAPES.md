@@ -226,7 +226,7 @@ the code and confirm — stays first.
 
 ## S-05 — Two producers of one value, drifting apart
 
-**Instances**: D014, D016, D023, D024, D043. **Rung**: **promoted in part — see below.**
+**Instances**: D014, D016, D023, D024, D043, D066. **Rung**: **promoted in part — see below.**
 
 The same quantity computed in two places, by two authors, drifting apart. Renamed from "two
 implementations of one statistic" when D023 arrived: the value that disagreed there was a **file
