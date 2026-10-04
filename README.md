@@ -142,6 +142,14 @@ mast index --incremental     # reindex only what changed
 mast install-hooks           # reindex automatically after commits and checkouts
 ```
 
+Then tell your agent to use it. One command installs what your harness can take — hooks
+that prime the agent at session start and remind it before a built-in search, or a rules
+file where there are no hooks ([details](#tell-the-assistant-how-to-use-it)):
+
+```bash
+mast setup claude            # or cursor, vscode, windsurf, zed, desktop
+```
+
 Everything shipped with your build is readable offline, so you never have to work out
 which docs match your version:
 
