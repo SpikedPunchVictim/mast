@@ -4,8 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { decide, runHook, SEARCH_REMINDER, type HookIo } from '../hook.js';
 
-const withIndex = { indexExists: true, primeText: 'PRIMER', searchPathIsDirectory: false };
-const noIndex = { indexExists: false, primeText: 'PRIMER', searchPathIsDirectory: false };
+const DEFAULT_EXTS = ['.ts', '.tsx', '.js', '.jsx', '.md'];
+const withIndex = { indexExists: true, primeText: 'PRIMER', searchPathIsDirectory: false, indexedExtensions: DEFAULT_EXTS };
+const noIndex = { ...withIndex, indexExists: false };
 
 describe('decide: envelope shape per harness and event', () => {
   it.each([
@@ -61,6 +62,19 @@ describe('decide: search reminder is quiet when it would be wrong', () => {
   ])('Grep %s', (_name, toolInput, emitted) => {
     const out = decide('claude', 'search', grep(toolInput), withIndex);
     expect(out !== null).toBe(emitted);
+  });
+
+  it.each([
+    ['glob *.mjs', { pattern: 'x', glob: '*.mjs' }],
+    ['path scripts/build.mjs', { pattern: 'x', path: 'scripts/build.mjs' }],
+    ['type vue (no ripgrep mapping, read as the extension)', { pattern: 'x', type: 'vue' }],
+  ])('follows the project\'s own extension list: %s', (_name, toolInput) => {
+    const custom = { ...withIndex, indexedExtensions: [...DEFAULT_EXTS, '.mjs', '.vue'] };
+
+    expect({
+      withDefaults: decide('claude', 'search', grep(toolInput), withIndex) !== null,
+      withCustom: decide('claude', 'search', grep(toolInput), custom) !== null,
+    }).toEqual({ withDefaults: false, withCustom: true });
   });
 
   it('does not read a dotted directory name as a file extension (next.js, site.io)', () => {
@@ -147,6 +161,21 @@ describe('runHook shell', () => {
     await runHook('claude', 'search', io);
 
     expect({ emitted: out.length, asked }).toEqual({ emitted: 1, asked: ['/work/apps/site.io'] });
+  });
+
+  it('reminds for an .mjs search in a project whose mast.config.json indexes .mjs', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mast-hook-'));
+    try {
+      writeFileSync(join(dir, 'mast.config.json'), JSON.stringify({ file_extensions: ['.ts', '.mjs'] }));
+      const { io, out } = makeIo({
+        stdin: JSON.stringify({ cwd: dir, tool_name: 'Grep', tool_input: { pattern: 'x', glob: '**/*.mjs' } }),
+        fileExists: () => true,
+      });
+
+      await runHook('claude', 'search', io);
+
+      expect(out.length).toBe(1);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 
   it('looks for the index under the state dir of the project root taken from workspace_roots (cursor)', async () => {

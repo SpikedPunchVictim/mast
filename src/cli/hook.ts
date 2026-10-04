@@ -4,8 +4,7 @@
 // The session-start branch loads the heavy modules with a dynamic import() instead.
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { DEFAULT_FILE_EXTENSIONS } from '../store/defaults.js';
-import { resolveStateDirLight } from './hook-state-dir.js';
+import { resolveHookConfigLight } from './hook-state-dir.js';
 
 export type Harness = 'claude' | 'cursor' | 'vscode';
 export type HookEvent = 'session-start' | 'search';
@@ -32,6 +31,8 @@ export interface HookFacts {
    * and silence the reminder for every search under it.
    */
   readonly searchPathIsDirectory: boolean;
+  /** The extensions this project indexes: its own list where it sets one, else the defaults. */
+  readonly indexedExtensions: readonly string[];
 }
 
 export const SEARCH_REMINDER =
@@ -39,16 +40,15 @@ export const SEARCH_REMINDER =
   'grep is still right for other languages and for exact-text regex.';
 
 // Ripgrep type names (what Claude Code's Grep `type` takes) mapped to the extensions
-// they cover. Hand-kept and deliberately small: only types that touch an indexed
-// extension are listed, so any other type name reads as "scoped away from mast".
+// they cover. Hand-kept and deliberately small: only the types whose name differs from
+// their extensions. Any other type name is read as its own extension (`py` as `.py`,
+// `vue` as `.vue`), so a project that indexes extra extensions is still matched.
 const RG_TYPE_EXTENSIONS: Readonly<Record<string, readonly string[]>> = {
   ts: ['.ts', '.tsx', '.cts', '.mts'],
   js: ['.js', '.jsx', '.cjs', '.mjs'],
   md: ['.md', '.markdown'],
   markdown: ['.md', '.markdown'],
 };
-
-const INDEXED = new Set(DEFAULT_FILE_EXTENSIONS);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -62,8 +62,8 @@ function isHookEvent(value: string): value is HookEvent {
   return value === 'session-start' || value === 'search';
 }
 
-function anyIndexed(extensions: readonly string[]): boolean {
-  return extensions.some((e) => INDEXED.has(e.toLowerCase()));
+function anyIn(indexed: readonly string[], extensions: readonly string[]): boolean {
+  return extensions.some((e) => indexed.includes(e.toLowerCase()));
 }
 
 /** A trailing `.ext` of a path segment. All-digit suffixes (`v1.2`) are versions, not extensions. */
@@ -94,21 +94,22 @@ function stringField(input: Record<string, unknown>, key: string): string | null
  * Unrecognised fields and shapes count as "not scoped": a missed reminder is cheaper
  * than a wrong one only when we know the language, and here we do not.
  */
-function isScopedAwayFromIndex(input: unknown, searchPathIsDirectory: boolean): boolean {
+function isScopedAwayFromIndex(input: unknown, facts: HookFacts): boolean {
   if (!isRecord(input) || !isRecord(input['tool_input'])) return false;
   const toolInput = input['tool_input'];
+  const indexed = facts.indexedExtensions;
 
   const type = stringField(toolInput, 'type');
-  if (type !== null && !anyIndexed(RG_TYPE_EXTENSIONS[type] ?? [])) return true;
+  if (type !== null && !anyIn(indexed, RG_TYPE_EXTENSIONS[type] ?? [`.${type}`])) return true;
 
   // For the Glob tool the `pattern` IS the glob; for Grep it is a regex and says nothing.
   const glob = input['tool_name'] === 'Glob' ? stringField(toolInput, 'pattern') : stringField(toolInput, 'glob');
   const globExts = glob === null ? null : globExtensions(glob);
-  if (globExts !== null && !anyIndexed(globExts)) return true;
+  if (globExts !== null && !anyIn(indexed, globExts)) return true;
 
-  const path = searchPathIsDirectory ? null : stringField(toolInput, 'path');
+  const path = facts.searchPathIsDirectory ? null : stringField(toolInput, 'path');
   const pathExt = path === null ? null : trailingExtension(path.slice(path.lastIndexOf('/') + 1));
-  if (pathExt !== null && !anyIndexed([pathExt])) return true;
+  if (pathExt !== null && !anyIn(indexed, [pathExt])) return true;
 
   return false;
 }
@@ -130,7 +131,7 @@ function envelope(harness: Harness, event: HookEvent, text: string): object {
 export function decide(harness: string, event: string, input: unknown, facts: HookFacts): object | null {
   if (!isHarness(harness) || !isHookEvent(event)) return null;
   if (event === 'session-start') return envelope(harness, event, facts.primeText);
-  if (!facts.indexExists || isScopedAwayFromIndex(input, facts.searchPathIsDirectory)) return null;
+  if (!facts.indexExists || isScopedAwayFromIndex(input, facts)) return null;
   return envelope(harness, event, SEARCH_REMINDER);
 }
 
@@ -179,21 +180,35 @@ export async function runHook(harness: string, event: string, io: HookIo): Promi
     }
 
     const projectRoot = projectRootOf(input) ?? io.cwd();
-    const searchPath = searchPathOf(input);
-    const facts: HookFacts =
-      event === 'session-start'
-        ? { indexExists: false, primeText: await io.prime(projectRoot), searchPathIsDirectory: false }
-        : {
-            indexExists: io.fileExists(join(resolveStateDirLight(projectRoot, io.env), 'index.json')),
-            primeText: '',
-            searchPathIsDirectory: searchPath !== null && io.isDirectory(resolve(projectRoot, searchPath)),
-          };
-
-    const out = decide(harness, event, input, facts);
+    const out = decide(harness, event, input, await gatherFacts(event, input, projectRoot, io));
     if (out !== null) io.write(JSON.stringify(out));
   } catch (error) {
     io.warn(`mast hook ${harness} ${event}: ${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+async function gatherFacts(
+  event: HookEvent,
+  input: Record<string, unknown>,
+  projectRoot: string,
+  io: HookIo,
+): Promise<HookFacts> {
+  if (event === 'session-start') {
+    return {
+      indexExists: false,
+      primeText: await io.prime(projectRoot),
+      searchPathIsDirectory: false,
+      indexedExtensions: [],
+    };
+  }
+  const config = resolveHookConfigLight(projectRoot, io.env);
+  const searchPath = searchPathOf(input);
+  return {
+    indexExists: io.fileExists(join(config.stateDir, 'index.json')),
+    primeText: '',
+    searchPathIsDirectory: searchPath !== null && io.isDirectory(resolve(projectRoot, searchPath)),
+    indexedExtensions: config.fileExtensions.map((e) => e.toLowerCase()),
+  };
 }
 
 async function readProcessStdin(): Promise<string> {

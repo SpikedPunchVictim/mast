@@ -542,7 +542,8 @@ harness's JSON envelope on stdout, or writes nothing. `<harness>` is `claude`, `
   else the first workspace root, else the current directory), in every index state.
 - `search` emits a one-line reminder to try `mast_search` first. It stays silent when no
   index exists for the project, or when the search is scoped by `type`, `glob` or `path` to
-  a language mast does not index.
+  a language mast does not index. "Indexes" follows the project's own `file_extensions`
+  where it sets one, so a project that indexes `.mjs` is reminded on a `*.mjs` search.
 
 ```
 Arguments:
