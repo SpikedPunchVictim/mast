@@ -666,7 +666,10 @@ from memory of Zed's documentation and has not been checked against it.
 **Why:** the hook command depends on how mast is installed. A global install writes
 `mast hook ...`; a source checkout writes `node "<path to dist/cli/index.js>" hook ...`, a
 path specific to your machine, so do not commit that file; a project dependency writes a path
-into `node_modules/.bin`. A project dependency cannot be installed with `--global`: a
+into `node_modules/.bin`. When the package that depends on mast lives in a subdirectory
+(`typescript/node_modules`, say), run `setup` with the binary from that directory and the
+command points there; `setup` looks beside the `node_modules` it is running out of before
+the project root's. A project dependency cannot be installed with `--global`: a
 user-level hook pointing into one project's `node_modules` breaks in every other project.
 For VS Code the relative `node_modules/.bin/mast` is unverified, because its docs do not
 say what directory hooks run in.

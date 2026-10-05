@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildHookCommand, isMastCommand } from '../setup-command.js';
+import { buildHookCommand, isMastCommand, localBinCandidates } from '../setup-command.js';
 import type { Harness, HookEvent } from '../hook.js';
 import type { InstallKind } from '../upgrade-cmd.js';
 
@@ -23,6 +23,38 @@ describe('buildHookCommand', () => {
   it('refuses a project-dependency install at user scope, and says what to do', () => {
     const result = buildHookCommand({ harness: 'claude', event: 'search', installKind: 'local', scope: 'global', cliEntry: ENTRY });
     expect(result).toMatchObject({ ok: false, problem: expect.stringContaining('Install mast globally') });
+  });
+});
+
+describe('buildHookCommand for a project dependency installed below the project root', () => {
+  it.each<[Harness, string, string]>([
+    ['claude', 'typescript/node_modules/.bin/mast', '"${CLAUDE_PROJECT_DIR}"/typescript/node_modules/.bin/mast hook claude search'],
+    ['cursor', 'typescript/node_modules/.bin/mast', 'typescript/node_modules/.bin/mast hook cursor search'],
+    ['claude', 'my pkg/node_modules/.bin/mast', '"${CLAUDE_PROJECT_DIR}/my pkg/node_modules/.bin/mast" hook claude search'],
+    ['cursor', 'my pkg/node_modules/.bin/mast', '"my pkg/node_modules/.bin/mast" hook cursor search'],
+  ])('%s with the binary at %s', (harness, localBin, expected) => {
+    const result = buildHookCommand({ harness, event: 'search', installKind: 'local', scope: 'project', cliEntry: ENTRY, localBin });
+
+    expect(result).toEqual({ ok: true, command: expected });
+  });
+});
+
+describe('localBinCandidates', () => {
+  it.each([
+    ['npm, installed in a subdirectory',
+      '/p/typescript/node_modules/@spikedpunch/mast/dist/cli/index.js',
+      ['typescript/node_modules/.bin/mast', 'node_modules/.bin/mast']],
+    ['pnpm, installed in a subdirectory (outermost node_modules first)',
+      '/p/typescript/node_modules/.pnpm/@spikedpunch+mast@0.4.0/node_modules/@spikedpunch/mast/dist/cli/index.js',
+      ['typescript/node_modules/.bin/mast', 'typescript/node_modules/.pnpm/@spikedpunch+mast@0.4.0/node_modules/.bin/mast', 'node_modules/.bin/mast']],
+    ['installed at the project root',
+      '/p/node_modules/@spikedpunch/mast/dist/cli/index.js',
+      ['node_modules/.bin/mast']],
+    ['running from outside the project',
+      '/opt/mast/dist/cli/index.js',
+      ['node_modules/.bin/mast']],
+  ])('%s', (_name, cliEntry, expected) => {
+    expect(localBinCandidates(cliEntry, '/p')).toEqual(expected);
   });
 });
 

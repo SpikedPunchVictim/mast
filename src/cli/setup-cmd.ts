@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Harness, HookEvent } from './hook.js';
 import { readDoc } from './docs-cmd.js';
-import { buildHookCommand, hookFilePath, type SetupScope } from './setup-command.js';
+import { buildHookCommand, hookFilePath, localBinCandidates, type SetupScope } from './setup-command.js';
 import { HOOK_DEFS, planFor, type Commands, type PlanMode, type PlanResult } from './setup-plan.js';
 import { runCursorRules, runStaticSetup, STATIC_HARNESSES } from './setup-static.js';
 import { detectInstallKind, type InstallKind } from './upgrade-cmd.js';
@@ -69,10 +69,13 @@ function parseJson(raw: string): { ok: true; value: unknown } | { ok: false; pro
   }
 }
 
-function buildCommands(harness: Harness, scope: SetupScope, env: SetupEnv): { ok: true; commands: Commands } | { ok: false; problem: string } {
+function buildCommands(harness: Harness, scope: SetupScope, env: SetupEnv, localBin?: string): { ok: true; commands: Commands } | { ok: false; problem: string } {
   const commands: Partial<Record<HookEvent, string>> = {};
   for (const def of HOOK_DEFS[harness]) {
-    const built = buildHookCommand({ harness, event: def.event, installKind: env.installKind, scope, cliEntry: env.cliEntry });
+    const built = buildHookCommand({
+      harness, event: def.event, installKind: env.installKind, scope, cliEntry: env.cliEntry,
+      ...(localBin !== undefined ? { localBin } : {}),
+    });
     if (!built.ok) return built;
     commands[def.event] = built.command;
   }
@@ -136,13 +139,21 @@ function runHookSetup(harness: Harness, opts: SetupOptions, env: SetupEnv, io: S
 
   let mode: PlanMode = { kind: 'remove' };
   if (!opts.remove) {
-    const built = buildCommands(harness, scope, env);
+    let localBin: string | undefined;
+    if (env.installKind === 'local' && scope === 'project') {
+      const candidates = localBinCandidates(env.cliEntry, opts.projectRoot);
+      localBin = candidates.find((candidate) => io.fileExists(join(opts.projectRoot, candidate)));
+      if (localBin === undefined) {
+        io.err(
+          `mast setup: no mast binary found for the hook command to run. Looked for: ${candidates.map((c) => join(opts.projectRoot, c)).join(', ')}. ` +
+            `Add mast as a direct dependency of this project or of the package you run it from (pnpm add -D ${PACKAGE_NAME}), or install it globally.`,
+        );
+        return 1;
+      }
+    }
+    const built = buildCommands(harness, scope, env, localBin);
     if (!built.ok) {
       io.err(`mast setup: ${built.problem}`);
-      return 1;
-    }
-    if (env.installKind === 'local' && scope === 'project' && !io.fileExists(join(opts.projectRoot, 'node_modules', '.bin', 'mast'))) {
-      io.err(`mast setup: ${join(opts.projectRoot, 'node_modules', '.bin', 'mast')} does not exist, so the hook command would not run. Install mast in this project (pnpm add -D ${PACKAGE_NAME}) or install it globally.`);
       return 1;
     }
     mode = { kind: 'install', commands: built.commands };
