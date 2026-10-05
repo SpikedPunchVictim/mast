@@ -814,12 +814,15 @@ describe('mast init — --extensions/--exclude end-to-end (F9, M3 repro inverted
     }
 
     // Simulate `mast serve`'s bootstrap path (mcp/startup.ts's bootstrapState,
-    // via cli/serve.ts:17's `resolveConfig({ stateDirOverride })` — no
-    // projectRoot, so this re-resolution against the same state dir mirrors
-    // what serve actually does). A nonexistent seed path is passed, same as
+    // via cli/serve.ts's `resolveConfig({ stateDirOverride })`). Serve
+    // passes no projectRoot and takes the working directory, which in real use
+    // is the project; here the working directory is this repository, so the
+    // project is named explicitly. Without that the resolution reads this
+    // repository's own `mast.config.json`, which outranks the state config
+    // under test. A nonexistent seed path is passed, same as
     // mcp/__tests__/startup.test.ts's `NO_SEED` convention, so the Docker-seed
     // copy step is a no-op in this test environment.
-    const serveConfig = resolveConfig({ stateDirOverride: config.resolved_state_dir });
+    const serveConfig = resolveConfig({ projectRoot: tmpDir, stateDirOverride: config.resolved_state_dir });
     await bootstrapState(serveConfig, join(tmpdir(), 'mast-no-such-seed-dir'));
 
     // The regression this proves: before F9, bootstrapState's writeStateConfig

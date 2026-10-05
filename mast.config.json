@@ -1,0 +1,14 @@
+{
+  "exclude_patterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/.next/**",
+    "**/.turbo/**",
+    ".mast/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "integration/results/**"
+  ]
+}
