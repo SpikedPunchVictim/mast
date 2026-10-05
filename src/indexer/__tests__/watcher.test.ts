@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { resolveConfig } from '../../store/config.js';
 import {
-  WatchScheduler, shouldWatchPath, startWatchMode,
+  WatchScheduler, shouldWatchPath, startWatchMode, findUnwatchedEntries,
   type WatchPathFilter, type WatchHandle, type StartWatchModeOptions,
+  type FsWatcher, type ListedEntry,
 } from '../watcher.js';
 
 // ---------------------------------------------------------------------------
@@ -68,15 +69,17 @@ function makeHarness(opts: { autoResolve?: boolean; maxConsecutiveFailures?: num
   return h;
 }
 
-beforeEach(() => {
-  vi.useFakeTimers();
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
-
 describe('WatchScheduler', () => {
+  // Scoped here, not file-wide: `startWatchMode` now waits on a real settle timer
+  // before announcing readiness, and a test awaiting `onReady` hangs under fake timers.
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('coalesces rapid events on the same file into one batch entry', async () => {
     const h = makeHarness();
 
@@ -214,6 +217,125 @@ describe('shouldWatchPath', () => {
 });
 
 // ---------------------------------------------------------------------------
+// findUnwatchedEntries — which on-disk entries chokidar does not know (D067)
+// ---------------------------------------------------------------------------
+
+describe('findUnwatchedEntries', () => {
+  const root = '/proj';
+
+  /** In-memory disk: directory -> entries. A missing key rejects like ENOENT. */
+  function fakeDisk(tree: Record<string, readonly ListedEntry[]>) {
+    return async (directory: string): Promise<readonly ListedEntry[]> => {
+      const entries = tree[directory];
+      if (entries === undefined) throw new Error(`ENOENT: ${directory}`);
+      return entries;
+    };
+  }
+  const file = (name: string): ListedEntry => ({ name, isDirectory: false });
+  const dir = (name: string): ListedEntry => ({ name, isDirectory: true });
+  const notIgnored = (): boolean => false;
+
+  it('reports a file that is on disk but unknown to the watcher', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/proj': ['known.ts'] },
+      projectRoot: root,
+      listDirectory: fakeDisk({ '/proj': [file('known.ts'), file('missed.ts')] }),
+      isIgnored: notIgnored,
+    });
+
+    expect(result.files).toEqual(['/proj/missed.ts']);
+  });
+
+  it('does not report a file the watcher already knows', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/proj': ['known.ts'] },
+      projectRoot: root,
+      listDirectory: fakeDisk({ '/proj': [file('known.ts')] }),
+      isIgnored: notIgnored,
+    });
+
+    expect(result.files).toEqual([]);
+  });
+
+  it('reports an unknown directory and the files inside it, handing only the directory to the watcher', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/proj': [] },
+      projectRoot: root,
+      listDirectory: fakeDisk({
+        '/proj': [dir('newdir')],
+        '/proj/newdir': [file('a.ts'), dir('deep')],
+        '/proj/newdir/deep': [file('b.ts')],
+      }),
+      isIgnored: notIgnored,
+    });
+
+    expect({ files: result.files, directories: result.directories, roots: result.roots }).toEqual({
+      files: ['/proj/newdir/a.ts', '/proj/newdir/deep/b.ts'],
+      directories: ['/proj/newdir', '/proj/newdir/deep'],
+      roots: ['/proj/newdir'],
+    });
+  });
+
+  it('skips ignored entries, and does not descend into an ignored directory', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/proj': [] },
+      projectRoot: root,
+      listDirectory: fakeDisk({
+        '/proj': [dir('node_modules'), file('skip.ts'), file('keep.ts')],
+        // No entry for node_modules: descending would reject and surface as a failure.
+      }),
+      isIgnored: (p) => p === '/proj/node_modules' || p === '/proj/skip.ts',
+    });
+
+    expect({ files: result.files, failures: result.failures.length }).toEqual({
+      files: ['/proj/keep.ts'],
+      failures: 0,
+    });
+  });
+
+  it('ignores watched directories outside the project root (chokidar tracks the root inside its parent)', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/': ['proj', 'other'], '/proj': [] },
+      projectRoot: root,
+      listDirectory: fakeDisk({ '/': [dir('proj'), dir('other')], '/proj': [] }),
+      isIgnored: notIgnored,
+    });
+
+    expect(result.roots).toEqual([]);
+  });
+
+  it('records a directory that cannot be listed and still reports what the others held', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/proj': [], '/proj/gone': [] },
+      projectRoot: root,
+      listDirectory: fakeDisk({ '/proj': [file('missed.ts')] }),
+      isIgnored: notIgnored,
+    });
+
+    expect({ files: result.files, failed: result.failures.map((f) => f.directory) }).toEqual({
+      files: ['/proj/missed.ts'],
+      failed: ['/proj/gone'],
+    });
+  });
+
+  it('lists nothing once its signal is aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    let listed = 0;
+
+    await findUnwatchedEntries({
+      watched: { '/proj': [] },
+      projectRoot: root,
+      listDirectory: async () => { listed++; return []; },
+      isIgnored: notIgnored,
+      signal: controller.signal,
+    });
+
+    expect(listed).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // startWatchMode — the chokidar wiring itself (D061)
 // ---------------------------------------------------------------------------
 
@@ -301,4 +423,152 @@ describe('startWatchMode', () => {
       expect(batches.flat().some((p) => p.endsWith('no-ready-callback.ts'))).toBe(true);
     }, { timeout: 10_000, interval: 100 });
   }, 20_000);
+});
+
+// ---------------------------------------------------------------------------
+// startWatchMode against a fake watcher — the D067 gap, made deterministic
+// ---------------------------------------------------------------------------
+
+/**
+ * D067: chokidar's `ready` fires before the OS watch delivers events, so a file
+ * created just after it can produce no event at all. Real chokidar loses that race
+ * about 2% of the time under load, which no test can pin. This fake never emits
+ * `add`, i.e. it loses the race every time.
+ */
+class FakeWatcher implements FsWatcher {
+  watched: Record<string, string[]> = {};
+  readonly added: string[][] = [];
+  closeCount = 0;
+  private readyListeners: Array<() => void> = [];
+
+  onFileEvent(): void {}
+  onError(): void {}
+  onReady(listener: () => void): void { this.readyListeners.push(listener); }
+  getWatched(): Record<string, string[]> { return this.watched; }
+  add(paths: readonly string[]): void { this.added.push([...paths]); }
+  async close(): Promise<void> { this.closeCount++; }
+  emitReady(): void { for (const l of this.readyListeners) l(); }
+}
+
+describe('startWatchMode with a watcher that loses events', () => {
+  let dir: string;
+  let handles: WatchHandle[];
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-watch-gap-'));
+    writeFileSync(join(dir, 'seed.ts'), 'export const seed = 1;\n');
+    handles = [];
+  });
+
+  afterEach(async () => {
+    for (const h of handles) await h.close().catch(() => {});
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function startWithFake(fake: FakeWatcher, options: Partial<StartWatchModeOptions> = {}): WatchHandle {
+    const handle = startWatchMode({
+      config: resolveConfig({ projectRoot: dir }),
+      runBatch: async () => {},
+      onWarn: () => {},
+      debounceMs: 5,
+      settleMs: 100,
+      watcherFactory: () => fake,
+      ...options,
+    });
+    handles.push(handle);
+    return handle;
+  }
+
+  it('queues a file created in the gap before announcing readiness', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'] };
+    const batches: string[][] = [];
+    let addedWhenReady: string[][] = [];
+    const ready = new Promise<void>((resolve) => {
+      startWithFake(fake, {
+        runBatch: async (paths) => { batches.push([...paths]); },
+        onReady: () => { addedWhenReady = fake.added.map((a) => [...a]); resolve(); },
+      });
+    });
+
+    fake.emitReady();
+    writeFileSync(join(dir, 'created-in-gap.ts'), 'export const gap = 1;\n');
+    await ready;
+
+    await vi.waitFor(() => {
+      expect(batches.flat().map((p) => p.split('/').pop())).toEqual(['created-in-gap.ts']);
+    }, { timeout: 3_000, interval: 10 });
+    expect(addedWhenReady.flat().map((p) => p.split('/').pop())).toEqual(['created-in-gap.ts']);
+  });
+
+  it('does not announce readiness before settleMs has elapsed', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'] };
+    let elapsed = -1;
+    const ready = new Promise<void>((resolve) => {
+      startWithFake(fake, { settleMs: 200, onReady: () => { elapsed = performance.now() - t0; resolve(); } });
+    });
+
+    const t0 = performance.now();
+    fake.emitReady();
+    await ready;
+
+    // 5 ms of slack for timer granularity; lateness (load) only makes elapsed larger.
+    expect(elapsed).toBeGreaterThanOrEqual(195);
+  });
+
+  it('never announces readiness or queues anything when closed during the settle period', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'] };
+    const batches: string[][] = [];
+    let readyCount = 0;
+    const handle = startWithFake(fake, {
+      settleMs: 100,
+      runBatch: async (paths) => { batches.push([...paths]); },
+      onReady: () => { readyCount++; },
+    });
+
+    fake.emitReady();
+    writeFileSync(join(dir, 'created-in-gap.ts'), 'export const gap = 1;\n');
+    await handle.close();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect({ readyCount, batches, added: fake.added }).toEqual({ readyCount: 0, batches: [], added: [] });
+  });
+
+  it('warns and still announces readiness when a watched directory cannot be listed', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'], [join(dir, 'vanished')]: [] };
+    const warnings: string[] = [];
+    const ready = new Promise<void>((resolve) => {
+      startWithFake(fake, { onWarn: (m) => warnings.push(m), onReady: resolve });
+    });
+
+    fake.emitReady();
+    await ready;
+
+    expect(warnings.some((w) => w.includes('vanished'))).toBe(true);
+  });
+
+  it('hands a directory created in the gap to the watcher and queues the files inside it', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'] };
+    const batches: string[][] = [];
+    const ready = new Promise<void>((resolve) => {
+      startWithFake(fake, {
+        runBatch: async (paths) => { batches.push([...paths]); },
+        onReady: resolve,
+      });
+    });
+
+    fake.emitReady();
+    mkdirSync(join(dir, 'newdir'));
+    writeFileSync(join(dir, 'newdir', 'inside.ts'), 'export const inside = 1;\n');
+    await ready;
+
+    await vi.waitFor(() => {
+      expect(batches.flat().map((p) => p.split('/').pop())).toEqual(['inside.ts']);
+    }, { timeout: 3_000, interval: 10 });
+    expect(fake.added).toEqual([[join(dir, 'newdir')]]);
+  });
 });

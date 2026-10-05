@@ -1,4 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { findInstalledArtifacts, NO_INSTALLED_ARTIFACTS, type InstalledArtifacts } from '../installed-artifacts.js';
+import { BEGIN_MARKER } from '../skill-install.js';
+import { readFileOrNull } from '../installed-artifacts.js';
 import {
   detectInstallKind, upgradeCommandFor, compareVersions, buildUpgradeReport,
   type InstallKind, type UpgradeFacts,
@@ -47,7 +53,7 @@ describe('upgradeCommandFor', () => {
 
 const FACTS = (over: Partial<UpgradeFacts> = {}): UpgradeFacts => ({
   current: '0.1.0', latest: '0.2.0', installKind: 'local', packageManager: 'pnpm',
-  currentSchema: '1.3.0', indexedSchema: '1.3.0', chunkCount: 152969, ...over,
+  currentSchema: '1.3.0', indexedSchema: '1.3.0', chunkCount: 152969, installed: NO_INSTALLED_ARTIFACTS, ...over,
 });
 
 describe('buildUpgradeReport', () => {
@@ -87,5 +93,89 @@ describe('buildUpgradeReport', () => {
     const out = buildUpgradeReport(FACTS({ latest: null }));
     expect(out).toMatch(/could not|unknown|unavailable/i);
     expect(out).not.toMatch(/up to date/i);
+  });
+});
+
+const FOUND = (over: Partial<InstalledArtifacts> = {}): InstalledArtifacts => ({ ...NO_INSTALLED_ARTIFACTS, ...over });
+
+describe('buildUpgradeReport: the After upgrading block', () => {
+  it('prints nothing about re-checking when nothing of mast\'s is installed', () => {
+    expect(buildUpgradeReport(FACTS())).not.toMatch(/after upgrading/i);
+  });
+
+  it('lists a --check command for each harness with project hooks, and the skill command for a skill block', () => {
+    const out = buildUpgradeReport(FACTS({
+      installed: FOUND({ projectHooks: ['claude', 'cursor'], skillBlockFiles: ['CLAUDE.md', 'AGENTS.md'] }),
+    }));
+
+    expect(out).toMatch(/after upgrading/i);
+    expect(out).toContain('mast setup claude --check');
+    expect(out).toContain('mast setup cursor --check');
+    expect(out).toContain('mast skill --install');
+    expect(out).toContain('CLAUDE.md, AGENTS.md');
+    expect(out).not.toContain('mast setup vscode');
+  });
+
+  it('adds a --global command for user-level hook files', () => {
+    const out = buildUpgradeReport(FACTS({ installed: FOUND({ globalHooks: ['claude'] }) }));
+
+    expect(out).toContain('mast setup claude --global --check');
+    expect(out).not.toContain('mast skill --install');
+  });
+
+  it('names a harness once when it has both hooks and a rules file', () => {
+    const out = buildUpgradeReport(FACTS({ installed: FOUND({ projectHooks: ['cursor'], rulesHarnesses: ['cursor'] }) }));
+
+    expect(out.split('mast setup cursor --check').length - 1).toBe(1);
+  });
+
+  it('lists windsurf for a rules file, and zed for a block in a file the skill command does not reach', () => {
+    const out = buildUpgradeReport(FACTS({ installed: FOUND({ rulesHarnesses: ['windsurf'], zedOnlyBlockFiles: ['.rules'] }) }));
+
+    expect(out).toContain('mast setup windsurf --check');
+    expect(out).toContain('mast setup zed --check');
+  });
+});
+
+describe('findInstalledArtifacts', () => {
+  const sandbox = (): { root: string; home: string; put(path: string, text: string): void } => {
+    const base = mkdtempSync(join(tmpdir(), 'mast-upgrade-'));
+    const root = join(base, 'project');
+    const home = join(base, 'home');
+    mkdirSync(root);
+    mkdirSync(home);
+    return { root, home, put: (path, text) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); } };
+  };
+  const hookJson = (harness: string): string => JSON.stringify({ hooks: { x: [{ command: `mast hook ${harness} search` }] } });
+
+  it('finds nothing in an empty project and an empty home', () => {
+    const sb = sandbox();
+
+    expect(findInstalledArtifacts(sb.root, sb.home, readFileOrNull)).toEqual(NO_INSTALLED_ARTIFACTS);
+  });
+
+  it('finds project hooks, user-level hooks, rules files and skill blocks, each under its own key', () => {
+    const sb = sandbox();
+    sb.put(join(sb.root, '.claude', 'settings.json'), hookJson('claude'));
+    sb.put(join(sb.home, '.cursor', 'hooks.json'), hookJson('cursor'));
+    sb.put(join(sb.root, '.cursor', 'rules', 'mast.mdc'), 'x');
+    sb.put(join(sb.root, '.devin', 'rules', 'mast.md'), 'x');
+    sb.put(join(sb.root, 'CLAUDE.md'), `${BEGIN_MARKER}\nx\n`);
+    sb.put(join(sb.root, '.rules'), `${BEGIN_MARKER}\nx\n`);
+
+    expect(findInstalledArtifacts(sb.root, sb.home, readFileOrNull)).toEqual({
+      projectHooks: ['claude'],
+      globalHooks: ['cursor'],
+      rulesHarnesses: ['cursor', 'windsurf'],
+      zedOnlyBlockFiles: ['.rules'],
+      skillBlockFiles: ['CLAUDE.md'],
+    });
+  });
+
+  it('does not count a settings file that holds no mast hook', () => {
+    const sb = sandbox();
+    sb.put(join(sb.root, '.claude', 'settings.json'), '{"permissions":{}}');
+
+    expect(findInstalledArtifacts(sb.root, sb.home, readFileOrNull).projectHooks).toEqual([]);
   });
 });

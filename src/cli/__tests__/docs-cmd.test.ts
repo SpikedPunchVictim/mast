@@ -84,3 +84,19 @@ describe('the README documents every CLI command', () => {
     expect(readme).toMatch(new RegExp('^### `mast ' + name + '\\b', 'm'));
   });
 });
+
+describe('the signals topic', () => {
+  it('is advertised and prints the signal reference', () => {
+    expect(DOC_TOPICS.map((t) => t.name)).toContain('signals');
+    expect(readDoc('signals')).toContain('unindexed_files');
+  });
+
+  // The skill is spliced into rules files with size limits (Windsurf: 12,000 characters),
+  // and a pointer that no topic answers would send the model to a dead end.
+  it('is what the short skill points to, and the skill stays small', () => {
+    const skill = readDoc('skill');
+
+    expect(skill).toContain('mast docs signals');
+    expect(skill.length).toBeLessThan(4_000);
+  });
+});

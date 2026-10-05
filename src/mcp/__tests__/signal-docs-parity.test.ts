@@ -2,6 +2,11 @@
 // D056): the two signal tables users read are now derived-checked against the
 // types they claim to describe, instead of being prose nobody diffs.
 //
+// The agent-facing table lives in assets/signals.md (`mast docs signals`), not in
+// assets/skill.md: ADR 017 stage 5 cut the skill to the rules and the tool table so it
+// fits a rules file, and moved the signal reference out. The assertions are unchanged;
+// only the file they read moved.
+//
 // What this decides, and what it does not, stated plainly because a matrix test
 // read as exhaustive is worse than none (ledger, standing rules):
 //
@@ -36,7 +41,7 @@ function signalsInTable(markdown: string, heading: string): readonly string[] {
 
 const TYPES = read('src/ast/types.ts');
 const README_SIGNALS = signalsInTable(read('README.md'), '### The signals');
-const SKILL_SIGNALS = signalsInTable(read('assets/skill.md'), '| signal | on | means |');
+const SIGNALS_DOC_SIGNALS = signalsInTable(read('assets/signals.md'), '| signal | on | means |');
 
 /** `undefined` = no declaration at all; otherwise whether it is declared `?`. */
 function declaredOptional(field: string): boolean | undefined {
@@ -47,7 +52,7 @@ function declaredOptional(field: string): boolean | undefined {
 describe('signal tables are derived from the types they describe', () => {
   it('finds a non-trivial table in each document', () => {
     expect(README_SIGNALS.length).toBeGreaterThan(5);
-    expect(SKILL_SIGNALS).toEqual(README_SIGNALS);
+    expect(SIGNALS_DOC_SIGNALS).toEqual(README_SIGNALS);
   });
 
   it.each(README_SIGNALS)('%s is declared in src/ast/types.ts', (signal) => {
@@ -70,14 +75,14 @@ describe('signal tables are derived from the types they describe', () => {
     const carvesOut = (doc: string): boolean =>
       new RegExp(`\`${signal}\`[^.]{0,120}\\bexception\\b`, 's').test(doc.replace(/\s+/g, ' '));
     const readmeExcepts = carvesOut(read('README.md'));
-    const skillExcepts = carvesOut(read('assets/skill.md'));
+    const signalsDocExcepts = carvesOut(read('assets/signals.md'));
 
     if (optional === false) {
       expect(readmeExcepts, `${signal} is a required field, but README's signal table promises every signal is omitted when it does not apply`).toBe(true);
-      expect(skillExcepts, `${signal} is a required field, but assets/skill.md promises every signal is omitted when it does not apply`).toBe(true);
+      expect(signalsDocExcepts, `${signal} is a required field, but assets/signals.md promises every signal is omitted when it does not apply`).toBe(true);
     } else {
       expect(readmeExcepts, `${signal} is optional, but README singles it out as an always-present exception`).toBe(false);
-      expect(skillExcepts, `${signal} is optional, but assets/skill.md singles it out as an always-present exception`).toBe(false);
+      expect(signalsDocExcepts, `${signal} is optional, but assets/signals.md singles it out as an always-present exception`).toBe(false);
     }
   });
 });

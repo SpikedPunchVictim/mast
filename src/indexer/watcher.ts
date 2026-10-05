@@ -1,4 +1,5 @@
-import { extname, relative, resolve } from 'node:path';
+import { readdir } from 'node:fs/promises';
+import { extname, join, relative, resolve } from 'node:path';
 import { watch as chokidarWatch } from 'chokidar';
 import type { ResolvedConfig } from '../store/config.js';
 import { globToRegex } from './walker.js';
@@ -135,6 +136,135 @@ export function shouldWatchPath(filter: WatchPathFilter, absPath: string): boole
 // Chokidar adapter (thin — logic above is what's unit-tested)
 // ---------------------------------------------------------------------------
 
+/** One directory entry, reduced to what reconciliation needs. */
+export interface ListedEntry {
+  readonly name: string;
+  readonly isDirectory: boolean;
+}
+
+export interface UnwatchedEntries {
+  /** Every unknown file, including those inside unknown directories. */
+  readonly files: readonly string[];
+  /** Every unknown directory, at any depth. */
+  readonly directories: readonly string[];
+  /**
+   * The unknown entries whose parent the watcher already knows: handing these to
+   * the watcher is enough, because it descends into a directory by itself.
+   */
+  readonly roots: readonly string[];
+  /** Directories that could not be listed (vanished, EACCES); the rest was still scanned. */
+  readonly failures: ReadonlyArray<{ readonly directory: string; readonly error: unknown }>;
+}
+
+export interface FindUnwatchedInput {
+  /** chokidar's `getWatched()`: absolute directory -> names of its children, files and directories alike. */
+  readonly watched: Readonly<Record<string, readonly string[]>>;
+  readonly projectRoot: string;
+  readonly listDirectory: (directory: string) => Promise<readonly ListedEntry[]>;
+  /** The same predicate the watcher was constructed with, applied to files and directories. */
+  readonly isIgnored: (absPath: string) => boolean;
+  /** Checked between directories, so a closed watcher stops walking a large tree. */
+  readonly signal?: AbortSignal;
+}
+
+function isInsideRoot(projectRoot: string, directory: string): boolean {
+  const rel = relative(projectRoot, directory);
+  return rel === '' || (!rel.startsWith('..') && !rel.startsWith('/'));
+}
+
+/**
+ * Finds what is on disk but unknown to the watcher (D067). Pure over its inputs:
+ * `watched` is a snapshot and `listDirectory` is the only I/O.
+ *
+ * Only directories at or under `projectRoot` are listed: chokidar records the root
+ * itself as a child of the root's parent, and that parent is not ours to scan.
+ * A file the watcher learns about between the snapshot and the listing is reported
+ * too; that is a redundant notification, which the incremental reindex absorbs.
+ * Symbolic links are listed as files and never followed, so a link cycle cannot loop.
+ */
+export async function findUnwatchedEntries(input: FindUnwatchedInput): Promise<UnwatchedEntries> {
+  const files: string[] = [];
+  const directories: string[] = [];
+  const roots: string[] = [];
+  const failures: Array<{ directory: string; error: unknown }> = [];
+
+  const list = async (directory: string): Promise<readonly ListedEntry[]> => {
+    try {
+      return await input.listDirectory(directory);
+    } catch (error) {
+      failures.push({ directory, error });
+      return [];
+    }
+  };
+
+  // Everything below an unknown directory is unknown too, so it is walked in full.
+  const walkUnknown = async (directory: string): Promise<void> => {
+    if (input.signal?.aborted === true) return;
+    for (const entry of await list(directory)) {
+      const abs = join(directory, entry.name);
+      if (input.isIgnored(abs)) continue;
+      if (entry.isDirectory) {
+        directories.push(abs);
+        await walkUnknown(abs);
+      } else {
+        files.push(abs);
+      }
+    }
+  };
+
+  for (const [directory, children] of Object.entries(input.watched)) {
+    if (input.signal?.aborted === true) break;
+    if (!isInsideRoot(input.projectRoot, directory)) continue;
+    const known = new Set(children);
+    for (const entry of await list(directory)) {
+      if (known.has(entry.name)) continue;
+      const abs = join(directory, entry.name);
+      if (input.isIgnored(abs)) continue;
+      roots.push(abs);
+      if (entry.isDirectory) {
+        directories.push(abs);
+        await walkUnknown(abs);
+      } else {
+        files.push(abs);
+      }
+    }
+  }
+
+  return { files, directories, roots, failures };
+}
+
+async function listDirectoryOnDisk(directory: string): Promise<readonly ListedEntry[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  return entries.map((e) => ({ name: e.name, isDirectory: e.isDirectory() }));
+}
+
+/** Resolves true after `ms`, or false at once if `signal` aborts first. */
+function delay(ms: number, signal: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (signal.aborted) { resolve(false); return; }
+    const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(true); }, ms);
+    const onAbort = (): void => { clearTimeout(timer); resolve(false); };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/** The members of chokidar's `FSWatcher` that `startWatchMode` uses. */
+export interface FsWatcher {
+  onFileEvent(event: 'add' | 'change' | 'unlink', listener: (path: string) => void): void;
+  onReady(listener: () => void): void;
+  onError(listener: (err: unknown) => void): void;
+  getWatched(): Record<string, string[]>;
+  add(paths: readonly string[]): unknown;
+  close(): Promise<void>;
+}
+
+export interface FsWatcherOptions {
+  readonly ignoreInitial: true;
+  readonly ignored: (path: string) => boolean;
+}
+
+export type FsWatcherFactory = (root: string, options: FsWatcherOptions) => FsWatcher;
+
 export interface WatchHandle {
   close(): Promise<void>;
 }
@@ -145,8 +275,22 @@ export interface StartWatchModeOptions {
   readonly runBatch: (paths: readonly string[]) => Promise<void>;
   readonly onWarn: (message: string) => void;
   /**
-   * Called once, when chokidar has finished its initial scan and is actually
-   * delivering events.
+   * Called once, after chokidar's initial scan, a settle period of `settleMs`, and
+   * one reconciliation pass over the directories chokidar is watching (D067).
+   * It means: every file that existed when the pass ran has been accounted for
+   * (queued for reindex if chokidar had not seen it), and the OS watch has had
+   * `settleMs` to go live. It is never called after `close()`.
+   *
+   * What it does not mean: chokidar's own `ready` fires before the OS watch is
+   * delivering, and a file created in that gap produces no event at all. The
+   * reconciliation pass recovers files created up to the moment it ran; a watch
+   * that goes live later than `settleMs` after `ready` is still a gap, and nothing
+   * here proves liveness. Each directory has its own OS watch, so a sentinel file
+   * would prove one directory only.
+   *
+   * Before D067 this fired straight from chokidar's `ready`, and under CPU load 12
+   * of 550 files written immediately after it were lost, against 0 of 400 written
+   * 300 ms after it.
    *
    * The watcher starts AFTER `serve` accepts MCP connections, and it is
    * constructed with `ignoreInitial: true` — correct, since the startup ladder
@@ -162,7 +306,27 @@ export interface StartWatchModeOptions {
   readonly onReady?: () => void;
   /** Override for tests; production default 500ms. */
   readonly debounceMs?: number;
+  /**
+   * Wait between chokidar's `ready` and the reconciliation pass; production
+   * default 1000 ms. Measured under load (D067): 0 of 400 files lost when written
+   * 300 ms after `ready`; 1000 ms is a margin over that, not a measured bound.
+   */
+  readonly settleMs?: number;
+  /** Test seam; production uses chokidar. */
+  readonly watcherFactory?: FsWatcherFactory;
 }
+
+const defaultWatcherFactory: FsWatcherFactory = (root, opts) => {
+  const fsw = chokidarWatch(root, opts);
+  return {
+    onFileEvent: (event, listener) => { fsw.on(event, listener); },
+    onReady: (listener) => { fsw.on('ready', listener); },
+    onError: (listener) => { fsw.on('error', listener); },
+    getWatched: () => fsw.getWatched(),
+    add: (paths) => fsw.add([...paths]),
+    close: () => fsw.close(),
+  };
+};
 
 /**
  * Start `--watch` mode: a chokidar watcher over the project feeding the
@@ -184,36 +348,83 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
     onWarn: options.onWarn,
   });
 
-  const watcher = chokidarWatch(config.resolved_project_root, {
+  // Prune ignored subtrees at the directory level so chokidar never descends
+  // into node_modules/ or the state dir. Files are re-checked (with the
+  // extension allowlist) in shouldWatchPath; `rel + '/'` lets patterns like
+  // `**/node_modules/**` match the directory itself, not just its contents.
+  // Shared with reconciliation so both agree on what is out of scope.
+  const isIgnored = (path: string): boolean => {
+    const abs = resolve(path);
+    if (abs === filter.stateDir || abs.startsWith(`${filter.stateDir}/`)) return true;
+    const rel = relative(filter.projectRoot, abs);
+    if (rel === '' || rel.startsWith('..')) return false;
+    return filter.excludeRegexes.some((rx) => rx.test(rel) || rx.test(`${rel}/`));
+  };
+
+  const watcher = (options.watcherFactory ?? defaultWatcherFactory)(config.resolved_project_root, {
     // The startup ladder already reindexed — only future changes matter.
     ignoreInitial: true,
-    // Prune ignored subtrees at the directory level so chokidar never descends
-    // into node_modules/ or the state dir. Files are re-checked (with the
-    // extension allowlist) in shouldWatchPath; `rel + '/'` lets patterns like
-    // `**/node_modules/**` match the directory itself, not just its contents.
-    ignored: (path: string) => {
-      const abs = resolve(path);
-      if (abs === filter.stateDir || abs.startsWith(`${filter.stateDir}/`)) return true;
-      const rel = relative(filter.projectRoot, abs);
-      if (rel === '' || rel.startsWith('..')) return false;
-      return filter.excludeRegexes.some((rx) => rx.test(rel) || rx.test(`${rel}/`));
-    },
+    ignored: isIgnored,
   });
+
+  // Aborted by `close()`; cancels the settle wait and the reconciliation walk.
+  const closing = new AbortController();
+
+  const reconcile = async (): Promise<void> => {
+    let found: UnwatchedEntries;
+    try {
+      found = await findUnwatchedEntries({
+        watched: watcher.getWatched(),
+        projectRoot: filter.projectRoot,
+        listDirectory: listDirectoryOnDisk,
+        isIgnored,
+        signal: closing.signal,
+      });
+    } catch (err) {
+      options.onWarn(`[mast] watch: reconciliation failed (continuing): ${String(err)}`);
+      return;
+    }
+    if (closing.signal.aborted) return;
+    for (const failure of found.failures) {
+      options.onWarn(
+        `[mast] watch: reconciliation could not list ${failure.directory} (continuing): ${String(failure.error)}`,
+      );
+    }
+    for (const file of found.files) {
+      if (shouldWatchPath(filter, file)) scheduler.notify(file);
+    }
+    // `add` under `ignoreInitial: true` emits no `add` events (chokidar handler.js:
+    // `_addToNodeFs(path, !_internal, ...)` makes this an initial add), so the files
+    // notified above are not delivered twice. It is what makes later changes inside
+    // a missed directory visible.
+    if (found.roots.length > 0) watcher.add(found.roots);
+  };
+
+  const announceReadiness = async (): Promise<void> => {
+    if (!(await delay(options.settleMs ?? 1000, closing.signal))) return;
+    await reconcile();
+    if (closing.signal.aborted) return;
+    options.onReady?.();
+  };
 
   // `unlink` feeds the same incremental run: deleted files are cleaned up by
   // the index run's manifest diff (removeDeletedFiles), not reimplemented here.
-  watcher.on('add', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
-  watcher.on('change', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
-  watcher.on('unlink', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
-  // Fires after the initial scan completes; from here on, a created file
-  // produces an `add`. A construction failure (EMFILE, permissions) throws out
-  // of `chokidarWatch` above and never reaches this line, so `onReady` cannot
-  // announce a watcher that failed to start — the caller's catch handles that
-  // case. Handler registration order is NOT what provides that guarantee, and a
-  // runtime `error` after a successful scan does not un-fire `ready`: this
-  // signal means "the initial scan finished", not "the watcher is healthy".
-  watcher.on('ready', () => { options.onReady?.(); });
-  watcher.on('error', (err) => {
+  watcher.onFileEvent('add', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
+  watcher.onFileEvent('change', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
+  watcher.onFileEvent('unlink', (path) => { if (shouldWatchPath(filter, resolve(path))) scheduler.notify(path); });
+  // chokidar's `ready` only says its initial scan finished; the OS watch may not be
+  // delivering yet, and a file created in that gap fires no event (D067). So
+  // readiness is announced after a settle period and a reconciliation pass, see
+  // `onReady`. A construction failure (EMFILE, permissions) throws out of the
+  // factory above and never reaches this line, so `onReady` cannot announce a
+  // watcher that failed to start. A runtime `error` after a successful scan does
+  // not un-fire it: the signal is not "the watcher is healthy".
+  watcher.onReady(() => {
+    announceReadiness().catch((err: unknown) => {
+      options.onWarn(`[mast] watch: readiness announcement failed: ${String(err)}`);
+    });
+  });
+  watcher.onError((err) => {
     // Watcher errors (EMFILE, EPERM, …) degrade to no-watch; JIT staleness
     // handling keeps reads correct, so serving continues.
     options.onWarn(`[mast] watch: watcher error (continuing without event): ${String(err)}`);
@@ -221,6 +432,7 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
 
   return {
     close: async () => {
+      closing.abort();
       scheduler.close();
       await watcher.close();
     },

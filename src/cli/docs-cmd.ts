@@ -18,7 +18,7 @@ export class DocsError extends Error {}
 
 // `dist/cli/` and `src/cli/` both sit two levels below the package root, so this
 // resolves identically under vitest and in the published tarball.
-const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+export const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export interface DocTopic {
   readonly name: string;
@@ -30,6 +30,7 @@ export const DOC_TOPICS: readonly DocTopic[] = [
   { name: 'readme', file: 'README.md',     summary: 'Install, quick start, CLI and MCP tool reference' },
   { name: 'spec',   file: 'MAST_SPEC.md',  summary: 'Full behavioural specification — schemas, tool contracts, invariants' },
   { name: 'skill',  file: 'assets/skill.md', summary: 'The instructions to paste into an agent prompt or skill file' },
+  { name: 'signals', file: 'assets/signals.md', summary: 'The staleness, truncation and emptiness signals on an answer, and how to read them' },
 ];
 
 export function readDoc(name: string): string {

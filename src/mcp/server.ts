@@ -12,6 +12,8 @@ import { bootstrapState } from './startup.js';
 import type { AppContext } from './context.js';
 import { createFreshnessProbe, type FreshnessProbe } from './freshness-probe.js';
 import { registerAllTools } from './register-tools.js';
+import { CLI_VERSION } from '../cli/version.js';
+import { SERVER_INSTRUCTIONS } from './instructions.js';
 
 // ---------------------------------------------------------------------------
 // M6 Part A (eval/GITNEXUS_COMPARISON.md §13.8 item 4): refuse to serve only
@@ -26,6 +28,19 @@ import { registerAllTools } from './register-tools.js';
  * failure mode.
  */
 export class NeverIndexedError extends Error {}
+
+/**
+ * Constructs the MCP server with its handshake identity. Split from `serve` so the
+ * `initialize` result can be tested without opening SQLite or stdio. The version comes
+ * from the manifest, not a literal (shape S-05); `instructions` is what a client shows
+ * the model before it has chosen a tool.
+ */
+export function createMastServer(): McpServer {
+  return new McpServer(
+    { name: 'mast', version: CLI_VERSION },
+    { instructions: SERVER_INSTRUCTIONS },
+  );
+}
 
 /**
  * True when `config.resolved_state_dir` has never completed an index run:
@@ -211,7 +226,7 @@ export async function serve(options: ServeOptions): Promise<void> {
     freshness,
   };
 
-  const server = new McpServer({ name: 'mast', version: '0.1.0' });
+  const server = createMastServer();
 
   registerAllTools(server, ctx);
 
@@ -241,9 +256,11 @@ export async function serve(options: ServeOptions): Promise<void> {
         // always did: `startWatchMode`'s EMFILE degradation writes a warning,
         // so before this line silence meant "watching", "not watching yet" and
         // "watcher failed to start" alike, and an operator could not tell which
-        // (D061). Emitted once, after chokidar's initial scan — files created
-        // before it are treated as pre-existing and fire no event, so this is
-        // the point from which a change is guaranteed to be seen.
+        // (D061). Emitted once, after chokidar's initial scan, a settle period
+        // and a reconciliation pass (D067): files created before the pass are
+        // queued for reindex, and the OS watch has had the settle period to go
+        // live. It is not a guarantee: a watch that goes live later than that is
+        // still a gap, and nothing proves liveness.
         onReady: () => process.stderr.write('[mast] watch: watching for changes\n'),
       });
     } catch (err) {

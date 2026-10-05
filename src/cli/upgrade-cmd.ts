@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, isAbsolute } from 'node:path';
 import type { Command } from 'commander';
 import { CLI_VERSION, PACKAGE_NAME } from './version.js';
+import { homedir } from 'node:os';
+import { findInstalledArtifacts, readFileOrNull, type InstalledArtifacts } from './installed-artifacts.js';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../store/config.js';
 
 /**
@@ -34,6 +36,8 @@ export interface UpgradeFacts {
   /** Schema recorded in the user's index, or `null` if never indexed. */
   readonly indexedSchema: string | null;
   readonly chunkCount: number | null;
+  /** What of mast's hooks, rules files and skill blocks is installed here and under the user's home. */
+  readonly installed: InstalledArtifacts;
 }
 
 /** Semver compare, prerelease-aware. Returns <0, 0, or >0. */
@@ -99,7 +103,30 @@ export function buildUpgradeReport(f: UpgradeFacts): string {
       `The next \`mast serve\` or \`mast index\` will discard it and reindex ${size} from scratch.`,
       'Nothing is lost that cannot be rebuilt — the index is derived state — but budget the time.', '');
   }
+  out.push(...afterUpgradingLines(f.installed));
   return out.join('\n').trimEnd();
+}
+
+const SETUP_ORDER: readonly string[] = ['claude', 'cursor', 'vscode', 'windsurf', 'zed'];
+
+/**
+ * Hooks and rules files are written by a specific version, and this binary cannot tell what
+ * the next one would write. So the report names the commands that can: `--check` exits 1 on
+ * a file that differs from what the installed version would write.
+ */
+function afterUpgradingLines(i: InstalledArtifacts): string[] {
+  const projectHarnesses = new Set<string>([...i.projectHooks, ...i.rulesHarnesses, ...(i.zedOnlyBlockFiles.length > 0 ? ['zed'] : [])]);
+  const commands: string[] = [
+    ...SETUP_ORDER.filter((h) => projectHarnesses.has(h)).map((h) => `  mast setup ${h} --check`),
+    ...SETUP_ORDER.filter((h) => i.globalHooks.some((g) => g === h)).map((h) => `  mast setup ${h} --global --check`),
+    ...(i.skillBlockFiles.length > 0 ? [`  mast skill --install        # refreshes the block in ${i.skillBlockFiles.join(', ')}`] : []),
+  ];
+  if (commands.length === 0) return [];
+  return [
+    'After upgrading, from the project root, re-check what mast installed earlier:',
+    ...commands,
+    'A --check that exits 1 means that file no longer matches; run the same command without --check to update it.', '',
+  ];
 }
 
 /** Registry lookup, injected so tests never depend on the network. */
@@ -128,7 +155,7 @@ function detectPackageManager(): PackageManager {
 }
 
 export async function gatherUpgradeFacts(
-  options: { path?: string; stateDir?: string } = {},
+  options: { path?: string; stateDir?: string; home: string },
   lookup: LatestVersionLookup = fetchLatestFromNpm,
 ): Promise<UpgradeFacts> {
   const config = resolveConfig({ projectRoot: options.path, stateDirOverride: options.stateDir });
@@ -150,17 +177,18 @@ export async function gatherUpgradeFacts(
     currentSchema: CURRENT_SCHEMA_VERSION,
     indexedSchema,
     chunkCount,
+    installed: findInstalledArtifacts(config.resolved_project_root, options.home, readFileOrNull),
   };
 }
 
 export function registerUpgradeCommand(program: Command): void {
   program
     .command('upgrade [path]')
-    .description('Check for a newer release and print how to install it, including any reindex it will cost')
+    .description('Check for a newer release and print how to install it, including any reindex it will cost and any installed hooks to re-check')
     .option('--state-dir <dir>', 'State directory')
     .action(async (path: string | undefined, opts: { stateDir?: string }) => {
       try {
-        process.stdout.write(buildUpgradeReport(await gatherUpgradeFacts({ path, stateDir: opts.stateDir })) + '\n');
+        process.stdout.write(buildUpgradeReport(await gatherUpgradeFacts({ path, stateDir: opts.stateDir, home: homedir() })) + '\n');
       } catch (err) {
         process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
         process.exitCode = 1;
