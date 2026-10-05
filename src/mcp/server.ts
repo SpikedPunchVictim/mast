@@ -256,9 +256,11 @@ export async function serve(options: ServeOptions): Promise<void> {
         // always did: `startWatchMode`'s EMFILE degradation writes a warning,
         // so before this line silence meant "watching", "not watching yet" and
         // "watcher failed to start" alike, and an operator could not tell which
-        // (D061). Emitted once, after chokidar's initial scan — files created
-        // before it are treated as pre-existing and fire no event, so this is
-        // the point from which a change is guaranteed to be seen.
+        // (D061). Emitted once, after chokidar's initial scan, a settle period
+        // and a reconciliation pass (D067): files created before the pass are
+        // queued for reindex, and the OS watch has had the settle period to go
+        // live. It is not a guarantee: a watch that goes live later than that is
+        // still a gap, and nothing proves liveness.
         onReady: () => process.stderr.write('[mast] watch: watching for changes\n'),
       });
     } catch (err) {
