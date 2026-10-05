@@ -158,7 +158,9 @@ Each stage is test-first, ends on `pnpm gate`, and is small enough to review who
   `node_modules/.bin/mast` for Cursor and VS Code; a source checkout writes an absolute
   `node "<dist/cli/index.js>"`. Claude Code documents the variable and Cursor documents that
   project hooks resolve from the project root. VS Code documents no working directory, so
-  its relative spelling is a guess. **Measured for Claude Code only, 2026-10-04**, with the
+  its relative spelling is a guess. Since D070 the project-dependency path is the
+  `node_modules/.bin/mast` beside the `node_modules` the build runs out of, which is not
+  always the project root's. **Measured for Claude Code only, 2026-10-04**, with the
   source-checkout spelling: after `mast setup claude` in this repo, a headless
   `claude -p` session reported a `SessionStart` hook response carrying the envelope, and
   the model quoted back both the primer and the search reminder it received around a Grep

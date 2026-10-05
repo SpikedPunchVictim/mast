@@ -382,7 +382,7 @@ itself have to admit the key) — the same rung, the same file.
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004, D023, D047. **Rung**: brief.
+**Instances**: D002, D004, D023, D047, D070. **Rung**: brief.
 
 The first three S0s in this ledger share it, and D047 — filed 2026-09-01, and the first slash-terminated import specifier any fixture in this package has ever contained — is the fourth. (The ledger now holds ten S0s; the six from the 2026-08-20 bug hunt have not been assessed against this shape.) D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,

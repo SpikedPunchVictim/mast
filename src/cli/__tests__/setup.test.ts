@@ -268,6 +268,26 @@ describe('mast setup claude', () => {
     expect(sb.err.join('\n')).toContain('Install mast globally');
   });
 
+  it('finds a project dependency installed below the project root, and --check then passes', () => {
+    const nested = join(sb.root, 'typescript', 'node_modules');
+    put(join(nested, '.bin', 'mast'), '');
+    const env = { installKind: 'local' as const, cliEntry: join(nested, '@spikedpunch', 'mast', 'dist', 'cli', 'index.js') };
+
+    const installed = sb.run('claude', {}, env);
+    const checked = sb.run('claude', { check: true }, env);
+
+    expect({ installed, checked }).toEqual({ installed: 0, checked: 0 });
+    expect(sb.read(file)).toContain('\\"${CLAUDE_PROJECT_DIR}\\"/typescript/node_modules/.bin/mast hook claude search');
+  });
+
+  it('names every place it looked when a project dependency has no binary', () => {
+    const env = { installKind: 'local' as const, cliEntry: join(sb.root, 'typescript', 'node_modules', '@spikedpunch', 'mast', 'dist', 'cli', 'index.js') };
+
+    sb.run('claude', {}, env);
+
+    expect(sb.err.join('\n')).toContain(join('typescript', 'node_modules', '.bin', 'mast'));
+  });
+
   it('writes the local-install command and fails when node_modules/.bin/mast is absent', () => {
     expect(sb.run('claude', {}, { installKind: 'local' })).toBe(1);
     expect(existsSync(file)).toBe(false);
