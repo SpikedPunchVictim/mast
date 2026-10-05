@@ -97,8 +97,12 @@ database: an index exists at the resolved state directory; the search is not sco
 nothing. A reminder to use an index that is absent, or for a Python search, teaches the model
 to ignore the reminder.
 
-It is one line. It repeats on every matching call; whether repeating helps or habituates is
-part of what §"What this does not claim" leaves unmeasured.
+It is one line. It repeats on every matching call. **Decided by the maintainer on 2026-10-04,
+after the stages shipped:** every call, not once per session or throttled. The hook stays
+stateless (no marker file, nothing written on the search path), and a once-per-session
+reminder would be silent after compaction, the moment the rule is most likely to have been
+lost. Whether repeating helps or habituates is part of what §"What this does not claim"
+leaves unmeasured; this is a choice of default, not a finding.
 
 ### 5. The hook must not pay CLI startup
 
