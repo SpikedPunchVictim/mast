@@ -122,6 +122,21 @@ Full results: `spikes/sN-*/RESULTS.md`.
    incremental run. Any `FINDINGS.md` figure that depends on either (edge counts, the
    "O(changed file)" claim, the 379 ms comparison) needs an ADR 010 registration before it is
    re-measured. Which figures are affected has not been enumerated yet.
+
+   Enumerated 2026-10-07, by reading `FINDINGS.md` against what this branch changed. All of
+   it is inferred from the code and the spikes; none of these figures has been re-measured.
+
+   | Published figure | Where | Why it moves |
+   |---|---|---|
+   | `edge_count` and `potential_call_count` on the nine n8n tiers (255 journal rows), and the edges/chunk row (.522 to .661) | §1 table, §1.1, §2.3 | Pass 2 in three stages finds edges the walk order missed (S1: 1,939 on whole n8n); evidence-only structural and call edges remove others. A full index of n8n held 53,681 edges before and 55,610 after (S1, S8) |
+   | The edges-phase time, ms/edge, and the post-fix exponent b = 1.0184 | §2.3 | Named re-exports are now resolved to a fixed point before the other edges (S1's own loop needed 3 passes on n8n and a fourth to confirm; the shipped loop was not counted). Cost and scaling of the phase are unmeasured since |
+   | vscode: 174,844 edges, 124,878 ms, edges +21.7% against projection | §2.2 | The same two causes |
+   | "Incremental re-index is now O(changed file)" | §2.4, and the matching row of §3 | An incremental run now also resolves the files that hold an edge into, or import a changed name from, each changed file. S8: one comment on n8n's package barrel resolves 565 files in 3.3 to 3.6 s. The cost is the changed files plus their dependents, capped at 2 s on background runs only. Separately, the claim did not hold for markdown and chunkless files until M6 (D082) |
+   | E1-SCAN's Gate C, which compares `edge_count` and `potential_call_count` between arms | `eval/e1-scan-score.mjs:26` | Not a published figure, but any E1 instrument re-run against this build is compared with journals written by the old one |
+
+   Not affected: the 384 ms projection and the 379 ms figure in §2.4 and §3 are records of the
+   code before the rowid block, and stay as history. Not checked: whether any §2.5 retrieval
+   figure depends on edges.
 4. **Severity.** D081, D083, D084 and D085 are filed S1. By the ledger's own definition (a
    confident answer that is silently incomplete, which the caller cannot tell) they read as S0.
 
@@ -165,7 +180,7 @@ through; items are ticked here as they land.
       printed on failure.
 - [x] **T11. D082.** A row planted outside a file's FTS block survives a re-write of that file
       (fails while the code scans); an empty, non-empty, empty sequence.
-- [ ] **T12. Replay as a standing check.** The S2 replay, moved to `eval/` with a results
+- [x] **T12. Replay as a standing check.** The S2 replay, moved to `eval/` with a results
       writer entry, run against this repository's own history with the pass condition "nothing
       missing against a full index". Not part of `pnpm gate`; run before a release.
 
@@ -198,7 +213,7 @@ are all of that kind. These tests compare a full index against edges written out
       edge list is committed beside it and checked by T14 after a full index, after an
       incremental run over an edit (with T1), and for `mast_callers` and `mast_implementors`.
       A later resolver defect adds its shape here.
-- [ ] **T12, second condition.** The replay also reports, for the final tree, import call
+- [x] **T12, second condition.** The replay also reports, for the final tree, import call
       records and structural records whose imported name is not found, so a resolver gap
       shows as a number that moves instead of as silence.
 
@@ -333,8 +348,10 @@ Each step ends with `pnpm gate`.
 
 ## Not known
 
-- Whether M3a plus M3b reach zero difference on the replays. S8 reached zero on one
-  hand-made sequence of six edits; T10 and T12 are still the proof.
+- Answered 2026-10-07 by T12 (`eval/replay-check.mjs`, results in `eval/results/replay-check-*.json`):
+  the replays reach zero difference. n8n, 200 commits: 108,281 lines on each side, 0 missing,
+  0 extra. This repository, 100 commits: 1,222 lines, 0 and 0. With one repair line removed
+  (mutant E01) a 40-commit replay of this repository fails with 79 missing lines.
 - How narrow M3b can be made. Counting only importers of the names that actually changed,
   rather than of any name the file declares, was not measured.
 - Whether S6's result holds on a second corpus. mast has 13 such records and does not

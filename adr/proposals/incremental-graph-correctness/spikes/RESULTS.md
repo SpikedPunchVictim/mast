@@ -28,6 +28,7 @@ other load; where load matters the section says so.
 | How many files does a real commit write? | n8n median 2, p90 15, max 93; mast 2, 9, 39 | S2 |
 | How often does a modification leave names and re-exports alone? | n8n 71.7%, mast 74.4% | S4 |
 | How many files hold an edge into one file? | n8n p99 7, max 1,115; mast max 11 | S3 |
+| How far does the same replay drift after the fixes? | Not at all: n8n 0 of 108,281 lines differ after 200 commits; mast 0 of 1,222 after 100 | T12, `eval/replay-check.mjs` |
 | How many files import one file's names through barrels? | n8n p99 37, max 5,011; following barrels by file instead: p99 1,881 | S3 |
 | What does resolving one file again cost? | 3 to 4 ms by re-parse, 0.3 to 0.8 ms from records | S5 |
 | Is the whole-graph name guess for `implements` / `extends` ever right? | n8n: wrong 27 of 27; unique-name guess wrong 21 of 21 | S6 |
@@ -323,11 +324,44 @@ All 18 n8n names are behind `export * as ns from` lines, which mast stores as pl
 star when TypeScript resolves it to the file behind the plain star. n8n has 137 `export * as`
 lines in 57 files and 820 `export * from` lines (text search of tracked non-test source).
 
+## T12 — the replay as a standing check (`eval/replay-check.mjs`, 2026-10-07)
+
+Not a spike: an instrument in `eval/`, results in `eval/results/replay-check-<name>.json`. Built
+CLI from `80168c4`. A line is an edge, a star row or an import row.
+
+| | n8n | mast |
+|---|---|---|
+| Commits replayed | 200 (`f8941b10f2` to `9d9e9bf97e`, the range S2 used) | 100 (`5ba5150` to `80168c4`) |
+| Runs that wrote a file | 144 | 97 |
+| Files written: total, most in one run | 1,119, 93 | 510, 39 |
+| Lines after the replay / in a full index | 108,281 / 108,281 | 1,222 / 1,222 |
+| Missing, extra | 0, 0 | 0, 0 |
+| Stale files, pending repairs after the replay | 0, 0 | 0, 0 |
+
+Positive control: with one repair line removed (S10's mutant E01) a 40-commit replay of this
+repository fails with 79 missing lines.
+
+Imported names on the final tree (a resolver gap shows here as a number that moves):
+
+| | n8n | mast |
+|---|---|---|
+| Import call records, one per file and name | 10,971 | 407 |
+| — edge stored | 6,977 | 270 |
+| — package or unresolved specifier | 3,652 | 136 |
+| — import resolved to a file, no edge | 342 | 1 |
+| `implements` / `extends` records | 3,424 | 21 |
+| — edge stored | 3,048 | 12 |
+| — package or unresolved specifier | 130 | 3 |
+| — import resolved to a file, no edge | 94 | 0 |
+| — no import row lists the name | 152 | 6 |
+
+S6 counted 428 unfound call records on n8n before the D086 fix. mast's one is `sql`, which
+`db.ts` re-exports from a package. Equal graphs do not show that either graph is right.
+
 ## Not measured anywhere above
 
 - A third corpus. mast has one or two star barrels and hid D083 completely.
 - A quiet-machine figure for S11, and for a full n8n index after the fixes.
-- The commit replay after the fixes (T12).
 - Per-save behaviour; a commit is coarser than a save.
 - The watcher path inside `mast serve`, beyond its wiring test.
 - Test and spec files: outside every index here.
