@@ -369,32 +369,24 @@ export async function queryImplementors(
     .selectFrom('edges as e')
     .innerJoin('symbols as s', 's.id', 'e.from_id')
     .innerJoin('files as f', 'f.id', 's.file_id')
-    .select(['s.name as class_name', 'f.path as file_path', 's.line'])
+    .select(['s.id as class_id', 's.name as class_name', 'f.path as file_path', 's.line'])
     .where('e.to_id', 'in', ifaceIds)
     .where('e.edge_type', '=', EdgeType.IMPLEMENTS)
     .execute();
 
-  // For each implementing class, collect its methods via PARENT_OF edges.
+  // For each implementing class, collect its methods via PARENT_OF edges. The
+  // class is the edge's own source row. Looking it up again by name gave two
+  // classes that share a name the first one's methods (D088).
   const results: ImplementorResult[] = [];
   for (const row of rows) {
-    const classSymbol = await db
-      .selectFrom('symbols')
-      .select(['id'])
-      .where('name', '=', row.class_name)
-      .where('kind', '=', 'class')
-      .executeTakeFirst();
-
-    const methods: string[] = [];
-    if (classSymbol !== undefined) {
-      const methodRows = await db
-        .selectFrom('edges as e')
-        .innerJoin('symbols as s', 's.id', 'e.to_id')
-        .select(['s.name'])
-        .where('e.from_id', '=', classSymbol.id)
-        .where('e.edge_type', '=', EdgeType.PARENT_OF)
-        .execute();
-      methods.push(...methodRows.map((m) => m.name));
-    }
+    const methodRows = await db
+      .selectFrom('edges as e')
+      .innerJoin('symbols as s', 's.id', 'e.to_id')
+      .select(['s.name'])
+      .where('e.from_id', '=', row.class_id)
+      .where('e.edge_type', '=', EdgeType.PARENT_OF)
+      .execute();
+    const methods = methodRows.map((m) => m.name);
 
     results.push({
       class_name: row.class_name,

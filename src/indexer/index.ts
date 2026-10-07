@@ -7,7 +7,14 @@ import { initLockMarkers, withLock } from '../store/lock.js';
 import type { LockMetricsSink } from '../store/lockMetrics.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
 import { openDatabase, readPragmaValue, type OpenDatabaseOptions } from '../graph/db.js';
-import { populateFile, insertEdges, insertReExportFiles, removeDeletedFiles } from '../graph/populate.js';
+import {
+  populateFile,
+  insertGraphEdges,
+  removeDeletedFiles,
+  findFilesWithEdgesInto,
+  clearOutgoingEdges,
+  type FileEdgeData,
+} from '../graph/populate.js';
 import type { PopulateFileOptions, WriteSpansMs } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
@@ -313,7 +320,17 @@ export async function runIndex(
   // Deleted-file cleanup — cascade removes symbols/edges/imports/chunks from
   // the graph (one transaction, `removeDeletedFiles`). Its own short lock
   // acquisition, separate from pass 1's per-batch locks.
+  // Files that are not re-written this run but hold an edge or star row into
+  // one that is, or into one that is deleted. Their edges go by cascade with
+  // the write, so each is collected here before the rows disappear and
+  // resolved again in pass 2 (D081). A full run re-writes every file, so it
+  // has none.
+  const edgeHolders = new Set<string>();
+
   await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
+    if (options.incremental) {
+      for (const holder of await findFilesWithEdgesInto(db, deleted)) edgeHolders.add(holder);
+    }
     chunksRemoved += await removeDeletedFiles(db, deleted);
 
     // Full reindex: also purge DB entries for files no longer in the current
@@ -485,6 +502,10 @@ export async function runIndex(
       // still fails to index — it just fails loudly and is correctly
       // classified, instead of silently amputating the file under a WARN and
       // a miscounted `parseErrors`.
+      if (options.incremental) {
+        const aboutToBeWritten = parsed.map((item) => item.entry.relativePath);
+        for (const holder of await findFilesWithEdgesInto(db, aboutToBeWritten)) edgeHolders.add(holder);
+      }
       for (const { entry, result, mtime } of parsed) {
         // `mtime` is the PRE-parse stamp captured in the parse loop above
         // (F12 invariant 1) — carried through untouched, NOT re-stat'd here.
@@ -552,25 +573,47 @@ export async function runIndex(
     phase.write += Date.now() - batchWriteStart;
   }
 
-  // Pass 2: insert edges and star re-export rows now that all files' symbols
-  // and file rows exist (both may reference files indexed later in pass 1).
+  // Pass 2: star re-export rows, then named re-export edges, then every other
+  // edge, now that all files' symbols and file rows exist. The staging is what
+  // makes the result independent of walk order — see `insertGraphEdges`.
   // Batched the same way as pass 1 and for the same reason (F1) — each batch
   // gets its own short lock instead of one lock spanning every file's edges.
   // Safe because ALL of pass 1 (every batch above) has already completed by
-  // the time this loop starts, so every cross-file edge target this run
-  // could produce already exists, independent of how pass 2's own lock
-  // acquisitions are chunked.
-  const edgeEntries = [...edgeDataByFile];
+  // the time this starts, so every cross-file edge target this run could
+  // produce already exists, independent of how pass 2's own lock acquisitions
+  // are chunked.
   const edgesStart = Date.now();
-  for (let i = 0; i < edgeEntries.length; i += LANCE_BATCH) {
-    const batch = edgeEntries.slice(i, i + LANCE_BATCH);
-    await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
-      for (const [filePath, data] of batch) {
-        await insertEdges(db, filePath, data.edges);
-        await insertReExportFiles(db, filePath, data.starReExports);
-      }
-    });
+  const inLock = <T>(work: () => Promise<T>): Promise<T> =>
+    withLock(config.resolved_state_dir, 'structure', lockOptions, work);
+  const edgeData: FileEdgeData[] = [...edgeDataByFile].map(([filePath, data]) => ({
+    filePath,
+    edges: data.edges,
+    starReExports: data.starReExports,
+  }));
+
+  // The holders collected above are parsed again for their edge records and
+  // nothing else: their own rows are current, so they are not re-written and
+  // keep their ids. A holder this run wrote anyway, or failed on, is skipped —
+  // the first has its records in `edgeDataByFile` already, the second will be
+  // retried whole.
+  const walkedByPath = new Map(currentFiles.map((entry) => [entry.relativePath, entry]));
+  for (const holderPath of edgeHolders) {
+    const entry = walkedByPath.get(holderPath);
+    if (entry === undefined || edgeDataByFile.has(holderPath) || failedPaths.has(holderPath)) continue;
+    let records: ReturnType<typeof extractFile>;
+    try {
+      records = doExtract(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth);
+    } catch (err) {
+      // Its stored edges into files this run did not write are still right, so
+      // they are left in place; only the ones the cascade took stay missing.
+      process.stderr.write(`[mast] WARN: could not re-read ${entry.path} to restore its edges: ${String(err)}\n`);
+      continue;
+    }
+    await inLock(() => clearOutgoingEdges(db, holderPath));
+    edgeData.push({ filePath: holderPath, edges: records.edges, starReExports: records.starReExports });
   }
+
+  await insertGraphEdges(db, edgeData, inLock);
 
   phase.edges = Date.now() - edgesStart;
   const finaliseStart = Date.now();

@@ -130,7 +130,7 @@ Full results: `spikes/sN-*/RESULTS.md`.
 Written before any fix, each seen failing against current code. This is the list to work
 through; items are ticked here as they land.
 
-- [ ] **T1. Equivalence helper.** `expectGraphEqualsFullIndex(projectDir)`: dumps edges, star
+- [x] **T1. Equivalence helper.** `expectGraphEqualsFullIndex(projectDir)`: dumps edges, star
       rows and imports by name, builds a fresh full index of the same tree in a second state
       directory, and compares. One helper, used by every test below.
 - [ ] **T2. Equivalence table, incremental run.** One row per scenario: build, index, edit,
@@ -141,15 +141,15 @@ through; items are ticked here as they land.
       barrel. Each later edge defect adds a row.
 - [ ] **T3. The same table through the query-time path.** The edit is followed by a read-tool
       refresh of the edited file, then T1; then an incremental run, then T1 again.
-- [ ] **T4. Order independence.** The same project under file names that sort the caller before
+- [x] **T4. Order independence.** The same project under file names that sort the caller before
       and after the barrel; named re-exports chained three deep in the adverse order; a star and
       a named re-export mixed. Edges equal in every ordering.
-- [ ] **T5. Same name in two files (D085).** Two classes with one name each keep their own
+- [x] **T5. Same name in two files (D085).** Two classes with one name each keep their own
       members; `implements` follows the import; the answer is the same after either file is
       re-written.
-- [ ] **T6. Checker verdicts.** A verdict about a re-written file's symbols does not survive
+- [x] **T6. Checker verdicts.** A verdict about a re-written file's symbols does not survive
       the re-write, including when other files' edges into it are resolved again.
-- [ ] **T7. Tool answers.** `mast_callers`, `mast_implementors` and `mast_rename_impact` give
+- [x] **T7. Tool answers.** `mast_callers`, `mast_implementors` and `mast_rename_impact` give
       the same answer before and after a body edit of the target file. One test per tool: this
       is the layer a user sees.
 - [ ] **T8. Watcher path.** With the server's watcher running, an edit to a called file leaves
@@ -177,22 +177,22 @@ are all of that kind. These tests compare a full index against edges written out
       status` and `mast_status` report it and say the index is not fresh; `mast_callers`,
       `mast_implementors` and `mast_rename_impact` carry it on the response; the next run
       drains it and the signal clears. A run under the cap leaves none.
-- [ ] **T14. Expected-edge helper.** `expectEdges(projectDir, expected)`: the full index's
+- [x] **T14. Expected-edge helper.** `expectEdges(projectDir, expected)`: the full index's
       edges by name must equal a hand-written list, both ways, so a missing edge and an extra
       one both fail. Used by T15 to T17.
-- [ ] **T15. Re-export shapes, full index.** One row per shape, each with a call, an
+- [x] **T15. Re-export shapes, full index.** One row per shape, each with a call, an
       `extends` and an `implements` through it: direct import; named re-export; `export *`;
       a named re-export behind a star (D086); a star behind a named re-export; three deep in
       each mix; `export type { X } from`; a package entry point laid out as n8n's
       (`index.ts` stars `errors/index.ts`, which names `base/user.error.ts`).
-- [ ] **T16. Structural edges without evidence, full index (D085, decision 1).** Each row
+- [x] **T16. Structural edges without evidence, full index (D085, decision 1).** Each row
       expects no edge: `interface X extends Record<string, unknown>` beside a local
       `class Record`; `extends Error` beside a local `class Error`; a base class imported from
       a package beside a local class of that name; `import { A as B }` then `extends B` beside
       an unrelated `B`. And rows that expect the right edge: a class implementing an interface
       whose name a `type` elsewhere also has, listed by `mast_implementors`; two same-named
       classes each keeping their own members.
-- [ ] **T17. A fixture monorepo with a written edge list.** One small committed fixture in
+- [x] **T17. A fixture monorepo with a written edge list.** One small committed fixture in
       the shape that hid these defects: two packages, entry-point barrels, an error hierarchy,
       one interface with several implementors, same names in both packages. Its full expected
       edge list is committed beside it and checked by T14 after a full index, after an
@@ -201,6 +201,21 @@ are all of that kind. These tests compare a full index against edges written out
 - [ ] **T12, second condition.** The replay also reports, for the final tree, import call
       records and structural records whose imported name is not found, so a resolver gap
       shows as a number that moves instead of as silence.
+
+Landed 2026-10-06 (step 2 of the order of work), each seen failing first:
+`src/indexer/__tests__/graph-fixture.ts` (T1, T14), `walk-order.test.ts` (T4),
+`structural-evidence.test.ts` (T5, T16), `reexport-shapes.test.ts` (T15),
+`fixture-monorepo.test.ts` and `fixtures/edge-monorepo/` (T17; its incremental half landed
+with M3a in step 3). Red counts
+before the fixes: T4 5 of 8, T15 15 of 22, T5 and T16 10 of 13, T17 2 of 4. Writing T16 found
+D088 (`mast_implementors` gave two same-named classes the first one's methods), fixed with it.
+
+Step 3, first half, landed 2026-10-07: M3a (`findFilesWithEdgesInto`, `clearOutgoingEdges`,
+and the holder step in `runIndex`), with T2 (`incremental-equivalence.test.ts`, 10 of 11 rows
+red before, 5 after), T6 (`incremental-checker-rows.test.ts`) and T7
+(`mcp/tools/__tests__/answers-after-edit.test.ts`, 3 of 3 red before). T2 is not ticked: its
+five remaining rows are the D084 cases and run under `it.fails` until M3b lands. T13 is not
+started.
 
 Not in this round: the D087 case (a path alias in a package's own `tsconfig.json`) and
 aliased imports resolving to the right target. Their tests are written with their fixes.

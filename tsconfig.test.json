@@ -39,5 +39,14 @@
   // marking it non-exported, and `two-pass-exports.ts` re-exports a type without
   // `export type` because that is the syntax under test. Type-checking them would force
   // edits that destroy what they exist to measure.
-  "exclude": ["node_modules", "dist", "src/ast/extractors/__tests__/fixtures/**"]
+  //
+  // The indexer fixture is a whole sample workspace, copied to a scratch directory and
+  // indexed. Its files import each other by workspace package name, which resolves there
+  // and not here.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/ast/extractors/__tests__/fixtures/**",
+    "src/indexer/__tests__/fixtures/**"
+  ]
 }

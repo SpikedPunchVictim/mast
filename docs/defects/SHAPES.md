@@ -12,7 +12,7 @@ it into the review brief. Copy the questions, not the prose, and not the whole f
 
 ## S-01 — Damage that leaves the exit code alone
 
-**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085. **Rung**: brief, with one instance promoted (below).
+**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085, D088. **Rung**: brief, with one instance promoted (below).
 
 The package's own operating manual calls this the worst class most systems have, and it is the one
 `mast` is structurally most exposed to: an index is a *derived* artifact, so nothing downstream can

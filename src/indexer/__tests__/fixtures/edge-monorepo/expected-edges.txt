@@ -1,0 +1,43 @@
+# One edge per line: TYPE from-file:from-symbol -> to-file:to-symbol
+# Written by hand from the source. Lines starting with # and blank lines are ignored.
+
+# packages/app/src/errors.ts
+EXTENDS packages/app/src/errors.ts:NotFoundError -> packages/core/src/errors/base/user.error.ts:UserError
+PARENT_OF packages/app/src/errors.ts:NotFoundError -> packages/app/src/errors.ts:NotFoundError.status
+PARENT_OF packages/app/src/errors.ts:BaseError -> packages/app/src/errors.ts:BaseError.describe
+
+# packages/app/src/main.ts
+IMPLEMENTS packages/app/src/main.ts:Main -> packages/app/src/handler.ts:Handler
+PARENT_OF packages/app/src/main.ts:Main -> packages/app/src/main.ts:Main.run
+PARENT_OF packages/app/src/main.ts:Main -> packages/app/src/main.ts:Main.read
+POTENTIAL_CALL packages/app/src/main.ts:Main.run -> packages/core/src/logger.ts:createLogger
+POTENTIAL_CALL packages/app/src/main.ts:Main.run -> packages/app/src/main.ts:Main.read
+POTENTIAL_CALL packages/app/src/main.ts:Main.read -> packages/app/src/stores.ts:FileStore.get
+
+# packages/app/src/stores.ts
+IMPLEMENTS packages/app/src/stores.ts:FileStore -> packages/core/src/ports.ts:Store
+IMPLEMENTS packages/app/src/stores.ts:CacheStore -> packages/core/src/ports.ts:Store
+PARENT_OF packages/app/src/stores.ts:FileStore -> packages/app/src/stores.ts:FileStore.get
+PARENT_OF packages/app/src/stores.ts:CacheStore -> packages/app/src/stores.ts:CacheStore.get
+
+# packages/core/src/errors/base/base.error.ts  (extends the built-in Error: no edge)
+PARENT_OF packages/core/src/errors/base/base.error.ts:BaseError -> packages/core/src/errors/base/base.error.ts:BaseError.describe
+
+# packages/core/src/errors/base/user.error.ts
+EXTENDS packages/core/src/errors/base/user.error.ts:UserError -> packages/core/src/errors/base/base.error.ts:BaseError
+PARENT_OF packages/core/src/errors/base/user.error.ts:UserError -> packages/core/src/errors/base/user.error.ts:UserError.hint
+POTENTIAL_CALL packages/core/src/errors/base/user.error.ts:UserError.hint -> packages/core/src/errors/base/base.error.ts:BaseError.describe
+
+# packages/core/src/errors/index.ts
+RE_EXPORTS packages/core/src/errors/index.ts:BaseError -> packages/core/src/errors/base/base.error.ts:BaseError
+RE_EXPORTS packages/core/src/errors/index.ts:UserError -> packages/core/src/errors/base/user.error.ts:UserError
+
+# packages/core/src/index.ts
+RE_EXPORTS packages/core/src/index.ts:createLogger -> packages/core/src/logger.ts:createLogger
+
+# packages/core/src/logger.ts
+POTENTIAL_CALL packages/core/src/logger.ts:createLogger -> packages/core/src/logger.ts:format
+
+# packages/core/src/memory-store.ts
+IMPLEMENTS packages/core/src/memory-store.ts:MemoryStore -> packages/core/src/ports.ts:Store
+PARENT_OF packages/core/src/memory-store.ts:MemoryStore -> packages/core/src/memory-store.ts:MemoryStore.get

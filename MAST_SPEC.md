@@ -2285,6 +2285,25 @@ produces no edge rather than a name-only guess. This closed the sibling of the
 same false-green class for `mast_rename_impact`'s `barrel_exports`
 (IMPLEMENTATION_PLAN_VEXP.md §P, "Sibling false-green").
 
+**Structural edges follow file evidence too, with no fallback (2026-10-06).**
+`PARENT_OF` resolves a member in its class's own file. `IMPLEMENTS` and
+`EXTENDS` resolve the target through the file's own imports, then its own
+declarations. With neither — a built-in such as `Error` or `Record`, a default
+import, an aliased import — no edge is recorded. Before this, all three
+matched the name against the whole graph and took the first row, so the target
+depended on symbol ids (ledger D085).
+
+**A name is found through any mix of star and named re-exports.** A lookup in
+a file tries a declaration there, then a named re-export there, then the files
+its `export *` rows reach, where it accepts a declaration or a named re-export
+(ledger D086). A name the file re-exports by name is not also looked for
+behind a star in the same file.
+
+**Pass 2 is staged, so the graph does not depend on walk order.**
+`insertGraphEdges` writes every file's star rows, then `RE_EXPORTS` edges
+repeated until a round adds none, then every other edge. Written file by file,
+a caller that sorted before its barrel got no edge (ledger D083).
+
 ### 10.3.2 TypeScript-Checker Enrichment Pass (`mast index --checker`)
 
 An **opt-in** CLI pass (`src/graph/checker-resolver.ts`) that uses the real

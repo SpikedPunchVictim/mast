@@ -719,7 +719,20 @@ async function replaceChunksInline(
  * Unresolved names are silently skipped (external or not-yet-indexed).
  */
 export async function insertEdges(db: Db, filePath: string, edges: readonly EdgeRecord[]): Promise<void> {
-  if (edges.length === 0) return;
+  await insertEdgesReportingUnresolved(db, filePath, edges);
+}
+
+/**
+ * `insertEdges`, returning the records that produced no edge. The staged pass
+ * (`insertGraphEdges`) needs them: a `RE_EXPORTS` record whose target is itself
+ * a re-export resolves only once that other edge exists, so it is tried again.
+ */
+async function insertEdgesReportingUnresolved(
+  db: Db,
+  filePath: string,
+  edges: readonly EdgeRecord[],
+): Promise<EdgeRecord[]> {
+  if (edges.length === 0) return [];
 
   const fromNames = [...new Set(edges.map((e) => e.fromName))];
 
@@ -744,36 +757,39 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
   }
   const fromMap = new Map(fromRows.map((r) => [r.name, r.id]));
 
-  // Structural edges (IMPLEMENTS/EXTENDS/PARENT_OF) carry no file evidence at
-  // all — batch-resolve them exactly as before. POTENTIAL_CALL edges are
-  // resolved separately below, file-scoped per §10.3.1's resolution rules.
-  // RE_EXPORTS edges DO carry file evidence (`toResolvedPath`, Task 0) and are
-  // also resolved separately below — they must NOT fall into this bare-name
-  // batch, which is exactly the sibling false-green this fix closes.
-  const structuralEdges = edges.filter((e) => e.edgeType !== 'POTENTIAL_CALL' && e.edgeType !== 'RE_EXPORTS');
-  const structuralToNames = [...new Set(structuralEdges.map((e) => e.toName))];
-  // Same `IN`-list batching as `fromNames` above. Unlike `fromMap`,
-  // `structuralToMap` dedups on a real ambiguity — the SAME name can be
-  // declared in multiple files, so more than one row can come back for one
-  // `toName` even within a single query, and "first row wins" picks among
-  // them. `structuralToNames` is deduped (`Set`), so each name lands in
-  // exactly ONE batch; the dedup loop below therefore sees each name's
-  // candidate rows in the same relative order a single unbatched query would
-  // have returned them, batch-by-batch, preserving `if (!has(name))`'s
-  // first-row-wins semantics exactly.
+  // No `files` row for this file is an invariant violation (pass 1 always
+  // inserts it before pass 2 runs edges). `fromMap` is empty too in that case,
+  // so no record could produce an edge.
+  const fromFile = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();
+  if (fromFile === undefined) return [...edges];
+  // One import index per file, built lazily. `fromFile.id` is invariant across
+  // every loop below, so a per-lookup query would re-read and re-parse
+  // identical rows once per unique name. LAZY rather than eager because most
+  // resolution rules never consult imports at all (`same_file` and
+  // `this_method` are ~76% of resolved call edges on the T8 corpus), and an
+  // eager build would add a query to every file instead of removing them.
+  const imports = fileImportIndexLoader(db, fromFile.id);
+
+  // Structural edges resolve by the evidence the file itself holds, never by a
+  // name match across the graph (D085). A member is declared in its class's own
+  // file. The target of `implements` / `extends` is a name the file imports or
+  // declares; with neither — a built-in such as `Error` or `Record`, a default
+  // or aliased import — there is no edge. A name match there linked 27 such
+  // records on n8n and all 27 were wrong
+  // (adr/proposals/incremental-graph-correctness/spikes/s6-structural-fallback).
+  // Keyed by edge type as well as name: the two rules differ.
+  const structuralKey = (e: EdgeRecord): string => `${e.edgeType === 'PARENT_OF' ? 'member' : 'type'}::${e.toName}`;
   const structuralToMap = new Map<string, number>();
-  if (structuralToNames.length > 0) {
-    for (const nameBatch of chunkValuesForSqlite(structuralToNames)) {
-      const rows = await db
-        .selectFrom('symbols')
-        .select(['id', 'name'])
-        .where('name', 'in', nameBatch)
-        .where('kind', '!=', 'export')
-        .execute();
-      for (const row of rows) {
-        if (!structuralToMap.has(row.name)) structuralToMap.set(row.name, row.id);
-      }
-    }
+  const structuralSeen = new Set<string>();
+  for (const e of edges) {
+    if (e.edgeType === 'POTENTIAL_CALL' || e.edgeType === 'RE_EXPORTS') continue;
+    const key = structuralKey(e);
+    if (structuralSeen.has(key)) continue;
+    structuralSeen.add(key);
+    const targetId = e.edgeType === 'PARENT_OF'
+      ? await resolveSameFileScoped(db, fromFile.id, e.toName)
+      : await resolveQualifiedNameScoped(db, fromFile.id, imports, e.toName, async () => null);
+    if (targetId !== null) structuralToMap.set(key, targetId);
   }
 
   // POTENTIAL_CALL edges: resolve each unique (toName) once, file-scoped by
@@ -790,24 +806,9 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
   }
 
   const callToMap = new Map<string, number>();
-  if (callEdgesByToName.size > 0) {
-    const fromFile = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();
-    // No `files` row for the calling file is an invariant violation (pass 1
-    // always inserts it before pass 2 runs edges) — fromMap would be empty
-    // too in that case, so every edge is dropped downstream regardless.
-    if (fromFile !== undefined) {
-      // One import index per file, built lazily. `fromFile.id` is invariant
-      // across this whole loop, so the old per-call query re-read and re-parsed
-      // identical rows once per unique `toName`. LAZY rather than eager because
-      // most resolution rules never consult imports at all (`same_file` and
-      // `this_method` are ~76% of resolved call edges on the T8 corpus), and an
-      // eager build would add a query to every file instead of removing them.
-      const imports = fileImportIndexLoader(db, fromFile.id);
-      for (const [toName, edge] of callEdgesByToName) {
-        const targetId = await resolveCallTarget(db, fromFile.id, imports, edge.resolution, toName);
-        if (targetId !== null) callToMap.set(toName, targetId);
-      }
-    }
+  for (const [toName, edge] of callEdgesByToName) {
+    const targetId = await resolveCallTarget(db, fromFile.id, imports, edge.resolution, toName);
+    if (targetId !== null) callToMap.set(toName, targetId);
   }
 
   // RE_EXPORTS edges: resolve each unique (toName, toResolvedPath) pair once,
@@ -833,15 +834,18 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
     if (targetId !== null) reExportToMap.set(key, targetId);
   }
 
+  const unresolved: EdgeRecord[] = [];
   const edgeValues = edges.flatMap((edge) => {
     const from_id = fromMap.get(edge.fromName);
-    if (from_id === undefined) return [];
     const to_id = edge.edgeType === 'POTENTIAL_CALL'
       ? callToMap.get(edge.toName)
       : edge.edgeType === 'RE_EXPORTS'
         ? reExportToMap.get(reExportKey(edge))
-        : structuralToMap.get(edge.toName);
-    if (to_id === undefined) return [];
+        : structuralToMap.get(structuralKey(edge));
+    if (from_id === undefined || to_id === undefined) {
+      unresolved.push(edge);
+      return [];
+    }
     return [{
       from_id,
       to_id,
@@ -851,8 +855,6 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
       context: edge.context ?? null,
     }];
   });
-
-  if (edgeValues.length === 0) return;
 
   // Composite PK on (from_id, to_id, edge_type) — ignore duplicates. Batched
   // under the parameter ceiling (Stage 4.5 S1 class survey site 7); a
@@ -867,6 +869,133 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
       .onConflict((oc) => oc.doNothing())
       .execute();
   }
+  return unresolved;
+}
+
+/**
+ * Paths of the files, other than `paths` themselves, that hold an edge or a
+ * star re-export row into one of `paths`.
+ *
+ * Re-writing or deleting a file deletes its rows, and every edge and star row
+ * pointing at them goes with them by cascade. The files that held those edges
+ * are not re-written, so nothing puts the edges back: a body edit to a called
+ * file left it with no callers until the next full index (D081). Call this
+ * BEFORE the write, while the edges still exist, and resolve the returned
+ * files again afterwards (`clearOutgoingEdges`, then `insertGraphEdges`).
+ */
+export async function findFilesWithEdgesInto(db: Db, paths: readonly string[]): Promise<string[]> {
+  const holders = new Set<string>();
+  for (const batch of chunkValuesForSqlite(paths)) {
+    const targets = await db.selectFrom('files').select('id').where('path', 'in', batch).execute();
+    for (const idBatch of chunkValuesForSqlite(targets.map((t) => t.id))) {
+      const byEdge = await db
+        .selectFrom('edges as e')
+        .innerJoin('symbols as to_s', 'to_s.id', 'e.to_id')
+        .innerJoin('symbols as from_s', 'from_s.id', 'e.from_id')
+        .innerJoin('files as from_f', 'from_f.id', 'from_s.file_id')
+        .select('from_f.path')
+        .distinct()
+        .where('to_s.file_id', 'in', idBatch)
+        .execute();
+      const byStar = await db
+        .selectFrom('re_export_files as r')
+        .innerJoin('files as from_f', 'from_f.id', 'r.from_file_id')
+        .select('from_f.path')
+        .where('r.to_file_id', 'in', idBatch)
+        .execute();
+      for (const row of [...byEdge, ...byStar]) holders.add(row.path);
+    }
+  }
+  for (const path of paths) holders.delete(path);
+  return [...holders];
+}
+
+/**
+ * Deletes the edges and star rows `filePath` is the source of, ahead of
+ * resolving its records again. Without the delete, an edge whose target has
+ * since moved would stay beside the new one.
+ *
+ * Checker edges are left: they are written by `mast index --checker`, not from
+ * the file's records, and those into a re-written file are already gone by
+ * cascade along with the verdicts about it.
+ */
+export async function clearOutgoingEdges(db: Db, filePath: string): Promise<void> {
+  const file = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();
+  if (file === undefined) return;
+  await db
+    .deleteFrom('edges')
+    .where('from_id', 'in', (qb) => qb.selectFrom('symbols').select('id').where('file_id', '=', file.id))
+    .where((eb) => eb.or([eb('resolution', 'is', null), eb('resolution', '!=', 'checker')]))
+    .execute();
+  await db.deleteFrom('re_export_files').where('from_file_id', '=', file.id).execute();
+}
+
+/** What pass 2 needs from one file's extraction. */
+export interface FileEdgeData {
+  readonly filePath: string;
+  readonly edges: readonly EdgeRecord[];
+  readonly starReExports: readonly StarReExportRecord[];
+}
+
+/**
+ * Runs `work` for one batch of files. The indexer passes a wrapper that takes
+ * the structure lock, so each batch holds it briefly (F1); the default runs
+ * the work as it is.
+ */
+export type EdgeBatchRunner = (work: () => Promise<void>) => Promise<void>;
+
+const EDGE_BATCH_SIZE = 16;
+
+/**
+ * Pass 2 for a set of files whose symbols are already written: star re-export
+ * rows, then named re-export edges, then every other edge.
+ *
+ * The order is what makes the result independent of the order of `files`
+ * (D083). A call or an `implements` that goes through a barrel resolves by
+ * reading the barrel's star rows and `RE_EXPORTS` edges, so those must all be
+ * in place first. Written file by file instead, a caller that sorted before
+ * its barrel found neither and got no edge: 1,939 edges on n8n, with nothing
+ * reported (adr/proposals/incremental-graph-correctness/spikes/s1-walk-order).
+ *
+ * Named re-exports chain (a barrel re-exporting a barrel), and an outer one
+ * resolves only once the inner one's edge exists. So that stage repeats over
+ * the records still unresolved until a round resolves none. Every round but
+ * the last resolves at least one record, which bounds it.
+ */
+export async function insertGraphEdges(
+  db: Db,
+  files: readonly FileEdgeData[],
+  runBatch: EdgeBatchRunner = (work) => work(),
+): Promise<void> {
+  const inBatches = async <T>(items: readonly T[], each: (item: T) => Promise<void>): Promise<void> => {
+    for (let i = 0; i < items.length; i += EDGE_BATCH_SIZE) {
+      const batch = items.slice(i, i + EDGE_BATCH_SIZE);
+      await runBatch(async () => {
+        for (const item of batch) await each(item);
+      });
+    }
+  };
+
+  await inBatches(files, (file) => insertReExportFiles(db, file.filePath, file.starReExports));
+
+  let pending = files
+    .map((file) => ({ filePath: file.filePath, edges: file.edges.filter((e) => e.edgeType === 'RE_EXPORTS') }))
+    .filter((file) => file.edges.length > 0);
+  for (;;) {
+    const stillPending: typeof pending = [];
+    let resolvedAny = false;
+    await inBatches(pending, async (file) => {
+      const unresolved = await insertEdgesReportingUnresolved(db, file.filePath, file.edges);
+      if (unresolved.length < file.edges.length) resolvedAny = true;
+      if (unresolved.length > 0) stillPending.push({ filePath: file.filePath, edges: unresolved });
+    });
+    pending = stillPending;
+    if (!resolvedAny || pending.length === 0) break;
+  }
+
+  await inBatches(files, async (file) => {
+    await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType !== 'RE_EXPORTS'));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1126,10 +1255,12 @@ async function resolveInFileOrReExportChain(
     .where('file_id', '=', targetFile.id)
     .where('kind', '=', 'export')
     .executeTakeFirst();
-  if (marker !== undefined) {
-    const declared = await followReExportEdgeChain(db, marker.id);
-    if (declared !== null) return declared;
-  }
+  // A name the file re-exports by name is that export and nothing else: an
+  // `export *` in the same file does not supply it as well. So an unresolved
+  // marker ends the search here. Falling through to the star rows would, while
+  // the marker's own edge is still to be written, pick up a same-named
+  // declaration behind the star and record an edge to the wrong file.
+  if (marker !== undefined) return followReExportEdgeChain(db, marker.id);
 
   // Star re-export: no per-symbol marker exists, only a file-level
   // `re_export_files` row (§10.3). Walk the chain forward to the file that
@@ -1166,11 +1297,16 @@ async function followReExportEdgeChain(db: Db, markerId: number): Promise<number
 
 /**
  * Walk `re_export_files` forward from `startFileId` (a barrel doing
- * `export * from '...'`) to find the file that actually declares `toName`.
- * Mirrors the `re_export_chain` recursive CTE documented in MAST_SPEC §6.3.
+ * `export * from '...'`) to find `toName` in a file the stars reach: declared
+ * there, or re-exported there by name. Mirrors the `re_export_chain` recursive
+ * CTE documented in MAST_SPEC §6.3.
+ *
+ * The second case is how package entry points are commonly built — `index.ts`
+ * stars `errors/index.ts`, which re-exports each class by name — and looking
+ * only for declarations found none of those names (D086).
  */
 async function resolveThroughStarChain(db: Db, startFileId: number, toName: string): Promise<number | null> {
-  const row = await db
+  const candidates = await db
     .withRecursive('re_export_chain', (qb) =>
       qb
         .selectFrom('re_export_files')
@@ -1185,12 +1321,19 @@ async function resolveThroughStarChain(db: Db, startFileId: number, toName: stri
     )
     .selectFrom('symbols as s')
     .innerJoin('re_export_chain as rec', 'rec.file_id', 's.file_id')
-    .select('s.id')
+    .select(['s.id', 's.kind'])
     .where('s.name', '=', toName)
-    .where('s.kind', '!=', 'export')
     .orderBy('s.file_id', 'asc')
-    .executeTakeFirst();
-  return row?.id ?? null;
+    .execute();
+
+  const declared = candidates.find((c) => c.kind !== 'export');
+  if (declared !== undefined) return declared.id;
+
+  for (const marker of candidates) {
+    const target = await followReExportEdgeChain(db, marker.id);
+    if (target !== null) return target;
+  }
+  return null;
 }
 
 /**
