@@ -29,7 +29,7 @@ All runs: built CLI (`dist/`) from this branch, 2026-10-06, macOS, one machine.
 | S8 | Does the importer repair (M3b) give a full index's graph on n8n, and at what cost? | done, one hand-made sequence — `s8-importer-repair-validation/`: 0 of 108,288 rows differ after six incremental runs; 565 files resolved again for the package barrel in 3.3 to 3.6 s |
 | S7 | Decision 2: how often would a cap on re-resolution be hit? | done, an estimate — `s7-cap-sizing/`: n8n p90 103 files, 9 of 143 runs over 500; mast max 56 |
 | S9 | D092: how many call edges come from the name-only guess, and are they right? | done — `s9-call-fallback/`: n8n 7 of 30,740, all 7 right (dynamic import of a workspace package); mast 0 of 616 |
-| S10 | Do the tests fail when one line of the repair code is removed? | done — `s10-mutation/`: of 35 hand-written mutants the gate fails for 25; 7 more fail only on generated seeds 100 to 250; 3 pass all 1,961 tests |
+| S10 | Do the tests fail when one line of the repair code is removed? | done — `s10-mutation/`: of 35 hand-written mutants the gate fails for 25; 7 more fail only on generated seeds 100 to 250; 3 pass all 1,961 tests. After eight rows were added to the scenario table the gate fails for 33 |
 
 S1 to S5 (2026-10-06) used two further corpora, both scratch clones so that commits could be
 checked out: n8n at `9d9e9bf97e` (13,985 indexed files) and this repository at `d062339`

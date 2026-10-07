@@ -70,7 +70,7 @@
       "what": "holders of edges into a shadowed file are not candidates",
       "find": "for (const path of await findFilesWithEdgesInto(db, shadowed)) candidates.add(path);",
       "replace": "",
-      "killer": "when a new file takes over a specifier that a directory index answered"
+      "killer": "when a new file takes over a specifier that a star re-export reached a directory index through"
     },
     {
       "id": "E08",
@@ -86,7 +86,7 @@
       "what": "importers of a shadowed file are not candidates",
       "find": "findImportersOfFiles(db, [...input.deleted, ...shadowed])",
       "replace": "findImportersOfFiles(db, [...input.deleted])",
-      "killer": "when a directory index is replaced by a file of the same name"
+      "killer": "when a new file takes over a specifier that an import of a missing name reached a directory index through"
     },
     {
       "id": "E10",
@@ -102,7 +102,7 @@
       "what": "a deleted file's names do not count as changed",
       "find": "for (const path of new Set([...input.deleted, ...writtenPaths])) {",
       "replace": "for (const path of new Set([...writtenPaths])) {",
-      "killer": "when a file behind a star barrel is deleted"
+      "killer": "when a star barrel in the middle of a chain of stars is deleted"
     },
     {
       "id": "E12",
@@ -126,7 +126,7 @@
       "what": "holders are not sources when importers of changed names are looked up",
       "find": "sources: [...input.deleted, ...writtenPaths, ...memo.holders, ...shadowed],",
       "replace": "sources: [...input.deleted, ...writtenPaths, ...shadowed],",
-      "killer": "when a file behind a star barrel loses a name and another file behind it gains it"
+      "killer": "when a star barrel is deleted from a chain of stars that ends at a named re-export"
     },
     {
       "id": "E15",
@@ -198,7 +198,7 @@
       "what": "only names that appeared count as changed, not names that disappeared",
       "find": "return [...[...a].filter((v) => !b.has(v)), ...[...b].filter((v) => !a.has(v))];",
       "replace": "return [...[...b].filter((v) => !a.has(v))];",
-      "killer": "when a called function is renamed and its caller is not updated"
+      "killer": "when a star barrel stops re-exporting the file a caller reached through it"
     },
     {
       "id": "I04",
@@ -222,7 +222,7 @@
       "what": "a changed member is looked up under its own name, not its class's",
       "find": "query.names.map((name) => name.split('.', 1)[0] ?? name)",
       "replace": "query.names.map((name) => name)",
-      "killer": "when a class gains a method that a subclass elsewhere already calls through super"
+      "killer": "when a class gains a method that another file already calls on a parameter of its type"
     },
     {
       "id": "I07",
@@ -246,7 +246,7 @@
       "what": "the names behind a star target stop at the target, not what it stars in turn",
       "find": "closure(paths, adjacency(await loadStarRows(db), false))",
       "replace": "new Set(paths)",
-      "killer": "when a star barrel gains a second target that holds an imported name"
+      "killer": "when a star barrel stops re-exporting a second star barrel that a caller reached a name through"
     },
     {
       "id": "I10",
@@ -262,7 +262,7 @@
       "what": "a file of the same name with another extension is not seen as shadowed",
       "find": "if (sameNameOtherExtension || directoryIndex) shadowed.add(path);",
       "replace": "if (directoryIndex) shadowed.add(path);",
-      "killer": "NO NAMED TEST"
+      "killer": "when a TypeScript file is added beside a JavaScript file of the same name"
     },
     {
       "id": "I12",

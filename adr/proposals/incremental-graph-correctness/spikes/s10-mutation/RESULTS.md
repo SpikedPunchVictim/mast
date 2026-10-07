@@ -84,6 +84,34 @@ The new cases did not close the gaps: one mutant moved into the gate by luck of 
 moved out of reach. I04 still passes although the generator now turns an interface into a type
 alias and back under a class that implements it.
 
+## Third run, after eight rows were added to the scenario table (measured)
+
+Raw output: `out-with-rows/results.json`, all 35 mutants, working tree on top of `02b7227`.
+
+Each of the seven seed-only mutants was cut down from a failing seed to a scenario of two to five
+files and one round, by a throwaway reducer that dropped rounds, files and lines while the
+sequence still failed. An eighth row was written by hand for I11 (a `.ts` file added beside a
+`.js` file of the same name). Every row passes on unmodified code and fails with its own mutant
+applied. `mutants.json` now names these rows as the killers, so it differs from the spec the
+first two runs used in those eight `killer` fields.
+
+| Verdict | First run | Third run |
+|---|---|---|
+| Failed the test named for it | 18 | 26 |
+| Failed other tests in the ten files | 7 | 7 |
+| Failed only on seeds 100 to 250 | 7 | 0 |
+| Passed everything | 3 | 2 (I04, I14) |
+
+So `pnpm gate` now fails for 33 of the 35.
+
+I04 was probed with nine hand-written kind changes under the same name (constant to function and
+back, interface to class, class to interface, type alias to interface directly and behind a star
+barrel, type alias to class, enum to class, function to class). All nine pass with the mutant
+applied. The likely reason is that resolution does not look at a symbol's kind, so an importer
+that names the symbol holds an edge before and after and is found as a holder. That is inferred;
+I did not prove that no edit sequence can observe it. If it is true, the `|kind` part of the
+export surface does nothing.
+
 ## Reading
 
 - The table plus twelve seeds leaves 7 of 35 single-line removals undetected that the generator

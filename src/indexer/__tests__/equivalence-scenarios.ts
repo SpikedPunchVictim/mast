@@ -265,4 +265,88 @@ export const SCENARIOS: readonly Scenario[] = [
     },
     rounds: [{ 'src/x.ts': null }],
   },
+  // Added after spike S10 (spikes/s10-mutation): each of these fails when one
+  // line of the repair code is removed, and no row above did. The line is named
+  // by its mutant id in the spike's mutants.json.
+  {
+    // E07
+    name: 'a new file takes over a specifier that a star re-export reached a directory index through',
+    files: {
+      'src/x/index.ts': `export function fn(): number { return 1; }\n`,
+      'src/barrel.ts': `export * from './x';\n`,
+    },
+    rounds: [{ 'src/x.ts': `export function other(): void {}\n` }],
+  },
+  {
+    // E09
+    name: 'a new file takes over a specifier that an import of a missing name reached a directory index through',
+    files: {
+      'src/x/index.ts': `export function other(): void {}\n`,
+      'src/zc.ts': `import { fn } from './x';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export function other(): void {}\n` }],
+  },
+  {
+    // E11
+    name: 'a star barrel in the middle of a chain of stars is deleted',
+    files: {
+      'src/a.ts': `export function fn(): void {}\n`,
+      'src/mid.ts': `export * from './a.js';\n`,
+      'src/outer.ts': `export * from './mid.js';\n`,
+      'src/named.ts': `export { fn } from './outer.js';\n`,
+      'src/zc.ts': `import { fn } from './named.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/mid.ts': null }],
+  },
+  {
+    // E14
+    name: 'a star barrel is deleted from a chain of stars that ends at a named re-export',
+    files: {
+      'src/impl.ts': `export function fn(): void {}\n`,
+      'src/named.ts': `export { fn } from './impl.js';\n`,
+      'src/mid.ts': `export * from './named.js';\n`,
+      'src/outer.ts': `export * from './mid.js';\n`,
+      'src/zc.ts': `import { fn } from './outer.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/mid.ts': null }],
+  },
+  {
+    // I03
+    name: 'a star barrel stops re-exporting the file a caller reached through it',
+    files: {
+      'src/a.ts': `export function fn(): void {}\n`,
+      'src/barrel.ts': `export * from './a.js';\n`,
+      'src/zc.ts': `import { fn } from './barrel.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/barrel.ts': `export function other(): void {}\n` }],
+  },
+  {
+    // I06
+    name: 'a class gains a method that another file already calls on a parameter of its type',
+    files: {
+      'src/x.ts': `export class Widget { other(): void {} }\n`,
+      'src/zc.ts': `import { Widget } from './x.js';\nexport function use(w: Widget): void { w.run(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export class Widget { other(): void {}\n  run(): void {} }\n` }],
+  },
+  {
+    // I09
+    name: 'a star barrel stops re-exporting a second star barrel that a caller reached a name through',
+    files: {
+      'src/a.ts': `export function fn(): void {}\n`,
+      'src/inner.ts': `export * from './a.js';\n`,
+      'src/outer.ts': `export * from './inner.js';\n`,
+      'src/zc.ts': `import { fn } from './outer.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/outer.ts': `export function other(): void {}\n` }],
+  },
+  {
+    // I11
+    name: 'a TypeScript file is added beside a JavaScript file of the same name',
+    files: {
+      'src/x.js': `export function fn() { return 1; }\n`,
+      'src/zc.ts': `import { fn } from './x.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export function fn(): number { return 2; }\n` }],
+  },
 ];
