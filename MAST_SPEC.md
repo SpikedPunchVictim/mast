@@ -888,6 +888,9 @@ freshness_cause: none
 `stale_files` prints its split inline when non-zero — `stale_files: 47  (changed
 0, unindexed 27, deleted 20)` — because the field names one of the three things
 it counts (§9, `mast_status`).
+Each stale file is then named on its own indented line, prefixed with its category
+(`  changed   src/a.ts`), at most 20 per category; a category cut at that cap ends with
+`... and N more`. `--json` carries the same lists as `stale_paths`.
 
 `project_root` names the tree the report was measured against. It is reported
 because `state_dir` alone does not identify it and the two are set
@@ -1799,6 +1802,7 @@ Index health snapshot.
   "chunk_count": 1840,
   "stale_files": 0,
   "stale_breakdown": { "changed": 0, "unindexed": 0, "deleted": 0 },
+  "stale_paths": { "changed": [], "unindexed": [], "deleted": [] },
   "parse_errors": 0,
   "write_errors": 0,
   "index_fresh": true,
@@ -1873,6 +1877,10 @@ manifest is stamped from a finalise-time re-stat; the row carries the pre-parse 
 run retries it, and an incremental run's work set includes any walked file with no
 `files` row — otherwise a hole left by an older build would be reported stale forever
 with no run willing to fix it.
+
+`stale_paths` names the files behind each `stale_breakdown` count: project-relative
+paths, sorted, at most 20 per category. A category whose count is larger than its list
+was cut at that cap. Both surfaces publish it from the same measurement as the counts.
 
 **An incremental run acts on every file these surfaces count as changed.** Its work set
 is the manifest diff, plus any walked file with no `files` row, plus any walked file

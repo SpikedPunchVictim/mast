@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { StatusResult } from '../../ast/types.js';
 import { loadIndexMeta, freshnessCause } from '../../indexer/index.js';
-import { measureFreshness } from '../../indexer/freshness.js';
+import { measureFreshness, stalePathsSample } from '../../indexer/freshness.js';
 import { CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 
 export function registerStatusTool(server: McpServer, ctx: AppContext): void {
@@ -31,6 +31,7 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
           unindexed: freshness.unindexed,
           deleted:   freshness.deleted,
         },
+        stale_paths:    stalePathsSample(freshness),
         parse_errors:   meta?.parse_errors ?? 0,
         write_errors:   meta?.write_errors ?? 0,
         index_fresh:    meta !== null && stale_files === 0,

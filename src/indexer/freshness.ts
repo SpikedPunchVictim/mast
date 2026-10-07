@@ -30,6 +30,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db } from '../graph/db.js';
 import type { ResolvedConfig } from '../store/config.js';
+import type { StalePaths } from '../ast/types.js';
 import { walkProject } from './walker.js';
 
 export interface IndexFreshness {
@@ -51,6 +52,27 @@ export interface IndexFreshness {
    * a bare count with nothing to compare it to.
    */
   readonly walked: number;
+  /**
+   * Every path behind the three counts, sorted and uncapped. The status
+   * surfaces publish {@link stalePathsSample} of this, not the lists themselves.
+   */
+  readonly paths: StalePaths;
+}
+
+/**
+ * How many paths per category the status surfaces print. An index built for a
+ * different project root counts thousands of files on each side (D048), and a
+ * status report that long would bury the fields above it.
+ */
+export const STALE_PATHS_CAP = 20;
+
+/** The first {@link STALE_PATHS_CAP} paths of each category, for publishing. */
+export function stalePathsSample(freshness: IndexFreshness): StalePaths {
+  return {
+    changed: freshness.paths.changed.slice(0, STALE_PATHS_CAP),
+    unindexed: freshness.paths.unindexed.slice(0, STALE_PATHS_CAP),
+    deleted: freshness.paths.deleted.slice(0, STALE_PATHS_CAP),
+  };
 }
 
 /**
@@ -72,18 +94,18 @@ export async function measureFreshness(config: ResolvedConfig, db: Db): Promise<
   const rows = await db.selectFrom('files').select(['path', 'mtime']).execute();
   const indexed = new Map(rows.map((r) => [r.path, r.mtime]));
 
-  let stale = 0;
-  let unindexed = 0;
+  const changedPaths: string[] = [];
+  const unindexedPaths: string[] = [];
   for (const [path, diskMtime] of onDisk) {
     const manifestMtime = manifest[path];
     const storedMtime = indexed.get(path);
     // Absent from either record means it is not in the index: never walked
     // before, or walked and then lost when its parse or write failed.
     if (manifestMtime === undefined || storedMtime === undefined) {
-      unindexed++;
+      unindexedPaths.push(path);
       continue;
     }
-    if (diskMtime > manifestMtime || diskMtime > storedMtime) stale++;
+    if (diskMtime > manifestMtime || diskMtime > storedMtime) changedPaths.push(path);
   }
 
   // A path recorded by either side but no longer on disk. Deduplicated: the
@@ -93,10 +115,15 @@ export async function measureFreshness(config: ResolvedConfig, db: Db): Promise<
   for (const path of indexed.keys()) if (!onDisk.has(path)) gone.add(path);
 
   return {
-    stale,
-    unindexed,
+    stale: changedPaths.length,
+    unindexed: unindexedPaths.length,
     deleted: gone.size,
-    total: stale + unindexed + gone.size,
+    total: changedPaths.length + unindexedPaths.length + gone.size,
     walked: onDisk.size,
+    paths: {
+      changed: changedPaths.sort(),
+      unindexed: unindexedPaths.sort(),
+      deleted: [...gone].sort(),
+    },
   };
 }

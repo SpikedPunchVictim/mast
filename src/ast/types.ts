@@ -820,6 +820,19 @@ export interface StaleBreakdown {
   readonly deleted: number;
 }
 
+/**
+ * The paths behind each `StaleBreakdown` count, sorted, at most
+ * `STALE_PATHS_CAP` (`indexer/freshness.ts`) per category.
+ *
+ * A count says the index is behind; only a name says where. A category whose
+ * count exceeds the length of its list here was cut at the cap.
+ */
+export interface StalePaths {
+  readonly changed: readonly string[];
+  readonly unindexed: readonly string[];
+  readonly deleted: readonly string[];
+}
+
 export interface StatusResult {
   readonly state_dir: string;
   /**
@@ -849,6 +862,8 @@ export interface StatusResult {
   readonly stale_files: number;
   /** `stale_files` split into the three categories it sums. */
   readonly stale_breakdown: StaleBreakdown;
+  /** The files `stale_breakdown` counts, capped per category. */
+  readonly stale_paths: StalePaths;
   readonly parse_errors: number;
   readonly write_errors: number;
   readonly index_fresh: boolean;

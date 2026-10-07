@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildStatus } from '../status.js';
+import { buildStatus, stalePathLines } from '../status.js';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 
@@ -110,5 +110,29 @@ describe('mast status pointed at a project root the index was not built for', ()
     expect(s.freshness_cause).toBeNull();
     expect(s.stale_breakdown).toEqual({ changed: 0, unindexed: 0, deleted: 0 });
     expect(s.index_fresh).toBe(true);
+  });
+});
+
+describe('stalePathLines', () => {
+  it('names each stale file under its category', () => {
+    const lines = stalePathLines({
+      stale_breakdown: { changed: 1, unindexed: 0, deleted: 1 },
+      stale_paths: { changed: ['src/a.ts'], unindexed: [], deleted: ['src/gone.ts'] },
+    });
+
+    expect(lines).toEqual(['  changed   src/a.ts', '  deleted   src/gone.ts']);
+  });
+
+  it('says how many paths a capped category left out', () => {
+    const lines = stalePathLines({
+      stale_breakdown: { changed: 0, unindexed: 3000, deleted: 0 },
+      stale_paths: { changed: [], unindexed: ['src/a.ts'], deleted: [] },
+    });
+
+    expect(lines).toEqual(['  unindexed src/a.ts', '  unindexed ... and 2999 more']);
+  });
+
+  it('prints nothing when there is no index to measure', () => {
+    expect(stalePathLines({ stale_breakdown: null, stale_paths: null })).toEqual([]);
   });
 });

@@ -1,8 +1,8 @@
 import type { Command } from 'commander';
-import type { StaleBreakdown } from '../ast/types.js';
+import type { StaleBreakdown, StalePaths } from '../ast/types.js';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { loadIndexMeta, freshnessCause } from '../indexer/index.js';
-import { measureFreshness, type IndexFreshness } from '../indexer/freshness.js';
+import { measureFreshness, stalePathsSample, type IndexFreshness } from '../indexer/freshness.js';
 import { openDatabase } from '../graph/db.js';
 
 export interface StatusReport {
@@ -29,6 +29,8 @@ export interface StatusReport {
    * condition, and for the same reason.
    */
   readonly stale_breakdown: StaleBreakdown | null;
+  /** The files `stale_breakdown` counts, capped per category. `null` with it. */
+  readonly stale_paths: StalePaths | null;
   readonly parse_errors: number | null;
   readonly write_errors: number | null;
   readonly index_fresh: boolean;
@@ -65,6 +67,7 @@ export async function buildStatus(
       chunk_count: null,
       stale_files: null,
       stale_breakdown: null,
+      stale_paths: null,
       parse_errors: null,
       write_errors: null,
       index_fresh: false,
@@ -99,6 +102,7 @@ export async function buildStatus(
       unindexed: freshness.unindexed,
       deleted: freshness.deleted,
     },
+    stale_paths: stalePathsSample(freshness),
     parse_errors: meta.parse_errors ?? 0,
     write_errors: meta.write_errors ?? 0,
     index_fresh: freshness.total === 0,
@@ -160,6 +164,7 @@ export function registerStatusCommand(program: Command): void {
         `indexed_files:  ${String(status.indexed_files)}`,
         `chunk_count:    ${String(status.chunk_count)}`,
         `stale_files:    ${String(status.stale_files)}${split}`,
+        ...stalePathLines(status),
         `parse_errors:   ${String(status.parse_errors)}`,
         `write_errors:   ${String(status.write_errors)}`,
         `index_fresh:    ${String(status.index_fresh)}`,
@@ -176,6 +181,26 @@ export function registerStatusCommand(program: Command): void {
         ] : []),
       ].join('\n') + '\n');
     });
+}
+
+/**
+ * One indented line per stale path, under the `stale_files` line. A category
+ * cut at the cap ends with how many were left out, so a short list is never
+ * read as the whole of a long one.
+ */
+export function stalePathLines(
+  status: Pick<StatusReport, 'stale_paths' | 'stale_breakdown'>,
+): string[] {
+  const paths = status.stale_paths;
+  const counts = status.stale_breakdown;
+  if (paths === null || counts === null) return [];
+  const lines: string[] = [];
+  for (const kind of ['changed', 'unindexed', 'deleted'] as const) {
+    for (const path of paths[kind]) lines.push(`  ${kind.padEnd(10)}${path}`);
+    const omitted = counts[kind] - paths[kind].length;
+    if (omitted > 0) lines.push(`  ${kind.padEnd(10)}... and ${String(omitted)} more`);
+  }
+  return lines;
 }
 
 function formatAge(date: Date): string {

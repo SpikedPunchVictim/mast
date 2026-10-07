@@ -22,7 +22,7 @@ const CONFIG = {} as unknown as ResolvedConfig;
 const DB = {} as unknown as Db;
 
 function freshness(unindexed: number): IndexFreshness {
-  return { stale: 0, unindexed, deleted: 0, total: unindexed, walked: unindexed };
+  return { stale: 0, unindexed, deleted: 0, total: unindexed, walked: unindexed, paths: { changed: [], unindexed: [], deleted: [] } };
 }
 
 /** A measure function whose settlement this test controls. */

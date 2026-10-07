@@ -31,16 +31,20 @@ import { buildStatus } from '../../../cli/status.js';
 import { extractFile } from '../../../ast/extract.js';
 import type { AppContext } from '../../context.js';
 import { registerStatusTool } from '../status.js';
+import { stalePathsSample, STALE_PATHS_CAP, type IndexFreshness } from '../../../indexer/freshness.js';
 
 type Handler = (args: Record<string, unknown>) => Promise<{ content: { text: string }[] }>;
 
 /** The `{changed, unindexed, deleted}` split both surfaces publish beside the total. */
 type Breakdown = { changed: number; unindexed: number; deleted: number };
 
+/** The paths behind each count, which both surfaces publish beside the split. */
+type Paths = { changed: string[]; unindexed: string[]; deleted: string[] };
+
 /** Call the registered `mast_status` handler and parse its JSON payload. */
 async function callMcpStatus(config: ReturnType<typeof resolveConfig>): Promise<{
   stale_files: number; index_fresh: boolean; freshness_cause: string | null;
-  stale_breakdown: Breakdown;
+  stale_breakdown: Breakdown; stale_paths: Paths;
 }> {
   const db = openDatabase(config.resolved_state_dir);
   try {
@@ -69,6 +73,7 @@ async function callMcpStatus(config: ReturnType<typeof resolveConfig>): Promise<
       index_fresh: parsed['index_fresh'] as boolean,
       freshness_cause: parsed['freshness_cause'] as string | null,
       stale_breakdown: parsed['stale_breakdown'] as Breakdown,
+      stale_paths: parsed['stale_paths'] as Paths,
     };
   } finally {
     await db.destroy();
@@ -79,11 +84,11 @@ async function callMcpStatus(config: ReturnType<typeof resolveConfig>): Promise<
 async function bothSurfaces(config: ReturnType<typeof resolveConfig>, projectRoot: string): Promise<{
   cli: {
     stale_files: number | null; index_fresh: boolean; freshness_cause: string | null;
-    stale_breakdown: Breakdown | null;
+    stale_breakdown: Breakdown | null; stale_paths: Paths | null;
   };
   mcp: {
     stale_files: number; index_fresh: boolean; freshness_cause: string | null;
-    stale_breakdown: Breakdown;
+    stale_breakdown: Breakdown; stale_paths: Paths;
   };
 }> {
   const mcp = await callMcpStatus(config);
@@ -94,6 +99,11 @@ async function bothSurfaces(config: ReturnType<typeof resolveConfig>, projectRoo
       index_fresh: cli.index_fresh,
       freshness_cause: cli.freshness_cause,
       stale_breakdown: cli.stale_breakdown,
+      stale_paths: cli.stale_paths === null ? null : {
+        changed: [...cli.stale_paths.changed],
+        unindexed: [...cli.stale_paths.unindexed],
+        deleted: [...cli.stale_paths.deleted],
+      },
     },
     mcp,
   };
@@ -130,6 +140,7 @@ describe('mast status and mast_status agree', () => {
     expect(mcp).toEqual(cli);
     expect(cli.index_fresh).toBe(false);
     expect(cli.stale_files).toBe(1);
+    expect(cli.stale_paths).toEqual({ changed: [], unindexed: ['src/brand-new.ts'], deleted: [] });
   });
 
   it('after an indexed file is edited', async () => {
@@ -143,6 +154,7 @@ describe('mast status and mast_status agree', () => {
 
     expect(mcp).toEqual(cli);
     expect(cli.index_fresh).toBe(false);
+    expect(cli.stale_paths).toEqual({ changed: ['src/good.ts'], unindexed: [], deleted: [] });
   });
 
   it('after an indexed file is deleted', async () => {
@@ -153,6 +165,7 @@ describe('mast status and mast_status agree', () => {
 
     expect(mcp).toEqual(cli);
     expect(cli.index_fresh).toBe(false);
+    expect(cli.stale_paths).toEqual({ changed: [], unindexed: [], deleted: ['src/good.ts'] });
   });
 
   it('after a file failed to index — the hole #2 leaves behind is visible on both', async () => {
@@ -176,5 +189,26 @@ describe('mast status and mast_status agree', () => {
     // between "not in the codebase" and "never made it into the index".
     expect(cli.index_fresh).toBe(false);
     expect(cli.stale_files).toBe(1);
+  });
+});
+
+describe('stalePathsSample', () => {
+  const paths = (n: number): string[] =>
+    Array.from({ length: n }, (_, i) => `src/f${String(i).padStart(3, '0')}.ts`);
+  const freshness = (unindexed: string[]): IndexFreshness => ({
+    stale: 0, unindexed: unindexed.length, deleted: 0, total: unindexed.length, walked: unindexed.length,
+    paths: { changed: [], unindexed, deleted: [] },
+  });
+
+  it('caps each category, so an index built for another tree does not print thousands of paths', () => {
+    const sample = stalePathsSample(freshness(paths(STALE_PATHS_CAP + 5)));
+
+    expect(sample.unindexed).toEqual(paths(STALE_PATHS_CAP));
+  });
+
+  it('returns every path when a category is at the cap', () => {
+    const sample = stalePathsSample(freshness(paths(STALE_PATHS_CAP)));
+
+    expect(sample.unindexed).toHaveLength(STALE_PATHS_CAP);
   });
 });
