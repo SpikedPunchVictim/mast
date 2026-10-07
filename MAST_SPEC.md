@@ -138,13 +138,14 @@ read. The `start_line` and `end_line` fields in the chunk record always reflect 
 AST declaration boundaries, not the expanded content boundaries.
 
 `include_dot_dirs` lists the dot directories to walk (ADR 018). A directory whose name
-starts with a dot is skipped, as is a dot-leading file, unless a directory on this list
-contains it. Each entry is a directory path relative to the project root (`.agents`,
+starts with a dot is skipped unless it is on this list. A dot-leading file is always
+skipped, inside a listed directory too. Each entry is a directory path relative to the project root (`.agents`,
 `packages/app/.storybook`), not a glob; it is walked recursively, a dot directory nested
 inside it needs its own entry, and `exclude_patterns` still applies. Entries are
 normalised on resolution (a leading `./` and trailing slashes are dropped) and resolution
-throws for one that is empty, absolute, contains `..` or a glob character, or has no
-dot-leading segment. The default is empty.
+throws for one that is empty, absolute, padded with whitespace, contains `..`, a glob
+character or a backslash, or has no dot-leading segment. Symbolic links are not followed,
+so an entry that is one, or sits behind one, walks nothing. The default is empty.
 
 `markdown_heading_depth` is the maximum ATX heading level that starts a new `doc`
 chunk when indexing markdown files (§10.1). Headings deeper than this fold into
@@ -842,11 +843,14 @@ there is none), the `<state_dir>/config.json` read if one exists (it supplies an
 `mast.config.json` does not set, §4), `file_extensions`, `exclude_patterns` and `include_dot_dirs`, then one
 line per directory holding a walked file, with its file count. `--json` emits
 `{ project_root, config_file, saved_config_file, file_extensions, exclude_patterns, include_dot_dirs:
-[{ directory, exists, files }], total_files, directories: [{ directory, files }], files }`.
-An `include_dot_dirs` entry with `files: 0` is flagged in the text output, and `exists`
-separates a directory that is not there from one that holds nothing walkable.
+[{ directory, status, files }], total_files, directories: [{ directory, files }], files }`.
+An `include_dot_dirs` entry with `files: 0` is flagged in the text output, and `status`
+says why: `empty` (a real directory with nothing walked below it), `missing` (no entry
+of exactly that name, compared case-sensitively as the walk compares it), `symlink`, or
+`not_a_directory`. An entry that contributed files is `walked`.
 
-Exit 0 when the walk ran. Exit 1, with one line on stderr, when the config is rejected.
+Exit 0 when the walk ran. Exit 1, with one line on stderr, when the config is rejected or
+the project path is not a directory.
 Exit 2 for a `--depth` that is not a whole number of 1 or more.
 
 ---

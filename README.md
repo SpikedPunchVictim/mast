@@ -358,7 +358,7 @@ per-machine, so the change will not travel; `mast.config.json` outranks it.
 
 **Dot directories are skipped unless you name them.** A directory whose name starts with
 a dot (`.agents`, `.github`, `.storybook`) is not walked, and neither is a dot-leading
-file. To index one, list it in `mast.config.json`:
+file, even inside a directory you list. To index a dot directory, list it in `mast.config.json`:
 
 ```json
 { "include_dot_dirs": [".agents", "packages/app/.storybook"] }
@@ -538,7 +538,7 @@ saved config:      /path/to/project/.mast/config.json (supplies any key mast.con
 file_extensions:   .ts .tsx .js .jsx .md
 exclude_patterns:  **/node_modules/** **/dist/** ...
 include_dot_dirs:  .agents .agnets
-! .agnets: no such directory under the project root. Check the spelling in include_dot_dirs.
+! .agnets: no directory of exactly this name under the project root. Check the spelling in include_dot_dirs, including upper and lower case.
 
 158 files in 6 directories
 
@@ -549,8 +549,9 @@ include_dot_dirs:  .agents .agnets
 
 Each line is a directory and the number of walked files in it (with `--depth`, in it and
 below it). An `include_dot_dirs` entry that contributed no files is flagged, and the flag
-says which of two things happened: the directory does not exist, or it exists and nothing
-in it matches `file_extensions` after `exclude_patterns`.
+says why: no directory of exactly that name (case counts, even on a filesystem where it
+otherwise would not), a symbolic link (mast does not follow them), a file, or a real
+directory with nothing walked below it.
 
 The `saved config` line appears when `mast init` or `mast serve` has saved a config in the
 state directory. That file supplies every key `mast.config.json` does not set, so an entry
@@ -559,8 +560,10 @@ for none). This is true of `exclude_patterns` and `file_extensions` as well.
 
 **Why:** it is how you test a config change before paying for an index run. It calls the
 same walk `mast index` and `mast status` use, so its answer is what would be indexed. A
-config that mast rejects (a glob or an absolute path in `include_dot_dirs`, say) is
-printed as one line on stderr with exit 1.
+config that mast rejects (a glob or an absolute path in `include_dot_dirs`, say), or a
+path that is not a directory, is printed as one line on stderr with exit 1. Other
+commands do not catch a rejected config: they stop with the same message in a stack
+trace.
 
 ---
 

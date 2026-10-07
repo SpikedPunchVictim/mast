@@ -28,6 +28,10 @@ const TREE = [
   '.agents/sub/skip.test.ts',
   '.agents/.cache/c.md',
   '.agents/.dotfile.md',
+  // A sibling that shares a named directory's prefix, and a name of two dots:
+  // `relative()` output for it starts with `..` without leaving the root.
+  '.agents-old/stale.md',
+  '..scratch/note.md',
   '.github/top.md',
   '.github/workflows/w.md',
   '.history/src/a.ts',
@@ -97,6 +101,10 @@ describe('walkProject — include_dot_dirs', () => {
     expect(await walked(['.agents'])).not.toContain('.agents/.cache/c.md');
   });
 
+  it('does not take a sibling that shares a named directory\'s prefix', async () => {
+    expect(await walked(['.agents'])).not.toContain('.agents-old/stale.md');
+  });
+
   it('walks a nested dot directory when it is named too', async () => {
     expect(await walked(['.agents', '.agents/.cache'])).toContain('.agents/.cache/c.md');
   });
@@ -129,6 +137,7 @@ describe('the scope predicates agree with what walkProject walks', () => {
     ['.agents', '.agents/.cache'],
     ['.github/workflows'],
     ['packages/x/.agents', '.github'],
+    ['..scratch'],
   ];
 
   it.each(CASES.map((c) => [c]))('include_dot_dirs = %j', async (dotDirs) => {
@@ -197,6 +206,8 @@ describe('normalizeDotDirs', () => {
     ['a glob', '**/.agents'],
     ['an empty entry', ''],
     ['a directory with no dot-leading segment', 'docs/internal'],
+    ['a backslash, which fast-glob reads as an escape', '.b\\c'],
+    ['surrounding whitespace', ' .agents'],
   ])('rejects %s (%j)', (_label, entry) => {
     expect(() => normalizeDotDirs([entry])).toThrow(InvalidDotDirError);
   });

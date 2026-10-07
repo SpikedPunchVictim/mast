@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { buildWalkReport, formatWalkReport } from '../walk-cmd.js';
+import { Command } from 'commander';
+import { buildWalkReport, formatWalkReport, registerWalkCommand } from '../walk-cmd.js';
 import { resolveConfig, writeStateConfig } from '../../store/config.js';
 
 function project(files: readonly string[], config?: Record<string, unknown>): string {
@@ -58,13 +59,21 @@ describe('buildWalkReport', () => {
   it('reports how many files each include_dot_dirs entry contributed', async () => {
     const report = await buildWalkReport({ path: project(FILES, { include_dot_dirs: ['.agents'] }) });
 
-    expect(report.include_dot_dirs).toEqual([{ directory: '.agents', exists: true, files: 1 }]);
+    expect(report.include_dot_dirs).toEqual([{ directory: '.agents', status: 'walked', files: 1 }]);
+  });
+
+  it('does not count a sibling directory that shares the entry\'s prefix', async () => {
+    const dir = project([...FILES, '.agents-old/stale.md'], { include_dot_dirs: ['.agents', '.agents-old'] });
+
+    const report = await buildWalkReport({ path: dir });
+
+    expect(report.include_dot_dirs[0]).toEqual({ directory: '.agents', status: 'walked', files: 1 });
   });
 
   it('says when an include_dot_dirs entry is not a directory on disk', async () => {
     const report = await buildWalkReport({ path: project(FILES, { include_dot_dirs: ['.agnets'] }) });
 
-    expect(report.include_dot_dirs).toEqual([{ directory: '.agnets', exists: false, files: 0 }]);
+    expect(report.include_dot_dirs).toEqual([{ directory: '.agnets', status: 'missing', files: 0 }]);
   });
 
   it('tells an existing dot directory with nothing walkable apart from a missing one', async () => {
@@ -72,7 +81,37 @@ describe('buildWalkReport', () => {
 
     const report = await buildWalkReport({ path: dir });
 
-    expect(report.include_dot_dirs).toEqual([{ directory: '.assets', exists: true, files: 0 }]);
+    expect(report.include_dot_dirs).toEqual([{ directory: '.assets', status: 'empty', files: 0 }]);
+  });
+
+  /**
+   * Zero files has more causes than "nothing matches", and each wants a different
+   * fix. On a case-insensitive filesystem `.Agents` stats as existing while the
+   * walk, which matches names exactly, finds nothing under it.
+   */
+  it('reports an entry whose case differs from the directory on disk as missing', async () => {
+    const report = await buildWalkReport({ path: project(FILES, { include_dot_dirs: ['.Agents'] }) });
+
+    expect(report.include_dot_dirs).toEqual([{ directory: '.Agents', status: 'missing', files: 0 }]);
+  });
+
+  it('says when an entry is a symbolic link, which the walk does not follow', async () => {
+    const dir = project(FILES, { include_dot_dirs: ['.linked'] });
+    symlinkSync(join(dir, '.agents'), join(dir, '.linked'));
+
+    const report = await buildWalkReport({ path: dir });
+
+    expect(report.include_dot_dirs).toEqual([{ directory: '.linked', status: 'symlink', files: 0 }]);
+  });
+
+  it('says when an entry names a file', async () => {
+    const report = await buildWalkReport({ path: project(FILES, { include_dot_dirs: ['.agents/notes/plan.md'] }) });
+
+    expect(report.include_dot_dirs[0]?.status).toBe('not_a_directory');
+  });
+
+  it('refuses a project root that is not a directory, so a mistyped path is not a clean zero', async () => {
+    await expect(buildWalkReport({ path: join(project(FILES), 'no-such-dir') })).rejects.toThrow(/is not a directory/);
   });
 
   it('rolls directories up to --depth, keeping every file in the count', async () => {
@@ -133,7 +172,7 @@ describe('formatWalkReport', () => {
   it('flags an include_dot_dirs entry that matched nothing because it does not exist', async () => {
     const report = await buildWalkReport({ path: project(FILES, { include_dot_dirs: ['.agnets'] }) });
 
-    expect(formatWalkReport(report, { files: false })).toContain('! .agnets: no such directory');
+    expect(formatWalkReport(report, { files: false })).toContain('! .agnets: no directory of exactly this name');
   });
 
   it('prints files instead of directories when asked', async () => {
@@ -142,5 +181,39 @@ describe('formatWalkReport', () => {
     const text = formatWalkReport(report, { files: true });
 
     expect(text).toMatch(/^src\/cli\/b\.ts$/m);
+  });
+});
+
+/**
+ * The documented exit codes, driven through the registered command: 2 for a
+ * usage error, 1 for a config or path the walk cannot use.
+ */
+describe('mast walk exit codes', () => {
+  async function exitCodeOf(args: readonly string[]): Promise<typeof process.exitCode> {
+    const stderrWrite = process.stderr.write.bind(process.stderr);
+    const previous = process.exitCode;
+    process.exitCode = undefined;
+    process.stderr.write = () => true;
+    try {
+      const program = new Command().exitOverride();
+      registerWalkCommand(program);
+      await program.parseAsync(['node', 'mast', 'walk', ...args]);
+      return process.exitCode;
+    } finally {
+      process.stderr.write = stderrWrite;
+      process.exitCode = previous;
+    }
+  }
+
+  it('exits 2 for a --depth that is not a whole number of 1 or more', async () => {
+    expect(await exitCodeOf([project(FILES), '--depth', '0'])).toBe(2);
+  });
+
+  it('exits 1 for a config it rejects', async () => {
+    expect(await exitCodeOf([project(FILES, { include_dot_dirs: ['.agents/*'] })])).toBe(1);
+  });
+
+  it('exits 1 for a project path that does not exist', async () => {
+    expect(await exitCodeOf([join(project(FILES), 'no-such-dir')])).toBe(1);
   });
 });

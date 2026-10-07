@@ -1,4 +1,4 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
@@ -11,16 +11,40 @@ export interface WalkedDirectory {
   readonly files: number;
 }
 
+/**
+ * Why an `include_dot_dirs` entry contributed what it did. Zero files has
+ * several causes that want different fixes, and one message for all of them
+ * sends the reader to the wrong one.
+ *
+ * - `walked`: at least one file below it was walked.
+ * - `empty`: a real directory of exactly this name, with nothing walked below it.
+ * - `missing`: no entry of exactly this name. Names are compared exactly, as the
+ *   walk compares them, so `.Agents` is missing beside `.agents` even on a
+ *   filesystem that would open either.
+ * - `symlink`: the path goes through a symbolic link, which the walk does not follow.
+ * - `not_a_directory`: the name is a file.
+ */
+export type IncludedDotDirStatus = 'walked' | 'empty' | 'missing' | 'symlink' | 'not_a_directory';
+
 export interface IncludedDotDir {
   readonly directory: string;
-  /**
-   * False when nothing by this name is a directory on disk. Reported next to
-   * `files` because zero files has two causes that want opposite fixes: a
-   * misspelt entry, or a real directory holding nothing the config indexes.
-   */
-  readonly exists: boolean;
+  readonly status: IncludedDotDirStatus;
   /** Walked files below it. */
   readonly files: number;
+}
+
+/** Classifies an entry that contributed no files, one path segment at a time. */
+function statusOfUnwalked(projectRoot: string, directory: string): IncludedDotDirStatus {
+  let current = projectRoot;
+  for (const segment of directory.split('/')) {
+    // Listed, not stat'd: stat answers for `.Agents` when the disk has `.agents`.
+    if (!readdirSync(current).includes(segment)) return 'missing';
+    current = join(current, segment);
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) return 'symlink';
+    if (!stat.isDirectory()) return 'not_a_directory';
+  }
+  return 'empty';
 }
 
 export interface WalkReport {
@@ -56,12 +80,17 @@ function directoryOf(relativePath: string, depth: number | undefined): string {
  * It calls `walkProject`, the same function `runIndex` and `measureFreshness`
  * walk with, so the report cannot disagree with what gets indexed.
  *
+ * @throws Error when the project root is not a directory: fast-glob walks a
+ * missing root as an empty one, and "0 files" would read as nothing to index.
  * @throws whatever `resolveConfig` throws for a config it rejects.
  */
 export async function buildWalkReport(
   options: { path?: string; stateDir?: string; depth?: number } = {},
 ): Promise<WalkReport> {
   const config = resolveConfig({ projectRoot: options.path, stateDirOverride: options.stateDir });
+  if (statSync(config.resolved_project_root, { throwIfNoEntry: false })?.isDirectory() !== true) {
+    throw new Error(`project root ${config.resolved_project_root} is not a directory`);
+  }
   const files = (await walkProject(config)).map((entry) => entry.relativePath);
 
   const counts = new Map<string, number>();
@@ -82,16 +111,31 @@ export async function buildWalkReport(
     saved_config_file: existsSync(savedConfigFile) ? savedConfigFile : null,
     file_extensions: config.file_extensions,
     exclude_patterns: config.exclude_patterns,
-    include_dot_dirs: config.include_dot_dirs.map((directory) => ({
-      directory,
-      exists: statSync(join(config.resolved_project_root, directory), { throwIfNoEntry: false })?.isDirectory() === true,
-      files: files.filter((file) => file.startsWith(`${directory}/`)).length,
-    })),
+    include_dot_dirs: config.include_dot_dirs.map((directory) => {
+      const count = files.filter((file) => file.startsWith(`${directory}/`)).length;
+      return {
+        directory,
+        status: count > 0 ? 'walked' : statusOfUnwalked(config.resolved_project_root, directory),
+        files: count,
+      };
+    }),
     total_files: files.length,
     directories,
     files,
   };
 }
+
+const UNWALKED_EXPLANATION: Readonly<Record<IncludedDotDirStatus, string | null>> = {
+  walked: null,
+  empty:
+    'a directory, but nothing in it was walked. Either no file matches file_extensions once ' +
+    'exclude_patterns is applied, or its files sit behind symbolic links or in nested dot directories.',
+  missing:
+    'no directory of exactly this name under the project root. Check the spelling in ' +
+    'include_dot_dirs, including upper and lower case.',
+  symlink: 'reached through a symbolic link, which mast does not follow. Name the real directory.',
+  not_a_directory: 'a file, not a directory.',
+};
 
 function plural(count: number, noun: string, pluralNoun = `${noun}s`): string {
   return `${String(count)} ${count === 1 ? noun : pluralNoun}`;
@@ -110,11 +154,8 @@ export function formatWalkReport(report: WalkReport, options: { files: boolean }
   ];
 
   for (const dotDir of report.include_dot_dirs) {
-    if (!dotDir.exists) {
-      lines.push(`! ${dotDir.directory}: no such directory under the project root. Check the spelling in include_dot_dirs.`);
-    } else if (dotDir.files === 0) {
-      lines.push(`! ${dotDir.directory}: exists, but no file in it matches file_extensions once exclude_patterns is applied.`);
-    }
+    const problem = UNWALKED_EXPLANATION[dotDir.status];
+    if (problem !== null) lines.push(`! ${dotDir.directory}: ${problem}`);
   }
 
   lines.push('', `${plural(report.total_files, 'file')} in ${plural(report.directories.length, 'directory', 'directories')}`, '');

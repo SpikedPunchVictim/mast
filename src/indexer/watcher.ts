@@ -123,6 +123,15 @@ export interface WatchPathFilter {
 }
 
 /**
+ * True when `rel`, a `relative(projectRoot, path)` result, leaves the project.
+ * It leaves only through a leading `..` segment: a directory named `..scratch`
+ * also starts with two dots and is inside the root.
+ */
+function leavesRoot(rel: string): boolean {
+  return rel === '..' || rel.startsWith('../') || rel.startsWith('/');
+}
+
+/**
  * True when a filesystem event for `absPath` should feed the scheduler.
  * Mirrors the walker's allowlist/denylist so watch mode indexes exactly the
  * set of files a manual `mast index` run would.
@@ -131,7 +140,7 @@ export function shouldWatchPath(filter: WatchPathFilter, absPath: string): boole
   if (absPath === filter.stateDir || absPath.startsWith(`${filter.stateDir}/`)) return false;
   if (!filter.extensions.includes(extname(absPath))) return false;
   const rel = relative(filter.projectRoot, absPath);
-  if (rel.startsWith('..')) return false;
+  if (leavesRoot(rel)) return false;
   if (!isFileInDotScope(rel, filter.dotDirs)) return false;
   return !filter.excludeRegexes.some((rx) => rx.test(rel));
 }
@@ -173,7 +182,7 @@ export interface FindUnwatchedInput {
 
 function isInsideRoot(projectRoot: string, directory: string): boolean {
   const rel = relative(projectRoot, directory);
-  return rel === '' || (!rel.startsWith('..') && !rel.startsWith('/'));
+  return rel === '' || !leavesRoot(rel);
 }
 
 /**
@@ -362,7 +371,7 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
     const abs = resolve(path);
     if (abs === filter.stateDir || abs.startsWith(`${filter.stateDir}/`)) return true;
     const rel = relative(filter.projectRoot, abs);
-    if (rel === '' || rel.startsWith('..')) return false;
+    if (rel === '' || leavesRoot(rel)) return false;
     // A dot directory nobody named is pruned like an excluded one. Before
     // ADR 018 chokidar descended into all of them (`.git` included) and every
     // event there started an index run that walked none of those files.

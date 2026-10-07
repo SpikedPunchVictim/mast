@@ -190,7 +190,7 @@ describe('shouldWatchPath', () => {
     stateDir: '/proj/.mast',
     extensions: ['.ts', '.md'],
     excludeRegexes: [/^(.+\/)?node_modules\/.*$/, /^dist\/.*$/],
-    dotDirs: ['.agents'],
+    dotDirs: ['.agents', '..scratch'],
   };
 
   it('accepts a source file with a watched extension', () => {
@@ -218,6 +218,12 @@ describe('shouldWatchPath', () => {
 
   it('rejects a file in a dot directory that include_dot_dirs does not name', () => {
     expect(shouldWatchPath(filter, '/proj/.history/src/index.ts')).toBe(false);
+  });
+
+  // `relative()` returns `..scratch/note.md` for this path. Reading a leading
+  // `..` as "outside the root" dropped every event in such a directory.
+  it('accepts a file in a named directory whose name starts with two dots', () => {
+    expect(shouldWatchPath(filter, '/proj/..scratch/note.md')).toBe(true);
   });
 
   it('accepts a file in a dot directory that include_dot_dirs names', () => {
@@ -509,6 +515,18 @@ describe('startWatchMode — which directories it asks chokidar to ignore', () =
 
     expect(ignored(join(dir, '.github'))).toBe(false);
     expect(ignored(join(dir, '.github', 'actions'))).toBe(true);
+  });
+
+  it('descends into a named directory whose name starts with two dots', () => {
+    const ignored = ignoredPredicate(['..scratch']);
+
+    expect(ignored(join(dir, '..scratch'))).toBe(false);
+  });
+
+  it('ignores a directory whose name starts with two dots when it is not named', () => {
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, '..scratch'))).toBe(true);
   });
 
   it('still descends into ordinary directories', () => {

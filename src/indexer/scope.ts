@@ -18,7 +18,8 @@ export class InvalidDotDirError extends Error {
   }
 }
 
-const GLOB_CHARACTERS = /[*?[\]{}!()]/;
+// The backslash is fast-glob's escape character: `.b\c` would be walked as `.bc`.
+const GLOB_CHARACTERS = /[*?[\]{}!()\\]/;
 
 function isDotSegment(segment: string): boolean {
   return segment.startsWith('.');
@@ -32,15 +33,20 @@ function isDotSegment(segment: string): boolean {
  * walker and re-implemented by the watcher, and the point of an opt-in list is that
  * reading it tells you exactly which dot directories are indexed.
  *
- * @throws InvalidDotDirError for an entry that is empty, absolute, leaves the
- * project root, contains a glob character, or has no dot-leading segment (such a
- * directory is walked already, so listing it would silently do nothing).
+ * @throws InvalidDotDirError for an entry that is empty, absolute, padded with
+ * whitespace, leaves the project root, contains a glob character or a backslash,
+ * or has no dot-leading segment (such a directory is walked already, so listing
+ * it would silently do nothing). A directory whose real name contains one of
+ * those characters cannot be listed.
  */
 export function normalizeDotDirs(entries: readonly string[]): readonly string[] {
   const normalized: string[] = [];
   for (const entry of entries) {
+    if (entry !== entry.trim()) throw new InvalidDotDirError(entry, 'has leading or trailing whitespace');
     if (entry.startsWith('/')) throw new InvalidDotDirError(entry, 'is an absolute path');
-    if (GLOB_CHARACTERS.test(entry)) throw new InvalidDotDirError(entry, 'contains a glob character');
+    if (GLOB_CHARACTERS.test(entry)) {
+      throw new InvalidDotDirError(entry, 'contains a glob character or a backslash');
+    }
 
     const segments = entry.split('/').filter((segment) => segment !== '' && segment !== '.');
     if (segments.length === 0) throw new InvalidDotDirError(entry, 'names no directory');

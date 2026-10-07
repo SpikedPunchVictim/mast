@@ -69,8 +69,10 @@ default empty.
 No schema bump. Adding an entry makes its files "added" in the next manifest diff;
 removing one makes them "deleted". **Measured** for adding: the scratch project above with
 `include_dot_dirs: [".agents"]`, `mast index` then `mast status`, printed
-`indexed_files: 3`, `index_fresh: true`. Removing is **inferred from `diffManifest`**, not
-run.
+`indexed_files: 3`, `index_fresh: true`. Removing was **inferred from `diffManifest`** by
+the author and then **run by the review** (a scratch project, 2026-10-06):
+`chunks: +0 -2`, `indexed_files` 4 to 2, fresh. That run is the reviewer's report, not
+re-run by the author.
 
 ## What it does not claim
 
@@ -84,8 +86,20 @@ run.
   project: `mast init` with `[".agents"]`, the config file removed, `mast walk` still
   listed `.agents`. Setting `"include_dot_dirs": []` turns it off. `mast walk` names the
   saved file; the precedence itself is unchanged.
-- Dot-leading **files** outside a named directory (`.eslintrc.js` at the root) are not
-  indexable. Nothing here adds that.
+- Dot-leading **files** are not indexable anywhere, inside a named directory included
+  (`.agents/.notes.md` is skipped with `.agents` listed). Nothing here adds that.
+- **Symbolic links.** The walk does not follow them and chokidar does, so an edit behind
+  a link inside a named directory still queues an index run that walks nothing. That
+  mismatch predates this ADR for ordinary directories; naming `.claude`, where linked
+  skill directories are common, makes it likelier. `mast walk` reports an entry that is
+  itself a link; it does not detect links further down.
+- **A rejected entry is a stack trace outside `mast walk`.** `status`, `index`, `init`,
+  `prime`, `metrics` and `serve` do not catch `InvalidDotDirError`, so one bad entry
+  stops the MCP server from starting, with the message inside a Node stack trace. The
+  CLI has no top-level error handler; adding one is a separate decision.
+- **A malformed value in `<state_dir>/config.json`** (a string where an array belongs)
+  is dropped without a message, as every key read from that file is.
+- A directory whose real name contains a glob character or a backslash cannot be listed.
 - The search-reminder hook (`mast hook <harness> search`) decides by extension only. A
   Grep scoped to a dot directory that is not indexed is still reminded about
   `mast_search`.
