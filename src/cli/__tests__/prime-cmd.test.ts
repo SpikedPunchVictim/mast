@@ -31,6 +31,11 @@ const stale: StatusReport = {
   ...fresh,
   stale_files: 8,
   stale_breakdown: { changed: 3, unindexed: 4, deleted: 1 },
+  stale_paths: {
+    changed: ['src/a.ts', 'src/b.ts', 'src/c.ts'],
+    unindexed: ['src/n1.ts', 'src/n2.ts', 'src/n3.ts', 'src/n4.ts'],
+    deleted: ['src/gone.ts'],
+  },
   index_fresh: false,
   freshness_cause: 'phase1_stale',
 };
@@ -73,10 +78,41 @@ describe('renderPrime', () => {
     const out = renderPrime(stale, RULES, NOW);
 
     expect(out).toContain(RULES);
-    expect(out).toMatch(/changed 3/);
-    expect(out).toMatch(/unindexed 4/);
-    expect(out).toMatch(/deleted 1/);
+    expect(out).toMatch(/Changed since indexing \(3\)/);
+    expect(out).toMatch(/Not indexed \(4\)/);
+    expect(out).toMatch(/gone from disk \(1\)/);
     expect(out).toContain('mast_reindex');
+  });
+
+  it('says the rest of a stale index is current, so a stale count is not read as "do not use mast"', () => {
+    // An agent that read "116 stale" at session start used grep for a whole
+    // stretch of work; none of the files it was editing were among the 116.
+    const out = renderPrime(stale, RULES, NOW);
+
+    expect(out).toMatch(/8 of 412 files/);
+    expect(out).toMatch(/every other file.*current/i);
+  });
+
+  it('names the affected files, at most three per category, and says how many it left out', () => {
+    const out = renderPrime(stale, RULES, NOW);
+
+    expect(out).toContain('src/a.ts, src/b.ts, src/c.ts');
+    expect(out).toContain('src/n1.ts, src/n2.ts, src/n3.ts and 1 more');
+    expect(out).not.toContain('src/n4.ts');
+  });
+
+  it('asks for no reindex when files only changed, because mast re-parses or flags those itself', () => {
+    const onlyChanged: StatusReport = {
+      ...stale,
+      stale_files: 3,
+      stale_breakdown: { changed: 3, unindexed: 0, deleted: 0 },
+      stale_paths: { changed: ['src/a.ts', 'src/b.ts', 'src/c.ts'], unindexed: [], deleted: [] },
+    };
+
+    const out = renderPrime(onlyChanged, RULES, NOW);
+
+    expect(out).not.toContain('Call mast_reindex');
+    expect(out).toMatch(/stale/);
   });
 
   it('withholds the rules and says the index describes a different tree on a root mismatch', () => {
