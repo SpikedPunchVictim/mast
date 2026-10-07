@@ -214,6 +214,93 @@ describe('extractEdges — POTENTIAL_CALL this./super. resolution (F4)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// POTENTIAL_CALL — where in a declaration the call sits (D098)
+//
+// A call belongs to the nearest enclosing declaration that has a symbol. None
+// of the positions below has a symbol of its own, so each call is its
+// enclosing declaration's.
+// ---------------------------------------------------------------------------
+
+describe('extractEdges — POTENTIAL_CALL by position (D098)', () => {
+  const LOCAL = 'function local(n: number): number { return n; }';
+
+  /** `from -> to [resolution]` for every call edge in `src`, sorted. */
+  function calls(src: string): string[] {
+    return potentialCalls(edgesOf(src))
+      .map((e) => `${e.fromName} -> ${e.toName} [${String(e.resolution)}]`)
+      .sort();
+  }
+
+  it.each([
+    [
+      'a function declared inside a function',
+      `${LOCAL}
+       export function outer(): number { function inner(): number { return local(1); } return inner(); }`,
+      ['outer -> local [same_file]'],
+    ],
+    [
+      'a method of an object literal',
+      `${LOCAL}
+       export const make = () => ({ go(): number { return local(1); } });`,
+      ['make -> local [same_file]'],
+    ],
+    [
+      'an arrow function whose body is the call',
+      `${LOCAL}
+       export const short = (n: number) => local(n);`,
+      ['short -> local [same_file]'],
+    ],
+    [
+      'a default parameter value',
+      `${LOCAL}
+       export function withDefault(n: number = local(1)): number { return n; }`,
+      ['withDefault -> local [same_file]'],
+    ],
+    [
+      'a class property initializer',
+      `${LOCAL}
+       export class K { field = local(1); }`,
+      ['K -> local [same_file]'],
+    ],
+    [
+      'a method call on an annotated parameter of a nested arrow function',
+      `export function build(): (e: Env) => number { return (e: Env) => e.record(1); }`,
+      ['build -> Env.record [parameter_type]'],
+    ],
+  ])('links a call in %s', (_position, src, expected) => {
+    expect(calls(src)).toEqual(expected);
+  });
+
+  it('does not read `this` in an object-literal method as the enclosing class', () => {
+    const src = `export class A {
+      m(): unknown { return { go() { return this.own(); } }; }
+      own(): number { return 1; }
+    }`;
+
+    expect(calls(src)).toEqual([]);
+  });
+
+  it('does not read a nested parameter as the outer parameter of the same name', () => {
+    const src = `export function f(e: Env, xs: Other[]): unknown { return xs.map((e) => e.record(1)); }`;
+
+    expect(calls(src)).toEqual([]);
+  });
+
+  it('reads a nested parameter by its own annotation, not the outer one', () => {
+    const src = `export function f(e: Env, xs: Other[]): unknown { return xs.map((e: Other) => e.record(1)); }`;
+
+    expect(calls(src)).toEqual(['f -> Other.record [parameter_type]']);
+  });
+
+  it('does not read a call of a nested parameter as a call of the import it is named after', () => {
+    const src = `import { imported } from './lib';
+      export function f(xs: readonly (() => void)[]): void { xs.forEach((imported) => imported()); }`;
+
+    expect(calls(src)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // EXTENDS
 // ---------------------------------------------------------------------------
 

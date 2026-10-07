@@ -12,7 +12,7 @@ it into the review brief. Copy the questions, not the prose, and not the whole f
 
 ## S-01 — Damage that leaves the exit code alone
 
-**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085, D088, D094. **Rung**: brief, with one instance promoted (below).
+**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085, D088, D094, D101. **Rung**: brief, with one instance promoted (below).
 
 The package's own operating manual calls this the worst class most systems have, and it is the one
 `mast` is structurally most exposed to: an index is a *derived* artifact, so nothing downstream can
@@ -382,7 +382,7 @@ itself have to admit the key) — the same rung, the same file.
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004, D023, D047, D070, D097, D098, D100. **Rung**: brief.
+**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101. **Rung**: brief.
 
 The first three S0s in this ledger share it, and D047 — filed 2026-09-01, and the first slash-terminated import specifier any fixture in this package has ever contained — is the fourth. (The ledger now holds ten S0s; the six from the 2026-08-20 bug hunt have not been assessed against this shape.) D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,

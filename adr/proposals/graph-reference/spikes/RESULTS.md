@@ -210,6 +210,8 @@ index with that commit's `dist/`.
 | D097 | n8n `packages/core`, indexed alone | 12 functions → 0 | 558 | not re-run | not re-run | not re-run | none; counted with `sqlite3` |
 | D087 (aliases from the nearest tsconfig) | n8n `packages/core` inside the whole-monorepo index | 0 | 548 → 569 | 1,057 | 537 → 558 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d087.summary.json` |
 | D100 (a package entry point traced to its source) | n8n `packages/core` inside the whole-monorepo index | 0 | 569 → 657 | 1,057 | 558 → 646 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d100.summary.json` |
+| D098 and D101 (calls in nested functions, defaults and field initializers) | this repository | 0 | 705 → 727 | 765 | 727 | 0 | `s1-call-edges/mast.after-d098.summary.json` |
+| D098 and D101 | n8n `packages/core` inside the whole-monorepo index | 0 | 657 → 679 | 1,057 | 646 → 667 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d098.summary.json` |
 
 D097 changes which row an edge sits on, not which edges exist, so the pair counts were
 expected to stay the same and did.
@@ -276,3 +278,23 @@ Of the 1,057 pairs the checker supports there, mast now holds 646 (537 before D0
 The 411 it lacks: 162 construction, 73 a method on a local or imported name, 61 a method on a
 field, 57 a method on an expression, 32 `this.m()`, 24 a plain call, 2 `super.m()`. The 1,165
 new `IMPLEMENTS` and 384 new `EXTENDS` edges were not judged; the script covers calls only.
+
+### D098 and D101
+
+This repository's 765 is not the earlier 751: the source grew by the fixes made in this
+session. Of the 38 pairs it lacks, 20 are construction, 17 a method on a local name, 1 a plain
+call.
+
+On n8n core, one of the 22 new edges is a pair the script does not produce: a function that
+calls itself from an object-literal method (`buildSecretsValueProxy`,
+`get-secrets-proxy.ts:18`). The script skips self-calls; the edge was read by hand and is
+right. So 12 of mast's 679 pairs there are outside the script (11 before), and 667 are among
+the 1,057.
+
+Whole n8n copy, before then after: `POTENTIAL_CALL` 33,888 → 35,001 (`import` 10,258 → 11,052,
+`same_file` 9,355 → 9,603, `this_method` 8,873 → 8,910, `parameter_type` 564 → 587,
+`new_expression` 277 → 283, `field_type` 4,536 → 4,541). 13,985 files, exit 0, stderr empty.
+Only `packages/core` was judged.
+
+The fixture script after the fix is in `s1-call-edges/fixtures.after-d098.out.txt`: every
+position of fx2 has its edge, and fx1 gains `obj -> helper` (an object-literal method).

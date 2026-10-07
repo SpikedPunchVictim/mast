@@ -1292,6 +1292,15 @@ function emitClassEdges(
 
   for (const member of nodeNamedChildren(bodyNode)) {
     const mt = nodeType(member);
+    if (mt === 'public_field_definition') {
+      // A field has no symbol of its own, so a call in its initializer is the
+      // class's (D098).
+      const value = member.childForFieldName('value');
+      if (value !== null) {
+        emitCallEdges(className, null, value, edges, seedFileScope, lines, classScopeBindings, onCallSite);
+      }
+      continue;
+    }
     if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
     const methodName = member.childForFieldName('name')?.text ?? null;
     if (methodName === null) continue;
@@ -1368,11 +1377,10 @@ function calleeLine(call: SyntaxNode): number {
  * - `bare_call_unresolved`: the callee parsed as a receiver-less call
  *   (`foo()`) but the name matched neither an import nor a same-file symbol.
  *
- * **Boundary**: `collectCalls` does not descend into nested
- * function/method/class bodies (its own skip-list, see below) — those call
- * sites are never handed to `parseCallee` at all and are therefore, by
- * design, outside this invariant. A file with heavy use of inline
- * `function`-expression callbacks will visit fewer calls than it contains.
+ * **Boundary**: `collectCallSites` does not descend into a nested class or a
+ * decorator — those call sites are never handed to `parseCallee` at all and
+ * are outside this invariant. Nested functions of every kind are inside it
+ * (D098).
  */
 export type CallSiteOutcome =
   | 'edge_emitted'
@@ -1405,13 +1413,14 @@ function emitCallEdges(
   }
   for (const b of collectNewBindings(bodyNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
 
-  for (const call of collectCalls(bodyNode)) {
+  for (const site of collectCallSites(bodyNode, paramsNode)) {
+    const { call } = site;
     const parsed = parseCallee(call);
     if (parsed === null) {
       onCallSite?.('unparseable_callee');
       continue;
     }
-    const resolved = env.resolveCall(parsed.receiver, parsed.method);
+    const resolved = resolveCallSite(env, site, parsed);
     if (resolved === null) {
       onCallSite?.(parsed.receiver === null ? 'bare_call_unresolved' : 'unresolved_receiver');
       continue;
@@ -1493,35 +1502,131 @@ function collectNewBindings(bodyNode: SyntaxNode): ReceiverBinding[] {
   return bindings;
 }
 
-/** Collect call_expression nodes within a body, not descending into nested
- *  named/anonymous functions, generators, methods, or classes (their bodies
- *  are their own scope — non-arrow functions also get their own dynamic
- *  `this`, so a `this.foo()` inside one is never the enclosing class
- *  instance; F4's `this_method`/`super_method` bindings must not leak in.
- *  Arrow functions are deliberately NOT in this list — they inherit the
- *  enclosing scope's `this` and calls inside them must still resolve).
+/** A call found in a scope, with what the functions nested around it change. */
+interface CallSite {
+  readonly call: SyntaxNode;
+  /**
+   * True inside a non-arrow function nested in the scope. Such a function has
+   * its own `this`, so `this.m()` and `super.m()` there are not the enclosing
+   * class's. Arrow functions inherit `this` and leave this false.
+   */
+  readonly ownThis: boolean;
+  /**
+   * Parameters declared by the nested functions around the call: name to its
+   * annotated type, or null when it has none. The innermost declaration of a
+   * name is the one held. A name here hides the enclosing scope's binding and
+   * any import or top-level symbol of the same name.
+   */
+  readonly nestedParams: ReadonlyMap<string, string | null>;
+}
+
+const NESTED_FUNCTION_TYPES = new Set([
+  'arrow_function', 'function_declaration', 'function_expression', 'generator_function',
+  'generator_function_declaration', 'method_definition',
+]);
+const NESTED_CLASS_TYPES = new Set(['class_declaration', 'abstract_class_declaration', 'class']);
+
+/**
+ * Every call in a declaration: its body, and its parameters' default values.
  *
- *  Exported (D7, Stage 4) so `call-oracle.test.ts` can independently
- *  enumerate the same call sites `emitCallEdges` visits, as the ground
- *  truth for the `onCallSite` accounting invariant — not part of the
- *  extractor's public tool-facing surface. */
-export function collectCalls(bodyNode: SyntaxNode): SyntaxNode[] {
-  const calls: SyntaxNode[] = [];
-  const visit = (node: SyntaxNode): void => {
-    for (const child of nodeNamedChildren(node)) {
-      const t = nodeType(child);
-      if (t === 'function_declaration' || t === 'method_definition' ||
-          t === 'class_declaration' || t === 'abstract_class_declaration' ||
-          t === 'function_expression' || t === 'generator_function' ||
-          t === 'generator_function_declaration') {
-        continue;
-      }
-      if (t === 'call_expression') calls.push(child);
-      visit(child);
+ * A call belongs to the nearest enclosing declaration that has a symbol.
+ * Functions nested in a body (declarations, expressions, arrows, object-literal
+ * methods) have none, so this descends into them and the calls there are the
+ * enclosing declaration's (D098). It records what each one changes on the way
+ * down, see {@link CallSite}. It does not descend into a nested class, whose
+ * calls are left unlinked, nor into decorators.
+ */
+function collectCallSites(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = null): CallSite[] {
+  const sites: CallSite[] = [];
+  const consider = (node: SyntaxNode, ownThis: boolean, nestedParams: ReadonlyMap<string, string | null>): void => {
+    const t = nodeType(node);
+    if (NESTED_CLASS_TYPES.has(t) || t === 'decorator') return;
+
+    let innerOwnThis = ownThis;
+    let innerParams = nestedParams;
+    if (NESTED_FUNCTION_TYPES.has(t)) {
+      innerOwnThis = ownThis || t !== 'arrow_function';
+      innerParams = new Map([...nestedParams, ...declaredParams(node)]);
+    } else if (t === 'call_expression') {
+      sites.push({ call: node, ownThis, nestedParams });
     }
+    for (const child of nodeNamedChildren(node)) consider(child, innerOwnThis, innerParams);
   };
-  visit(bodyNode);
-  return calls;
+
+  const outermost: ReadonlyMap<string, string | null> = new Map();
+  if (paramsNode !== null) consider(paramsNode, false, outermost);
+  // The body is the scope itself, not something nested in it: an arrow whose
+  // body is a single call hands that call in directly.
+  if (nodeType(bodyNode) === 'call_expression') sites.push({ call: bodyNode, ownThis: false, nestedParams: outermost });
+  for (const child of nodeNamedChildren(bodyNode)) consider(child, false, outermost);
+  return sites;
+}
+
+/**
+ * The call nodes {@link collectCallSites} finds, in the same order.
+ *
+ * Exported (D7, Stage 4) so `call-oracle.test.ts` can independently enumerate
+ * the call sites `emitCallEdges` visits, as the ground truth for the
+ * `onCallSite` accounting invariant — not part of the extractor's public
+ * tool-facing surface.
+ */
+export function collectCalls(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = null): SyntaxNode[] {
+  return collectCallSites(bodyNode, paramsNode).map((site) => site.call);
+}
+
+/** The parameters a function-like node declares: name to annotated type, or null. */
+function declaredParams(fn: SyntaxNode): Map<string, string | null> {
+  const declared = new Map<string, string | null>();
+  // `x => ...` has one bare identifier in place of a parameter list.
+  const single = fn.childForFieldName('parameter');
+  if (single !== null) declared.set(single.text, null);
+
+  const list = fn.childForFieldName('parameters');
+  if (list === null) return declared;
+  for (const param of nodeNamedChildren(list)) {
+    const pattern = param.childForFieldName('pattern') ?? findChildByType(param, 'identifier');
+    if (pattern === null) continue;
+    if (nodeType(pattern) === 'identifier') {
+      declared.set(pattern.text, annotationTypeName(param));
+      continue;
+    }
+    // Destructured: every name bound in the pattern, none with a type this
+    // resolver can read. Default values inside the pattern are swept up too,
+    // which can only hide a binding, never invent one.
+    const names = (node: SyntaxNode): void => {
+      const nt = nodeType(node);
+      if (nt === 'identifier' || nt === 'shorthand_property_identifier_pattern') declared.set(node.text, null);
+      for (const child of nodeNamedChildren(node)) names(child);
+    };
+    names(pattern);
+  }
+  return declared;
+}
+
+/**
+ * Resolve one call site, letting the functions nested around it override the
+ * scope's own bindings first.
+ */
+function resolveCallSite(
+  env: LocalTypeEnvironment,
+  site: CallSite,
+  parsed: { receiver: string | null; method: string },
+): { callee: string; resolution: CallerResolution } | null {
+  const { receiver, method } = parsed;
+  if (receiver === null) {
+    // Calling a nested parameter (`cb()`), whatever import shares its name.
+    return site.nestedParams.has(method) ? null : env.resolveCall(null, method);
+  }
+
+  const root = receiver.split('.')[0] ?? receiver;
+  if (site.ownThis && (root === 'this' || root === 'super')) return null;
+  if (site.nestedParams.has(root)) {
+    const type = site.nestedParams.get(root) ?? null;
+    return type === null || receiver !== root
+      ? null
+      : { callee: `${type}.${method}`, resolution: 'parameter_type' };
+  }
+  return env.resolveCall(receiver, method);
 }
 
 /** Extract `{ receiver, method }` from a call expression, or null if unhandled. */
@@ -1567,9 +1672,9 @@ function receiverString(objectNode: SyntaxNode): string | null {
   if (t === 'identifier') return node.text;
   // F4: bare `this`/`super` as the receiver — `this.foo()`/`super.foo()`.
   // The env bindings for these two literal strings are seeded per-method by
-  // `emitClassEdges`; outside a class scope (or inside a nested function
-  // that shadows `this`, per collectCalls above) no binding exists and
-  // `resolveCall` returns null, same as any other unbound receiver.
+  // `emitClassEdges`; outside a class scope no binding exists and
+  // `resolveCall` returns null, same as any other unbound receiver. Inside a
+  // nested function with its own `this`, `resolveCallSite` refuses first.
   if (t === 'this') return 'this';
   if (t === 'super') return 'super';
   if (t === 'member_expression') {

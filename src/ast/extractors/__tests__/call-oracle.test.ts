@@ -66,13 +66,19 @@ function expectedCallSites(tree: Tree): SyntaxNode[] {
       const body = declNode.childForFieldName('body');
       if (body === null) continue;
       for (const member of body.namedChildren) {
+        // A field's initializer is a scope of its own, attributed to the class (D098).
+        if (member.type === 'public_field_definition') {
+          const value = member.childForFieldName('value');
+          if (value !== null) sites.push(...collectCalls(value));
+          continue;
+        }
         if (member.type !== 'method_definition' && member.type !== 'abstract_method_signature') continue;
         const methodBody = member.childForFieldName('body');
-        if (methodBody !== null) sites.push(...collectCalls(methodBody));
+        if (methodBody !== null) sites.push(...collectCalls(methodBody, member.childForFieldName('parameters')));
       }
     } else if (t === 'function_declaration' || t === 'generator_function_declaration') {
       const body = declNode.childForFieldName('body');
-      if (body !== null) sites.push(...collectCalls(body));
+      if (body !== null) sites.push(...collectCalls(body, declNode.childForFieldName('parameters')));
     } else if (t === 'lexical_declaration' || t === 'variable_declaration') {
       // extractEdges only ever looks at the FIRST variable_declarator in a
       // declaration statement (`findChildByType` returns the first match) —
@@ -84,7 +90,7 @@ function expectedCallSites(tree: Tree): SyntaxNode[] {
       const value = declarator?.childForFieldName('value') ?? null;
       if (value !== null && value.type === 'arrow_function') {
         const body = value.childForFieldName('body');
-        if (body !== null) sites.push(...collectCalls(body));
+        if (body !== null) sites.push(...collectCalls(body, value.childForFieldName('parameters')));
       }
     }
   }
