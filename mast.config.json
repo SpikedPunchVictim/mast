@@ -10,5 +10,8 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "integration/results/**"
+  ],
+  "include_dot_dirs": [
+    ".agents"
   ]
 }
