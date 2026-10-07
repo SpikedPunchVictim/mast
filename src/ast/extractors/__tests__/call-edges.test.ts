@@ -326,6 +326,42 @@ describe('extractEdges — construction', () => {
 });
 
 // ---------------------------------------------------------------------------
+// POTENTIAL_CALL — an awaited call with type arguments (D103)
+//
+// tree-sitter-typescript 0.23.2 reads `await f<T>(x)` as `(await f)<T>(x)`:
+// the call's function is the await expression. TypeScript reads it as
+// `await (f<T>(x))`.
+// ---------------------------------------------------------------------------
+
+describe('extractEdges — an awaited call with type arguments', () => {
+  it.each([
+    { call: 'await helper<number>(1)', edge: 'run -> helper [import]' },
+    { call: 'await repo.find<number>(1)', edge: 'run -> Repo.find [parameter_type]' },
+    { call: 'await helper(1)', edge: 'run -> helper [import]' },
+  ])('links `$call`', ({ call, edge }) => {
+    const edges = potentialCalls(edgesOf(`
+      import { helper, Repo } from './lib';
+      export async function run(repo: Repo): Promise<unknown> { return ${call}; }
+    `));
+
+    expect(edges.map((e) => `${e.fromName} -> ${e.toName} [${String(e.resolution)}]`)).toEqual([edge]);
+  });
+
+  it('links `await this.m<T>()` to the method of the class', () => {
+    const edges = potentialCalls(edgesOf(`
+      export class Svc {
+        async own<T>(x: T): Promise<T> { return x; }
+        async run(): Promise<number> { return await this.own<number>(1); }
+      }
+    `));
+
+    expect(edges.map((e) => `${e.fromName} -> ${e.toName} [${String(e.resolution)}]`)).toEqual([
+      'Svc.run -> Svc.own [this_method]',
+    ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // EXTENDS
 // ---------------------------------------------------------------------------
 

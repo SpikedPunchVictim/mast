@@ -1648,7 +1648,12 @@ function parseConstructed(expr: SyntaxNode): { receiver: null; method: string } 
 
 /** Extract `{ receiver, method }` from a call expression, or null if unhandled. */
 function parseCallee(call: SyntaxNode): { receiver: string | null; method: string } | null {
-  const fn = call.childForFieldName('function') ?? call.namedChildren[0] ?? null;
+  const written = call.childForFieldName('function') ?? call.namedChildren[0] ?? null;
+  if (written === null) return null;
+  // tree-sitter-typescript 0.23.2 reads `await f<T>(x)` as `(await f)<T>(x)`,
+  // so the function of the call is the await expression (D103). A written
+  // `(await f)(x)` is a parenthesized expression and does not come here.
+  const fn = nodeType(written) === 'await_expression' ? (written.namedChildren[0] ?? null) : written;
   if (fn === null) return null;
 
   if (nodeType(fn) === 'identifier') {
