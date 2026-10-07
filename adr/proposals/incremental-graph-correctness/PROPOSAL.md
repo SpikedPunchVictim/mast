@@ -139,7 +139,7 @@ through; items are ticked here as they land.
       rename; barrel re-pointed; re-export replaced by a declaration; `type` to `interface`;
       body edit of a star-re-exported file; file deleted and recreated; function moved behind a
       barrel. Each later edge defect adds a row.
-- [ ] **T3. The same table through the query-time path.** The edit is followed by a read-tool
+- [x] **T3. The same table through the query-time path.** The edit is followed by a read-tool
       refresh of the edited file, then T1; then an incremental run, then T1 again.
 - [x] **T4. Order independence.** The same project under file names that sort the caller before
       and after the barrel; named re-exports chained three deep in the adverse order; a star and
@@ -152,7 +152,7 @@ through; items are ticked here as they land.
 - [x] **T7. Tool answers.** `mast_callers`, `mast_implementors` and `mast_rename_impact` give
       the same answer before and after a body edit of the target file. One test per tool: this
       is the layer a user sees.
-- [ ] **T8. Watcher path.** With the server's watcher running, an edit to a called file leaves
+- [x] **T8. Watcher path.** With the server's watcher running, an edit to a called file leaves
       its callers in place. The one-session finding in S2 came through this path and no test
       covers it.
 - [ ] **T9. Existing incremental tests call T1.** `stability`, `chunks-removed`,
@@ -238,11 +238,35 @@ What was built differs from the proposal in three places:
   that dies part-way leaves the list. A run that dies between pass 1 and pass 2 still loses
   the holders' edges unrecorded; that window is older than this work.
 
-Not covered by M3b, each because the index stores nothing to find the importer by, and none
-with a test yet: an `export *` of a file that did not exist when the barrel was indexed; a
-call resolved with no file evidence (`legacyGlobalFirstMatch`); a new file that takes over a
-specifier another file already answered; `import { a as b }` and `export { a as b } from`.
-The first three are for T10 to reproduce.
+Step 4 landed 2026-10-07: M5. The re-resolve step moved out of `runIndex` into
+`src/indexer/edge-repair.ts`, and the query-time refresh (`checkAndRefreshIfStale`) calls it
+with a 250 ms budget. T3 is `mcp/__tests__/query-time-equivalence.test.ts`: the T2 scenarios,
+now in `indexer/__tests__/equivalence-scenarios.ts`, 13 of 18 red before. T8 is
+`mcp/__tests__/watch-batch-edges.test.ts`, a real watcher with the server's batch handler; it
+was green when written, because M3a had already fixed that path, and fails with the holder
+step removed. Two things the proposal did not have:
+
+- **The waiting list commits with the file's write on this path.** The query-time refresh
+  takes no structure lock, so another process can hold the database between the write and
+  the repair. The file and its holders are recorded inside `populateFile`'s transaction.
+- **The repair's writes wait 200 ms for another writer, not 5 s.** SQLite's wait blocks the
+  server process. A repair that loses the wait stops, and the files stay recorded.
+
+Cost on n8n: 7 ms for a file nothing depends on, 376 to 712 ms for three hub files
+(`spikes/s8-importer-repair-validation/RESULTS.md`, added section).
+
+`mast index --incremental` stays without a budget (user, 2026-10-07).
+
+Not covered by M3b as it landed, each because the index stored nothing to find the importer
+by: an `export *` of a file that did not exist when the barrel was indexed; a call resolved
+with no file evidence (`legacyGlobalFirstMatch`); a new file that takes over a specifier
+another file already answered; `import { a as b }` and `export { a as b } from`.
+
+2026-10-07, at the user's direction, the first three were written as scenario rows instead of
+being left for T10, and each failed: D090, D092 and D091 in that order. D090 and D091 are
+fixed (a `star_reexport_unresolved` table; `findFilesShadowedBy`). D092 stays open: its row
+runs in both tables expecting failure, and the fix waits on measuring the name match on n8n.
+Aliases stay deferred with D087.
 
 Not in this round: the D087 case (a path alias in a package's own `tsconfig.json`) and
 aliased imports resolving to the right target. Their tests are written with their fixes.

@@ -98,4 +98,21 @@ describe('tool answers across a body edit of the file asked about', () => {
 
     expect(after).toEqual(before);
   });
+
+  // D080: no index run between the edit and the question. Naming the file
+  // makes the tool re-write it before answering, and that re-write deleted
+  // the caller's edge: `verified_count: 0`, with nothing on the response to
+  // say so. `mast_implementors` re-writes nothing and is not in this table.
+  it.each([
+    { tool: 'mast_callers', args: { symbol: 'compute', file_path: 'src/target.ts', include_potential: false } },
+    { tool: 'mast_rename_impact', args: { symbol: 'compute', file_path: 'src/target.ts' } },
+  ])('$tool answers the same when its own refresh is what picks the edit up', async ({ tool, args }) => {
+    const before = await call(tool, args);
+    expect(JSON.stringify(before)).toContain('use');
+
+    editFile(dir, 'src/target.ts', TARGET_EDITED);
+    const after = await call(tool, args);
+
+    expect(after).toEqual(before);
+  });
 });

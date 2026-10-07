@@ -84,4 +84,36 @@ Yes for this case: run 3 and run 4 above.
 - A second corpus.
 - The watcher. The budget was passed by script; the watcher passing it is covered only by
   `src/mcp/__tests__/serve-freshness-wiring.test.ts`.
-- The query-time path, which still does not resolve edges at all (D080).
+- The query-time path as of this run. It was measured after M5; see below.
+
+## Added 2026-10-07, after M5: the query-time refresh on the same copy
+
+`query-time.mjs`. Each file's mtime is moved forward with its content unchanged, the file is
+refreshed the way a read tool refreshes it (`jitRefreshFile`, 250 ms budget), and an uncapped
+incremental run then drains what was left. Two passes, built from the working tree that
+became the M5 commit.
+
+| File | Refresh, ms (pass 1, pass 2) | Left waiting | Resolved by the run after |
+|---|---|---|---|
+| `packages/workflow/src/cron-moved.ts` (nothing holds an edge into it) | 7, 7 | 0 | 0 |
+| `packages/workflow/src/index.ts` (package barrel) | 376, 513 | 512 | 565 |
+| `packages/workflow/src/utils.ts` | 712, 457 | 284 | 333 |
+| `packages/workflow/src/interfaces.ts` | 527, 569 | 1,078 | 1,193 |
+
+Every refresh returned `refreshed: true, busy: false`, and every following run ended with
+nothing waiting.
+
+What this shows, for these four files on this machine:
+
+- A file nothing depends on costs 7 ms, as before.
+- A hub file costs 376 to 712 ms, of which 250 ms is the budget. The rest is the file's own
+  write, the lookups and the files that re-export, which are outside the budget.
+- The run that follows resolves every dependent file again, including the ones the refresh
+  had already done (565 after 53 were done, 333 after 49, 1,193 after 115). The manifest still
+  holds the old mtime, so the run parses the file, does not find it stable (a block chunk or
+  an export marker rules the skip out) and re-writes it. Correct, and repeated work. Not
+  changed here.
+
+Not measured: the same refresh before M5, so there is no before-and-after figure; any other
+file; a refresh while another process is writing (the bounded wait is covered by
+`src/mcp/__tests__/query-time-repair-contended.test.ts` on a two-file project only).

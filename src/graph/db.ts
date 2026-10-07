@@ -104,6 +104,21 @@ interface EdgeRepairPendingTable {
   readonly file_id: number;
 }
 
+/**
+ * One row per `export * from '<module>'` in a file whose relative `module`
+ * matched no indexed file when the file's star rows were written.
+ *
+ * `re_export_files` holds only the stars that resolved, so without this a
+ * barrel written before the file it names leaves nothing to find it by when
+ * that file appears, and stays without the star row until a full index
+ * (D090). Rows go by cascade with the file, and one is deleted when its star
+ * resolves.
+ */
+interface StarReexportUnresolvedTable {
+  readonly file_id: number;
+  readonly module: string;
+}
+
 interface ImportsTable {
   readonly file_id: number;
   readonly module: string;
@@ -262,6 +277,7 @@ export interface MastDatabase {
   readonly edges: EdgesTable;
   readonly re_export_files: ReExportFilesTable;
   readonly edge_repair_pending: EdgeRepairPendingTable;
+  readonly star_reexport_unresolved: StarReexportUnresolvedTable;
   readonly imports: ImportsTable;
   readonly metrics: MetricsTable;
   readonly metrics_daily: MetricsDailyTable;
@@ -322,6 +338,12 @@ CREATE TABLE IF NOT EXISTS re_export_files (
 
 CREATE TABLE IF NOT EXISTS edge_repair_pending (
   file_id  INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS star_reexport_unresolved (
+  file_id  INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+  module   TEXT NOT NULL,
+  PRIMARY KEY (file_id, module)
 );
 
 CREATE TABLE IF NOT EXISTS imports (

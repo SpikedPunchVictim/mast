@@ -309,6 +309,14 @@ CREATE TABLE IF NOT EXISTS edge_repair_pending (
   file_id  INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS star_reexport_unresolved (
+  -- A relative `export * from` whose module matched no indexed file (§10.3.1).
+  -- Read when a file is added, to find the barrels that may name it.
+  file_id  INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+  module   TEXT NOT NULL,
+  PRIMARY KEY (file_id, module)
+);
+
 CREATE TABLE IF NOT EXISTS imports (
   file_id       INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
   module        TEXT NOT NULL,
@@ -1048,6 +1056,9 @@ how many files a single call's results can span:
    only** (one tree-sitter parse, one `BEGIN IMMEDIATE` transactional
    delete-and-replace against the `chunks` table, `graph.db`, `chunk_fts`,
    `identifier_fts` — see §7.6; no `structure.lock` acquisition on this path).
+   The edges into and out of the file are then resolved again, within a
+   250 ms budget (§10.3.1); files not reached are reported as
+   `pending_edge_repairs`.
    Re-resolve the tool's result against the refreshed chunks. A single-file
    re-parse typically completes in 10–50ms; the transactional write itself is
    bounded by a dedicated 200ms `busy_timeout` (§7.6), not the connection's
@@ -2344,10 +2355,27 @@ the `edge_repair_pending` table and resolved by the next incremental run. While
 any are recorded, `mast_status` reports `pending_edge_repairs` and the three
 edge tools carry the count (§9.0).
 
-Not followed, because nothing stored identifies the importer: an `export *` of a
-file that did not exist when the barrel was indexed; a call resolved without
-file evidence; a new file that takes over a specifier another file already
-answered; an import or re-export under an alias. A full index corrects all four.
+A read tool's query-time re-parse (§9.0) re-writes a file too, and resolves
+again in the same way, with a budget of 250 ms (ledger D080). That path takes no
+`structure.lock`, so two things differ. The re-written file and the files that
+held edges into it are recorded in `edge_repair_pending` inside the transaction
+that re-writes the file, so the write cannot commit without the record. And each
+write that follows waits at most 200 ms for another writer, as the re-write
+itself does (§7.6); if one loses that wait the work stops, the tool still
+answers, and the files stay recorded.
+
+Two more cases apply when a file is added. A relative `export *` that matched no
+indexed file is recorded in `star_reexport_unresolved`, and the barrels recorded
+there are read again, so a barrel written before the file it names gets its star
+row (ledger D090). And the files the new one stands in front of when a specifier
+is resolved (the same name with another extension, or an `index` file in a
+directory of that name) have the files holding edges into them resolved again
+(ledger D091).
+
+Not followed, because nothing stored identifies the importer: a call resolved
+without file evidence (ledger D092, open); an import or re-export under an
+alias; an `export *` through a path alias of a file added later. A full index
+corrects all three.
 
 ### 10.3.2 TypeScript-Checker Enrichment Pass (`mast index --checker`)
 

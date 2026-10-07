@@ -3,6 +3,7 @@ import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerRes
 import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 import { pathPrefixUpperBound } from './path-range.js';
+import { markEdgeRepairsPending } from './importer-repair.js';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -193,6 +194,17 @@ export interface PopulateFileOptions {
    * correctly. The CLI therefore refuses to combine it with `--incremental`.
    */
   readonly skipFtsDeletes?: boolean;
+  /**
+   * Paths to record as waiting for their edges (`edge_repair_pending`) in the
+   * same transaction as the write, when the write lands.
+   *
+   * The write deletes every edge other files hold into this file. A caller
+   * that puts them back afterwards without the structure lock — the
+   * query-time refresh — can lose the database to another writer in between,
+   * and then this record is the only thing that says edges are missing. So it
+   * must not be possible for the write to commit without it.
+   */
+  readonly pendingEdgeRepairs?: readonly string[];
 }
 
 /**
@@ -222,6 +234,28 @@ export const IMMEDIATE_WRITE_BUSY_TIMEOUT_MS = 200;
 
 /** `graph.db`'s shared connection-wide default (`openDatabase`, `graph/db.ts`) — restored after {@link populateFile}'s short window closes. */
 const DEFAULT_BUSY_TIMEOUT_MS = 5_000;
+
+/**
+ * Runs `work` on this `Db`'s connection with writes waiting at most
+ * {@link IMMEDIATE_WRITE_BUSY_TIMEOUT_MS} for another writer, where they would
+ * otherwise wait the connection's 5000 ms. Pass `work`'s argument, not `db`,
+ * to everything inside it.
+ *
+ * For writes made on a read tool's request path outside `populateFile`: the
+ * wait is synchronous and stops the whole server process, so it has the same
+ * bound there as `populateFile`'s own (F11). A statement that loses the wait
+ * throws `SQLITE_BUSY`.
+ */
+export async function withBoundedWriteWait<T>(db: Db, work: (conn: Db) => Promise<T>): Promise<T> {
+  return db.connection().execute(async (conn) => {
+    await sql.raw(`pragma busy_timeout = ${IMMEDIATE_WRITE_BUSY_TIMEOUT_MS}`).execute(conn);
+    try {
+      return await work(conn);
+    } finally {
+      await sql.raw(`pragma busy_timeout = ${DEFAULT_BUSY_TIMEOUT_MS}`).execute(conn);
+    }
+  });
+}
 
 /**
  * Delete all rows for `filePath` from files, symbols, edges, imports,
@@ -316,6 +350,9 @@ export async function populateFile(
 
     try {
       const result = await writePopulatedFileRows(conn, data, options);
+      if (result.written && options.pendingEdgeRepairs !== undefined) {
+        await markEdgeRepairsPending(conn, options.pendingEdgeRepairs);
+      }
       // Timed as its own region because this is where FTS5 actually writes its
       // segments — `fts5SyncMethod` runs at COMMIT (sqlite3.c:262278), not
       // inside the INSERT statements above.
@@ -1373,8 +1410,22 @@ export async function insertReExportFiles(
     .executeTakeFirst();
   if (fromFile === undefined) return;
 
+  // A relative star that matches no indexed file is recorded, so that the run
+  // which later adds the file can find this barrel again (D090).
+  const recordUnresolved = async (module: string): Promise<void> => {
+    if (!module.startsWith('.')) return;
+    await db
+      .insertInto('star_reexport_unresolved')
+      .values({ file_id: fromFile.id, module })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+  };
+
   for (const star of stars) {
-    if (star.resolvedPath === null) continue;
+    if (star.resolvedPath === null) {
+      await recordUnresolved(star.module);
+      continue;
+    }
     // resolved_path may lack an extension — the prefix range matches `x.ts`,
     // `x/index.ts`, etc. (same convention as resolveTypeContext, §13.7).
     const target = await db
@@ -1384,7 +1435,16 @@ export async function insertReExportFiles(
       .where('path', '<', pathPrefixUpperBound(star.resolvedPath))
       .orderBy('path', 'asc')
       .executeTakeFirst();
-    if (target === undefined || target.id === fromFile.id) continue;
+    if (target === undefined) {
+      await recordUnresolved(star.module);
+      continue;
+    }
+    await db
+      .deleteFrom('star_reexport_unresolved')
+      .where('file_id', '=', fromFile.id)
+      .where('module', '=', star.module)
+      .execute();
+    if (target.id === fromFile.id) continue;
 
     await db
       .insertInto('re_export_files')

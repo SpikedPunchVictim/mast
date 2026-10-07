@@ -1,9 +1,15 @@
-import { statSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db } from '../graph/db.js';
 import type { ResolvedConfig } from '../store/config.js';
 import { extractFile } from '../ast/extract.js';
-import { populateFile } from '../graph/populate.js';
+import { populateFile, withBoundedWriteWait } from '../graph/populate.js';
+import {
+  newEdgeRepairMemo,
+  rememberBeforeRemoval,
+  repairEdgesAfterWrites,
+  type ReResolveRecords,
+} from '../indexer/edge-repair.js';
 
 // ---------------------------------------------------------------------------
 // F13 — SQLITE_BUSY_SNAPSHOT retry classification
@@ -61,6 +67,24 @@ function isRetryableBusySnapshot(err: unknown): boolean {
  * the same contention.
  */
 const MAX_POPULATE_RETRIES = 1;
+
+/**
+ * How long one query-time refresh may spend resolving again the files that
+ * only import from the refreshed one. Files left over are recorded as waiting
+ * and reported on the response (`pending_edge_repairs`).
+ *
+ * A read tool's answer waits for this, so it is an eighth of what a background
+ * run gets (`BACKGROUND_EDGE_REPAIR_BUDGET_MS`). At 3.8 to 6.4 ms per file
+ * measured on n8n that is some 40 to 65 files
+ * (adr/proposals/incremental-graph-correctness/spikes/s8-importer-repair-validation);
+ * a starting value chosen by the user on 2026-10-06, not a measured optimum.
+ */
+export const QUERY_TIME_EDGE_REPAIR_BUDGET_MS = 250;
+
+export interface StalenessCheckOptions {
+  /** Overrides {@link QUERY_TIME_EDGE_REPAIR_BUDGET_MS}. */
+  readonly edgeRepairBudgetMs?: number;
+}
 
 // ---------------------------------------------------------------------------
 // F7 — stat-and-flag staleness for mast_search / mast_implementors (§9.0)
@@ -174,6 +198,7 @@ export async function checkAndRefreshIfStale(
   // (`mcp/__tests__/staleness.test.ts`) induce a genuine SQLITE_BUSY_SNAPSHOT
   // via a second real connection instead of mocking `populateFile` wholesale.
   populateFileImpl: typeof populateFile = populateFile,
+  options: StalenessCheckOptions = {},
 ): Promise<StalenessCheckResult> {
   const absPath = join(config.resolved_project_root, filePath);
   let diskMtime: number;
@@ -190,7 +215,7 @@ export async function checkAndRefreshIfStale(
   // File is stale — re-parse and persist it. No lock acquisition here (F11,
   // see this function's doc comment) — `populateFile`'s own `BEGIN IMMEDIATE`
   // transaction is what now bounds and serializes the write.
-  let result;
+  let result: ReturnType<typeof extractFile>;
   try {
     result = extractFile(absPath, config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth);
   } catch {
@@ -219,10 +244,18 @@ export async function checkAndRefreshIfStale(
   // legitimately exhausted under real contention, and that must map to
   // `{ busy: true }`, never propagate as a raw throw. A non-busy error is NOT
   // retried and NOT reclassified — it propagates immediately.
+  const extract = (path: string): ReturnType<typeof extractFile> =>
+    extractFile(join(config.resolved_project_root, path), config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth);
+
+  // The write below deletes this file's rows and, by cascade, every edge other
+  // files hold into them. What is needed to put those back is read first
+  // (D080). Read once: a write attempt that fails deletes nothing.
+  const memo = newEdgeRepairMemo();
   const totalAttempts = MAX_POPULATE_RETRIES + 1;
   for (let attempt = 1; attempt <= totalAttempts; attempt++) {
     try {
-      await populateFileImpl(db, {
+      if (attempt === 1) await rememberBeforeRemoval(db, memo, [filePath]);
+      const { written } = await populateFileImpl(db, {
         filePath,
         language: result.language,
         mtime: diskMtime,
@@ -230,7 +263,14 @@ export async function checkAndRefreshIfStale(
         imports: result.imports,
         symbols: result.symbols,
         identifierRows: result.identifierRows,
+      }, {
+        // Committed with the write: the file, whose own edges the write
+        // deleted, and the files that held edges into it.
+        pendingEdgeRepairs: [filePath, ...memo.holders],
       });
+      // When the monotonic guard refused the write, another writer already
+      // stored something newer, and that writer owns the edges.
+      if (written) await repairEdgesOrLeaveThemWaiting(result);
       return { refreshed: true, busy: false };
     } catch (err) {
       if (!isRetryableBusySnapshot(err)) throw err; // not busy — surface distinctly, do not retry
@@ -238,6 +278,37 @@ export async function checkAndRefreshIfStale(
       // Retries remain — loop immediately, no sleep (see
       // MAX_POPULATE_RETRIES's WHY-comment: a stale snapshot needs a fresh
       // transaction, not time).
+    }
+  }
+
+  /**
+   * The file itself is current once `populateFile` returns, so a write in here
+   * that loses to another writer is not a reason to call the refresh failed.
+   * Every file not yet resolved is already recorded as waiting, the response
+   * says so (`pending_edge_repairs`), and the next index run finishes them.
+   */
+  async function repairEdgesOrLeaveThemWaiting(records: ReResolveRecords): Promise<void> {
+    try {
+      // No structure lock on this path (F11), so another process can hold the
+      // database; each write waits for it no longer than `populateFile`'s does.
+      await withBoundedWriteWait(db, (conn) =>
+        repairEdgesAfterWrites(conn, {
+          memo,
+          written: [{ filePath, edges: records.edges, starReExports: records.starReExports }],
+          deleted: [],
+          canReResolve: (path) => existsSync(join(config.resolved_project_root, path)),
+          readRecords: (path): ReResolveRecords | undefined => {
+            try {
+              return extract(path);
+            } catch {
+              return undefined; // mid-write; its edges into other files are left as they are
+            }
+          },
+          budgetMs: options.edgeRepairBudgetMs ?? QUERY_TIME_EDGE_REPAIR_BUDGET_MS,
+          inLock: (work) => work(),
+        }));
+    } catch (err) {
+      if (!isRetryableBusySnapshot(err)) throw err;
     }
   }
 

@@ -1,5 +1,6 @@
 import type { ImportRecord } from '../ast/types.js';
 import type { Db } from './db.js';
+import { pathPrefixUpperBound } from './path-range.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 
 // ---------------------------------------------------------------------------
@@ -15,10 +16,7 @@ import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 // Known not covered, each because the index stores nothing to find the file by:
 //   - an `import { a as b }` or `export { a as b } from`, which is recorded
 //     under one of the two names only (D087's neighbour, deferred);
-//   - an `export *` of a file that did not exist when the barrel was indexed;
-//   - a call resolved with no file evidence (`legacyGlobalFirstMatch`);
-//   - a new file that takes over a specifier another file already answered
-//     (`./x` moving from `x/index.ts` to a new `x.ts`).
+//   - a call resolved with no file evidence (`legacyGlobalFirstMatch`, D092).
 // ---------------------------------------------------------------------------
 
 /** What other files can see of one file. */
@@ -204,6 +202,53 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
     for (const row of rows) if (namesAny(row.symbols)) found.add(row.path);
   }
   return [...found];
+}
+
+/**
+ * Paths of the files holding an `export *` whose module matched no indexed
+ * file. When a file is added, any of them may be the barrel that names it.
+ */
+export async function listFilesWithUnresolvedStars(db: Db): Promise<string[]> {
+  const rows = await db
+    .selectFrom('star_reexport_unresolved as u')
+    .innerJoin('files as f', 'f.id', 'u.file_id')
+    .select('f.path')
+    .distinct()
+    .execute();
+  return rows.map((row) => row.path);
+}
+
+/**
+ * Paths of the indexed files that a file in `addedPaths` now stands in front
+ * of when a specifier is resolved (D091).
+ *
+ * `./x` resolves to `x.ts` before `x/index.ts`, and `./x.js` to `x.ts` before
+ * `x.js`. So adding `x.ts` moves every import of the other two to it, although
+ * neither changed and no import of them was unresolved. The files returned are
+ * the ones whose importers have to be resolved again: the same name with
+ * another extension, and an `index` file in a directory of that name. That is
+ * wider than the resolver's own order, which costs a few files resolved again
+ * for nothing and cannot miss one.
+ */
+export async function findFilesShadowedBy(db: Db, addedPaths: readonly string[]): Promise<string[]> {
+  const shadowed = new Set<string>();
+  for (const added of addedPaths) {
+    const stem = added.replace(/\.[^./]+$/, '');
+    const rows = await db
+      .selectFrom('files')
+      .select('path')
+      .where('path', '>=', stem)
+      .where('path', '<', pathPrefixUpperBound(stem))
+      .execute();
+    for (const { path } of rows) {
+      if (path === added) continue;
+      const rest = path.slice(stem.length);
+      const sameNameOtherExtension = rest.startsWith('.') && !rest.includes('/');
+      const directoryIndex = rest.startsWith('/index.') && !rest.slice('/index.'.length).includes('/');
+      if (sameNameOtherExtension || directoryIndex) shadowed.add(path);
+    }
+  }
+  return [...shadowed];
 }
 
 /**
