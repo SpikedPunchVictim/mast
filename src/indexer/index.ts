@@ -340,16 +340,24 @@ export async function runIndex(
   // incremental run would do nothing about it — a state that never converges.
   // On a full run every file is reindexed regardless, so this is scoped to the
   // incremental path and costs one indexed `path` scan.
+  //
+  // The same reasoning covers a row that exists but is stamped older than the
+  // file on disk while the manifest is current (D072): `measureFreshness`
+  // counts it, the manifest diff does not. Queueing it here is what makes the
+  // work set equal to what the status surfaces call stale, so a state they
+  // report is always one an incremental run acts on.
   let toIndex: FileEntry[];
   if (options.incremental) {
     const queued = new Set([...stale, ...added].map((e) => e.relativePath));
-    const indexedPaths = new Set(
-      (await db.selectFrom('files').select('path').execute()).map((r) => r.path),
+    const rowMtimes = new Map(
+      (await db.selectFrom('files').select(['path', 'mtime']).execute()).map((r) => [r.path, r.mtime]),
     );
-    const neverWritten = currentFiles.filter(
-      (e) => !queued.has(e.relativePath) && !indexedPaths.has(e.relativePath),
-    );
-    toIndex = [...stale, ...added, ...neverWritten];
+    const behindOrMissing = currentFiles.filter((e) => {
+      if (queued.has(e.relativePath)) return false;
+      const rowMtime = rowMtimes.get(e.relativePath);
+      return rowMtime === undefined || e.mtime > rowMtime;
+    });
+    toIndex = [...stale, ...added, ...behindOrMissing];
   } else {
     toIndex = currentFiles;
   }
@@ -404,6 +412,10 @@ export async function runIndex(
     // UNLOCKED. This is exactly the window in which a concurrent JIT
     // re-parse of a not-yet-reached file can acquire structure.lock.
     const parsed: ParsedItem[] = [];
+    // Files the stability skip passed over, with the stamp their parse was
+    // read at. Nothing is re-written for them, but the stamp still has to move
+    // — see the `UPDATE` in the write phase below (D072).
+    const stable: { readonly relativePath: string; readonly mtime: number }[] = [];
     for (const entry of batch) {
       try {
         // F12: stat IMMEDIATELY BEFORE doExtract, not after — mirrors
@@ -423,6 +435,7 @@ export async function runIndex(
         // check is conservative and bails to a full rewrite on any doubt.
         if (options.incremental && await isFileUnchanged(db, chunkStore, entry.relativePath, result)) {
           filesStable++;
+          stable.push({ relativePath: entry.relativePath, mtime: preParseMtime });
         } else {
           parsed.push({ entry, result, mtime: preParseMtime });
           // `filesIndexed` / `chunksAdded` are NOT incremented here. Both are
@@ -514,6 +527,22 @@ export async function runIndex(
           continue;
         }
         edgeDataByFile.set(entry.relativePath, result);
+      }
+      // A skipped file's stored content is what is on disk now, so its row may
+      // carry the newer stamp. Without this the row keeps the old one while the
+      // finalise phase gives the manifest the new one: `measureFreshness` (disk
+      // newer than either record) then reports the file changed, `diffManifest`
+      // (manifest only) never queues it again, and no incremental run can clear
+      // the count (D072). The `mtime <` condition is the same monotonic guard
+      // `populateFile` applies: a concurrent JIT refresh that already stamped a
+      // newer value wins.
+      for (const { relativePath, mtime } of stable) {
+        await db
+          .updateTable('files')
+          .set({ mtime })
+          .where('path', '=', relativePath)
+          .where('mtime', '<', mtime)
+          .execute();
       }
       lockBodyEnd = performance.now();
     });

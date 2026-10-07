@@ -1874,6 +1874,14 @@ run retries it, and an incremental run's work set includes any walked file with 
 `files` row — otherwise a hole left by an older build would be reported stale forever
 with no run willing to fix it.
 
+**An incremental run acts on every file these surfaces count as changed.** Its work set
+is the manifest diff, plus any walked file with no `files` row, plus any walked file
+whose `files` row is stamped older than the file on disk. And when the §7.1 stability
+skip passes over a re-parsed file whose content is identical, it still advances that
+row's stamp. Until 2026-10-06 neither held: the skip left the row at its old stamp while
+the manifest took the new one, so status reported the file changed and no incremental
+run would queue it (`docs/defects/LEDGER.md` D072).
+
 **When used:** diagnostic — agent checks this when search returns unexpected
 results, or before a long agentic workflow to confirm the index is current.
 

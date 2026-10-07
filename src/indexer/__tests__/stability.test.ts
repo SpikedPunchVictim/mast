@@ -6,6 +6,7 @@ import { extractFile } from '../../ast/extract.js';
 import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
+import { measureFreshness } from '../freshness.js';
 import type { SymbolRecord } from '../../ast/types.js';
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,44 @@ describe('runIndex skips touched-but-unchanged files (§7.1)', () => {
     const result = await runIndex(config, { incremental: true });
     expect(result.filesIndexed).toBe(0);      // nothing re-written
     expect(result.filesSkipped).toBeGreaterThanOrEqual(1);
+  });
+
+  it('leaves the index reading fresh after skipping a touched-but-unchanged file (D072)', async () => {
+    // The skip writes nothing, so the `files` row kept its old stamp while the
+    // manifest took the new one. `measureFreshness` reads both and called the
+    // file changed; `diffManifest` reads the manifest alone and never queued it
+    // again, so no incremental run could clear the count.
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    const p = join(dir, 'm.ts');
+    const future = statSync(p).mtimeMs / 1000 + 10;
+    utimesSync(p, future, future);
+
+    await runIndex(config, { incremental: true });
+
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      expect((await measureFreshness(config, db)).stale).toBe(0);
+    } finally {
+      await db.destroy();
+    }
+  });
+
+  it('an incremental run clears a row stamp that an earlier build left behind the manifest (D072)', async () => {
+    // The state a pre-fix build leaves on disk: manifest and disk agree, the
+    // `files` row is older. The manifest diff sees nothing to do here.
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      await db.updateTable('files').set({ mtime: 1 }).where('path', '=', 'm.ts').execute();
+
+      await runIndex(config, { incremental: true });
+
+      expect((await measureFreshness(config, db)).stale).toBe(0);
+    } finally {
+      await db.destroy();
+    }
   });
 
   it('re-writes a file whose content actually changed', async () => {
