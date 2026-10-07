@@ -212,6 +212,8 @@ index with that commit's `dist/`.
 | D100 (a package entry point traced to its source) | n8n `packages/core` inside the whole-monorepo index | 0 | 569 → 657 | 1,057 | 558 → 646 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d100.summary.json` |
 | D098 and D101 (calls in nested functions, defaults and field initializers) | this repository | 0 | 705 → 727 | 765 | 727 | 0 | `s1-call-edges/mast.after-d098.summary.json` |
 | D098 and D101 | n8n `packages/core` inside the whole-monorepo index | 0 | 657 → 679 | 1,057 | 646 → 667 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d098.summary.json` |
+| Construction edges and D102 (members through a re-exporting index) | this repository | 0 | 727 → 751 | 768 | 750 | 0 | `s1-call-edges/mast.after-construction.summary.json` |
+| Construction edges and D102 | n8n `packages/core` inside the whole-monorepo index | 0 | 679 → 889 | 1,057 | 667 → 875 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-construction.summary.json` |
 
 D097 changes which row an edge sits on, not which edges exist, so the pair counts were
 expected to stay the same and did.
@@ -298,3 +300,50 @@ Only `packages/core` was judged.
 
 The fixture script after the fix is in `s1-call-edges/fixtures.after-d098.out.txt`: every
 position of fx2 has its edge, and fx1 gains `obj -> helper` (an object-literal method).
+
+### Construction edges and D102
+
+`new X()` is now stored as a call, `resolution` `construction`, to X's `constructor` symbol
+when the class declares one and to the class otherwise. `reference.mjs` was changed to the
+same rule before these runs: for a `new` expression it takes the class's constructor
+declaration when there is one. Without that it reported every constructor-targeted edge as
+"no call of that name on the line".
+
+The first build was wrong on n8n core and is recorded because the checker is what caught it:
+of 162 construction edges, 40 agreed and **122 were on the class although it declares a
+constructor** (`UnexpectedError`, `FsByteStore`, ...). All 122 were classes imported through
+an index file. The qualified name `X.constructor` was looked up along the re-export chain,
+where only `X` has a marker, and the fallback then took the class. That is the directory-index
+gap of the fixtures above, which also blocked method calls; it is ledger row D102 and was
+fixed before anything was committed. This repository showed 20 of 20 agreeing on that first
+build, because nothing here is imported through an index file.
+
+After the fix, fresh full indexes:
+
+| | this repository | n8n `packages/core` |
+|---|---|---|
+| Edges judged | 751 | 889 |
+| On another declaration | 0 | 0 |
+| `construction` | 20, all agree | 162, all agree |
+| `field_type` | none | 34 → 80, all agree |
+| Pairs the checker supports | 768 | 1,057 |
+| Held | 750 | 875 |
+| Outside the script | 1 self-call | 14: 10 self-calls, 4 with a getter as caller |
+
+The 182 pairs n8n core lacks: 71 a method on a local or imported name, 57 a method on an
+expression, 30 `this.m()` to an inherited method, 15 a method on a field, 5 a plain call, 2
+`super.m()`, 2 construction. The 18 this repository lacks: 17 a method on a parameter whose
+type is inferred, 1 a plain call.
+
+The 4 caller disagreements on n8n core are the accessor limit of the script noted above (2
+before; two of the new construction edges are inside getters). The 14 repeated `symbols` rows
+it reports are getter and setter pairs of one name, none in `packages/core`, unchanged since
+the D098 run.
+
+Whole n8n copy, before then after: `POTENTIAL_CALL` 35,001 → 42,566. `construction` 0 → 5,106,
+of which 4,711 are on a constructor and 395 on a class; `field_type` 4,541 → 6,761;
+`parameter_type` 587 → 797; `new_expression` 283 → 311; `super_method` 25 → 26; `import`, `same_file` and
+`this_method` unchanged. 13,985 files, exit 0; stderr holds the `time` lines only. Only
+`packages/core` was judged.
+
+Not done: `mast_callers` on a class does not include callers of its constructor.

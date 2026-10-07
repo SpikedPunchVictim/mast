@@ -471,6 +471,13 @@ export type CallerResolution =
   | 'field_type'
   | 'parameter_type'
   | 'new_expression'
+  /**
+   * `new X()`: the call site constructs the class. The edge's target is the
+   * class's `constructor` when it declares one and the class otherwise.
+   * Distinct from `new_expression`, which is a method call on a value bound
+   * by `const x = new X()`.
+   */
+  | 'construction'
   | 'same_file'
   /**
    * Additive (Stage 1.2, `mast index --checker`): the tree-sitter heuristic

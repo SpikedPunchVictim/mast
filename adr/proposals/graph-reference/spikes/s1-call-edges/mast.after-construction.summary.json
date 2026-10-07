@@ -1,0 +1,83 @@
+{
+  "spike": "graph-reference/s1-call-edges",
+  "ran_at": "2026-10-07T22:12:06.360Z",
+  "typescript": "5.9.3",
+  "project_root": "/Users/spikedpunchvictim/projects/mast",
+  "tsconfig": "tsconfig.json",
+  "path_prefix": "",
+  "config_errors": [],
+  "workspace_packages_mapped_to_source": 0,
+  "indexed_typescript_files": 98,
+  "program_source_files": 747,
+  "calls_seen": 4221,
+  "calls_the_checker_gave_no_symbol_for": 1,
+  "q1_declaration_join": {
+    "start": 418,
+    "name": 0,
+    "statement": 0,
+    "near3_same_name": 0,
+    "none": 60,
+    "not_indexable_kind": 81,
+    "outside_indexed_files": 430
+  },
+  "q3_mast_edges": 751,
+  "q3_verdicts_by_resolution": {
+    "same_file": {
+      "agrees": 417
+    },
+    "import": {
+      "agrees": 291
+    },
+    "this_method": {
+      "agrees": 8
+    },
+    "parameter_type": {
+      "agrees": 8
+    },
+    "construction": {
+      "agrees": 20
+    },
+    "new_expression": {
+      "agrees": 6
+    },
+    "super_method": {
+      "agrees": 1
+    }
+  },
+  "q4_reference_pairs": 768,
+  "q4_pairs_mast_has_by_shape": {
+    "identifier (same file)": 416,
+    "identifier (other file)": 291,
+    "this.m() (same file)": 8,
+    "ident.m() (other file)": 5,
+    "new X() (other file)": 11,
+    "new X() (same file)": 9,
+    "ident.m() (same file)": 9,
+    "super.m() (other file)": 1
+  },
+  "q4_pairs_mast_lacks_by_shape": {
+    "identifier (same file)": 1,
+    "ident.m() (same file)": 17
+  },
+  "q4_distinct_mast_pairs": 751,
+  "q4_mast_pairs_the_reference_did_not_produce": [
+    "src/graph/populate.ts:resolveInFileOrReExportChain@1275 > src/graph/populate.ts:resolveInFileOrReExportChain@1275"
+  ],
+  "q4_calls_outside_any_indexed_symbol": 2,
+  "q4_self_calls_skipped": 1,
+  "q5_unjudgeable": {
+    "import_statements_not_resolved_by_specifier": {
+      "@fx/core": 3
+    },
+    "calls_with_no_symbol": 1,
+    "of_those_receiver_is_error_type": 1,
+    "of_those_receiver_is_any": 0,
+    "of_those_receiver_is_typed": 0
+  },
+  "q6_cost": {
+    "wall_ms": 3420,
+    "peak_rss_mb": 379
+  },
+  "repeated_symbol_rows": 0,
+  "q2_caller_disagreements": 0
+}

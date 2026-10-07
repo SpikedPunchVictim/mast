@@ -120,7 +120,9 @@ const RECEIVER_CASES: readonly ReceiverCase[] = [
         }
       }
     `,
-    expectedTally: { edge_emitted: 1, unparseable_callee: 0, unresolved_receiver: 0, bare_call_unresolved: 0 },
+    // Two sites: the setup line's `new UserRepository()` is a construction
+    // edge of its own, beside the target call on the constructed value.
+    expectedTally: { edge_emitted: 2, unparseable_callee: 0, unresolved_receiver: 0, bare_call_unresolved: 0 },
     expectedEdge: { toName: 'UserRepository.m', resolution: 'new_expression' },
   },
   {

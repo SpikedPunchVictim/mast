@@ -273,12 +273,15 @@ CREATE TABLE IF NOT EXISTS edges (
   edge_type  TEXT NOT NULL,
   resolution TEXT,    -- POTENTIAL_CALL only: which §10.3.1 rule matched
                       -- (import | field_type | parameter_type | new_expression | same_file
-                      -- | this_method | super_method)
+                      -- | this_method | super_method | construction)
                       -- or 'checker' (§10.3.2) — the opt-in `mast index --checker`
                       -- pass upgraded a heuristic-unresolved potential match via
                       -- the real TypeScript checker. 'this_method'/'super_method' (F4,
                       -- Stage 3) are additive values for `this.foo()`/`super.foo()`
                       -- call sites — see §10.3.1's "Method calls on super and this".
+                      -- 'construction' is `new X()`: the edge goes to X's
+                      -- `constructor` symbol when the class declares one and to
+                      -- the class otherwise.
                       -- Additive values, no schema change.
   call_line  INTEGER, -- POTENTIAL_CALL only: 1-indexed source line of the call site
   context    TEXT,    -- POTENTIAL_CALL only: trimmed source text of the call-site line
@@ -1160,7 +1163,7 @@ across all MCP tools, and what to do with each one:
 
 | Field | Carried by | Meaning | Agent action |
 |---|---|---|---|
-| `resolution` | `VerifiedCaller` entries (`mast_callers`, `mast_rename_impact`) | How this call site was statically resolved to the queried declaration — one of eight values (`import`, `field_type`, `parameter_type`, `new_expression`, `same_file`, `checker`, `this_method`, `super_method` — the last two added by F4, Stage 3, for `this.foo()`/`super.foo()` call sites). | High confidence. Safe to act on directly (e.g. as a rename/refactor site) without further verification. |
+| `resolution` | `VerifiedCaller` entries (`mast_callers`, `mast_rename_impact`) | How this call site was statically resolved to the queried declaration — one of nine values (`import`, `field_type`, `parameter_type`, `new_expression`, `same_file`, `checker`, `this_method`, `super_method`, `construction` — `this_method`/`super_method` added by F4, Stage 3, for `this.foo()`/`super.foo()` call sites; `construction` is `new X()`, listed as a caller of X's constructor when the class declares one and of the class otherwise). | High confidence. Safe to act on directly (e.g. as a rename/refactor site) without further verification. |
 | `reason` | `PotentialMatch` entries (`mast_callers`, `mast_rename_impact`) | Why this call site could **not** be statically resolved — currently always `identifier_match_no_resolved_edge`. | Mandatory review. This is a name-match, not a verified edge; confirm it is a real call site before acting on it. |
 | `file_busy_returning_stale_cache` | JIT-refresh tools' results/envelopes (`mast_signature`, `mast_exports`, `mast_callers`, `mast_dependencies`, `mast_rename_impact`) | A refresh **was attempted** (this file's JIT re-parse) and lost to genuine write contention (`populateFile`'s `BEGIN IMMEDIATE` exhausted its `busy_timeout`), so the previous, possibly-stale chunk was returned instead. | Contended, not wrong-by-design. Retry shortly — the contention is expected to clear (§7.6). |
 | `stale` | `mast_search` / `mast_implementors` per-result (F7) | This result's `file_path` stat'd newer-on-disk than its indexed mtime, or the stat failed — **no refresh was attempted by design** (stat-and-flag, not JIT re-parse; see above). | Treat this result's line coordinates as untrustworthy. A `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it. |
@@ -2279,6 +2282,15 @@ of guessing. `this.foo()` inside a nested non-arrow function/method/generator
 body is NOT the class instance and is excluded before it ever reaches the
 resolver — arrow functions inherit the enclosing `this` and are not excluded.
 
+**Construction.** `new X()` is a call of X's constructor and is stored with
+`resolution` `construction`. X is placed by the same file evidence as a bare
+call: a named import of this file, or a declaration in it. The edge's target is
+X's `constructor` symbol when the class declares one, and the class symbol
+otherwise; which exists is known only once X's file is indexed, so the choice is
+made when the edge is written (`resolveCallTarget`). `new a.B()` and any other
+non-identifier callee get no edge. This is separate from `new_expression`, which
+is a method call on a value bound by `const x = new X()`.
+
 (Non-normative, D7/Stage 4) `extractEdges`/`emitCallEdges` also accept an optional
 `onCallSite` diagnostics callback, invoked once per visited call site with a closed
 outcome union; it exists solely as a test seam for `call-oracle.test.ts`'s corpus
@@ -2293,7 +2305,10 @@ to the calling file itself; `import` is scoped to the import's own
 barrel when the resolved file doesn't declare the symbol directly, per §6.3);
 `field_type`/`parameter_type`/`new_expression` are scoped the same way via
 the receiver's type name, when that type name is itself traceable to an
-import or a same-file declaration. When a rule has no such evidence (e.g. a
+import or a same-file declaration. For these, and for `construction`, the chain
+is followed for the type name and the member is then read from the file that
+declares the type: a member is not exported, so no re-export names it (D102).
+When a rule has no such evidence (e.g. a
 default/namespace import or a destructured dynamic import, neither of which is
 tracked as a named import; or a TypeScript lib type) there is no edge. Until
 2026-10-07 these three rules then took the first symbol with the name anywhere

@@ -12,6 +12,8 @@ PARENT_OF packages/app/src/main.ts:Main -> packages/app/src/main.ts:Main.run
 PARENT_OF packages/app/src/main.ts:Main -> packages/app/src/main.ts:Main.read
 POTENTIAL_CALL packages/app/src/main.ts:Main.run -> packages/core/src/logger.ts:createLogger
 POTENTIAL_CALL packages/app/src/main.ts:Main.run -> packages/app/src/main.ts:Main.read
+# `new FileStore()`: the class declares no constructor, so the edge is to the class.
+POTENTIAL_CALL packages/app/src/main.ts:Main.run -> packages/app/src/stores.ts:FileStore
 POTENTIAL_CALL packages/app/src/main.ts:Main.read -> packages/app/src/stores.ts:FileStore.get
 
 # packages/app/src/stores.ts

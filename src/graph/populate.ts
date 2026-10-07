@@ -844,17 +844,21 @@ async function insertEdgesReportingUnresolved(
   // recorded wins" seeding — import beats same-file, and receiver bindings
   // are keyed by receiver, not by callee name), so it is safe to resolve
   // once per toName rather than once per edge.
-  const callEdgesByToName = new Map<string, EdgeRecord>();
+  //
+  // Construction is keyed apart: `new X()` and a call `X()` name the same
+  // thing and can land on different symbols (the constructor, the class).
+  const callKey = (e: EdgeRecord): string => (e.resolution === 'construction' ? `new ${e.toName}` : e.toName);
+  const callEdgesByKey = new Map<string, EdgeRecord>();
   for (const e of edges) {
-    if (e.edgeType === 'POTENTIAL_CALL' && !callEdgesByToName.has(e.toName)) {
-      callEdgesByToName.set(e.toName, e);
+    if (e.edgeType === 'POTENTIAL_CALL' && !callEdgesByKey.has(callKey(e))) {
+      callEdgesByKey.set(callKey(e), e);
     }
   }
 
   const callToMap = new Map<string, number>();
-  for (const [toName, edge] of callEdgesByToName) {
-    const targetId = await resolveCallTarget(db, fromFile.id, imports, edge.resolution, toName);
-    if (targetId !== null) callToMap.set(toName, targetId);
+  for (const [key, edge] of callEdgesByKey) {
+    const targetId = await resolveCallTarget(db, fromFile.id, imports, edge.resolution, edge.toName);
+    if (targetId !== null) callToMap.set(key, targetId);
   }
 
   // RE_EXPORTS edges: resolve each unique (toName, toResolvedPath) pair once,
@@ -884,7 +888,7 @@ async function insertEdgesReportingUnresolved(
   const edgeValues = edges.flatMap((edge) => {
     const from_id = fromMap.get(edge.fromName);
     const to_id = edge.edgeType === 'POTENTIAL_CALL'
-      ? callToMap.get(edge.toName)
+      ? callToMap.get(callKey(edge))
       : edge.edgeType === 'RE_EXPORTS'
         ? reExportToMap.get(reExportKey(edge))
         : structuralToMap.get(structuralKey(edge));
@@ -1109,6 +1113,16 @@ async function resolveCallTarget(
       // edges on n8n, spikes/s9-call-fallback).
       return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
 
+    // `new X()` — toName is the class name, placed by the same file evidence
+    // as a receiver's type. The constructor is the thing called, so the edge
+    // goes to it when the class declares one. A class with none has no such
+    // symbol, and the edge goes to the class.
+    case 'construction':
+      return (
+        (await resolveQualifiedNameScoped(db, fromFileId, imports, `${toName}.constructor`)) ??
+        resolveQualifiedNameScoped(db, fromFileId, imports, toName)
+      );
+
     // F4: `super.foo()` — toName is `ParentName.methodName`, traced exactly
     // like a field_type receiver's type (import first, then same-file
     // declaration), with no edge when the parent name has no file evidence.
@@ -1274,6 +1288,26 @@ async function resolveInFileOrReExportChain(
     .orderBy('path', 'asc')
     .executeTakeFirst();
   if (targetFile === undefined) return null;
+
+  // A member (`Type.method`, `Type.constructor`) is exported by nothing: only
+  // its type is. So the chain is followed for the type, and the member is then
+  // read from the file that declares the type. Looking for the qualified name
+  // along the chain found it only where the import named the declaring file,
+  // or where every hop was an `export *`.
+  const dot = toName.indexOf('.');
+  if (dot !== -1) {
+    const ownerId = await resolveInFileOrReExportChain(db, resolvedPath, toName.slice(0, dot));
+    if (ownerId === null) return null;
+    const member = await db
+      .selectFrom('symbols as owner')
+      .innerJoin('symbols as member', 'member.file_id', 'owner.file_id')
+      .select('member.id')
+      .where('owner.id', '=', ownerId)
+      .where('member.name', '=', toName)
+      .where('member.kind', '!=', 'export')
+      .executeTakeFirst();
+    return member?.id ?? null;
+  }
 
   const direct = await db
     .selectFrom('symbols')

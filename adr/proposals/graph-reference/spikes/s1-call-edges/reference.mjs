@@ -192,7 +192,16 @@ for (const sf of program.getSourceFiles()) {
       if (nameNode) {
         let symbol = checker.getSymbolAtLocation(nameNode);
         for (let hop = 0; hop < 8 && symbol && symbol.flags & ts.SymbolFlags.Alias; hop++) symbol = checker.getAliasedSymbol(symbol);
-        const decls = symbol?.declarations ?? [];
+        let decls = symbol?.declarations ?? [];
+        let calledName = nameNode.text;
+        // `new X()` calls X's constructor: when the class declares one, that is the declaration
+        // reached, and the class otherwise (user decision 2026-10-07). An implementation is
+        // preferred over overload signatures.
+        if (ts.isNewExpression(node)) {
+          const ctors = decls.filter(ts.isClassDeclaration).flatMap((c) => c.members.filter(ts.isConstructorDeclaration));
+          const ctor = ctors.find((c) => c.body) ?? ctors[0];
+          if (ctor) { decls = [ctor]; calledName = 'constructor'; }
+        }
         // Q5: when the checker has no symbol, say whether the receiver (or the callee itself) is
         // typed `any`, and whether that `any` is the error type an unresolved import leaves.
         let untyped = null;
@@ -200,7 +209,7 @@ for (const sf of program.getSourceFiles()) {
           const t = checker.getTypeAtLocation(ts.isPropertyAccessExpression(callee) ? callee.expression : callee);
           if (t.flags & ts.TypeFlags.Any) untyped = t.intrinsicName === 'error' ? 'error' : 'any';
         }
-        calls.push({ node, path, line: lineOf(sf, nameNode.getStart(sf)), startLine: lineOf(sf, node.getStart(sf)), name: nameNode.text, shape: shapeOf(node), decls, resolved: decls.length > 0, untyped });
+        calls.push({ node, path, line: lineOf(sf, nameNode.getStart(sf)), startLine: lineOf(sf, node.getStart(sf)), name: calledName, shape: shapeOf(node), decls, resolved: decls.length > 0, untyped });
       }
     }
     ts.forEachChild(node, visit);

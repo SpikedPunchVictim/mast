@@ -7,8 +7,8 @@ import { expectEdges, makeProject, writeFiles } from './graph-fixture.js';
 // (adr/proposals/incremental-graph-correctness).
 //
 // A consumer imports a class, an interface and a function through an entry
-// file, then extends, implements and calls them. The three edges must reach
-// the declaring file whatever sits between. A comparison against a full index
+// file, then extends, implements and calls them, and calls a method of the
+// class. The four edges must reach the declaring file whatever sits between. A comparison against a full index
 // cannot check this: the full index is the thing under test.
 //
 // File names are chosen so every file sorts after the files it re-exports
@@ -39,6 +39,7 @@ export class Child extends Base implements Shape {
   area(): number { return 1; }
 }
 export function go(): void { make(); }
+export function greet(b: Base): void { b.hello(); }
 `;
 }
 
@@ -168,6 +169,8 @@ describe.each([
       `EXTENDS src/z-consumer.ts:Child -> ${shape.leaf}:Base`,
       `IMPLEMENTS src/z-consumer.ts:Child -> ${shape.leaf}:Shape`,
       `POTENTIAL_CALL src/z-consumer.ts:go -> ${shape.leaf}:make`,
+      // A method is exported by nothing; it is reached through its class.
+      `POTENTIAL_CALL src/z-consumer.ts:greet -> ${shape.leaf}:Base.hello`,
     ]);
   });
 });

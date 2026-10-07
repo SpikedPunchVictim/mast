@@ -1415,12 +1415,19 @@ function emitCallEdges(
 
   for (const site of collectCallSites(bodyNode, paramsNode)) {
     const { call } = site;
-    const parsed = parseCallee(call);
+    const isConstruction = nodeType(call) === 'new_expression';
+    const parsed = isConstruction ? parseConstructed(call) : parseCallee(call);
     if (parsed === null) {
       onCallSite?.('unparseable_callee');
       continue;
     }
-    const resolved = resolveCallSite(env, site, parsed);
+    const linked = resolveCallSite(env, site, parsed);
+    // `new X()` is placed like a bare call of `X` (an import or a same-file
+    // declaration) and stored as a construction, so the graph writer can
+    // choose between the class and its constructor.
+    const resolved = linked !== null && isConstruction
+      ? { callee: linked.callee, resolution: 'construction' as const }
+      : linked;
     if (resolved === null) {
       onCallSite?.(parsed.receiver === null ? 'bare_call_unresolved' : 'unresolved_receiver');
       continue;
@@ -1527,7 +1534,8 @@ const NESTED_FUNCTION_TYPES = new Set([
 const NESTED_CLASS_TYPES = new Set(['class_declaration', 'abstract_class_declaration', 'class']);
 
 /**
- * Every call in a declaration: its body, and its parameters' default values.
+ * Every call and `new` expression in a declaration: its body, and its
+ * parameters' default values.
  *
  * A call belongs to the nearest enclosing declaration that has a symbol.
  * Functions nested in a body (declarations, expressions, arrows, object-literal
@@ -1547,7 +1555,7 @@ function collectCallSites(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = 
     if (NESTED_FUNCTION_TYPES.has(t)) {
       innerOwnThis = ownThis || t !== 'arrow_function';
       innerParams = new Map([...nestedParams, ...declaredParams(node)]);
-    } else if (t === 'call_expression') {
+    } else if (t === 'call_expression' || t === 'new_expression') {
       sites.push({ call: node, ownThis, nestedParams });
     }
     for (const child of nodeNamedChildren(node)) consider(child, innerOwnThis, innerParams);
@@ -1557,7 +1565,10 @@ function collectCallSites(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = 
   if (paramsNode !== null) consider(paramsNode, false, outermost);
   // The body is the scope itself, not something nested in it: an arrow whose
   // body is a single call hands that call in directly.
-  if (nodeType(bodyNode) === 'call_expression') sites.push({ call: bodyNode, ownThis: false, nestedParams: outermost });
+  const bodyType = nodeType(bodyNode);
+  if (bodyType === 'call_expression' || bodyType === 'new_expression') {
+    sites.push({ call: bodyNode, ownThis: false, nestedParams: outermost });
+  }
   for (const child of nodeNamedChildren(bodyNode)) consider(child, false, outermost);
   return sites;
 }
@@ -1627,6 +1638,12 @@ function resolveCallSite(
       : { callee: `${type}.${method}`, resolution: 'parameter_type' };
   }
   return env.resolveCall(receiver, method);
+}
+
+/** The class a `new` expression names, as a bare callee, or null for `new a.B()` and the like. */
+function parseConstructed(expr: SyntaxNode): { receiver: null; method: string } | null {
+  const ctor = expr.childForFieldName('constructor') ?? expr.namedChildren[0] ?? null;
+  return ctor !== null && nodeType(ctor) === 'identifier' ? { receiver: null, method: ctor.text } : null;
 }
 
 /** Extract `{ receiver, method }` from a call expression, or null if unhandled. */

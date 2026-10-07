@@ -301,6 +301,31 @@ describe('extractEdges — POTENTIAL_CALL by position (D098)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// POTENTIAL_CALL — construction
+// ---------------------------------------------------------------------------
+
+describe('extractEdges — construction', () => {
+  it('emits a construction edge to the class named in `new X()`', () => {
+    const edges = potentialCalls(edgesOf(`
+      import { Repo } from './repo';
+      class Local {}
+      export function build(): unknown { return [new Repo(), new Local()]; }
+    `));
+
+    expect(edges.map((e) => `${e.fromName} -> ${e.toName} [${String(e.resolution)}]`).sort()).toEqual([
+      'build -> Local [construction]',
+      'build -> Repo [construction]',
+    ]);
+  });
+
+  it('emits nothing for a class that is neither imported nor declared in the file', () => {
+    const edges = potentialCalls(edgesOf(`export function build(): unknown { return new Map(); }`));
+
+    expect(edges).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // EXTENDS
 // ---------------------------------------------------------------------------
 
