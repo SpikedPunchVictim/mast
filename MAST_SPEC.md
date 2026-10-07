@@ -2826,11 +2826,28 @@ This is nearer to the compiler's rule, not the same:
 
 **2. pnpm workspace package names** (e.g. `@kluster-kinetic-01/shared`)
 
-Walk the workspace root `pnpm-workspace.yaml` (or `workspaces` field in root
-`package.json`) at startup. For each matched package directory, read its
-`package.json` `name` field. Build a map `{ packageName → packageDir }`. When an
-import module matches a package name, resolve to `<packageDir>/src/index.ts` (or the
-`main`/`exports` field in that package's `package.json`).
+Walk the workspace root `pnpm-workspace.yaml` at startup. For each matched package
+directory, read its `package.json`. Build a map from package name to the package's
+directory and entry points.
+
+A package's entry points (`exports`, `module`, `main`, `types`) name what its build
+writes; the index holds what the build reads. So an import resolves to the *source*
+behind the entry, whether or not the package has been built
+(`docs/defects/LEDGER.md` D100):
+
+1. Each entry in turn (`exports["."]`, `module`, `main`, `types`; for `pkg/sub`, the
+   targets of `exports["./sub"]`, then `sub` itself). If it is a TypeScript source
+   file, that file. Otherwise its first directory is replaced by `src` and leading
+   directories are dropped until a file is found: `dist/index.js`, `dist/index.d.ts`
+   and `dist/cjs/index.js` all give `src/index.ts`.
+2. If no entry has a source: `main` as written, then `<packageDir>/src/index`, then
+   `<packageDir>/index`; for a subpath, `<packageDir>/<sub>` then
+   `<packageDir>/src/<sub>`.
+
+Not done: the `workspaces` field of a root `package.json` (npm and yarn workspaces);
+`outDir` and `rootDir`, so a package whose sources are not under `src/` still resolves
+to its build output once built; `exports` patterns (`"./*"`); choosing between
+`exports` conditions, since all are builds of one source.
 
 **pnpm symlink handling:** pnpm links workspace packages into `node_modules` as
 symlinks. A naive resolver may return a path under `node_modules/@pkg/shared` (the

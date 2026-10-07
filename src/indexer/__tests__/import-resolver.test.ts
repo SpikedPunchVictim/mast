@@ -114,6 +114,83 @@ describe('import resolver (§13.7)', () => {
     expect(resolver.resolve('@scope/shared/util', 'app/a.ts').resolvedPath).toBe('pkgs/shared/util.ts');
   });
 
+  // D100. A package's entry points name build output. The index holds the
+  // sources, so an import must land on the source the entry was built from,
+  // whether or not the build has been run.
+  describe('a workspace package whose entry points are build output', () => {
+    function workspacePackage(pkg: Record<string, unknown>): void {
+      write(root, 'pnpm-workspace.yaml', "packages:\n  - 'pkgs/*'\n");
+      write(root, 'pkgs/lib/package.json', JSON.stringify({ name: '@scope/lib', ...pkg }));
+    }
+
+    it('resolves `main` to its source once the package has been built', () => {
+      workspacePackage({ main: 'dist/index.js', types: 'dist/index.d.ts' });
+      write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');
+      write(root, 'pkgs/lib/dist/index.js', 'exports.s = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/src/index.ts');
+    });
+
+    it('resolves a `main` built into a format directory (dist/cjs) to its source', () => {
+      workspacePackage({ main: 'dist/cjs/index.js', module: 'dist/esm/index.js' });
+      write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');
+      write(root, 'pkgs/lib/dist/cjs/index.js', 'exports.s = 1;');
+      write(root, 'pkgs/lib/dist/esm/index.js', 'export const s = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/src/index.ts');
+    });
+
+    it('resolves a `main` that is not named index, built or not', () => {
+      workspacePackage({ main: 'dist/di.js' });
+      write(root, 'pkgs/lib/src/di.ts', 'export const s = 1;');
+      const unbuilt = getImportResolver(root).resolve('@scope/lib', 'app/a.ts');
+
+      write(root, 'pkgs/lib/dist/di.js', 'exports.s = 1;');
+      const built = getImportResolver(root).resolve('@scope/lib', 'app/a.ts');
+
+      expect([unbuilt.resolvedPath, built.resolvedPath]).toEqual(['pkgs/lib/src/di.ts', 'pkgs/lib/src/di.ts']);
+    });
+
+    it('resolves a subpath through `exports` to its source', () => {
+      workspacePackage({
+        main: 'dist/cjs/index.js',
+        exports: {
+          '.': { types: './dist/esm/index.d.ts', import: './dist/esm/index.js', require: './dist/cjs/index.js' },
+          './sandbox': { types: './dist/esm/expression-sandboxing.d.ts', import: './dist/esm/expression-sandboxing.js' },
+        },
+      });
+      write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');
+      write(root, 'pkgs/lib/src/expression-sandboxing.ts', 'export const e = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib/sandbox', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/src/expression-sandboxing.ts');
+    });
+
+    it('resolves a deep import of build output to its source', () => {
+      workspacePackage({ main: 'dist/index.js' });
+      write(root, 'pkgs/lib/src/util/foo.ts', 'export const f = 1;');
+      write(root, 'pkgs/lib/dist/util/foo.js', 'exports.f = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib/dist/util/foo', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/src/util/foo.ts');
+    });
+
+    it('keeps a `main` that has no source counterpart', () => {
+      workspacePackage({ main: 'lib/main.js' });
+      write(root, 'pkgs/lib/lib/main.js', 'exports.s = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/lib/main.js');
+    });
+  });
+
   it('marks node built-ins and unknown packages external', () => {
     write(root, 'src/a.ts', '');
     const resolver = getImportResolver(root);

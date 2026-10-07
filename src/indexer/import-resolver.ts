@@ -10,7 +10,8 @@ import { loadConfig, createMatchPath, type MatchPath } from 'tsconfig-paths';
 //   1. relative imports (`./x`, `../y`) — probed for the real file on disk;
 //   2. tsconfig `paths` aliases (`@api/types`) — via tsconfig-paths, read from
 //      the nearest tsconfig.json above the importing file that declares any;
-//   3. pnpm workspace package names (`@kluster/shared`) — via the workspace map;
+//   3. pnpm workspace package names (`@kluster/shared`) — via the workspace map,
+//      landing on the source an entry point was built from, not the build output;
 //   4. everything else — external (node_modules / built-ins).
 // `realpathSync.native` collapses pnpm symlinks so resolved paths point at real
 // files, and reports the on-disk casing (see safeRealpath).
@@ -233,18 +234,30 @@ function buildResolver(projectRoot: string): ImportResolver {
   };
 }
 
-/** Resolve `@scope/pkg` or `@scope/pkg/sub` against the workspace package map. */
+/**
+ * Resolve `@scope/pkg` or `@scope/pkg/sub` against the workspace package map.
+ *
+ * A package's entry points (`main`, `module`, `types`, `exports`) name what
+ * its build writes, and the index holds what the build reads. Resolving to the
+ * entry as written gives a path with no `files` row as soon as the package has
+ * been built, and every call through the import loses its edge (D100). So each
+ * entry is first traced to a source file (`sourceOf`), and the entry as
+ * written is the fallback for a package that has no separate sources.
+ */
 function resolveWorkspace(
   spec: string,
-  workspace: ReadonlyMap<string, string>,
+  workspace: ReadonlyMap<string, WorkspacePackage>,
   probe: (base: string) => string | null,
 ): string | null {
-  for (const [name, dir] of workspace) {
+  for (const [name, pkg] of workspace) {
+    const { dir } = pkg;
     if (spec === name) {
-      // Bare package import → its entry point.
-      const main = packageMain(dir);
+      for (const entry of pkg.entries) {
+        const source = sourceOf(dir, entry, probe);
+        if (source !== null) return source;
+      }
       const candidates = [
-        main !== null ? join(dir, main) : null,
+        pkg.main !== null ? join(dir, pkg.main) : null,
         join(dir, 'src', 'index'),
         join(dir, 'index'),
       ].filter((c): c is string => c !== null);
@@ -256,8 +269,47 @@ function resolveWorkspace(
     }
     if (spec.startsWith(`${name}/`)) {
       const sub = spec.slice(name.length + 1);
+      for (const target of [...(pkg.subpathEntries.get(`./${sub}`) ?? []), sub]) {
+        const source = sourceOf(dir, target, probe);
+        if (source !== null) return source;
+      }
       return probe(join(dir, sub)) ?? probe(join(dir, 'src', sub));
     }
+  }
+  return null;
+}
+
+const TS_SOURCE = /\.(?:ts|tsx|mts|cts)$/;
+const DECLARATION_FILE = /\.d\.(?:ts|mts|cts)$/;
+const BUILT_EXTENSION = /(?:\.d\.(?:ts|mts|cts)|\.(?:js|jsx|mjs|cjs))$/;
+
+/**
+ * The TypeScript source behind a package-relative path, or null.
+ *
+ * Either the path is itself a source file, or it is build output whose source
+ * sits under `src/`: `dist/index.js` and `dist/index.d.ts` come from
+ * `src/index.ts`, and `dist/cjs/index.js` does too, the build having added a
+ * directory per module format. So the first directory is replaced by `src`
+ * and leading directories are dropped one at a time until a file is found.
+ *
+ * This reads no `outDir` or `rootDir`: the build's tsconfig is often not the
+ * one named `tsconfig.json`. A package whose sources are not under `src/`
+ * gets null here and falls back to the path as written.
+ */
+function sourceOf(
+  packageDir: string,
+  entry: string,
+  probe: (base: string) => string | null,
+): string | null {
+  const relativeEntry = entry.replace(/^\.\//, '');
+  const literal = probe(join(packageDir, relativeEntry));
+  if (literal !== null && TS_SOURCE.test(literal) && !DECLARATION_FILE.test(literal)) return literal;
+
+  const segments = relativeEntry.replace(BUILT_EXTENSION, '').split('/');
+  if (segments[0] === 'src') return null;
+  for (let drop = 1; drop < segments.length; drop++) {
+    const source = probe(join(packageDir, 'src', ...segments.slice(drop)));
+    if (source !== null) return source;
   }
   return null;
 }
@@ -343,11 +395,25 @@ function buildTsconfigMatcher(configDir: string): MatchPath | null {
 }
 
 // ---------------------------------------------------------------------------
-// pnpm workspace map (package name → absolute package dir)
+// pnpm workspace map (package name → its directory and entry points)
 // ---------------------------------------------------------------------------
 
-function buildWorkspaceMap(projectRoot: string): ReadonlyMap<string, string> {
-  const map = new Map<string, string>();
+/** A workspace package, read once from its `package.json`. */
+interface WorkspacePackage {
+  /** Absolute package directory. */
+  readonly dir: string;
+  readonly main: string | null;
+  /**
+   * Every path the package names as its root entry, in the order tried:
+   * `exports["."]`, `module`, `main`, `types`.
+   */
+  readonly entries: readonly string[];
+  /** `exports` keys other than `"."` (`"./sub"`) to the paths each names. */
+  readonly subpathEntries: ReadonlyMap<string, readonly string[]>;
+}
+
+function buildWorkspaceMap(projectRoot: string): ReadonlyMap<string, WorkspacePackage> {
+  const map = new Map<string, WorkspacePackage>();
   const workspaceRoot = findWorkspaceRoot(projectRoot);
   if (workspaceRoot === null) return map;
 
@@ -362,8 +428,8 @@ function buildWorkspaceMap(projectRoot: string): ReadonlyMap<string, string> {
   });
 
   for (const dir of dirs) {
-    const name = packageName(dir);
-    if (name !== null && !map.has(name)) map.set(name, dir);
+    const pkg = readWorkspacePackage(dir);
+    if (pkg !== null && !map.has(pkg.name)) map.set(pkg.name, pkg);
   }
   return map;
 }
@@ -408,21 +474,56 @@ function readWorkspaceGlobs(workspaceRoot: string): string[] {
 // package.json helpers
 // ---------------------------------------------------------------------------
 
-function packageName(dir: string): string | null {
-  const pkg = readPackageJson(dir);
-  return typeof pkg?.name === 'string' ? pkg.name : null;
+function readWorkspacePackage(dir: string): (WorkspacePackage & { readonly name: string }) | null {
+  const manifest = readPackageJson(dir);
+  if (manifest === null || typeof manifest['name'] !== 'string') return null;
+
+  const stringField = (key: string): string | null => {
+    const value = manifest[key];
+    return typeof value === 'string' ? value : null;
+  };
+  const main = stringField('main');
+
+  const exportsField = manifest['exports'];
+  const subpathEntries = new Map<string, readonly string[]>();
+  let rootTargets: readonly string[] = [];
+  if (isRecord(exportsField) && Object.keys(exportsField).some((key) => key.startsWith('.'))) {
+    for (const [key, target] of Object.entries(exportsField)) {
+      if (key === '.') rootTargets = exportTargets(target);
+      else subpathEntries.set(key, exportTargets(target));
+    }
+  } else {
+    // A string, or a bare conditions object: both describe the root entry.
+    rootTargets = exportTargets(exportsField);
+  }
+
+  const entries = [...rootTargets, stringField('module'), main, stringField('types')]
+    .filter((entry): entry is string => entry !== null);
+  return { name: manifest['name'], dir, main, entries: [...new Set(entries)], subpathEntries };
 }
 
-function packageMain(dir: string): string | null {
-  const pkg = readPackageJson(dir);
-  return typeof pkg?.main === 'string' ? pkg.main : null;
+/**
+ * Every path an `exports` target names, whatever conditions it sits under.
+ * Which condition a given importer would take is not decided here: all of
+ * them are builds of one source, and the source is what is wanted.
+ */
+function exportTargets(target: unknown): readonly string[] {
+  if (typeof target === 'string') return [target];
+  if (Array.isArray(target)) return target.flatMap(exportTargets);
+  if (isRecord(target)) return Object.values(target).flatMap(exportTargets);
+  return [];
 }
 
-function readPackageJson(dir: string): { name?: unknown; main?: unknown } | null {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readPackageJson(dir: string): Record<string, unknown> | null {
   const path = join(dir, 'package.json');
   if (!existsSync(path)) return null;
   try {
-    return JSON.parse(readFileSync(path, 'utf-8')) as { name?: unknown; main?: unknown };
+    const parsed: unknown = JSON.parse(readFileSync(path, 'utf-8'));
+    return isRecord(parsed) ? parsed : null;
   } catch {
     return null;
   }

@@ -1,0 +1,90 @@
+{
+  "spike": "graph-reference/s1-call-edges",
+  "ran_at": "2026-10-07T21:28:37.583Z",
+  "typescript": "5.9.3",
+  "project_root": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref",
+  "tsconfig": "packages/core/tsconfig.json",
+  "path_prefix": "packages/core/",
+  "workspace_packages_mapped_to_source": 52,
+  "indexed_typescript_files": 156,
+  "program_source_files": 3119,
+  "calls_seen": 3419,
+  "calls_the_checker_gave_no_symbol_for": 18,
+  "q1_declaration_join": {
+    "start": 569,
+    "name": 4,
+    "statement": 0,
+    "near3_same_name": 0,
+    "none": 28,
+    "not_indexable_kind": 144,
+    "outside_indexed_files": 609
+  },
+  "q3_mast_edges": 657,
+  "q3_verdicts_by_resolution": {
+    "field_type": {
+      "agrees": 34
+    },
+    "this_method": {
+      "agrees": 241
+    },
+    "new_expression": {
+      "agrees": 13
+    },
+    "import": {
+      "agrees": 181
+    },
+    "same_file": {
+      "agrees": 127
+    },
+    "parameter_type": {
+      "agrees": 56
+    },
+    "super_method": {
+      "agrees": 5
+    }
+  },
+  "q4_reference_pairs": 1057,
+  "q4_pairs_mast_has_by_shape": {
+    "this.field.m() (other file)": 34,
+    "this.m() (same file)": 237,
+    "ident.m() (other file)": 64,
+    "identifier (other file)": 179,
+    "identifier (same file)": 122,
+    "ident.m() (same file)": 5,
+    "super.m() (other file)": 5
+  },
+  "q4_pairs_mast_lacks_by_shape": {
+    "new X() (other file)": 152,
+    "ident.m() (other file)": 72,
+    "this.field.m() (other file)": 61,
+    "this.m() (same file)": 2,
+    "new X() (same file)": 10,
+    "identifier (other file)": 12,
+    "expr.m() (other file)": 55,
+    "identifier (same file)": 12,
+    "this.m() (other file)": 30,
+    "super.m() (other file)": 2,
+    "expr.m() (same file)": 2,
+    "ident.m() (same file)": 1
+  },
+  "q4_distinct_mast_pairs": 657,
+  "q4_calls_outside_any_indexed_symbol": 2,
+  "q4_self_calls_skipped": 14,
+  "q5_unjudgeable": {
+    "import_statements_not_resolved_by_specifier": {
+      "../dist/errors": 1,
+      "../dist/nodes-loader/lazy-package-directory-loader": 1,
+      "../dist/credentials": 1,
+      "../dist/execution-engine/execution-lifecycle-hooks": 1,
+      "../dist/execution-engine/workflow-execute": 1
+    },
+    "calls_with_no_symbol": 18,
+    "of_those_receiver_is_error_type": 13,
+    "of_those_receiver_is_any": 1,
+    "of_those_receiver_is_typed": 4
+  },
+  "q6_cost": {
+    "wall_ms": 13169,
+    "peak_rss_mb": 472
+  }
+}

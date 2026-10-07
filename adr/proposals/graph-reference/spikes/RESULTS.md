@@ -209,6 +209,7 @@ index with that commit's `dist/`.
 | D097 (one row per declaration) | this repository | 15 functions → 0 | 705 | 751 | 705 | 0 | `s1-call-edges/mast.after-d097.summary.json` |
 | D097 | n8n `packages/core`, indexed alone | 12 functions → 0 | 558 | not re-run | not re-run | not re-run | none; counted with `sqlite3` |
 | D087 (aliases from the nearest tsconfig) | n8n `packages/core` inside the whole-monorepo index | 0 | 548 → 569 | 1,057 | 537 → 558 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d087.summary.json` |
+| D100 (a package entry point traced to its source) | n8n `packages/core` inside the whole-monorepo index | 0 | 569 → 657 | 1,057 | 558 → 646 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d100.summary.json` |
 
 D097 changes which row an edge sits on, not which edges exist, so the pair counts were
 expected to stay the same and did.
@@ -248,3 +249,30 @@ cost and does not rule a small one out. It needs a quiet machine.
 `write_errors: 4`. Its stderr was not kept. Four other runs of the same build on the same tree
 (one before it, run 4, and two afterwards with stderr kept and empty) indexed 13,985 files with
 no errors. Not known: whether the cause was the machine or the build.
+
+### D100 on the whole n8n copy
+
+Full index of the same copy, `packages/core`'s dependencies built, the D087 build then the
+build with D100 fixed, read with `sqlite3`:
+
+| | Before | After |
+|---|---|---|
+| Import rows resolved to a path containing `/dist/` | 10,301 | 14 |
+| Non-external import rows whose `resolved_path` has no `files` row | 10,734 | 447 |
+| `POTENTIAL_CALL` edges | 32,052 | 33,888 |
+| `import` | 8,715 | 10,258 |
+| `parameter_type` | 424 | 564 |
+| `field_type` | 4,401 | 4,536 |
+| `EXTENDS` | 899 | 1,283 |
+| `IMPLEMENTS` | 656 | 1,821 |
+| `RE_EXPORTS` | 4,086 | 4,175 |
+
+The 14 left are under `node_modules` (`@langchain/*`, `esprima-next`). The largest groups in the
+447 are `.vue` files, which mast does not index. That run's stderr was kept and is empty;
+13,985 files, exit 0.
+
+Only `packages/core` was judged against the checker: 657 edges, none to another declaration.
+Of the 1,057 pairs the checker supports there, mast now holds 646 (537 before D087 and D100).
+The 411 it lacks: 162 construction, 73 a method on a local or imported name, 61 a method on a
+field, 57 a method on an expression, 32 `this.m()`, 24 a plain call, 2 `super.m()`. The 1,165
+new `IMPLEMENTS` and 384 new `EXTENDS` edges were not judged; the script covers calls only.
