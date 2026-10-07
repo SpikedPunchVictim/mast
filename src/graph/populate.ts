@@ -855,9 +855,26 @@ async function insertEdgesReportingUnresolved(
     }
   }
 
+  // `this.m()` where the class does not declare `m`: the method of the class
+  // it extends, placed exactly as `super.m()` is, by the name in this file's
+  // own `extends` clause. One step up. Further up means reading the parent's
+  // `extends`, which is another file's record and may not be stored yet.
+  const parentNameByClass = new Map<string, string>();
+  for (const e of edges) {
+    if (e.edgeType === 'EXTENDS' && !parentNameByClass.has(e.fromName)) parentNameByClass.set(e.fromName, e.toName);
+  }
+  const resolveOnParentClass = async (toName: string): Promise<number | null> => {
+    const dot = toName.indexOf('.');
+    const parentName = parentNameByClass.get(toName.slice(0, dot));
+    if (dot === -1 || parentName === undefined) return null;
+    return resolveQualifiedNameScoped(db, fromFile.id, imports, `${parentName}${toName.slice(dot)}`);
+  };
+
   const callToMap = new Map<string, number>();
   for (const [key, edge] of callEdgesByKey) {
-    const targetId = await resolveCallTarget(db, fromFile.id, imports, edge.resolution, edge.toName);
+    const targetId =
+      (await resolveCallTarget(db, fromFile.id, imports, edge.resolution, edge.toName)) ??
+      (edge.resolution === 'this_method' ? await resolveOnParentClass(edge.toName) : null);
     if (targetId !== null) callToMap.set(key, targetId);
   }
 

@@ -214,6 +214,8 @@ index with that commit's `dist/`.
 | D098 and D101 | n8n `packages/core` inside the whole-monorepo index | 0 | 657 → 679 | 1,057 | 646 → 667 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d098.summary.json` |
 | Construction edges and D102 (members through a re-exporting index) | this repository | 0 | 727 → 751 | 768 | 750 | 0 | `s1-call-edges/mast.after-construction.summary.json` |
 | Construction edges and D102 | n8n `packages/core` inside the whole-monorepo index | 0 | 679 → 889 | 1,057 | 667 → 875 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-construction.summary.json` |
+| `this.m()` to a method of the direct parent class | this repository | 0 | 751 → 752 | 769 | 751 | 0 | `s1-call-edges/mast.after-inherited-this.summary.json` |
+| `this.m()` to a method of the direct parent class | n8n `packages/core` inside the whole-monorepo index | 0 | 889 → 905 | 1,057 | 875 → 891 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-inherited-this.summary.json` |
 
 D097 changes which row an edge sits on, not which edges exist, so the pair counts were
 expected to stay the same and did.
@@ -347,3 +349,25 @@ of which 4,711 are on a constructor and 395 on a class; `field_type` 4,541 → 6
 `packages/core` was judged.
 
 Not done: `mast_callers` on a class does not include callers of its constructor.
+
+### Inherited methods
+
+`this.m()` where the class does not declare `m` now goes to `m` on the class named in the
+`extends` clause, one step up, placed as `super.m()` already was. Read from the checker's
+output before writing it: of the 30 `this.m()` pairs n8n core lacked, 22 had the target on
+the direct parent, 6 further up (`ExecuteContext` → `BaseExecuteContext` →
+`NodeExecutionContext`), and 2 are a function with a `this` parameter, not a class.
+
+After: `this_method` 243 → 259 on n8n core, all agree; 16 of the 22 gained. The other 6 are
+all `await this._getCredentials<T>(...)`. tree-sitter-typescript 0.23.2 reads
+`await f<T>(x)` as `(await f)<T>(x)`, so the call has an await expression where its function
+should be and no edge is written, for an own method as much as an inherited one. That is
+ledger row D103, fixed separately.
+
+Whole n8n copy: `this_method` 8,910 → 9,973, every other count unchanged; `POTENTIAL_CALL`
+42,566 → 43,629. 13,985 files, exit 0, stderr empty. Only `packages/core` was judged.
+
+Not done: a method two or more classes up. Finding it means walking stored `EXTENDS` edges,
+which makes a file's call edges depend on files it does not import. That needs the
+structural edges of every file written before any call edge, and the repair after an edit
+to reach every file below the edited class. Not built; 6 pairs on n8n core.

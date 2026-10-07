@@ -2282,6 +2282,15 @@ of guessing. `this.foo()` inside a nested non-arrow function/method/generator
 body is NOT the class instance and is excluded before it ever reaches the
 resolver — arrow functions inherit the enclosing `this` and are not excluded.
 
+**`this.foo()` where the class does not declare `foo`.** The edge goes to `foo`
+on the class named in the `extends` clause, placed as `super.foo()` is, and
+keeps the `resolution` `this_method`. One step up only: a method declared two
+or more classes up has no edge, because finding it means reading the parent's
+own `extends`, which is another file's record. Measured on n8n
+`packages/core`: 16 of the 30 such calls the TypeScript checker supports are
+one step up and written this way, 6 are further up
+(adr/proposals/graph-reference/spikes/RESULTS.md).
+
 **Construction.** `new X()` is a call of X's constructor and is stored with
 `resolution` `construction`. X is placed by the same file evidence as a bare
 call: a named import of this file, or a declaration in it. The edge's target is
