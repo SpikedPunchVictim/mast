@@ -1,0 +1,6 @@
+## in today (stored), not in B
+## in B, not in today (stored)
+## in today (stored), not in B_gap_closed
+## in B_gap_closed, not in today (stored)
+## in C, not in B
+## in A, not in C

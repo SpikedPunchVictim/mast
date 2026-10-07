@@ -1,0 +1,5 @@
+EXTENDS | src/cli/docs-cmd.ts | DocsError | Error | none | ts_lib_global |  |  | cands=0/0f | today=- | ev=- | ev_gap_closed=- |  | no_edge | no_edge
+EXTENDS | src/cli/query.ts | QueryError | Error | none | ts_lib_global |  |  | cands=0/0f | today=- | ev=- | ev_gap_closed=- |  | no_edge | no_edge
+EXTENDS | src/mcp/server.ts | NeverIndexedError | Error | none | ts_lib_global |  |  | cands=0/0f | today=- | ev=- | ev_gap_closed=- |  | no_edge | no_edge
+EXTENDS | src/store/lock.ts | LockCompromisedError | Error | none | ts_lib_global |  |  | cands=0/0f | today=- | ev=- | ev_gap_closed=- |  | no_edge | no_edge
+EXTENDS | src/user-error.ts | UserError | Error | none | ts_lib_global |  |  | cands=0/0f | today=- | ev=- | ev_gap_closed=- |  | no_edge | no_edge

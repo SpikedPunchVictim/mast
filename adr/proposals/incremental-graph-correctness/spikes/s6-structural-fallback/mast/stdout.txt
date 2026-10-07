@@ -1,0 +1,208 @@
+{
+ "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/mast-git",
+ "files_walked": 162,
+ "lib_globals": 1973,
+ "re_exports_edges_at_fixed_point": 10,
+ "import_call_records_one_per_file_and_name": {
+  "records": 361,
+  "imported_from_a_package_or_unresolved": 123,
+  "found": 237,
+  "not_found": 1,
+  "found_when_gap_closed": 0
+ },
+ "import_call_gap_top_targets": {},
+ "probe_blocked_by_existing_edge": 0,
+ "records": {
+  "n": 13,
+  "by_type": {
+   "EXTENDS": 8,
+   "IMPLEMENTS": 5
+  },
+  "by_evidence": {
+   "EXTENDS/none": 5,
+   "IMPLEMENTS/same_file": 3,
+   "IMPLEMENTS/import": 2,
+   "EXTENDS/import": 2,
+   "EXTENDS/same_file": 1
+  },
+  "from_symbol_missing": 0
+ },
+ "today": {
+  "implements_extends_edges": 8,
+  "records_with_an_edge": 8,
+  "parent_of_edges": 35,
+  "parent_of_cross_file": 0
+ },
+ "import_name_not_found": {
+  "n": 0,
+  "with_star_then_named_followed": {},
+  "totals": {},
+  "still_not_found_by_import_path": {}
+ },
+ "import_external": {
+  "n": 0,
+  "today_has_an_edge": 0,
+  "today_edge_by_module": {}
+ },
+ "with_evidence": {
+  "n": 8,
+  "today_vs_evidence": {
+   "IMPLEMENTS/same_file/same": 3,
+   "IMPLEMENTS/import/same": 2,
+   "EXTENDS/import/same": 2,
+   "EXTENDS/same_file/same": 1
+  },
+  "today_vs_evidence_totals": {
+   "same": 8
+  }
+ },
+ "no_evidence": {
+  "n": 5,
+  "by_how": {
+   "EXTENDS/ts_lib_global": 5
+  },
+  "candidates": {
+   "0": 5
+  },
+  "today_edge": {
+   "EXTENDS/no_edge": 5
+  },
+  "today_edge_totals": {
+   "no_edge": 5
+  },
+  "today_edge_by_how": {},
+  "C_edge": {
+   "EXTENDS/no_edge": 5
+  },
+  "C_edge_totals": {
+   "no_edge": 5
+  },
+  "today_target_kind": {}
+ },
+ "edges_per_option": {
+  "today": {
+   "n": 8,
+   "by_type": {
+    "IMPLEMENTS": 5,
+    "EXTENDS": 3
+   },
+   "implements_to_interface": 5,
+   "implements_target_kind": {
+    "interface": 5
+   }
+  },
+  "A": {
+   "n": 8,
+   "by_type": {
+    "IMPLEMENTS": 5,
+    "EXTENDS": 3
+   },
+   "implements_to_interface": 5,
+   "implements_target_kind": {
+    "interface": 5
+   }
+  },
+  "B": {
+   "n": 8,
+   "by_type": {
+    "IMPLEMENTS": 5,
+    "EXTENDS": 3
+   },
+   "implements_to_interface": 5,
+   "implements_target_kind": {
+    "interface": 5
+   }
+  },
+  "B_gap_closed": {
+   "n": 8,
+   "by_type": {
+    "IMPLEMENTS": 5,
+    "EXTENDS": 3
+   },
+   "implements_to_interface": 5,
+   "implements_target_kind": {
+    "interface": 5
+   }
+  },
+  "C": {
+   "n": 8,
+   "by_type": {
+    "IMPLEMENTS": 5,
+    "EXTENDS": 3
+   },
+   "implements_to_interface": 5,
+   "implements_target_kind": {
+    "interface": 5
+   }
+  }
+ },
+ "interface_names": 174,
+ "tool": {
+  "today_stored": {
+   "interfaces_with_an_answer": 4,
+   "implementors": 5,
+   "by_verdict": {
+    "evidence": 5
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 0
+  },
+  "today": {
+   "interfaces_with_an_answer": 4,
+   "implementors": 5,
+   "by_verdict": {
+    "evidence": 5
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 0
+  },
+  "A": {
+   "interfaces_with_an_answer": 4,
+   "implementors": 5,
+   "by_verdict": {
+    "evidence": 5
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 0
+  },
+  "B": {
+   "interfaces_with_an_answer": 4,
+   "implementors": 5,
+   "by_verdict": {
+    "evidence": 5
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 0
+  },
+  "B_gap_closed": {
+   "interfaces_with_an_answer": 4,
+   "implementors": 5,
+   "by_verdict": {
+    "evidence": 5
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 0
+  },
+  "C": {
+   "interfaces_with_an_answer": 4,
+   "implementors": 5,
+   "by_verdict": {
+    "evidence": 5
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 0
+  }
+ },
+ "parent_of_same_file": {
+  "records_resolved": 35,
+  "edges": 35,
+  "option_B_answers_whose_method_list_changed": 0
+ },
+ "edges_after_rollback": 669
+}

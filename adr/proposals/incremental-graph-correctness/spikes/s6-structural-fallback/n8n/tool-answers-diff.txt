@@ -1,0 +1,204 @@
+## in today (stored), not in B
+AuthStrategy | ScopedJwtStrategy | packages/cli/src/modules/token-exchange/services/scoped-jwt.strategy.ts | 16 | evidence
+BaseMigration | UpdateParentFolderIdColumn1740445074052 | packages/@n8n/db/src/migrations/sqlite/1740445074052-UpdateParentFolderIdColumn.ts | 4 | wrong_imported_from_another_file
+ChatModel | BaseChatModel | packages/@n8n/ai-utilities/src/chat-model/base.ts | 6 | evidence
+DisconnectAnalyzer | DefaultTaskRunnerDisconnectAnalyzer | packages/cli/src/task-runners/default-task-runner-disconnect-analyzer.ts | 17 | evidence
+ExecutionRedaction | ExecutionRedactionService | packages/cli/src/modules/redaction/executions/execution-redaction.service.ts | 41 | evidence
+ICredentialConnectionStatusProvider | CredentialConnectionStatusService | packages/cli/src/modules/dynamic-credentials.ee/services/credential-connection-status.service.ts | 40 | evidence
+IDynamicCredentialStorageProvider | DynamicCredentialStorageService | packages/cli/src/modules/dynamic-credentials.ee/services/dynamic-credential-storage.service.ts | 24 | evidence
+IExternalSecretsManager | ExternalSecretsManager | packages/cli/src/modules/external-secrets.ee/external-secrets-manager.ee.ts | 30 | evidence
+ModuleInterface | AgentEvalsModule | packages/cli/src/modules/agent-evals/agent-evals.module.ts | 13 | evidence
+ModuleInterface | AgentsModule | packages/cli/src/modules/agents/agents.module.ts | 9 | evidence
+ModuleInterface | BreakingChangesModule | packages/cli/src/modules/breaking-changes/breaking-changes.module.ts | 7 | evidence
+ModuleInterface | ChatHubModule | packages/cli/src/modules/chat-hub/chat-hub.module.ts | 8 | evidence
+ModuleInterface | CommunityPackagesModule | packages/cli/src/modules/community-packages/community-packages.module.ts | 9 | evidence
+ModuleInterface | DataTableModule | packages/cli/src/modules/data-table/data-table.module.ts | 6 | evidence
+ModuleInterface | DynamicCredentialsModule | packages/cli/src/modules/dynamic-credentials.ee/dynamic-credentials.module.ts | 16 | evidence
+ModuleInterface | EncryptionKeyManagerModule | packages/cli/src/modules/encryption-key-manager/encryption-key-manager.module.ts | 11 | evidence
+ModuleInterface | ExternalSecretsModule | packages/cli/src/modules/external-secrets.ee/external-secrets.module.ts | 6 | evidence
+ModuleInterface | FavoritesModule | packages/cli/src/modules/favorites/favorites.module.ts | 6 | evidence
+ModuleInterface | InsightsModule | packages/cli/src/modules/insights/insights.module.ts | 10 | evidence
+ModuleInterface | InstanceAiModule | packages/cli/src/modules/instance-ai/instance-ai.module.ts | 14 | evidence
+ModuleInterface | InstanceRegistryModule | packages/cli/src/modules/instance-registry/instance-registry.module.ts | 14 | evidence
+ModuleInterface | InstanceVersionHistoryModule | packages/cli/src/modules/instance-version-history/instance-version-history.module.ts | 6 | evidence
+ModuleInterface | LdapModule | packages/cli/src/modules/ldap.ee/ldap.module.ts | 5 | evidence
+ModuleInterface | LogStreamingModule | packages/cli/src/modules/log-streaming.ee/log-streaming.module.ts | 18 | evidence
+ModuleInterface | McpRegistryModule | packages/cli/src/modules/mcp-registry/mcp-registry.module.ts | 9 | evidence
+ModuleInterface | McpModule | packages/cli/src/modules/mcp/mcp.module.ts | 13 | evidence
+ModuleInterface | N8nPackagesModule | packages/cli/src/modules/n8n-packages/n8n-packages.module.ts | 7 | evidence
+ModuleInterface | OAuthJweModule | packages/cli/src/modules/oauth-jwe/oauth-jwe.module.ts | 13 | evidence
+ModuleInterface | OAuthServerModule | packages/cli/src/modules/oauth-server/oauth-server.module.ts | 19 | evidence
+ModuleInterface | OtelModule | packages/cli/src/modules/otel/otel.module.ts | 10 | evidence
+ModuleInterface | ProvisioningModule | packages/cli/src/modules/provisioning.ee/provisioning.module.ts | 10 | evidence
+ModuleInterface | QuickConnectModule | packages/cli/src/modules/quick-connect/quick-connect.module.ts | 6 | evidence
+ModuleInterface | RedactionModule | packages/cli/src/modules/redaction/redaction.module.ts | 8 | evidence
+ModuleInterface | RuntimeCredentialsModule | packages/cli/src/modules/runtime-credentials/runtime-credentials.module.ts | 12 | evidence
+ModuleInterface | SourceControlModule | packages/cli/src/modules/source-control.ee/source-control.module.ts | 10 | evidence
+ModuleInterface | OidcModule | packages/cli/src/modules/sso-oidc/sso-oidc.module.ts | 6 | evidence
+ModuleInterface | SamlModule | packages/cli/src/modules/sso-saml/sso-saml.module.ts | 6 | evidence
+ModuleInterface | TokenExchangeModule | packages/cli/src/modules/token-exchange/token-exchange.module.ts | 15 | evidence
+ModuleInterface | WorkflowBuilderModule | packages/cli/src/modules/workflow-builder/workflow-builder.module.ts | 5 | evidence
+ModuleInterface | WorkflowReviewsModule | packages/cli/src/modules/workflow-reviews.ee/workflow-reviews.module.ts | 11 | evidence
+N8nOAuth2Flow | OAuth2FlowService | packages/cli/src/modules/oauth-server/oauth-flow.service.ts | 22 | evidence
+OAuthTokenVerifier | OAuthTokenService | packages/cli/src/modules/oauth-server/oauth-token.service.ts | 33 | evidence
+ProtectedResource | McpProtectedResource | packages/cli/src/modules/mcp/mcp-protected-resource.ts | 39 | evidence
+ProtectedResourceResolver | FormTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/form-trigger-resource.resolver.ts | 21 | evidence
+ProtectedResourceResolver | FormTriggerTestResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/form-trigger-test-resource.resolver.ts | 21 | evidence
+ProtectedResourceResolver | WorkflowMcpTestTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-mcp-test-trigger-resource.resolver.ts | 19 | evidence
+ProtectedResourceResolver | WorkflowMcpTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-mcp-trigger-resource.resolver.ts | 19 | evidence
+ProtectedResourceResolver | WorkflowWebhookTestTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-webhook-test-trigger-resource.resolver.ts | 40 | evidence
+ProtectedResourceResolver | WorkflowWebhookTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-webhook-trigger-resource.resolver.ts | 56 | evidence
+RiskReporter | CredentialsRiskReporter | packages/cli/src/security-audit/risk-reporters/credentials-risk-reporter.ts | 10 | evidence
+RiskReporter | DatabaseRiskReporter | packages/cli/src/security-audit/risk-reporters/database-risk-reporter.ts | 14 | evidence
+RiskReporter | FilesystemRiskReporter | packages/cli/src/security-audit/risk-reporters/filesystem-risk-reporter.ts | 9 | evidence
+RiskReporter | InstanceRiskReporter | packages/cli/src/security-audit/risk-reporters/instance-risk-reporter.ts | 25 | evidence
+RiskReporter | NodesRiskReporter | packages/cli/src/security-audit/risk-reporters/nodes-risk-reporter.ts | 21 | evidence
+RoleDeletionChecker | ProvisioningRoleDeletionChecker | packages/cli/src/modules/provisioning.ee/role-deletion-checker.ee.ts | 15 | evidence
+RuntimeCredentialProvider | RuntimeCredentialsAccessService | packages/cli/src/modules/runtime-credentials/runtime-credentials-access.service.ts | 9 | evidence
+Scheduler | DurableScheduler | packages/cli/src/scheduling/durable-scheduler.ts | 27 | evidence
+SchedulerMetrics | PrometheusSchedulerMetricsService | packages/cli/src/metrics/prometheus/scheduler-metrics.service.ts | 26 | evidence
+Span | EmptySpan | packages/core/src/observability/tracing/noop-tracing.ts | 4 | evidence
+TaskHandler | PollTriggerTaskHandler | packages/cli/src/scheduling/poll-trigger-node/poll-trigger-task-handler.ts | 29 | evidence
+TaskHandler | ScheduleTriggerTaskHandler | packages/cli/src/scheduling/schedule-trigger-node/schedule-trigger-task-handler.ts | 33 | evidence
+Tracer | MetadataEnrichedTracer | packages/@n8n/agents/src/sdk/metadata-enriched-tracer.ts | 5 | evidence
+WorkflowMutationHooks | WorkflowReviewAutoCloseService | packages/cli/src/modules/workflow-reviews.ee/workflow-review-auto-close.service.ts | 20 | evidence
+WorkflowPublishGuard | WorkflowReviewPublishGuard | packages/cli/src/modules/workflow-reviews.ee/workflow-review-publish-guard.service.ts | 11 | evidence
+## in B, not in today (stored)
+ExpressionEvaluator | FunctionEvaluator | packages/@n8n/tournament/src/FunctionEvaluator.ts | 3
+IUser | User | packages/@n8n/db/src/entities/user.ts | 30
+McpTransport | SSETransport | packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/transport/SSETransport.ts | 7
+McpTransport | StreamableHttpTransport | packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/transport/StreamableHttpTransport.ts | 27
+OperationHandler | CreateHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 66
+OperationHandler | CloseHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 118
+OperationHandler | DeleteHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 130
+OperationHandler | GetHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 142
+OperationHandler | GetAllHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 153
+OperationHandler | ReopenHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 200
+OperationHandler | UpdateHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 213
+OperationHandler | MoveHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 259
+OperationHandler | SyncHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 284
+OperationHandler | CreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 131
+OperationHandler | CloseHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 234
+OperationHandler | DeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 247
+OperationHandler | GetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 260
+OperationHandler | GetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 272
+OperationHandler | ReopenHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 331
+OperationHandler | UpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 345
+OperationHandler | MoveHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 436
+OperationHandler | ProjectCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 497
+OperationHandler | ProjectDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 524
+OperationHandler | ProjectGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 534
+OperationHandler | ProjectGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 544
+OperationHandler | ProjectUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 551
+OperationHandler | ProjectArchiveHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 573
+OperationHandler | ProjectUnarchiveHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 583
+OperationHandler | ProjectGetCollaboratorsHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 593
+OperationHandler | SectionCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 604
+OperationHandler | SectionDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 634
+OperationHandler | SectionGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 644
+OperationHandler | SectionGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 654
+OperationHandler | SectionUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 669
+OperationHandler | CommentCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 689
+OperationHandler | CommentDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 707
+OperationHandler | CommentGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 717
+OperationHandler | CommentGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 727
+OperationHandler | CommentUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 747
+OperationHandler | LabelCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 767
+OperationHandler | LabelDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 793
+OperationHandler | LabelGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 803
+OperationHandler | LabelGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 813
+OperationHandler | LabelUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 820
+OperationHandler | QuickAddHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 842
+OperationHandler | ReminderCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 883
+OperationHandler | ReminderUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 945
+OperationHandler | ReminderDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 980
+OperationHandler | ReminderGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 1002
+Service | TodoistService | packages/nodes-base/nodes/Todoist/v1/Service.ts | 16
+Service | TodoistService | packages/nodes-base/nodes/Todoist/v2/Service.ts | 48
+Telemetry | TelemetryService | packages/frontend/editor-ui/src/app/plugins/telemetry/index.ts | 41
+WorkflowTaskService | WorkflowTaskCoordinator | packages/@n8n/instance-ai/src/workflow-loop/workflow-task-service.ts | 19
+## in today (stored), not in B_gap_closed
+AuthStrategy | ScopedJwtStrategy | packages/cli/src/modules/token-exchange/services/scoped-jwt.strategy.ts | 16 | evidence
+BaseMigration | UpdateParentFolderIdColumn1740445074052 | packages/@n8n/db/src/migrations/sqlite/1740445074052-UpdateParentFolderIdColumn.ts | 4 | wrong_imported_from_another_file
+ChatModel | BaseChatModel | packages/@n8n/ai-utilities/src/chat-model/base.ts | 6 | evidence
+DisconnectAnalyzer | DefaultTaskRunnerDisconnectAnalyzer | packages/cli/src/task-runners/default-task-runner-disconnect-analyzer.ts | 17 | evidence
+ExecutionRedaction | ExecutionRedactionService | packages/cli/src/modules/redaction/executions/execution-redaction.service.ts | 41 | evidence
+ICredentialConnectionStatusProvider | CredentialConnectionStatusService | packages/cli/src/modules/dynamic-credentials.ee/services/credential-connection-status.service.ts | 40 | evidence
+IDynamicCredentialStorageProvider | DynamicCredentialStorageService | packages/cli/src/modules/dynamic-credentials.ee/services/dynamic-credential-storage.service.ts | 24 | evidence
+N8nOAuth2Flow | OAuth2FlowService | packages/cli/src/modules/oauth-server/oauth-flow.service.ts | 22 | evidence
+OAuthTokenVerifier | OAuthTokenService | packages/cli/src/modules/oauth-server/oauth-token.service.ts | 33 | evidence
+ProtectedResource | McpProtectedResource | packages/cli/src/modules/mcp/mcp-protected-resource.ts | 39 | evidence
+ProtectedResourceResolver | FormTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/form-trigger-resource.resolver.ts | 21 | evidence
+ProtectedResourceResolver | FormTriggerTestResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/form-trigger-test-resource.resolver.ts | 21 | evidence
+ProtectedResourceResolver | WorkflowMcpTestTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-mcp-test-trigger-resource.resolver.ts | 19 | evidence
+ProtectedResourceResolver | WorkflowMcpTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-mcp-trigger-resource.resolver.ts | 19 | evidence
+ProtectedResourceResolver | WorkflowWebhookTestTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-webhook-test-trigger-resource.resolver.ts | 40 | evidence
+ProtectedResourceResolver | WorkflowWebhookTriggerResourceResolver | packages/cli/src/modules/oauth-server/protected-resource-resolvers/workflow-webhook-trigger-resource.resolver.ts | 56 | evidence
+RiskReporter | CredentialsRiskReporter | packages/cli/src/security-audit/risk-reporters/credentials-risk-reporter.ts | 10 | evidence
+RiskReporter | DatabaseRiskReporter | packages/cli/src/security-audit/risk-reporters/database-risk-reporter.ts | 14 | evidence
+RiskReporter | FilesystemRiskReporter | packages/cli/src/security-audit/risk-reporters/filesystem-risk-reporter.ts | 9 | evidence
+RiskReporter | InstanceRiskReporter | packages/cli/src/security-audit/risk-reporters/instance-risk-reporter.ts | 25 | evidence
+RiskReporter | NodesRiskReporter | packages/cli/src/security-audit/risk-reporters/nodes-risk-reporter.ts | 21 | evidence
+RoleDeletionChecker | ProvisioningRoleDeletionChecker | packages/cli/src/modules/provisioning.ee/role-deletion-checker.ee.ts | 15 | evidence
+RuntimeCredentialProvider | RuntimeCredentialsAccessService | packages/cli/src/modules/runtime-credentials/runtime-credentials-access.service.ts | 9 | evidence
+Span | EmptySpan | packages/core/src/observability/tracing/noop-tracing.ts | 4 | evidence
+Tracer | MetadataEnrichedTracer | packages/@n8n/agents/src/sdk/metadata-enriched-tracer.ts | 5 | evidence
+WorkflowMutationHooks | WorkflowReviewAutoCloseService | packages/cli/src/modules/workflow-reviews.ee/workflow-review-auto-close.service.ts | 20 | evidence
+WorkflowPublishGuard | WorkflowReviewPublishGuard | packages/cli/src/modules/workflow-reviews.ee/workflow-review-publish-guard.service.ts | 11 | evidence
+## in B_gap_closed, not in today (stored)
+ExpressionEvaluator | FunctionEvaluator | packages/@n8n/tournament/src/FunctionEvaluator.ts | 3
+IUser | User | packages/@n8n/db/src/entities/user.ts | 30
+McpTransport | SSETransport | packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/transport/SSETransport.ts | 7
+McpTransport | StreamableHttpTransport | packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/transport/StreamableHttpTransport.ts | 27
+OperationHandler | CreateHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 66
+OperationHandler | CloseHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 118
+OperationHandler | DeleteHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 130
+OperationHandler | GetHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 142
+OperationHandler | GetAllHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 153
+OperationHandler | ReopenHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 200
+OperationHandler | UpdateHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 213
+OperationHandler | MoveHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 259
+OperationHandler | SyncHandler | packages/nodes-base/nodes/Todoist/v1/OperationHandler.ts | 284
+OperationHandler | CreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 131
+OperationHandler | CloseHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 234
+OperationHandler | DeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 247
+OperationHandler | GetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 260
+OperationHandler | GetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 272
+OperationHandler | ReopenHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 331
+OperationHandler | UpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 345
+OperationHandler | MoveHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 436
+OperationHandler | ProjectCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 497
+OperationHandler | ProjectDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 524
+OperationHandler | ProjectGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 534
+OperationHandler | ProjectGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 544
+OperationHandler | ProjectUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 551
+OperationHandler | ProjectArchiveHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 573
+OperationHandler | ProjectUnarchiveHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 583
+OperationHandler | ProjectGetCollaboratorsHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 593
+OperationHandler | SectionCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 604
+OperationHandler | SectionDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 634
+OperationHandler | SectionGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 644
+OperationHandler | SectionGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 654
+OperationHandler | SectionUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 669
+OperationHandler | CommentCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 689
+OperationHandler | CommentDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 707
+OperationHandler | CommentGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 717
+OperationHandler | CommentGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 727
+OperationHandler | CommentUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 747
+OperationHandler | LabelCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 767
+OperationHandler | LabelDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 793
+OperationHandler | LabelGetHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 803
+OperationHandler | LabelGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 813
+OperationHandler | LabelUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 820
+OperationHandler | QuickAddHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 842
+OperationHandler | ReminderCreateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 883
+OperationHandler | ReminderUpdateHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 945
+OperationHandler | ReminderDeleteHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 980
+OperationHandler | ReminderGetAllHandler | packages/nodes-base/nodes/Todoist/v2/OperationHandler.ts | 1002
+Service | TodoistService | packages/nodes-base/nodes/Todoist/v1/Service.ts | 16
+Service | TodoistService | packages/nodes-base/nodes/Todoist/v2/Service.ts | 48
+Telemetry | TelemetryService | packages/frontend/editor-ui/src/app/plugins/telemetry/index.ts | 41
+WorkflowTaskService | WorkflowTaskCoordinator | packages/@n8n/instance-ai/src/workflow-loop/workflow-task-service.ts | 19
+## in C, not in B
+BaseMigration | UpdateParentFolderIdColumn1740445074052 | packages/@n8n/db/src/migrations/sqlite/1740445074052-UpdateParentFolderIdColumn.ts | 4 | wrong_imported_from_another_file
+## in A, not in C

@@ -1,0 +1,706 @@
+{
+ "runs": 40,
+ "files_to_resolve_again": {
+  "m3a": {
+   "zero": 5,
+   "p50": 7,
+   "p75": 15,
+   "p90": 23,
+   "p95": 25,
+   "max": 30
+  },
+  "m3b": {
+   "zero": 12,
+   "p50": 2,
+   "p75": 8,
+   "p90": 25,
+   "p95": 29,
+   "max": 35
+  },
+  "total": {
+   "zero": 4,
+   "p50": 8,
+   "p75": 25,
+   "p90": 42,
+   "p95": 46,
+   "max": 56
+  }
+ },
+ "runs_over": {
+  "25": 9,
+  "50": 1,
+  "100": 0,
+  "250": 0,
+  "500": 0,
+  "1000": 0,
+  "2500": 0,
+  "5000": 0
+ },
+ "top_runs": [
+  {
+   "step": 88,
+   "commit": "608a86c3c5",
+   "files_written": 20,
+   "m3a": 30,
+   "m3b": 26,
+   "total": 56,
+   "biggest": {
+    "n": 5,
+    "path": "src/cli/hook.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 69,
+   "commit": "edaa642ad3",
+   "files_written": 6,
+   "m3a": 17,
+   "m3b": 29,
+   "total": 46,
+   "biggest": {
+    "n": 29,
+    "path": "src/ast/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 94,
+   "commit": "61fd78d939",
+   "files_written": 9,
+   "m3a": 23,
+   "m3b": 20,
+   "total": 43,
+   "biggest": {
+    "n": 20,
+    "path": "src/store/config.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 98,
+   "commit": "34045fb4c7",
+   "files_written": 4,
+   "m3a": 7,
+   "m3b": 35,
+   "total": 42,
+   "biggest": {
+    "n": 29,
+    "path": "src/ast/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 95,
+   "commit": "7867fc76f3",
+   "files_written": 9,
+   "m3a": 24,
+   "m3b": 17,
+   "total": 41,
+   "biggest": {
+    "n": 7,
+    "path": "src/indexer/walker.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 59,
+   "commit": "1d74cfc9ad",
+   "files_written": 6,
+   "m3a": 23,
+   "m3b": 12,
+   "total": 35,
+   "biggest": {
+    "n": 8,
+    "path": "src/mcp/tools/_helpers.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 28,
+   "commit": "49c0404fb5",
+   "files_written": 2,
+   "m3a": 8,
+   "m3b": 25,
+   "total": 33,
+   "biggest": {
+    "n": 22,
+    "path": "src/graph/db.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 90,
+   "commit": "d517ee4345",
+   "files_written": 8,
+   "m3a": 25,
+   "m3b": 5,
+   "total": 30,
+   "biggest": {
+    "n": 4,
+    "path": "src/indexer/scope.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 78,
+   "commit": "8e0fc1f06e",
+   "files_written": 10,
+   "m3a": 18,
+   "m3b": 8,
+   "total": 26,
+   "biggest": {
+    "n": 8,
+    "path": "src/mcp/tools/_helpers.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 68,
+   "commit": "386f09e271",
+   "files_written": 6,
+   "m3a": 17,
+   "m3b": 8,
+   "total": 25,
+   "biggest": {
+    "n": 8,
+    "path": "src/mcp/tools/_helpers.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 58,
+   "commit": "8a78bed9c8",
+   "files_written": 5,
+   "m3a": 13,
+   "m3b": 6,
+   "total": 19,
+   "biggest": {
+    "n": 3,
+    "path": "src/search/scope.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 63,
+   "commit": "e1ab8e8bb6",
+   "files_written": 7,
+   "m3a": 19,
+   "m3b": 0,
+   "total": 19,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  }
+ ],
+ "per_run": [
+  {
+   "step": 1,
+   "commit": "1dba79b965",
+   "files_written": 1,
+   "m3a": 2,
+   "m3b": 0,
+   "total": 2,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 18,
+   "commit": "88f4592908",
+   "files_written": 3,
+   "m3a": 13,
+   "m3b": 2,
+   "total": 15,
+   "biggest": {
+    "n": 2,
+    "path": "src/graph/path-range.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 24,
+   "commit": "c04d906c71",
+   "files_written": 1,
+   "m3a": 2,
+   "m3b": 3,
+   "total": 5,
+   "biggest": {
+    "n": 3,
+    "path": "src/graph/populate.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 28,
+   "commit": "49c0404fb5",
+   "files_written": 2,
+   "m3a": 8,
+   "m3b": 25,
+   "total": 33,
+   "biggest": {
+    "n": 22,
+    "path": "src/graph/db.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 33,
+   "commit": "6e5e26e963",
+   "files_written": 5,
+   "m3a": 14,
+   "m3b": 2,
+   "total": 16,
+   "biggest": {
+    "n": 2,
+    "path": "src/indexer/import-resolver.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 42,
+   "commit": "4133b9e7d3",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 46,
+   "commit": "1eaf877e34",
+   "files_written": 3,
+   "m3a": 1,
+   "m3b": 6,
+   "total": 7,
+   "biggest": {
+    "n": 5,
+    "path": "src/cli/version.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 47,
+   "commit": "32cd9d1406",
+   "files_written": 3,
+   "m3a": 3,
+   "m3b": 5,
+   "total": 8,
+   "biggest": {
+    "n": 3,
+    "path": "src/cli/docs-cmd.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 48,
+   "commit": "bb4daa2f92",
+   "files_written": 4,
+   "m3a": 12,
+   "m3b": 3,
+   "total": 15,
+   "biggest": {
+    "n": 3,
+    "path": "src/cli/upgrade-cmd.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 50,
+   "commit": "d2b1659dfb",
+   "files_written": 1,
+   "m3a": 2,
+   "m3b": 2,
+   "total": 4,
+   "biggest": {
+    "n": 2,
+    "path": "src/cli/status.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 51,
+   "commit": "fae6a05fa0",
+   "files_written": 2,
+   "m3a": 4,
+   "m3b": 3,
+   "total": 7,
+   "biggest": {
+    "n": 3,
+    "path": "src/cli/skill-install.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 53,
+   "commit": "d1117c6202",
+   "files_written": 1,
+   "m3a": 1,
+   "m3b": 1,
+   "total": 2,
+   "biggest": {
+    "n": 1,
+    "path": "src/cli/search-cmd.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 56,
+   "commit": "6664a9e6ea",
+   "files_written": 1,
+   "m3a": 8,
+   "m3b": 8,
+   "total": 16,
+   "biggest": {
+    "n": 8,
+    "path": "src/indexer/index.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 58,
+   "commit": "8a78bed9c8",
+   "files_written": 5,
+   "m3a": 13,
+   "m3b": 6,
+   "total": 19,
+   "biggest": {
+    "n": 3,
+    "path": "src/search/scope.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 59,
+   "commit": "1d74cfc9ad",
+   "files_written": 6,
+   "m3a": 23,
+   "m3b": 12,
+   "total": 35,
+   "biggest": {
+    "n": 8,
+    "path": "src/mcp/tools/_helpers.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 60,
+   "commit": "2b147d0006",
+   "files_written": 1,
+   "m3a": 4,
+   "m3b": 5,
+   "total": 9,
+   "biggest": {
+    "n": 5,
+    "path": "src/store/lock.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 61,
+   "commit": "29babf8cb3",
+   "files_written": 5,
+   "m3a": 9,
+   "m3b": 1,
+   "total": 10,
+   "biggest": {
+    "n": 1,
+    "path": "src/graph/checker-resolver.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 63,
+   "commit": "e1ab8e8bb6",
+   "files_written": 7,
+   "m3a": 19,
+   "m3b": 0,
+   "total": 19,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 68,
+   "commit": "386f09e271",
+   "files_written": 6,
+   "m3a": 17,
+   "m3b": 8,
+   "total": 25,
+   "biggest": {
+    "n": 8,
+    "path": "src/mcp/tools/_helpers.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 69,
+   "commit": "edaa642ad3",
+   "files_written": 6,
+   "m3a": 17,
+   "m3b": 29,
+   "total": 46,
+   "biggest": {
+    "n": 29,
+    "path": "src/ast/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 70,
+   "commit": "2031279cc8",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 71,
+   "commit": "5426d201fa",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 72,
+   "commit": "e44b0e8dea",
+   "files_written": 7,
+   "m3a": 6,
+   "m3b": 2,
+   "total": 8,
+   "biggest": {
+    "n": 2,
+    "path": "src/mcp/freshness-probe.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 74,
+   "commit": "4022c8edc6",
+   "files_written": 2,
+   "m3a": 2,
+   "m3b": 0,
+   "total": 2,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 76,
+   "commit": "a6d0dd1d08",
+   "files_written": 2,
+   "m3a": 2,
+   "m3b": 0,
+   "total": 2,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 77,
+   "commit": "163251335d",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 1,
+   "total": 1,
+   "biggest": {
+    "n": 1,
+    "path": "src/mcp/server.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 78,
+   "commit": "8e0fc1f06e",
+   "files_written": 10,
+   "m3a": 18,
+   "m3b": 8,
+   "total": 26,
+   "biggest": {
+    "n": 8,
+    "path": "src/mcp/tools/_helpers.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 80,
+   "commit": "03fea65ff8",
+   "files_written": 2,
+   "m3a": 1,
+   "m3b": 0,
+   "total": 1,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 81,
+   "commit": "ab2edc93b8",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 88,
+   "commit": "608a86c3c5",
+   "files_written": 20,
+   "m3a": 30,
+   "m3b": 26,
+   "total": 56,
+   "biggest": {
+    "n": 5,
+    "path": "src/cli/hook.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 89,
+   "commit": "493d342b0d",
+   "files_written": 2,
+   "m3a": 4,
+   "m3b": 3,
+   "total": 7,
+   "biggest": {
+    "n": 3,
+    "path": "src/cli/setup-command.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 90,
+   "commit": "d517ee4345",
+   "files_written": 8,
+   "m3a": 25,
+   "m3b": 5,
+   "total": 30,
+   "biggest": {
+    "n": 4,
+    "path": "src/indexer/scope.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 92,
+   "commit": "ae67f31975",
+   "files_written": 3,
+   "m3a": 6,
+   "m3b": 2,
+   "total": 8,
+   "biggest": {
+    "n": 1,
+    "path": "src/cli/walk-cmd.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 93,
+   "commit": "a2d374c892",
+   "files_written": 3,
+   "m3a": 15,
+   "m3b": 0,
+   "total": 15,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 94,
+   "commit": "61fd78d939",
+   "files_written": 9,
+   "m3a": 23,
+   "m3b": 20,
+   "total": 43,
+   "biggest": {
+    "n": 20,
+    "path": "src/store/config.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 95,
+   "commit": "7867fc76f3",
+   "files_written": 9,
+   "m3a": 24,
+   "m3b": 17,
+   "total": 41,
+   "biggest": {
+    "n": 7,
+    "path": "src/indexer/walker.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 97,
+   "commit": "f7106ecc19",
+   "files_written": 1,
+   "m3a": 8,
+   "m3b": 0,
+   "total": 8,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 98,
+   "commit": "34045fb4c7",
+   "files_written": 4,
+   "m3a": 7,
+   "m3b": 35,
+   "total": 42,
+   "biggest": {
+    "n": 29,
+    "path": "src/ast/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 99,
+   "commit": "15bc54c6c7",
+   "files_written": 1,
+   "m3a": 1,
+   "m3b": 1,
+   "total": 2,
+   "biggest": {
+    "n": 1,
+    "path": "src/cli/prime-cmd.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 100,
+   "commit": "d0623390b8",
+   "files_written": 1,
+   "m3a": 8,
+   "m3b": 0,
+   "total": 8,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  }
+ ]
+}

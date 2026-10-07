@@ -1,0 +1,2002 @@
+{
+ "runs": 143,
+ "files_to_resolve_again": {
+  "m3a": {
+   "zero": 42,
+   "p50": 4,
+   "p75": 13,
+   "p90": 31,
+   "p95": 45,
+   "max": 1124
+  },
+  "m3b": {
+   "zero": 56,
+   "p50": 2,
+   "p75": 25,
+   "p90": 78,
+   "p95": 765,
+   "max": 9597
+  },
+  "total": {
+   "zero": 33,
+   "p50": 6,
+   "p75": 43,
+   "p90": 103,
+   "p95": 913,
+   "max": 10720
+  }
+ },
+ "runs_over": {
+  "25": 42,
+  "50": 33,
+  "100": 15,
+  "250": 10,
+  "500": 9,
+  "1000": 4,
+  "2500": 2,
+  "5000": 2
+ },
+ "top_runs": [
+  {
+   "step": 120,
+   "commit": "18c2d715e3",
+   "files_written": 12,
+   "m3a": 1123,
+   "m3b": 9597,
+   "total": 10720,
+   "biggest": {
+    "n": 5011,
+    "path": "packages/workflow/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 43,
+   "commit": "ca3d42d838",
+   "files_written": 74,
+   "m3a": 128,
+   "m3b": 5115,
+   "total": 5243,
+   "biggest": {
+    "n": 5011,
+    "path": "packages/workflow/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 69,
+   "commit": "242da024ac",
+   "files_written": 10,
+   "m3a": 1124,
+   "m3b": 28,
+   "total": 1152,
+   "biggest": {
+    "n": 24,
+    "path": "packages/workflow/src/redaction-channels.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 136,
+   "commit": "0df0041019",
+   "files_written": 14,
+   "m3a": 31,
+   "m3b": 1083,
+   "total": 1114,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 125,
+   "commit": "9b8f964a55",
+   "files_written": 12,
+   "m3a": 58,
+   "m3b": 913,
+   "total": 971,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 157,
+   "commit": "53841f1b0e",
+   "files_written": 27,
+   "m3a": 48,
+   "m3b": 875,
+   "total": 923,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 156,
+   "commit": "4ae4cc3602",
+   "files_written": 23,
+   "m3a": 24,
+   "m3b": 896,
+   "total": 920,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 91,
+   "commit": "59278a791f",
+   "files_written": 16,
+   "m3a": 28,
+   "m3b": 885,
+   "total": 913,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 39,
+   "commit": "916ff3946a",
+   "files_written": 7,
+   "m3a": 6,
+   "m3b": 765,
+   "total": 771,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 185,
+   "commit": "ae1252a7ad",
+   "files_written": 18,
+   "m3a": 44,
+   "m3b": 259,
+   "total": 303,
+   "biggest": {
+    "n": 160,
+    "path": "packages/@n8n/agents/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 110,
+   "commit": "5925f5bb65",
+   "files_written": 7,
+   "m3a": 15,
+   "m3b": 155,
+   "total": 170,
+   "biggest": {
+    "n": 103,
+    "path": "packages/@n8n/instance-ai/src/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 40,
+   "commit": "a9cde3f9f9",
+   "files_written": 4,
+   "m3a": 63,
+   "m3b": 78,
+   "total": 141,
+   "biggest": {
+    "n": 34,
+    "path": "packages/workflow/src/errors/index.ts",
+    "kind": "reexports"
+   }
+  }
+ ],
+ "per_run": [
+  {
+   "step": 3,
+   "commit": "7d91043444",
+   "files_written": 9,
+   "m3a": 1,
+   "m3b": 0,
+   "total": 1,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 4,
+   "commit": "9c596228d9",
+   "files_written": 21,
+   "m3a": 11,
+   "m3b": 54,
+   "total": 65,
+   "biggest": {
+    "n": 30,
+    "path": "packages/@n8n/decorators/src/controller/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 5,
+   "commit": "e91497e92a",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 6,
+   "commit": "cdd6a737ff",
+   "files_written": 3,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 7,
+   "commit": "d5845df4fc",
+   "files_written": 3,
+   "m3a": 4,
+   "m3b": 2,
+   "total": 6,
+   "biggest": {
+    "n": 2,
+    "path": "packages/frontend/@n8n/chat/src/utils/streaming.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 8,
+   "commit": "120678011d",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 10,
+   "commit": "3b89fef4f4",
+   "files_written": 20,
+   "m3a": 30,
+   "m3b": 25,
+   "total": 55,
+   "biggest": {
+    "n": 16,
+    "path": "packages/@n8n/api-types/src/dto/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 11,
+   "commit": "03213e7466",
+   "files_written": 2,
+   "m3a": 7,
+   "m3b": 10,
+   "total": 17,
+   "biggest": {
+    "n": 10,
+    "path": "packages/nodes-base/nodes/Kafka/utils.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 12,
+   "commit": "935cfb912e",
+   "files_written": 7,
+   "m3a": 2,
+   "m3b": 1,
+   "total": 3,
+   "biggest": {
+    "n": 1,
+    "path": "packages/@n8n/config/src/configs/ai-gateway.config.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 15,
+   "commit": "9f43b10959",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 16,
+   "commit": "f007542520",
+   "files_written": 4,
+   "m3a": 1,
+   "m3b": 12,
+   "total": 13,
+   "biggest": {
+    "n": 11,
+    "path": "packages/@n8n/db/src/connection/db-connection.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 18,
+   "commit": "8bdf69eb23",
+   "files_written": 3,
+   "m3a": 2,
+   "m3b": 0,
+   "total": 2,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 19,
+   "commit": "5e4a20d031",
+   "files_written": 4,
+   "m3a": 4,
+   "m3b": 24,
+   "total": 28,
+   "biggest": {
+    "n": 21,
+    "path": "packages/@n8n/api-types/src/dto/workflow-reviews/get-workflow-review-request-detail.dto.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 20,
+   "commit": "d57a81ac60",
+   "files_written": 15,
+   "m3a": 42,
+   "m3b": 26,
+   "total": 68,
+   "biggest": {
+    "n": 8,
+    "path": "packages/@n8n/instance-ai/evaluations/harness/build-workflow.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 21,
+   "commit": "c8602ab767",
+   "files_written": 10,
+   "m3a": 45,
+   "m3b": 60,
+   "total": 105,
+   "biggest": {
+    "n": 14,
+    "path": "packages/@n8n/engine/src/common/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 22,
+   "commit": "38f069172c",
+   "files_written": 3,
+   "m3a": 0,
+   "m3b": 7,
+   "total": 7,
+   "biggest": {
+    "n": 4,
+    "path": "packages/frontend/@n8n/design-system/src/components/N8nChatMessage/index.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 23,
+   "commit": "40dac4b90a",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 1,
+   "total": 1,
+   "biggest": {
+    "n": 1,
+    "path": "packages/testing/playwright/pages/CanvasPage.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 24,
+   "commit": "6c8197e379",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 25,
+   "commit": "936cdaa046",
+   "files_written": 3,
+   "m3a": 4,
+   "m3b": 1,
+   "total": 5,
+   "biggest": {
+    "n": 1,
+    "path": "packages/cli/src/services/project.service.ee.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 28,
+   "commit": "dd2566338a",
+   "files_written": 4,
+   "m3a": 6,
+   "m3b": 3,
+   "total": 9,
+   "biggest": {
+    "n": 2,
+    "path": "packages/cli/src/modules/agent-evals/agent-eval-record-mappers.ts",
+    "kind": "names+imports"
+   }
+  },
+  {
+   "step": 29,
+   "commit": "b5d691bad2",
+   "files_written": 2,
+   "m3a": 3,
+   "m3b": 0,
+   "total": 3,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 30,
+   "commit": "1c6e99272a",
+   "files_written": 3,
+   "m3a": 4,
+   "m3b": 14,
+   "total": 18,
+   "biggest": {
+    "n": 8,
+    "path": "packages/@n8n/workflow-sdk/src/prompts/sdk-reference/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 31,
+   "commit": "7a7948690b",
+   "files_written": 10,
+   "m3a": 4,
+   "m3b": 8,
+   "total": 12,
+   "biggest": {
+    "n": 4,
+    "path": "packages/cli/src/task-runners/task-runner-process-base.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 32,
+   "commit": "6d0c0e8572",
+   "files_written": 12,
+   "m3a": 0,
+   "m3b": 4,
+   "total": 4,
+   "biggest": {
+    "n": 4,
+    "path": "packages/frontend/@n8n/design-system/src/v2/components/Select/Select.types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 36,
+   "commit": "1f2b96f330",
+   "files_written": 6,
+   "m3a": 13,
+   "m3b": 5,
+   "total": 18,
+   "biggest": {
+    "n": 4,
+    "path": "packages/@n8n/agents/src/runtime/telemetry/runtime-telemetry.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 37,
+   "commit": "b6afb3bdbe",
+   "files_written": 1,
+   "m3a": 2,
+   "m3b": 2,
+   "total": 4,
+   "biggest": {
+    "n": 2,
+    "path": "packages/cli/src/modules/instance-ai/instance-ai.service.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 39,
+   "commit": "916ff3946a",
+   "files_written": 7,
+   "m3a": 6,
+   "m3b": 765,
+   "total": 771,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 40,
+   "commit": "a9cde3f9f9",
+   "files_written": 4,
+   "m3a": 63,
+   "m3b": 78,
+   "total": 141,
+   "biggest": {
+    "n": 34,
+    "path": "packages/workflow/src/errors/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 41,
+   "commit": "73841560ad",
+   "files_written": 10,
+   "m3a": 11,
+   "m3b": 85,
+   "total": 96,
+   "biggest": {
+    "n": 79,
+    "path": "packages/@n8n/db/src/repositories/workflow.repository.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 43,
+   "commit": "ca3d42d838",
+   "files_written": 74,
+   "m3a": 128,
+   "m3b": 5115,
+   "total": 5243,
+   "biggest": {
+    "n": 5011,
+    "path": "packages/workflow/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 45,
+   "commit": "5d0a424947",
+   "files_written": 4,
+   "m3a": 4,
+   "m3b": 2,
+   "total": 6,
+   "biggest": {
+    "n": 1,
+    "path": "packages/cli/src/modules/otel/__tests__/support/otel-test-provider.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 47,
+   "commit": "b50df072bb",
+   "files_written": 2,
+   "m3a": 2,
+   "m3b": 0,
+   "total": 2,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 50,
+   "commit": "1546c95485",
+   "files_written": 22,
+   "m3a": 18,
+   "m3b": 25,
+   "total": 43,
+   "biggest": {
+    "n": 9,
+    "path": "packages/cli/src/modules/agents/agent-execution.service.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 51,
+   "commit": "204f346720",
+   "files_written": 5,
+   "m3a": 1,
+   "m3b": 4,
+   "total": 5,
+   "biggest": {
+    "n": 4,
+    "path": "packages/nodes-base/nodes/Slack/V2/GenericFunctions.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 52,
+   "commit": "305ed296f4",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 53,
+   "commit": "9eea094b7b",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 55,
+   "commit": "0e8ff31d27",
+   "files_written": 2,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 56,
+   "commit": "679a5ad9c7",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 58,
+   "commit": "8af4648daf",
+   "files_written": 5,
+   "m3a": 12,
+   "m3b": 16,
+   "total": 28,
+   "biggest": {
+    "n": 10,
+    "path": "packages/nodes-base/nodes/Kafka/utils.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 60,
+   "commit": "5d813f7ed6",
+   "files_written": 2,
+   "m3a": 0,
+   "m3b": 1,
+   "total": 1,
+   "biggest": {
+    "n": 1,
+    "path": "packages/nodes-base/nodes/Kafka/v1/KafkaTriggerV1.node.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 61,
+   "commit": "82e22c954c",
+   "files_written": 2,
+   "m3a": 0,
+   "m3b": 2,
+   "total": 2,
+   "biggest": {
+    "n": 1,
+    "path": "packages/cli/src/modules/external-secrets.ee/providers/azure-key-vault/azure-key-vault.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 62,
+   "commit": "c72b14f69c",
+   "files_written": 2,
+   "m3a": 2,
+   "m3b": 12,
+   "total": 14,
+   "biggest": {
+    "n": 11,
+    "path": "packages/@n8n/db/src/connection/db-connection.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 65,
+   "commit": "4b0db257a2",
+   "files_written": 94,
+   "m3a": 18,
+   "m3b": 0,
+   "total": 18,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 67,
+   "commit": "a89dc5dc35",
+   "files_written": 3,
+   "m3a": 7,
+   "m3b": 8,
+   "total": 15,
+   "biggest": {
+    "n": 7,
+    "path": "packages/nodes-base/nodes/Form/utils/utils.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 69,
+   "commit": "242da024ac",
+   "files_written": 10,
+   "m3a": 1124,
+   "m3b": 28,
+   "total": 1152,
+   "biggest": {
+    "n": 24,
+    "path": "packages/workflow/src/redaction-channels.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 71,
+   "commit": "1afe708633",
+   "files_written": 5,
+   "m3a": 0,
+   "m3b": 73,
+   "total": 73,
+   "biggest": {
+    "n": 65,
+    "path": "packages/frontend/@n8n/design-system/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 72,
+   "commit": "40ba0ddb20",
+   "files_written": 1,
+   "m3a": 1,
+   "m3b": 0,
+   "total": 1,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 73,
+   "commit": "fe37fe3b97",
+   "files_written": 9,
+   "m3a": 5,
+   "m3b": 15,
+   "total": 20,
+   "biggest": {
+    "n": 14,
+    "path": "packages/@n8n/db/src/repositories/workflow-history.repository.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 76,
+   "commit": "c05c1e4092",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 77,
+   "commit": "be890cdc53",
+   "files_written": 17,
+   "m3a": 30,
+   "m3b": 59,
+   "total": 89,
+   "biggest": {
+    "n": 38,
+    "path": "packages/cli/src/modules/n8n-packages/n8n-packages.types.ts",
+    "kind": "names+imports"
+   }
+  },
+  {
+   "step": 80,
+   "commit": "54212bfe14",
+   "files_written": 23,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 81,
+   "commit": "7c61f2826a",
+   "files_written": 8,
+   "m3a": 35,
+   "m3b": 13,
+   "total": 48,
+   "biggest": {
+    "n": 5,
+    "path": "packages/@n8n/instance-ai/evaluations/harness/seed-tables.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 82,
+   "commit": "cd50064343",
+   "files_written": 5,
+   "m3a": 0,
+   "m3b": 2,
+   "total": 2,
+   "biggest": {
+    "n": 1,
+    "path": "packages/frontend/editor-ui/src/features/agents/agentEvals.api.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 83,
+   "commit": "0d25a36bc7",
+   "files_written": 1,
+   "m3a": 1,
+   "m3b": 0,
+   "total": 1,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 84,
+   "commit": "e888b41b75",
+   "files_written": 19,
+   "m3a": 27,
+   "m3b": 42,
+   "total": 69,
+   "biggest": {
+    "n": 10,
+    "path": "packages/@n8n/engine/src/graph/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 85,
+   "commit": "d2901bd02d",
+   "files_written": 5,
+   "m3a": 1,
+   "m3b": 4,
+   "total": 5,
+   "biggest": {
+    "n": 2,
+    "path": "packages/nodes-base/nodes/Kafka/v2/transport/producer.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 86,
+   "commit": "1ade7a26c0",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 88,
+   "commit": "693fc9616f",
+   "files_written": 3,
+   "m3a": 6,
+   "m3b": 5,
+   "total": 11,
+   "biggest": {
+    "n": 4,
+    "path": "packages/frontend/editor-ui/src/app/stores/ui.store.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 89,
+   "commit": "11e32eb291",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 90,
+   "commit": "f9bddc7ff3",
+   "files_written": 3,
+   "m3a": 23,
+   "m3b": 0,
+   "total": 23,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 91,
+   "commit": "59278a791f",
+   "files_written": 16,
+   "m3a": 28,
+   "m3b": 885,
+   "total": 913,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 92,
+   "commit": "881a14fa4d",
+   "files_written": 12,
+   "m3a": 15,
+   "m3b": 42,
+   "total": 57,
+   "biggest": {
+    "n": 38,
+    "path": "packages/cli/src/modules/n8n-packages/n8n-packages.types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 94,
+   "commit": "a74c6fd11f",
+   "files_written": 17,
+   "m3a": 39,
+   "m3b": 33,
+   "total": 72,
+   "biggest": {
+    "n": 28,
+    "path": "packages/cli/src/modules/agents/repositories/agent.repository.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 95,
+   "commit": "166771c77d",
+   "files_written": 12,
+   "m3a": 44,
+   "m3b": 16,
+   "total": 60,
+   "biggest": {
+    "n": 11,
+    "path": "packages/@n8n/instance-ai/evaluations/utils/conversation-text.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 99,
+   "commit": "2058a16520",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 100,
+   "commit": "4e6fc65f55",
+   "files_written": 34,
+   "m3a": 48,
+   "m3b": 65,
+   "total": 113,
+   "biggest": {
+    "n": 20,
+    "path": "packages/cli/src/modules/agents/integrations/agent-chat-integration.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 101,
+   "commit": "28d929dc2e",
+   "files_written": 3,
+   "m3a": 1,
+   "m3b": 3,
+   "total": 4,
+   "biggest": {
+    "n": 2,
+    "path": "packages/nodes-base/nodes/Schedule/SchedulerInterface.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 103,
+   "commit": "104bc5c8d9",
+   "files_written": 19,
+   "m3a": 30,
+   "m3b": 32,
+   "total": 62,
+   "biggest": {
+    "n": 21,
+    "path": "packages/@n8n/api-types/src/agents/sanitize-agent-json-config.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 104,
+   "commit": "42754a82b3",
+   "files_written": 2,
+   "m3a": 4,
+   "m3b": 2,
+   "total": 6,
+   "biggest": {
+    "n": 2,
+    "path": "packages/@n8n/agents/src/utils/parse.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 106,
+   "commit": "1575fce711",
+   "files_written": 8,
+   "m3a": 44,
+   "m3b": 56,
+   "total": 100,
+   "biggest": {
+    "n": 48,
+    "path": "packages/@n8n/instance-ai/evaluations/clients/n8n-client.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 107,
+   "commit": "5d85c79cbe",
+   "files_written": 8,
+   "m3a": 8,
+   "m3b": 6,
+   "total": 14,
+   "biggest": {
+    "n": 6,
+    "path": "packages/@n8n/db/src/repositories/workflow-review-request.repository.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 109,
+   "commit": "1aa604d265",
+   "files_written": 6,
+   "m3a": 5,
+   "m3b": 16,
+   "total": 21,
+   "biggest": {
+    "n": 6,
+    "path": "packages/testing/test-impact/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 110,
+   "commit": "5925f5bb65",
+   "files_written": 7,
+   "m3a": 15,
+   "m3b": 155,
+   "total": 170,
+   "biggest": {
+    "n": 103,
+    "path": "packages/@n8n/instance-ai/src/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 111,
+   "commit": "5ac9a43c8d",
+   "files_written": 1,
+   "m3a": 1,
+   "m3b": 0,
+   "total": 1,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 112,
+   "commit": "5f0e464630",
+   "files_written": 6,
+   "m3a": 4,
+   "m3b": 15,
+   "total": 19,
+   "biggest": {
+    "n": 14,
+    "path": "packages/@n8n/db/src/repositories/workflow-history.repository.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 113,
+   "commit": "1de80acc02",
+   "files_written": 9,
+   "m3a": 2,
+   "m3b": 1,
+   "total": 3,
+   "biggest": {
+    "n": 1,
+    "path": "packages/testing/playwright/pages/CanvasPage.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 114,
+   "commit": "9ac12d212f",
+   "files_written": 3,
+   "m3a": 24,
+   "m3b": 0,
+   "total": 24,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 115,
+   "commit": "fa694eb5da",
+   "files_written": 7,
+   "m3a": 9,
+   "m3b": 53,
+   "total": 62,
+   "biggest": {
+    "n": 48,
+    "path": "packages/@n8n/instance-ai/src/index.ts",
+    "kind": "reexports+imports"
+   }
+  },
+  {
+   "step": 116,
+   "commit": "caeb40ecf3",
+   "files_written": 4,
+   "m3a": 14,
+   "m3b": 0,
+   "total": 14,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 117,
+   "commit": "b4736b738c",
+   "files_written": 11,
+   "m3a": 20,
+   "m3b": 79,
+   "total": 99,
+   "biggest": {
+    "n": 79,
+    "path": "packages/@n8n/db/src/repositories/workflow.repository.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 120,
+   "commit": "18c2d715e3",
+   "files_written": 12,
+   "m3a": 1123,
+   "m3b": 9597,
+   "total": 10720,
+   "biggest": {
+    "n": 5011,
+    "path": "packages/workflow/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 121,
+   "commit": "8a401eaec6",
+   "files_written": 3,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 122,
+   "commit": "8bbc988a9a",
+   "files_written": 1,
+   "m3a": 3,
+   "m3b": 0,
+   "total": 3,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 125,
+   "commit": "9b8f964a55",
+   "files_written": 12,
+   "m3a": 58,
+   "m3b": 913,
+   "total": 971,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 126,
+   "commit": "b660ebef38",
+   "files_written": 8,
+   "m3a": 7,
+   "m3b": 2,
+   "total": 9,
+   "biggest": {
+    "n": 2,
+    "path": "packages/cli/src/modules/agents/agent-test-run.service.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 127,
+   "commit": "279bde3be6",
+   "files_written": 7,
+   "m3a": 8,
+   "m3b": 0,
+   "total": 8,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 129,
+   "commit": "1deee723a3",
+   "files_written": 5,
+   "m3a": 2,
+   "m3b": 1,
+   "total": 3,
+   "biggest": {
+    "n": 1,
+    "path": "packages/cli/src/execution-lifecycle/execute-error-workflow.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 131,
+   "commit": "5d279923e0",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 132,
+   "commit": "3f2d479d0a",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 133,
+   "commit": "b3d07e9fb3",
+   "files_written": 5,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 134,
+   "commit": "c45085276e",
+   "files_written": 6,
+   "m3a": 13,
+   "m3b": 5,
+   "total": 18,
+   "biggest": {
+    "n": 3,
+    "path": "packages/@n8n/engine/src/database/typeorm-step-store.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 136,
+   "commit": "0df0041019",
+   "files_written": 14,
+   "m3a": 31,
+   "m3b": 1083,
+   "total": 1114,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 137,
+   "commit": "b908b630eb",
+   "files_written": 3,
+   "m3a": 1,
+   "m3b": 0,
+   "total": 1,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 138,
+   "commit": "8660662bd3",
+   "files_written": 3,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 139,
+   "commit": "ff37ef5b3f",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 140,
+   "commit": "cf13bc02d2",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 141,
+   "commit": "a2c9578294",
+   "files_written": 1,
+   "m3a": 2,
+   "m3b": 2,
+   "total": 4,
+   "biggest": {
+    "n": 2,
+    "path": "packages/@n8n/agents/src/utils/parse.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 142,
+   "commit": "19281fcaf7",
+   "files_written": 2,
+   "m3a": 5,
+   "m3b": 0,
+   "total": 5,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 143,
+   "commit": "74631f72c0",
+   "files_written": 10,
+   "m3a": 7,
+   "m3b": 51,
+   "total": 58,
+   "biggest": {
+    "n": 43,
+    "path": "packages/cli/src/modules/mcp/mcp.types.ts",
+    "kind": "names+imports"
+   }
+  },
+  {
+   "step": 145,
+   "commit": "c79bd8871e",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 146,
+   "commit": "32f38a3541",
+   "files_written": 7,
+   "m3a": 7,
+   "m3b": 8,
+   "total": 15,
+   "biggest": {
+    "n": 4,
+    "path": "packages/cli/src/modules/n8n-packages/entities/workflow/workflow-publisher.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 147,
+   "commit": "8fbcd7efe9",
+   "files_written": 4,
+   "m3a": 3,
+   "m3b": 1,
+   "total": 4,
+   "biggest": {
+    "n": 1,
+    "path": "packages/@n8n/agents/src/runtime/tools/tool-result-guard.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 148,
+   "commit": "c0d863ec3c",
+   "files_written": 4,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 149,
+   "commit": "5d501e370a",
+   "files_written": 7,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 150,
+   "commit": "9c4a613b44",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 1,
+   "total": 1,
+   "biggest": {
+    "n": 1,
+    "path": "packages/@n8n/task-runner/src/health-check-server.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 151,
+   "commit": "8db0b48ee1",
+   "files_written": 7,
+   "m3a": 7,
+   "m3b": 33,
+   "total": 40,
+   "biggest": {
+    "n": 28,
+    "path": "packages/@n8n/db/src/repositories/execution.repository.ts",
+    "kind": "names+outgoing_edges"
+   }
+  },
+  {
+   "step": 153,
+   "commit": "f695effc6a",
+   "files_written": 14,
+   "m3a": 21,
+   "m3b": 28,
+   "total": 49,
+   "biggest": {
+    "n": 15,
+    "path": "packages/@n8n/engine/src/execution/execution.types.ts",
+    "kind": "names+imports"
+   }
+  },
+  {
+   "step": 154,
+   "commit": "4b76fa9b58",
+   "files_written": 2,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 156,
+   "commit": "4ae4cc3602",
+   "files_written": 23,
+   "m3a": 24,
+   "m3b": 896,
+   "total": 920,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 157,
+   "commit": "53841f1b0e",
+   "files_written": 27,
+   "m3a": 48,
+   "m3b": 875,
+   "total": 923,
+   "biggest": {
+    "n": 727,
+    "path": "packages/@n8n/api-types/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 159,
+   "commit": "98e0952c36",
+   "files_written": 7,
+   "m3a": 4,
+   "m3b": 0,
+   "total": 4,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 160,
+   "commit": "0e22fdfbc1",
+   "files_written": 2,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 162,
+   "commit": "897ce6ab9a",
+   "files_written": 7,
+   "m3a": 4,
+   "m3b": 58,
+   "total": 62,
+   "biggest": {
+    "n": 30,
+    "path": "packages/@n8n/decorators/src/controller/types.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 163,
+   "commit": "561af4c567",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 164,
+   "commit": "0d450085bb",
+   "files_written": 11,
+   "m3a": 1,
+   "m3b": 8,
+   "total": 9,
+   "biggest": {
+    "n": 8,
+    "path": "packages/@n8n/vitest-config/setup/frontend.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 165,
+   "commit": "926aa1a73b",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 166,
+   "commit": "daba594654",
+   "files_written": 2,
+   "m3a": 4,
+   "m3b": 0,
+   "total": 4,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 167,
+   "commit": "e73f0a4654",
+   "files_written": 2,
+   "m3a": 3,
+   "m3b": 0,
+   "total": 3,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 169,
+   "commit": "980c9bd6ea",
+   "files_written": 3,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 171,
+   "commit": "93a39d086b",
+   "files_written": 11,
+   "m3a": 17,
+   "m3b": 22,
+   "total": 39,
+   "biggest": {
+    "n": 10,
+    "path": "packages/nodes-base/nodes/Kafka/utils.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 172,
+   "commit": "3773c31e47",
+   "files_written": 6,
+   "m3a": 7,
+   "m3b": 2,
+   "total": 9,
+   "biggest": {
+    "n": 2,
+    "path": "packages/cli/src/modules/mcp/tools/get-workflow-details.tool.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 173,
+   "commit": "3ee502b301",
+   "files_written": 2,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 174,
+   "commit": "8ac5a60616",
+   "files_written": 2,
+   "m3a": 1,
+   "m3b": 0,
+   "total": 1,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 175,
+   "commit": "858d4a7cf0",
+   "files_written": 22,
+   "m3a": 4,
+   "m3b": 65,
+   "total": 69,
+   "biggest": {
+    "n": 65,
+    "path": "packages/frontend/@n8n/design-system/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 176,
+   "commit": "76a0105a96",
+   "files_written": 4,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 178,
+   "commit": "eda249642c",
+   "files_written": 1,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 179,
+   "commit": "45551451ac",
+   "files_written": 2,
+   "m3a": 3,
+   "m3b": 0,
+   "total": 3,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 180,
+   "commit": "c485cea340",
+   "files_written": 8,
+   "m3a": 2,
+   "m3b": 2,
+   "total": 4,
+   "biggest": {
+    "n": 1,
+    "path": "packages/@n8n/telemetry/src/events/credentials.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 181,
+   "commit": "a044c0d1d8",
+   "files_written": 11,
+   "m3a": 15,
+   "m3b": 88,
+   "total": 103,
+   "biggest": {
+    "n": 79,
+    "path": "packages/@n8n/db/src/repositories/workflow.repository.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 183,
+   "commit": "9d86e36ab9",
+   "files_written": 3,
+   "m3a": 0,
+   "m3b": 0,
+   "total": 0,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 184,
+   "commit": "6f761ad917",
+   "files_written": 8,
+   "m3a": 7,
+   "m3b": 3,
+   "total": 10,
+   "biggest": {
+    "n": 2,
+    "path": "packages/cli/src/modules/agents/agent-test-run.service.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 185,
+   "commit": "ae1252a7ad",
+   "files_written": 18,
+   "m3a": 44,
+   "m3b": 259,
+   "total": 303,
+   "biggest": {
+    "n": 160,
+    "path": "packages/@n8n/agents/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 186,
+   "commit": "9241a72b9a",
+   "files_written": 2,
+   "m3a": 3,
+   "m3b": 0,
+   "total": 3,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 187,
+   "commit": "f6caf53830",
+   "files_written": 4,
+   "m3a": 0,
+   "m3b": 3,
+   "total": 3,
+   "biggest": {
+    "n": 1,
+    "path": "packages/nodes-base/nodes/Confluence/actions/description.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 188,
+   "commit": "62e6862f5c",
+   "files_written": 2,
+   "m3a": 4,
+   "m3b": 0,
+   "total": 4,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 191,
+   "commit": "abe2959de8",
+   "files_written": 4,
+   "m3a": 6,
+   "m3b": 4,
+   "total": 10,
+   "biggest": {
+    "n": 3,
+    "path": "packages/cli/src/credentials/credentials.service.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 192,
+   "commit": "145863c58e",
+   "files_written": 5,
+   "m3a": 3,
+   "m3b": 3,
+   "total": 6,
+   "biggest": {
+    "n": 3,
+    "path": "packages/cli/src/modules/mcp/mcp.utils.ts",
+    "kind": "names+imports+outgoing_edges"
+   }
+  },
+  {
+   "step": 193,
+   "commit": "76fb3bcfac",
+   "files_written": 3,
+   "m3a": 4,
+   "m3b": 0,
+   "total": 4,
+   "biggest": {
+    "n": 0,
+    "path": null
+   }
+  },
+  {
+   "step": 194,
+   "commit": "d225d0317b",
+   "files_written": 9,
+   "m3a": 5,
+   "m3b": 35,
+   "total": 40,
+   "biggest": {
+    "n": 17,
+    "path": "packages/@n8n/api-types/src/dto/roles/role-public.dto.ts",
+    "kind": "added"
+   }
+  },
+  {
+   "step": 196,
+   "commit": "91ca220f3a",
+   "files_written": 39,
+   "m3a": 16,
+   "m3b": 80,
+   "total": 96,
+   "biggest": {
+    "n": 65,
+    "path": "packages/frontend/@n8n/design-system/src/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 197,
+   "commit": "67b4e4af70",
+   "files_written": 10,
+   "m3a": 26,
+   "m3b": 9,
+   "total": 35,
+   "biggest": {
+    "n": 5,
+    "path": "packages/@n8n/agents/src/runtime/loop/runtime-helpers.ts",
+    "kind": "names"
+   }
+  },
+  {
+   "step": 198,
+   "commit": "5bf5f385fd",
+   "files_written": 5,
+   "m3a": 5,
+   "m3b": 8,
+   "total": 13,
+   "biggest": {
+    "n": 8,
+    "path": "packages/@n8n/workflow-sdk/src/prompts/sdk-reference/index.ts",
+    "kind": "reexports"
+   }
+  },
+  {
+   "step": 199,
+   "commit": "fd366ceba1",
+   "files_written": 4,
+   "m3a": 4,
+   "m3b": 8,
+   "total": 12,
+   "biggest": {
+    "n": 6,
+    "path": "packages/@n8n/db/src/repositories/workflow-review-request.repository.ts",
+    "kind": "names+outgoing_edges"
+   }
+  }
+ ]
+}

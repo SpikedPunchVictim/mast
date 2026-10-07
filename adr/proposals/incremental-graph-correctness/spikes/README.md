@@ -25,6 +25,8 @@ All runs: built CLI (`dist/`) from this branch, 2026-10-06, macOS, one machine.
 | S3 | How many files would need re-resolving per changed file? | done — `s3-importers/`: by stored edge p99 7, max 1,115; by name through barrels p99 37, max 5,011 |
 | S4 | How often does a real change alter a file's names or re-exports? | done — in `s2-commit-replay/RESULTS.md`: 72 to 74% of modifications do not |
 | S5 | What does re-resolving one file cost, by re-parse and from records? | done — `s5-reresolve-cost/`: about 3 to 4 ms against 0.3 to 0.8 ms per file |
+| S6 | Decision 1: which fallback for `implements` / `extends` without file evidence gives the best tool answers? | done — `s6-structural-fallback/`: n8n today's guess wrong 27 of 27, unique-name guess wrong 21 of 21; found D086 and D087 |
+| S7 | Decision 2: how often would a cap on re-resolution be hit? | done, an estimate — `s7-cap-sizing/`: n8n p90 103 files, 9 of 143 runs over 500; mast max 56 |
 
 S1 to S5 (2026-10-06) used two further corpora, both scratch clones so that commits could be
 checked out: n8n at `9d9e9bf97e` (13,985 indexed files) and this repository at `d062339`

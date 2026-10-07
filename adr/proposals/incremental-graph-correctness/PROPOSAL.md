@@ -93,15 +93,31 @@ Full results: `spikes/sN-*/RESULTS.md`.
 
 ## Decisions that are the user's
 
-1. **D085 fallback.** When a class's `implements` or `extends` target is named by no import and
-   no declaration in the same file (a global or ambient type), keep today's whole-graph name
-   match or record no edge. Call edges already record no edge in that case for `super`, and
-   guess for three other kinds. Recording no edge removes results `mast_implementors` gives
-   today; how many of n8n's 435 ambiguous edges that is has not been measured.
-2. **The bound for M3b.** Changing an export of a package entry point would re-resolve up to
-   5,011 files on n8n, 15 to 19 s by re-parse. Options: accept it; cap the work and report the
-   index as behind for the rest, so `status` is truthful; or build M4. Recommendation: cap and
-   report first, measure, and promote M4 only if the cap is hit in practice.
+1. **D085 fallback. Decided by the user 2026-10-06: record no edge (option B), and the D086
+   fix joins this work.** D087 and recording aliased imports under their local name are
+   deferred until this round is committed. On n8n, 152 of
+   3,424 `implements` / `extends` records have no file evidence. Today's whole-graph guess
+   links 27 of them and all 27 are wrong; guessing only unique names links 21, all wrong. The
+   three options differ by one `mast_implementors` answer, a wrong one. What B appears to
+   lose is lost to two resolver gaps S6 found, not to the fallback: D086 (37 right answers)
+   and D087 (24). So M8 for `IMPLEMENTS` / `EXTENDS` lands together with the D086 fix.
+   Open, and the user's: whether D087 and recording aliased imports under their local name
+   (29 records, 20 wrong edges made right) join this work or get their own.
+2. **The bound for M3b. Decided 2026-10-06: cap and report (option B). The cap's size is
+   open.** S7 estimates, per replayed n8n commit, p90 103 files to resolve again, 9 of 143
+   runs over 500 and 2 over 5,000; mast's largest is 56. Proposed: count the cap in elapsed
+   time, not files, so one setting means the same wait on any machine; about 2 s for an
+   incremental run and the watcher, about 250 ms on the query-time path; files left over are
+   recorded as pending, `mast status` reports them, and the next run continues. At 3.3 to
+   3.8 ms per file (S5, this machine) 2 s is 520 to 600 files, which 9 of 143 n8n runs would
+   exceed. Both figures are proposals to be set by T2 and T12, not measurements.
+   Decided by the user 2026-10-06: start at 2 s and 250 ms and let the tests tune them; no
+   further spike first. Also asked for: a signal to the caller when work is left pending.
+   Proposed shape, to be pinned by a test (T13): the count of pending files is stored with
+   the index; `mast status` and `mast_status` report it, with `index_fresh: false` and a
+   `freshness_cause` that names it; `mast_callers`, `mast_implementors` and
+   `mast_rename_impact` carry the count and a "run `mast_reindex`" hint on any response given
+   while it is above zero; `mast_reindex`, the next incremental run and the watcher drain it.
 3. **Published numbers.** M1 changes n8n's edge count by 1,939, and M3 adds work to an
    incremental run. Any `FINDINGS.md` figure that depends on either (edge counts, the
    "O(changed file)" claim, the 379 ms comparison) needs an ADR 010 registration before it is
@@ -153,14 +169,51 @@ through; items are ticked here as they land.
       writer entry, run against this repository's own history with the pass condition "nothing
       missing against a full index". Not part of `pnpm gate`; run before a release.
 
+Added 2026-10-06 after S6, at the user's request. T1 to T12 compare against a full index, so
+they cannot see an edge the full index itself gets wrong or never creates. D083, D085 and D086
+are all of that kind. These tests compare a full index against edges written out by hand.
+
+- [ ] **T13. Pending signal.** A run that stops at the cap leaves a pending count; `mast
+      status` and `mast_status` report it and say the index is not fresh; `mast_callers`,
+      `mast_implementors` and `mast_rename_impact` carry it on the response; the next run
+      drains it and the signal clears. A run under the cap leaves none.
+- [ ] **T14. Expected-edge helper.** `expectEdges(projectDir, expected)`: the full index's
+      edges by name must equal a hand-written list, both ways, so a missing edge and an extra
+      one both fail. Used by T15 to T17.
+- [ ] **T15. Re-export shapes, full index.** One row per shape, each with a call, an
+      `extends` and an `implements` through it: direct import; named re-export; `export *`;
+      a named re-export behind a star (D086); a star behind a named re-export; three deep in
+      each mix; `export type { X } from`; a package entry point laid out as n8n's
+      (`index.ts` stars `errors/index.ts`, which names `base/user.error.ts`).
+- [ ] **T16. Structural edges without evidence, full index (D085, decision 1).** Each row
+      expects no edge: `interface X extends Record<string, unknown>` beside a local
+      `class Record`; `extends Error` beside a local `class Error`; a base class imported from
+      a package beside a local class of that name; `import { A as B }` then `extends B` beside
+      an unrelated `B`. And rows that expect the right edge: a class implementing an interface
+      whose name a `type` elsewhere also has, listed by `mast_implementors`; two same-named
+      classes each keeping their own members.
+- [ ] **T17. A fixture monorepo with a written edge list.** One small committed fixture in
+      the shape that hid these defects: two packages, entry-point barrels, an error hierarchy,
+      one interface with several implementors, same names in both packages. Its full expected
+      edge list is committed beside it and checked by T14 after a full index, after an
+      incremental run over an edit (with T1), and for `mast_callers` and `mast_implementors`.
+      A later resolver defect adds its shape here.
+- [ ] **T12, second condition.** The replay also reports, for the final tree, import call
+      records and structural records whose imported name is not found, so a resolver gap
+      shows as a number that moves instead of as silence.
+
+Not in this round: the D087 case (a path alias in a package's own `tsconfig.json`) and
+aliased imports resolving to the right target. Their tests are written with their fixes.
+
 T10 was held in reserve in the first draft. S2 promotes it: the 63 lost edges the cause rule
 could not explain, and D085 itself, came from combinations no hand-written scenario had.
 
 ## Order of work
 
 1. Agree the decisions above.
-2. T1, then T4 and T5 red; M1 and M8 green. After this a full index is a fixed reference.
-3. T2, T6 and T7 red; M3a green; then M3b with its bound.
+2. T1 and T14, then T4, T5, T15, T16 and T17 red; M1, M8 and the D086 fix green. After this
+   a full index is a fixed and correct reference.
+3. T2, T6, T7 and T13 red; M3a green; then M3b with its bound and the pending signal.
 4. T3 and T8 red; M5 green.
 5. T9, T10. Whatever they find gets a ledger row and a row in T2.
 6. T11 red; M6 green.
@@ -181,6 +234,9 @@ Each step ends with `pnpm gate`.
 | 2026-10-06 | Following barrels by file | Rejected: 334 files over 1,000 | `spikes/s3-importers/RESULTS.md` |
 | 2026-10-06 | M4, stored records | Held: 5 to 10 times cheaper per file, extra table and write | `spikes/s5-reresolve-cost/RESULTS.md` |
 | 2026-10-06 | M8 for `PARENT_OF` | Promoted | D085; `spikes/s2-commit-replay/RESULTS.md` |
+| 2026-10-06 | M8 for `IMPLEMENTS` / `EXTENDS`, no edge without evidence | Promoted, with the D086 fix (user, 2026-10-06): guess wrong 27 of 27 on n8n | `spikes/s6-structural-fallback/RESULTS.md` |
+| 2026-10-06 | Guess when the name is unique in the graph | Rejected: wrong 21 of 21 on n8n | same |
+| 2026-10-06 | M3b bound: cap and report, counted in time | Promoted; size open | `spikes/s7-cap-sizing/RESULTS.md` |
 
 ## Not known
 
@@ -188,7 +244,10 @@ Each step ends with `pnpm gate`.
   numbers size the work, they do not prove the design. T2, T10 and T12 are the proof.
 - How narrow M3b can be made. Counting only importers of the names that actually changed,
   rather than of any name the file declares, was not measured.
-- How many of n8n's 435 ambiguous `EXTENDS`/`IMPLEMENTS` edges point at the wrong declaration.
+- Whether S6's result holds on a second corpus. mast has 13 such records and does not
+  separate the options.
+- The size of the cap. S7 is an estimate from summed per-file sets, not a run.
+- 344 of n8n's 428 unfound import call records are unexplained.
 - Per-save behaviour. A commit is coarser than a save.
 - Lock behaviour of M3a on the query-time path, where there is no run-wide ordering.
 - A third corpus. mast has two star rows and hid D083 completely; n8n is the only corpus with

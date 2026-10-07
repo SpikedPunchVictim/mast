@@ -1,0 +1,336 @@
+{
+ "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/n8n-git",
+ "files_walked": 13985,
+ "lib_globals": 1973,
+ "re_exports_edges_at_fixed_point": 4168,
+ "import_call_records_one_per_file_and_name": {
+  "records": 10971,
+  "imported_from_a_package_or_unresolved": 3652,
+  "found": 6891,
+  "not_found": 428,
+  "found_when_gap_closed": 84
+ },
+ "import_call_gap_top_targets": {
+  "packages/core/src/execution-engine/node-execution-context/utils/request-helper-functions.ts :: getRequestHelperFunctions": 8,
+  "packages/@n8n/backend-network/src/index.ts :: binaryToBuffer": 5,
+  "packages/@n8n/workflow-sdk/src/index.ts :: findOutputParserTargets": 3,
+  "packages/@n8n/workflow-sdk/src/index.ts :: buildDateAnchors": 3,
+  "packages/@n8n/workflow-sdk/src/index.ts :: parsePinDataResponse": 3,
+  "packages/@n8n/workflow-sdk/src/index.ts :: repairStructuredOutput": 3,
+  "packages/@n8n/backend-network/src/index.ts :: isConnectionRefusedError": 3,
+  "packages/@n8n/workflow-sdk/src/index.ts :: buildPinDataUserPrompt": 2,
+  "packages/@n8n/workflow-sdk/src/index.ts :: isAiRootNodeType": 2,
+  "packages/@n8n/workflow-sdk/src/index.ts :: buildSchemaContexts": 2,
+  "packages/core/src/index.ts :: isEngineRequest": 2,
+  "packages/core/src/index.ts :: getAdditionalKeys": 2,
+  "packages/@n8n/backend-network/src/index.ts :: httpStatusFromError": 2,
+  "packages/core/src/index.ts :: synthesizeBinaryFixture": 2,
+  "packages/@n8n/scheduler/src/index.ts :: computeFirstRunAt": 2
+ },
+ "probe_blocked_by_existing_edge": 0,
+ "records": {
+  "n": 3424,
+  "by_type": {
+   "IMPLEMENTS": 1840,
+   "EXTENDS": 1584
+  },
+  "by_evidence": {
+   "IMPLEMENTS/import": 1698,
+   "EXTENDS/import": 834,
+   "EXTENDS/same_file": 272,
+   "EXTENDS/import_name_not_found": 239,
+   "EXTENDS/none": 146,
+   "EXTENDS/import_external": 93,
+   "IMPLEMENTS/same_file": 62,
+   "IMPLEMENTS/import_external": 37,
+   "IMPLEMENTS/import_name_not_found": 37,
+   "IMPLEMENTS/none": 6
+  },
+  "from_symbol_missing": 0
+ },
+ "today": {
+  "implements_extends_edges": 3154,
+  "records_with_an_edge": 3154,
+  "parent_of_edges": 17650,
+  "parent_of_cross_file": 239
+ },
+ "import_name_not_found": {
+  "n": 276,
+  "with_star_then_named_followed": {
+   "EXTENDS/found_same_as_today": 109,
+   "EXTENDS/still_not_found": 94,
+   "IMPLEMENTS/found_same_as_today": 37,
+   "EXTENDS/found_differs_from_today": 36
+  },
+  "totals": {
+   "found_same_as_today": 146,
+   "still_not_found": 94,
+   "found_differs_from_today": 36
+  },
+  "still_not_found_by_import_path": {
+   "packages/@n8n/db/src/index.ts :: WithTimestamps": 37,
+   "packages/@n8n/db/src/entities/abstract-entity.ts :: WithTimestamps": 19,
+   "packages/@n8n/db/src/entities/abstract-entity.ts :: WithTimestampsAndStringId": 15,
+   "packages/@n8n/db/src/index.ts :: WithTimestampsAndStringId": 14,
+   "packages/@n8n/db/src/entities/abstract-entity.ts :: WithCreatedAt": 4,
+   "packages/@n8n/db/src/entities/abstract-entity.ts :: WithStringId": 3,
+   "packages/@n8n/db/src/index.ts :: WithCreatedAt": 2
+  }
+ },
+ "import_external": {
+  "n": 130,
+  "today_has_an_edge": 79,
+  "today_edge_by_module": {
+   "@oclif/core :: Command -> packages/@n8n/decorators/src/command/command.ts": 18,
+   "@/services/protected-resource.registry :: ProtectedResourceResolver -> packages/cli/src/services/protected-resource.registry.ts": 6,
+   "@/errors/response-errors/bad-request.error :: BadRequestError -> packages/cli/src/errors/response-errors/bad-request.error.ts": 5,
+   "@/security-audit/types :: RiskReporter -> packages/cli/src/security-audit/types.ts": 5,
+   "@/modules/external-secrets.ee/types :: SecretsProvider -> packages/cli/src/modules/external-secrets.ee/types.ts": 5,
+   "@/events/relays/event-relay :: EventRelay -> packages/cli/src/events/relays/event-relay.ts": 3,
+   "@/errors/response-errors/not-found.error :: NotFoundError -> packages/cli/src/errors/response-errors/not-found.error.ts": 3,
+   "@/errors/response-errors/auth.error :: AuthError -> packages/@n8n/client-oauth2/src/utils.ts": 3,
+   "@/abstract-server :: AbstractServer -> packages/cli/src/abstract-server.ts": 2,
+   "@opentelemetry/api :: Tracer -> packages/@n8n/scheduler/src/observability/tracer.ts": 1,
+   "src :: ChatModelConfig -> packages/@n8n/ai-utilities/src/types/chat-model.ts": 1,
+   "src :: BaseChatModel -> packages/@n8n/ai-utilities/src/chat-model/base.ts": 1,
+   "@langchain/core/language_models/chat_models :: BaseChatModel -> packages/@n8n/ai-utilities/src/chat-model/base.ts": 1,
+   "src/types/chat-model :: ChatModel -> packages/@n8n/ai-utilities/src/types/chat-model.ts": 1,
+   "@n8n/ai-utilities/text-editor :: TextEditorDocument -> packages/@n8n/ai-utilities/src/utils/text-editor.ts": 1,
+   "@n8n/agents/sandbox :: CreateSandboxOptions -> packages/@n8n/agents/src/workspace/sandbox/types.ts": 1,
+   "@langchain/qdrant :: QdrantVectorStore -> packages/@n8n/agents/src/vector-stores/qdrant.ts": 1,
+   "@/task-runner :: TaskRunner -> packages/@n8n/task-runner/src/task-runner.ts": 1,
+   "@/config/base-runner-config :: BaseRunnerConfig -> packages/@n8n/task-runner/src/config/base-runner-config.ts": 1,
+   "@n8n/agents/tool :: ApprovalSuspendPayload -> packages/@n8n/agents/src/sdk/tool.ts": 1,
+   "@/commands/base-command :: BaseCommand -> packages/@n8n/cli/src/base-command.ts": 1,
+   "@/credentials/credential-connection-status-provider.interface :: ICredentialConnectionStatusProvider -> packages/cli/src/credentials/credential-connection-status-provider.interface.ts": 1,
+   "@/credentials/dynamic-credential-storage.interface :: IDynamicCredentialStorageProvider -> packages/cli/src/credentials/dynamic-credential-storage.interface.ts": 1,
+   "express :: Request -> packages/@n8n/typeorm/test/github-issues/161/entity/Request.ts": 1,
+   "@/services/protected-resource.registry :: ProtectedResource -> packages/cli/src/services/protected-resource.registry.ts": 1,
+   "@/services/oauth2-flow-proxy.service :: N8nOAuth2Flow -> packages/cli/src/services/oauth2-flow-proxy.service.ts": 1,
+   "@modelcontextprotocol/sdk/server/auth/errors.js :: InvalidTargetError -> packages/cli/src/oauth/oauth.service.ts": 1,
+   "@/services/oauth-token-verifier-proxy.service :: OAuthTokenVerifier -> packages/cli/src/services/oauth-token-verifier-proxy.service.ts": 1,
+   "@/services/role-deletion-check-proxy.service :: RoleDeletionChecker -> packages/cli/src/services/role-deletion-check-proxy.service.ts": 1,
+   "@/executions/execution-redaction :: ExecutionRedaction -> packages/cli/src/executions/execution-redaction.ts": 1,
+   "@/services/runtime-credential-proxy.service :: RuntimeCredentialProvider -> packages/cli/src/services/runtime-credential-proxy.service.ts": 1,
+   "@/services/auth-strategy.types :: AuthStrategy -> packages/cli/src/services/auth-strategy.types.ts": 1,
+   "@/workflows/workflow-mutation-hooks-proxy.service :: WorkflowMutationHooks -> packages/cli/src/workflows/workflow-mutation-hooks-proxy.service.ts": 1,
+   "@/workflows/workflow-publish-guard-proxy.service :: WorkflowPublishGuard -> packages/cli/src/workflows/workflow-publish-guard-proxy.service.ts": 1,
+   "@/task-runners/task-broker/task-broker-types :: DisconnectAnalyzer -> packages/cli/src/task-runners/task-broker/task-broker-types.ts": 1,
+   "@/webhooks/waiting-webhooks :: WaitingWebhooks -> packages/cli/src/webhooks/waiting-webhooks.ts": 1,
+   "@/modules/external-secrets.ee/external-secrets-providers.ee :: ExternalSecretsProviders -> packages/cli/src/modules/external-secrets.ee/external-secrets-providers.ee.ts": 1,
+   "@/features/ai/instanceAi/emptyStateSuggestions :: InstanceAiEmptyStatePromptSuggestion -> packages/frontend/editor-ui/src/features/ai/instanceAi/emptyStateSuggestions.ts": 1
+  }
+ },
+ "with_evidence": {
+  "n": 3272,
+  "today_vs_evidence": {
+   "IMPLEMENTS/import/same": 1686,
+   "EXTENDS/import/same": 654,
+   "EXTENDS/same_file/same": 239,
+   "EXTENDS/import/other_file": 180,
+   "EXTENDS/import_name_not_found/today_only": 145,
+   "EXTENDS/import_name_not_found/neither": 94,
+   "EXTENDS/import_external/today_only": 54,
+   "IMPLEMENTS/same_file/other_file": 47,
+   "EXTENDS/import_external/neither": 39,
+   "IMPLEMENTS/import_name_not_found/today_only": 37,
+   "EXTENDS/same_file/other_file": 33,
+   "IMPLEMENTS/import_external/today_only": 25,
+   "IMPLEMENTS/same_file/same": 15,
+   "IMPLEMENTS/import/other_file": 12,
+   "IMPLEMENTS/import_external/neither": 12
+  },
+  "today_vs_evidence_totals": {
+   "same": 2594,
+   "other_file": 272,
+   "today_only": 261,
+   "neither": 145
+  }
+ },
+ "no_evidence": {
+  "n": 152,
+  "by_how": {
+   "EXTENDS/ts_lib_global": 115,
+   "EXTENDS/aliased_import": 26,
+   "IMPLEMENTS/aliased_import": 3,
+   "EXTENDS/default_import": 3,
+   "IMPLEMENTS/ts_lib_global": 3,
+   "EXTENDS/declared_in_file_not_a_symbol": 2
+  },
+  "candidates": {
+   "0": 125,
+   "1": 21,
+   "2+": 6
+  },
+  "today_edge": {
+   "EXTENDS/no_edge": 120,
+   "EXTENDS/wrong_imported_from_another_file": 19,
+   "EXTENDS/wrong_target_is_a_global": 7,
+   "IMPLEMENTS/no_edge": 5,
+   "IMPLEMENTS/wrong_imported_from_another_file": 1
+  },
+  "today_edge_totals": {
+   "no_edge": 125,
+   "wrong_imported_from_another_file": 20,
+   "wrong_target_is_a_global": 7
+  },
+  "today_edge_by_how": {
+   "aliased_import/wrong_imported_from_another_file": 20,
+   "ts_lib_global/wrong_target_is_a_global": 7
+  },
+  "C_edge": {
+   "EXTENDS/no_edge": 126,
+   "EXTENDS/wrong_imported_from_another_file": 19,
+   "IMPLEMENTS/no_edge": 5,
+   "EXTENDS/wrong_target_is_a_global": 1,
+   "IMPLEMENTS/wrong_imported_from_another_file": 1
+  },
+  "C_edge_totals": {
+   "no_edge": 131,
+   "wrong_imported_from_another_file": 20,
+   "wrong_target_is_a_global": 1
+  },
+  "today_target_kind": {
+   "EXTENDS->interface": 19,
+   "EXTENDS->class": 7,
+   "IMPLEMENTS->interface": 1
+  }
+ },
+ "edges_per_option": {
+  "today": {
+   "n": 3154,
+   "by_type": {
+    "IMPLEMENTS": 1823,
+    "EXTENDS": 1331
+   },
+   "implements_to_interface": 1758,
+   "implements_target_kind": {
+    "interface": 1758,
+    "type": 61,
+    "class": 2,
+    "function": 2
+   }
+  },
+  "A": {
+   "n": 2893,
+   "by_type": {
+    "IMPLEMENTS": 1761,
+    "EXTENDS": 1132
+   },
+   "implements_to_interface": 1748,
+   "implements_target_kind": {
+    "interface": 1748,
+    "type": 13
+   }
+  },
+  "B": {
+   "n": 2866,
+   "by_type": {
+    "IMPLEMENTS": 1760,
+    "EXTENDS": 1106
+   },
+   "implements_to_interface": 1747,
+   "implements_target_kind": {
+    "interface": 1747,
+    "type": 13
+   }
+  },
+  "B_gap_closed": {
+   "n": 3048,
+   "by_type": {
+    "IMPLEMENTS": 1797,
+    "EXTENDS": 1251
+   },
+   "implements_to_interface": 1784,
+   "implements_target_kind": {
+    "interface": 1784,
+    "type": 13
+   }
+  },
+  "C": {
+   "n": 2887,
+   "by_type": {
+    "IMPLEMENTS": 1761,
+    "EXTENDS": 1126
+   },
+   "implements_to_interface": 1748,
+   "implements_target_kind": {
+    "interface": 1748,
+    "type": 13
+   }
+  }
+ },
+ "interface_names": 4360,
+ "tool": {
+  "today_stored": {
+   "interfaces_with_an_answer": 146,
+   "implementors": 1758,
+   "by_verdict": {
+    "evidence": 1757,
+    "wrong_imported_from_another_file": 1
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 157
+  },
+  "today": {
+   "interfaces_with_an_answer": 146,
+   "implementors": 1758,
+   "by_verdict": {
+    "evidence": 1757,
+    "wrong_imported_from_another_file": 1
+   },
+   "not_in_today_stored": 0,
+   "missing_vs_today_stored": 0,
+   "implementor_class_name_declared_in_2plus_files": 157
+  },
+  "A": {
+   "interfaces_with_an_answer": 142,
+   "implementors": 1748,
+   "by_verdict": {
+    "evidence": 1747,
+    "wrong_imported_from_another_file": 1
+   },
+   "not_in_today_stored": 53,
+   "missing_vs_today_stored": 63,
+   "implementor_class_name_declared_in_2plus_files": 176
+  },
+  "B": {
+   "interfaces_with_an_answer": 142,
+   "implementors": 1747,
+   "by_verdict": {
+    "evidence": 1747
+   },
+   "not_in_today_stored": 53,
+   "missing_vs_today_stored": 64,
+   "implementor_class_name_declared_in_2plus_files": 175
+  },
+  "B_gap_closed": {
+   "interfaces_with_an_answer": 147,
+   "implementors": 1784,
+   "by_verdict": {
+    "evidence": 1784
+   },
+   "not_in_today_stored": 53,
+   "missing_vs_today_stored": 27,
+   "implementor_class_name_declared_in_2plus_files": 175
+  },
+  "C": {
+   "interfaces_with_an_answer": 142,
+   "implementors": 1748,
+   "by_verdict": {
+    "evidence": 1747,
+    "wrong_imported_from_another_file": 1
+   },
+   "not_in_today_stored": 53,
+   "missing_vs_today_stored": 63,
+   "implementor_class_name_declared_in_2plus_files": 176
+  }
+ },
+ "parent_of_same_file": {
+  "records_resolved": 17664,
+  "edges": 17650,
+  "option_B_answers_whose_method_list_changed": 0
+ },
+ "edges_after_rollback": 53681
+}

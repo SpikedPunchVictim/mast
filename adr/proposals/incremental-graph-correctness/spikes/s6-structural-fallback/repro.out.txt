@@ -1,0 +1,12 @@
+== D086: a name re-exported by name, behind an export *
+EXTENDS src/zc.ts:Impl -> src/a.ts:Base
+RE_EXPORTS src/mid.ts:Base -> src/a.ts:Base
+RE_EXPORTS src/mid.ts:fn -> src/a.ts:fn
+mast_callers fn: "verified_count":0
+== D087: a path alias declared in a package's own tsconfig
+import @/lib/a is_external=1 resolved_path=NULL
+edges 0
+mast_callers fn: "verified_count":0
+-- the same alias moved to the root tsconfig
+import @/lib/a is_external=0 resolved_path=packages/app/src/lib/a.ts
+edges 1
