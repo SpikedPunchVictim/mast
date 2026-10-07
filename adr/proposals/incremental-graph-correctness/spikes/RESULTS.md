@@ -28,7 +28,7 @@ other load; where load matters the section says so.
 | How many files does a real commit write? | n8n median 2, p90 15, max 93; mast 2, 9, 39 | S2 |
 | How often does a modification leave names and re-exports alone? | n8n 71.7%, mast 74.4% | S4 |
 | How many files hold an edge into one file? | n8n p99 7, max 1,115; mast max 11 | S3 |
-| How far does the same replay drift after the fixes? | Not at all: n8n 0 of 108,281 lines differ after 200 commits; mast 0 of 1,222 after 100 | T12, `eval/replay-check.mjs` |
+| How far does the same replay drift after the fixes? | Not at all: n8n 0 of 108,281 lines differ after 200 commits; mast 0 of 1,222 after 100 | T12, `eval-suite/replay-check.mjs` |
 | How many files import one file's names through barrels? | n8n p99 37, max 5,011; following barrels by file instead: p99 1,881 | S3 |
 | What does resolving one file again cost? | 3 to 4 ms by re-parse, 0.3 to 0.8 ms from records | S5 |
 | Is the whole-graph name guess for `implements` / `extends` ever right? | n8n: wrong 27 of 27; unique-name guess wrong 21 of 21 | S6 |
@@ -324,9 +324,11 @@ All 18 n8n names are behind `export * as ns from` lines, which mast stores as pl
 star when TypeScript resolves it to the file behind the plain star. n8n has 137 `export * as`
 lines in 57 files and 820 `export * from` lines (text search of tracked non-test source).
 
-## T12 — the replay as a standing check (`eval/replay-check.mjs`, 2026-10-07)
+## T12 — the replay as a standing check (`eval-suite/replay-check.mjs`, 2026-10-07)
 
-Not a spike: an instrument in `eval/`, results in `eval/results/replay-check-<name>.json`. Built
+Not a spike: an instrument, in `eval/` when these runs were made and moved to `eval-suite/` the
+same day. These two results are in `eval/results/replay-check-<name>.json`; later runs write
+elsewhere (see `EVAL.md`). Built
 CLI from `80168c4`. A line is an edge, a star row or an import row.
 
 | | n8n | mast |

@@ -48,7 +48,7 @@
     "gate": "pnpm typecheck && pnpm lint && pnpm build && pnpm test",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src eval integration",
+    "lint": "eslint src eval eval-suite integration",
     "format": "prettier --write src",
     "prepublishOnly": "pnpm build"
   },

@@ -113,7 +113,7 @@ export default [
   // `js.configs.recommended` is the likely-bug set and is maintained upstream rather than
   // hand-listed here; the two rules below are the local policy on top of it.
   {
-    files: ['eval/**/*.mjs', 'integration/**/*.mjs'],
+    files: ['eval/**/*.mjs', 'eval-suite/**/*.mjs', 'integration/**/*.mjs'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

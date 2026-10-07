@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { diffDumps, verdictOf, classifyImportedName, parseArgs } from '../replay-check.mjs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { diffDumps, verdictOf, classifyImportedName, parseArgs, outPathOf } from '../replay-check.mjs';
+
+const REPO_ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 
 describe('diffDumps', () => {
   it('reports nothing when the replayed graph holds the same lines as the full index', () => {
@@ -96,6 +100,15 @@ describe('parseArgs', () => {
     expect(args.commits).toBe(100);
     expect(args.repo).toBeNull();
     expect(args.name).toBe('mast');
+    expect(args.out).toBeNull();
+  });
+
+  it('reads --out', () => {
+    expect(parseArgs(['--out', 'somewhere/r.json']).out).toBe('somewhere/r.json');
+  });
+
+  it('refuses --out with no path after it', () => {
+    expect(() => parseArgs(['--out'])).toThrow(/--out/);
   });
 
   it('reads --repo, --commits and --name', () => {
@@ -115,5 +128,33 @@ describe('parseArgs', () => {
 
   it('refuses an argument it does not know', () => {
     expect(() => parseArgs(['--comits', '5'])).toThrow(/--comits/);
+  });
+});
+
+describe('outPathOf', () => {
+  it('defaults to the ignored out directory of the suite, named after the run', () => {
+    const path = outPathOf({ out: null, name: 'n8n', cwd: '/anywhere' });
+
+    expect(path).toBe(resolve(REPO_ROOT, 'eval-suite', 'out', 'replay-check-n8n.json'));
+  });
+
+  it('resolves --out against the directory the script was run from', () => {
+    const path = outPathOf({ out: 'r/x.json', name: 'mast', cwd: '/tmp/work' });
+
+    expect(path).toBe('/tmp/work/r/x.json');
+  });
+
+  // eval/results/ holds published results, and the T12 evidence is two files there
+  // with this script's old default names. A suite run must not be able to replace them.
+  it('refuses a path inside eval/results', () => {
+    const inside = resolve(REPO_ROOT, 'eval', 'results', 'replay-check-mast.json');
+
+    expect(() => outPathOf({ out: inside, name: 'mast', cwd: '/' })).toThrow(/eval\/results/);
+  });
+
+  it('refuses eval/results reached through a relative path', () => {
+    const cwd = resolve(REPO_ROOT, 'eval-suite');
+
+    expect(() => outPathOf({ out: '../eval/results/x.json', name: 'mast', cwd })).toThrow(/eval\/results/);
   });
 });

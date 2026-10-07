@@ -48,6 +48,10 @@ scorer. It is derived from the `adr/proposals/*/PLAN-EXCERPT.md` shards and the
   artifacts win.
 * **Eval scripts stay in `eval/`.** They are not moved into proposal directories — see ADR 001.
   Each decision's instruments are listed in `adr/proposals/<feature>/EVAL.md`.
+* **Checks meant to be run again and again live in `eval-suite/`**, not among the experiments
+  in `eval/`. Nothing there writes into `eval/results/`: a run writes to `eval-suite/out/`
+  (ignored by git) or to a path it is given. `eval/results-writers.mjs` does not scan
+  `eval-suite/`; `eval-suite/__tests__/suite-rule.test.mjs` pins the rule instead.
 
 This rule exists because E1-EDGES was registered and then retired the same day, before any
 measurement, once it emerged that E1-AB had already answered the question on the same

@@ -9,12 +9,15 @@
  *
  * Not part of `pnpm gate`. Run it before a release, from the repository root:
  *
- *   node eval/replay-check.mjs                                 # this repository, 100 commits
- *   node eval/replay-check.mjs --commits 40
- *   node eval/replay-check.mjs --repo <git checkout> --name n8n --commits 200
+ *   node eval-suite/replay-check.mjs                           # this repository, 100 commits
+ *   node eval-suite/replay-check.mjs --commits 40
+ *   node eval-suite/replay-check.mjs --repo <git checkout> --name n8n --commits 200
+ *   node eval-suite/replay-check.mjs --out <path>.json
  *
- * WRITES `eval/results/replay-check-<name>.json`, replacing the last run's. Exit 0 on a
- * pass, 1 on a fail, 2 on a usage error.
+ * Writes its result to `--out`, or to `eval-suite/out/replay-check-<name>.json` (ignored
+ * by git) without it, replacing the last run's. It refuses a path inside `eval/results/`:
+ * that directory holds published results, among them the two T12 runs of this script
+ * from when it lived in `eval/`. Exit 0 on a pass, 1 on a fail, 2 on a usage error.
  *
  * The checkout named by `--repo` is only read: the script clones it into a temporary
  * directory, checks commits out there, and keeps both indexes in state directories
@@ -27,13 +30,15 @@
  * a gap shows as a number that moves between runs instead of as silence.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { MAST_BIN, writeResult } from './e1-common.mjs';
+import { MAST_BIN } from '../eval/e1-common.mjs';
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const SUITE_DIR = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(SUITE_DIR, '..');
+const PUBLISHED_DIR = join(REPO_ROOT, 'eval', 'results');
 const DEFAULT_COMMITS = 100;
 
 /** Thrown for a command line the script cannot act on. */
@@ -41,25 +46,42 @@ export class UsageError extends Error {}
 
 /**
  * Reads the command line. `repo` is `null` for this repository.
- * @throws UsageError on an unknown flag, a bad count, or another repository with no name.
+ * @throws UsageError on an unknown flag, a bad count, `--out` with no path, or another
+ *   repository with no name.
  */
 export function parseArgs(argv) {
-  const args = { repo: null, commits: DEFAULT_COMMITS, name: null };
+  const args = { repo: null, commits: DEFAULT_COMMITS, name: null, out: null };
   for (let i = 0; i < argv.length; i += 2) {
     const flag = argv[i];
     const value = argv[i + 1];
     if (flag === '--repo') args.repo = value ?? null;
     else if (flag === '--name') args.name = value ?? null;
-    else if (flag === '--commits') {
+    else if (flag === '--out') {
+      if (value === undefined) throw new UsageError('--out needs a path');
+      args.out = value;
+    } else if (flag === '--commits') {
       const n = Number(value);
       if (!Number.isInteger(n) || n < 1) throw new UsageError(`--commits needs a positive whole number, got ${String(value)}`);
       args.commits = n;
     } else throw new UsageError(`unknown argument ${String(flag)}`);
   }
-  // The name becomes the result file's name. Guessing it from a path would let two
-  // checkouts of different repositories overwrite each other's committed result.
+  // The name becomes the default result file's name. Guessing it from a path would let
+  // two checkouts of different repositories overwrite each other's result.
   if (args.repo !== null && args.name === null) throw new UsageError('--repo needs --name for its result file');
   return { ...args, name: args.name ?? 'mast' };
+}
+
+/**
+ * The file the result is written to: `out` against `cwd`, or the suite's own default.
+ * @throws UsageError when that file would be inside `eval/results/`.
+ */
+export function outPathOf({ out, name, cwd }) {
+  const path = out === null ? join(SUITE_DIR, 'out', `replay-check-${basename(name)}.json`) : resolve(cwd, out);
+  const fromPublished = relative(PUBLISHED_DIR, path);
+  if (fromPublished !== '..' && !fromPublished.startsWith(`..${sep}`)) {
+    throw new UsageError(`${path} is inside eval/results, which holds published results; write somewhere else`);
+  }
+  return path;
 }
 
 /** The lines each dump holds that the other does not, sorted, each counted once. */
@@ -192,6 +214,7 @@ async function countUnresolvedNames(mast, clone, stateDir) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const outPath = outPathOf({ out: args.out, name: args.name, cwd: process.cwd() });
   const source = resolve(args.repo ?? REPO_ROOT);
   const mast = await loadMast();
   const scratch = mkdtempSync(join(tmpdir(), 'mast-replay-'));
@@ -233,7 +256,7 @@ async function main() {
 
     const written = filesWritten.filter((n) => n !== null).sort((a, b) => a - b);
     const result = {
-      instrument: 'eval/replay-check.mjs',
+      instrument: 'eval-suite/replay-check.mjs',
       name: args.name,
       ran_at: new Date().toISOString(),
       mast_commit: execFileSync('git', ['-C', REPO_ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
@@ -248,10 +271,11 @@ async function main() {
       verdict,
       imported_names_on_the_final_tree: await countUnresolvedNames(mast, clone, fullState),
     };
-    const path = writeResult(`replay-check-${basename(args.name)}.json`, result);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, JSON.stringify(result, null, 2) + '\n');
     console.log(JSON.stringify({ ...result, missing_after_replay: diff.missing.length, extra_after_replay: diff.extra.length,
       imported_names_on_the_final_tree: { ...result.imported_names_on_the_final_tree, not_found: result.imported_names_on_the_final_tree.not_found.length } }, null, 2));
-    console.log(`${verdict.pass ? 'PASS' : 'FAIL'}  ${path}`);
+    console.log(`${verdict.pass ? 'PASS' : 'FAIL'}  ${outPath}`);
     for (const reason of verdict.reasons) console.log(`  ${reason}`);
     return verdict.pass ? 0 : 1;
   } finally {

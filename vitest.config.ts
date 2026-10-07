@@ -12,7 +12,7 @@ export default defineConfig({
     // same footing and for the same reason as eval's. The harness decides what the release
     // gate asserts, so its own file-set walk is worth pinning (D051). Like eval/, integration/
     // is outside tsconfig.json's include, so this does not affect typecheck.
-    include: ['src/**/*.test.ts', 'eval/**/*.test.mjs', 'integration/**/*.test.mjs'],
+    include: ['src/**/*.test.ts', 'eval/**/*.test.mjs', 'eval-suite/**/*.test.mjs', 'integration/**/*.test.mjs'],
     // Stage 7.1 (vector-store deletion, IMPLEMENTATION_PLAN.md Stage 7 decision 1):
     // these five files test RETIRED Q1 instruments whose import chains reach modules
     // deleted at HEAD (dist/search/vector.js, dist/store/lance.js, the embedder).

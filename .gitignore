@@ -17,6 +17,10 @@ coverage/
 # Harvested from a live metrics DB, machine-specific, never a committed input
 eval/real-query-harvest.json
 
+# Output of eval-suite/ runs. The suite compares against committed baselines and
+# never writes published results, so what a run leaves behind is not kept.
+eval-suite/out/
+
 # Environment
 .env
 .env.local

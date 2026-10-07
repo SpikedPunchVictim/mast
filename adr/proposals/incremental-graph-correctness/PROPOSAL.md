@@ -348,7 +348,7 @@ Each step ends with `pnpm gate`.
 
 ## Not known
 
-- Answered 2026-10-07 by T12 (`eval/replay-check.mjs`, results in `eval/results/replay-check-*.json`):
+- Answered 2026-10-07 by T12 (`eval-suite/replay-check.mjs`, then at `eval/replay-check.mjs`; results in `eval/results/replay-check-*.json`):
   the replays reach zero difference. n8n, 200 commits: 108,281 lines on each side, 0 missing,
   0 extra. This repository, 100 commits: 1,222 lines, 0 and 0. With one repair line removed
   (mutant E01) a 40-commit replay of this repository fails with 79 missing lines.
