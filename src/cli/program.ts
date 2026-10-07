@@ -14,6 +14,7 @@ import { registerUpgradeCommand } from './upgrade-cmd.js';
 import { registerPrimeCommand } from './prime-cmd.js';
 import { registerHookCommand } from './hook-cmd.js';
 import { registerSetupCommand } from './setup-cmd.js';
+import { ConfigError } from '../store/config-error.js';
 
 /**
  * Builds the CLI. This is the *only* place commands are registered.
@@ -52,4 +53,27 @@ export function buildProgram(): Command {
 /** Every registered command name, sorted. Derived from `buildProgram`, never restated. */
 export function registeredCommandNames(): readonly string[] {
   return buildProgram().commands.map((c) => c.name()).sort();
+}
+
+/**
+ * Parses and runs one command line. A `ConfigError` is the user's to fix, so it
+ * is written as one line and turned into exit code 1. Anything else propagates
+ * with its stack trace: it is a bug, and the trace is the report.
+ *
+ * @returns 1 after a `ConfigError`; otherwise undefined, so that an exit code
+ * the command set itself is left alone.
+ */
+export async function runCli(
+  argv: readonly string[],
+  writeError: (text: string) => void,
+  program: Command = buildProgram(),
+): Promise<1 | undefined> {
+  try {
+    await program.parseAsync([...argv]);
+    return undefined;
+  } catch (err) {
+    if (!(err instanceof ConfigError)) throw err;
+    writeError(`mast: ${err.message}\n`);
+    return 1;
+  }
 }

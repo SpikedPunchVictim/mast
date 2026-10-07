@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { resolveConfig } from '../store/config.js';
+import { assertProjectRootIsDirectory, resolveConfig } from '../store/config.js';
 import { runIndex } from '../indexer/index.js';
 import { newWriteSpans } from '../graph/populate.js';
 import { openDatabase, type OpenDatabaseOptions } from '../graph/db.js';
@@ -160,6 +160,7 @@ export function registerIndexCommand(program: Command): void {
         projectRoot: projectPath,
         stateDirOverride: opts.stateDir,
       });
+      assertProjectRootIsDirectory(config);
 
       // Built with conditional spreads, not `{ cacheSizeKib: maybeUndefined }`:
       // `exactOptionalPropertyTypes` distinguishes an absent property from one

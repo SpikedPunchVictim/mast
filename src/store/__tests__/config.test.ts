@@ -10,7 +10,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, afterEach } from 'vitest';
-import { resolveConfig, writeStateConfig, type ResolvedConfig } from '../config.js';
+import { assertProjectRootIsDirectory, resolveConfig, writeStateConfig, type ResolvedConfig } from '../config.js';
+import { ConfigError } from '../config-error.js';
 
 describe('resolveConfig — declaration_exact_ranker (F18 kill-switch)', () => {
   let tmpDir: string | undefined;
@@ -283,5 +284,68 @@ describe('resolveConfig — include_dot_dirs', () => {
     writeStateConfig(first.resolved_state_dir, { ...first, include_dot_dirs: ['.agents'] });
 
     expect(resolveConfig({ projectRoot: tmpDir }).include_dot_dirs).toEqual(['.agents']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ConfigError: what the user got wrong, as opposed to what mast got wrong.
+// The CLI prints these as one line; anything else keeps its stack trace.
+// ---------------------------------------------------------------------------
+
+describe('resolveConfig — errors the user can fix are ConfigErrors', () => {
+  let tmpDir: string | undefined;
+
+  afterEach(() => {
+    if (tmpDir !== undefined) rmSync(tmpDir, { recursive: true, force: true });
+    tmpDir = undefined;
+  });
+
+  function resolveWithRaw(raw: string): ResolvedConfig {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-config-error-'));
+    writeFileSync(join(tmpDir, 'mast.config.json'), raw);
+    return resolveConfig({ projectRoot: tmpDir });
+  }
+
+  it.each([
+    ['a rejected include_dot_dirs entry', '{"include_dot_dirs":[".agents/*"]}'],
+    ['an include_dot_dirs that is not an array', '{"include_dot_dirs":".agents"}'],
+    ['a mast.config.json that is not JSON', '{"include_dot_dirs": ['],
+  ])('throws a ConfigError for %s', (_label, raw) => {
+    expect(() => resolveWithRaw(raw)).toThrow(ConfigError);
+  });
+
+  it('names the file when mast.config.json is not JSON', () => {
+    expect(() => resolveWithRaw('{')).toThrow(/mast\.config\.json is not valid JSON/);
+  });
+});
+
+describe('assertProjectRootIsDirectory', () => {
+  let tmpDir: string | undefined;
+
+  afterEach(() => {
+    if (tmpDir !== undefined) rmSync(tmpDir, { recursive: true, force: true });
+    tmpDir = undefined;
+  });
+
+  it('accepts a directory', () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-root-'));
+    const config = resolveConfig({ projectRoot: tmpDir });
+
+    expect(() => assertProjectRootIsDirectory(config)).not.toThrow();
+  });
+
+  it('rejects a path that does not exist', () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-root-'));
+    const config = resolveConfig({ projectRoot: join(tmpDir, 'no-such-dir') });
+
+    expect(() => assertProjectRootIsDirectory(config)).toThrow(ConfigError);
+  });
+
+  it('rejects a path that is a file', () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-root-'));
+    writeFileSync(join(tmpDir, 'a-file'), '');
+    const config = resolveConfig({ projectRoot: join(tmpDir, 'a-file') });
+
+    expect(() => assertProjectRootIsDirectory(config)).toThrow(/a-file is not a directory/);
   });
 });

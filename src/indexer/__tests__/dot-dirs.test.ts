@@ -167,6 +167,52 @@ describe('the scope predicates agree with what walkProject walks', () => {
   });
 });
 
+/**
+ * The watcher never reports a path inside the state directory, whatever it is
+ * called. The walker used to keep it out only through the default pattern
+ * `.mast/**`, so a state directory with another name was indexed and its edits
+ * were never heard (D076).
+ */
+describe('walkProject — the state directory', () => {
+  let project: string;
+
+  beforeAll(() => {
+    project = mkdtempSync(join(tmpdir(), 'mast-state-dir-'));
+    for (const rel of ['src/a.ts', 'mast-state/notes.md', 'mast-state-old/kept.md']) {
+      mkdirSync(join(project, dirname(rel)), { recursive: true });
+      writeFileSync(join(project, rel), '# heading\n');
+    }
+    writeFileSync(join(project, 'mast.config.json'), JSON.stringify({ state_dir: 'mast-state' }));
+  });
+
+  afterAll(() => {
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it('is not walked when its name has no leading dot', async () => {
+    const entries = await walkProject(resolveConfig({ projectRoot: project }));
+
+    expect(entries.map((e) => e.relativePath)).toEqual(['mast-state-old/kept.md', 'src/a.ts']);
+  });
+
+  it('is not walked when it is given as an absolute path', async () => {
+    const config = resolveConfig({ projectRoot: project, stateDirOverride: join(project, 'mast-state') });
+
+    expect((await walkProject(config)).map((e) => e.relativePath)).not.toContain('mast-state/notes.md');
+  });
+
+  it('leaves the walk alone when it is outside the project', async () => {
+    const outside = mkdtempSync(join(tmpdir(), 'mast-state-outside-'));
+    try {
+      const config = resolveConfig({ projectRoot: project, stateDirOverride: outside });
+
+      expect((await walkProject(config)).map((e) => e.relativePath)).toContain('mast-state/notes.md');
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('isDirectoryInDotScope', () => {
   it('prunes a dot directory that was not named', () => {
     expect(isDirectoryInDotScope('.git', ['.agents'])).toBe(false);

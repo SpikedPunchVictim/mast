@@ -1,7 +1,7 @@
-import { existsSync, lstatSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Command } from 'commander';
-import { resolveConfig } from '../store/config.js';
+import { assertProjectRootIsDirectory, resolveConfig } from '../store/config.js';
 import { walkProject } from '../indexer/walker.js';
 import { isFileInDotScope } from '../indexer/scope.js';
 
@@ -84,7 +84,7 @@ function directoryOf(relativePath: string, depth: number | undefined): string {
  * It calls `walkProject`, the same function `runIndex` and `measureFreshness`
  * walk with, so the report cannot disagree with what gets indexed.
  *
- * @throws Error when the project root is not a directory: fast-glob walks a
+ * @throws ConfigError when the project root is not a directory: fast-glob walks a
  * missing root as an empty one, and "0 files" would read as nothing to index.
  * @throws whatever `resolveConfig` throws for a config it rejects.
  */
@@ -92,9 +92,7 @@ export async function buildWalkReport(
   options: { path?: string; stateDir?: string; depth?: number } = {},
 ): Promise<WalkReport> {
   const config = resolveConfig({ projectRoot: options.path, stateDirOverride: options.stateDir });
-  if (statSync(config.resolved_project_root, { throwIfNoEntry: false })?.isDirectory() !== true) {
-    throw new Error(`project root ${config.resolved_project_root} is not a directory`);
-  }
+  assertProjectRootIsDirectory(config);
   const files = (await walkProject(config)).map((entry) => entry.relativePath);
 
   const counts = new Map<string, number>();

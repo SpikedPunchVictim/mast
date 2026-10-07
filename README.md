@@ -561,9 +561,9 @@ for none). This is true of `exclude_patterns` and `file_extensions` as well.
 **Why:** it is how you test a config change before paying for an index run. It calls the
 same walk `mast index` and `mast status` use, so its answer is what would be indexed. A
 config that mast rejects (a glob or an absolute path in `include_dot_dirs`, say), or a
-path that is not a directory, is printed as one line on stderr with exit 1. Most other
-commands do not catch a rejected config: `status`, `index`, `prime`, `metrics` and `serve`
-stop with the same message in a stack trace.
+path that is not a directory, is printed as one line on stderr with exit 1. Every other
+command prints a rejected config the same way, as `mast: <message>`, and `mast index` and
+`mast init` refuse a path that is not a directory instead of creating it.
 
 ---
 

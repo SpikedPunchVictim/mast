@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
 import { DEFAULT_FILE_EXTENSIONS, DEFAULT_STATE_DIR } from './defaults.js';
 import { normalizeDotDirs } from '../indexer/scope.js';
+import { ConfigError } from './config-error.js';
 
 // 1.3.0 (F5, Stage 3): identifier_fts rows now carry QUALIFIED compound
 // strings ("Class.method") appended after the bare-identifier bag — see
@@ -183,7 +184,8 @@ function pickStateConfigCustomization(source: Partial<MastConfig> | null): Parti
  *
  * `include_dot_dirs` is validated and normalised here (`normalizeDotDirs`).
  *
- * @throws InvalidDotDirError, or Error when `include_dot_dirs` is not a string array.
+ * @throws ConfigError when `mast.config.json` is not JSON or `include_dot_dirs` is not a
+ * string array, and its subclass InvalidDotDirError for an entry that is rejected.
  *
  * Priority order for every other config key (highest to lowest):
  * 1. Explicit overrides passed to this function (`extensions`/`excludePatterns`
@@ -211,7 +213,12 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
   let fileConfig: Partial<MastConfig> = {};
   if (existsSync(configFile)) {
     const raw = readFileSync(configFile, 'utf-8');
-    fileConfig = JSON.parse(raw) as Partial<MastConfig>;
+    try {
+      fileConfig = JSON.parse(raw) as Partial<MastConfig>;
+    } catch (err) {
+      if (!(err instanceof SyntaxError)) throw err;
+      throw new ConfigError(`${configFile} is not valid JSON: ${err.message}`);
+    }
   }
 
   // State dir chain is resolved first and independently of the customisation
@@ -235,7 +242,7 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
   // stays out of the index with `index_fresh: true`.
   const includeDotDirs: unknown = merged.include_dot_dirs;
   if (!isStringArray(includeDotDirs)) {
-    throw new Error(
+    throw new ConfigError(
       `${configFile}: include_dot_dirs must be an array of directory paths, such as [".agents"]`,
     );
   }
@@ -254,6 +261,20 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
     resolved_state_dir: resolvedStateDir,
     resolved_project_root: resolvedProjectRoot,
   };
+}
+
+/**
+ * Refuses a project root that is not a directory. Commands that write call this
+ * before they write anything: fast-glob walks a missing root as an empty one and
+ * `mkdir -p` creates it, so a mistyped path would otherwise be indexed as a
+ * project with no files, exit 0, and leave a state directory behind.
+ *
+ * @throws ConfigError naming the path.
+ */
+export function assertProjectRootIsDirectory(config: Pick<ResolvedConfig, 'resolved_project_root'>): void {
+  if (statSync(config.resolved_project_root, { throwIfNoEntry: false })?.isDirectory() !== true) {
+    throw new ConfigError(`project root ${config.resolved_project_root} is not a directory`);
+  }
 }
 
 /**

@@ -6,6 +6,7 @@ if (process.argv[2] === 'hook') {
   const { runHookFromProcess } = await import('./hook.js');
   await runHookFromProcess(process.argv[3] ?? '', process.argv[4] ?? '');
 } else {
-  const { buildProgram } = await import('./program.js');
-  await buildProgram().parseAsync(process.argv);
+  const { runCli } = await import('./program.js');
+  const exitCode = await runCli(process.argv, (text) => process.stderr.write(text));
+  if (exitCode !== undefined) process.exitCode = exitCode;
 }

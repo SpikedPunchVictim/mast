@@ -433,6 +433,7 @@ Indexing is a single phase — there is no separate embedding step. `runIndex`:
    acquired within the configured timeout.
 2. Walk project files matching `file_extensions`, respecting `exclude_patterns`.
    Dot directories are entered only where `include_dot_dirs` names them (§4.1).
+   The state directory is never walked, whatever it is called.
    Collect `{ path, mtime }` for every file found.
 3. **Deleted file cleanup:** load `file_manifest.json` (previous scan's path set).
    Any path present in the manifest but absent from the current walk has been deleted.
@@ -766,7 +767,9 @@ bare names to leading-dot form (`py` and `.py` are both accepted). They take pri
 over `mast.config.json` and any previously-persisted `<state_dir>/config.json` — see §4
 for the full priority chain.
 
-Creates `<state_dir>/`, writes `config.json`, runs a full index. On every subsequent
+Creates `<state_dir>/`, writes `config.json`, runs a full index. A `path` that is not a
+directory is refused before anything is written (`mast index` does the same), and a
+config mast rejects is printed by every command as one line, `mast: <message>`, exit 1. On every subsequent
 `mast init`/`mast index`/`mast serve`/`mast status`/`mast query`/`mast metrics` call
 against the same state directory, the customisation keys in `config.json` are read back
 and applied unless a higher-priority source (CLI flags, `mast.config.json`) overrides

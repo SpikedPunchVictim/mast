@@ -1,5 +1,6 @@
 import fg from 'fast-glob';
 import { statSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { walkPatterns } from './scope.js';
 
@@ -77,9 +78,19 @@ export async function walkProject(config: MastConfig): Promise<FileEntry[]> {
   // it, which `walkPatterns` turns into a pattern of its own (ADR 018).
   const patterns = walkPatterns(config.file_extensions, config.include_dot_dirs);
 
+  // The state directory is never source, and watch mode never reports a path
+  // inside it. Without this it stayed out only through the default pattern
+  // `.mast/**`, so one with another name was indexed and then never heard (D076).
+  // A state directory outside the project, or the project root itself, adds nothing.
+  const stateDir = relative(config.project_root, resolve(config.project_root, config.state_dir));
+  const isStateDirBelowRoot = stateDir !== '' && stateDir !== '..' && !stateDir.startsWith('../');
+
   const paths = await fg(patterns, {
     cwd: config.project_root,
-    ignore: config.exclude_patterns as string[],
+    ignore: [
+      ...config.exclude_patterns,
+      ...(isStateDirBelowRoot ? [`${fg.escapePath(stateDir)}/**`] : []),
+    ],
     absolute: true,
     onlyFiles: true,
     followSymbolicLinks: false,

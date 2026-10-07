@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { resolveConfig, writeStateConfig } from '../store/config.js';
+import { assertProjectRootIsDirectory, resolveConfig, writeStateConfig } from '../store/config.js';
 import { initLockMarkers } from '../store/lock.js';
 import { runIndex } from '../indexer/index.js';
 
@@ -59,6 +59,7 @@ export function registerInitCommand(program: Command): void {
         extensions: parseExtensionsFlag(opts.extensions),
         excludePatterns: parseExcludeFlag(opts.exclude),
       });
+      assertProjectRootIsDirectory(config);
 
       initLockMarkers(config.resolved_state_dir);
       writeStateConfig(config.resolved_state_dir, config);

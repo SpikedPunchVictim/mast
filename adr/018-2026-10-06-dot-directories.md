@@ -97,13 +97,11 @@ re-run by the author.
   mismatch predates this ADR for ordinary directories; naming `.claude`, where linked
   skill directories are common, makes it likelier. `mast walk` reports an entry that is
   itself a link; it does not detect links further down.
-- **A rejected entry is a stack trace in most commands.** **Measured** with
-  `[".agents/*"]`: `status`, `index`, `prime` and `metrics` print the message inside a
-  Node stack trace, and `search` prints it as one line. **Reported by the reviews, not
-  re-run by the author:** `init` and `serve` also print a stack trace, so one bad entry
-  stops the MCP server from starting; `query` and `hook claude session-start` print one
-  line; `skill`, `setup` and `hook claude search` exit 0 without mentioning it. The CLI
-  has no top-level error handler; adding one is a separate decision.
+- **`mast serve` with a rejected entry was not run.** Every other command that printed a
+  stack trace for one now prints one line (see the follow-up below); `serve` resolves its
+  config the same way, so the same is **inferred** for it, and it still does not start.
+  `skill`, `setup` and `hook claude search` exit 0 without mentioning a bad entry
+  (reported by the second review, not re-run).
 - **A malformed value in `<state_dir>/config.json`** (a string where an array belongs)
   is dropped without a message, as every key read from that file is.
 - A directory whose real name contains a glob character, a pipe or a backslash cannot be
@@ -117,8 +115,6 @@ re-run by the author.
 - **A named dot directory mast cannot read** stops the walk with `EACCES`, as an
   unreadable ordinary directory does. Reported by the second review for `walkProject` and
   `mast walk`; not run against `mast index`.
-- **The watcher and the walker still disagree in one place this ADR did not touch**: a
-  custom `state_dir` whose name has no leading dot is walked and never watched (D076).
 - The search-reminder hook (`mast hook <harness> search`) decides by extension only. A
   Grep scoped to a dot directory that is not indexed is still reminded about
   `mast_search`.
@@ -126,3 +122,32 @@ re-run by the author.
   enter dot directories. TypeScript in a named dot directory is indexed; whether the
   checker resolves calls in it was not tested.
 - Windows path separators in an entry were not tested.
+
+## Follow-up, 2026-10-06: three things the reviews found beside the feature
+
+Fixed on the same branch at the user's request, each with its ledger row.
+
+- **A config the user can fix is one line, in every command.** `ConfigError`
+  (`src/store/config-error.ts`) marks a rejected `include_dot_dirs`, a `mast.config.json`
+  that is not JSON, and a project root that is not a directory. `runCli` in
+  `src/cli/program.ts`, which `cli/index.ts` runs, prints `mast: <message>` on stderr and
+  exits 1 for those and for nothing else. An error of any other type keeps its stack
+  trace: it is a bug in mast, and the trace is the report. A catch-all with a debug
+  switch was the alternative; it would have hidden the trace for every unexpected
+  failure to tidy up three expected ones. **Measured** with the built CLI and
+  `[".agents/*"]`: `status`, `index`, `prime` and `metrics` each printed one line, exit 1.
+- **`mast index` and `mast init` refuse a project path that is not a directory (D075).**
+  Both check before writing anything. **Measured**: each printed
+  `mast: project root <path> is not a directory`, exit 1, and the path did not exist
+  afterwards. `status`, `prime` and `search` already reported "no index" for such a path
+  and are unchanged. `mast metrics` on one still ends in a better-sqlite3 stack trace
+  (exit 1, nothing created): it fails on the missing state directory, which an
+  uninitialised project also lacks, so the root check would not have covered it.
+- **The walker excludes the state directory by its resolved path (D076).** It used to
+  stay out only through the default pattern `.mast/**`. With `state_dir: "mast-state"`,
+  `mast-state/n2.md` is no longer walked, which is what the watcher already assumed.
+  A project that had indexed files inside such a directory loses them at the next index
+  run. A state directory equal to the project root is left alone by the walker, while
+  the watcher's own check ignores every path in that case; nobody is known to configure
+  it, and it was not tested.
+

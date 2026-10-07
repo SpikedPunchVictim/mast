@@ -7,8 +7,10 @@
 // has one statement, and `__tests__/dot-dirs.test.ts` checks the predicates against
 // fast-glob's own answer on a real tree.
 
+import { ConfigError } from '../store/config-error.js';
+
 /** Thrown for an `include_dot_dirs` entry that cannot name a directory inside the project. */
-export class InvalidDotDirError extends Error {
+export class InvalidDotDirError extends ConfigError {
   constructor(entry: string, reason: string, source?: string) {
     super(
       `${source === undefined ? '' : `${source}: `}include_dot_dirs: ${JSON.stringify(entry)} ${reason}. ` +
