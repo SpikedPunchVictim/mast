@@ -8,7 +8,8 @@ import { loadConfig, createMatchPath, type MatchPath } from 'tsconfig-paths';
 // Turns an import specifier into a project-relative path that matches an
 // indexed `files.path` (extension included), or marks it external. Handles:
 //   1. relative imports (`./x`, `../y`) — probed for the real file on disk;
-//   2. tsconfig `paths` aliases (`@api/types`) — via tsconfig-paths;
+//   2. tsconfig `paths` aliases (`@api/types`) — via tsconfig-paths, read from
+//      the nearest tsconfig.json above the importing file that declares any;
 //   3. pnpm workspace package names (`@kluster/shared`) — via the workspace map;
 //   4. everything else — external (node_modules / built-ins).
 // `realpathSync.native` collapses pnpm symlinks so resolved paths point at real
@@ -108,7 +109,7 @@ interface ResolveContext {
 }
 
 function buildResolver(projectRoot: string): ImportResolver {
-  const matchPath = buildTsconfigMatcher(projectRoot);
+  const matcherFor = buildTsconfigMatchers(projectRoot);
   const workspace = buildWorkspaceMap(projectRoot);
 
   // Relativise against the realpath of the root as well, so a symlinked root
@@ -203,6 +204,7 @@ function buildResolver(projectRoot: string): ImportResolver {
       }
 
       // 2. tsconfig path alias.
+      const matchPath = matcherFor(dirname(join(projectRoot, fromFileRel)));
       if (matchPath !== null) {
         const aliasBase = matchPath(spec, undefined, undefined, [...CANDIDATE_EXTS]);
         if (aliasBase !== undefined) {
@@ -264,11 +266,80 @@ function resolveWorkspace(
 // tsconfig paths
 // ---------------------------------------------------------------------------
 
-function buildTsconfigMatcher(projectRoot: string): MatchPath | null {
-  const config = loadConfig(projectRoot);
+/**
+ * The alias matcher for a file in a given directory: the one built from the
+ * nearest `tsconfig.json` at or above that directory that declares `paths`.
+ *
+ * A monorepo's root `tsconfig.json` often holds only `references`, and each
+ * package maps the same alias (`@/*`) to its own sources, so one matcher for
+ * the whole project resolves none of them (D087).
+ *
+ * This is nearer to what the compiler does, not the same. The compiler asks
+ * which tsconfig *includes* the file; this asks which is nearest. And a
+ * tsconfig with no `paths` of its own is passed over for the next one up,
+ * where the compiler would stop. That keeps a root alias working for a file
+ * under a nested tsconfig that does not extend the root, which is what this
+ * resolver did before it looked below the root at all. `extends` is followed
+ * by tsconfig-paths. Only files named `tsconfig.json` are read.
+ */
+function buildTsconfigMatchers(projectRoot: string): (fromDir: string) => MatchPath | null {
+  // Keyed by directory. Every directory walked through is filled in, so a
+  // package's files cost one walk between them.
+  const byDir = new Map<string, MatchPath | null>();
+
+  const lookup = (dir: string): MatchPath | null => {
+    const cached = byDir.get(dir);
+    if (cached !== undefined) return cached;
+
+    let matcher: MatchPath | null;
+    const parent = dirname(dir);
+    if (dir === projectRoot || parent === dir || !isInside(dir, projectRoot)) {
+      // `loadConfig` itself walks upward from here, so a project root below
+      // its tsconfig still finds it, as it always has.
+      matcher = buildTsconfigMatcher(projectRoot);
+    } else {
+      matcher = nestedMatcher(dir) ?? lookup(parent);
+    }
+    byDir.set(dir, matcher);
+    return matcher;
+  };
+  return lookup;
+}
+
+/**
+ * The matcher for a `tsconfig.json` below the project root, or null when the
+ * directory has none, it declares no `paths`, or it cannot be read.
+ *
+ * tsconfig-paths throws on a file that does not parse. Repositories keep such
+ * files as test fixtures, and the throw would surface as a parse error on
+ * every source file beneath one, removing them from the index. So it is
+ * reported once (the caller caches the result per directory) and passed over.
+ */
+function nestedMatcher(dir: string): MatchPath | null {
+  if (!existsSync(join(dir, 'tsconfig.json'))) return null;
+  try {
+    return buildTsconfigMatcher(dir);
+  } catch (err) {
+    process.stderr.write(
+      `[mast] WARN: ignoring ${join(dir, 'tsconfig.json')} for path aliases: ${String(err)}\n`,
+    );
+    return null;
+  }
+}
+
+function isInside(dir: string, root: string): boolean {
+  const rel = relative(root, dir);
+  return rel !== '' && !rel.startsWith('..');
+}
+
+function buildTsconfigMatcher(configDir: string): MatchPath | null {
+  const config = loadConfig(configDir);
   if (config.resultType !== 'success') return null;
   if (Object.keys(config.paths).length === 0) return null;
-  return createMatchPath(config.absoluteBaseUrl, config.paths);
+  // Without a `baseUrl`, `paths` are the only aliases: tsconfig-paths would
+  // otherwise add a match-all that maps any bare specifier into the tsconfig's
+  // own directory.
+  return createMatchPath(config.absoluteBaseUrl, config.paths, undefined, config.addMatchAll);
 }
 
 // ---------------------------------------------------------------------------

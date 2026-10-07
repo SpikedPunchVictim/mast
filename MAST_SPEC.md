@@ -2808,10 +2808,21 @@ file-first, which is what tsc does.
 
 **1. tsconfig `paths` aliases** (e.g. `@api/types` → `./src/types/index.ts`)
 
-Read the nearest `tsconfig.json` at `mast init` time using `tsconfig-paths`. Build a
-resolver function `resolveAlias(alias: string, fromFile: string): string | null` that
-is passed into Phase 1 and used wherever `resolved_path` is written to the `imports`
-table.
+Aliases are read with `tsconfig-paths` and chosen per importing file: the nearest
+`tsconfig.json` at or above the file's directory that declares `paths`, up to the
+project root. A monorepo's root `tsconfig.json` often holds only `references` while
+each package maps the same alias (`@/*`) to its own sources, so one matcher for the
+whole project resolves none of them (`docs/defects/LEDGER.md` D087). The result is
+used wherever `resolved_path` is written to the `imports` table.
+
+This is nearer to the compiler's rule, not the same:
+
+- The compiler asks which tsconfig *includes* the file. mast asks which is nearest.
+- A `tsconfig.json` with no `paths` (after `extends`) is passed over for the next one
+  up. The compiler would stop there.
+- Only files named `tsconfig.json` are read, not `tsconfig.build.json` or others.
+- Matchers are built once per process, so `mast serve` does not see an edited
+  `tsconfig.json` until it restarts.
 
 **2. pnpm workspace package names** (e.g. `@kluster-kinetic-01/shared`)
 

@@ -1,0 +1,20 @@
+13:32  up 12 days,  1:41, 2 users, load averages: 30.69 27.79 21.74
+old files: 13985 indexed, 0 skipped  chunks: +73359 -0  duration: 373600ms
+old real 375.69
+old user 77.39
+old sys 54.62
+13:38  up 12 days,  1:47, 2 users, load averages: 34.08 30.34 24.69
+new files: 13843 indexed, 0 skipped  chunks: +72601 -0  duration: 266958ms  parse_errors: 138  write_errors: 4
+new real 269.15
+new user 69.56
+new sys 46.01
+13:42  up 12 days,  1:52, 2 users, load averages: 31.92 31.88 26.88
+old files: 13985 indexed, 0 skipped  chunks: +73359 -0  duration: 139589ms
+old real 140.85
+old user 61.27
+old sys 33.08
+13:45  up 12 days,  1:54, 2 users, load averages: 19.83 27.11 25.72
+new files: 13985 indexed, 0 skipped  chunks: +73359 -0  duration: 175538ms
+new real 176.61
+new user 63.96
+new sys 36.38

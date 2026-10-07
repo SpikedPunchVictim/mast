@@ -47,6 +47,62 @@ describe('import resolver (§13.7)', () => {
     expect(r).toEqual({ resolvedPath: 'src/types.ts', isExternal: false });
   });
 
+  // D087. A monorepo's root tsconfig.json often holds only `references`, and
+  // each package declares its own aliases, usually the same `@/*`.
+  it('resolves an alias declared only in the importing package\'s tsconfig.json', () => {
+    write(root, 'tsconfig.json', JSON.stringify({ references: [{ path: './packages/app' }] }));
+    write(root, 'packages/app/tsconfig.json', JSON.stringify({
+      compilerOptions: { paths: { '@/*': ['./src/*'] } },
+    }));
+    write(root, 'packages/app/src/lib/a.ts', 'export const fn = 1;');
+
+    const r = getImportResolver(root).resolve('@/lib/a', 'packages/app/src/zc.ts');
+
+    expect(r).toEqual({ resolvedPath: 'packages/app/src/lib/a.ts', isExternal: false });
+  });
+
+  it('resolves the same alias to each package\'s own target', () => {
+    for (const pkg of ['one', 'two']) {
+      write(root, `packages/${pkg}/tsconfig.json`, JSON.stringify({
+        compilerOptions: { paths: { '@/*': ['./src/*'] } },
+      }));
+      write(root, `packages/${pkg}/src/lib/a.ts`, 'export const fn = 1;');
+    }
+    const resolver = getImportResolver(root);
+
+    const one = resolver.resolve('@/lib/a', 'packages/one/src/deep/zc.ts');
+    const two = resolver.resolve('@/lib/a', 'packages/two/src/zc.ts');
+
+    expect(one.resolvedPath).toBe('packages/one/src/lib/a.ts');
+    expect(two.resolvedPath).toBe('packages/two/src/lib/a.ts');
+  });
+
+  it('uses the root alias for a file whose nearer tsconfig.json declares no paths', () => {
+    write(root, 'tsconfig.json', JSON.stringify({
+      compilerOptions: { baseUrl: '.', paths: { '@app/*': ['src/*'] } },
+    }));
+    write(root, 'src/tools/tsconfig.json', JSON.stringify({ compilerOptions: { strict: true } }));
+    write(root, 'src/types.ts', 'export type T = number;');
+
+    const r = getImportResolver(root).resolve('@app/types', 'src/tools/run.ts');
+
+    expect(r).toEqual({ resolvedPath: 'src/types.ts', isExternal: false });
+  });
+
+  // Before D087 only the root tsconfig.json was read. Reading every one on the
+  // way up must not let a broken fixture file take its directory out of the index.
+  it('passes over a tsconfig.json that does not parse', () => {
+    write(root, 'tsconfig.json', JSON.stringify({
+      compilerOptions: { baseUrl: '.', paths: { '@app/*': ['src/*'] } },
+    }));
+    write(root, 'src/broken/tsconfig.json', '{ "compilerOptions": ');
+    write(root, 'src/types.ts', 'export type T = number;');
+
+    const r = getImportResolver(root).resolve('@app/types', 'src/broken/run.ts');
+
+    expect(r).toEqual({ resolvedPath: 'src/types.ts', isExternal: false });
+  });
+
   it('resolves a pnpm workspace package (bare and subpath)', () => {
     write(root, 'pnpm-workspace.yaml', "packages:\n  - 'pkgs/*'\n");
     write(root, 'pkgs/shared/package.json', JSON.stringify({ name: '@scope/shared' }));

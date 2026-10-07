@@ -208,6 +208,43 @@ index with that commit's `dist/`.
 |---|---|---|---|---|---|---|---|
 | D097 (one row per declaration) | this repository | 15 functions → 0 | 705 | 751 | 705 | 0 | `s1-call-edges/mast.after-d097.summary.json` |
 | D097 | n8n `packages/core`, indexed alone | 12 functions → 0 | 558 | not re-run | not re-run | not re-run | none; counted with `sqlite3` |
+| D087 (aliases from the nearest tsconfig) | n8n `packages/core` inside the whole-monorepo index | 0 | 548 → 569 | 1,057 | 537 → 558 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-d087.summary.json` |
 
 D097 changes which row an edge sits on, not which edges exist, so the pair counts were
 expected to stay the same and did.
+
+### D087 on the whole n8n copy
+
+Full index of the copy at `9d9e9bf97e` (13,985 files), the build before the fix and the build
+with it, read with `sqlite3`:
+
+| | Before | After |
+|---|---|---|
+| Import rows whose module begins `@/`, unresolved | 4,834 of 4,834 | 0 of 4,834 |
+| `POTENTIAL_CALL` edges | 28,930 | 32,052 |
+| `field_type` | 2,709 | 4,401 |
+| `import` | 7,422 | 8,715 |
+| `parameter_type` | 298 | 424 |
+| `EXTENDS` / `IMPLEMENTS` | 870 / 632 | 899 / 656 |
+
+Only `packages/core` was judged against the checker: its 21 new edges all agree. The other
+3,101 new call edges were not judged.
+
+**Time.** `s1-call-edges/n8n-full-index-timing.sh` ran the two builds alternately, with the
+machine under other work (load average 20 to 34), output in
+`n8n-full-index-timing.d087.out.txt`:
+
+| Run | Build | Wall | User CPU | Sys CPU |
+|---|---|---|---|---|
+| 1 | before | 375.7 s | 77.4 s | 54.6 s |
+| 2 | after | 269.2 s | 69.6 s | 46.0 s |
+| 3 | before | 140.9 s | 61.3 s | 33.1 s |
+| 4 | after | 176.6 s | 64.0 s | 36.4 s |
+
+Wall time varies more between two runs of one build than between the builds, so this shows no
+cost and does not rule a small one out. It needs a quiet machine.
+
+**One run not explained.** Run 2 reported `13843 indexed`, `parse_errors: 138`,
+`write_errors: 4`. Its stderr was not kept. Four other runs of the same build on the same tree
+(one before it, run 4, and two afterwards with stderr kept and empty) indexed 13,985 files with
+no errors. Not known: whether the cause was the machine or the build.
