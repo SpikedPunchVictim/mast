@@ -24,6 +24,10 @@ export interface VerifiedCallerRow {
  * Returns direct or transitive verified callers of `symbolId` using a
  * recursive CTE over `POTENTIAL_CALL` edges. Only the verified set; the
  * `potential_matches` (identifier_fts) set is computed in `search/fts.ts`.
+ *
+ * For a class, the callers of its constructor are callers of the class: a
+ * `new X()` edge is stored on `X.constructor` when X declares one (§10.3.1),
+ * and "who uses X" has to find it.
  */
 export async function queryVerifiedCallers(
   db: Db,
@@ -36,6 +40,8 @@ export async function queryVerifiedCallers(
   const lineExpr = sql<number>`COALESCE(e.call_line, s.line)`.as('line');
   const contextExpr = sql<string>`COALESCE(e.context, '')`.as('context');
   const resolutionExpr = sql<string>`COALESCE(e.resolution, 'same_file')`.as('resolution');
+
+  const targetIds = [symbolId, ...(await constructorIdsOf(db, symbolId))];
 
   // Direct callers: no CTE needed — simple edge join.
   if (!transitive) {
@@ -50,7 +56,7 @@ export async function queryVerifiedCallers(
         contextExpr,
         resolutionExpr,
       ])
-      .where('e.to_id', '=', symbolId)
+      .where('e.to_id', 'in', targetIds)
       .where('e.edge_type', '=', EdgeType.POTENTIAL_CALL)
       .execute();
   }
@@ -64,7 +70,7 @@ export async function queryVerifiedCallers(
       qb
         .selectFrom('edges')
         .select(['from_id as id', 'call_line', 'context', 'resolution'])
-        .where('to_id', '=', symbolId)
+        .where('to_id', 'in', targetIds)
         .where('edge_type', '=', EdgeType.POTENTIAL_CALL)
         .union(
           // Recursive step: callers of callers.
@@ -86,6 +92,23 @@ export async function queryVerifiedCallers(
       sql<string>`COALESCE(c.resolution, 'same_file')`.as('resolution'),
     ])
     .execute();
+}
+
+/**
+ * The `constructor` symbol of the class `classId`, by its PARENT_OF edge.
+ * Empty when `classId` is not a class or the class declares no constructor.
+ */
+async function constructorIdsOf(db: Db, classId: number): Promise<readonly number[]> {
+  const rows = await db
+    .selectFrom('edges as e')
+    .innerJoin('symbols as owner', 'owner.id', 'e.from_id')
+    .innerJoin('symbols as member', 'member.id', 'e.to_id')
+    .select('member.id')
+    .where('e.from_id', '=', classId)
+    .where('e.edge_type', '=', EdgeType.PARENT_OF)
+    .where(sql<boolean>`member.name = owner.name || '.constructor'`)
+    .execute();
+  return rows.map((r) => r.id);
 }
 
 // ---------------------------------------------------------------------------

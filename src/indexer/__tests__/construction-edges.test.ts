@@ -1,6 +1,8 @@
 import { rmSync } from 'node:fs';
-import { afterEach, beforeEach, describe, it } from 'vitest';
-import { expectEdges, makeProject, writeFiles } from './graph-fixture.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { openDatabase } from '../../graph/db.js';
+import { querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
+import { configFor, expectEdges, indexFull, makeProject, writeFiles } from './graph-fixture.js';
 
 // ---------------------------------------------------------------------------
 // `new X()` is a call of X's constructor.
@@ -75,5 +77,54 @@ export function build(): Plain { return new Plain(); }
     });
 
     await expectEdges(projectDir, []);
+  });
+
+  // The edge sits on the constructor, and a reader asks about the class: "who
+  // uses `WithCtor`" before renaming it. Without this the answer was 0
+  // verified, with every `new WithCtor()` left in the unverified set.
+  describe('callers of the class', () => {
+    async function callersOf(name: string, transitive: boolean): Promise<readonly string[]> {
+      await indexFull(projectDir);
+      const db = openDatabase(configFor(projectDir).resolved_state_dir);
+      try {
+        const [target] = await querySymbolByName(db, name);
+        if (target === undefined) throw new Error(`no symbol ${name}`);
+        const rows = await queryVerifiedCallers(db, target.id, transitive);
+        return rows.map((r) => `${r.caller_symbol} [${r.resolution}]`).sort();
+      } finally {
+        await db.destroy();
+      }
+    }
+
+    beforeEach(() => {
+      writeFiles(projectDir, {
+        'src/a.ts': `export class WithCtor {
+  constructor(readonly n: number) {}
+  double(): number { return this.n * 2; }
+}
+`,
+        'src/z.ts': `import { WithCtor } from './a.js';
+export function build(): WithCtor { return new WithCtor(1); }
+export function outer(): WithCtor { return build(); }
+export function use(w: WithCtor): number { return w.double(); }
+`,
+      });
+    });
+
+    it('include the callers of its constructor', async () => {
+      expect(await callersOf('WithCtor', false)).toEqual(['build [construction]']);
+    });
+
+    it('include them when walking callers of callers', async () => {
+      expect(await callersOf('WithCtor', true)).toEqual(['build [construction]', 'outer [same_file]']);
+    });
+
+    it('do not include the callers of its other methods', async () => {
+      expect(await callersOf('WithCtor', false)).not.toContain('use [parameter_type]');
+    });
+
+    it('leave the callers of the constructor itself as they were', async () => {
+      expect(await callersOf('WithCtor.constructor', false)).toEqual(['build [construction]']);
+    });
   });
 });

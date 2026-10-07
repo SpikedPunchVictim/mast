@@ -2291,6 +2291,11 @@ made when the edge is written (`resolveCallTarget`). `new a.B()` and any other
 non-identifier callee get no edge. This is separate from `new_expression`, which
 is a method call on a value bound by `const x = new X()`.
 
+`mast_callers` and `mast_rename_impact` asked about a class return the callers
+of its constructor with the callers of the class (`queryVerifiedCallers`
+follows the class's PARENT_OF edge to `X.constructor`). The callers of its
+other methods are not included; they are asked for by `X.method`.
+
 (Non-normative, D7/Stage 4) `extractEdges`/`emitCallEdges` also accept an optional
 `onCallSite` diagnostics callback, invoked once per visited call site with a closed
 outcome union; it exists solely as a test seam for `call-oracle.test.ts`'s corpus
