@@ -239,10 +239,16 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
       `${configFile}: include_dot_dirs must be an array of directory paths, such as [".agents"]`,
     );
   }
+  // The saved config supplies the key when the project file leaves it out, so
+  // the message names whichever file the entries came from.
+  const includeDotDirsSource =
+    fileConfig.include_dot_dirs === undefined && stateConfig.include_dot_dirs !== undefined
+      ? join(resolvedStateDir, 'config.json')
+      : configFile;
 
   return {
     ...merged,
-    include_dot_dirs: normalizeDotDirs(includeDotDirs),
+    include_dot_dirs: normalizeDotDirs(includeDotDirs, includeDotDirsSource),
     state_dir: stateDir,
     project_root: resolvedProjectRoot,
     resolved_state_dir: resolvedStateDir,

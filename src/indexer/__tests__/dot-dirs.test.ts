@@ -207,7 +207,11 @@ describe('normalizeDotDirs', () => {
     ['an empty entry', ''],
     ['a directory with no dot-leading segment', 'docs/internal'],
     ['a backslash, which fast-glob reads as an escape', '.b\\c'],
-    ['surrounding whitespace', ' .agents'],
+    ['a pipe, which fast-glob reads as alternation', '.a|b'],
+    ['leading whitespace', ' .agents'],
+    // Trailing is the case only the whitespace rule rejects: a leading space also
+    // leaves the entry with no dot-leading segment.
+    ['trailing whitespace', '.agents '],
   ])('rejects %s (%j)', (_label, entry) => {
     expect(() => normalizeDotDirs([entry])).toThrow(InvalidDotDirError);
   });

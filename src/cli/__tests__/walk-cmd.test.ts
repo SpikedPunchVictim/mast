@@ -70,6 +70,22 @@ describe('buildWalkReport', () => {
     expect(report.include_dot_dirs[0]).toEqual({ directory: '.agents', status: 'walked', files: 1 });
   });
 
+  /**
+   * Two entries can sit above the same file. Only the one that makes the walk
+   * reach it is `walked`; the outer one would otherwise look like it works, and
+   * turn `empty` the day the inner entry is removed.
+   */
+  it('does not credit an entry with files only a deeper entry brings in', async () => {
+    const dir = project(['.a/mid/.deep/n.md'], { include_dot_dirs: ['.a/mid/.deep', '.a/mid'] });
+
+    const report = await buildWalkReport({ path: dir });
+
+    expect(report.include_dot_dirs).toEqual([
+      { directory: '.a/mid/.deep', status: 'walked', files: 1 },
+      { directory: '.a/mid', status: 'empty', files: 0 },
+    ]);
+  });
+
   it('says when an include_dot_dirs entry is not a directory on disk', async () => {
     const report = await buildWalkReport({ path: project(FILES, { include_dot_dirs: ['.agnets'] }) });
 
@@ -175,6 +191,19 @@ describe('formatWalkReport', () => {
     expect(formatWalkReport(report, { files: false })).toContain('! .agnets: no directory of exactly this name');
   });
 
+  it.each([
+    ['.assets', 'a directory, but nothing in it was walked'],
+    ['.linked', 'reached through a symbolic link'],
+    ['.agents/notes/plan.md', 'a file, not a directory'],
+  ])('explains why %s contributed nothing', async (entry, explanation) => {
+    const dir = project([...FILES, '.assets/logo.png'], { include_dot_dirs: [entry] });
+    symlinkSync(join(dir, '.agents'), join(dir, '.linked'));
+
+    const text = formatWalkReport(await buildWalkReport({ path: dir }), { files: false });
+
+    expect(text).toContain(`! ${entry}: ${explanation}`);
+  });
+
   it('prints files instead of directories when asked', async () => {
     const report = await buildWalkReport({ path: project(FILES) });
 
@@ -189,16 +218,20 @@ describe('formatWalkReport', () => {
  * usage error, 1 for a config or path the walk cannot use.
  */
 describe('mast walk exit codes', () => {
-  async function exitCodeOf(args: readonly string[]): Promise<typeof process.exitCode> {
+  async function run(args: readonly string[]): Promise<{ exitCode: typeof process.exitCode; stderr: string }> {
     const stderrWrite = process.stderr.write.bind(process.stderr);
     const previous = process.exitCode;
+    let stderr = '';
     process.exitCode = undefined;
-    process.stderr.write = () => true;
+    process.stderr.write = (chunk: string | Uint8Array) => {
+      stderr += String(chunk);
+      return true;
+    };
     try {
       const program = new Command().exitOverride();
       registerWalkCommand(program);
       await program.parseAsync(['node', 'mast', 'walk', ...args]);
-      return process.exitCode;
+      return { exitCode: process.exitCode, stderr };
     } finally {
       process.stderr.write = stderrWrite;
       process.exitCode = previous;
@@ -206,14 +239,20 @@ describe('mast walk exit codes', () => {
   }
 
   it('exits 2 for a --depth that is not a whole number of 1 or more', async () => {
-    expect(await exitCodeOf([project(FILES), '--depth', '0'])).toBe(2);
+    expect((await run([project(FILES), '--depth', '0'])).exitCode).toBe(2);
   });
 
   it('exits 1 for a config it rejects', async () => {
-    expect(await exitCodeOf([project(FILES, { include_dot_dirs: ['.agents/*'] })])).toBe(1);
+    expect((await run([project(FILES, { include_dot_dirs: ['.agents/*'] })])).exitCode).toBe(1);
+  });
+
+  it('says on stderr, in one line, why it rejected the config', async () => {
+    const { stderr } = await run([project(FILES, { include_dot_dirs: ['.agents/*'] })]);
+
+    expect(stderr).toMatch(/^mast walk: .*include_dot_dirs: "\.agents\/\*" contains a glob character.*\n$/);
   });
 
   it('exits 1 for a project path that does not exist', async () => {
-    expect(await exitCodeOf([join(project(FILES), 'no-such-dir')])).toBe(1);
+    expect((await run([join(project(FILES), 'no-such-dir')])).exitCode).toBe(1);
   });
 });

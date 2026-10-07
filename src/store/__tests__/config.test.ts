@@ -260,6 +260,23 @@ describe('resolveConfig — include_dot_dirs', () => {
     expect(() => resolveWith({ include_dot_dirs: '.agents' })).toThrow(/mast\.config\.json: include_dot_dirs must be an array/);
   });
 
+  it('names mast.config.json when the rejected entry came from it', () => {
+    expect(() => resolveWith({ include_dot_dirs: ['docs'] })).toThrow(/mast\.config\.json: include_dot_dirs: "docs"/);
+  });
+
+  /**
+   * The saved config supplies the key when the project file leaves it out, so a
+   * rejected entry can come from a file the user never edited. The message has
+   * to point there, or they search `mast.config.json` for an entry it lacks.
+   */
+  it('names the saved state config when the rejected entry came from it', () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-config-dot-'));
+    const first = resolveConfig({ projectRoot: tmpDir });
+    writeStateConfig(first.resolved_state_dir, { ...first, include_dot_dirs: ['docs'] });
+
+    expect(() => resolveConfig({ projectRoot: tmpDir })).toThrow(/\.mast\/config\.json: include_dot_dirs: "docs"/);
+  });
+
   it('reads the key back from a persisted state config', () => {
     tmpDir = mkdtempSync(join(tmpdir(), 'mast-config-dot-'));
     const first = resolveConfig({ projectRoot: tmpDir });

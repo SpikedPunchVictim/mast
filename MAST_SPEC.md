@@ -143,8 +143,8 @@ skipped, inside a listed directory too. Each entry is a directory path relative 
 `packages/app/.storybook`), not a glob; it is walked recursively, a dot directory nested
 inside it needs its own entry, and `exclude_patterns` still applies. Entries are
 normalised on resolution (a leading `./` and trailing slashes are dropped) and resolution
-throws for one that is empty, absolute, padded with whitespace, contains `..`, a glob
-character or a backslash, or has no dot-leading segment. Symbolic links are not followed,
+throws for one that is empty, absolute, padded with whitespace, has a `..` segment, contains
+a glob character, a pipe or a backslash, or has no dot-leading segment. Symbolic links are not followed,
 so an entry that is one, or sits behind one, walks nothing. The default is empty.
 
 `markdown_heading_depth` is the maximum ATX heading level that starts a new `doc`

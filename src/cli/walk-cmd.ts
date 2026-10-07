@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { Command } from 'commander';
 import { resolveConfig } from '../store/config.js';
 import { walkProject } from '../indexer/walker.js';
+import { isFileInDotScope } from '../indexer/scope.js';
 
 export interface WalkedDirectory {
   /** Project-relative directory, `.` for the project root. */
@@ -16,7 +17,7 @@ export interface WalkedDirectory {
  * several causes that want different fixes, and one message for all of them
  * sends the reader to the wrong one.
  *
- * - `walked`: at least one file below it was walked.
+ * - `walked`: it brought at least one file into the walk.
  * - `empty`: a real directory of exactly this name, with nothing walked below it.
  * - `missing`: no entry of exactly this name. Names are compared exactly, as the
  *   walk compares them, so `.Agents` is missing beside `.agents` even on a
@@ -29,7 +30,10 @@ export type IncludedDotDirStatus = 'walked' | 'empty' | 'missing' | 'symlink' | 
 export interface IncludedDotDir {
   readonly directory: string;
   readonly status: IncludedDotDirStatus;
-  /** Walked files below it. */
+  /**
+   * Walked files this entry brings in: below it, with no further dot directory
+   * in between. A file below it that only a deeper entry reaches is not counted.
+   */
   readonly files: number;
 }
 
@@ -112,7 +116,9 @@ export async function buildWalkReport(
     file_extensions: config.file_extensions,
     exclude_patterns: config.exclude_patterns,
     include_dot_dirs: config.include_dot_dirs.map((directory) => {
-      const count = files.filter((file) => file.startsWith(`${directory}/`)).length;
+      const count = files.filter(
+        (file) => file.startsWith(`${directory}/`) && isFileInDotScope(file, [directory]),
+      ).length;
       return {
         directory,
         status: count > 0 ? 'walked' : statusOfUnwalked(config.resolved_project_root, directory),

@@ -9,9 +9,9 @@
 
 /** Thrown for an `include_dot_dirs` entry that cannot name a directory inside the project. */
 export class InvalidDotDirError extends Error {
-  constructor(entry: string, reason: string) {
+  constructor(entry: string, reason: string, source?: string) {
     super(
-      `include_dot_dirs: ${JSON.stringify(entry)} ${reason}. ` +
+      `${source === undefined ? '' : `${source}: `}include_dot_dirs: ${JSON.stringify(entry)} ${reason}. ` +
         'Each entry is a directory path relative to the project root, such as ".agents" or "packages/app/.storybook".',
     );
     this.name = 'InvalidDotDirError';
@@ -19,7 +19,9 @@ export class InvalidDotDirError extends Error {
 }
 
 // The backslash is fast-glob's escape character: `.b\c` would be walked as `.bc`.
-const GLOB_CHARACTERS = /[*?[\]{}!()\\]/;
+// A pipe is alternation: `.a|b` matches no directory of that name, while the
+// predicates below, which compare strings, would say its files are in scope.
+const GLOB_CHARACTERS = /[*?[\]{}!()|\\]/;
 
 function isDotSegment(segment: string): boolean {
   return segment.startsWith('.');
@@ -34,26 +36,26 @@ function isDotSegment(segment: string): boolean {
  * reading it tells you exactly which dot directories are indexed.
  *
  * @throws InvalidDotDirError for an entry that is empty, absolute, padded with
- * whitespace, leaves the project root, contains a glob character or a backslash,
+ * whitespace, leaves the project root, contains a glob character, a pipe or a backslash,
  * or has no dot-leading segment (such a directory is walked already, so listing
  * it would silently do nothing). A directory whose real name contains one of
- * those characters cannot be listed.
+ * those characters cannot be listed. `source`, the file the entries were read
+ * from, leads the message when given.
  */
-export function normalizeDotDirs(entries: readonly string[]): readonly string[] {
+export function normalizeDotDirs(entries: readonly string[], source?: string): readonly string[] {
+  const reject = (entry: string, reason: string): never => {
+    throw new InvalidDotDirError(entry, reason, source);
+  };
   const normalized: string[] = [];
   for (const entry of entries) {
-    if (entry !== entry.trim()) throw new InvalidDotDirError(entry, 'has leading or trailing whitespace');
-    if (entry.startsWith('/')) throw new InvalidDotDirError(entry, 'is an absolute path');
-    if (GLOB_CHARACTERS.test(entry)) {
-      throw new InvalidDotDirError(entry, 'contains a glob character or a backslash');
-    }
+    if (entry !== entry.trim()) reject(entry, 'has leading or trailing whitespace');
+    if (entry.startsWith('/')) reject(entry, 'is an absolute path');
+    if (GLOB_CHARACTERS.test(entry)) reject(entry, 'contains a glob character, a pipe or a backslash');
 
     const segments = entry.split('/').filter((segment) => segment !== '' && segment !== '.');
-    if (segments.length === 0) throw new InvalidDotDirError(entry, 'names no directory');
-    if (segments.includes('..')) throw new InvalidDotDirError(entry, 'leaves the project root');
-    if (!segments.some(isDotSegment)) {
-      throw new InvalidDotDirError(entry, 'has no dot-leading segment, so it is walked already');
-    }
+    if (segments.length === 0) reject(entry, 'names no directory');
+    if (segments.includes('..')) reject(entry, 'leaves the project root');
+    if (!segments.some(isDotSegment)) reject(entry, 'has no dot-leading segment, so it is walked already');
 
     const dir = segments.join('/');
     if (!normalized.includes(dir)) normalized.push(dir);

@@ -50,19 +50,23 @@ default empty.
   the behaviour wanted: naming `.claude` should not pull in `.claude/.something` unasked.
 - **`exclude_patterns` still applies** inside a named directory.
 - **The key is validated when config is resolved**, unlike the rest of `mast.config.json`.
-  An entry that is empty, absolute, contains `..` or a glob character, or has no
-  dot-leading segment throws. Unvalidated, such an entry is a pattern that matches
+  An entry throws when it is empty, absolute, padded with whitespace, has a `..` segment
+  (`..scratch` is a name and is accepted), contains a glob character, a pipe or a
+  backslash, or has no dot-leading segment. The message names the file the entry came
+  from, `mast.config.json` or the saved `<state_dir>/config.json`. Unvalidated, such an entry is a pattern that matches
   nothing, and the result is the silent state this ADR started from.
 - **One statement of the rule.** `src/indexer/scope.ts` builds the walker's patterns and
   holds the per-path predicates watch mode uses. `dot-dirs.test.ts` compares the
-  predicates with fast-glob's answer on a real tree for five configurations.
+  predicates with fast-glob's answer on a real tree for six configurations.
 - **The watcher prunes dot directories that are not named.** This changes behaviour for
   every project, not only those that set the key: `.git` and its like no longer get an OS
   watch. It removes work that produced nothing.
 - **`mast walk`** prints what the resolved config walks, by directory, without an index.
   It calls `walkProject`, so it cannot disagree with `mast index`. An entry that
-  contributed no files is flagged, and the flag separates "no such directory" from "exists,
-  nothing in it is walkable".
+  brought no file into the walk is flagged with which of four causes applies: no
+  directory of exactly that name, a symbolic link, a file, or a directory with nothing
+  walkable in it. A file is credited to the entry that makes the walk reach it, so an
+  entry above a deeper named one is not shown as working on the deeper one's files.
 - **The empty-result text** of `mast search`, `mast docs signals` and `mast skill` now
   says dot directories are skipped unless named.
 
@@ -93,13 +97,28 @@ re-run by the author.
   mismatch predates this ADR for ordinary directories; naming `.claude`, where linked
   skill directories are common, makes it likelier. `mast walk` reports an entry that is
   itself a link; it does not detect links further down.
-- **A rejected entry is a stack trace outside `mast walk`.** `status`, `index`, `init`,
-  `prime`, `metrics` and `serve` do not catch `InvalidDotDirError`, so one bad entry
-  stops the MCP server from starting, with the message inside a Node stack trace. The
-  CLI has no top-level error handler; adding one is a separate decision.
+- **A rejected entry is a stack trace in most commands.** **Measured** with
+  `[".agents/*"]`: `status`, `index`, `prime` and `metrics` print the message inside a
+  Node stack trace, and `search` prints it as one line. **Reported by the reviews, not
+  re-run by the author:** `init` and `serve` also print a stack trace, so one bad entry
+  stops the MCP server from starting; `query` and `hook claude session-start` print one
+  line; `skill`, `setup` and `hook claude search` exit 0 without mentioning it. The CLI
+  has no top-level error handler; adding one is a separate decision.
 - **A malformed value in `<state_dir>/config.json`** (a string where an array belongs)
   is dropped without a message, as every key read from that file is.
-- A directory whose real name contains a glob character or a backslash cannot be listed.
+- A directory whose real name contains a glob character, a pipe or a backslash cannot be
+  listed. The rejected characters are a hand-written list checked against fast-glob by
+  trying names, not derived from it: a second review tried
+  `+ # ^ $ @ , & : ~ % ' <`, a space, a tab and a newline and all were walked.
+- **An entry that is valid but can never match** is accepted: `.mast` and `.next` (both
+  in the default `exclude_patterns`), or `~/.agents`. Only `mast walk` shows it, as
+  `empty` or `missing`. A name that differs from the disk in Unicode normalisation is
+  reported `missing` with advice about spelling and case only.
+- **A named dot directory mast cannot read** stops the walk with `EACCES`, as an
+  unreadable ordinary directory does. Reported by the second review for `walkProject` and
+  `mast walk`; not run against `mast index`.
+- **The watcher and the walker still disagree in one place this ADR did not touch**: a
+  custom `state_dir` whose name has no leading dot is walked and never watched (D076).
 - The search-reminder hook (`mast hook <harness> search`) decides by extension only. A
   Grep scoped to a dot directory that is not indexed is still reminded about
   `mast_search`.

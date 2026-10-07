@@ -261,6 +261,17 @@ describe('findUnwatchedEntries', () => {
     expect(result.files).toEqual(['/proj/missed.ts']);
   });
 
+  it('looks inside a watched directory whose name starts with two dots', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/proj/..scratch': [] },
+      projectRoot: root,
+      listDirectory: fakeDisk({ '/proj/..scratch': [file('missed.md')] }),
+      isIgnored: notIgnored,
+    });
+
+    expect(result.files).toEqual(['/proj/..scratch/missed.md']);
+  });
+
   it('does not report a file the watcher already knows', async () => {
     const result = await findUnwatchedEntries({
       watched: { '/proj': ['known.ts'] },
