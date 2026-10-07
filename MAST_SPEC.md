@@ -278,7 +278,7 @@ CREATE TABLE IF NOT EXISTS edges (
                       -- pass upgraded a heuristic-unresolved potential match via
                       -- the real TypeScript checker. 'this_method'/'super_method' (F4,
                       -- Stage 3) are additive values for `this.foo()`/`super.foo()`
-                      -- call sites — see §10.3.1's "Method calls on super and this".
+                      -- call sites — see §10.3.1, cases 7 and 8.
                       -- 'construction' is `new X()`: the edge goes to X's
                       -- `constructor` symbol when the class declares one and to
                       -- the class otherwise. 'static_method' is `X.make()` on a
@@ -2217,6 +2217,18 @@ the indexer.
    block (or until shadowed) and resolves the chained call.
 6. **Same-file function calls.** A function calling another function in the same file
    resolves directly via the local `symbols` table.
+7. **`this.m()`.** To `m` on the enclosing class, and, when the class does not declare
+   `m`, to `m` on the class named in its `extends` clause. One step up, no further.
+8. **`super.m()`.** To `m` on the class named in the `extends` clause. One step up.
+9. **Construction.** `new UserRepository()` → the class's `constructor` when it declares
+   one, the class otherwise.
+10. **Static calls.** `UserRepository.create()` where `UserRepository` is a name the file
+    imports or declares → the symbol `UserRepository.create`, if the declaring file has it.
+
+In every case the callee's file is found from the calling file's own evidence: a named
+import, followed through re-exporting index files to the declaration, or a declaration
+in the same file. A call is read wherever it sits in the declaration: nested functions,
+object-literal methods, parameter defaults and class field initializers included.
 
 **What the resolver does NOT catch (will NOT produce a `POTENTIAL_CALL` edge — but
 the identifier match still lands in `identifier_fts` and surfaces as
@@ -2233,6 +2245,20 @@ the identifier match still lands in `identifier_fts` and surfaces as
   symbols are populated (see "Two-pass edge insertion" below).
 - **Generic type parameters.** `class Repo<T> { find(id: ID): T }` — the resolver
   treats `T` as opaque.
+- **A method declared above the direct parent.** `this.m()` or `super.m()` where `m` is
+  two or more classes up; and `repo.find()` where `repo: SubRepository` and `find` is
+  declared on the class `SubRepository` extends. A static method the class inherits
+  (`SubRepository.create()`) likewise.
+- **A receiver annotated with a union.** `function f(repo: UserRepository | undefined) {
+  repo?.find() }`.
+- **An element or property of a typed value.** `repos[0].find()`, `this.ctx.repo.find()`.
+- **Default and namespace imports.** `import Repo from './repo'` and `import * as lib
+  from './lib'; lib.Repo.create()` — only named imports are tracked. An aliased named
+  import (`import { Repo as R }`) is in the same position.
+
+Each of the last four was run on a scratch project on 2026-10-07 and stored no edge. What
+the list covers, and what it misses, is measured against the TypeScript checker in
+`adr/proposals/graph-reference/spikes/RESULTS.md`.
 
 **F5 honesty note on "still lands in `identifier_fts`" above.** That claim was
 historically true only for BARE identifier tokens (e.g. `findById`), which
@@ -2255,9 +2281,12 @@ edges use) succeeded, not whether the edge survived to `graph.db`:
     fix's; F5 deliberately does not attempt to guess a qualified name for an
     unresolvable receiver.
 
-**Coverage characterisation.** In a Fastify + DI service codebase, the resolver
-catches roughly the field/parameter/import cases — typically 60–80% of real call
-sites depending on how heavily the codebase uses factories and containers. The
+**Coverage characterisation.** Measured against the TypeScript checker on 2026-10-07,
+counting pairs of caller and callee where both are declarations mast indexes: 751 of 769
+on this repository and 907 of 1,057 on n8n `packages/core`, with no edge on a
+declaration other than the checker's in either (`RESULTS.md`, as above). Two corpora;
+a codebase built on a DI container or on factories without annotations will be lower,
+and by how much is not measured. The
 intentional design choice is: when in doubt, do NOT produce a `POTENTIAL_CALL` edge,
 and rely on `identifier_fts` + the `mast_callers` `potential_matches` set to catch
 the rest. False negatives in the verified set are acceptable; false positives would
@@ -2273,7 +2302,9 @@ file references resolve correctly.
 
 **Method calls on `super` and `this` without receiver.** `this.foo()` resolves to
 the enclosing class's `foo` method via the qualified `symbols` row. `super.foo()`
-resolves to the parent class via the `EXTENDS` edge. Implemented as ordinary
+resolves to `foo` on the class named in the `extends` clause, found through the
+file's imports or declarations as any receiver type is; the stored `EXTENDS` edge
+is not read. Implemented as ordinary
 receiver bindings (F4, Stage 3): `emitClassEdges` seeds `this` → the enclosing
 class name and, only when an `extends` clause names a parent, `super` → that
 parent's name, riding the same `LocalTypeEnvironment` receiver-binding path
