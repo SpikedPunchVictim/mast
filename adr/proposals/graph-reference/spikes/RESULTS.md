@@ -82,6 +82,32 @@ Counting the 2 accessor pairs as held, mast stores 549 of the 701 pairs (78%) an
 with no wrong edge. 20
 pairs are ones the spec claims; the rest are outside it or not stated.
 
+### n8n `packages/core` inside the whole-monorepo index, with its dependencies built
+
+Decided 2026-10-07 (user): judge edges between packages. The packages `n8n-core` depends on
+were built in the copy (`pnpm --filter "n8n-core^..." run build`, with pnpm 10 first on the
+`PATH`: a nested `pnpm compile` otherwise picks up the machine's pnpm 9 and fails silently).
+Only `n8n-workflow` emits declaration maps, so build output alone cannot be joined to source
+rows. The script therefore maps each of the 52 workspace packages by name to its `src/`
+(`WORKSPACE_SRC=1`). mast indexed the whole copy (13,985 files, 28,930 call edges, 88 s on a
+loaded machine); calls are read from `packages/core/`. Raw:
+`s1-call-edges/n8n-core-in-monorepo.json`.
+
+| | Result (measured) |
+|---|---|
+| Unjudgeable | 18 of 3,419 calls get no symbol (900 before). |
+| Edges from core | 548, against 558 when core is indexed alone: 4 `field_type`, 5 `import` and 1 `new_expression` fewer. Not read; D087 (`paths` taken from the root tsconfig only) fits. |
+| Wrong edges | **0 of 548**, 11 of them into another package. |
+| Pairs the checker supports | 1,057. mast holds 537 of them (its other 11 are the self-calls and accessor pairs as before) and lacks **520**. |
+| Of the 520, into core | 205 (154 when core's imports did not resolve; the floor moved as expected). |
+| Of the 520, into another package | **315**, against 11 held. 232 are into `n8n-workflow`, 56 into `@n8n/backend-common`. By shape: 118 constructions, 73 plain calls of an imported function (`jsonParse` from `'n8n-workflow'`), 62 method calls on an annotated field or parameter, the rest property chains and inferred types. |
+
+So across package boundaries mast stores about 3% of the calls the checker supports (11 of
+326). Every one of these imports goes through a package's index file, which re-exports. That
+is the directory-index gap of the fixtures below, at the size of a package. The cause on
+n8n is inferred from that fixture, not separately isolated: a package name also has to be
+resolved to its source, and the two were not separated here.
+
 ### Fixtures (`s1-call-edges/fixtures.sh`, output `fixtures.out.txt`)
 
 Two small projects, to separate causes the n8n rows only suggest. Measured:
@@ -125,10 +151,9 @@ found.
 
 ### Limits
 
-- Two corpora, one package of the second. No edge between two n8n packages was judged:
-  `packages/core` was indexed alone, and its imports of other workspace packages do not
-  resolve without a build. A call through an error-typed receiver cannot be counted as
-  missing, so 154 is a floor for this package.
+- Two corpora, and calls read from one package of the second. Calls into other n8n packages
+  were judged with package names mapped to source, which is a choice of the script: the
+  compiler itself would resolve them to build output.
 - The n8n clone lives in a job temp directory and is not kept. The raw output is; the
   commands above rebuild the rest.
 - The raw files for this repository were regenerated after the script gained the Q5 and
@@ -144,7 +169,7 @@ found.
 ## S2 — the branch's commits replayed under a running `mast serve` (`s2-watcher-replay/`)
 
 Question: why did the index the MCP server kept hold 65 fewer `import` edges than a full
-index? Run 2026-10-07. Script `watch-replay.sh`, output `watch-replay.log`.
+index? Run 2026-10-07. Script `watch-replay.sh`, output `watch-replay.out.txt`.
 
 What was found first (measured, `ps`): a `mast serve` for this repository, pid 31197, had been
 running since 2026-10-06 18:59:54. HEAD at that moment was `c8021eb`. A server keeps the code

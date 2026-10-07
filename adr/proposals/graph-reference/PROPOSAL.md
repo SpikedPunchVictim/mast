@@ -123,12 +123,11 @@ Thought through, not to be built unless a spike result asks for it.
    the two ADR 010 re-measurements is the order already agreed, but the size is unknown.
 3. Whether the `README.md:907` claim is reworded now, on D096 alone, or after Q3.
 
-4. Whether to judge edges between n8n packages. That needs either a build of the workspace
-   packages in the copy, or a reference that maps each package name to its source. Neither
-   is done; `packages/core` alone left 878 of 3,419 calls untyped for this reason.
-5. What to do with D097, D098 and D099, and with the gaps the spec does not claim
-   (construction, inherited `this.m()`, static calls, classes reached through a directory
-   index).
+4. ~~Whether to judge edges between n8n packages.~~ **Decided 2026-10-07 (user): yes, build
+   what is needed.** Done; see the results.
+5. ~~What to do with D097, D098 and D099, and with the gaps the spec does not claim.~~
+   **Decided 2026-10-07 (user): fix all of them**, the unclaimed gaps included (construction,
+   inherited `this.m()`, static calls, classes reached through a directory index).
 
 ## Method
 

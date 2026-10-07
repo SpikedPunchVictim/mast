@@ -5,12 +5,16 @@
  *
  *   node reference.mjs <project-root> <tsconfig.json> <graph.db> <out.json> [path-prefix]
  *
+ * With WORKSPACE_SRC=1 in the environment, every workspace package under <project-root>/packages
+ * is mapped by name to its `src/` through `paths`, so a call into another package resolves
+ * to the source declaration mast indexed and not to build output.
+ *
  * Reads the graph read-only. Writes only <out.json>. Imports nothing from mast: the
  * program is built over the TypeScript files mast indexed (under `path-prefix`, if given),
  * with the compiler options of the named tsconfig.
  */
 import { createRequire } from 'node:module';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 const require = createRequire(import.meta.url);
@@ -29,6 +33,8 @@ const started = Date.now();
 const db = new Database(resolve(dbArg), { readonly: true });
 const files = db.prepare("SELECT id, path FROM files WHERE language IN ('typescript') AND path LIKE ?").all(`${prefix}%`);
 const fileIds = new Set(files.map((f) => f.id));
+// Calls are read from the files under the prefix; a callee may be declared in any indexed file.
+const allIndexedPaths = new Set(db.prepare('SELECT path FROM files').all().map((f) => f.path));
 const symbols = db.prepare('SELECT s.id, s.name, s.kind, s.line, f.path FROM symbols s JOIN files f ON f.id = s.file_id').all();
 const symbolAt = new Map(); // "path:line" -> symbols declared there
 for (const s of symbols) {
@@ -72,6 +78,22 @@ const configPath = resolve(tsconfigArg);
 const read = ts.readConfigFile(configPath, ts.sys.readFile);
 const parsed = ts.parseJsonConfigFileContent(read.config ?? {}, ts.sys, dirname(configPath));
 const configErrors = [...(read.error ? [read.error] : []), ...parsed.errors].map((d) => ts.flattenDiagnosticMessageText(d.messageText, ' '));
+const workspacePaths = {};
+if (process.env.WORKSPACE_SRC === '1') {
+  const dirs = [];
+  for (const d of readdirSync(join(root, 'packages'))) {
+    if (d.startsWith('@')) for (const e of readdirSync(join(root, 'packages', d))) dirs.push(join(root, 'packages', d, e));
+    else dirs.push(join(root, 'packages', d));
+  }
+  for (const dir of dirs) {
+    if (!existsSync(join(dir, 'package.json')) || !existsSync(join(dir, 'src'))) continue;
+    const name = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name;
+    if (!name) continue;
+    workspacePaths[name] = [join(dir, 'src', 'index.ts')];
+    workspacePaths[`${name}/*`] = [join(dir, 'src', '*')];
+  }
+  parsed.options.paths = { ...workspacePaths, ...(parsed.options.paths ?? {}) };
+}
 const rootNames = files.map((f) => join(root, f.path));
 const program = ts.createProgram({ rootNames, options: { ...parsed.options, noEmit: true } });
 const checker = program.getTypeChecker();
@@ -105,7 +127,7 @@ function symbolOfDecl(decl, wantName) {
   const path = rel(decl.getSourceFile().fileName);
   let found = null;
   let how = 'none';
-  if (!indexedPaths.has(path)) how = 'outside_indexed_files';
+  if (!allIndexedPaths.has(path)) how = 'outside_indexed_files';
   else if (!INDEXABLE.has(decl.kind)) how = 'not_indexable_kind';
   else {
     for (const [label, line] of declLines(decl)) {
@@ -307,6 +329,7 @@ const result = {
   tsconfig: rel(configPath),
   path_prefix: prefix,
   config_errors: configErrors,
+  workspace_packages_mapped_to_source: Object.keys(workspacePaths).filter((k) => !k.endsWith('/*')).length,
   indexed_typescript_files: files.length,
   program_source_files: program.getSourceFiles().length,
   calls_seen: calls.length,

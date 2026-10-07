@@ -1,0 +1,22 @@
+[old] start, full index at c8021eb:
+EXTENDS|3 IMPLEMENTS|5 PARENT_OF|35 RE_EXPORTS|10 import|244 new_expression|4 same_file|359 this_method|5 
+[old] after 16 checkouts under serve:
+EXTENDS|4 IMPLEMENTS|9 PARENT_OF|49 RE_EXPORTS|11 import|219 new_expression|7 parameter_type|5 same_file|395 super_method|1 this_method|8 
+[old] full index of the same tree:
+EXTENDS|6 IMPLEMENTS|9 PARENT_OF|49 RE_EXPORTS|13 import|289 new_expression|7 parameter_type|5 same_file|395 super_method|1 this_method|8 
+[old] in full, not in watched:       76   in watched, not in full:        2
+[old] serve stderr tail:
+[mast] watch: reindexing after 9 change(s)
+[mast] watch: reindexing after 3 change(s)
+[mast] watch: reindexing after 8 change(s)
+[new] start, full index at c8021eb:
+EXTENDS|3 IMPLEMENTS|5 PARENT_OF|35 RE_EXPORTS|10 import|244 new_expression|4 same_file|359 this_method|5 
+[new] after 16 checkouts under serve:
+EXTENDS|5 IMPLEMENTS|7 PARENT_OF|49 RE_EXPORTS|13 import|289 new_expression|7 parameter_type|5 same_file|395 super_method|1 this_method|8 
+[new] full index of the same tree:
+EXTENDS|5 IMPLEMENTS|7 PARENT_OF|49 RE_EXPORTS|13 import|289 new_expression|7 parameter_type|5 same_file|395 super_method|1 this_method|8 
+[new] in full, not in watched:        0   in watched, not in full:        0
+[new] serve stderr tail:
+[mast] watch: reindexing after 9 change(s)
+[mast] watch: reindexing after 3 change(s)
+[mast] watch: reindexing after 8 change(s)
