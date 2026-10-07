@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Command } from 'commander';
+import { UserError } from '../user-error.js';
 import { resolveConfig } from '../store/config.js';
 import { openDatabase } from '../graph/db.js';
 import {
@@ -167,6 +170,12 @@ export function registerMetricsCommand(program: Command): void {
       if (opts.locks === true) {
         printLocksReport(config.resolved_state_dir, opts.json === true);
         return;
+      }
+
+      // Opening creates the database, so a project that was never indexed would
+      // answer "no metrics" and keep an empty graph.db. `runQuery` guards the same way.
+      if (!existsSync(join(config.resolved_state_dir, 'graph.db'))) {
+        throw new UserError(`no index found at ${config.resolved_state_dir}; run \`mast init\` first`);
       }
 
       const db = openDatabase(config.resolved_state_dir);

@@ -198,6 +198,20 @@ describe('shouldWatchPath', () => {
     expect(shouldWatchPath(filter, '/proj/README.md')).toBe(true);
   });
 
+  /**
+   * "Inside the state directory" is true of every project file when the state
+   * directory is the project root or above it. Read literally, that turned
+   * watch mode off without a word; the walker indexes those files regardless.
+   */
+  it.each([
+    ['the project root', '/work/proj'],
+    ['a directory above the project root', '/work'],
+  ])('accepts a source file when the state directory is %s', (_label, stateDir) => {
+    const containing: WatchPathFilter = { ...filter, projectRoot: '/work/proj', stateDir };
+
+    expect(shouldWatchPath(containing, '/work/proj/src/index.ts')).toBe(true);
+  });
+
   it('rejects unwatched extensions', () => {
     expect(shouldWatchPath(filter, '/proj/image.png')).toBe(false);
   });
@@ -495,8 +509,11 @@ describe('startWatchMode — which directories it asks chokidar to ignore', () =
     rmSync(dir, { recursive: true, force: true });
   });
 
-  function ignoredPredicate(includeDotDirs: readonly string[]): (path: string) => boolean {
-    writeFileSync(join(dir, 'mast.config.json'), JSON.stringify({ include_dot_dirs: includeDotDirs }));
+  function ignoredPredicate(
+    includeDotDirs: readonly string[],
+    otherConfig: Record<string, unknown> = {},
+  ): (path: string) => boolean {
+    writeFileSync(join(dir, 'mast.config.json'), JSON.stringify({ include_dot_dirs: includeDotDirs, ...otherConfig }));
     let ignored: ((path: string) => boolean) | undefined;
     handle = startWatchMode({
       config: resolveConfig({ projectRoot: dir }),
@@ -538,6 +555,18 @@ describe('startWatchMode — which directories it asks chokidar to ignore', () =
     const ignored = ignoredPredicate([]);
 
     expect(ignored(join(dir, '..scratch'))).toBe(true);
+  });
+
+  it('descends into the project when the state directory is the project root', () => {
+    const ignored = ignoredPredicate([], { state_dir: '.' });
+
+    expect(ignored(join(dir, 'src'))).toBe(false);
+  });
+
+  it('ignores a state directory below the root whose name has no leading dot', () => {
+    const ignored = ignoredPredicate([], { state_dir: 'mast-state' });
+
+    expect(ignored(join(dir, 'mast-state'))).toBe(true);
   });
 
   it('still descends into ordinary directories', () => {

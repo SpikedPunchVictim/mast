@@ -3,7 +3,7 @@ import { extname, join, relative, resolve } from 'node:path';
 import { watch as chokidarWatch } from 'chokidar';
 import type { ResolvedConfig } from '../store/config.js';
 import { globToRegex } from './walker.js';
-import { isDirectoryInDotScope, isFileInDotScope } from './scope.js';
+import { isDirectoryInDotScope, isFileInDotScope, stateDirBelowRoot } from './scope.js';
 
 // ---------------------------------------------------------------------------
 // Debounced single-flight batch scheduler (chokidar-free — unit-testable)
@@ -132,12 +132,23 @@ function leavesRoot(rel: string): boolean {
 }
 
 /**
+ * True for the state directory and everything in it, when the state directory
+ * is below the project root. The walker applies the same rule
+ * (`stateDirBelowRoot`): a state directory that is the root or contains it
+ * holds every source file, and excluding it would stop watch mode silently.
+ */
+function isInStateDir(filter: WatchPathFilter, absPath: string): boolean {
+  if (stateDirBelowRoot(filter.projectRoot, filter.stateDir) === null) return false;
+  return absPath === filter.stateDir || absPath.startsWith(`${filter.stateDir}/`);
+}
+
+/**
  * True when a filesystem event for `absPath` should feed the scheduler.
  * Mirrors the walker's allowlist/denylist so watch mode indexes exactly the
  * set of files a manual `mast index` run would.
  */
 export function shouldWatchPath(filter: WatchPathFilter, absPath: string): boolean {
-  if (absPath === filter.stateDir || absPath.startsWith(`${filter.stateDir}/`)) return false;
+  if (isInStateDir(filter, absPath)) return false;
   if (!filter.extensions.includes(extname(absPath))) return false;
   const rel = relative(filter.projectRoot, absPath);
   if (leavesRoot(rel)) return false;
@@ -369,7 +380,7 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
   // Shared with reconciliation so both agree on what is out of scope.
   const isIgnored = (path: string): boolean => {
     const abs = resolve(path);
-    if (abs === filter.stateDir || abs.startsWith(`${filter.stateDir}/`)) return true;
+    if (isInStateDir(filter, abs)) return true;
     const rel = relative(filter.projectRoot, abs);
     if (rel === '' || leavesRoot(rel)) return false;
     // A dot directory nobody named is pruned like an excluded one. Before

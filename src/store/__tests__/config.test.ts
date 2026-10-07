@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, afterEach } from 'vitest';
 import { assertProjectRootIsDirectory, resolveConfig, writeStateConfig, type ResolvedConfig } from '../config.js';
-import { ConfigError } from '../config-error.js';
+import { UserError } from '../../user-error.js';
 
 describe('resolveConfig — declaration_exact_ranker (F18 kill-switch)', () => {
   let tmpDir: string | undefined;
@@ -288,11 +288,11 @@ describe('resolveConfig — include_dot_dirs', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ConfigError: what the user got wrong, as opposed to what mast got wrong.
+// UserError: what the user got wrong, as opposed to what mast got wrong.
 // The CLI prints these as one line; anything else keeps its stack trace.
 // ---------------------------------------------------------------------------
 
-describe('resolveConfig — errors the user can fix are ConfigErrors', () => {
+describe('resolveConfig — errors the user can fix are UserErrors', () => {
   let tmpDir: string | undefined;
 
   afterEach(() => {
@@ -310,8 +310,8 @@ describe('resolveConfig — errors the user can fix are ConfigErrors', () => {
     ['a rejected include_dot_dirs entry', '{"include_dot_dirs":[".agents/*"]}'],
     ['an include_dot_dirs that is not an array', '{"include_dot_dirs":".agents"}'],
     ['a mast.config.json that is not JSON', '{"include_dot_dirs": ['],
-  ])('throws a ConfigError for %s', (_label, raw) => {
-    expect(() => resolveWithRaw(raw)).toThrow(ConfigError);
+  ])('throws a UserError for %s', (_label, raw) => {
+    expect(() => resolveWithRaw(raw)).toThrow(UserError);
   });
 
   it('names the file when mast.config.json is not JSON', () => {
@@ -338,7 +338,7 @@ describe('assertProjectRootIsDirectory', () => {
     tmpDir = mkdtempSync(join(tmpdir(), 'mast-root-'));
     const config = resolveConfig({ projectRoot: join(tmpDir, 'no-such-dir') });
 
-    expect(() => assertProjectRootIsDirectory(config)).toThrow(ConfigError);
+    expect(() => assertProjectRootIsDirectory(config)).toThrow(UserError);
   });
 
   it('rejects a path that is a file', () => {

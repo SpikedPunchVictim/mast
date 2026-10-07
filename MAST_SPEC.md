@@ -433,7 +433,9 @@ Indexing is a single phase — there is no separate embedding step. `runIndex`:
    acquired within the configured timeout.
 2. Walk project files matching `file_extensions`, respecting `exclude_patterns`.
    Dot directories are entered only where `include_dot_dirs` names them (§4.1).
-   The state directory is never walked, whatever it is called.
+   The state directory is never walked when it is below the project root, whatever it
+   is called. A directory the walk may not read stops it with a message naming the
+   directory; it is not skipped.
    Collect `{ path, mtime }` for every file found.
 3. **Deleted file cleanup:** load `file_manifest.json` (previous scan's path set).
    Any path present in the manifest but absent from the current walk has been deleted.

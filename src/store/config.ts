@@ -4,7 +4,7 @@ import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
 import { DEFAULT_FILE_EXTENSIONS, DEFAULT_STATE_DIR } from './defaults.js';
 import { normalizeDotDirs } from '../indexer/scope.js';
-import { ConfigError } from './config-error.js';
+import { UserError } from '../user-error.js';
 
 // 1.3.0 (F5, Stage 3): identifier_fts rows now carry QUALIFIED compound
 // strings ("Class.method") appended after the bare-identifier bag — see
@@ -184,7 +184,7 @@ function pickStateConfigCustomization(source: Partial<MastConfig> | null): Parti
  *
  * `include_dot_dirs` is validated and normalised here (`normalizeDotDirs`).
  *
- * @throws ConfigError when `mast.config.json` is not JSON or `include_dot_dirs` is not a
+ * @throws UserError when `mast.config.json` is not JSON or `include_dot_dirs` is not a
  * string array, and its subclass InvalidDotDirError for an entry that is rejected.
  *
  * Priority order for every other config key (highest to lowest):
@@ -217,7 +217,7 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
       fileConfig = JSON.parse(raw) as Partial<MastConfig>;
     } catch (err) {
       if (!(err instanceof SyntaxError)) throw err;
-      throw new ConfigError(`${configFile} is not valid JSON: ${err.message}`);
+      throw new UserError(`${configFile} is not valid JSON: ${err.message}`);
     }
   }
 
@@ -242,7 +242,7 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
   // stays out of the index with `index_fresh: true`.
   const includeDotDirs: unknown = merged.include_dot_dirs;
   if (!isStringArray(includeDotDirs)) {
-    throw new ConfigError(
+    throw new UserError(
       `${configFile}: include_dot_dirs must be an array of directory paths, such as [".agents"]`,
     );
   }
@@ -269,11 +269,11 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
  * `mkdir -p` creates it, so a mistyped path would otherwise be indexed as a
  * project with no files, exit 0, and leave a state directory behind.
  *
- * @throws ConfigError naming the path.
+ * @throws UserError naming the path.
  */
 export function assertProjectRootIsDirectory(config: Pick<ResolvedConfig, 'resolved_project_root'>): void {
   if (statSync(config.resolved_project_root, { throwIfNoEntry: false })?.isDirectory() !== true) {
-    throw new ConfigError(`project root ${config.resolved_project_root} is not a directory`);
+    throw new UserError(`project root ${config.resolved_project_root} is not a directory`);
   }
 }
 

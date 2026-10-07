@@ -97,10 +97,7 @@ re-run by the author.
   mismatch predates this ADR for ordinary directories; naming `.claude`, where linked
   skill directories are common, makes it likelier. `mast walk` reports an entry that is
   itself a link; it does not detect links further down.
-- **`mast serve` with a rejected entry was not run.** Every other command that printed a
-  stack trace for one now prints one line (see the follow-up below); `serve` resolves its
-  config the same way, so the same is **inferred** for it, and it still does not start.
-  `skill`, `setup` and `hook claude search` exit 0 without mentioning a bad entry
+- `skill`, `setup` and `hook claude search` exit 0 without mentioning a rejected entry
   (reported by the second review, not re-run).
 - **A malformed value in `<state_dir>/config.json`** (a string where an array belongs)
   is dropped without a message, as every key read from that file is.
@@ -112,9 +109,6 @@ re-run by the author.
   in the default `exclude_patterns`), or `~/.agents`. Only `mast walk` shows it, as
   `empty` or `missing`. A name that differs from the disk in Unicode normalisation is
   reported `missing` with advice about spelling and case only.
-- **A named dot directory mast cannot read** stops the walk with `EACCES`, as an
-  unreadable ordinary directory does. Reported by the second review for `walkProject` and
-  `mast walk`; not run against `mast index`.
 - The search-reminder hook (`mast hook <harness> search`) decides by extension only. A
   Grep scoped to a dot directory that is not indexed is still reminded about
   `mast_search`.
@@ -123,12 +117,13 @@ re-run by the author.
   checker resolves calls in it was not tested.
 - Windows path separators in an entry were not tested.
 
-## Follow-up, 2026-10-06: three things the reviews found beside the feature
+## Follow-up, 2026-10-06: what the reviews found beside the feature
 
-Fixed on the same branch at the user's request, each with its ledger row.
+Fixed on the same branch at the user's request. The four numbered defects have ledger
+rows; the changes to how an error is printed do not.
 
-- **A config the user can fix is one line, in every command.** `ConfigError`
-  (`src/store/config-error.ts`) marks a rejected `include_dot_dirs`, a `mast.config.json`
+- **A config the user can fix is one line, in every command.** `UserError`
+  (`src/user-error.ts`) marks a rejected `include_dot_dirs`, a `mast.config.json`
   that is not JSON, and a project root that is not a directory. `runCli` in
   `src/cli/program.ts`, which `cli/index.ts` runs, prints `mast: <message>` on stderr and
   exits 1 for those and for nothing else. An error of any other type keeps its stack
@@ -140,14 +135,28 @@ Fixed on the same branch at the user's request, each with its ledger row.
   Both check before writing anything. **Measured**: each printed
   `mast: project root <path> is not a directory`, exit 1, and the path did not exist
   afterwards. `status`, `prime` and `search` already reported "no index" for such a path
-  and are unchanged. `mast metrics` on one still ends in a better-sqlite3 stack trace
-  (exit 1, nothing created): it fails on the missing state directory, which an
-  uninitialised project also lacks, so the root check would not have covered it.
+  and are unchanged.
 - **The walker excludes the state directory by its resolved path (D076).** It used to
   stay out only through the default pattern `.mast/**`. With `state_dir: "mast-state"`,
   `mast-state/n2.md` is no longer walked, which is what the watcher already assumed.
   A project that had indexed files inside such a directory loses them at the next index
-  run. A state directory equal to the project root is left alone by the walker, while
-  the watcher's own check ignores every path in that case; nobody is known to configure
-  it, and it was not tested.
-
+  run.
+- **`mast serve` with a rejected entry prints the same one line.** **Measured**: started
+  in a project with `[".agents/*"]`, it printed `mast: …include_dot_dirs…` and exited 1.
+  It still does not start; the entry has to be fixed.
+- **`mast metrics` where there is no index says so (D077).** It printed a better-sqlite3
+  stack trace when the state directory was missing, and created an empty `graph.db` when
+  the state directory existed without one. It now checks for the database first, as
+  `mast query` does. `mast metrics --locks` reads a different file and is unchanged.
+- **A state directory that is the project root, or contains it, no longer turns watch
+  mode off (D078).** The watcher ignored every path "inside the state directory", which
+  in that layout is every source file. `stateDirBelowRoot` in `scope.ts` now gives the
+  walker and the watcher one rule: the state directory is excluded only when it is below
+  the root. Otherwise nothing is excluded; its own files carry no indexed extension
+  unless `file_extensions` is widened to one of them (`.json`), which was not tested.
+- **A directory the walk may not read stops it with a message, not a stack trace.** The
+  walk still stops: skipping the directory would produce an index that reports itself
+  complete. The message names the directory and the pattern that excludes it.
+  **Measured** with a mode-000 named dot directory: `mast index` printed one line, exit
+  1, and with the suggested `exclude_patterns` entry the walk completed. An unreadable
+  **file** is a separate, existing path (a parse warning) and is unchanged.

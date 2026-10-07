@@ -1,8 +1,9 @@
 import fg from 'fast-glob';
 import { statSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
-import { walkPatterns } from './scope.js';
+import { stateDirBelowRoot, walkPatterns } from './scope.js';
+import { UserError } from '../user-error.js';
 
 export interface FileEntry {
   /** Absolute path to the file. */
@@ -61,6 +62,21 @@ export function globToRegex(pattern: string): RegExp {
 }
 
 /**
+ * The message for a directory the walk may not read, or null for any other
+ * error. The walk stops there instead of skipping it: an index built around an
+ * unreadable directory would report itself complete.
+ */
+function unreadableDirectoryError(err: unknown, projectRoot: string): UserError | null {
+  if (!(err instanceof Error) || !('code' in err) || !('path' in err)) return null;
+  if ((err.code !== 'EACCES' && err.code !== 'EPERM') || typeof err.path !== 'string') return null;
+  const relativePath = err.path.startsWith(`${projectRoot}/`) ? err.path.slice(projectRoot.length + 1) : null;
+  return new UserError(
+    `cannot read ${err.path}: permission denied. Make it readable` +
+      (relativePath === null ? '.' : `, or add ${JSON.stringify(join(relativePath, '**'))} to exclude_patterns in mast.config.json.`),
+  );
+}
+
+/**
  * Walk the project and return all indexable files.
  *
  * Applies `file_extensions` allowlist, `exclude_patterns` denylist and the
@@ -72,6 +88,8 @@ export function globToRegex(pattern: string): RegExp {
  * every downstream consumer (index order, manifest, edge insertion)
  * deterministic at the source. Callers still must not attach SEMANTIC meaning
  * to the order — the guarantee is reproducibility, not priority.
+ *
+ * @throws UserError when a directory in the walk cannot be read.
  */
 export async function walkProject(config: MastConfig): Promise<FileEntry[]> {
   // No `dot: true`: a dot directory is walked only when `include_dot_dirs` names
@@ -81,20 +99,23 @@ export async function walkProject(config: MastConfig): Promise<FileEntry[]> {
   // The state directory is never source, and watch mode never reports a path
   // inside it. Without this it stayed out only through the default pattern
   // `.mast/**`, so one with another name was indexed and then never heard (D076).
-  // A state directory outside the project, or the project root itself, adds nothing.
-  const stateDir = relative(config.project_root, resolve(config.project_root, config.state_dir));
-  const isStateDirBelowRoot = stateDir !== '' && stateDir !== '..' && !stateDir.startsWith('../');
+  const stateDir = stateDirBelowRoot(config.project_root, resolve(config.project_root, config.state_dir));
 
-  const paths = await fg(patterns, {
-    cwd: config.project_root,
-    ignore: [
-      ...config.exclude_patterns,
-      ...(isStateDirBelowRoot ? [`${fg.escapePath(stateDir)}/**`] : []),
-    ],
-    absolute: true,
-    onlyFiles: true,
-    followSymbolicLinks: false,
-  });
+  let paths: string[];
+  try {
+    paths = await fg(patterns, {
+      cwd: config.project_root,
+      ignore: [
+        ...config.exclude_patterns,
+        ...(stateDir !== null ? [`${fg.escapePath(stateDir)}/**`] : []),
+      ],
+      absolute: true,
+      onlyFiles: true,
+      followSymbolicLinks: false,
+    });
+  } catch (err) {
+    throw unreadableDirectoryError(err, config.project_root) ?? err;
+  }
 
   const entries: FileEntry[] = [];
   for (const absPath of paths) {

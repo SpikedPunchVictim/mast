@@ -84,7 +84,7 @@ function directoryOf(relativePath: string, depth: number | undefined): string {
  * It calls `walkProject`, the same function `runIndex` and `measureFreshness`
  * walk with, so the report cannot disagree with what gets indexed.
  *
- * @throws ConfigError when the project root is not a directory: fast-glob walks a
+ * @throws UserError when the project root is not a directory: fast-glob walks a
  * missing root as an empty one, and "0 files" would read as nothing to index.
  * @throws whatever `resolveConfig` throws for a config it rejects.
  */

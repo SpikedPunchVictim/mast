@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Command } from 'commander';
@@ -89,6 +89,51 @@ describe('runCli', () => {
     },
   );
 
+  /**
+   * `mast serve` takes no path: it serves the working directory. A rejected
+   * entry has to stop it with a message an MCP client's log can show.
+   */
+  it('prints one line and returns 1 when mast serve starts in a project whose config it rejects', async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-run-cli-'));
+    writeFileSync(join(tmpDir, 'mast.config.json'), JSON.stringify({ include_dot_dirs: ['.agents/*'] }));
+    const cwd = vi.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+    const lines: string[] = [];
+
+    try {
+      const exitCode = await runCli(['node', 'mast', 'serve'], (text) => lines.push(text));
+
+      expect({ exitCode, lines }).toEqual({
+        exitCode: 1,
+        lines: [expect.stringMatching(/^mast: .*include_dot_dirs: "\.agents\/\*" .*\n$/)],
+      });
+    } finally {
+      cwd.mockRestore();
+    }
+  });
+
+  it('prints one line and returns 1 when mast metrics is run where there is no index', async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-run-cli-'));
+    const lines: string[] = [];
+
+    const exitCode = await runCli(['node', 'mast', 'metrics', tmpDir], (text) => lines.push(text));
+
+    expect({ exitCode, lines }).toEqual({
+      exitCode: 1,
+      lines: [expect.stringMatching(/^mast: no index found at .*\.mast; run `mast init` first\n$/)],
+    });
+  });
+
+  // Opening the database creates it, so an empty one would answer "no metrics"
+  // for a project that was never indexed and leave a graph.db behind.
+  it('does not create a database when mast metrics finds a state directory with none', async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-run-cli-'));
+    mkdirSync(join(tmpDir, '.mast'));
+
+    await runCli(['node', 'mast', 'metrics', tmpDir], () => {});
+
+    expect(existsSync(join(tmpDir, '.mast', 'graph.db'))).toBe(false);
+  });
+
   it('returns no exit code when the command succeeds, leaving the command\'s own in place', async () => {
     const program = new Command().exitOverride();
     program.command('fine').action(() => {});
@@ -96,7 +141,7 @@ describe('runCli', () => {
     expect(await runCli(['node', 'mast', 'fine'], () => {}, program)).toBeUndefined();
   });
 
-  it('lets an error that is not a ConfigError through', async () => {
+  it('lets an error that is not a UserError through', async () => {
     const program = new Command().exitOverride();
     program.command('boom').action(() => {
       throw new TypeError('a bug');

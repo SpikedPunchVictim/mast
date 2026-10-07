@@ -7,10 +7,11 @@
 // has one statement, and `__tests__/dot-dirs.test.ts` checks the predicates against
 // fast-glob's own answer on a real tree.
 
-import { ConfigError } from '../store/config-error.js';
+import { relative } from 'node:path';
+import { UserError } from '../user-error.js';
 
 /** Thrown for an `include_dot_dirs` entry that cannot name a directory inside the project. */
-export class InvalidDotDirError extends ConfigError {
+export class InvalidDotDirError extends UserError {
   constructor(entry: string, reason: string, source?: string) {
     super(
       `${source === undefined ? '' : `${source}: `}include_dot_dirs: ${JSON.stringify(entry)} ${reason}. ` +
@@ -109,4 +110,16 @@ export function isFileInDotScope(relativePath: string, dotDirs: readonly string[
 export function isDirectoryInDotScope(relativePath: string, dotDirs: readonly string[]): boolean {
   if (isFileInDotScope(relativePath, dotDirs)) return true;
   return dotDirs.some((dir) => dir === relativePath || dir.startsWith(`${relativePath}/`));
+}
+
+/**
+ * The state directory as a project-relative path, or null when it is not below
+ * the project root. Only a state directory below the root is kept out of the
+ * walk and the watch. One that is the root, or contains it, would make "inside
+ * the state directory" true of every source file; its own files (a database,
+ * JSON) carry no indexed extension, so nothing needs excluding.
+ */
+export function stateDirBelowRoot(projectRoot: string, stateDir: string): string | null {
+  const rel = relative(projectRoot, stateDir);
+  return rel === '' || rel === '..' || rel.startsWith('../') ? null : rel;
 }
