@@ -212,7 +212,6 @@ export const SCENARIOS: readonly Scenario[] = [
   },
   {
     name: 'a class gains a method that another file calls on a type it does not import',
-    openDefect: 'D092',
     files: {
       'src/a.ts': `export class Widget { other(): void {} }\n`,
       'src/zc.ts': `export function use(w: Widget): void { w.run(); }\n`,

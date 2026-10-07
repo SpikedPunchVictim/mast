@@ -825,7 +825,7 @@ async function insertEdgesReportingUnresolved(
     structuralSeen.add(key);
     const targetId = e.edgeType === 'PARENT_OF'
       ? await resolveSameFileScoped(db, fromFile.id, e.toName)
-      : await resolveQualifiedNameScoped(db, fromFile.id, imports, e.toName, async () => null);
+      : await resolveQualifiedNameScoped(db, fromFile.id, imports, e.toName);
     if (targetId !== null) structuralToMap.set(key, targetId);
   }
 
@@ -1093,28 +1093,25 @@ async function resolveCallTarget(
     case 'new_expression':
       // toName is `TypeName.methodName` — the receiver's type must be
       // file-scoped first, then the qualified method name resolved within
-      // that file (or its re-export chain). Falls back to a global
-      // bare-name match when `typeName` has no file evidence at all (a
-      // known, narrow coverage gap — MAST_SPEC §10.3.1).
-      return resolveQualifiedNameScoped(db, fromFileId, imports, toName, legacyGlobalFirstMatch);
+      // that file (or its re-export chain). No edge when `typeName` has no
+      // file evidence at all: the first symbol with the name anywhere in the
+      // graph used to be taken instead, and an incremental run had nothing
+      // to find that edge's holder by (D092; measured at 7 of 30,740 call
+      // edges on n8n, spikes/s9-call-fallback).
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
 
     // F4: `super.foo()` — toName is `ParentName.methodName`, traced exactly
     // like a field_type receiver's type (import first, then same-file
-    // declaration). Unlike field_type/parameter_type/new_expression, an
-    // unresolvable parent name produces NO edge rather than a global
-    // bare-name guess: `emitClassEdges` only seeds this binding when a real
-    // `extends` clause named a parent, so "no file evidence for the parent"
-    // here means the parent is an ambient/global/unresolvable type, not a
-    // missing binding — and a wrong "verified" super-call edge would poison
-    // `verified_callers`' safe-to-act-on contract more than a missing one.
+    // declaration), with no edge when the parent name has no file evidence.
     case 'super_method':
-      return resolveQualifiedNameScoped(db, fromFileId, imports, toName, async () => null);
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
 
     default:
       // A POTENTIAL_CALL edge always carries a resolution (`emitCallEdges`
       // sets it from `LocalTypeEnvironment.resolveCall`'s result); this
-      // branch only guards an unexpected shape defensively.
-      return legacyGlobalFirstMatch(db, toName);
+      // branch only guards an unexpected shape, and without a rule there is
+      // no file evidence to resolve by.
+      return null;
   }
 }
 
@@ -1141,18 +1138,13 @@ async function resolveSameFileScoped(db: Db, fromFileId: number, toName: string)
  * Resolve a `TypeName.methodName` toName using the receiver type's own file
  * evidence: `typeName` against this file's own imports first, then its
  * same-file declarations, following the re-export chain into a barrel when
- * needed (§10.3.1). `onUnresolved` is invoked only when NEITHER source names
- * `typeName` at all — callers choose whether that falls back to a global
- * bare-name match (the historical field_type/parameter_type/new_expression
- * behaviour) or drops the edge (super_method, which has no legacy fallback
- * to preserve).
+ * needed (§10.3.1). Null when NEITHER source names `typeName` at all.
  */
 async function resolveQualifiedNameScoped(
   db: Db,
   fromFileId: number,
   imports: ImportIndexLoader,
   toName: string,
-  onUnresolved: (db: Db, toName: string) => Promise<number | null>,
 ): Promise<number | null> {
   const dot = toName.indexOf('.');
   const typeName = dot === -1 ? toName : toName.slice(0, dot);
@@ -1177,8 +1169,8 @@ async function resolveQualifiedNameScoped(
   // Neither an import nor a same-file declaration names `typeName` — e.g. a
   // default/namespace import (not tracked as a named import, see
   // `extractEdges`' `importedNames` collection) or an ambient/global type.
-  // No file evidence exists to scope this edge.
-  return onUnresolved(db, toName);
+  // No file evidence exists to scope this edge, so there is none (D092).
+  return null;
 }
 
 /**
@@ -1371,23 +1363,6 @@ async function resolveThroughStarChain(db: Db, startFileId: number, toName: stri
     if (target !== null) return target;
   }
   return null;
-}
-
-/**
- * Pre-fix behaviour: match `toName` against any indexed symbol, first match
- * wins (excluding re-export markers). Only reached when a resolution rule
- * has no file evidence available at all (see `resolveCallTarget`'s
- * `field_type`/`parameter_type`/`new_expression` default-import/ambient-type
- * fallback) — a known, documented coverage gap, not a silent regression.
- */
-async function legacyGlobalFirstMatch(db: Db, toName: string): Promise<number | null> {
-  const row = await db
-    .selectFrom('symbols')
-    .select('id')
-    .where('name', '=', toName)
-    .where('kind', '!=', 'export')
-    .executeTakeFirst();
-  return row?.id ?? null;
 }
 
 /**

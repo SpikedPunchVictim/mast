@@ -1,0 +1,54 @@
+{
+  "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/n8n-git",
+  "files_walked": 13985,
+  "extract_failures": 0,
+  "workspace_packages": 77,
+  "stored_call_edges": 30740,
+  "stored_call_edges_by_resolution": {
+    "same_file": 9355,
+    "import": 8936,
+    "parameter_type": 438,
+    "this_method": 8873,
+    "super_method": 24,
+    "field_type": 2844,
+    "new_expression": 270
+  },
+  "emitted_call_records_by_resolution": {
+    "same_file": 12141,
+    "import": 17275,
+    "parameter_type": 4404,
+    "new_expression": 3524,
+    "this_method": 22150,
+    "super_method": 46,
+    "field_type": 10184
+  },
+  "distinct_records_that_can_reach_the_guess": 15016,
+  "records_where_the_guess_ran": 3312,
+  "guess_ran_by_resolution": {
+    "parameter_type": 710,
+    "new_expression": 2142,
+    "field_type": 460
+  },
+  "guess_produced_an_edge": 7,
+  "guess_edges_by_verdict": {
+    "undecided": 7
+  },
+  "guess_edges_by_how": {
+    "unknown / undecided": 7
+  },
+  "guess_edges_by_candidate_count": {
+    "1": 7
+  },
+  "guess_edges_verdict_by_candidate_count": {
+    "one candidate / undecided": 7
+  },
+  "guess_found_nothing_by_how": {
+    "ts_lib_global": 3062,
+    "aliased_import": 40,
+    "unknown": 62,
+    "type_parameter": 24,
+    "default_import": 93,
+    "namespace_import": 17,
+    "declared_in_file_not_a_symbol": 7
+  }
+}

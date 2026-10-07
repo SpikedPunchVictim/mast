@@ -13,10 +13,9 @@ import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 // edges stay as they were. The functions here work out which names changed and
 // which files import them.
 //
-// Known not covered, each because the index stores nothing to find the file by:
-//   - an `import { a as b }` or `export { a as b } from`, which is recorded
-//     under one of the two names only (D087's neighbour, deferred);
-//   - a call resolved with no file evidence (`legacyGlobalFirstMatch`, D092).
+// Known not covered, because the index stores nothing to find the file by:
+// an `import { a as b }` or `export { a as b } from`, which is recorded under
+// one of the two names only (D087's neighbour, deferred).
 // ---------------------------------------------------------------------------
 
 /** What other files can see of one file. */

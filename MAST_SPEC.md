@@ -2293,10 +2293,14 @@ to the calling file itself; `import` is scoped to the import's own
 barrel when the resolved file doesn't declare the symbol directly, per §6.3);
 `field_type`/`parameter_type`/`new_expression` are scoped the same way via
 the receiver's type name, when that type name is itself traceable to an
-import or a same-file declaration. Only when a rule has no such evidence
-(e.g. a default/namespace import, which is not tracked as a named import) does
-resolution fall back to a global name match — a known, narrow coverage gap,
-not the general case. Prior to 2026-07-15 every rule fell back to the global
+import or a same-file declaration. When a rule has no such evidence (e.g. a
+default/namespace import or a destructured dynamic import, neither of which is
+tracked as a named import; or a TypeScript lib type) there is no edge. Until
+2026-10-07 these three rules then took the first symbol with the name anywhere
+in the graph; that match was measured at 7 of 30,740 call edges on n8n and
+could not be kept correct by an incremental run, so it was removed (ledger
+D092; `adr/proposals/incremental-graph-correctness/spikes/s9-call-fallback`).
+Prior to 2026-07-15 every rule fell back to the global
 match unconditionally, so a same-named symbol in an earlier-indexed file could
 silently win a `verified_callers` edge that belonged to a different file
 (IMPLEMENTATION_PLAN_VEXP.md §P, "Shipped-resolver finding").
@@ -2372,10 +2376,10 @@ is resolved (the same name with another extension, or an `index` file in a
 directory of that name) have the files holding edges into them resolved again
 (ledger D091).
 
-Not followed, because nothing stored identifies the importer: a call resolved
-without file evidence (ledger D092, open); an import or re-export under an
-alias; an `export *` through a path alias of a file added later. A full index
-corrects all three.
+Not followed, because nothing stored identifies the importer: an import or
+re-export under an alias; an `export *` through a path alias of a file added
+later. A full index corrects both. (A call resolved without file evidence was
+a third such case, ledger D092; no such edge is made any more.)
 
 ### 10.3.2 TypeScript-Checker Enrichment Pass (`mast index --checker`)
 

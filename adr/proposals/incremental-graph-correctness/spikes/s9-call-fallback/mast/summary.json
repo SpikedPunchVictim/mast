@@ -1,0 +1,38 @@
+{
+  "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/mast-git",
+  "files_walked": 162,
+  "extract_failures": 0,
+  "workspace_packages": 0,
+  "stored_call_edges": 616,
+  "stored_call_edges_by_resolution": {
+    "same_file": 361,
+    "import": 246,
+    "this_method": 5,
+    "new_expression": 4
+  },
+  "emitted_call_records_by_resolution": {
+    "import": 464,
+    "same_file": 496,
+    "new_expression": 152,
+    "this_method": 5,
+    "parameter_type": 194,
+    "field_type": 9
+  },
+  "distinct_records_that_can_reach_the_guess": 228,
+  "records_where_the_guess_ran": 83,
+  "guess_ran_by_resolution": {
+    "new_expression": 75,
+    "parameter_type": 8
+  },
+  "guess_produced_an_edge": 0,
+  "guess_edges_by_verdict": {},
+  "guess_edges_by_how": {},
+  "guess_edges_by_candidate_count": {},
+  "guess_edges_verdict_by_candidate_count": {},
+  "guess_found_nothing_by_how": {
+    "ts_lib_global": 76,
+    "require_call": 2,
+    "type_parameter": 2,
+    "default_import": 3
+  }
+}

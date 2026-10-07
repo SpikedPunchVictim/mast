@@ -341,6 +341,52 @@ export function useExternal(): void {
   });
 });
 
+// D092: a `Type.method` call whose receiver type is neither imported by the
+// calling file nor declared in it used to be matched to the first symbol with
+// that name anywhere in the graph. Nothing stored tied the calling file to the
+// file it was matched in, so an incremental run could not put the edge back.
+// S9 (adr/proposals/incremental-graph-correctness/spikes/s9-call-fallback)
+// measured the match at 7 of 30,740 call edges on n8n, and it is gone.
+describe('verified_callers — a receiver type with no file evidence', () => {
+  let tmpDir: string;
+  let db: Db;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-no-evidence-'));
+    writeFileSync(join(tmpDir, 'widget.ts'), `export class Widget {\n  run(): void {}\n}\n`);
+    writeFileSync(
+      join(tmpDir, 'uses.ts'),
+      `export function byParameter(w: Widget): void {
+  w.run();
+}
+export function byConstruction(): void {
+  const w = new Widget();
+  w.run();
+}
+`,
+    );
+
+    db = openDatabase(tmpDir);
+    const widget = await populateFixture(db, tmpDir, 'widget.ts');
+    const uses = await populateFixture(db, tmpDir, 'uses.ts');
+    await insertEdges(db, 'widget.ts', widget.edges);
+    await insertEdges(db, 'uses.ts', uses.edges);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('produces no verified edge, rather than linking to the one symbol that has the name', async () => {
+    const [run] = await querySymbolByName(db, 'Widget.run', 'widget.ts');
+    expect(run).toBeDefined();
+
+    const callers = await queryVerifiedCallers(db, run!.id, false);
+    expect(callers.map((c) => c.caller_symbol)).toEqual([]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Stage 1.2 — heuristic and checker ('checker' resolution) edges coexist on
 // the SAME queried symbol, and dedupe on the (from_id, to_id, edge_type)

@@ -264,9 +264,16 @@ another file already answered; `import { a as b }` and `export { a as b } from`.
 
 2026-10-07, at the user's direction, the first three were written as scenario rows instead of
 being left for T10, and each failed: D090, D092 and D091 in that order. D090 and D091 are
-fixed (a `star_reexport_unresolved` table; `findFilesShadowedBy`). D092 stays open: its row
-runs in both tables expecting failure, and the fix waits on measuring the name match on n8n.
-Aliases stay deferred with D087.
+fixed (a `star_reexport_unresolved` table; `findFilesShadowedBy`). D092 was left open until the name match was measured.
+
+2026-10-07, S9 (`spikes/s9-call-fallback/RESULTS.md`): the name match ran for 3,312 call
+records on n8n and stored an edge for 7 of them, out of 30,740 stored call edges; 0 of 616 on
+mast. All 7 were right, each a class destructured from `await import('<workspace package>')`,
+which the extractor does not record as an import. The user chose to drop the match for calls
+(2026-10-07), the rule already in force for `implements` / `extends`: no edge without file
+evidence. `legacyGlobalFirstMatch` is deleted, D092 is fixed by that, and its scenario row
+runs as an ordinary row. Not done, and the way to get the 7 edges back with evidence: record a
+destructured dynamic import as an import. Aliases stay deferred with D087.
 
 Not in this round: the D087 case (a path alias in a package's own `tsconfig.json`) and
 aliased imports resolving to the right target. Their tests are written with their fixes.
@@ -302,6 +309,9 @@ Each step ends with `pnpm gate`.
 | 2026-10-06 | M8 for `PARENT_OF` | Promoted | D085; `spikes/s2-commit-replay/RESULTS.md` |
 | 2026-10-06 | M8 for `IMPLEMENTS` / `EXTENDS`, no edge without evidence | Promoted, with the D086 fix (user, 2026-10-06): guess wrong 27 of 27 on n8n | `spikes/s6-structural-fallback/RESULTS.md` |
 | 2026-10-06 | Guess when the name is unique in the graph | Rejected: wrong 21 of 21 on n8n | same |
+| 2026-10-07 | M8 for calls (`field_type`, `parameter_type`, `new_expression`), no edge without evidence | Promoted (user, 2026-10-07): the guess gave 7 of 30,740 call edges on n8n, 0 of 616 on mast; fixes D092 | `spikes/s9-call-fallback/RESULTS.md` |
+| 2026-10-07 | Keeping the call guess and repairing it (M4 records or a new lookup) | Rejected: a table and a write path to protect 7 edges | same |
+| 2026-10-07 | Recording `const { X } = await import('m')` as an import | Held: it would give the 7 edges back with evidence; an extractor change | same |
 | 2026-10-06 | M3b bound: cap and report, counted in time | Promoted; size open | `spikes/s7-cap-sizing/RESULTS.md` |
 | 2026-10-07 | M3b as built: importers by changed name, reached through star rows and same-named markers | Landed: 0 of 108,288 rows differ from a full index after six incremental runs on n8n | `spikes/s8-importer-repair-validation/RESULTS.md` |
 | 2026-10-07 | Budget of 2,000 ms on background runs only | Landed as a starting value: about 310 to 530 files on n8n | same |
