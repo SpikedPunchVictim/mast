@@ -12,7 +12,7 @@ it into the review brief. Copy the questions, not the prose, and not the whole f
 
 ## S-01 — Damage that leaves the exit code alone
 
-**Instances**: D002, D003, D012, D022, D038, D075. **Rung**: brief, with one instance promoted (below).
+**Instances**: D002, D003, D012, D022, D038, D075, D080. **Rung**: brief, with one instance promoted (below).
 
 The package's own operating manual calls this the worst class most systems have, and it is the one
 `mast` is structurally most exposed to: an index is a *derived* artifact, so nothing downstream can
@@ -226,7 +226,7 @@ the code and confirm — stays first.
 
 ## S-05 — Two producers of one value, drifting apart
 
-**Instances**: D014, D016, D023, D024, D043, D066, D072, D074, D076, D077. **Rung**: **promoted in part — see below.**
+**Instances**: D014, D016, D023, D024, D043, D066, D072, D074, D076, D077, D079, D080. **Rung**: **promoted in part — see below.**
 
 The same quantity computed in two places, by two authors, drifting apart. Renamed from "two
 implementations of one statistic" when D023 arrived: the value that disagreed there was a **file
@@ -317,7 +317,7 @@ sits in the join between the instrument and the registration — a place neither
 
 ## S-07 — Absence read as evidence
 
-**Instances**: D001, D002, D010, D017, D045, D048, D049, D071. **Rung**: brief.
+**Instances**: D001, D002, D010, D017, D045, D048, D049, D071, D079. **Rung**: brief.
 
 The package's severity zero, generalised past code. D010 registered an experiment whose answer was
 already committed and unread for four days — "we have no result" was actually "we did not look".

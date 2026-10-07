@@ -258,3 +258,84 @@ describe('the §7.1 skip does not fire on an edit outside every symbol body (D03
     expect(stored.map((c) => c.content).join('')).toContain('REWRITTEN note');
   });
 });
+
+// ---------------------------------------------------------------------------
+// D079 — a file that extracts to nothing but `export *` lines
+// ---------------------------------------------------------------------------
+
+/**
+ * A barrel of `export * from` lines has no chunks, no symbols and no imports,
+ * so every comparison the §7.1 skip makes is empty-against-empty and it reads
+ * as unchanged. Two things followed: such a file first seen by an incremental
+ * run was never written at all, and a changed re-export target was never
+ * re-written.
+ */
+describe('the stability skip does not pass over star re-exports (D079)', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-barrel-'));
+    writeFileSync(join(dir, 'a.ts'), 'export function a(): number { return 1; }\n');
+    writeFileSync(join(dir, 'b.ts'), 'export function b(): number { return 2; }\n');
+  });
+  afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
+
+  async function reExportTargets(config: ReturnType<typeof resolveConfig>): Promise<string[]> {
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      const rows = await db
+        .selectFrom('re_export_files as r')
+        .innerJoin('files as f', 'f.id', 'r.from_file_id')
+        .innerJoin('files as t', 't.id', 'r.to_file_id')
+        .select(['t.path as target'])
+        .where('f.path', '=', 'index.ts')
+        .execute();
+      return rows.map((r) => r.target);
+    } finally {
+      await db.destroy();
+    }
+  }
+
+  it('indexes a barrel file that an incremental run is the first to see', async () => {
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    writeFileSync(join(dir, 'index.ts'), "export * from './a.js';\n");
+
+    await runIndex(config, { incremental: true });
+
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      expect((await measureFreshness(config, db)).paths.unindexed).toEqual([]);
+    } finally {
+      await db.destroy();
+    }
+  });
+
+  it('follows a star re-export to its new target', async () => {
+    writeFileSync(join(dir, 'index.ts'), "export * from './a.js';\n");
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    const p = join(dir, 'index.ts');
+    writeFileSync(p, "export * from './b.js';\n");
+    const future = statSync(p).mtimeMs / 1000 + 10;
+    utimesSync(p, future, future);
+
+    await runIndex(config, { incremental: true });
+
+    expect(await reExportTargets(config)).toEqual(['b.ts']);
+  });
+
+  it('drops a star re-export that was removed', async () => {
+    writeFileSync(join(dir, 'index.ts'), "export * from './a.js';\n");
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    const p = join(dir, 'index.ts');
+    writeFileSync(p, '// nothing re-exported any more\n');
+    const future = statSync(p).mtimeMs / 1000 + 10;
+    utimesSync(p, future, future);
+
+    await runIndex(config, { incremental: true });
+
+    expect(await reExportTargets(config)).toEqual([]);
+  });
+});

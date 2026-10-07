@@ -693,6 +693,32 @@ async function isFileUnchanged(
   // all — neither can be content-verified here, so both bail to a full rewrite.
   if (result.chunks.some((c) => c.chunk_type === 'block' || c.chunk_type === 'doc')) return false;
 
+  // No row means nothing is stored to be equal to. A file that extracts to
+  // nothing at all (a barrel of `export *` lines, a `.d.ts` holding one
+  // reference directive) would otherwise pass every comparison below as
+  // empty-against-empty, and a run that met it for the first time would never
+  // write it (D079).
+  const fileRow = await db
+    .selectFrom('files')
+    .select('id')
+    .where('path', '=', filePath)
+    .executeTakeFirst();
+  if (fileRow === undefined) return false;
+
+  // Star re-exports are written by the run (`insertReExportFiles`) and appear
+  // in no chunk, symbol or import, so nothing below can see one change. They
+  // are not compared, because the stored form is a resolved file id and the
+  // parsed form is a specifier: a file that has any, or had any, is re-written.
+  // Such files are barrels, so the write this gives up is a small one.
+  if (result.starReExports.length > 0) return false;
+  const storedReExport = await db
+    .selectFrom('re_export_files')
+    .select('to_file_id')
+    .where('from_file_id', '=', fileRow.id)
+    .limit(1)
+    .executeTakeFirst();
+  if (storedReExport !== undefined) return false;
+
   // Structure: identical set of chunk ids, each carrying identical content.
   // The content comparison is what catches an edit outside every symbol body
   // — the import line, a top-level comment, a re-export (D030).
