@@ -1,0 +1,120 @@
+{
+  "spike": "graph-reference/s1-call-edges",
+  "ran_at": "2026-10-07T19:05:30.692Z",
+  "typescript": "5.9.3",
+  "project_root": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref/packages/core",
+  "tsconfig": "tsconfig.json",
+  "path_prefix": "",
+  "config_errors": [],
+  "indexed_typescript_files": 156,
+  "program_source_files": 1403,
+  "calls_seen": 3419,
+  "calls_the_checker_gave_no_symbol_for": 900,
+  "q1_declaration_join": {
+    "start": 441,
+    "name": 4,
+    "statement": 0,
+    "near3_same_name": 0,
+    "none": 20,
+    "not_indexable_kind": 68,
+    "outside_indexed_files": 567
+  },
+  "q3_mast_edges": 558,
+  "q3_verdicts_by_resolution": {
+    "field_type": {
+      "agrees": 34
+    },
+    "this_method": {
+      "agrees": 241
+    },
+    "new_expression": {
+      "agrees": 12
+    },
+    "import": {
+      "agrees": 102
+    },
+    "same_file": {
+      "agrees": 127
+    },
+    "parameter_type": {
+      "agrees": 37
+    },
+    "super_method": {
+      "agrees": 5
+    }
+  },
+  "q4_reference_pairs": 701,
+  "q4_pairs_mast_has_by_shape": {
+    "this.field.m() (other file)": 34,
+    "this.m() (same file)": 237,
+    "ident.m() (other file)": 44,
+    "identifier (same file)": 122,
+    "identifier (other file)": 100,
+    "ident.m() (same file)": 5,
+    "super.m() (other file)": 5
+  },
+  "q4_pairs_mast_lacks_by_shape": {
+    "new X() (other file)": 34,
+    "this.field.m() (other file)": 12,
+    "this.m() (same file)": 2,
+    "new X() (same file)": 10,
+    "ident.m() (other file)": 36,
+    "expr.m() (other file)": 6,
+    "identifier (other file)": 7,
+    "identifier (same file)": 12,
+    "this.m() (other file)": 30,
+    "super.m() (other file)": 2,
+    "expr.m() (same file)": 2,
+    "ident.m() (same file)": 1
+  },
+  "q4_distinct_mast_pairs": 558,
+  "q4_mast_pairs_the_reference_did_not_produce": [
+    "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.customData@69 > src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15",
+    "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.additionalKeys@474 > src/execution-engine/node-execution-context/utils/get-additional-keys.ts:getAdditionalKeys@20",
+    "src/execution-engine/node-execution-context/utils/cleanup-parameter-data.ts:cleanupParameterData@8 > src/execution-engine/node-execution-context/utils/cleanup-parameter-data.ts:cleanupParameterData@8",
+    "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getChildrenRecursive@233 > src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getChildrenRecursive@233",
+    "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getParentConnectionsRecursive@276 > src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getParentConnectionsRecursive@276",
+    "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.depthFirstSearchRecursive@414 > src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.depthFirstSearchRecursive@414",
+    "src/execution-engine/partial-execution-utils/find-start-nodes.ts:findStartNodesRecursive@50 > src/execution-engine/partial-execution-utils/find-start-nodes.ts:findStartNodesRecursive@50",
+    "src/execution-engine/partial-execution-utils/find-subgraph.ts:findSubgraphRecursive@6 > src/execution-engine/partial-execution-utils/find-subgraph.ts:findSubgraphRecursive@6",
+    "src/execution-engine/routing-node.ts:RoutingNode.getRequestOptionsFromParameters@791 > src/execution-engine/routing-node.ts:RoutingNode.getRequestOptionsFromParameters@791",
+    "src/nodes-loader/validate-node-description.ts:visit@19 > src/nodes-loader/validate-node-description.ts:visit@19",
+    "src/utils/deep-merge.ts:deepMerge@17 > src/utils/deep-merge.ts:deepMerge@17"
+  ],
+  "q4_calls_outside_any_indexed_symbol": 1,
+  "q4_self_calls_skipped": 14,
+  "q5_unjudgeable": {
+    "import_statements_not_resolved_by_specifier": {
+      "n8n-workflow": 157,
+      "@n8n/di": 40,
+      "../dist/errors": 1,
+      "../dist/nodes-loader/lazy-package-directory-loader": 1,
+      "../dist/credentials": 1,
+      "@n8n/decorators": 5,
+      "@n8n/utils/promise/deferred-promise": 9,
+      "../dist/execution-engine/execution-lifecycle-hooks": 1,
+      "../dist/execution-engine/workflow-execute": 1,
+      "@n8n/backend-common": 22,
+      "@n8n/config": 7,
+      "@n8n/constants": 5,
+      "@n8n/utils/result": 2,
+      "@n8n/utils/errors/ensure-error": 2,
+      "@n8n/backend-network": 11,
+      "@n8n/errors": 1,
+      "@n8n/blob-storage": 4,
+      "@n8n/client-oauth2": 2,
+      "@n8n/utils/sleep": 4,
+      "@n8n/vitest-config/node-decorators": 1
+    },
+    "calls_with_no_symbol": 900,
+    "of_those_receiver_is_error_type": 878,
+    "of_those_receiver_is_any": 19,
+    "of_those_receiver_is_typed": 3
+  },
+  "q6_cost": {
+    "wall_ms": 2019,
+    "peak_rss_mb": 502
+  },
+  "repeated_symbol_rows": 12,
+  "q2_caller_disagreements": 2
+}

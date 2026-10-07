@@ -1,0 +1,920 @@
+{
+  "spike": "graph-reference/s1-call-edges",
+  "ran_at": "2026-10-07T19:05:33.164Z",
+  "typescript": "5.9.3",
+  "project_root": "/Users/spikedpunchvictim/projects/mast",
+  "tsconfig": "tsconfig.json",
+  "path_prefix": "",
+  "config_errors": [],
+  "indexed_typescript_files": 98,
+  "program_source_files": 747,
+  "calls_seen": 4114,
+  "calls_the_checker_gave_no_symbol_for": 1,
+  "repeated_symbol_rows": [
+    {
+      "path": "src/indexer/import-resolver.ts",
+      "name": "buildResolver",
+      "lines": [
+        110,
+        200
+      ]
+    },
+    {
+      "path": "src/mcp/staleness.ts",
+      "name": "checkAndRefreshIfStale",
+      "lines": [
+        191,
+        281
+      ]
+    },
+    {
+      "path": "src/ast/extractors/typescript.ts",
+      "name": "emitChunksForNode",
+      "lines": [
+        252,
+        342,
+        432
+      ]
+    },
+    {
+      "path": "src/search/fused.ts",
+      "name": "fusedSearch",
+      "lines": [
+        114,
+        204
+      ]
+    },
+    {
+      "path": "src/graph/populate.ts",
+      "name": "insertEdgesReportingUnresolved",
+      "lines": [
+        776,
+        866
+      ]
+    },
+    {
+      "path": "src/mcp/tools/callers.ts",
+      "name": "registerCallersTool",
+      "lines": [
+        15,
+        105
+      ]
+    },
+    {
+      "path": "src/cli/index-cmd.ts",
+      "name": "registerIndexCommand",
+      "lines": [
+        114,
+        204,
+        294
+      ]
+    },
+    {
+      "path": "src/mcp/tools/rename-impact.ts",
+      "name": "registerRenameImpactTool",
+      "lines": [
+        30,
+        120
+      ]
+    },
+    {
+      "path": "src/mcp/tools/signature.ts",
+      "name": "registerSignatureTool",
+      "lines": [
+        36,
+        126
+      ]
+    },
+    {
+      "path": "src/indexer/edge-repair.ts",
+      "name": "repairEdgesAfterWrites",
+      "lines": [
+        112,
+        202
+      ]
+    },
+    {
+      "path": "src/graph/checker-resolver.ts",
+      "name": "runCheckerPass",
+      "lines": [
+        438,
+        528,
+        618
+      ]
+    },
+    {
+      "path": "src/indexer/index.ts",
+      "name": "runIndex",
+      "lines": [
+        302,
+        392,
+        482,
+        572,
+        662
+      ]
+    },
+    {
+      "path": "src/mcp/server.ts",
+      "name": "serve",
+      "lines": [
+        193,
+        283
+      ]
+    },
+    {
+      "path": "src/indexer/watcher.ts",
+      "name": "startWatchMode",
+      "lines": [
+        360,
+        450
+      ]
+    },
+    {
+      "path": "src/graph/populate.ts",
+      "name": "writePopulatedFileRows",
+      "lines": [
+        466,
+        556,
+        646
+      ]
+    }
+  ],
+  "q1_declaration_join": {
+    "start": 410,
+    "name": 0,
+    "statement": 0,
+    "near3_same_name": 0,
+    "none": 55,
+    "not_indexable_kind": 80,
+    "outside_indexed_files": 427
+  },
+  "q1_join_misses": [
+    {
+      "how": "none",
+      "path": "src/ast/parser.ts",
+      "line": 5,
+      "name": "require",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/ast/parser.ts",
+      "line": 12,
+      "name": "Parser",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/import-resolver.ts",
+      "line": 122,
+      "name": "norm",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/import-resolver.ts",
+      "line": 134,
+      "name": "toRel",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/import-resolver.ts",
+      "line": 154,
+      "name": "probe",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/import-resolver.ts",
+      "line": 111,
+      "name": "matchPath",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/ast/extractors/typescript.ts",
+      "line": 1476,
+      "name": "visit",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/ast/extractors/typescript.ts",
+      "line": 1506,
+      "name": "visit",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/version.ts",
+      "line": 16,
+      "name": "require",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/scope.ts",
+      "line": 49,
+      "name": "reject",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/store/lock.ts",
+      "line": 142,
+      "name": "release",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/store/lock.ts",
+      "line": 215,
+      "name": "release",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/graph/importer-repair.ts",
+      "line": 171,
+      "name": "namesAny",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/graph/populate.ts",
+      "line": 827,
+      "name": "structuralKey",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/graph/populate.ts",
+      "line": 866,
+      "name": "reExportKey",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/graph/populate.ts",
+      "line": 1016,
+      "name": "inBatches",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/graph/populate.ts",
+      "line": 1405,
+      "name": "recordUnresolved",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/edge-repair.ts",
+      "line": 120,
+      "name": "extractForReResolve",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/edge-repair.ts",
+      "line": 128,
+      "name": "prepareReResolve",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/index.ts",
+      "line": 317,
+      "name": "doExtract",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/prime-cmd.ts",
+      "line": 81,
+      "name": "named",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/search/scope.ts",
+      "line": 83,
+      "name": "matcher",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/search/fts.ts",
+      "line": 66,
+      "name": "ranked",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/graph/checker-resolver.ts",
+      "line": 240,
+      "name": "visit",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/freshness-probe.ts",
+      "line": 96,
+      "name": "measure",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/freshness-probe.ts",
+      "line": 95,
+      "name": "now",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/freshness-probe.ts",
+      "line": 113,
+      "name": "refresh",
+      "kind": "FunctionDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/search/declex.ts",
+      "line": 296,
+      "name": "matchedNameOf",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/search/declex.ts",
+      "line": 304,
+      "name": "typeRank",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/search/fused.ts",
+      "line": 331,
+      "name": "classKey",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/search/fused.ts",
+      "line": 407,
+      "name": "add",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/telemetry/metrics.ts",
+      "line": 172,
+      "name": "rankValue",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/telemetry/metrics.ts",
+      "line": 362,
+      "name": "wrap",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/staleness.ts",
+      "line": 290,
+      "name": "repairEdgesOrLeaveThemWaiting",
+      "kind": "FunctionDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/staleness.ts",
+      "line": 247,
+      "name": "extract",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/tools/signature.ts",
+      "line": 73,
+      "name": "sigsFor",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/query.ts",
+      "line": 158,
+      "name": "reindex",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/query.ts",
+      "line": 157,
+      "name": "warn",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/watcher.ts",
+      "line": 215,
+      "name": "list",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/watcher.ts",
+      "line": 225,
+      "name": "walkUnknown",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/watcher.ts",
+      "line": 402,
+      "name": "reconcile",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/indexer/watcher.ts",
+      "line": 432,
+      "name": "announceReadiness",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/server.ts",
+      "line": 150,
+      "name": "run",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/mcp/server.ts",
+      "line": 244,
+      "name": "startWatchIfRequested",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/metrics-cmd.ts",
+      "line": 56,
+      "name": "pad",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/metrics-cmd.ts",
+      "line": 59,
+      "name": "line",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/metrics-cmd.ts",
+      "line": 99,
+      "name": "pad",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/metrics-cmd.ts",
+      "line": 100,
+      "name": "line",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/installed-artifacts.ts",
+      "line": 53,
+      "name": "present",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/installed-artifacts.ts",
+      "line": 51,
+      "name": "hooksIn",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/installed-artifacts.ts",
+      "line": 54,
+      "name": "carriesBlock",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/upgrade-cmd.ts",
+      "line": 45,
+      "name": "split",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/setup-plan.ts",
+      "line": 119,
+      "name": "isMast",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/setup-plan.ts",
+      "line": 144,
+      "name": "fresh",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/cli/setup-plan.ts",
+      "line": 205,
+      "name": "isMast",
+      "kind": "VariableDeclaration"
+    }
+  ],
+  "q2_caller_disagreements": [],
+  "q3_mast_edges": 705,
+  "q3_verdicts_by_resolution": {
+    "same_file": {
+      "agrees": 395
+    },
+    "import": {
+      "agrees": 289
+    },
+    "this_method": {
+      "agrees": 8
+    },
+    "new_expression": {
+      "agrees": 7
+    },
+    "parameter_type": {
+      "agrees": 5
+    },
+    "super_method": {
+      "agrees": 1
+    }
+  },
+  "q3_checker_says_another_declaration": [],
+  "q3_not_judged": [],
+  "q4_reference_pairs": 751,
+  "q4_pairs_mast_has_by_shape": {
+    "identifier (same file)": 395,
+    "identifier (other file)": 289,
+    "this.m() (same file)": 8,
+    "ident.m() (other file)": 3,
+    "ident.m() (same file)": 9,
+    "super.m() (other file)": 1
+  },
+  "q4_pairs_mast_lacks_by_shape": {
+    "identifier (same file)": 5,
+    "ident.m() (other file)": 2,
+    "new X() (other file)": 11,
+    "new X() (same file)": 9,
+    "identifier (other file)": 2,
+    "ident.m() (same file)": 17
+  },
+  "q4_distinct_mast_pairs": 705,
+  "q4_mast_pairs_the_reference_did_not_produce": [],
+  "q4_calls_outside_any_indexed_symbol": 2,
+  "q4_self_calls_skipped": 0,
+  "q4_missing": [
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/indexer/import-resolver.ts:buildResolver@110",
+      "call_line": 215,
+      "to": "src/indexer/import-resolver.ts:resolveWorkspace@235"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/ast/extractors/typescript.ts:extractEdges@1163",
+      "call_line": 1196,
+      "to": "src/graph/local-type-env.ts:LocalTypeEnvironment.recordImport@24"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/ast/extractors/typescript.ts:extractEdges@1163",
+      "call_line": 1197,
+      "to": "src/graph/local-type-env.ts:LocalTypeEnvironment.recordSameFileSymbol@29"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/ast/extractors/typescript.ts:emitCallEdges@1383",
+      "call_line": 1396,
+      "to": "src/graph/local-type-env.ts:LocalTypeEnvironment@17"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction, inside a nested function expression",
+      "from": "src/indexer/scope.ts:normalizeDotDirs@48",
+      "call_line": 50,
+      "to": "src/indexer/scope.ts:InvalidDotDirError@14"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/store/config.ts:resolveConfig@199",
+      "call_line": 220,
+      "to": "src/user-error.ts:UserError@10"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/store/config.ts:assertProjectRootIsDirectory@274",
+      "call_line": 276,
+      "to": "src/user-error.ts:UserError@10"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/cli/docs-cmd.ts:readDoc@36",
+      "call_line": 39,
+      "to": "src/cli/docs-cmd.ts:DocsError@17"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction, inside a nested function expression",
+      "from": "src/store/lock.ts:acquireLock@120",
+      "call_line": 159,
+      "to": "src/store/lock.ts:LockCompromisedError@39"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/indexer/walker.ts:unreadableDirectoryError@69",
+      "call_line": 73,
+      "to": "src/user-error.ts:UserError@10"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/indexer/index.ts:runIndex@302",
+      "call_line": 328,
+      "to": "src/store/sqliteChunkStore.ts:SqliteChunkStore@62"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/graph/checker-resolver.ts:RealTsProjectResolver.loadProgram@323",
+      "call_line": 324,
+      "to": "src/graph/checker-resolver.ts:RealTsProjectHandle@256"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/graph/checker-resolver.ts:runCheckerPass@438",
+      "call_line": 445,
+      "to": "src/graph/checker-resolver.ts:RealTsProjectResolver@316"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction, inside a nested function expression",
+      "from": "src/cli/index-cmd.ts:registerIndexCommand@114",
+      "call_line": 291,
+      "to": "src/store/sqliteChunkStore.ts:SqliteChunkStore@62"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/telemetry/tokenizer.ts:estimateFullFileBound@169",
+      "call_line": 210,
+      "to": "src/telemetry/tokenizer.ts:countTokens@32"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/mcp/staleness.ts:checkAndRefreshIfStale@191",
+      "call_line": 294,
+      "to": "src/graph/populate.ts:withBoundedWriteWait@249"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call, inside a nested function expression",
+      "from": "src/mcp/staleness.ts:checkAndRefreshIfStale@191",
+      "call_line": 295,
+      "to": "src/indexer/edge-repair.ts:repairEdgesAfterWrites@112"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/cli/query.ts:runQuery@134",
+      "call_line": 145,
+      "to": "src/cli/query.ts:QueryError@26"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/cli/query.ts:runQuery@134",
+      "call_line": 187,
+      "to": "src/store/sqliteChunkStore.ts:SqliteChunkStore@62"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/cli/search-cmd.ts:buildSearchArgs@26",
+      "call_line": 32,
+      "to": "src/cli/query.ts:QueryError@26"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/indexer/watcher.ts:startWatchMode@360",
+      "call_line": 370,
+      "to": "src/indexer/watcher.ts:WatchScheduler@42"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/mcp/server.ts:assertServableIndex@98",
+      "call_line": 104,
+      "to": "src/mcp/server.ts:NeverIndexedError@30"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/mcp/server.ts:serve@193",
+      "call_line": 213,
+      "to": "src/store/sqliteChunkStore.ts:SqliteChunkStore@62"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction, inside a nested function expression",
+      "from": "src/cli/metrics-cmd.ts:registerMetricsCommand@144",
+      "call_line": 178,
+      "to": "src/user-error.ts:UserError@10"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call, inside a nested function expression",
+      "from": "src/cli/setup-plan.ts:planCursor@258",
+      "call_line": 258,
+      "to": "src/cli/setup-plan.ts:planFlat@186"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call, inside a nested function expression",
+      "from": "src/cli/setup-plan.ts:planVscode@259",
+      "call_line": 259,
+      "to": "src/cli/setup-plan.ts:planFlat@186"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/cli/program.ts:runCli@66",
+      "call_line": 69,
+      "to": "src/cli/program.ts:buildProgram@28"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/indexer/__tests__/fixtures/edge-monorepo/packages/app/src/main.ts:Main.run@6",
+      "call_line": 8,
+      "to": "src/indexer/__tests__/fixtures/edge-monorepo/packages/app/src/stores.ts:FileStore@3"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeABody@234",
+      "call_line": 236,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:addOrRemoveAFunction@245",
+      "call_line": 246,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:addOrRemoveAFunction@245",
+      "call_line": 256,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.below@91"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeAClass@260",
+      "call_line": 262,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeAClass@260",
+      "call_line": 265,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.below@91"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeAClass@260",
+      "call_line": 271,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.chance@95"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:addAFile@287",
+      "call_line": 288,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:deleteAFile@294",
+      "call_line": 295,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:moveAFile@302",
+      "call_line": 303,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:rePoint@320",
+      "call_line": 324,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:rePoint@320",
+      "call_line": 336,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.below@91"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeAnInterface@354",
+      "call_line": 355,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeAnInterface@354",
+      "call_line": 365,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.chance@95"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeWhatAClassImplements@375",
+      "call_line": 377,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:changeWhatAClassImplements@375",
+      "call_line": 380,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.below@91"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:damageOrMendAFile@390",
+      "call_line": 394,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.chance@95"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "Parameter, type inferred, inside a nested function expression",
+      "from": "src/indexer/__tests__/generated-edits.ts:damageOrMendAFile@390",
+      "call_line": 394,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice.pick@99"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/indexer/__tests__/generated-edits.ts:generateScenario@428",
+      "call_line": 429,
+      "to": "src/indexer/__tests__/generated-edits.ts:Dice@88"
+    }
+  ],
+  "q5_unjudgeable": {
+    "import_statements_not_resolved_by_specifier": {
+      "@fx/core": 3
+    },
+    "calls_with_no_symbol": 1,
+    "of_those_receiver_is_error_type": 1,
+    "of_those_receiver_is_any": 0,
+    "of_those_receiver_is_typed": 0
+  },
+  "q6_cost": {
+    "wall_ms": 2277,
+    "peak_rss_mb": 440
+  }
+}

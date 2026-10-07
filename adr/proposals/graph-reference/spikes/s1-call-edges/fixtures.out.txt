@@ -1,0 +1,16 @@
+== fx1
+src/a-alias-file.ts:A.run|field_type|src/errors/reporter.ts:Reporter.warn
+src/d-inherit.ts:Child.over|super_method|src/base/parent.ts:Parent.over
+src/d-inherit.ts:Child.overG|super_method|src/base/parent.ts:Parent.overG
+src/d-inherit.ts:Child.sameFileGeneric|this_method|src/d-inherit.ts:Child.local
+src/e-static.ts:helper|parameter_type|src/errors/reporter.ts:Reporter.warn
+== fx2
+src/shapes.ts:K.s11_fieldInNestedArrow|field_type|src/lib.ts:Env.record
+src/shapes.ts:K.s12_thisInNestedArrow|this_method|src/shapes.ts:K.own
+src/shapes.ts:K.s13_getter|same_file|src/shapes.ts:local
+src/shapes.ts:s01_direct|import|src/lib.ts:imported
+src/shapes.ts:s01_direct|same_file|src/shapes.ts:local
+src/shapes.ts:s02_nestedArrow|import|src/lib.ts:imported
+src/shapes.ts:s02_nestedArrow|same_file|src/shapes.ts:local
+src/shapes.ts:s08_insideTry|same_file|src/shapes.ts:local
+src/shapes.ts:s10_paramInNestedArrow|parameter_type|src/lib.ts:Env.record

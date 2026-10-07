@@ -1,0 +1,1462 @@
+{
+  "spike": "graph-reference/s1-call-edges",
+  "ran_at": "2026-10-07T19:05:30.692Z",
+  "typescript": "5.9.3",
+  "project_root": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref/packages/core",
+  "tsconfig": "tsconfig.json",
+  "path_prefix": "",
+  "config_errors": [],
+  "indexed_typescript_files": 156,
+  "program_source_files": 1403,
+  "calls_seen": 3419,
+  "calls_the_checker_gave_no_symbol_for": 900,
+  "repeated_symbol_rows": [
+    {
+      "path": "src/execution-engine/node-execution-context/__tests__/shared-tests.ts",
+      "name": "describeCommonTests",
+      "lines": [
+        31,
+        121,
+        211,
+        301,
+        391,
+        481
+      ]
+    },
+    {
+      "path": "src/execution-engine/execution-context.ts",
+      "name": "establishExecutionContext",
+      "lines": [
+        104,
+        194
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts",
+      "name": "getFileSystemHelperFunctions",
+      "lines": [
+        279,
+        369
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts",
+      "name": "getInputConnectionData",
+      "lines": [
+        393,
+        483
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/factory.ts",
+      "name": "getRequestHelperFunctions",
+      "lines": [
+        27,
+        117,
+        207
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/authentication.ts",
+      "name": "httpRequestWithAuthentication",
+      "lines": [
+        22,
+        112
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts",
+      "name": "makeHandleToolInvocation",
+      "lines": [
+        233,
+        323
+      ]
+    },
+    {
+      "path": "src/execution-engine/partial-execution-utils/recreate-node-execution-stack.ts",
+      "name": "recreateNodeExecutionStack",
+      "lines": [
+        72,
+        162
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/oauth.ts",
+      "name": "refreshOrFetchToken",
+      "lines": [
+        148,
+        238
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/oauth.ts",
+      "name": "requestOAuth2",
+      "lines": [
+        335,
+        425
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/authentication.ts",
+      "name": "requestWithAuthentication",
+      "lines": [
+        150,
+        240
+      ]
+    },
+    {
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/pagination.ts",
+      "name": "requestWithAuthenticationPaginated",
+      "lines": [
+        71,
+        161,
+        251
+      ]
+    }
+  ],
+  "q1_declaration_join": {
+    "start": 441,
+    "name": 4,
+    "statement": 0,
+    "near3_same_name": 0,
+    "none": 20,
+    "not_indexable_kind": 68,
+    "outside_indexed_files": 567
+  },
+  "q1_join_misses": [
+    {
+      "how": "none",
+      "path": "src/instance-settings/instance-settings.ts",
+      "line": 16,
+      "name": "nanoid",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/errors/error-reporter.ts",
+      "line": 191,
+      "name": "releaseExpiresInMs",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/errors/error-reporter.ts",
+      "line": 196,
+      "name": "checkForExpiration",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/binary-data/blob.manager.ts",
+      "line": 179,
+      "name": "deletePrefix",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/poll-trigger-executor.ts",
+      "line": 46,
+      "name": "startTraced",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/scheduled-task-manager.ts",
+      "line": 107,
+      "name": "computeNext",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/active-workflow-triggers.ts",
+      "line": 390,
+      "name": "executePollTrigger",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/eval-mock-fixtures.ts",
+      "line": 284,
+      "name": "escapePdfString",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/oauth.ts",
+      "line": 168,
+      "name": "runRefresh",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/node-execution-context/utils/request-helpers/oauth.ts",
+      "line": 447,
+      "name": "retryWithNewToken",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts",
+      "line": 471,
+      "name": "contextFactory",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/partial-execution-utils/directed-graph.ts",
+      "line": 355,
+      "name": "followNode",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/partial-execution-utils/directed-graph.ts",
+      "line": 108,
+      "name": "removeNode",
+      "kind": "MethodDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/partial-execution-utils/directed-graph.ts",
+      "line": 112,
+      "name": "removeNode",
+      "kind": "MethodDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/workflow-execute.ts",
+      "line": 1790,
+      "name": "isErrorValue",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/workflow-execute.ts",
+      "line": 1791,
+      "name": "checkFailure",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/eval-mock-helpers.ts",
+      "line": 128,
+      "name": "bytes",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/execution-engine/node-execution-context/__tests__/shared-tests.ts",
+      "line": 150,
+      "name": "registeredHandler",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/nodes-loader/directory-loader.ts",
+      "line": 460,
+      "name": "processIconPath",
+      "kind": "VariableDeclaration"
+    },
+    {
+      "how": "none",
+      "path": "src/nodes-loader/output-schema-resolver.ts",
+      "line": 114,
+      "name": "buildPath",
+      "kind": "VariableDeclaration"
+    }
+  ],
+  "q2_caller_disagreements": [
+    {
+      "resolution": "import",
+      "from": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.customData@69",
+      "call_line": 75,
+      "to": "src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15",
+      "syntax_tree_caller": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext@49"
+    },
+    {
+      "resolution": "import",
+      "from": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.additionalKeys@474",
+      "call_line": 475,
+      "to": "src/execution-engine/node-execution-context/utils/get-additional-keys.ts:getAdditionalKeys@20",
+      "syntax_tree_caller": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext@49"
+    }
+  ],
+  "q3_mast_edges": 558,
+  "q3_verdicts_by_resolution": {
+    "field_type": {
+      "agrees": 34
+    },
+    "this_method": {
+      "agrees": 241
+    },
+    "new_expression": {
+      "agrees": 12
+    },
+    "import": {
+      "agrees": 102
+    },
+    "same_file": {
+      "agrees": 127
+    },
+    "parameter_type": {
+      "agrees": 37
+    },
+    "super_method": {
+      "agrees": 5
+    }
+  },
+  "q3_checker_says_another_declaration": [],
+  "q3_not_judged": [],
+  "q4_reference_pairs": 701,
+  "q4_pairs_mast_has_by_shape": {
+    "this.field.m() (other file)": 34,
+    "this.m() (same file)": 237,
+    "ident.m() (other file)": 44,
+    "identifier (same file)": 122,
+    "identifier (other file)": 100,
+    "ident.m() (same file)": 5,
+    "super.m() (other file)": 5
+  },
+  "q4_pairs_mast_lacks_by_shape": {
+    "new X() (other file)": 34,
+    "this.field.m() (other file)": 12,
+    "this.m() (same file)": 2,
+    "new X() (same file)": 10,
+    "ident.m() (other file)": 36,
+    "expr.m() (other file)": 6,
+    "identifier (other file)": 7,
+    "identifier (same file)": 12,
+    "this.m() (other file)": 30,
+    "super.m() (other file)": 2,
+    "expr.m() (same file)": 2,
+    "ident.m() (same file)": 1
+  },
+  "q4_distinct_mast_pairs": 558,
+  "q4_mast_pairs_the_reference_did_not_produce": [
+    "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.customData@69 > src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15",
+    "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.additionalKeys@474 > src/execution-engine/node-execution-context/utils/get-additional-keys.ts:getAdditionalKeys@20",
+    "src/execution-engine/node-execution-context/utils/cleanup-parameter-data.ts:cleanupParameterData@8 > src/execution-engine/node-execution-context/utils/cleanup-parameter-data.ts:cleanupParameterData@8",
+    "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getChildrenRecursive@233 > src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getChildrenRecursive@233",
+    "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getParentConnectionsRecursive@276 > src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getParentConnectionsRecursive@276",
+    "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.depthFirstSearchRecursive@414 > src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.depthFirstSearchRecursive@414",
+    "src/execution-engine/partial-execution-utils/find-start-nodes.ts:findStartNodesRecursive@50 > src/execution-engine/partial-execution-utils/find-start-nodes.ts:findStartNodesRecursive@50",
+    "src/execution-engine/partial-execution-utils/find-subgraph.ts:findSubgraphRecursive@6 > src/execution-engine/partial-execution-utils/find-subgraph.ts:findSubgraphRecursive@6",
+    "src/execution-engine/routing-node.ts:RoutingNode.getRequestOptionsFromParameters@791 > src/execution-engine/routing-node.ts:RoutingNode.getRequestOptionsFromParameters@791",
+    "src/nodes-loader/validate-node-description.ts:visit@19 > src/nodes-loader/validate-node-description.ts:visit@19",
+    "src/utils/deep-merge.ts:deepMerge@17 > src/utils/deep-merge.ts:deepMerge@17"
+  ],
+  "q4_calls_outside_any_indexed_symbol": 1,
+  "q4_self_calls_skipped": 14,
+  "q4_missing": [
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "nodes-testing/load-nodes-and-credentials.ts:LoadNodesAndCredentials@17",
+      "call_line": 22,
+      "to": "nodes-testing/test-data-node.ts:TestDataNode@17"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction, inside a nested function expression",
+      "from": "nodes-testing/node-test-harness.ts:NodeTestHarness.ensureNodesLoaded@189",
+      "call_line": 192,
+      "to": "nodes-testing/load-nodes-and-credentials.ts:LoadNodesAndCredentials@17"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "PropertyDeclaration, annotated UnionType, inside a nested function expression",
+      "from": "nodes-testing/node-test-harness.ts:NodeTestHarness.ensureNodesLoaded@189",
+      "call_line": 193,
+      "to": "nodes-testing/load-nodes-and-credentials.ts:LoadNodesAndCredentials.init@46"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "nodes-testing/node-test-harness.ts:NodeTestHarness.executeWorkflow@199",
+      "call_line": 201,
+      "to": "nodes-testing/node-types.ts:NodeTypes@8"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "nodes-testing/node-test-harness.ts:NodeTestHarness.executeWorkflow@199",
+      "call_line": 202,
+      "to": "nodes-testing/credential-types.ts:CredentialTypes@7"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "nodes-testing/node-test-harness.ts:NodeTestHarness.executeWorkflow@199",
+      "call_line": 203,
+      "to": "nodes-testing/credentials-helper.ts:CredentialsHelper@16"
+    },
+    {
+      "shape": "this.m() (same file)",
+      "detail": "method of this or super",
+      "from": "src/instance-settings/instance-settings.ts:InstanceSettings@32",
+      "call_line": 50,
+      "to": "src/instance-settings/instance-settings.ts:InstanceSettings.loadEnforceSettingsFilePermissionsFlag@349"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/instance-settings/instance-settings.ts:InstanceSettings.loadOrCreate@279",
+      "call_line": 304,
+      "to": "src/instance-settings/worker-missing-encryption-key.error.ts:WorkerMissingEncryptionKey@3"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/storage-path-conflict.error.ts:StoragePathError.conflict@4",
+      "call_line": 5,
+      "to": "src/storage-path-conflict.error.ts:StoragePathError@3"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/storage-path-conflict.error.ts:StoragePathError.taken@10",
+      "call_line": 11,
+      "to": "src/storage-path-conflict.error.ts:StoragePathError@3"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/storage.config.ts:StorageConfig.sanitize@40",
+      "call_line": 45,
+      "to": "src/storage-path-conflict.error.ts:StoragePathError.conflict@4"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/storage.config.ts:StorageConfig.migrateStorageDir@68",
+      "call_line": 91,
+      "to": "src/storage-path-conflict.error.ts:StoragePathError.taken@10"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "PropertyDeclaration, annotated TypeReference",
+      "from": "src/storage.config.ts:StorageConfig.migrateStorageDir@68",
+      "call_line": 96,
+      "to": "src/instance-settings/instance-settings.ts:InstanceSettings.markFsStorageMigrated@240"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/observability/tracing/noop-tracing.ts:NoopTracing@59",
+      "call_line": 60,
+      "to": "src/observability/tracing/noop-tracing.ts:EmptySpan@4"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/observability/tracing/tracing.ts:Tracing@62",
+      "call_line": 63,
+      "to": "src/observability/tracing/noop-tracing.ts:NoopTracing@59"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference",
+      "from": "src/errors/error-reporter.ts:ErrorReporter.init@164",
+      "call_line": 243,
+      "to": "src/observability/tracing/tracing.ts:Tracing.setTracingImplementation@69"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/errors/error-reporter.ts:ErrorReporter.init@164",
+      "call_line": 243,
+      "to": "src/observability/tracing/sentry-tracing.ts:SentryTracing@9"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/binary-data/blob.manager.ts:BinaryDataBlobManager.getAsBuffer@50",
+      "call_line": 52,
+      "to": "src/errors/file-not-found.error.ts:FileNotFoundError@3"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/binary-data/blob.manager.ts:BinaryDataBlobManager.getAsStream@56",
+      "call_line": 58,
+      "to": "src/errors/file-not-found.error.ts:FileNotFoundError@3"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/binary-data/blob.manager.ts:BinaryDataBlobManager.getMetadata@62",
+      "call_line": 65,
+      "to": "src/errors/file-not-found.error.ts:FileNotFoundError@3"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/binary-data/blob.manager.ts:BinaryDataBlobManager.deleteManyByFileId@80",
+      "call_line": 85,
+      "to": "src/errors/error-reporter.ts:ErrorReporter.warn@406"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/binary-data/binary-data.service.ts:BinaryDataService.init@36",
+      "call_line": 43,
+      "to": "src/errors/error-reporter.ts:ErrorReporter.error@400"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/binary-data/binary-data.service.ts:BinaryDataService.init@36",
+      "call_line": 45,
+      "to": "src/binary-data/blob.manager.ts:BinaryDataBlobManager@25"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/binary-data/binary-data.service.ts:BinaryDataService.getManager@283",
+      "call_line": 288,
+      "to": "src/errors/invalid-manager.error.ts:InvalidManagerError@3"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/credentials.ts:Credentials.getData@48",
+      "call_line": 50,
+      "to": "src/credentials.ts:CredentialDataError@10"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/data-deduplication-service.ts:DataDeduplicationService.init@49",
+      "call_line": 51,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService@19"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "test/helpers/index.ts:NodeTypes@44",
+      "call_line": 46,
+      "to": "test/helpers/index.ts:NodeTypesClass@26"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "test/helpers/index.ts:WorkflowExecuteAdditionalData@52",
+      "call_line": 55,
+      "to": "src/execution-engine/execution-lifecycle-hooks.ts:ExecutionLifecycleHooks@91"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "test/helpers/index.ts:getNodeTypes@87",
+      "call_line": 105,
+      "to": "src/errors/unrecognized-node-type.error.ts:UnrecognizedNodeTypeError@3"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/execution-engine/poll-trigger-executor.ts:PollTriggerExecutor.create@36",
+      "call_line": 55,
+      "to": "src/observability/tracing/tracing.ts:Tracing.pickWorkflowAttributes@94"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/execution-engine/poll-trigger-executor.ts:PollTriggerExecutor.create@36",
+      "call_line": 56,
+      "to": "src/observability/tracing/tracing.ts:Tracing.pickNodeAttributes@102"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.addTriggers@154",
+      "call_line": 174,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState.beginRegistration@20"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.addTriggers@154",
+      "call_line": 189,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState.finishRegistration@25"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.removeTriggers@295",
+      "call_line": 308,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState.get@63"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.removeTriggers@295",
+      "call_line": 312,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState.delete@78"
+    },
+    {
+      "shape": "expr.m() (other file)",
+      "detail": "receiver is CallExpression, inside a nested function expression",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.activatePollTrigger@361",
+      "call_line": 389,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState.isCurrent@73"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.activatePollTrigger@361",
+      "call_line": 401,
+      "to": "src/execution-engine/poll-job-manager.ts:PollJobManager.register@19"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.activatePollTrigger@361",
+      "call_line": 416,
+      "to": "src/execution-engine/poll-job-manager.ts:PollJobManager.remove@31"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.remove@453",
+      "call_line": 479,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState.closableTriggers@97"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.remove@453",
+      "call_line": 482,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState.delete@78"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.getOrCreateWorkflowTriggersState@554",
+      "call_line": 558,
+      "to": "src/execution-engine/workflow-active-triggers-state.ts:WorkflowActiveTriggersState@14"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference",
+      "from": "src/execution-engine/execution-context.service.ts:ExecutionContextService.decryptCredentialContext@28",
+      "call_line": 29,
+      "to": "src/encryption/cipher.ts:Cipher.decryptV2@54"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference",
+      "from": "src/execution-engine/execution-context.service.ts:ExecutionContextService.decryptExecutionContext@33",
+      "call_line": 40,
+      "to": "src/encryption/cipher.ts:Cipher.decryptV2@54"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference",
+      "from": "src/execution-engine/execution-context.service.ts:ExecutionContextService.buildManualExecutionCredentials@52",
+      "call_line": 58,
+      "to": "src/encryption/cipher.ts:Cipher.encryptV2@32"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference",
+      "from": "src/execution-engine/execution-context.service.ts:ExecutionContextService.buildTriggerIdentityCredentials@61",
+      "call_line": 67,
+      "to": "src/encryption/cipher.ts:Cipher.encryptV2@32"
+    },
+    {
+      "shape": "this.field.m() (other file)",
+      "detail": "Parameter, annotated TypeReference",
+      "from": "src/execution-engine/execution-context.service.ts:ExecutionContextService.encryptExecutionContext@70",
+      "call_line": 74,
+      "to": "src/encryption/cipher.ts:Cipher.encryptV2@32"
+    },
+    {
+      "shape": "this.m() (same file)",
+      "detail": "method of this or super, inside a nested function expression",
+      "from": "src/execution-engine/ssh-clients-manager.ts:SSHClientsManager@54",
+      "call_line": 67,
+      "to": "src/execution-engine/ssh-clients-manager.ts:SSHClientsManager.onShutdown@191"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/node-execution-context/utils/execution-metadata.ts:setWorkflowExecutionMetadata@8",
+      "call_line": 24,
+      "to": "src/errors/invalid-execution-metadata.error.ts:InvalidExecutionMetadataError@3"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15",
+      "call_line": 25,
+      "to": "src/execution-engine/node-execution-context/utils/execution-metadata.ts:setWorkflowExecutionMetadata@8"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15",
+      "call_line": 36,
+      "to": "src/execution-engine/node-execution-context/utils/execution-metadata.ts:setAllWorkflowExecutionMetadata@46"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15",
+      "call_line": 46,
+      "to": "src/execution-engine/node-execution-context/utils/execution-metadata.ts:getWorkflowExecutionMetadata@70"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15",
+      "call_line": 49,
+      "to": "src/execution-engine/node-execution-context/utils/execution-metadata.ts:getAllWorkflowExecutionMetadata@63"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/get-secrets-proxy.ts:getSecretsProxy@25",
+      "call_line": 62,
+      "to": "src/execution-engine/node-execution-context/utils/get-secrets-proxy.ts:buildSecretsValueProxy@4"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext@49",
+      "call_line": 75,
+      "to": "src/execution-engine/node-execution-context/utils/custom-data.ts:createExecutionCustomData@15"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext@49",
+      "call_line": 475,
+      "to": "src/execution-engine/node-execution-context/utils/get-additional-keys.ts:getAdditionalKeys@20"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.getCredentials@117",
+      "call_line": 121,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getCredentials@318"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.executeWorkflow@136",
+      "call_line": 156,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getExecutionId@85"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.executeAgent@195",
+      "call_line": 249,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getMode@98"
+    },
+    {
+      "shape": "expr.m() (other file)",
+      "detail": "receiver is CallExpression",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:checkProcessedAndRecord@16",
+      "call_line": 22,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.checkProcessedAndRecord@87"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:checkProcessedAndRecord@16",
+      "call_line": 22,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.getInstance@54"
+    },
+    {
+      "shape": "expr.m() (other file)",
+      "detail": "receiver is CallExpression",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:checkProcessedItemsAndRecord@30",
+      "call_line": 37,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.checkProcessedItemsAndRecord@59"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:checkProcessedItemsAndRecord@30",
+      "call_line": 37,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.getInstance@54"
+    },
+    {
+      "shape": "expr.m() (other file)",
+      "detail": "receiver is CallExpression",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:removeProcessed@46",
+      "call_line": 52,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.removeProcessed@97"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:removeProcessed@46",
+      "call_line": 52,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.getInstance@54"
+    },
+    {
+      "shape": "expr.m() (other file)",
+      "detail": "receiver is CallExpression",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:clearAllProcessedItems@60",
+      "call_line": 65,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.clearAllProcessedItems@107"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:clearAllProcessedItems@60",
+      "call_line": 65,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.getInstance@54"
+    },
+    {
+      "shape": "expr.m() (other file)",
+      "detail": "receiver is CallExpression",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getProcessedDataCount@72",
+      "call_line": 77,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.getProcessedDataCount@116"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getProcessedDataCount@72",
+      "call_line": 77,
+      "to": "src/data-deduplication-service.ts:DataDeduplicationService.getInstance@54"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getDeduplicationHelperFunctions@84",
+      "call_line": 93,
+      "to": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:checkProcessedAndRecord@16"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getDeduplicationHelperFunctions@84",
+      "call_line": 101,
+      "to": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:checkProcessedItemsAndRecord@30"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getDeduplicationHelperFunctions@84",
+      "call_line": 114,
+      "to": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:removeProcessed@46"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getDeduplicationHelperFunctions@84",
+      "call_line": 120,
+      "to": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:clearAllProcessedItems@60"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getDeduplicationHelperFunctions@84",
+      "call_line": 126,
+      "to": "src/execution-engine/node-execution-context/utils/deduplication-helper-functions.ts:getProcessedDataCount@72"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:getFileSystemHelperFunctions@279",
+      "call_line": 284,
+      "to": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:isFilePathBlocked@127"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:getFileSystemHelperFunctions@279",
+      "call_line": 285,
+      "to": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:createBlockedPathError@54"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:getFileSystemHelperFunctions@279",
+      "call_line": 301,
+      "to": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:openWithoutFollowingSymlinkedAncestors@252"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:getFileSystemHelperFunctions@279",
+      "call_line": 437,
+      "to": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:assertNoSymlinkInPath@97"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:getFileSystemHelperFunctions@279",
+      "call_line": 440,
+      "to": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:ensureParentDirectoryWithoutFollowingSymlinks@106"
+    },
+    {
+      "shape": "identifier (same file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:getFileSystemHelperFunctions@279",
+      "call_line": 444,
+      "to": "src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:pinDirectory@190"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super, inside a nested function expression",
+      "from": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext.constructor@64",
+      "call_line": 133,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getNodeParameter@489"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext.cloneWith@141",
+      "call_line": 145,
+      "to": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext@44"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext.logNodeOutput@422",
+      "call_line": 427,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.sendMessageToUI@327"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext.logNodeOutput@422",
+      "call_line": 433,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getWorkflow@93"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext.logNodeOutput@422",
+      "call_line": 434,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.redactedConsoleArgs@322"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:createHitlToolkit@64",
+      "call_line": 100,
+      "to": "src/execution-engine/node-execution-context/utils/ai-tool-types.ts:StructuredToolkit@12"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:createHitlToolSupplyData@116",
+      "call_line": 131,
+      "to": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext@44"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "Parameter, annotated UnionType",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:validateInputConfiguration@341",
+      "call_line": 347,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getNode@89"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "Parameter, annotated UnionType",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:validateInputConfiguration@341",
+      "call_line": 349,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getConnections@237"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:getInputConnectionData@393",
+      "call_line": 408,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getNode@89"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:getInputConnectionData@393",
+      "call_line": 423,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getConnectedNodes@229"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction, inside a nested function expression",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:getInputConnectionData@393",
+      "call_line": 472,
+      "to": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext@44"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/node-execution-context/utils/get-input-connection-data.ts:getInputConnectionData@393",
+      "call_line": 544,
+      "to": "src/execution-engine/node-execution-context/supply-data-context.ts:SupplyDataContext.addExecutionDataFunctions@259"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super, inside a nested function expression",
+      "from": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext.constructor@54",
+      "call_line": 132,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getNodeParameter@489"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext.sendChunk@159",
+      "call_line": 164,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getNode@89"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext.logNodeOutput@213",
+      "call_line": 218,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.sendMessageToUI@327"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext.logNodeOutput@213",
+      "call_line": 224,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getWorkflow@93"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext.logNodeOutput@213",
+      "call_line": 225,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.redactedConsoleArgs@322"
+    },
+    {
+      "shape": "super.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/execute-single-context.ts:ExecuteSingleContext.evaluateExpression@94",
+      "call_line": 95,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.evaluateExpression@588"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/execute-single-context.ts:ExecuteSingleContext.getNodeParameter@121",
+      "call_line": 122,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getNodeParameter@489"
+    },
+    {
+      "shape": "super.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/execute-single-context.ts:ExecuteSingleContext.getCredentials@125",
+      "call_line": 126,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.getCredentials@117"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/hook-context.ts:HookContext.getCredentials@38",
+      "call_line": 39,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getCredentials@318"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/load-options-context.ts:LoadOptionsContext.getCredentials@36",
+      "call_line": 37,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getCredentials@318"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super, inside a nested function expression",
+      "from": "src/execution-engine/node-execution-context/workflow-node-context.ts:LoadWorkflowNodeContext.constructor@16",
+      "call_line": 28,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getNodeParameter@489"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/node-execution-context/local-load-options-context.ts:LocalLoadOptionsContext.getWorkflowNodeContext@23",
+      "call_line": 59,
+      "to": "src/execution-engine/node-execution-context/workflow-node-context.ts:LoadWorkflowNodeContext@11"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/poll-context.ts:PollContext.getCredentials@54",
+      "call_line": 55,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getCredentials@318"
+    },
+    {
+      "shape": "identifier (other file)",
+      "detail": "plain call",
+      "from": "src/execution-engine/node-execution-context/trigger-context.ts:TriggerContext.constructor@36",
+      "call_line": 45,
+      "to": "src/execution-engine/node-execution-context/utils/scheduling-helper-functions.ts:getSchedulingFunctions@8"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/trigger-context.ts:TriggerContext.getCredentials@67",
+      "call_line": 68,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getCredentials@318"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/execution-engine/node-execution-context/webhook-context.ts:WebhookContext.getCredentials@100",
+      "call_line": 101,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getCredentials@318"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.fromWorkflow@466",
+      "call_line": 467,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph@40"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.fromNodesAndConnections@499",
+      "call_line": 500,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph@40"
+    },
+    {
+      "shape": "expr.m() (same file)",
+      "detail": "receiver is CallExpression",
+      "from": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.clone@537",
+      "call_line": 540,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.addConnections@201"
+    },
+    {
+      "shape": "expr.m() (same file)",
+      "detail": "receiver is NewExpression",
+      "from": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.clone@537",
+      "call_line": 539,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.addNodes@91"
+    },
+    {
+      "shape": "new X() (same file)",
+      "detail": "construction",
+      "from": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.clone@537",
+      "call_line": 538,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph@40"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/partial-execution-utils/find-subgraph.ts:findSubgraph@88",
+      "call_line": 96,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph@40"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/find-subgraph.ts:findSubgraph@88",
+      "call_line": 107,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getParentConnections@293"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/filter-disabled-nodes.ts:filterDisabledNodes@5",
+      "call_line": 8,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getNodes@49"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/filter-disabled-nodes.ts:filterDisabledNodes@5",
+      "call_line": 10,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.removeNode@116"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/rewire-graph.ts:rewireGraph@7",
+      "call_line": 13,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getChildren@255"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/rewire-graph.ts:rewireGraph@7",
+      "call_line": 24,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getDirectParentConnections@259"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/rewire-graph.ts:rewireGraph@7",
+      "call_line": 43,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.addNode@86"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/rewire-graph.ts:rewireGraph@7",
+      "call_line": 47,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.addConnection@172"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/partial-execution-utils/rewire-graph.ts:rewireGraph@7",
+      "call_line": 55,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.removeNode@116"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "BindingElement, type inferred",
+      "from": "src/execution-engine/routing-node.ts:RoutingNode.runNode@54",
+      "call_line": 67,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.getExecutionCancelSignal@69"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/routing-node.ts:RoutingNode.runNode@54",
+      "call_line": 95,
+      "to": "src/execution-engine/node-execution-context/execute-single-context.ts:ExecuteSingleContext@28"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "BindingElement, type inferred",
+      "from": "src/execution-engine/routing-node.ts:RoutingNode.prepareCredentials@1095",
+      "call_line": 1125,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.getCredentials@117"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/node-execute-functions.ts:getExecutePollFunctions@17",
+      "call_line": 24,
+      "to": "src/execution-engine/node-execution-context/poll-context.ts:PollContext@27"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/node-execute-functions.ts:getExecuteTriggerFunctions@31",
+      "call_line": 38,
+      "to": "src/execution-engine/node-execution-context/trigger-context.ts:TriggerContext@33"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "static call on a class",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.runPartialWorkflow2@207",
+      "call_line": 223,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.fromWorkflow@466"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.runPartialWorkflow2@207",
+      "call_line": 232,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.toWorkflow@458"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.runPartialWorkflow2@207",
+      "call_line": 282,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getNodes@49"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, type inferred",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.runPartialWorkflow2@207",
+      "call_line": 285,
+      "to": "src/execution-engine/partial-execution-utils/directed-graph.ts:DirectedGraph.getNodesByNames@58"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.executeNode@1041",
+      "call_line": 1057,
+      "to": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext@45"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.executePollNode@1194",
+      "call_line": 1204,
+      "to": "src/execution-engine/node-execution-context/poll-context.ts:PollContext@27"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.executeDeclarativeNodeInTest@1267",
+      "call_line": 1281,
+      "to": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext@45"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.executeDeclarativeNodeInTest@1267",
+      "call_line": 1293,
+      "to": "src/execution-engine/routing-node.ts:RoutingNode@46"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.checkForWorkflowIssues@1479",
+      "call_line": 1501,
+      "to": "src/errors/workflow-has-issues.error.ts:WorkflowHasIssuesError@34"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "BindingElement, type inferred, inside a nested function expression",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.processRunExecutionData@1577",
+      "call_line": 1603,
+      "to": "src/execution-engine/execution-lifecycle-hooks.ts:ExecutionLifecycleHooks.runHook@118"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.handleNodeErrorOutput@2710",
+      "call_line": 2728,
+      "to": "src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext@45"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "VariableDeclaration, initialised with new",
+      "from": "src/execution-engine/workflow-execute.ts:WorkflowExecute.handleNodeErrorOutput@2710",
+      "call_line": 2742,
+      "to": "src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.getWorkflowDataProxy@285"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/execution-engine/node-execution-context/__tests__/shared-tests.ts:describeCommonTests@31",
+      "call_line": 310,
+      "to": "src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.evaluateExpression@588"
+    },
+    {
+      "shape": "ident.m() (other file)",
+      "detail": "Parameter, annotated TypeReference, inside a nested function expression",
+      "from": "src/fs-byte-store.service.ts:FsByteStoreService.constructor@14",
+      "call_line": 17,
+      "to": "src/errors/error-reporter.ts:ErrorReporter.error@400"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/nodes-loader/directory-loader.ts:DirectoryLoader.getNode@242",
+      "call_line": 256,
+      "to": "src/errors/unrecognized-node-type.error.ts:UnrecognizedNodeTypeError@3"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/nodes-loader/directory-loader.ts:DirectoryLoader.getCredential@289",
+      "call_line": 303,
+      "to": "src/errors/unrecognized-credential-type.error.ts:UnrecognizedCredentialTypeError@3"
+    },
+    {
+      "shape": "ident.m() (same file)",
+      "detail": "static call on a class",
+      "from": "src/nodes-loader/directory-loader.ts:DirectoryLoader.applySpecialNodeParameters@406",
+      "call_line": 421,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.applyDeclarativeNodeOptionParameters@479"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/custom-directory-loader.ts:CustomDirectoryLoader.constructor@13",
+      "call_line": 16,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.extractNodeTypes@143"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/custom-directory-loader.ts:CustomDirectoryLoader.loadAll@20",
+      "call_line": 27,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.loadNodeFromFile@165"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/custom-directory-loader.ts:CustomDirectoryLoader.loadAll@20",
+      "call_line": 36,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.loadCredentialFromFile@260"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/package-directory-loader.ts:PackageDirectoryLoader.constructor@17",
+      "call_line": 23,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.extractNodeTypes@143"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/package-directory-loader.ts:PackageDirectoryLoader.loadAll@27",
+      "call_line": 39,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.loadNodeFromFile@165"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/package-directory-loader.ts:PackageDirectoryLoader.loadAll@27",
+      "call_line": 45,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.loadCredentialFromFile@260"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/package-directory-loader.ts:PackageDirectoryLoader.readJSONSync@94",
+      "call_line": 95,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.resolvePath@139"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/package-directory-loader.ts:PackageDirectoryLoader.readJSON@100",
+      "call_line": 101,
+      "to": "src/nodes-loader/directory-loader.ts:DirectoryLoader.resolvePath@139"
+    },
+    {
+      "shape": "this.m() (other file)",
+      "detail": "method of this or super",
+      "from": "src/nodes-loader/lazy-package-directory-loader.ts:LazyPackageDirectoryLoader.loadAll@7",
+      "call_line": 9,
+      "to": "src/nodes-loader/package-directory-loader.ts:PackageDirectoryLoader.readJSON@100"
+    },
+    {
+      "shape": "new X() (other file)",
+      "detail": "construction",
+      "from": "src/nodes-loader/scan-directory-for-packages.ts:scanDirectoryForPackages@14",
+      "call_line": 35,
+      "to": "src/nodes-loader/lazy-package-directory-loader.ts:LazyPackageDirectoryLoader@6"
+    }
+  ],
+  "q5_unjudgeable": {
+    "import_statements_not_resolved_by_specifier": {
+      "n8n-workflow": 157,
+      "@n8n/di": 40,
+      "../dist/errors": 1,
+      "../dist/nodes-loader/lazy-package-directory-loader": 1,
+      "../dist/credentials": 1,
+      "@n8n/decorators": 5,
+      "@n8n/utils/promise/deferred-promise": 9,
+      "../dist/execution-engine/execution-lifecycle-hooks": 1,
+      "../dist/execution-engine/workflow-execute": 1,
+      "@n8n/backend-common": 22,
+      "@n8n/config": 7,
+      "@n8n/constants": 5,
+      "@n8n/utils/result": 2,
+      "@n8n/utils/errors/ensure-error": 2,
+      "@n8n/backend-network": 11,
+      "@n8n/errors": 1,
+      "@n8n/blob-storage": 4,
+      "@n8n/client-oauth2": 2,
+      "@n8n/utils/sleep": 4,
+      "@n8n/vitest-config/node-decorators": 1
+    },
+    "calls_with_no_symbol": 900,
+    "of_those_receiver_is_error_type": 878,
+    "of_those_receiver_is_any": 19,
+    "of_those_receiver_is_typed": 3
+  },
+  "q6_cost": {
+    "wall_ms": 2019,
+    "peak_rss_mb": 502
+  }
+}
