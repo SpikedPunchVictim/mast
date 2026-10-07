@@ -8,6 +8,7 @@ import { runIndex } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
 import { measureFreshness } from '../freshness.js';
 import type { SymbolRecord } from '../../ast/types.js';
+import { expectGraphEqualsFullIndex } from './graph-fixture.js';
 
 // ---------------------------------------------------------------------------
 // AST-derived stability hashes (M3 fix)
@@ -166,7 +167,15 @@ describe('the §7.1 skip does not fire on an edit outside every symbol body (D03
       "import { alphaFunction } from './alpha.js';\n\nexport function betaCaller(): number { return alphaFunction(41); }\n",
     );
   });
-  afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
+  // T9 (adr/proposals/incremental-graph-correctness): whatever a test here
+  // leaves behind must be the graph a full index of the same tree gives.
+  afterEach(async () => {
+    try {
+      await expectGraphEqualsFullIndex(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 
   it('re-writes a file whose only change is its import specifier', async () => {
     const config = resolveConfig({ projectRoot: dir });
@@ -278,7 +287,15 @@ describe('the stability skip does not pass over star re-exports (D079)', () => {
     writeFileSync(join(dir, 'a.ts'), 'export function a(): number { return 1; }\n');
     writeFileSync(join(dir, 'b.ts'), 'export function b(): number { return 2; }\n');
   });
-  afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
+  // T9 (adr/proposals/incremental-graph-correctness): whatever a test here
+  // leaves behind must be the graph a full index of the same tree gives.
+  afterEach(async () => {
+    try {
+      await expectGraphEqualsFullIndex(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 
   async function reExportTargets(config: ReturnType<typeof resolveConfig>): Promise<string[]> {
     const db = openDatabase(config.resolved_state_dir);

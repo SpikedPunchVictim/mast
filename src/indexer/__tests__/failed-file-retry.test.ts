@@ -25,6 +25,7 @@ import { runIndex, loadIndexMeta } from '../index.js';
 import { openDatabase } from '../../graph/db.js';
 import { extractFile } from '../../ast/extract.js';
 import type { ChunkStore, ChunkRecord } from '../../store/sqliteChunkStore.js';
+import { expectGraphEqualsFullIndex } from './graph-fixture.js';
 
 let dir: string;
 afterEach(() => { if (dir !== undefined) rmSync(dir, { recursive: true, force: true }); });
@@ -82,6 +83,7 @@ describe('a file whose parse fails', () => {
     expect(await indexedPaths(config.resolved_state_dir)).toEqual(['src/doomed.ts', 'src/good.ts']);
     expect(Object.keys(readManifest(config.resolved_state_dir)).sort())
       .toEqual(['src/doomed.ts', 'src/good.ts']);
+    await expectGraphEqualsFullIndex(dir);
   });
 
   it('keeps reporting the error for as long as it keeps failing', async () => {
@@ -133,6 +135,7 @@ describe('a file whose write fails', () => {
     expect(second.filesIndexed).toBe(1);
     expect(Object.keys(readManifest(config.resolved_state_dir)).sort())
       .toEqual(['src/doomed.ts', 'src/good.ts']);
+    await expectGraphEqualsFullIndex(dir);
   });
 });
 
@@ -159,5 +162,6 @@ describe('a hole left by an index written before this fix', () => {
 
     expect(healed.filesIndexed).toBe(1);
     expect(await indexedPaths(config.resolved_state_dir)).toEqual(['src/doomed.ts', 'src/good.ts']);
+    await expectGraphEqualsFullIndex(dir);
   });
 });

@@ -138,11 +138,6 @@ export interface ImporterQuery {
   readonly names: readonly string[];
   /** Paths of the files that changed, were deleted, or lost edges this run. */
   readonly sources: readonly string[];
-  /**
-   * Also return files importing one of the names from a module that resolved
-   * to no file. Set when a file was added: that module may be the new file.
-   */
-  readonly includeUnresolved: boolean;
 }
 
 /**
@@ -190,17 +185,49 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
       .execute();
     for (const row of rows) if (namesAny(row.symbols)) found.add(row.path);
   }
-  if (query.includeUnresolved) {
+  return [...found];
+}
+
+/**
+ * Paths of the files with an import that resolved to one of `paths`, whatever
+ * it names.
+ *
+ * For a file that is gone, or that a new file now stands in front of: where
+ * such an import points has changed although no name did. An importer that
+ * names nothing the file exported holds no edge into it and is found by no
+ * name, and its import row would go on pointing at the old file (D093).
+ */
+export async function findImportersOfFiles(db: Db, paths: readonly string[]): Promise<string[]> {
+  const found = new Set<string>();
+  for (const batch of chunkValuesForSqlite(paths)) {
     const rows = await db
       .selectFrom('imports as i')
       .innerJoin('files as f', 'f.id', 'i.file_id')
-      .select(['f.path', 'i.symbols'])
-      .where('i.resolved_path', 'is', null)
-      .where('i.is_external', '=', 0)
+      .select('f.path')
+      .distinct()
+      .where('i.resolved_path', 'in', batch)
       .execute();
-    for (const row of rows) if (namesAny(row.symbols)) found.add(row.path);
+    for (const row of rows) found.add(row.path);
   }
   return [...found];
+}
+
+/**
+ * Paths of the files with an import of a module inside the project that
+ * matched no file. When a file is added, any of them may be importing it,
+ * whether or not it exports the name they ask for (D093). Few files have one:
+ * 15 of 13,985 on n8n.
+ */
+export async function listFilesWithUnresolvedImports(db: Db): Promise<string[]> {
+  const rows = await db
+    .selectFrom('imports as i')
+    .innerJoin('files as f', 'f.id', 'i.file_id')
+    .select('f.path')
+    .distinct()
+    .where('i.resolved_path', 'is', null)
+    .where('i.is_external', '=', 0)
+    .execute();
+  return rows.map((row) => row.path);
 }
 
 /**

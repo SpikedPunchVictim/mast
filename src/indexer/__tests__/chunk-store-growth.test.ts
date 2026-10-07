@@ -7,6 +7,7 @@ import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
+import { expectGraphEqualsFullIndex } from './graph-fixture.js';
 
 // ---------------------------------------------------------------------------
 // M1 growth regression (eval/GITNEXUS_COMPARISON.md §15.1, IMPLEMENTATION_PLAN.md
@@ -81,6 +82,7 @@ describe('chunks table growth is O(current content), not O(writes) — M1', () =
     const first = sizesAfterEachRewrite[0]!;
     const last = sizesAfterEachRewrite[sizesAfterEachRewrite.length - 1]!;
     expect(last).toBeLessThan(first * 3);
+    await expectGraphEqualsFullIndex(dir);
   });
 
   it('row count grows linearly with unique files across successive incremental adds, not with run count', async () => {
@@ -101,5 +103,6 @@ describe('chunks table growth is O(current content), not O(writes) — M1', () =
 
       expect(total).toBe(i + 1);
     }
+    await expectGraphEqualsFullIndex(dir);
   });
 });

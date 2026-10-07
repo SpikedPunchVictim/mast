@@ -6,6 +6,7 @@ import { resolveConfig } from '../../store/config.js';
 import { runIndex } from '../../indexer/index.js';
 import { openDatabase } from '../../graph/db.js';
 import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
+import { expectGraphEqualsFullIndex } from './graph-fixture.js';
 
 describe('chunks_removed accounting (M4)', () => {
   let dir: string;
@@ -48,5 +49,6 @@ describe('chunks_removed accounting (M4)', () => {
     // a.ts is unchanged (same mtime), so only b.ts's chunks are removed.
     const result = await runIndex(config, { incremental: true });
     expect(result.chunksRemoved).toBe(bChunks);
+    await expectGraphEqualsFullIndex(dir);
   });
 });

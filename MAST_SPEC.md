@@ -2374,7 +2374,17 @@ there are read again, so a barrel written before the file it names gets its star
 row (ledger D090). And the files the new one stands in front of when a specifier
 is resolved (the same name with another extension, or an `index` file in a
 directory of that name) have the files holding edges into them resolved again
-(ledger D091).
+(ledger D091). The same is done for the files a deleted file stood in front of
+(ledger D095).
+
+An import row says which file a specifier points at, and that depends on which
+files exist, not on any name. So every file with an import resolved to a deleted
+or shadowed file is resolved again, and when a file is added, every file with an
+in-project import that matched nothing (ledger D093).
+
+When a name is declared in more than one file behind a barrel's `export *`
+lines, the file with the lowest path is taken (ledger D094). This is a fixed
+choice, not TypeScript's: TypeScript exports neither.
 
 Not followed, because nothing stored identifies the importer: an import or
 re-export under an alias; an `export *` through a path alias of a file added

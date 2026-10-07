@@ -155,11 +155,11 @@ through; items are ticked here as they land.
 - [x] **T8. Watcher path.** With the server's watcher running, an edit to a called file leaves
       its callers in place. The one-session finding in S2 came through this path and no test
       covers it.
-- [ ] **T9. Existing incremental tests call T1.** `stability`, `chunks-removed`,
+- [x] **T9. Existing incremental tests call T1.** `stability`, `chunks-removed`,
       `failed-file-retry`, `chunk-store-growth` and the staleness tests each end with the
       helper where they have a multi-file project, so future incremental work is checked
       against a full index without anyone remembering to.
-- [ ] **T10. Generated edit sequences.** A seeded generator builds a small project with
+- [x] **T10. Generated edit sequences.** A seeded generator builds a small project with
       imports, barrels and classes, applies a random sequence of edits (body, rename, add,
       delete, move, re-point), and runs T1 after each. Fixed seeds in the suite; the seed is
       printed on failure.
@@ -274,6 +274,18 @@ which the extractor does not record as an import. The user chose to drop the mat
 evidence. `legacyGlobalFirstMatch` is deleted, D092 is fixed by that, and its scenario row
 runs as an ordinary row. Not done, and the way to get the 7 edges back with evidence: record a
 destructured dynamic import as an import. Aliases stay deferred with D087.
+
+2026-10-07, T9 and T10. T9: `stability` (the D030 and D079 blocks), `chunks-removed`,
+`chunk-store-growth` and `failed-file-retry` end with the comparison. Only the D030 block has
+edges between files, so only there does it bite (checked by breaking edge insertion: 3 tests
+fail). The staleness tests have one file each and were left. T10: `generated-edits.ts` builds a
+project and edit rounds from a seed, from pools of paths and names small enough to collide.
+What it checks is that an incremental run equals a full index, not that either is right. First
+run, seeds 1 to 60: 35 failed. Three defects, each cut down to scenario rows and fixed: D093
+(28 seeds; stale import rows), D094 (7 seeds; a star-ambiguous name resolved by file id), D095
+(2 of seeds 61 to 500; a deleted file that stood in front of a directory index). Seeds 1 to
+900 then pass; 1 to 12 run in the suite. Not generated: aliases, path aliases, default and
+namespace imports, `implements`, files that fail to parse.
 
 Not in this round: the D087 case (a path alias in a package's own `tsconfig.json`) and
 aliased imports resolving to the right target. Their tests are written with their fixes.

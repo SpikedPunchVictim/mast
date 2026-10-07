@@ -4,8 +4,10 @@ import {
   changedExports,
   clearEdgeRepairsPending,
   findFilesShadowedBy,
+  findImportersOfFiles,
   findImportersOfNames,
   findReExporters,
+  listFilesWithUnresolvedImports,
   listFilesWithUnresolvedStars,
   listPendingEdgeRepairs,
   markEdgeRepairsPending,
@@ -149,12 +151,19 @@ export async function repairEdgesAfterWrites(db: Db, input: EdgeRepairInput): Pr
   // front of a file already imported (D091): the files holding edges into
   // that one are resolved again, and its names count as changed.
   const added = [...writtenPaths].filter((path) => !memo.surfaces.has(path));
-  const shadowed = added.length > 0 ? await findFilesShadowedBy(db, added) : [];
+  // A deleted file is the same case from the other side: what it stood in
+  // front of is where those specifiers point now (D095).
+  const shadowed = await findFilesShadowedBy(db, [...added, ...input.deleted]);
   if (added.length > 0) {
     const barrels = await listFilesWithUnresolvedStars(db);
-    for (const path of [...barrels, ...(await findFilesWithEdgesInto(db, shadowed))]) candidates.add(path);
+    const importingNothingYet = await listFilesWithUnresolvedImports(db);
+    for (const path of [...barrels, ...importingNothingYet]) candidates.add(path);
     extractForReResolve(barrels);
   }
+  for (const path of await findFilesWithEdgesInto(db, shadowed)) candidates.add(path);
+  // Where an import of a deleted or shadowed file points has changed even if
+  // the importer names nothing that file exported (D093).
+  for (const path of await findImportersOfFiles(db, [...input.deleted, ...shadowed])) candidates.add(path);
 
   // The importers of a changed name are found by walking star rows, so the
   // rows of every file written or held go in first. `insertGraphEdges` writes
@@ -176,7 +185,6 @@ export async function repairEdgesAfterWrites(db: Db, input: EdgeRepairInput): Pr
   const importers = await findImportersOfNames(db, {
     names: [...changedNames],
     sources: [...input.deleted, ...writtenPaths, ...memo.holders, ...shadowed],
-    includeUnresolved: added.length > 0,
   });
   for (const path of importers) candidates.add(path);
 

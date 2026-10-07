@@ -1350,9 +1350,15 @@ async function resolveThroughStarChain(db: Db, startFileId: number, toName: stri
     )
     .selectFrom('symbols as s')
     .innerJoin('re_export_chain as rec', 'rec.file_id', 's.file_id')
+    .innerJoin('files as f', 'f.id', 's.file_id')
     .select(['s.id', 's.kind'])
     .where('s.name', '=', toName)
-    .orderBy('s.file_id', 'asc')
+    // By path, not by file id: when two files behind the stars have the name,
+    // the one chosen must not depend on which was written last. A re-written
+    // file gets a new id, so id order made an edit to one of them move every
+    // importer's edge to the other (D094).
+    .orderBy('f.path', 'asc')
+    .orderBy('s.id', 'asc')
     .execute();
 
   const declared = candidates.find((c) => c.kind !== 'export');
