@@ -1,0 +1,76 @@
+{
+  "spike": "graph-reference/s1-call-edges",
+  "ran_at": "2026-10-07T19:52:06.750Z",
+  "typescript": "5.9.3",
+  "project_root": "/Users/spikedpunchvictim/projects/mast",
+  "tsconfig": "tsconfig.json",
+  "path_prefix": "",
+  "workspace_packages_mapped_to_source": 0,
+  "indexed_typescript_files": 98,
+  "program_source_files": 747,
+  "calls_seen": 4114,
+  "calls_the_checker_gave_no_symbol_for": 1,
+  "q1_declaration_join": {
+    "start": 410,
+    "name": 0,
+    "statement": 0,
+    "near3_same_name": 0,
+    "none": 55,
+    "not_indexable_kind": 80,
+    "outside_indexed_files": 427
+  },
+  "q3_mast_edges": 705,
+  "q3_verdicts_by_resolution": {
+    "same_file": {
+      "agrees": 395
+    },
+    "import": {
+      "agrees": 289
+    },
+    "this_method": {
+      "agrees": 8
+    },
+    "new_expression": {
+      "agrees": 7
+    },
+    "parameter_type": {
+      "agrees": 5
+    },
+    "super_method": {
+      "agrees": 1
+    }
+  },
+  "q4_reference_pairs": 751,
+  "q4_pairs_mast_has_by_shape": {
+    "identifier (same file)": 395,
+    "identifier (other file)": 289,
+    "this.m() (same file)": 8,
+    "ident.m() (other file)": 3,
+    "ident.m() (same file)": 9,
+    "super.m() (other file)": 1
+  },
+  "q4_pairs_mast_lacks_by_shape": {
+    "identifier (same file)": 5,
+    "ident.m() (other file)": 2,
+    "new X() (other file)": 11,
+    "new X() (same file)": 9,
+    "identifier (other file)": 2,
+    "ident.m() (same file)": 17
+  },
+  "q4_distinct_mast_pairs": 705,
+  "q4_calls_outside_any_indexed_symbol": 2,
+  "q4_self_calls_skipped": 0,
+  "q5_unjudgeable": {
+    "import_statements_not_resolved_by_specifier": {
+      "@fx/core": 3
+    },
+    "calls_with_no_symbol": 1,
+    "of_those_receiver_is_error_type": 1,
+    "of_those_receiver_is_any": 0,
+    "of_those_receiver_is_typed": 0
+  },
+  "q6_cost": {
+    "wall_ms": 3455,
+    "peak_rss_mb": 404
+  }
+}

@@ -49,6 +49,12 @@ export interface Chunk {
    * signatures (no method bodies), per §10.1. Transient — see `declaration_hash`.
    */
   readonly body_hash?: string;
+  /**
+   * True on the second and later sub-chunks of a split declaration. The split
+   * is for search; the graph has one symbol per declaration (§10.3), so
+   * `symbolsFromChunks` skips these (D097). Transient — see `declaration_hash`.
+   */
+  readonly continues_declaration?: true;
 }
 
 /** Stability hashes stored per chunk for incremental reindex optimisation. */

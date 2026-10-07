@@ -198,3 +198,16 @@ commits; it is one run of 16 commits on one repository, not a standing check.
 
 Open: pid 31197 is still running and still writes to this repository's index with the old
 code. Not stopped, since it is not this session's process.
+
+## Re-runs after each fix
+
+The same script and the same corpora, run again after a fix lands. Each row is a fresh full
+index with that commit's `dist/`.
+
+| After | Corpus | Repeated `symbols` rows | mast edges | Pairs the checker supports | mast holds | Wrong | Raw output |
+|---|---|---|---|---|---|---|---|
+| D097 (one row per declaration) | this repository | 15 functions → 0 | 705 | 751 | 705 | 0 | `s1-call-edges/mast.after-d097.summary.json` |
+| D097 | n8n `packages/core`, indexed alone | 12 functions → 0 | 558 | not re-run | not re-run | not re-run | none; counted with `sqlite3` |
+
+D097 changes which row an edge sits on, not which edges exist, so the pair counts were
+expected to stay the same and did.

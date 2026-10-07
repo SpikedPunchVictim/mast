@@ -525,6 +525,7 @@ function pushChunks(chunks: Chunk[], opts: PushChunksOpts): void {
       file_mtime: fileMtime,
       declaration_hash: opts.declarationHash,
       body_hash: opts.bodyHash,
+      ...(subIndex > 0 ? { continues_declaration: true as const } : {}),
     });
 
     if (subEnd >= endLine) break;
@@ -1066,12 +1067,15 @@ export function expandContent(
 
 /**
  * Derive `SymbolRecord` entries from an already-extracted chunk list.
- * Skips anonymous chunks (`symbol_name === null`) and raw `block` chunks.
+ * Skips anonymous chunks (`symbol_name === null`), raw `block` chunks, and the
+ * later sub-chunks of a split declaration: a declaration is one symbol however
+ * many chunks it was cut into, and its line is the declaration's line (D097).
  */
 export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
   const records: SymbolRecord[] = [];
   for (const c of chunks) {
     if (c.symbol_name === null || c.chunk_type === 'block') continue;
+    if (c.continues_declaration === true) continue;
     records.push({
       name: c.symbol_name,
       kind: chunkTypeToKind(c.chunk_type),
