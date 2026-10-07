@@ -1,0 +1,69 @@
+{
+  "commit": "2a42293ba5036b39e2db05fea8c22655b9199063",
+  "baselineTests": 125,
+  "tests": [
+    "src/indexer/__tests__/incremental-equivalence.test.ts",
+    "src/indexer/__tests__/generated-edits.test.ts",
+    "src/indexer/__tests__/edge-repair-pending.test.ts",
+    "src/indexer/__tests__/stability.test.ts",
+    "src/indexer/__tests__/structural-evidence.test.ts",
+    "src/mcp/__tests__/query-time-equivalence.test.ts",
+    "src/mcp/__tests__/query-time-repair-contended.test.ts",
+    "src/mcp/__tests__/watch-batch-edges.test.ts",
+    "src/mcp/tools/__tests__/answers-after-edit.test.ts",
+    "src/mcp/tools/__tests__/pending-signal.test.ts"
+  ],
+  "deep": {
+    "generatedTest": [
+      "src/indexer/__tests__/generated-edits.test.ts"
+    ],
+    "seeds": "100-250"
+  },
+  "counts": {
+    "survived": 3
+  },
+  "results": [
+    {
+      "id": "I04",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a declaration that changes kind does not count as changed",
+      "find": "map((s) => `${s.name}|${s.kind}`)",
+      "replace": "map((s) => `${s.name}|x`)",
+      "killer": "when a type alias becomes an interface that a class implements",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [],
+      "failedInWholeSuite": [],
+      "wholeSuiteTests": 1961,
+      "verdict": "survived"
+    },
+    {
+      "id": "I11",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a file of the same name with another extension is not seen as shadowed",
+      "find": "if (sameNameOtherExtension || directoryIndex) shadowed.add(path);",
+      "replace": "if (directoryIndex) shadowed.add(path);",
+      "killer": "NO NAMED TEST",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [],
+      "failedInWholeSuite": [],
+      "wholeSuiteTests": 1961,
+      "verdict": "survived"
+    },
+    {
+      "id": "I14",
+      "file": "src/graph/importer-repair.ts",
+      "what": "an unresolved import of a package counts as an unresolved import of a project file",
+      "find": "    .where('i.is_external', '=', 0)\n",
+      "replace": "",
+      "killer": "NO NAMED TEST",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [],
+      "failedInWholeSuite": [],
+      "wholeSuiteTests": 1961,
+      "verdict": "survived"
+    }
+  ]
+}

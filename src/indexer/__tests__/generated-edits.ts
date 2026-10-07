@@ -15,6 +15,10 @@ import type { Round, Scenario } from './equivalence-scenarios.js';
 // Deterministic for a seed. The result is a `Scenario`, so a sequence that
 // fails can be cut down and pasted into equivalence-scenarios.ts as a row.
 //
+// Interfaces, `implements` and files with broken syntax were added after the
+// first seeds had been run. They draw from a second random stream, so what the
+// first stream decides for a seed is what it decided before.
+//
 // Not generated, because each is a known gap with its own ledger row or
 // deferral: an import or re-export under an alias, a path alias (D087).
 // ---------------------------------------------------------------------------
@@ -33,6 +37,7 @@ const PATHS = [
 const FUNCTIONS = ['f0', 'f1', 'f2'] as const;
 const CLASSES = ['K0', 'K1'] as const;
 const METHODS = ['m0', 'm1'] as const;
+const INTERFACES = ['I0', 'I1'] as const;
 
 /** What one import or re-export names: the file a specifier stands for, without extension or `/index`. */
 type Stem = string;
@@ -45,8 +50,15 @@ interface ImportSpec {
 interface ClassSpec {
   readonly name: string;
   readonly parent: string | null;
+  readonly implemented: string | null;
   readonly methods: readonly string[];
 }
+
+/** `interface` and `type` under one name: a class can name either after `implements`, and only one gets an edge. */
+type InterfaceKind = 'interface' | 'type';
+
+/** How a file's text is damaged: cut off inside its last line, or with a line that is not TypeScript before its declarations. */
+type Damage = 'none' | 'cut-off' | 'bad-line';
 
 interface FileSpec {
   /** Exported functions, each with a number its body returns. */
@@ -55,6 +67,8 @@ interface FileSpec {
   readonly imports: readonly ImportSpec[];
   readonly stars: readonly Stem[];
   readonly namedReExports: readonly ImportSpec[];
+  readonly interfaces: Readonly<Record<string, InterfaceKind>>;
+  readonly damage: Damage;
 }
 
 type Project = Map<string, FileSpec>;
@@ -111,12 +125,17 @@ function render(path: string, spec: FileSpec): string {
   for (const reExport of spec.namedReExports) {
     if (reExport.names.length > 0) lines.push(`export { ${reExport.names.join(', ')} } from '${specifier(path, reExport.stem)}';`);
   }
+  if (spec.damage === 'bad-line') lines.push('export class { function ( => ;');
   for (const [name, value] of Object.entries(spec.functions)) {
     lines.push(`export function ${name}(): number { return ${value}; }`);
   }
+  for (const [name, kind] of Object.entries(spec.interfaces)) {
+    lines.push(kind === 'interface' ? `export interface ${name} { m0(): void }` : `export type ${name} = { m0(): void };`);
+  }
   for (const cls of spec.classes) {
-    const heritage = cls.parent === null ? '' : ` extends ${cls.parent}`;
-    lines.push(`export class ${cls.name}${heritage} { ${cls.methods.map((m) => `${m}(): void {}`).join(' ')} }`);
+    const parent = cls.parent === null ? '' : ` extends ${cls.parent}`;
+    const implemented = cls.implemented === null ? '' : ` implements ${cls.implemented}`;
+    lines.push(`export class ${cls.name}${parent}${implemented} { ${cls.methods.map((m) => `${m}(): void {}`).join(' ')} }`);
   }
   const imported = spec.imports.flatMap((imp) => imp.names);
   const calls: string[] = [];
@@ -124,6 +143,9 @@ function render(path: string, spec: FileSpec): string {
   for (const name of imported) {
     if (name.startsWith('f')) {
       calls.push(`${name}();`);
+    } else if (name.startsWith('I')) {
+      parameters.push(`p${name}: ${name}`);
+      calls.push(`p${name}.m0();`);
     } else {
       parameters.push(`p${name}: ${name}`);
       calls.push(`p${name}.m0();`, `new ${name}().m1();`);
@@ -133,10 +155,17 @@ function render(path: string, spec: FileSpec): string {
     const useName = `use_${path.replace(/[^a-z0-9]/gi, '_')}`;
     lines.push(`export function ${useName}(${parameters.join(', ')}): void { ${calls.join(' ')} }`);
   }
-  return lines.length === 0 ? '// nothing here\n' : `${lines.join('\n')}\n`;
+  const text = lines.length === 0 ? '// nothing here\n' : `${lines.join('\n')}\n`;
+  return spec.damage === 'cut-off' ? text.slice(0, -Math.min(12, Math.floor(text.length / 2))) : text;
 }
 
-function randomFile(dice: Dice, path: string): FileSpec {
+/** The interface names a file can put after `implements`: its own and the ones it imports. */
+function interfacesInScope(spec: Pick<FileSpec, 'interfaces' | 'imports'>): string[] {
+  const imported = spec.imports.flatMap((imp) => imp.names).filter((name) => name.startsWith('I'));
+  return [...Object.keys(spec.interfaces), ...imported];
+}
+
+function randomFile(dice: Dice, extra: Dice, path: string): FileSpec {
   const ownStem = stemOf(path);
   const others = STEMS.filter((stem) => stem !== ownStem);
   const isBarrel = dice.chance(0.3);
@@ -155,7 +184,7 @@ function randomFile(dice: Dice, path: string): FileSpec {
   const ownClasses = dice.some(CLASSES, isBarrel ? 0 : 0.3).filter((name) => !taken.has(name));
   const importedClasses = [...taken].filter((name) => name.startsWith('K'));
 
-  return {
+  const base = {
     functions: Object.fromEntries(ownFunctions.map((name) => [name, dice.below(100)])),
     classes: ownClasses.map((name) => ({
       name,
@@ -168,9 +197,39 @@ function randomFile(dice: Dice, path: string): FileSpec {
       ? dice.some(others, 0.2).map((stem) => ({ stem, names: dice.some([...FUNCTIONS, ...CLASSES], 0.4) }))
       : [],
   };
+
+  // Everything below draws from `extra` only.
+  const interfaces: Record<string, InterfaceKind> = {};
+  const importsWithInterfaces = base.imports.map((imp) => ({ stem: imp.stem, names: [...imp.names] }));
+  for (const name of INTERFACES) {
+    if (extra.chance(0.25)) {
+      interfaces[name] = extra.chance(0.8) ? 'interface' : 'type';
+    } else if (extra.chance(0.3)) {
+      const stem = extra.pick(others);
+      if (stem === undefined) continue;
+      const existing = importsWithInterfaces.find((imp) => imp.stem === stem);
+      if (existing === undefined) importsWithInterfaces.push({ stem, names: [name] });
+      else existing.names.push(name);
+    }
+  }
+  const inScope = interfacesInScope({ interfaces, imports: importsWithInterfaces });
+  return {
+    ...base,
+    imports: importsWithInterfaces,
+    namedReExports: base.namedReExports.map((reExport) => ({
+      stem: reExport.stem,
+      names: [...reExport.names, ...extra.some(INTERFACES, 0.3)],
+    })),
+    classes: base.classes.map((cls) => ({
+      ...cls,
+      implemented: extra.chance(0.5) ? (extra.pick(inScope) ?? null) : null,
+    })),
+    interfaces,
+    damage: 'none',
+  };
 }
 
-type Edit = (project: Project, dice: Dice) => string | null;
+type Edit = (project: Project, dice: Dice, extra: Dice) => string | null;
 
 const changeABody: Edit = (project, dice) => {
   const candidates = [...project].filter(([, spec]) => Object.keys(spec.functions).length > 0);
@@ -225,10 +284,10 @@ const changeAClass: Edit = (project, dice) => {
   return `${what} in ${path}`;
 };
 
-const addAFile: Edit = (project, dice) => {
+const addAFile: Edit = (project, dice, extra) => {
   const path = dice.pick(PATHS.filter((p) => !project.has(p)));
   if (path === undefined) return null;
-  project.set(path, randomFile(dice, path));
+  project.set(path, randomFile(dice, extra, path));
   return `add ${path}`;
 };
 
@@ -291,6 +350,58 @@ const rePoint: Edit = (project, dice) => {
   return `re-point one ${kind} of ${path} to ${target}`;
 };
 
+/** An interface is declared, dropped, or turned into a type alias of the same name, or back. */
+const changeAnInterface: Edit = (project, _dice, extra) => {
+  const chosen = extra.pick([...project]);
+  const name = extra.pick(INTERFACES);
+  if (chosen === undefined || name === undefined) return null;
+  const [path, spec] = chosen;
+  const kind = spec.interfaces[name];
+  if (kind === undefined) {
+    if (spec.imports.some((imp) => imp.names.includes(name))) return null;
+    project.set(path, { ...spec, interfaces: { ...spec.interfaces, [name]: 'interface' } });
+    return `add interface ${name} to ${path}`;
+  }
+  if (extra.chance(0.5)) {
+    const flipped: InterfaceKind = kind === 'interface' ? 'type' : 'interface';
+    project.set(path, { ...spec, interfaces: { ...spec.interfaces, [name]: flipped } });
+    return `turn ${name} in ${path} into ${flipped === 'type' ? 'a type alias' : 'an interface'}`;
+  }
+  const { [name]: _removed, ...rest } = spec.interfaces;
+  project.set(path, { ...spec, interfaces: rest });
+  return `remove ${name} from ${path}`;
+};
+
+const changeWhatAClassImplements: Edit = (project, _dice, extra) => {
+  const candidates = [...project].filter(([, spec]) => spec.classes.length > 0);
+  const chosen = extra.pick(candidates);
+  if (chosen === undefined) return null;
+  const [path, spec] = chosen;
+  const index = extra.below(spec.classes.length);
+  const cls = spec.classes[index];
+  if (cls === undefined) return null;
+  const implemented = cls.implemented === null ? (extra.pick(interfacesInScope(spec)) ?? null) : null;
+  if (implemented === cls.implemented) return null;
+  project.set(path, { ...spec, classes: spec.classes.map((c, i) => (i === index ? { ...c, implemented } : c)) });
+  return `${cls.name} in ${path} implements ${implemented ?? 'nothing'}`;
+};
+
+/** A file is saved half-written, or a damaged one is put right. */
+const damageOrMendAFile: Edit = (project, _dice, extra) => {
+  // Half the time a damaged file is the one chosen, when there is one: a file
+  // left damaged for the rest of the sequence tests less each round.
+  const damaged = [...project].filter(([, spec]) => spec.damage !== 'none');
+  const chosen = extra.chance(0.5) ? (extra.pick(damaged) ?? extra.pick([...project])) : extra.pick([...project]);
+  if (chosen === undefined) return null;
+  const [path, spec] = chosen;
+  const damage: Damage = spec.damage !== 'none' ? 'none' : extra.chance(0.5) ? 'cut-off' : 'bad-line';
+  project.set(path, { ...spec, damage });
+  return damage === 'none' ? `mend ${path}` : `damage ${path} (${damage})`;
+};
+
+/** Drawn by the second stream, on top of what the first one chose for the round. */
+const EXTRA_EDITS: readonly Edit[] = [changeAnInterface, changeAnInterface, changeWhatAClassImplements, damageOrMendAFile];
+
 const EDITS: readonly Edit[] = [
   changeABody,
   changeABody,
@@ -316,9 +427,10 @@ export interface GeneratedScenario extends Scenario {
 /** A project and `steps` rounds of edits to it, the same for the same `seed`. */
 export function generateScenario(seed: number, steps: number): GeneratedScenario {
   const dice = new Dice(randomSource(seed));
+  const extra = new Dice(randomSource(seed ^ 0x5bd1e995));
   const project: Project = new Map();
   for (const path of PATHS) {
-    if (dice.chance(0.6)) project.set(path, randomFile(dice, path));
+    if (dice.chance(0.6)) project.set(path, randomFile(dice, extra, path));
   }
 
   const files = renderAll(project);
@@ -330,7 +442,11 @@ export function generateScenario(seed: number, steps: number): GeneratedScenario
     // Mostly one edit to a round, sometimes two or three: a real save, a real commit.
     const editsThisRound = dice.chance(0.7) ? 1 : 2 + dice.below(2);
     for (let i = 0; i < editsThisRound; i++) {
-      const description = dice.pick(EDITS)?.(project, dice) ?? null;
+      const description = dice.pick(EDITS)?.(project, dice, extra) ?? null;
+      if (description !== null) descriptions.push(description);
+    }
+    if (extra.chance(0.4)) {
+      const description = extra.pick(EXTRA_EDITS)?.(project, dice, extra) ?? null;
       if (description !== null) descriptions.push(description);
     }
     const after = renderAll(project);

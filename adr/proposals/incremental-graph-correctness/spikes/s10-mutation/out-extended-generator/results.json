@@ -1,0 +1,163 @@
+{
+  "commit": "2a42293ba5036b39e2db05fea8c22655b9199063",
+  "baselineTests": 125,
+  "tests": [
+    "src/indexer/__tests__/incremental-equivalence.test.ts",
+    "src/indexer/__tests__/generated-edits.test.ts",
+    "src/indexer/__tests__/edge-repair-pending.test.ts",
+    "src/indexer/__tests__/stability.test.ts",
+    "src/indexer/__tests__/structural-evidence.test.ts",
+    "src/mcp/__tests__/query-time-equivalence.test.ts",
+    "src/mcp/__tests__/query-time-repair-contended.test.ts",
+    "src/mcp/__tests__/watch-batch-edges.test.ts",
+    "src/mcp/tools/__tests__/answers-after-edit.test.ts",
+    "src/mcp/tools/__tests__/pending-signal.test.ts"
+  ],
+  "deep": {
+    "generatedTest": [
+      "src/indexer/__tests__/generated-edits.test.ts"
+    ],
+    "seeds": "100-250"
+  },
+  "counts": {
+    "killed-by-more-seeds": 5,
+    "killed-by-other": 1,
+    "survived": 3
+  },
+  "results": [
+    {
+      "id": "E07",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "holders of edges into a shadowed file are not candidates",
+      "find": "for (const path of await findFilesWithEdgesInto(db, shadowed)) candidates.add(path);",
+      "replace": "",
+      "killer": "when a new file takes over a specifier that a directory index answered",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 242"
+      ],
+      "verdict": "killed-by-more-seeds"
+    },
+    {
+      "id": "E09",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "importers of a shadowed file are not candidates",
+      "find": "findImportersOfFiles(db, [...input.deleted, ...shadowed])",
+      "replace": "findImportersOfFiles(db, [...input.deleted])",
+      "killer": "when a directory index is replaced by a file of the same name",
+      "failed": [
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 4"
+      ],
+      "crashed": null,
+      "verdict": "killed-by-other"
+    },
+    {
+      "id": "E11",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "a deleted file's names do not count as changed",
+      "find": "for (const path of new Set([...input.deleted, ...writtenPaths])) {",
+      "replace": "for (const path of new Set([...writtenPaths])) {",
+      "killer": "when a file behind a star barrel is deleted",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 160",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 197"
+      ],
+      "verdict": "killed-by-more-seeds"
+    },
+    {
+      "id": "E14",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "holders are not sources when importers of changed names are looked up",
+      "find": "sources: [...input.deleted, ...writtenPaths, ...memo.holders, ...shadowed],",
+      "replace": "sources: [...input.deleted, ...writtenPaths, ...shadowed],",
+      "killer": "when a file behind a star barrel loses a name and another file behind it gains it",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [],
+      "failedInWholeSuite": [],
+      "wholeSuiteTests": 1961,
+      "verdict": "survived"
+    },
+    {
+      "id": "I03",
+      "file": "src/graph/importer-repair.ts",
+      "what": "only names that appeared count as changed, not names that disappeared",
+      "find": "return [...[...a].filter((v) => !b.has(v)), ...[...b].filter((v) => !a.has(v))];",
+      "replace": "return [...[...b].filter((v) => !a.has(v))];",
+      "killer": "when a called function is renamed and its caller is not updated",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 192",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 197",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 218"
+      ],
+      "verdict": "killed-by-more-seeds"
+    },
+    {
+      "id": "I04",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a declaration that changes kind does not count as changed",
+      "find": "map((s) => `${s.name}|${s.kind}`)",
+      "replace": "map((s) => `${s.name}|x`)",
+      "killer": "when a type alias becomes an interface that a class implements",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [],
+      "failedInWholeSuite": [],
+      "wholeSuiteTests": 1961,
+      "verdict": "survived"
+    },
+    {
+      "id": "I06",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a changed member is looked up under its own name, not its class's",
+      "find": "query.names.map((name) => name.split('.', 1)[0] ?? name)",
+      "replace": "query.names.map((name) => name)",
+      "killer": "when a class gains a method that a subclass elsewhere already calls through super",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 115",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 127",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 135",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 147",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 175",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 191",
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 237"
+      ],
+      "verdict": "killed-by-more-seeds"
+    },
+    {
+      "id": "I09",
+      "file": "src/graph/importer-repair.ts",
+      "what": "the names behind a star target stop at the target, not what it stars in turn",
+      "find": "closure(paths, adjacency(await loadStarRows(db), false))",
+      "replace": "new Set(paths)",
+      "killer": "when a star barrel gains a second target that holds an imported name",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [
+        "src/indexer/__tests__/generated-edits.test.ts ::  the graph after each round of a generated edit sequence equals a full index seed 218"
+      ],
+      "verdict": "killed-by-more-seeds"
+    },
+    {
+      "id": "I11",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a file of the same name with another extension is not seen as shadowed",
+      "find": "if (sameNameOtherExtension || directoryIndex) shadowed.add(path);",
+      "replace": "if (directoryIndex) shadowed.add(path);",
+      "killer": "NO NAMED TEST",
+      "failed": [],
+      "crashed": null,
+      "failedOnMoreSeeds": [],
+      "failedInWholeSuite": [],
+      "wholeSuiteTests": 1961,
+      "verdict": "survived"
+    }
+  ]
+}

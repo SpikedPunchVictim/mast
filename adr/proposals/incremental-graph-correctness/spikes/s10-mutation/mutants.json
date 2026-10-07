@@ -1,0 +1,300 @@
+{
+  "tests": [
+    "src/indexer/__tests__/incremental-equivalence.test.ts",
+    "src/indexer/__tests__/generated-edits.test.ts",
+    "src/indexer/__tests__/edge-repair-pending.test.ts",
+    "src/indexer/__tests__/stability.test.ts",
+    "src/indexer/__tests__/structural-evidence.test.ts",
+    "src/mcp/__tests__/query-time-equivalence.test.ts",
+    "src/mcp/__tests__/query-time-repair-contended.test.ts",
+    "src/mcp/__tests__/watch-batch-edges.test.ts",
+    "src/mcp/tools/__tests__/answers-after-edit.test.ts",
+    "src/mcp/tools/__tests__/pending-signal.test.ts"
+  ],
+  "deep": {
+    "generatedTest": ["src/indexer/__tests__/generated-edits.test.ts"],
+    "seeds": "100-250"
+  },
+  "mutants": [
+    {
+      "id": "E01",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "holders of edges into a re-written file are not remembered",
+      "find": "for (const holder of holders) memo.holders.add(holder);",
+      "replace": "",
+      "killer": "when the body of a called function is edited"
+    },
+    {
+      "id": "E02",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "holders that re-export are not remembered as such",
+      "find": "for (const holder of await findReExporters(db, holders)) memo.reExportingHolders.add(holder);",
+      "replace": "",
+      "killer": "when the body of a function behind a star barrel is edited"
+    },
+    {
+      "id": "E03",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "files left waiting by an earlier call are not candidates",
+      "find": "new Set([...(await listPendingEdgeRepairs(db)), ...memo.holders])",
+      "replace": "new Set([...memo.holders])",
+      "killer": "are finished by the next run"
+    },
+    {
+      "id": "E04",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "a deleted file is not checked for what it stood in front of",
+      "find": "findFilesShadowedBy(db, [...added, ...input.deleted])",
+      "replace": "findFilesShadowedBy(db, [...added])",
+      "killer": "when a file is deleted that stood in front of a directory index others re-export from"
+    },
+    {
+      "id": "E05",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "files with an unresolved import are not candidates when a file is added",
+      "find": "[...barrels, ...importingNothingYet]",
+      "replace": "[...barrels]",
+      "killer": "when a file is added where an import pointed at nothing, without the imported name"
+    },
+    {
+      "id": "E06",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "barrels with an unresolved star are not read before the star rows go in",
+      "find": "    extractForReResolve(barrels);\n",
+      "replace": "",
+      "killer": "when a star barrel names a file that is created afterwards"
+    },
+    {
+      "id": "E07",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "holders of edges into a shadowed file are not candidates",
+      "find": "for (const path of await findFilesWithEdgesInto(db, shadowed)) candidates.add(path);",
+      "replace": "",
+      "killer": "when a new file takes over a specifier that a directory index answered"
+    },
+    {
+      "id": "E08",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "importers of a deleted file are not candidates",
+      "find": "findImportersOfFiles(db, [...input.deleted, ...shadowed])",
+      "replace": "findImportersOfFiles(db, [...shadowed])",
+      "killer": "when a file is deleted that another imports a name from, which it never exported"
+    },
+    {
+      "id": "E09",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "importers of a shadowed file are not candidates",
+      "find": "findImportersOfFiles(db, [...input.deleted, ...shadowed])",
+      "replace": "findImportersOfFiles(db, [...input.deleted])",
+      "killer": "when a directory index is replaced by a file of the same name"
+    },
+    {
+      "id": "E10",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "re-exporting holders are not read before the importers are looked up",
+      "find": "  extractForReResolve(memo.reExportingHolders);\n",
+      "replace": "",
+      "killer": "when the body of a function behind a star barrel is edited"
+    },
+    {
+      "id": "E11",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "a deleted file's names do not count as changed",
+      "find": "for (const path of new Set([...input.deleted, ...writtenPaths])) {",
+      "replace": "for (const path of new Set([...writtenPaths])) {",
+      "killer": "when a file behind a star barrel is deleted"
+    },
+    {
+      "id": "E12",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "a shadowed file's names do not count as changed",
+      "find": "namesExportedThrough(db, [...changedStarTargets, ...shadowed])",
+      "replace": "namesExportedThrough(db, [...changedStarTargets])",
+      "killer": "when a new file takes over a specifier that a directory index answered"
+    },
+    {
+      "id": "E13",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "an added or dropped star target's names do not count as changed",
+      "find": "namesExportedThrough(db, [...changedStarTargets, ...shadowed])",
+      "replace": "namesExportedThrough(db, [...shadowed])",
+      "killer": "when a star barrel gains a second target that holds an imported name"
+    },
+    {
+      "id": "E14",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "holders are not sources when importers of changed names are looked up",
+      "find": "sources: [...input.deleted, ...writtenPaths, ...memo.holders, ...shadowed],",
+      "replace": "sources: [...input.deleted, ...writtenPaths, ...shadowed],",
+      "killer": "when a file behind a star barrel loses a name and another file behind it gains it"
+    },
+    {
+      "id": "E15",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "written files are not sources when importers of changed names are looked up",
+      "find": "sources: [...input.deleted, ...writtenPaths, ...memo.holders, ...shadowed],",
+      "replace": "sources: [...input.deleted, ...memo.holders, ...shadowed],",
+      "killer": "when a file gains a name another file already imports and calls"
+    },
+    {
+      "id": "E16",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "a file resolved again keeps its old import rows",
+      "find": "          await replaceImports(db, path, records.imports);\n",
+      "replace": "",
+      "killer": "when a file is created after the file that imports from it"
+    },
+    {
+      "id": "E17",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "a file resolved again keeps its old outgoing edges",
+      "find": "          await clearOutgoingEdges(db, path);\n",
+      "replace": "",
+      "killer": "when a called function is renamed and its caller is not updated"
+    },
+    {
+      "id": "E18",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "the budget is ignored",
+      "find": "while (waiting.length > 0 && Date.now() - repairStart < budgetMs) {",
+      "replace": "while (waiting.length > 0) {",
+      "killer": "are counted on the result and stored with the index"
+    },
+    {
+      "id": "E19",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "files that re-export wait for the budget like the rest",
+      "find": "const reExporterPaths = toReResolve.filter((path) => reExporters.has(path));",
+      "replace": "const reExporterPaths = toReResolve.filter(() => false);",
+      "killer": "do not include a file that re-exports, which is always resolved"
+    },
+    {
+      "id": "E20",
+      "file": "src/indexer/edge-repair.ts",
+      "what": "a file resolved in a budgeted batch stays on the waiting list",
+      "find": "    await inLock(() => clearEdgeRepairsPending(db, batch));\n",
+      "replace": "",
+      "killer": "are none when the run has no budget set"
+    },
+    {
+      "id": "I01",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a named re-export does not count as changed when its file is re-written",
+      "find": "names: [...new Set([...declared, ...from.markers, ...to.markers])],",
+      "replace": "names: [...new Set([...declared])],",
+      "killer": "when a named barrel is re-pointed at another file and nothing else changes"
+    },
+    {
+      "id": "I02",
+      "file": "src/graph/importer-repair.ts",
+      "what": "only names that disappeared count as changed, not names that appeared",
+      "find": "return [...[...a].filter((v) => !b.has(v)), ...[...b].filter((v) => !a.has(v))];",
+      "replace": "return [...[...a].filter((v) => !b.has(v))];",
+      "killer": "when a file gains a name another file already imports and calls"
+    },
+    {
+      "id": "I03",
+      "file": "src/graph/importer-repair.ts",
+      "what": "only names that appeared count as changed, not names that disappeared",
+      "find": "return [...[...a].filter((v) => !b.has(v)), ...[...b].filter((v) => !a.has(v))];",
+      "replace": "return [...[...b].filter((v) => !a.has(v))];",
+      "killer": "when a called function is renamed and its caller is not updated"
+    },
+    {
+      "id": "I04",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a declaration that changes kind does not count as changed",
+      "find": "map((s) => `${s.name}|${s.kind}`)",
+      "replace": "map((s) => `${s.name}|x`)",
+      "killer": "when a type alias becomes an interface that a class implements"
+    },
+    {
+      "id": "I05",
+      "file": "src/graph/importer-repair.ts",
+      "what": "an added or dropped star target is not reported",
+      "find": "starTargets: symmetricDifference(from.starTargets, to.starTargets),",
+      "replace": "starTargets: [],",
+      "killer": "when a star barrel gains a second target that holds an imported name"
+    },
+    {
+      "id": "I06",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a changed member is looked up under its own name, not its class's",
+      "find": "query.names.map((name) => name.split('.', 1)[0] ?? name)",
+      "replace": "query.names.map((name) => name)",
+      "killer": "when a class gains a method that a subclass elsewhere already calls through super"
+    },
+    {
+      "id": "I07",
+      "file": "src/graph/importer-repair.ts",
+      "what": "files that re-export a changed name by name are not found",
+      "find": "    for (const row of rows) found.add(row.path);\n  }\n\n  const reach",
+      "replace": "  }\n\n  const reach",
+      "killer": "when a file gains a name that is imported through two named barrels"
+    },
+    {
+      "id": "I08",
+      "file": "src/graph/importer-repair.ts",
+      "what": "importers are not found through a star barrel that reaches a source",
+      "find": "closure([...query.sources, ...found], adjacency(await loadStarRows(db), true))",
+      "replace": "new Set([...query.sources, ...found])",
+      "killer": "when a file behind a star barrel loses a name and another file behind it gains it"
+    },
+    {
+      "id": "I09",
+      "file": "src/graph/importer-repair.ts",
+      "what": "the names behind a star target stop at the target, not what it stars in turn",
+      "find": "closure(paths, adjacency(await loadStarRows(db), false))",
+      "replace": "new Set(paths)",
+      "killer": "when a star barrel gains a second target that holds an imported name"
+    },
+    {
+      "id": "I10",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a directory index is not seen as shadowed by a file of the directory's name",
+      "find": "if (sameNameOtherExtension || directoryIndex) shadowed.add(path);",
+      "replace": "if (sameNameOtherExtension) shadowed.add(path);",
+      "killer": "when a new file takes over a specifier that a directory index answered"
+    },
+    {
+      "id": "I11",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a file of the same name with another extension is not seen as shadowed",
+      "find": "if (sameNameOtherExtension || directoryIndex) shadowed.add(path);",
+      "replace": "if (directoryIndex) shadowed.add(path);",
+      "killer": "NO NAMED TEST"
+    },
+    {
+      "id": "I12",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a file that re-exports only by star is not counted as a re-exporter",
+      "find": "for (const row of [...byMarker, ...byStar]) found.add(row.path);",
+      "replace": "for (const row of [...byMarker]) found.add(row.path);",
+      "killer": "when the body of a function behind a star barrel is edited"
+    },
+    {
+      "id": "I13",
+      "file": "src/graph/importer-repair.ts",
+      "what": "a file that re-exports only by name is not counted as a re-exporter",
+      "find": "for (const row of [...byMarker, ...byStar]) found.add(row.path);",
+      "replace": "for (const row of [...byStar]) found.add(row.path);",
+      "killer": "when a file gains a name that is imported through two named barrels"
+    },
+    {
+      "id": "I14",
+      "file": "src/graph/importer-repair.ts",
+      "what": "an unresolved import of a package counts as an unresolved import of a project file",
+      "find": "    .where('i.is_external', '=', 0)\n",
+      "replace": "",
+      "killer": "NO NAMED TEST"
+    },
+    {
+      "id": "I15",
+      "file": "src/graph/importer-repair.ts",
+      "what": "nothing is recorded as waiting",
+      "find": "      .values(files.map((file) => ({ file_id: file.id })))\n      .onConflict((oc) => oc.doNothing())\n      .execute();",
+      "replace": "      .values(files.map((file) => ({ file_id: file.id })))\n      .onConflict((oc) => oc.doNothing())\n      .compile();",
+      "killer": "are counted on the result and stored with the index"
+    }
+  ]
+}
