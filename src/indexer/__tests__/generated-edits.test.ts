@@ -26,6 +26,10 @@ import {
 
 const ROUNDS = 10;
 const FIXED_SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+// One test is ten rounds, each an incremental run and a full index: about half
+// a second on a quiet machine, and past vitest's 5 s default on a loaded one
+// (seen at load average 49, with every seed timing out and none failing).
+const SEED_TIMEOUT_MS = 60_000;
 
 function seeds(): number[] {
   const range = /^(\d+)-(\d+)$/.exec(process.env['MAST_GENERATED_SEEDS'] ?? '');
@@ -67,5 +71,5 @@ describe('the graph after each round of a generated edit sequence equals a full 
         throw error;
       }
     }
-  });
+  }, SEED_TIMEOUT_MS);
 });

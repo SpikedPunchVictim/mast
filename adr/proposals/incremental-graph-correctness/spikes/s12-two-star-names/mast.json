@@ -1,0 +1,10 @@
+{
+  "files": 193,
+  "files_with_a_star_re_export": 1,
+  "barrels_with_a_name_declared_in_two_files_behind_their_stars": 0,
+  "barrel_name_pairs": 0,
+  "import_rows": 439,
+  "imported_names_that_are_such_a_pair": 0,
+  "files_importing_one": 0,
+  "pairs": {}
+}

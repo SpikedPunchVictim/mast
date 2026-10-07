@@ -1,6 +1,7 @@
 # Spikes — incremental graph correctness
 
-Throwaway, exploratory measurements behind `../PROPOSAL.md`. Nothing here is a registered
+Throwaway, exploratory measurements behind `../PROPOSAL.md`. **`RESULTS.md` in this directory
+gathers every spike's numbers and the decisions taken on them; look there first.** Nothing here is a registered
 experiment under ADR 010 and no number here may be quoted as a settled finding. Each spike has
 a directory holding the script that produced it and its raw output. Scripts were run from a
 session scratch directory and carry absolute paths to it; they are kept as the record of what
@@ -30,6 +31,8 @@ All runs: built CLI (`dist/`) from this branch, 2026-10-06, macOS, one machine.
 | S7 | Decision 2: how often would a cap on re-resolution be hit? | done, an estimate — `s7-cap-sizing/`: n8n p90 103 files, 9 of 143 runs over 500; mast max 56 |
 | S9 | D092: how many call edges come from the name-only guess, and are they right? | done — `s9-call-fallback/`: n8n 7 of 30,740, all 7 right (dynamic import of a workspace package); mast 0 of 616 |
 | S10 | Do the tests fail when one line of the repair code is removed? | done — `s10-mutation/`: of 35 hand-written mutants the gate fails for 25; 7 more fail only on generated seeds 100 to 250; 3 pass all 1,961 tests. After eight rows were added to the scenario table the gate fails for 33 |
+| S11 | D082: what does an empty FTS block save when a markdown file is re-indexed? | done — `s11-fts-empty-block/`: n8n, under load, `fts_del` for one markdown file 1021 to 2215 ms with a NULL block and 0 to 1 ms with the empty block |
+| S12 | D094: how often is a name declared in two files behind one barrel's `export *` lines? | done — `s12-two-star-names/`: n8n 18 such names by spelling across 10 of 202 star barrels, 0 of them a real case (all behind `export * as ns from`), and 0 of 51,617 import rows name one; mast 0. Decided: D094 stays at lowest path. Found D096 |
 
 S1 to S5 (2026-10-06) used two further corpora, both scratch clones so that commits could be
 checked out: n8n at `9d9e9bf97e` (13,985 indexed files) and this repository at `d062339`

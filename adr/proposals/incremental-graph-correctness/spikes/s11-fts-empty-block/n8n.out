@@ -1,0 +1,32 @@
+load: { 34.27 36.97 25.12 }
+markdown files: 525, with a NULL identifier block: 525
+identifier_fts rows: 69876, chunk_fts rows: 73360
+twenty N=20 run=1 null_blocks_before=20 | files: 20 indexed dur=10294ms write=8400 fts_del=7038
+twenty N=20 run=2 null_blocks_before=0 | files: 20 indexed dur=4772ms write=3038 fts_del=519
+twenty N=20 run=3 null_blocks_before=0 | files: 20 indexed dur=2274ms write=705 fts_del=180
+twenty N=20 run=4 null_blocks_before=0 | files: 20 indexed dur=2762ms write=982 fts_del=248
+twenty N=20 run=1 null_blocks_before=20 | files: 20 indexed dur=6687ms write=4398 fts_del=3895
+twenty N=20 run=2 null_blocks_before=0 | files: 20 indexed dur=3056ms write=641 fts_del=15
+twenty N=20 run=3 null_blocks_before=0 | files: 20 indexed dur=2990ms write=682 fts_del=16
+twenty N=20 run=4 null_blocks_before=0 | files: 20 indexed dur=3670ms write=324 fts_del=28
+twenty N=20 run=1 null_blocks_before=20 | files: 20 indexed dur=6138ms write=4334 fts_del=3978
+twenty N=20 run=2 null_blocks_before=0 | files: 20 indexed dur=1308ms write=106 fts_del=7
+twenty N=20 run=3 null_blocks_before=0 | files: 20 indexed dur=1824ms write=435 fts_del=17
+twenty N=20 run=4 null_blocks_before=0 | files: 20 indexed dur=1443ms write=147 fts_del=12
+one N=1 run=1 null_blocks_before=1 | files: 1 indexed dur=3680ms write=2310 fts_del=2215
+one N=1 run=2 null_blocks_before=0 | files: 1 indexed dur=1344ms write=22 fts_del=1
+one N=1 run=3 null_blocks_before=0 | files: 1 indexed dur=1130ms write=16 fts_del=0
+one N=1 run=1 null_blocks_before=1 | files: 1 indexed dur=3413ms write=1311 fts_del=1275
+one N=1 run=2 null_blocks_before=0 | files: 1 indexed dur=1041ms write=13 fts_del=1
+one N=1 run=3 null_blocks_before=0 | files: 1 indexed dur=860ms write=27 fts_del=0
+one N=1 run=1 null_blocks_before=1 | files: 1 indexed dur=3285ms write=1339 fts_del=1305
+one N=1 run=2 null_blocks_before=0 | files: 1 indexed dur=1062ms write=25 fts_del=1
+one N=1 run=3 null_blocks_before=0 | files: 1 indexed dur=970ms write=12 fts_del=0
+one N=1 run=1 null_blocks_before=1 | files: 1 indexed dur=3883ms write=1043 fts_del=1021
+one N=1 run=2 null_blocks_before=0 | files: 1 indexed dur=822ms write=10 fts_del=0
+one N=1 run=3 null_blocks_before=0 | files: 1 indexed dur=1344ms write=16 fts_del=1
+one N=1 run=1 null_blocks_before=1 | files: 1 indexed dur=2854ms write=1667 fts_del=1639
+one N=1 run=2 null_blocks_before=0 | files: 1 indexed dur=1251ms write=125 fts_del=1
+one N=1 run=3 null_blocks_before=0 | files: 1 indexed dur=913ms write=12 fts_del=0
+load: { 24.07 32.31 24.77 }
+markdown files with a NULL identifier block now: 460

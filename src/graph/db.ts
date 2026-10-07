@@ -16,8 +16,9 @@ type BoolCol = ColumnType<number, 0 | 1, 0 | 1>;
 /**
  * One end of the rowid block a file's rows occupy in an FTS5 virtual table
  * (see {@link FilesTable.chunk_fts_lo}). Nullable, and optional on insert, so
- * that a row written before this column existed — or a file that produced no
- * rows at all — reads back as SQL NULL rather than a misleading 0.
+ * that a row written before this column existed reads back as SQL NULL. A file
+ * that produced no rows is not NULL: it records the empty range `lo 0, hi -1`,
+ * because a delete that finds NULL scans the whole table (D082).
  */
 type FtsRowidCol = ColumnType<number | null, number | null | undefined, number | null>;
 
@@ -27,9 +28,10 @@ interface FilesTable {
   readonly language: string;
   readonly mtime: number;
   /**
-   * Inclusive bounds of the contiguous `chunk_fts` rowid block this file owns,
-   * or NULL when the file has no rows there (no chunks, or a row written
-   * before Stage 4.6 added the column).
+   * Inclusive bounds of the contiguous `chunk_fts` rowid block this file owns:
+   * `0` and `-1` when the file has no rows there, NULL when the row was
+   * written before Stage 4.6 added the column (or before D082's fix, for a
+   * file with no rows).
    *
    * This exists because FTS5 cannot answer `WHERE file_path = ?` with anything
    * but a full table scan — `xBestIndex` refuses equality constraints on

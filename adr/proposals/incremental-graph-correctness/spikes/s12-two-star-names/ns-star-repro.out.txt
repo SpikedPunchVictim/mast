@@ -1,0 +1,3 @@
+POTENTIAL_CALL|src/zc.ts:use|src/a.ts:fn
+star|src/barrel.ts|src/a.ts
+star|src/barrel.ts|src/b.ts

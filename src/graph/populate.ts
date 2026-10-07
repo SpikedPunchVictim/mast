@@ -383,14 +383,22 @@ export async function populateFile(
  */
 /**
  * Inclusive bounds of the contiguous rowid block a file owns in one FTS5
- * virtual table, or `null` bounds when it owns no rows there.
+ * virtual table. `null` bounds mean no block was ever recorded: the `files`
+ * row predates the columns, or there is no row.
  */
 interface FtsBlock {
   readonly lo: number | null;
   readonly hi: number | null;
 }
 
-const EMPTY_FTS_BLOCK: FtsBlock = { lo: null, hi: null };
+/**
+ * The block of a file that owns no rows in a table: a range with nothing in
+ * it, since rowids start at 1. Recorded instead of NULL because NULL already
+ * means "not recorded", and a delete that finds NULL has to scan the whole
+ * table by path. Markdown never has identifier rows, so with NULL every
+ * re-write of a markdown file ran that scan (D082).
+ */
+const EMPTY_FTS_BLOCK: FtsBlock = { lo: 0, hi: -1 };
 
 type FtsTable = 'chunk_fts' | 'identifier_fts';
 
@@ -443,9 +451,10 @@ async function deleteFtsRowidBlock(
 ): Promise<void> {
   if (block.lo === null || block.hi === null) {
     // No block recorded — a `files` row written before Stage 4.6 added the
-    // columns. Fall back to the scan this change exists to remove: slow, but
-    // correct, and self-healing because the row is about to be rewritten with
-    // a block. Never skipped — skipping would leave stale rows findable.
+    // columns, or before a file with no rows got `EMPTY_FTS_BLOCK` (D082).
+    // Fall back to the scan this change exists to remove: slow, but correct,
+    // and self-healing because the row is about to be rewritten with a block.
+    // Never skipped — skipping would leave stale rows findable.
     await sql`DELETE FROM ${sql.table(table)} WHERE file_path = ${filePath}`.execute(trx);
     return;
   }

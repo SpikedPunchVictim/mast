@@ -1,0 +1,77 @@
+{
+  "barrels": 10,
+  "names_counted": 18,
+  "names_declared_in_two_files_behind_plain_stars": 0,
+  "rows": [
+    {
+      "barrel": "packages/frontend/@n8n/frontend-module-sdk/src/index.ts",
+      "plain_star_lines": 1,
+      "namespace_star_lines": 3,
+      "names_counted": 7,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/Airtable/v2/methods/index.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 3,
+      "names_counted": 2,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/Databricks/actions/files/Files.resource.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 7,
+      "names_counted": 1,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/Databricks/actions/genie/Genie.resource.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 6,
+      "names_counted": 1,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/Databricks/actions/unityCatalog/UnityCatalog.resource.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 17,
+      "names_counted": 1,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/Databricks/actions/vectorSearch/VectorSearch.resource.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 4,
+      "names_counted": 1,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/NocoDB/v2/actions/base/base.resource.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 2,
+      "names_counted": 1,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/NocoDB/v2/actions/linkrows/linkrows.resource.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 3,
+      "names_counted": 1,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/NocoDB/v2/actions/rows/rows.resource.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 8,
+      "names_counted": 1,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    },
+    {
+      "barrel": "packages/nodes-base/nodes/NocoDB/v2/methods/index.ts",
+      "plain_star_lines": 0,
+      "namespace_star_lines": 3,
+      "names_counted": 2,
+      "names_declared_in_two_files_behind_plain_stars": 0
+    }
+  ]
+}

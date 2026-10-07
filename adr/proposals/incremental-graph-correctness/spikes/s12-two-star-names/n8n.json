@@ -1,0 +1,141 @@
+{
+  "files": 13985,
+  "files_with_a_star_re_export": 202,
+  "barrels_with_a_name_declared_in_two_files_behind_their_stars": 10,
+  "barrel_name_pairs": 18,
+  "import_rows": 51617,
+  "imported_names_that_are_such_a_pair": 0,
+  "files_importing_one": 0,
+  "pairs": {
+    "packages/frontend/@n8n/frontend-module-sdk/src/index.ts": {
+      "get": [
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/commandRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/modalRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/pushHandlerRegistry.ts"
+      ],
+      "subscribe": [
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/commandRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/modalRegistry.ts"
+      ],
+      "has": [
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/commandRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/modalRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/pushHandlerRegistry.ts"
+      ],
+      "register": [
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/commandRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/modalRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/pushHandlerRegistry.ts"
+      ],
+      "getAll": [
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/commandRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/modalRegistry.ts"
+      ],
+      "unregister": [
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/commandRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/modalRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/pushHandlerRegistry.ts"
+      ],
+      "clear": [
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/commandRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/modalRegistry.ts",
+        "packages/frontend/@n8n/frontend-module-sdk/src/registries/pushHandlerRegistry.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/Airtable/v2/methods/index.ts": {
+      "getColumns": [
+        "packages/nodes-base/nodes/Airtable/v2/methods/loadOptions.ts",
+        "packages/nodes-base/nodes/Airtable/v2/methods/resourceMapping.ts"
+      ],
+      "getColumnsWithRecordId": [
+        "packages/nodes-base/nodes/Airtable/v2/methods/loadOptions.ts",
+        "packages/nodes-base/nodes/Airtable/v2/methods/resourceMapping.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/Databricks/actions/files/Files.resource.ts": {
+      "execute": [
+        "packages/nodes-base/nodes/Databricks/actions/files/createDirectory.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/files/deleteDirectory.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/files/deleteFile.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/files/downloadFile.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/files/getFileInfo.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/files/listDirectory.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/files/uploadFile.operation.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/Databricks/actions/genie/Genie.resource.ts": {
+      "execute": [
+        "packages/nodes-base/nodes/Databricks/actions/genie/createMessage.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/genie/executeMessageQuery.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/genie/getMessage.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/genie/getQueryResults.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/genie/getSpace.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/genie/startConversation.operation.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/Databricks/actions/unityCatalog/UnityCatalog.resource.ts": {
+      "execute": [
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/createCatalog.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/createFunction.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/createTable.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/createVolume.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/deleteCatalog.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/deleteFunction.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/deleteTable.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/deleteVolume.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/getCatalog.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/getFunction.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/getTable.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/getVolume.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/listCatalogs.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/listFunctions.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/listTables.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/listVolumes.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/unityCatalog/updateCatalog.operation.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/Databricks/actions/vectorSearch/VectorSearch.resource.ts": {
+      "execute": [
+        "packages/nodes-base/nodes/Databricks/actions/vectorSearch/createIndex.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/vectorSearch/getIndex.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/vectorSearch/listIndexes.operation.ts",
+        "packages/nodes-base/nodes/Databricks/actions/vectorSearch/queryIndex.operation.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/NocoDB/v2/actions/base/base.resource.ts": {
+      "execute": [
+        "packages/nodes-base/nodes/NocoDB/v2/actions/base/get.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/base/getAll.operation.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/NocoDB/v2/actions/linkrows/linkrows.resource.ts": {
+      "execute": [
+        "packages/nodes-base/nodes/NocoDB/v2/actions/linkrows/link.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/linkrows/list.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/linkrows/unlink.operation.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/NocoDB/v2/actions/rows/rows.resource.ts": {
+      "execute": [
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/count.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/create.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/delete.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/get.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/search.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/update.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/upload.operation.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/actions/rows/upsert.operation.ts"
+      ]
+    },
+    "packages/nodes-base/nodes/NocoDB/v2/methods/index.ts": {
+      "getFields": [
+        "packages/nodes-base/nodes/NocoDB/v2/methods/listSearch.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/methods/loadOptions.ts"
+      ],
+      "getDownloadFields": [
+        "packages/nodes-base/nodes/NocoDB/v2/methods/listSearch.ts",
+        "packages/nodes-base/nodes/NocoDB/v2/methods/loadOptions.ts"
+      ]
+    }
+  }
+}

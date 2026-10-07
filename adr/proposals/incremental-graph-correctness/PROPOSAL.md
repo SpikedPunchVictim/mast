@@ -89,7 +89,7 @@ Full results: `spikes/sN-*/RESULTS.md`.
 | M4 | Store each file's unresolved edge records in a table and resolve from it instead of re-parsing | D081, D084, cheaper | **Hold.** Five to ten times cheaper per file (S5), but it adds a table, a write on every file write, and a second copy to keep in step. Promote only if M3b's worst case is not acceptable. |
 | M2 | Keep file and symbol ids across a re-write | D081 for body edits | **Reject.** Not needed once M3a exists, covers only the 72 to 74% of modifications that keep their names, and reverses prior decision 1. |
 | M5 | The query-time path uses the same routine as an incremental run for edges and star rows, including M3a | D080 | **Promote.** Otherwise M3a fixes the CLI and leaves the server path broken. |
-| M6 | Record "no rows" as an empty FTS block, distinct from NULL | D082 | Not yet promoted. A reviewer's hand simulation cut 20 markdown files from a median of 741 ms to 5 to 8 ms; not re-run by the author. |
+| M6 | Record "no rows" as an empty FTS block, distinct from NULL | D082 | Promoted 2026-10-07. A reviewer's hand simulation had cut 20 markdown files from a median of 741 ms to 5 to 8 ms. Measured with the change (S11, n8n, machine under load): `fts_del` for 20 markdown files 3895 to 7038 ms before and a median of 17 ms after; for one file 1021 to 2215 ms before and 0 to 1 ms after. |
 
 ## Decisions that are the user's
 
@@ -163,7 +163,7 @@ through; items are ticked here as they land.
       imports, barrels and classes, applies a random sequence of edits (body, rename, add,
       delete, move, re-point), and runs T1 after each. Fixed seeds in the suite; the seed is
       printed on failure.
-- [ ] **T11. D082.** A row planted outside a file's FTS block survives a re-write of that file
+- [x] **T11. D082.** A row planted outside a file's FTS block survives a re-write of that file
       (fails while the code scans); an empty, non-empty, empty sequence.
 - [ ] **T12. Replay as a standing check.** The S2 replay, moved to `eval/` with a results
       writer entry, run against this repository's own history with the pass condition "nothing
@@ -311,6 +311,7 @@ Each step ends with `pnpm gate`.
 | Date | Mechanism | Outcome | Evidence |
 |---|---|---|---|
 | 2026-10-06 | M6 | Not yet promoted | reviewer's simulation, not re-run; `spikes/s0-timings/RESULTS.md` |
+| 2026-10-07 | M6 | Promoted: one markdown file's `fts_del` 1021 to 2215 ms with a NULL block, 0 to 1 ms with the empty block (n8n, under load) | `spikes/s11-fts-empty-block/RESULTS.md` |
 | 2026-10-06 | M1, star rows first only | Rejected: 1,117 of 1,939 edges still missing on n8n | `spikes/s1-walk-order/RESULTS.md` |
 | 2026-10-06 | M1, three stages with a fixed point | Promoted: 0 missing | same |
 | 2026-10-06 | M2, keep ids | Rejected: not needed, partial, reverses a prior decision | S3 `edge` distribution, S4, S5 |
@@ -328,6 +329,7 @@ Each step ends with `pnpm gate`.
 | 2026-10-07 | M3b as built: importers by changed name, reached through star rows and same-named markers | Landed: 0 of 108,288 rows differ from a full index after six incremental runs on n8n | `spikes/s8-importer-repair-validation/RESULTS.md` |
 | 2026-10-07 | Budget of 2,000 ms on background runs only | Landed as a starting value: about 310 to 530 files on n8n | same |
 | 2026-10-07 | Narrowing named re-exports to the ones that changed | Not built: the marker row does not record its source, so a comment added to n8n's package barrel resolves 565 files again | same |
+| 2026-10-07 | No edge for a name declared behind two stars of one barrel (the faithful answer to D094) | Rejected (user, 2026-10-07): 0 of 51,617 import rows on n8n and 0 of 439 on mast name such a name, and n8n has no real case. Reopen on an import row that does | `spikes/s12-two-star-names/RESULTS.md` |
 
 ## Not known
 

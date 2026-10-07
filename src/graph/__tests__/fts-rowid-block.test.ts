@@ -31,7 +31,7 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sql } from 'kysely';
 import { openDatabase, type Db } from '../db.js';
-import { populateFile } from '../populate.js';
+import { populateFile, removeDeletedFiles } from '../populate.js';
 import type { FileIndexData } from '../populate.js';
 import type { Chunk, SymbolRecord } from '../../ast/types.js';
 import type { IdentifierRow } from '../../ast/extractor.js';
@@ -127,12 +127,6 @@ describe('the FTS rowid block', () => {
     expect(await identBlock(db, 'a.ts')).toEqual({ lo: rowids[0], hi: rowids[0] });
   });
 
-  it('records a null block for a file that produces no chunks', async () => {
-    await populateFile(db, fileData('empty.ts', 1_700_000_000, 0));
-
-    expect(await chunkBlock(db, 'empty.ts')).toEqual({ lo: null, hi: null });
-  });
-
   it('moves the block when the file is re-indexed', async () => {
     await populateFile(db, fileData('a.ts', 1_700_000_000, 5));
     const before = await chunkBlock(db, 'a.ts');
@@ -168,5 +162,94 @@ describe('the FTS rowid block', () => {
 
     expect(await rowidsIn(db, 'chunk_fts', 'a.ts')).toHaveLength(2);
     expect(await rowidsIn(db, 'identifier_fts', 'a.ts')).toHaveLength(2);
+  });
+});
+
+// T11 (D082; adr/proposals/incremental-graph-correctness). A file that puts no
+// rows in a table used to record a NULL block there, which is also what a row
+// written before the columns existed has, so every re-write of it ran the
+// whole-table `file_path` scan. Markdown never has identifier rows, so every
+// markdown file paid that. A row planted under the file's path and outside its
+// block is the instrument: the scan deletes it, a delete by block cannot.
+describe('a file with no rows in an FTS table', () => {
+  let dir: string;
+  let db: Db;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-ftsblock-empty-'));
+    db = openDatabase(dir);
+  });
+
+  afterEach(async () => {
+    await db.destroy();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const PLANTED_ROWID = 9_000;
+  const plantIdentifierRow = async (path: string): Promise<void> => {
+    await sql`
+      INSERT INTO identifier_fts (rowid, identifiers, chunk_id, file_path)
+      VALUES (${PLANTED_ROWID}, 'planted', 'planted', ${path})
+    `.execute(db);
+  };
+  const plantChunkRow = async (path: string): Promise<void> => {
+    await sql`
+      INSERT INTO chunk_fts (rowid, content, symbol_name, chunk_id, file_path)
+      VALUES (${PLANTED_ROWID}, 'planted', 'planted', 'planted', ${path})
+    `.execute(db);
+  };
+
+  it('records an empty block, which is not the NULL of a row that predates the columns', async () => {
+    await populateFile(db, fileData('empty.ts', 1_700_000_000, 0));
+
+    expect(await chunkBlock(db, 'empty.ts')).toEqual({ lo: 0, hi: -1 });
+    expect(await identBlock(db, 'empty.ts')).toEqual({ lo: 0, hi: -1 });
+  });
+
+  it('is re-written without scanning identifier_fts by path, when it has chunks and no identifiers', async () => {
+    await populateFile(db, fileData('notes.md', 1_700_000_000, 5, 0));
+    await plantIdentifierRow('notes.md');
+
+    await populateFile(db, fileData('notes.md', 1_700_000_100, 5, 0));
+
+    expect(await rowidsIn(db, 'identifier_fts', 'notes.md')).toEqual([PLANTED_ROWID]);
+  });
+
+  it('is re-written without scanning chunk_fts by path, when it has no chunks', async () => {
+    await populateFile(db, fileData('empty.ts', 1_700_000_000, 0));
+    await plantChunkRow('empty.ts');
+
+    await populateFile(db, fileData('empty.ts', 1_700_000_100, 0));
+
+    expect(await rowidsIn(db, 'chunk_fts', 'empty.ts')).toEqual([PLANTED_ROWID]);
+  });
+
+  it('is deleted without scanning either table by path', async () => {
+    await populateFile(db, fileData('empty.ts', 1_700_000_000, 0));
+    await plantChunkRow('empty.ts');
+    await plantIdentifierRow('empty.ts');
+
+    await removeDeletedFiles(db, ['empty.ts']);
+
+    expect(await rowidsIn(db, 'chunk_fts', 'empty.ts')).toEqual([PLANTED_ROWID]);
+    expect(await rowidsIn(db, 'identifier_fts', 'empty.ts')).toEqual([PLANTED_ROWID]);
+  });
+
+  it('owns exactly its rows through empty, then five chunks, then empty again', async () => {
+    await populateFile(db, fileData('a.ts', 1_700_000_000, 0));
+    await populateFile(db, fileData('b.ts', 1_700_000_000, 3));
+    const neighbour = await rowidsIn(db, 'chunk_fts', 'b.ts');
+
+    await populateFile(db, fileData('a.ts', 1_700_000_100, 5));
+    const filled = await rowidsIn(db, 'chunk_fts', 'a.ts');
+    const filledBlock = await chunkBlock(db, 'a.ts');
+    await populateFile(db, fileData('a.ts', 1_700_000_200, 0));
+
+    expect(filled).toHaveLength(5);
+    expect(filledBlock).toEqual({ lo: filled[0], hi: filled[4] });
+    expect(await rowidsIn(db, 'chunk_fts', 'a.ts')).toEqual([]);
+    expect(await rowidsIn(db, 'identifier_fts', 'a.ts')).toEqual([]);
+    expect(await chunkBlock(db, 'a.ts')).toEqual({ lo: 0, hi: -1 });
+    expect(await rowidsIn(db, 'chunk_fts', 'b.ts')).toEqual(neighbour);
   });
 });

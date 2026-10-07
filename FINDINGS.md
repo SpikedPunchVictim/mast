@@ -946,6 +946,7 @@ Reopening any of these requires new evidence *and* an explicit statement of what
 | adversarial design + results reviews | `eval/results/*-review.md` |
 | discarded runs, with the reason | `eval/results/discarded-*/README.md` |
 | off-repo assets (corpora, embedded state) | `eval/ASSETS.md` |
+| exploratory spike numbers (not registered, not settled; may guide a decision, may not be quoted as a finding) | `adr/proposals/<feature>/spikes/RESULTS.md` — one so far: `adr/proposals/incremental-graph-correctness/spikes/RESULTS.md` |
 
 Two standing hazards, both of which have already cost a run:
 
