@@ -23,6 +23,7 @@ const fresh: StatusReport = {
   stale_paths: { changed: [], unindexed: [], deleted: [] },
   parse_errors: 0,
   write_errors: 0,
+  pending_edge_repairs: 0,
   index_fresh: true,
   freshness_cause: null,
 };
@@ -60,6 +61,7 @@ const uninitialised: StatusReport = {
   stale_paths: null,
   parse_errors: null,
   write_errors: null,
+  pending_edge_repairs: null,
   index_fresh: false,
   freshness_cause: 'not_initialised',
 };
@@ -113,6 +115,26 @@ describe('renderPrime', () => {
 
     expect(out).not.toContain('Call mast_reindex');
     expect(out).toMatch(/stale/);
+  });
+
+  // Every file is indexed and current here; what is behind is edges. "Behind
+  // on 0 of 412 files" would be the wrong sentence for it.
+  it('says which answers are affected and asks for a reindex when only edges are waiting', () => {
+    const waiting: StatusReport = { ...fresh, pending_edge_repairs: 5, index_fresh: false, freshness_cause: 'edge_repair_pending' };
+
+    const out = renderPrime(waiting, RULES, NOW);
+
+    expect(out).toContain('5 files');
+    expect(out).toContain('mast_callers, mast_implementors and mast_rename_impact');
+    expect(out).toContain('Call mast_reindex');
+    expect(out).not.toContain('behind on');
+  });
+
+  it('reports waiting edges beside stale files when both are present', () => {
+    const out = renderPrime({ ...stale, pending_edge_repairs: 5 }, RULES, NOW);
+
+    expect(out).toContain('The index is behind on 8 of 412 files.');
+    expect(out).toContain('5 files');
   });
 
   it('withholds the rules and says the index describes a different tree on a root mismatch', () => {

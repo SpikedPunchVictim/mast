@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import type { ResolvedConfig } from '../store/config.js';
 import { openDatabase } from '../graph/db.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
-import { runIndex, loadIndexMeta } from '../indexer/index.js';
+import { runIndex, loadIndexMeta, BACKGROUND_EDGE_REPAIR_BUDGET_MS } from '../indexer/index.js';
 import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
 import { bootstrapState } from './startup.js';
 import type { AppContext } from './context.js';
@@ -144,12 +144,14 @@ export async function reindexAndRemeasure(
     readonly incremental: boolean;
     readonly prime?: boolean;
     /** §4.4 DI seam: tests drive the failure path without standing up a writer. */
-    readonly runIndexFn?: (config: ResolvedConfig, opts: { incremental: boolean }) => Promise<unknown>;
+    readonly runIndexFn?: (config: ResolvedConfig, opts: { incremental: boolean; edgeRepairBudgetMs: number }) => Promise<unknown>;
   },
 ): Promise<void> {
   const run = options.runIndexFn ?? runIndex;
   try {
-    await run(config, { incremental: options.incremental });
+    // Nobody is waiting on this run, so it stops resolving importers again at
+    // the budget and leaves the rest recorded for `mast_reindex`.
+    await run(config, { incremental: options.incremental, edgeRepairBudgetMs: BACKGROUND_EDGE_REPAIR_BUDGET_MS });
   } finally {
     freshness.invalidate();
     if (options.prime === true) freshness.refresh();

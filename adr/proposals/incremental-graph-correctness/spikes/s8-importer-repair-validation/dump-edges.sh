@@ -1,0 +1,3 @@
+#!/bin/sh
+# usage: dump-edges.sh <graph.db>  -> sorted name-keyed edges, stars and imports
+sqlite3 "$1" "select e.edge_type||'|'||coalesce(e.resolution,'')||'|'||ff.path||':'||fs.name||':'||fs.line||' -> '||tf.path||':'||ts.name||':'||ts.line from edges e join symbols fs on fs.id=e.from_id join files ff on ff.id=fs.file_id join symbols ts on ts.id=e.to_id join files tf on tf.id=ts.file_id; select 'STAR|'||a.path||' => '||b.path from re_export_files r join files a on a.id=r.from_file_id join files b on b.id=r.to_file_id; select 'IMPORT|'||f.path||'|'||i.module||'|'||i.symbols||'|'||i.is_external||'|'||coalesce(i.resolved_path,'') from imports i join files f on f.id=i.file_id" | sort

@@ -303,6 +303,12 @@ CREATE TABLE IF NOT EXISTS re_export_files (
   PRIMARY KEY (from_file_id, to_file_id)
 );
 
+CREATE TABLE IF NOT EXISTS edge_repair_pending (
+  -- Files whose edges wait to be resolved again after another file changed (§10.3.1).
+  -- Re-writing or deleting the file removes its entry by cascade.
+  file_id  INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS imports (
   file_id       INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
   module        TEXT NOT NULL,
@@ -881,6 +887,7 @@ chunk_count:    1840
 stale_files:    0
 parse_errors:   0
 write_errors:   0
+pending_edge_repairs: 0
 index_fresh:    true
 freshness_cause: none
 ```
@@ -1148,6 +1155,7 @@ across all MCP tools, and what to do with each one:
 | `stale` | `mast_search` / `mast_implementors` per-result (F7) | This result's `file_path` stat'd newer-on-disk than its indexed mtime, or the stat failed — **no refresh was attempted by design** (stat-and-flag, not JIT re-parse; see above). | Treat this result's line coordinates as untrustworthy. A `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it. |
 | `index_empty` | Every primary-result read tool's envelope (M6) | Nothing is indexed at all — the empty result set is not "no match", it is "no index (yet)". | Run `mast init`/`mast index`, or — if a startup reindex is in progress — wait and retry. |
 | `unindexed_files` | Every primary-result read tool's envelope (D054). The five whose answer claims to be an exhaustive *set* — `mast_search`, `mast_callers`, `mast_implementors`, `mast_rename_impact`, `mast_project_skeleton` — carry it whether or not they found anything, because a short list drawn from an incomplete corpus reads exactly like a complete one and is the form that gets acted on. The three that answer about one *named* thing — `mast_signature`, `mast_exports`, `mast_dependencies` — carry it only on an empty answer, where "absent" and "never indexed" are indistinguishable; a hit is correct however much else is missing. | This many files exist on disk and are **not in the index** — measured by the serve process and TTL-cached; the request never awaits a measurement, though it may schedule one (amortised, not free — `mcp/freshness-probe.ts` documents the residual). Where `index_empty` says "nothing is indexed", this says "the index is populated but behind": these results were ranked over a corpus missing N files. Advisory — it does not claim any of the N would have matched. Absent means either nothing is unindexed or no measurement has landed yet; the two are deliberately not distinguished on the wire, because both mean "no warning to give". | Do not conclude a symbol is absent. Call `mast_reindex`, then re-query. |
+| `pending_edge_repairs` / `pending_edge_repairs_hint` | `mast_callers`, `mast_implementors`, `mast_rename_impact` envelopes | That many indexed files have not had their edges resolved again after another file changed; a background run stopped at its time budget (§10.3.1). These three tools answer from edges, so the answer may be missing an entry from one of those files, or hold one that is out of date. Present only when the count is above zero. | Run `mast_reindex`, then ask again. |
 | `truncated` | `TypeContextEntry` (`mast_signature`'s `type_context`) | This referenced type's declaration was clipped at the 50-line cap. | Re-read the file directly (or call `mast_exports`/a narrower `mast_signature` query) for the full declaration if the clipped portion matters. |
 | `potential_truncated` | `CallersResponse.summary` / `RenameImpactResponse.summary` (`mast_callers`, `mast_rename_impact`) | The `identifier_fts` fetch behind `potential_matches` is capped at 50 entries; this carries the real, uncapped match count when the cap is hit (F10, Stage 3). Reports RAW fetch truncation only — `potential_matches` may still be smaller than the cap even when this field is present, because verified-overlap exclusion and checker-verdict filtering run AFTER the capped fetch (already visible via `checker_classified_*`). | The potential set is incomplete — narrow the query, or run `mast index --checker` to classify candidates away. |
 | `results_truncated` / `exports_truncated` | `SignatureResponse` / `ImplementorsResponse` / `ExportsResponse` envelopes (`mast_signature`, `mast_implementors`, `mast_exports`) | The result list is capped at `limit` (default 50, the same constant `potential_matches` uses); this carries the real, uncapped total when the cap is hit (D043). Unlike `potential_truncated` there is no post-cap filtering, so the returned page is always exactly `limit` long when this field is present. | A first page, not the answer. Pass a larger `limit` (max 500), or narrow with `file_path`. Before D043 these tools were unbounded: `mast_signature{symbol:'execute'}` over a 14k-file monorepo returned 580 declarations / 331k tokens in 78 s, which over MCP exceeded the client timeout and returned nothing. |
@@ -1805,6 +1813,7 @@ Index health snapshot.
   "stale_paths": { "changed": [], "unindexed": [], "deleted": [] },
   "parse_errors": 0,
   "write_errors": 0,
+  "pending_edge_repairs": 0,
   "index_fresh": true,
   "freshness_cause": null,
   "seed_commit": "abc1234"
@@ -1833,8 +1842,13 @@ Docker-baked seed (§13.8) and reports the git revision the seed was built from.
 
 **Freshness diagnostics.** `freshness_cause` names which of `stale_files`'
 categories the count is actually made of, and `null` when the index is fully
-fresh. `index_fresh` is `true` only when `stale_files === 0` and the index has
-been run at least once.
+fresh. `index_fresh` is `true` only when `stale_files === 0`,
+`pending_edge_repairs === 0` and the index has been run at least once.
+
+`pending_edge_repairs` counts indexed files whose edges are waiting to be
+resolved again after another file changed (§10.3.1, "An incremental run
+resolves importers again"). It is not part of `stale_files`: those files'
+content is indexed and current, and only answers drawn from edges are affected.
 
 | value | meaning |
 |---|---|
@@ -1842,6 +1856,7 @@ been run at least once.
 | `"phase1_stale"` | Indexed files whose content changed since — chunk line coordinates lag disk, corrected by JIT re-parse on read by the five re-parsing tools (§9.0), flagged `stale` by the other two, or fixed for all of them by `mast_reindex`. |
 | `"unindexed_files"` | Files on disk this index has never seen. |
 | `"deleted_files"` | Files the index still lists that are gone from disk. |
+| `"edge_repair_pending"` | `stale_files` is 0 and `pending_edge_repairs` is not: a background run stopped at its time budget. `mast_reindex` or `mast index --incremental` finishes the work. |
 
 The `"unindexed_files"` **cause** here and `mast_search`'s `unindexed_files`
 **count** (§9.0) name the same population — files on disk this index has never
@@ -2303,6 +2318,36 @@ behind a star in the same file.
 `insertGraphEdges` writes every file's star rows, then `RE_EXPORTS` edges
 repeated until a round adds none, then every other edge. Written file by file,
 a caller that sorted before its barrel got no edge (ledger D083).
+
+**An incremental run resolves importers again.** Re-writing a file replaces its
+rows, and what other files' edges resolve to can change with it. So an
+incremental run also resolves again, without re-writing them:
+
+- every file that held an edge or a star row into a file it re-wrote or deleted
+  (ledger D081);
+- every file that imports, or re-exports by name, a name that a re-written,
+  added or deleted file gained, lost, changed the kind of, or re-exports. The
+  importer is found through its `imports` row: it names the changed file, a file
+  that reaches it through `export *` rows, or a file holding a named re-export
+  of that name. An importer of a module that resolved to no file is included
+  when a file was added (ledger D084).
+
+Each such file is parsed again, its `imports` rows are replaced, so that a
+specifier is resolved against the files that exist now, and its edges are
+cleared and inserted by the staged pass above. Checker edges are kept.
+
+A run may be given a time budget for this (`IndexOptions.edgeRepairBudgetMs`).
+The watcher and the startup run pass 2,000 ms; `mast index` and `mast_reindex`
+pass none. Files that re-export are always resolved, because other files resolve
+through them. The importing files not reached within the budget are recorded in
+the `edge_repair_pending` table and resolved by the next incremental run. While
+any are recorded, `mast_status` reports `pending_edge_repairs` and the three
+edge tools carry the count (§9.0).
+
+Not followed, because nothing stored identifies the importer: an `export *` of a
+file that did not exist when the barrel was indexed; a call resolved without
+file evidence; a new file that takes over a specifier another file already
+answered; an import or re-export under an alias. A full index corrects all four.
 
 ### 10.3.2 TypeScript-Checker Enrichment Pass (`mast index --checker`)
 

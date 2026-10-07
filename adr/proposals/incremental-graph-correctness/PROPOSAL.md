@@ -133,7 +133,7 @@ through; items are ticked here as they land.
 - [x] **T1. Equivalence helper.** `expectGraphEqualsFullIndex(projectDir)`: dumps edges, star
       rows and imports by name, builds a fresh full index of the same tree in a second state
       directory, and compares. One helper, used by every test below.
-- [ ] **T2. Equivalence table, incremental run.** One row per scenario: build, index, edit,
+- [x] **T2. Equivalence table, incremental run.** One row per scenario: build, index, edit,
       incremental run, T1. First rows are every scenario in `spikes/s0-reproductions`: body edit
       of a called file; new name already imported elsewhere; file created after its caller;
       rename; barrel re-pointed; re-export replaced by a declaration; `type` to `interface`;
@@ -173,7 +173,7 @@ Added 2026-10-06 after S6, at the user's request. T1 to T12 compare against a fu
 they cannot see an edge the full index itself gets wrong or never creates. D083, D085 and D086
 are all of that kind. These tests compare a full index against edges written out by hand.
 
-- [ ] **T13. Pending signal.** A run that stops at the cap leaves a pending count; `mast
+- [x] **T13. Pending signal.** A run that stops at the cap leaves a pending count; `mast
       status` and `mast_status` report it and say the index is not fresh; `mast_callers`,
       `mast_implementors` and `mast_rename_impact` carry it on the response; the next run
       drains it and the signal clears. A run under the cap leaves none.
@@ -217,6 +217,33 @@ red before, 5 after), T6 (`incremental-checker-rows.test.ts`) and T7
 five remaining rows are the D084 cases and run under `it.fails` until M3b lands. T13 is not
 started.
 
+Step 3, second half, landed 2026-10-07: M3b (`src/graph/importer-repair.ts` and the
+re-resolve step in `runIndex`), the budget and the pending signal. T2 now has 18 rows, all
+green without markers; 9 of them fail with the importer lookup switched off. T13 is
+`indexer/__tests__/edge-repair-pending.test.ts` (both barrel kinds) and
+`mcp/tools/__tests__/pending-signal.test.ts`. Adding a T2 row found D089 (a re-pointed named
+re-export passed the stability skip), fixed with it. S8 checked the result on n8n.
+
+What was built differs from the proposal in three places:
+
+- **Who is capped.** `runIndex` has no budget unless given one. The watcher and the startup
+  run pass 2,000 ms; `mast index`, `mast index --incremental` and `mast_reindex` pass none.
+  The hint on a tool response says to run `mast_reindex`, so that run has to finish the
+  work. The proposal had every incremental run capped.
+- **What the budget covers.** Files that re-export are always resolved, outside the budget.
+  An importer resolved against a barrel that is itself waiting would get a wrong edge and
+  nothing would bring it back. The clock starts when the importing files start.
+- **The waiting list is written before the work, not after.** Holders and importers are
+  recorded as waiting as soon as they are known and removed as each batch finishes, so a run
+  that dies part-way leaves the list. A run that dies between pass 1 and pass 2 still loses
+  the holders' edges unrecorded; that window is older than this work.
+
+Not covered by M3b, each because the index stores nothing to find the importer by, and none
+with a test yet: an `export *` of a file that did not exist when the barrel was indexed; a
+call resolved with no file evidence (`legacyGlobalFirstMatch`); a new file that takes over a
+specifier another file already answered; `import { a as b }` and `export { a as b } from`.
+The first three are for T10 to reproduce.
+
 Not in this round: the D087 case (a path alias in a package's own `tsconfig.json`) and
 aliased imports resolving to the right target. Their tests are written with their fixes.
 
@@ -252,11 +279,14 @@ Each step ends with `pnpm gate`.
 | 2026-10-06 | M8 for `IMPLEMENTS` / `EXTENDS`, no edge without evidence | Promoted, with the D086 fix (user, 2026-10-06): guess wrong 27 of 27 on n8n | `spikes/s6-structural-fallback/RESULTS.md` |
 | 2026-10-06 | Guess when the name is unique in the graph | Rejected: wrong 21 of 21 on n8n | same |
 | 2026-10-06 | M3b bound: cap and report, counted in time | Promoted; size open | `spikes/s7-cap-sizing/RESULTS.md` |
+| 2026-10-07 | M3b as built: importers by changed name, reached through star rows and same-named markers | Landed: 0 of 108,288 rows differ from a full index after six incremental runs on n8n | `spikes/s8-importer-repair-validation/RESULTS.md` |
+| 2026-10-07 | Budget of 2,000 ms on background runs only | Landed as a starting value: about 310 to 530 files on n8n | same |
+| 2026-10-07 | Narrowing named re-exports to the ones that changed | Not built: the marker row does not record its source, so a comment added to n8n's package barrel resolves 565 files again | same |
 
 ## Not known
 
-- Whether M3a plus M3b reach zero difference on the replays. Nothing was prototyped; the
-  numbers size the work, they do not prove the design. T2, T10 and T12 are the proof.
+- Whether M3a plus M3b reach zero difference on the replays. S8 reached zero on one
+  hand-made sequence of six edits; T10 and T12 are still the proof.
 - How narrow M3b can be made. Counting only importers of the names that actually changed,
   rather than of any name the file declares, was not measured.
 - Whether S6's result holds on a second corpus. mast has 13 such records and does not

@@ -35,7 +35,7 @@ describe('reindexAndRemeasure — the ordering serve() depends on', () => {
 
     await reindexAndRemeasure(CONFIG, probe, { incremental: true, runIndexFn });
 
-    expect(runIndexFn).toHaveBeenCalledWith(CONFIG, { incremental: true });
+    expect(runIndexFn).toHaveBeenCalledWith(CONFIG, expect.objectContaining({ incremental: true }));
     expect(probe.calls).toEqual(['invalidate']);
   });
 
@@ -101,12 +101,23 @@ describe('reindexAndRemeasure — the ordering serve() depends on', () => {
     expect(probe.calls).not.toContain('refresh');
   });
 
+  // Nobody waits on a watch batch or the startup run, so they stop resolving
+  // importers again at the budget; `mast_reindex` is the run that finishes.
+  it('gives the run the background budget for resolving importers again', async () => {
+    const probe = spyProbe();
+    const runIndexFn = vi.fn(() => Promise.resolve({}));
+
+    await reindexAndRemeasure(CONFIG, probe, { incremental: true, runIndexFn });
+
+    expect(runIndexFn).toHaveBeenCalledWith(CONFIG, expect.objectContaining({ edgeRepairBudgetMs: 2_000 }));
+  });
+
   it('passes the full-vs-incremental choice through unchanged', async () => {
     const probe = spyProbe();
     const runIndexFn = vi.fn(() => Promise.resolve({}));
 
     await reindexAndRemeasure(CONFIG, probe, { incremental: false, runIndexFn });
 
-    expect(runIndexFn).toHaveBeenCalledWith(CONFIG, { incremental: false });
+    expect(runIndexFn).toHaveBeenCalledWith(CONFIG, expect.objectContaining({ incremental: false }));
   });
 });

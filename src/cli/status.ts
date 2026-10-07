@@ -33,6 +33,8 @@ export interface StatusReport {
   readonly stale_paths: StalePaths | null;
   readonly parse_errors: number | null;
   readonly write_errors: number | null;
+  /** See `StatusResult.pending_edge_repairs`. `null` when there is no index. */
+  readonly pending_edge_repairs: number | null;
   readonly index_fresh: boolean;
   readonly freshness_cause: string | null;
   readonly seed_commit?: string | undefined;
@@ -70,6 +72,7 @@ export async function buildStatus(
       stale_paths: null,
       parse_errors: null,
       write_errors: null,
+      pending_edge_repairs: null,
       index_fresh: false,
       freshness_cause: 'not_initialised',
     };
@@ -105,7 +108,8 @@ export async function buildStatus(
     stale_paths: stalePathsSample(freshness),
     parse_errors: meta.parse_errors ?? 0,
     write_errors: meta.write_errors ?? 0,
-    index_fresh: freshness.total === 0,
+    pending_edge_repairs: freshness.pendingEdgeRepairs,
+    index_fresh: freshness.total === 0 && freshness.pendingEdgeRepairs === 0,
     freshness_cause: freshnessCause(freshness),
     seed_commit: meta.seed_commit,
   };
@@ -167,6 +171,7 @@ export function registerStatusCommand(program: Command): void {
         ...stalePathLines(status),
         `parse_errors:   ${String(status.parse_errors)}`,
         `write_errors:   ${String(status.write_errors)}`,
+        `pending_edge_repairs: ${String(status.pending_edge_repairs)}`,
         `index_fresh:    ${String(status.index_fresh)}`,
         `freshness_cause: ${status.freshness_cause ?? 'none'}`,
         ...(status.seed_commit != null ? [`seed_commit:    ${status.seed_commit}`] : []),

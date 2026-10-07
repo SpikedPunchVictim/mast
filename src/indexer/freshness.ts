@@ -31,6 +31,7 @@ import { join } from 'node:path';
 import type { Db } from '../graph/db.js';
 import type { ResolvedConfig } from '../store/config.js';
 import type { StalePaths } from '../ast/types.js';
+import { countPendingEdgeRepairs } from '../graph/importer-repair.js';
 import { walkProject } from './walker.js';
 
 export interface IndexFreshness {
@@ -42,6 +43,13 @@ export interface IndexFreshness {
   readonly deleted: number;
   /** `stale + unindexed + deleted` — what both surfaces report as `stale_files`. */
   readonly total: number;
+  /**
+   * Files whose content the index has, but whose edges are waiting to be
+   * resolved again after another file changed (`graph/importer-repair.ts`).
+   * Not part of `total`: the file itself is not behind, and a search over it is
+   * right. What may be wrong is an answer drawn from edges.
+   */
+  readonly pendingEdgeRepairs: number;
   /**
    * Indexable files this walk found, whatever their index state — the
    * denominator the three counts above are drawn against.
@@ -119,6 +127,7 @@ export async function measureFreshness(config: ResolvedConfig, db: Db): Promise<
     unindexed: unindexedPaths.length,
     deleted: gone.size,
     total: changedPaths.length + unindexedPaths.length + gone.size,
+    pendingEdgeRepairs: await countPendingEdgeRepairs(db),
     walked: onDisk.size,
     paths: {
       changed: changedPaths.sort(),

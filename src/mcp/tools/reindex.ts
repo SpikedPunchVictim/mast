@@ -32,6 +32,7 @@ export function registerReindexTool(server: McpServer, ctx: AppContext): void {
  */
 export function toReindexResult(result: IndexResult): ReindexResult {
   return {
+    pending_edge_repairs: result.edgeRepairsPending,
     files_indexed:   result.filesIndexed,
     files_skipped:   result.filesSkipped,
     chunks_added:    result.chunksAdded,

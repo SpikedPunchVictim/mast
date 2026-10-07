@@ -28,12 +28,6 @@ type Round = Readonly<Record<string, string | null>>;
 
 interface Scenario {
   readonly name: string;
-  /**
-   * Set while the row is known to fail for an open defect. The row then runs
-   * under `it.fails`, which turns red the moment the defect is fixed, so the
-   * marker cannot outlive its reason.
-   */
-  readonly openDefect?: 'D084';
   readonly files: Readonly<Record<string, string>>;
   readonly rounds: readonly Round[];
 }
@@ -51,7 +45,6 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     name: 'a file gains a name another file already imports and calls',
-    openDefect: 'D084',
     files: {
       'src/x.ts': `export function other(): void {}\n`,
       'src/zc.ts': CALLER,
@@ -60,7 +53,6 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     name: 'a file is created after the file that imports from it',
-    openDefect: 'D084',
     files: { 'src/zc.ts': CALLER },
     rounds: [{ 'src/x.ts': `export function fn(): void {}\n` }],
   },
@@ -74,7 +66,6 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     name: 'a star barrel is re-pointed at another file',
-    openDefect: 'D084',
     files: {
       'src/a.ts': `export function fn(): number { return 1; }\n`,
       'src/b.ts': `export function fn(): number { return 2; }\n`,
@@ -85,7 +76,6 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     name: 'a named re-export is replaced by a declaration',
-    openDefect: 'D084',
     files: {
       'src/impl.ts': `export function fn(): number { return 1; }\n`,
       'src/x.ts': `export { fn } from './impl.js';\n`,
@@ -112,7 +102,6 @@ const SCENARIOS: readonly Scenario[] = [
   },
   {
     name: 'a called file is deleted, indexed, and recreated',
-    openDefect: 'D084',
     files: {
       'src/x.ts': `export function fn(): void {}\n`,
       'src/zc.ts': CALLER,
@@ -142,6 +131,78 @@ const SCENARIOS: readonly Scenario[] = [
     },
     rounds: [{ 'src/x.ts': `export class Base { run(): void { return; } }\nexport interface Port { open(): void }\n` }],
   },
+  {
+    name: 'a file gains a name that is imported through two named barrels',
+    files: {
+      'src/x.ts': `export function other(): void {}\n`,
+      'src/inner.ts': `export { fn } from './x.js';\n`,
+      'src/outer.ts': `export { fn } from './inner.js';\n`,
+      'src/zc.ts': `import { fn } from './outer.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export function other(): void {}\nexport function fn(): void {}\n` }],
+  },
+  {
+    name: 'a file gains a name that is imported through a star barrel behind a named one',
+    files: {
+      'src/x.ts': `export function other(): void {}\n`,
+      'src/star.ts': `export * from './x.js';\n`,
+      'src/outer.ts': `export { fn } from './star.js';\n`,
+      'src/zc.ts': `import { fn } from './outer.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export function other(): void {}\nexport function fn(): void {}\n` }],
+  },
+  {
+    name: 'a file behind a star barrel loses a name and another file behind it gains it',
+    files: {
+      'src/a.ts': `export function fn(): number { return 1; }\n`,
+      'src/b.ts': `export function other(): void {}\n`,
+      'src/barrel.ts': `export * from './a.js';\nexport * from './b.js';\n`,
+      'src/zc.ts': `import { fn } from './barrel.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [
+      {
+        'src/a.ts': `export function gone(): void {}\n`,
+        'src/b.ts': `export function other(): void {}\nexport function fn(): number { return 2; }\n`,
+      },
+    ],
+  },
+  {
+    name: 'a class gains a method that a subclass elsewhere already calls through super',
+    files: {
+      'src/x.ts': `export class Base { other(): void {} }\n`,
+      'src/zc.ts': `import { Base } from './x.js';\nexport class Child extends Base {\n  go(): void { super.run(); }\n}\n`,
+    },
+    rounds: [{ 'src/x.ts': `export class Base { other(): void {}\n  run(): void {} }\n` }],
+  },
+  {
+    name: 'a star barrel gains a second target that holds an imported name',
+    files: {
+      'src/a.ts': `export function other(): void {}\n`,
+      'src/b.ts': `export function fn(): void {}\n`,
+      'src/barrel.ts': `export * from './a.js';\n`,
+      'src/zc.ts': `import { fn } from './barrel.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/barrel.ts': `export * from './a.js';\nexport * from './b.js';\n` }],
+  },
+  {
+    name: 'a file behind a star barrel is deleted',
+    files: {
+      'src/a.ts': `export function fn(): void {}\n`,
+      'src/barrel.ts': `export * from './a.js';\n`,
+      'src/zc.ts': `import { fn } from './barrel.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/a.ts': null }],
+  },
+  {
+    name: 'a named barrel is re-pointed at another file and nothing else changes',
+    files: {
+      'src/a.ts': `export function fn(): number { return 1; }\n`,
+      'src/b.ts': `export function fn(): number { return 2; }\n`,
+      'src/barrel.ts': `export { fn } from './a.js';\n`,
+      'src/zc.ts': `import { fn } from './barrel.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/barrel.ts': `export { fn } from './b.js';\n` }],
+  },
 ];
 
 describe('the graph after an incremental run equals a full index', () => {
@@ -169,9 +230,5 @@ describe('the graph after an incremental run equals a full index', () => {
     }
   }
 
-  it.each(SCENARIOS.filter((s) => s.openDefect === undefined))('when $name', run);
-
-  // D084: a change to what a file declares or re-exports is not yet followed
-  // into the files that import those names. These rows are the reproductions.
-  it.fails.each(SCENARIOS.filter((s) => s.openDefect !== undefined))('when $name ($openDefect, open)', run);
+  it.each(SCENARIOS)('when $name', run);
 });

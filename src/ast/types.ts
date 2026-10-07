@@ -537,6 +537,14 @@ export interface CallersResponse {
    * all-or-nothing case; this is the partial one.
    */
   readonly unindexed_files?: number;
+  /**
+   * Present only when above zero: indexed files whose edges are waiting to be
+   * resolved again after another file changed. This answer is drawn from edges,
+   * so it may be missing or misplacing one from those files.
+   */
+  readonly pending_edge_repairs?: number;
+  /** Present with `pending_edge_repairs`: what to run to finish them. */
+  readonly pending_edge_repairs_hint?: string;
   readonly summary: {
     readonly verified_count: number;
     readonly potential_count: number;
@@ -625,6 +633,14 @@ export interface RenameImpactResponse {
    * all-or-nothing case; this is the partial one.
    */
   readonly unindexed_files?: number;
+  /**
+   * Present only when above zero: indexed files whose edges are waiting to be
+   * resolved again after another file changed. This answer is drawn from edges,
+   * so it may be missing or misplacing one from those files.
+   */
+  readonly pending_edge_repairs?: number;
+  /** Present with `pending_edge_repairs`: what to run to finish them. */
+  readonly pending_edge_repairs_hint?: string;
   readonly summary: {
     readonly declaration_count: number;
     readonly verified_count: number;
@@ -737,6 +753,14 @@ export interface ImplementorsResponse {
    * all-or-nothing case; this is the partial one.
    */
   readonly unindexed_files?: number;
+  /**
+   * Present only when above zero: indexed files whose edges are waiting to be
+   * resolved again after another file changed. This answer is drawn from edges,
+   * so it may be missing or misplacing one from those files.
+   */
+  readonly pending_edge_repairs?: number;
+  /** Present with `pending_edge_repairs`: what to run to finish them. */
+  readonly pending_edge_repairs_hint?: string;
   readonly _stats: ToolStats;
 }
 
@@ -747,6 +771,8 @@ export interface ReindexInput {
 }
 
 export interface ReindexResult {
+  /** Files still waiting to have their edges resolved again; see `StatusResult.pending_edge_repairs`. */
+  readonly pending_edge_repairs: number;
   readonly files_indexed: number;
   readonly files_skipped: number;
   readonly chunks_added: number;
@@ -800,6 +826,7 @@ export type FreshnessCause =
   | 'phase1_stale'
   | 'unindexed_files'
   | 'deleted_files'
+  | 'edge_repair_pending'
   | null;
 
 /**
@@ -866,6 +893,13 @@ export interface StatusResult {
   readonly stale_paths: StalePaths;
   readonly parse_errors: number;
   readonly write_errors: number;
+  /**
+   * Indexed files whose edges are waiting to be resolved again after another
+   * file changed. Not counted in `stale_files`. While it is above zero,
+   * `mast_callers`, `mast_implementors` and `mast_rename_impact` may miss or
+   * misplace an edge from one of these files; `mast_reindex` finishes them.
+   */
+  readonly pending_edge_repairs: number;
   readonly index_fresh: boolean;
   readonly freshness_cause: FreshnessCause;
   readonly seed_commit?: string;

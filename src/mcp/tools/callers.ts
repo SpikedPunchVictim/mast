@@ -10,7 +10,7 @@ import type {
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
 import { querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
-import { jitRefreshFile, collectPotentialMatches, isIndexEmpty , unindexedFilesField} from './_helpers.js';
+import { jitRefreshFile, collectPotentialMatches, isIndexEmpty, unindexedFilesField, pendingEdgeRepairsField } from './_helpers.js';
 
 export function registerCallersTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -50,6 +50,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
           ...(fileBusy ? { file_busy_returning_stale_cache: true as const } : {}),
           ...indexEmptyField,
           ...unindexedFilesField(ctx, 'exhaustive-set', true),
+          ...(await pendingEdgeRepairsField(ctx)),
           summary: {
             verified_count: 0,
             potential_count: 0,
@@ -116,6 +117,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
         // missing forty files reads exactly like a complete answer, and is the
         // one that gets acted on.
         ...unindexedFilesField(ctx, 'exhaustive-set', false),
+        ...(await pendingEdgeRepairsField(ctx)),
         summary: {
           verified_count: verified_callers.length,
           potential_count: potential_matches.length,

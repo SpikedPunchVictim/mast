@@ -300,6 +300,7 @@ describe('freshnessCause', () => {
       unindexed,
       deleted,
       total: stale + unindexed + deleted,
+      pendingEdgeRepairs: partial.pendingEdgeRepairs ?? 0,
       walked: partial.walked ?? stale + unindexed,
       paths: { changed: [], unindexed: [], deleted: [] },
     };

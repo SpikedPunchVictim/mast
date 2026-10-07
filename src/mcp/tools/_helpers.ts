@@ -1,3 +1,4 @@
+import { countPendingEdgeRepairs } from '../../graph/importer-repair.js';
 import type { Db } from '../../graph/db.js';
 import type { ResolvedConfig } from '../../store/config.js';
 import type { AppContext } from '../context.js';
@@ -122,3 +123,25 @@ export async function jitRefreshFile(
 // invisible to it — `mast_status` reported a fresh index while `mast status`
 // reported the same index stale. Freshness now has one producer for both
 // surfaces: `indexer/freshness.ts` `measureFreshness`.
+
+/**
+ * The `pending_edge_repairs` fields for a tool that answers from edges, or
+ * nothing when no file is waiting.
+ *
+ * An incremental run that reaches its time budget leaves some files' edges
+ * unresolved and records them (`IndexOptions.edgeRepairBudgetMs`). Until they
+ * are done, a caller list or an implementor list can be short with nothing
+ * else on the response to say so. One indexed count query per call.
+ */
+export async function pendingEdgeRepairsField(
+  ctx: AppContext,
+): Promise<{ readonly pending_edge_repairs?: number; readonly pending_edge_repairs_hint?: string }> {
+  const pending = await countPendingEdgeRepairs(ctx.db);
+  if (pending === 0) return {};
+  return {
+    pending_edge_repairs: pending,
+    pending_edge_repairs_hint:
+      `${String(pending)} indexed file(s) have not had their call and inheritance edges brought up to date ` +
+      'after a recent change, so this answer may be incomplete. Run mast_reindex to finish, then ask again.',
+  };
+}

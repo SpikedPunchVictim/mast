@@ -10,6 +10,7 @@ import { openDatabase, readPragmaValue, type OpenDatabaseOptions } from '../grap
 import {
   populateFile,
   insertGraphEdges,
+  insertReExportFiles,
   removeDeletedFiles,
   findFilesWithEdgesInto,
   clearOutgoingEdges,
@@ -21,6 +22,18 @@ import { walkProject, buildManifest, diffManifest, type FileEntry } from './walk
 import { getImportResolver, type MiscasedImportReport } from './import-resolver.js';
 import type { IndexMeta, FreshnessCause } from '../ast/types.js';
 import type { IndexFreshness } from './freshness.js';
+import {
+  changedExports,
+  findImportersOfNames,
+  namesExportedThrough,
+  readExportSurface,
+  replaceImports,
+  clearEdgeRepairsPending,
+  findReExporters,
+  listPendingEdgeRepairs,
+  markEdgeRepairsPending,
+  type ExportSurface,
+} from '../graph/importer-repair.js';
 
 export interface IndexResult {
   readonly filesIndexed: number;
@@ -56,6 +69,19 @@ export interface IndexResult {
    * `staleWriteRejections`.
    */
   readonly miscasedImports: MiscasedImportReport;
+  /**
+   * Files whose edges this run found affected by another file's change and did
+   * not get to before {@link IndexOptions.edgeRepairBudgetMs} ran out. They are
+   * recorded in the index and the next incremental run takes them up. Answers
+   * drawn from edges may be missing or out of date for these files until then.
+   */
+  readonly edgeRepairsPending: number;
+  /**
+   * Files this run resolved again without re-writing them: holders of edges
+   * into a re-written file, importers of a changed name, and any left waiting
+   * by an earlier run. Zero on a full run, which re-writes everything.
+   */
+  readonly filesReResolved: number;
   readonly durationMs: number;
   /**
    * The `cache_size` / `mmap_size` actually in force on this run's connection,
@@ -119,6 +145,21 @@ export interface IndexOptions {
   /** Called after each file is processed (parse phase) with running and total counts. */
   readonly onProgress?: (processed: number, total: number) => void;
   /**
+   * How long, in milliseconds, an incremental run may spend resolving again
+   * files it did not re-write but which import from one it did. Past it, the
+   * files not yet reached are recorded and reported
+   * ({@link IndexResult.edgeRepairsPending}) instead of resolved.
+   *
+   * Omitted means no limit, which is what a caller who asked for an index run
+   * and is waiting for it wants. A background run passes
+   * {@link BACKGROUND_EDGE_REPAIR_BUDGET_MS}: one edit to a widely imported
+   * file can touch thousands of importers (5,011 for one n8n file,
+   * adr/proposals/incremental-graph-correctness/spikes/s3-importers).
+   *
+   * Files that re-export are outside the limit and always resolved.
+   */
+  readonly edgeRepairBudgetMs?: number;
+  /**
    * Test-only injection point (§4.4 DI): a fake `ChunkStore` used for chunk
    * reads (`isFileUnchanged`, the final `chunkCount()`) and, via
    * `populateFile`'s `chunkWriter` param, for the per-file chunk WRITE too —
@@ -168,6 +209,14 @@ export interface IndexOptions {
    */
   readonly unsafeSkipFtsDeletes?: boolean;
 }
+
+/**
+ * {@link IndexOptions.edgeRepairBudgetMs} for a run nobody is waiting on: the
+ * watcher's batches. A starting value (decided 2026-10-06), about 520 to 600
+ * files at the 3.3 to 3.8 ms per file measured in
+ * adr/proposals/incremental-graph-correctness/spikes/s5-reresolve-cost.
+ */
+export const BACKGROUND_EDGE_REPAIR_BUDGET_MS = 2_000;
 
 /**
  * Fresh best-effort mtime read (seconds), used wherever a value written to
@@ -326,10 +375,31 @@ export async function runIndex(
   // resolved again in pass 2 (D081). A full run re-writes every file, so it
   // has none.
   const edgeHolders = new Set<string>();
+  // The holders that re-export. Decided here, while their star rows exist: a
+  // barrel whose only re-export is `export *` of a re-written file has no row
+  // left to be recognised by afterwards. Pass 2 puts these rows back first,
+  // and everything it then looks up by star row depends on that.
+  const reExportingHolders = new Set<string>();
+  const rememberHoldersOf = async (paths: readonly string[]): Promise<void> => {
+    const holders = await findFilesWithEdgesInto(db, paths);
+    for (const holder of holders) edgeHolders.add(holder);
+    for (const holder of await findReExporters(db, holders)) reExportingHolders.add(holder);
+  };
+  // What each file about to be deleted or re-written exported beforehand, so
+  // that pass 2 can tell which names changed and resolve their importers again
+  // (D084). A path with no entry had no row: the file is new to the index.
+  const surfaceBefore = new Map<string, ExportSurface>();
+  const rememberSurfaces = async (paths: readonly string[]): Promise<void> => {
+    for (const path of paths) {
+      const surface = await readExportSurface(db, path);
+      if (surface !== null) surfaceBefore.set(path, surface);
+    }
+  };
 
   await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
     if (options.incremental) {
-      for (const holder of await findFilesWithEdgesInto(db, deleted)) edgeHolders.add(holder);
+      await rememberHoldersOf(deleted);
+      await rememberSurfaces(deleted);
     }
     chunksRemoved += await removeDeletedFiles(db, deleted);
 
@@ -504,7 +574,8 @@ export async function runIndex(
       // a miscounted `parseErrors`.
       if (options.incremental) {
         const aboutToBeWritten = parsed.map((item) => item.entry.relativePath);
-        for (const holder of await findFilesWithEdgesInto(db, aboutToBeWritten)) edgeHolders.add(holder);
+        await rememberHoldersOf(aboutToBeWritten);
+        await rememberSurfaces(aboutToBeWritten);
       }
       for (const { entry, result, mtime } of parsed) {
         // `mtime` is the PRE-parse stamp captured in the parse loop above
@@ -591,29 +662,113 @@ export async function runIndex(
     starReExports: data.starReExports,
   }));
 
-  // The holders collected above are parsed again for their edge records and
-  // nothing else: their own rows are current, so they are not re-written and
-  // keep their ids. A holder this run wrote anyway, or failed on, is skipped —
-  // the first has its records in `edgeDataByFile` already, the second will be
-  // retried whole.
+  // Files resolved again without being re-written: their own rows are current
+  // and keep their ids, so each is parsed for its records and nothing else.
+  // One this run wrote anyway, or failed on, is skipped — the first has its
+  // records in `edgeDataByFile` already, the second will be retried whole.
   const walkedByPath = new Map(currentFiles.map((entry) => [entry.relativePath, entry]));
-  for (const holderPath of edgeHolders) {
-    const entry = walkedByPath.get(holderPath);
-    if (entry === undefined || edgeDataByFile.has(holderPath) || failedPaths.has(holderPath)) continue;
-    let records: ReturnType<typeof extractFile>;
-    try {
-      records = doExtract(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth);
-    } catch (err) {
-      // Its stored edges into files this run did not write are still right, so
-      // they are left in place; only the ones the cascade took stay missing.
-      process.stderr.write(`[mast] WARN: could not re-read ${entry.path} to restore its edges: ${String(err)}\n`);
-      continue;
+  const reExtracted = new Map<string, ReturnType<typeof extractFile>>();
+  const needsReResolve = (path: string): boolean =>
+    walkedByPath.has(path) && !edgeDataByFile.has(path) && !failedPaths.has(path) && !reExtracted.has(path);
+  const extractForReResolve = (paths: Iterable<string>): void => {
+    for (const path of paths) {
+      const entry = walkedByPath.get(path);
+      if (entry === undefined || !needsReResolve(path)) continue;
+      try {
+        reExtracted.set(path, doExtract(entry.path, config.resolved_project_root, config.context_lines, config.chunk_split_threshold, config.markdown_heading_depth));
+      } catch (err) {
+        // Its stored edges into files this run did not touch are still right,
+        // so they are left in place; only the affected ones stay missing.
+        process.stderr.write(`[mast] WARN: could not re-read ${entry.path} to restore its edges: ${String(err)}\n`);
+      }
     }
-    await inLock(() => clearOutgoingEdges(db, holderPath));
-    edgeData.push({ filePath: holderPath, edges: records.edges, starReExports: records.starReExports });
-  }
+  };
+  /** Clears and re-reads what `paths` hold, and returns their records for `insertGraphEdges`. */
+  const prepareReResolve = async (paths: readonly string[]): Promise<FileEdgeData[]> => {
+    extractForReResolve(paths);
+    const prepared: FileEdgeData[] = [];
+    // One lock per batch of files, as pass 1 and `insertGraphEdges` take it (F1).
+    for (let i = 0; i < paths.length; i += LANCE_BATCH) {
+      await inLock(async () => {
+        for (const path of paths.slice(i, i + LANCE_BATCH)) {
+          const records = reExtracted.get(path);
+          if (records === undefined) continue;
+          await clearOutgoingEdges(db, path);
+          await replaceImports(db, path, records.imports);
+          prepared.push({ filePath: path, edges: records.edges, starReExports: records.starReExports });
+        }
+      });
+    }
+    return prepared;
+  };
 
-  await insertGraphEdges(db, edgeData, inLock);
+  let waiting: string[] = [];
+  let filesReResolved = 0;
+  if (options.incremental) {
+    // Three sources: files an earlier run left waiting, the holders collected
+    // above (D081), and — worked out below — the files that import a name some
+    // file gained, lost or re-pointed (D084).
+    const candidates = new Set([...(await listPendingEdgeRepairs(db)), ...edgeHolders]);
+
+    // The importers of a changed name are found by walking star rows, so the
+    // rows of every file written or held go in first. `insertGraphEdges`
+    // writes them again, which changes nothing.
+    extractForReResolve(reExportingHolders);
+    await inLock(async () => {
+      for (const file of edgeData) await insertReExportFiles(db, file.filePath, file.starReExports);
+      for (const [path, records] of reExtracted) await insertReExportFiles(db, path, records.starReExports);
+    });
+    const changedNames = new Set<string>();
+    const changedStarTargets = new Set<string>();
+    for (const path of new Set([...deleted, ...edgeDataByFile.keys()])) {
+      const after = edgeDataByFile.has(path) ? await readExportSurface(db, path) : null;
+      const changed = changedExports(surfaceBefore.get(path) ?? null, after);
+      for (const name of changed.names) changedNames.add(name);
+      for (const target of changed.starTargets) changedStarTargets.add(target);
+    }
+    for (const name of await namesExportedThrough(db, [...changedStarTargets])) changedNames.add(name);
+    const importers = await findImportersOfNames(db, {
+      names: [...changedNames],
+      sources: [...deleted, ...edgeDataByFile.keys(), ...edgeHolders],
+      includeUnresolved: [...edgeDataByFile.keys()].some((path) => !surfaceBefore.has(path)),
+    });
+    for (const path of importers) candidates.add(path);
+
+    // Recorded before any of it is done, so a run that dies here leaves a list
+    // the next one picks up instead of edges nobody knows are missing.
+    const toReResolve = [...candidates].filter((path) => walkedByPath.has(path) && !edgeDataByFile.has(path) && !failedPaths.has(path));
+    await inLock(async () => {
+      await clearEdgeRepairsPending(db, [...candidates]);
+      await markEdgeRepairsPending(db, toReResolve);
+    });
+
+    // Files that re-export are resolved in full, with the files this run
+    // wrote, whatever the budget — see `findReExporters`.
+    const reExporters = await findReExporters(db, toReResolve);
+    const reExporterPaths = toReResolve.filter((path) => reExporters.has(path));
+    const reExporterData = await prepareReResolve(reExporterPaths);
+    filesReResolved += reExporterData.length;
+    edgeData.push(...reExporterData);
+    waiting = toReResolve.filter((path) => !reExporters.has(path)).sort();
+    await insertGraphEdges(db, edgeData, inLock);
+    await inLock(() => clearEdgeRepairsPending(db, reExporterPaths));
+
+    // The rest only import. Each is right as soon as it is resolved against
+    // the finished barrels, so they can be done a batch at a time and stopped
+    // at the budget; what is left stays recorded.
+    const repairStart = Date.now();
+    const budgetMs = options.edgeRepairBudgetMs ?? Number.POSITIVE_INFINITY;
+    while (waiting.length > 0 && Date.now() - repairStart < budgetMs) {
+      const batch = waiting.slice(0, LANCE_BATCH);
+      waiting = waiting.slice(LANCE_BATCH);
+      const batchData = await prepareReResolve(batch);
+      filesReResolved += batchData.length;
+      await insertGraphEdges(db, batchData, inLock);
+      await inLock(() => clearEdgeRepairsPending(db, batch));
+    }
+  } else {
+    await insertGraphEdges(db, edgeData, inLock);
+  }
 
   phase.edges = Date.now() - edgesStart;
   const finaliseStart = Date.now();
@@ -686,6 +841,8 @@ export async function runIndex(
     // Drained, not read: the resolver is cached for the process lifetime and
     // serves every run, so each run must clear what it reported.
     miscasedImports: getImportResolver(config.resolved_project_root).drainMiscased(),
+    edgeRepairsPending: waiting.length,
+    filesReResolved,
     durationMs: Date.now() - startMs,
     phaseMs: phase,
     appliedPragmas,
@@ -761,6 +918,21 @@ async function isFileUnchanged(
     .limit(1)
     .executeTakeFirst();
   if (storedReExport !== undefined) return false;
+
+  // Named re-exports, for the same reason (D089). `export { x } from './a.js'`
+  // leaves a symbol with no hash, no chunk and no import row, so re-pointing it
+  // at `./b.js` changes nothing compared below. Where it points lives only in
+  // the edge it produces, which is written in pass 2 and only for a file that
+  // was re-written.
+  if (result.symbols.some((s) => s.kind === 'export')) return false;
+  const storedMarker = await db
+    .selectFrom('symbols')
+    .select('id')
+    .where('file_id', '=', fileRow.id)
+    .where('kind', '=', 'export')
+    .limit(1)
+    .executeTakeFirst();
+  if (storedMarker !== undefined) return false;
 
   // Structure: identical set of chunk ids, each carrying identical content.
   // The content comparison is what catches an edit outside every symbol body
@@ -882,7 +1054,9 @@ function symbolSignature(
  * exact split always travels beside it in `stale_breakdown`.
  */
 export function freshnessCause(freshness: IndexFreshness): FreshnessCause {
-  if (freshness.total === 0) return null;
+  // Last in order of alarm: every file is indexed and current, and only
+  // answers drawn from edges are affected.
+  if (freshness.total === 0) return freshness.pendingEdgeRepairs > 0 ? 'edge_repair_pending' : null;
   const matched = freshness.walked - freshness.unindexed;
   if (freshness.unindexed > matched && freshness.deleted > matched) return 'root_mismatch';
   if (freshness.stale > 0) return 'phase1_stale';

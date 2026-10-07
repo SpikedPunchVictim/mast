@@ -221,6 +221,8 @@ export function registerIndexCommand(program: Command): void {
         (result.writeErrors > 0 ? `  write_errors: ${result.writeErrors}` : '') +
         (result.staleWriteRejections > 0 ? `  stale_write_rejections: ${result.staleWriteRejections}` : '') +
         (result.miscasedImports.count > 0 ? `  miscased_imports: ${result.miscasedImports.count}` : '') +
+        (result.filesReResolved > 0 ? `  re_resolved: ${result.filesReResolved}` : '') +
+        (result.edgeRepairsPending > 0 ? `  pending_edge_repairs: ${result.edgeRepairsPending}` : '') +
         '\n',
       );
 

@@ -34,7 +34,8 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
         stale_paths:    stalePathsSample(freshness),
         parse_errors:   meta?.parse_errors ?? 0,
         write_errors:   meta?.write_errors ?? 0,
-        index_fresh:    meta !== null && stale_files === 0,
+        pending_edge_repairs: freshness.pendingEdgeRepairs,
+        index_fresh:    meta !== null && stale_files === 0 && freshness.pendingEdgeRepairs === 0,
         freshness_cause: freshnessCause(freshness),
         seed_commit:    meta?.seed_commit,
       };

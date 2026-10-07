@@ -94,6 +94,16 @@ interface ReExportFilesTable {
   readonly to_file_id: number;
 }
 
+/**
+ * Files whose edges are waiting to be resolved again: a run found them
+ * affected by another file's change and stopped before reaching them
+ * (`graph/importer-repair.ts`). Keyed by file id so that re-writing or deleting
+ * the file, either of which makes the entry moot, removes it by cascade.
+ */
+interface EdgeRepairPendingTable {
+  readonly file_id: number;
+}
+
 interface ImportsTable {
   readonly file_id: number;
   readonly module: string;
@@ -251,6 +261,7 @@ export interface MastDatabase {
   readonly symbols: SymbolsTable;
   readonly edges: EdgesTable;
   readonly re_export_files: ReExportFilesTable;
+  readonly edge_repair_pending: EdgeRepairPendingTable;
   readonly imports: ImportsTable;
   readonly metrics: MetricsTable;
   readonly metrics_daily: MetricsDailyTable;
@@ -307,6 +318,10 @@ CREATE TABLE IF NOT EXISTS re_export_files (
   from_file_id  INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
   to_file_id    INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
   PRIMARY KEY (from_file_id, to_file_id)
+);
+
+CREATE TABLE IF NOT EXISTS edge_repair_pending (
+  file_id  INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS imports (

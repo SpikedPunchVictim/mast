@@ -59,10 +59,23 @@ const PRIMER_PATHS_PER_CATEGORY = 3;
 function describeDrift(status: StatusReport): string[] {
   const counts = status.stale_breakdown;
   const paths = status.stale_paths;
-  const lines = [
-    `The index is behind on ${String(status.stale_files ?? 0)} of ${String(status.indexed_files ?? 0)} files. ` +
-    'Results for every other file are current, so keep using mast.',
-  ];
+  const lines: string[] = [];
+  if ((status.stale_files ?? 0) > 0) {
+    lines.push(
+      `The index is behind on ${String(status.stale_files ?? 0)} of ${String(status.indexed_files ?? 0)} files. ` +
+      'Results for every other file are current, so keep using mast.',
+    );
+  }
+  // A separate state from the three below: these files are indexed and
+  // current, and it is the edges out of them that are not.
+  const waiting = status.pending_edge_repairs ?? 0;
+  if (waiting > 0) {
+    lines.push(
+      `${String(waiting)} files have not had their call and inheritance edges brought up to date after a recent change. ` +
+      'Search and signatures are unaffected; mast_callers, mast_implementors and mast_rename_impact may be incomplete. ' +
+      'Call mast_reindex to finish.',
+    );
+  }
   if (counts === null || paths === null) return lines;
 
   const named = (kind: 'changed' | 'unindexed' | 'deleted'): string => {

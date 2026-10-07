@@ -196,7 +196,7 @@ describe('stalePathsSample', () => {
   const paths = (n: number): string[] =>
     Array.from({ length: n }, (_, i) => `src/f${String(i).padStart(3, '0')}.ts`);
   const freshness = (unindexed: string[]): IndexFreshness => ({
-    stale: 0, unindexed: unindexed.length, deleted: 0, total: unindexed.length, walked: unindexed.length,
+    stale: 0, unindexed: unindexed.length, deleted: 0, pendingEdgeRepairs: 0, total: unindexed.length, walked: unindexed.length,
     paths: { changed: [], unindexed, deleted: [] },
   });
 
