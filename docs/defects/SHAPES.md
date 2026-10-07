@@ -317,7 +317,7 @@ sits in the join between the instrument and the registration — a place neither
 
 ## S-07 — Absence read as evidence
 
-**Instances**: D001, D002, D010, D017, D045, D048, D049. **Rung**: brief.
+**Instances**: D001, D002, D010, D017, D045, D048, D049, D071. **Rung**: brief.
 
 The package's severity zero, generalised past code. D010 registered an experiment whose answer was
 already committed and unread for four days — "we have no result" was actually "we did not look".

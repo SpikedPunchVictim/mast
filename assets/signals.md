@@ -42,7 +42,8 @@ Two more things that are not flags:
   `potential_matches` are not the same claim.** A verified caller carries a `resolution`
   and is safe to act on. A potential match carries a `reason` and is a name match with
   no proven edge — review it before editing it.
-- An **empty result is not proof of absence.** MAST indexes TypeScript, JavaScript, and
+- An **empty result is not proof of absence.** MAST skips dot directories (`.github`,
+  `.storybook`) unless the project's `include_dot_dirs` names them, and it indexes TypeScript, JavaScript, and
   Markdown only — a symbol defined in Python, Go, Java, or any other language is absent
   from the index, not absent from the repository. Check `index_empty` and
   `unindexed_files` before concluding "it isn't there", and **never delete or rewrite

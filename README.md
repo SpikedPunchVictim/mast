@@ -120,8 +120,9 @@ And an empty answer distinguishes the two reasons it can be empty:
 
 ```
 $ mast search "kept_symbol"
-no matches (mast indexes TypeScript, JavaScript, and Markdown only —
-a symbol in any other language is invisible to it, not absent from the repo)
+no matches (mast indexes TypeScript, JavaScript, and Markdown only, and skips dot
+directories unless include_dot_dirs names them — a symbol anywhere else is
+invisible to it, not absent from the repo)
 
 $ mast search "anything"          # in a directory with no index
 nothing is indexed at this path — this is not evidence the symbol is absent.
@@ -355,6 +356,21 @@ get — `file_extensions` / `exclude_patterns` in `mast.config.json` at the proj
 Editing `.mast/config.json` also works and is read back, but that file is gitignored and
 per-machine, so the change will not travel; `mast.config.json` outranks it.
 
+**Dot directories are skipped unless you name them.** A directory whose name starts with
+a dot (`.agents`, `.github`, `.storybook`) is not walked, and neither is a dot-leading
+file. To index one, list it in `mast.config.json`:
+
+```json
+{ "include_dot_dirs": [".agents", "packages/app/.storybook"] }
+```
+
+Each entry is a directory path relative to the project root, not a glob. The directory is
+walked recursively; a dot directory nested inside it needs its own entry, and
+`exclude_patterns` still applies. It is opt-in because a dot directory is as likely to
+hold editor history or a second checkout of your source (`.history`, `.claude/worktrees`)
+as anything worth searching, and duplicates of real symbols make caller lists wrong. Run
+`mast walk` to see what the config walks before you index, then `mast index`.
+
 **Other languages are not indexed, and this matters.** MAST parses TypeScript and
 JavaScript only. A symbol defined in Python, Go, Java, or Rust is absent from the index,
 which looks exactly like absent from the repository. Treat an empty result as "MAST did
@@ -498,6 +514,53 @@ Options:
 ```
 
 Reports `last_indexed`, `indexed_files`, `chunk_count`, `stale_files`, `parse_errors`, `write_errors`, `index_fresh`, and `freshness_cause`. Use this to diagnose why search results look outdated.
+
+---
+
+### `mast walk [path]`
+
+Show which directories and files the config makes mast walk. It reads no index and writes
+nothing.
+
+```
+Options:
+  --depth <n>          Roll directories up to this many path segments
+  --files              List every walked file instead of the directories
+  --state-dir <dir>    State directory
+  --json               Output as JSON
+```
+
+```
+$ mast walk --depth 1
+project_root:      /path/to/project
+config:            /path/to/project/mast.config.json
+saved config:      /path/to/project/.mast/config.json (supplies any key mast.config.json does not set)
+file_extensions:   .ts .tsx .js .jsx .md
+exclude_patterns:  **/node_modules/** **/dist/** ...
+include_dot_dirs:  .agents .agnets
+! .agnets: no such directory under the project root. Check the spelling in include_dot_dirs.
+
+158 files in 6 directories
+
+   10  .
+    2  .agents
+  ...
+```
+
+Each line is a directory and the number of walked files in it (with `--depth`, in it and
+below it). An `include_dot_dirs` entry that contributed no files is flagged, and the flag
+says which of two things happened: the directory does not exist, or it exists and nothing
+in it matches `file_extensions` after `exclude_patterns`.
+
+The `saved config` line appears when `mast init` or `mast serve` has saved a config in the
+state directory. That file supplies every key `mast.config.json` does not set, so an entry
+you delete from `mast.config.json` keeps applying until you set the key explicitly (`[]`
+for none). This is true of `exclude_patterns` and `file_extensions` as well.
+
+**Why:** it is how you test a config change before paying for an index run. It calls the
+same walk `mast index` and `mast status` use, so its answer is what would be indexed. A
+config that mast rejects (a glob or an absolute path in `include_dot_dirs`, say) is
+printed as one line on stderr with exit 1.
 
 ---
 
@@ -951,6 +1014,7 @@ MAST reads configuration from `mast.config.json` in the project root, environmen
 | `state_dir`                | `.mast`                                                                     | Directory for all index state (relative to project root)                   |
 | `file_extensions`          | `.ts,.tsx,.js,.jsx,.md`                                                     | Source file extensions to index                                            |
 | `exclude_patterns`         | `node_modules/**`, `dist/**`, `coverage/**`, `.kluster/**`, `**/*.test.ts`, `**/*.spec.ts` | Glob patterns to skip                                     |
+| `include_dot_dirs`         | `[]`                                                                        | Dot directories to walk, as paths relative to the project root. Dot directories are skipped unless named here; see [Using MAST in a monorepo](#using-mast-in-a-monorepo). |
 | `rrf_k`                    | `60`                                                                        | Reciprocal Rank Fusion constant (higher = flatter ranking)                 |
 | `declaration_exact_ranker` | `true`                                                                      | Fuse ranker D (declaration-exact match) into `mast_search`. Set `false` to restore BM25-only ranking without a code change. |
 | `chunk_split_threshold`    | `100`                                                                       | Lines above which a declaration is split into overlapping sub-chunks       |

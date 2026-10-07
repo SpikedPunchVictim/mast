@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import type { MastConfig } from '../ast/types.js';
 import { ConfigEnvSchema } from '../env.js';
 import { DEFAULT_FILE_EXTENSIONS, DEFAULT_STATE_DIR } from './defaults.js';
+import { normalizeDotDirs } from '../indexer/scope.js';
 
 // 1.3.0 (F5, Stage 3): identifier_fts rows now carry QUALIFIED compound
 // strings ("Class.method") appended after the bare-identifier bag — see
@@ -51,6 +52,9 @@ const DEFAULTS: MastConfig = {
     '**/*.test.ts',
     '**/*.spec.ts',
   ],
+  // Opt-in, never a default: a dot directory is as likely to hold editor history
+  // or a second checkout of the same source as anything worth searching (ADR 018).
+  include_dot_dirs: [],
   rrf_k: 60,
   declaration_exact_ranker: true,
   chunk_split_threshold: 100,
@@ -96,6 +100,7 @@ export interface ResolveConfigOptions {
 const CUSTOMIZATION_KEYS = [
   'file_extensions',
   'exclude_patterns',
+  'include_dot_dirs',
   'rrf_k',
   'declaration_exact_ranker',
   'chunk_split_threshold',
@@ -141,6 +146,7 @@ function pickStateConfigCustomization(source: Partial<MastConfig> | null): Parti
   const picked: { -readonly [K in keyof MastConfig]?: MastConfig[K] } = {};
   if (isStringArray(source.file_extensions)) picked.file_extensions = source.file_extensions;
   if (isStringArray(source.exclude_patterns)) picked.exclude_patterns = source.exclude_patterns;
+  if (isStringArray(source.include_dot_dirs)) picked.include_dot_dirs = source.include_dot_dirs;
   if (typeof source.rrf_k === 'number') picked.rrf_k = source.rrf_k;
   if (typeof source.declaration_exact_ranker === 'boolean') {
     picked.declaration_exact_ranker = source.declaration_exact_ranker;
@@ -174,6 +180,10 @@ function pickStateConfigCustomization(source: Partial<MastConfig> | null): Parti
  * 2. `MAST_STATE_DIR` environment variable
  * 3. `state_dir` key in `mast.config.json`
  * 4. Built-in default (`.mast`)
+ *
+ * `include_dot_dirs` is validated and normalised here (`normalizeDotDirs`).
+ *
+ * @throws InvalidDotDirError, or Error when `include_dot_dirs` is not a string array.
  *
  * Priority order for every other config key (highest to lowest):
  * 1. Explicit overrides passed to this function (`extensions`/`excludePatterns`
@@ -219,8 +229,20 @@ export function resolveConfig(options: ResolveConfigOptions = {}): ResolvedConfi
 
   const merged: MastConfig = { ...DEFAULTS, ...stateConfig, ...fileConfig, ...cliOverrides };
 
+  // The one key validated on the way in. A malformed entry here does not fail
+  // loudly by itself: the walker would hand it to fast-glob as a pattern, which
+  // matches nothing and reports nothing, and the directory the user asked for
+  // stays out of the index with `index_fresh: true`.
+  const includeDotDirs: unknown = merged.include_dot_dirs;
+  if (!isStringArray(includeDotDirs)) {
+    throw new Error(
+      `${configFile}: include_dot_dirs must be an array of directory paths, such as [".agents"]`,
+    );
+  }
+
   return {
     ...merged,
+    include_dot_dirs: normalizeDotDirs(includeDotDirs),
     state_dir: stateDir,
     project_root: resolvedProjectRoot,
     resolved_state_dir: resolvedStateDir,

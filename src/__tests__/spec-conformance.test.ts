@@ -124,6 +124,7 @@ const ConfigExampleSchema = z.object({
   project_root: z.string(),
   file_extensions: z.array(z.string()),
   exclude_patterns: z.array(z.string()),
+  include_dot_dirs: z.array(z.string()),
   rrf_k: z.number(),
   declaration_exact_ranker: z.boolean(),
   chunk_split_threshold: z.number(),
@@ -192,6 +193,10 @@ describe('spec conformance — MAST_SPEC.md ↔ src/', () => {
 
     it('exclude_patterns matches', () => {
       expect(example.exclude_patterns).toEqual(defaults.exclude_patterns);
+    });
+
+    it('include_dot_dirs matches', () => {
+      expect(example.include_dot_dirs).toEqual(defaults.include_dot_dirs);
     });
   });
 

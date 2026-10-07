@@ -3,6 +3,7 @@ import { extname, join, relative, resolve } from 'node:path';
 import { watch as chokidarWatch } from 'chokidar';
 import type { ResolvedConfig } from '../store/config.js';
 import { globToRegex } from './walker.js';
+import { isDirectoryInDotScope, isFileInDotScope } from './scope.js';
 
 // ---------------------------------------------------------------------------
 // Debounced single-flight batch scheduler (chokidar-free — unit-testable)
@@ -117,6 +118,8 @@ export interface WatchPathFilter {
   readonly extensions: readonly string[];
   /** Compiled exclude_patterns, matched against project-relative paths. */
   readonly excludeRegexes: readonly RegExp[];
+  /** Normalised `include_dot_dirs`: the only dot directories in scope. */
+  readonly dotDirs: readonly string[];
 }
 
 /**
@@ -129,6 +132,7 @@ export function shouldWatchPath(filter: WatchPathFilter, absPath: string): boole
   if (!filter.extensions.includes(extname(absPath))) return false;
   const rel = relative(filter.projectRoot, absPath);
   if (rel.startsWith('..')) return false;
+  if (!isFileInDotScope(rel, filter.dotDirs)) return false;
   return !filter.excludeRegexes.some((rx) => rx.test(rel));
 }
 
@@ -340,6 +344,7 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
     stateDir: config.resolved_state_dir,
     extensions: config.file_extensions,
     excludeRegexes: config.exclude_patterns.map(globToRegex),
+    dotDirs: config.include_dot_dirs,
   };
 
   const scheduler = new WatchScheduler({
@@ -358,6 +363,10 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
     if (abs === filter.stateDir || abs.startsWith(`${filter.stateDir}/`)) return true;
     const rel = relative(filter.projectRoot, abs);
     if (rel === '' || rel.startsWith('..')) return false;
+    // A dot directory nobody named is pruned like an excluded one. Before
+    // ADR 018 chokidar descended into all of them (`.git` included) and every
+    // event there started an index run that walked none of those files.
+    if (!isDirectoryInDotScope(rel, filter.dotDirs)) return true;
     return filter.excludeRegexes.some((rx) => rx.test(rel) || rx.test(`${rel}/`));
   };
 

@@ -85,6 +85,7 @@ function fixtureResolvedConfig(overrides: Partial<ResolvedConfig>): ResolvedConf
     project_root: '.',
     file_extensions: ['.ts'],
     exclude_patterns: [],
+    include_dot_dirs: [],
     rrf_k: 60,
     declaration_exact_ranker: true,
     chunk_split_threshold: 100,
@@ -218,5 +219,52 @@ describe('resolveConfig — never merges path keys from persisted state config (
     expect(config.resolved_project_root).toBe(tmpDir);
     expect(config.resolved_state_dir).not.toContain('nonexistent-container-mount');
     expect(config.resolved_project_root).not.toContain('nonexistent-container-mount');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveConfig — include_dot_dirs (ADR 018)
+//
+// The key is validated on the way in because a malformed entry does not fail
+// by itself: fast-glob takes it as a pattern that matches nothing, and the
+// directory stays out of an index that reports itself fresh.
+// ---------------------------------------------------------------------------
+
+describe('resolveConfig — include_dot_dirs', () => {
+  let tmpDir: string | undefined;
+
+  afterEach(() => {
+    if (tmpDir !== undefined) rmSync(tmpDir, { recursive: true, force: true });
+    tmpDir = undefined;
+  });
+
+  function resolveWith(fileConfig: Record<string, unknown>): ResolvedConfig {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-config-dot-'));
+    writeFileSync(join(tmpDir, 'mast.config.json'), JSON.stringify(fileConfig));
+    return resolveConfig({ projectRoot: tmpDir });
+  }
+
+  it('defaults to no dot directories', () => {
+    expect(resolveWith({}).include_dot_dirs).toEqual([]);
+  });
+
+  it('returns the entries normalised', () => {
+    expect(resolveWith({ include_dot_dirs: ['./.agents/'] }).include_dot_dirs).toEqual(['.agents']);
+  });
+
+  it('rejects an entry that is not a directory inside the project', () => {
+    expect(() => resolveWith({ include_dot_dirs: ['../.agents'] })).toThrow(/leaves the project root/);
+  });
+
+  it('rejects a value that is not an array, naming the config file', () => {
+    expect(() => resolveWith({ include_dot_dirs: '.agents' })).toThrow(/mast\.config\.json: include_dot_dirs must be an array/);
+  });
+
+  it('reads the key back from a persisted state config', () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-config-dot-'));
+    const first = resolveConfig({ projectRoot: tmpDir });
+    writeStateConfig(first.resolved_state_dir, { ...first, include_dot_dirs: ['.agents'] });
+
+    expect(resolveConfig({ projectRoot: tmpDir }).include_dot_dirs).toEqual(['.agents']);
   });
 });

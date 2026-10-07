@@ -190,6 +190,7 @@ describe('shouldWatchPath', () => {
     stateDir: '/proj/.mast',
     extensions: ['.ts', '.md'],
     excludeRegexes: [/^(.+\/)?node_modules\/.*$/, /^dist\/.*$/],
+    dotDirs: ['.agents'],
   };
 
   it('accepts a source file with a watched extension', () => {
@@ -213,6 +214,14 @@ describe('shouldWatchPath', () => {
 
   it('rejects paths outside the project root', () => {
     expect(shouldWatchPath(filter, '/elsewhere/file.ts')).toBe(false);
+  });
+
+  it('rejects a file in a dot directory that include_dot_dirs does not name', () => {
+    expect(shouldWatchPath(filter, '/proj/.history/src/index.ts')).toBe(false);
+  });
+
+  it('accepts a file in a dot directory that include_dot_dirs names', () => {
+    expect(shouldWatchPath(filter, '/proj/.agents/notes/plan.md')).toBe(true);
   });
 });
 
@@ -449,6 +458,65 @@ class FakeWatcher implements FsWatcher {
   async close(): Promise<void> { this.closeCount++; }
   emitReady(): void { for (const l of this.readyListeners) l(); }
 }
+
+/**
+ * The predicate handed to chokidar decides which directories get an OS watch at
+ * all. It has to agree with the walker: a directory the walker enters and the
+ * watcher prunes is a file that changes without the index hearing about it.
+ */
+describe('startWatchMode — which directories it asks chokidar to ignore', () => {
+  let dir: string;
+  let handle: WatchHandle | undefined;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-watch-dot-'));
+  });
+
+  afterEach(async () => {
+    await handle?.close().catch(() => {});
+    handle = undefined;
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function ignoredPredicate(includeDotDirs: readonly string[]): (path: string) => boolean {
+    writeFileSync(join(dir, 'mast.config.json'), JSON.stringify({ include_dot_dirs: includeDotDirs }));
+    let ignored: ((path: string) => boolean) | undefined;
+    handle = startWatchMode({
+      config: resolveConfig({ projectRoot: dir }),
+      runBatch: async () => {},
+      onWarn: () => {},
+      watcherFactory: (_root, opts) => { ignored = opts.ignored; return new FakeWatcher(); },
+    });
+    if (ignored === undefined) throw new Error('the watcher factory was not called');
+    return ignored;
+  }
+
+  it('ignores a dot directory that include_dot_dirs does not name', () => {
+    const ignored = ignoredPredicate(['.agents']);
+
+    expect(ignored(join(dir, '.git'))).toBe(true);
+  });
+
+  it('descends into a dot directory that include_dot_dirs names', () => {
+    const ignored = ignoredPredicate(['.agents']);
+
+    expect(ignored(join(dir, '.agents'))).toBe(false);
+    expect(ignored(join(dir, '.agents', 'notes', 'plan.md'))).toBe(false);
+  });
+
+  it('descends into the dot-leading parent of a named subdirectory', () => {
+    const ignored = ignoredPredicate(['.github/workflows']);
+
+    expect(ignored(join(dir, '.github'))).toBe(false);
+    expect(ignored(join(dir, '.github', 'actions'))).toBe(true);
+  });
+
+  it('still descends into ordinary directories', () => {
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, 'src'))).toBe(false);
+  });
+});
 
 describe('startWatchMode with a watcher that loses events', () => {
   let dir: string;

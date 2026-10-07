@@ -116,6 +116,13 @@ export interface MastConfig {
   readonly project_root: string;
   readonly file_extensions: readonly string[];
   readonly exclude_patterns: readonly string[];
+  /**
+   * Dot directories to walk, as paths relative to the project root (ADR 018).
+   * Default empty: a dot-leading directory is skipped unless it is named here,
+   * and one nested inside a named directory needs its own entry.
+   * `exclude_patterns` still applies inside them.
+   */
+  readonly include_dot_dirs: readonly string[];
   /** Reciprocal Rank Fusion constant k (default 60). */
   readonly rrf_k: number;
   /**

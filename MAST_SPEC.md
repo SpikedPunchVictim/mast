@@ -63,7 +63,7 @@ be known before its own persisted config can be loaded from inside it):
 2. `state_dir` key in `mast.config.json` in the project root
 3. Default: `<project_root>/.mast`
 
-Every other config key (`file_extensions`, `exclude_patterns`, `rrf_k`,
+Every other config key (`file_extensions`, `exclude_patterns`, `include_dot_dirs`, `rrf_k`,
 `declaration_exact_ranker`, `chunk_split_threshold`, `context_lines`,
 `markdown_heading_depth`) is then resolved in this priority order, highest first:
 
@@ -102,6 +102,7 @@ path keys always come from the current resolution.
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
+  "include_dot_dirs": [],
   "rrf_k": 60,
   "declaration_exact_ranker": true,
   "chunk_split_threshold": 100,
@@ -135,6 +136,15 @@ This gives agents surrounding context (e.g., the `const` binding before a functi
 expression, or the closing brace of an enclosing block) without requiring a full file
 read. The `start_line` and `end_line` fields in the chunk record always reflect the
 AST declaration boundaries, not the expanded content boundaries.
+
+`include_dot_dirs` lists the dot directories to walk (ADR 018). A directory whose name
+starts with a dot is skipped, as is a dot-leading file, unless a directory on this list
+contains it. Each entry is a directory path relative to the project root (`.agents`,
+`packages/app/.storybook`), not a glob; it is walked recursively, a dot directory nested
+inside it needs its own entry, and `exclude_patterns` still applies. Entries are
+normalised on resolution (a leading `./` and trailing slashes are dropped) and resolution
+throws for one that is empty, absolute, contains `..` or a glob character, or has no
+dot-leading segment. The default is empty.
 
 `markdown_heading_depth` is the maximum ATX heading level that starts a new `doc`
 chunk when indexing markdown files (§10.1). Headings deeper than this fold into
@@ -421,6 +431,7 @@ Indexing is a single phase — there is no separate embedding step. `runIndex`:
 1. Acquire `structure.lock` — see §7.6. Exit with error if lock cannot be
    acquired within the configured timeout.
 2. Walk project files matching `file_extensions`, respecting `exclude_patterns`.
+   Dot directories are entered only where `include_dot_dirs` names them (§4.1).
    Collect `{ path, mtime }` for every file found.
 3. **Deleted file cleanup:** load `file_manifest.json` (previous scan's path set).
    Any path present in the manifest but absent from the current walk has been deleted.
@@ -810,6 +821,33 @@ the default, so existing MCP client configurations keep working unchanged. The
 watcher is closed on stdin close, SIGTERM, and SIGINT; a watcher startup failure
 logs a warning and the server continues without watch — which is what makes the
 default safe: it cannot prevent the server from starting.
+
+---
+
+### `mast walk [path] [options]`
+
+Report what an index run would walk for the resolved config. Reads no index, writes
+nothing.
+
+```
+Options:
+  --depth <n>          Roll directories up to this many path segments
+  --files              List every walked file instead of the directories
+  --state-dir <dir>    State directory
+  --json               Output as JSON
+```
+
+The text output is the resolved `project_root`, the `mast.config.json` read (or that
+there is none), the `<state_dir>/config.json` read if one exists (it supplies any key
+`mast.config.json` does not set, §4), `file_extensions`, `exclude_patterns` and `include_dot_dirs`, then one
+line per directory holding a walked file, with its file count. `--json` emits
+`{ project_root, config_file, saved_config_file, file_extensions, exclude_patterns, include_dot_dirs:
+[{ directory, exists, files }], total_files, directories: [{ directory, files }], files }`.
+An `include_dot_dirs` entry with `files: 0` is flagged in the text output, and `exists`
+separates a directory that is not there from one that holds nothing walkable.
+
+Exit 0 when the walk ran. Exit 1, with one line on stderr, when the config is rejected.
+Exit 2 for a `--depth` that is not a whole number of 1 or more.
 
 ---
 
@@ -2393,7 +2431,8 @@ Behaviour:
   A tool or operator that must not miss a change waits for this line.
 - A chokidar watcher covers `file_extensions` under the project root,
   respecting `exclude_patterns` **and the state directory itself** — watching
-  the state dir would self-trigger on every index write.
+  the state dir would self-trigger on every index write. A dot directory that
+  `include_dot_dirs` does not name is not watched, matching the walk.
 - Events are debounced (~500ms) and coalesced: rapid saves of one file collapse
   to a single entry; distinct files within the window share one batch.
 - Each batch runs the existing **incremental indexer** (§7.1) (acquiring

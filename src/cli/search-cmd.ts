@@ -108,8 +108,9 @@ export function formatSearchResults(responseText: string): string {
       lines.push('nothing is indexed at this path — this is not evidence the symbol is absent.');
       lines.push('run `mast index` first, or check `mast status` for the path being used.');
     } else {
-      lines.push('no matches (mast indexes TypeScript, JavaScript, and Markdown only —');
-      lines.push('a symbol in any other language is invisible to it, not absent from the repo)');
+      lines.push('no matches (mast indexes TypeScript, JavaScript, and Markdown only, and skips dot');
+      lines.push('directories unless include_dot_dirs names them — a symbol anywhere else is');
+      lines.push('invisible to it, not absent from the repo)');
     }
     for (const g of res.suggestions ?? []) {
       lines.push(`  did you mean: ${g.symbol ?? '?'}${g.file_path !== undefined ? `  (${g.file_path})` : ''}`);

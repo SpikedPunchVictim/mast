@@ -38,6 +38,8 @@ graph, so prefer it over reading files or grepping.
 
 An empty result is not proof of absence. MAST indexes TypeScript, JavaScript, and Markdown
 only, so a symbol in any other language is absent from the index, not from the repository.
+The same holds for a dot directory (`.github`, `.storybook`) the project has not listed in
+`include_dot_dirs`.
 Check `index_empty` and `unindexed_files` on the response before concluding "it isn't
 there", and never delete or rewrite code on an empty result alone. `mast docs signals`
 prints the full signal reference.

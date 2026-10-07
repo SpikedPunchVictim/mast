@@ -1,6 +1,7 @@
 import fg from 'fast-glob';
 import { statSync } from 'node:fs';
 import type { MastConfig } from '../ast/types.js';
+import { walkPatterns } from './scope.js';
 
 export interface FileEntry {
   /** Absolute path to the file. */
@@ -61,8 +62,8 @@ export function globToRegex(pattern: string): RegExp {
 /**
  * Walk the project and return all indexable files.
  *
- * Applies `file_extensions` allowlist and `exclude_patterns` denylist from
- * config. Results are sorted lexicographically by `relativePath` (D1,
+ * Applies `file_extensions` allowlist, `exclude_patterns` denylist and the
+ * `include_dot_dirs` opt-in from config. Results are sorted lexicographically by `relativePath` (D1,
  * IMPLEMENTATION_PLAN.md Stage 4): fast-glob returns filesystem order, which
  * varies between identical runs — and because edge insertion order feeds the
  * bare-name fallback in `insertEdges`' name resolution, two identical index
@@ -72,7 +73,9 @@ export function globToRegex(pattern: string): RegExp {
  * to the order — the guarantee is reproducibility, not priority.
  */
 export async function walkProject(config: MastConfig): Promise<FileEntry[]> {
-  const patterns = config.file_extensions.map((ext) => `**/*${ext}`);
+  // No `dot: true`: a dot directory is walked only when `include_dot_dirs` names
+  // it, which `walkPatterns` turns into a pattern of its own (ADR 018).
+  const patterns = walkPatterns(config.file_extensions, config.include_dot_dirs);
 
   const paths = await fg(patterns, {
     cwd: config.project_root,

@@ -48,9 +48,11 @@ const TREE = [
 /**
  * Patterns checked for fast-glob parity. Dot-leading patterns (`.mast/**`) are
  * asserted separately below: fast-glob is not given `dot: true` by
- * `walkProject`, so it never enumerates a dotted directory at all and there is
- * no fast-glob answer to compare against. Watch mode's chokidar does see them,
- * which is why that case still has to hold.
+ * `walkProject`, so with these patterns it never enumerates a dotted directory
+ * and there is no fast-glob answer to compare against. Watch mode still tests
+ * the state directory against its exclude pattern, which is why that case has
+ * to hold. Dot directories named in `include_dot_dirs` are covered by
+ * `dot-dirs.test.ts`.
  */
 const PARITY_PATTERNS = [
   '**/node_modules/**',

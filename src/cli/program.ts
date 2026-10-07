@@ -5,6 +5,7 @@ import { registerIndexCommand } from './index-cmd.js';
 import { registerSearchCommand } from './search-cmd.js';
 import { registerServeCommand } from './serve.js';
 import { registerStatusCommand } from './status.js';
+import { registerWalkCommand } from './walk-cmd.js';
 import { registerInstallHooksCommand } from './install-hooks.js';
 import { registerMetricsCommand } from './metrics-cmd.js';
 import { registerQueryCommand } from './query.js';
@@ -34,6 +35,7 @@ export function buildProgram(): Command {
   registerSearchCommand(program);
   registerServeCommand(program);
   registerStatusCommand(program);
+  registerWalkCommand(program);
   registerInstallHooksCommand(program);
   registerMetricsCommand(program);
   registerQueryCommand(program);
