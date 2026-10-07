@@ -216,6 +216,8 @@ index with that commit's `dist/`.
 | Construction edges and D102 | n8n `packages/core` inside the whole-monorepo index | 0 | 679 → 889 | 1,057 | 667 → 875 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-construction.summary.json` |
 | `this.m()` to a method of the direct parent class | this repository | 0 | 751 → 752 | 769 | 751 | 0 | `s1-call-edges/mast.after-inherited-this.summary.json` |
 | `this.m()` to a method of the direct parent class | n8n `packages/core` inside the whole-monorepo index | 0 | 889 → 905 | 1,057 | 875 → 891 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-inherited-this.summary.json` |
+| Static calls on a class, and D103 (an awaited call with type arguments) | this repository | 0 | 752 | 769 | 751 | 0 | `s1-call-edges/mast.after-static-calls.summary.json` |
+| Static calls on a class, and D103 | n8n `packages/core` inside the whole-monorepo index | 0 | 905 → 921 | 1,057 | 891 → 907 | 0 | `s1-call-edges/n8n-core-in-monorepo.after-static-calls.summary.json` |
 
 D097 changes which row an edge sits on, not which edges exist, so the pair counts were
 expected to stay the same and did.
@@ -348,7 +350,7 @@ of which 4,711 are on a constructor and 395 on a class; `field_type` 4,541 → 6
 `this_method` unchanged. 13,985 files, exit 0; stderr holds the `time` lines only. Only
 `packages/core` was judged.
 
-Not done: `mast_callers` on a class does not include callers of its constructor.
+`mast_callers` on a class did not include the callers of its constructor at this commit; the next one (`d8ee27c`) adds them.
 
 ### Inherited methods
 
@@ -371,3 +373,34 @@ Not done: a method two or more classes up. Finding it means walking stored `EXTE
 which makes a file's call edges depend on files it does not import. That needs the
 structural edges of every file written before any call edge, and the repair after an edit
 to reach every file below the edited class. Not built; 6 pairs on n8n core.
+
+### Static calls and D103
+
+Two changes in one run. They are told apart by label: a static call is stored as
+`static_method`, and D103 adds edges under the labels that already existed.
+
+`X.make()`, where `X` is a name the file imports or declares and no value of that name is in
+scope, is recorded as `X.make` and stored only if the file declaring `X` has that symbol.
+
+| | this repository | n8n `packages/core` |
+|---|---|---|
+| Edges judged | 752 | 921 |
+| On another declaration | 0 | 0 |
+| `static_method` | none | 9, all agree |
+| From D103 | none | 7: `this_method` 259 → 265, `super_method` 5 → 6 |
+| Held, of pairs the checker supports | 751 of 769 | 907 of 1,057 |
+
+This repository has no static call of a class and no awaited call with type arguments, so
+it shows nothing for either. n = 1 corpus for both changes.
+
+Whole n8n copy: `POTENTIAL_CALL` 43,629 → 44,485. `static_method` 541, every target a method.
+Twelve drawn at random and read against the source: all twelve are a static method of the
+class named (`DateUtils.mixedDateToTimeString`, `InstanceChecker.isTable`,
+`SettingsStore.create`, ...). Read by me, not by the checker; only the 9 in `packages/core`
+were judged. D103 accounts for the other 315: `import` +159, `this_method` +96,
+`field_type` +40, `same_file` +13, `parameter_type` +4, `new_expression` +2,
+`super_method` +1. 13,985 files, exit 0, stderr holds the `time` lines only.
+
+The 150 pairs n8n core lacks now: 62 a method on a local or imported name, 57 a method on an
+expression, 15 a method on a field, 8 `this.m()` (6 two classes up, 2 a function with a
+`this` parameter), 5 a plain call, 2 construction, 1 `super.m()`.

@@ -54,7 +54,12 @@ export class LocalTypeEnvironment {
       return resolution === undefined ? null : { callee: method, resolution };
     }
     const binding = this.receiverTypes.get(receiver);
-    if (binding === undefined) return null;
+    if (binding === undefined) {
+      // No value of that name is bound here, and the file imports or declares
+      // the name: `X.make()` on a class. Whether `X` is a class is settled when
+      // the edge is stored, by whether `X.make` is a symbol in X's file.
+      return this.bareCallables.has(receiver) ? { callee: `${receiver}.${method}`, resolution: 'static_method' } : null;
+    }
     return { callee: `${binding.type}.${method}`, resolution: binding.resolution };
   }
 }

@@ -1146,6 +1146,12 @@ async function resolveCallTarget(
     case 'super_method':
       return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
 
+    // `X.make()` — toName is `X.make`, with `X` placed by this file's imports
+    // or declarations. An object or an enum of that name has no such symbol,
+    // and there is no edge.
+    case 'static_method':
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
+
     default:
       // A POTENTIAL_CALL edge always carries a resolution (`emitCallEdges`
       // sets it from `LocalTypeEnvironment.resolveCall`'s result); this

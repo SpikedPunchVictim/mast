@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS edges (
   edge_type  TEXT NOT NULL,
   resolution TEXT,    -- POTENTIAL_CALL only: which §10.3.1 rule matched
                       -- (import | field_type | parameter_type | new_expression | same_file
-                      -- | this_method | super_method | construction)
+                      -- | this_method | super_method | construction | static_method)
                       -- or 'checker' (§10.3.2) — the opt-in `mast index --checker`
                       -- pass upgraded a heuristic-unresolved potential match via
                       -- the real TypeScript checker. 'this_method'/'super_method' (F4,
@@ -281,7 +281,8 @@ CREATE TABLE IF NOT EXISTS edges (
                       -- call sites — see §10.3.1's "Method calls on super and this".
                       -- 'construction' is `new X()`: the edge goes to X's
                       -- `constructor` symbol when the class declares one and to
-                      -- the class otherwise.
+                      -- the class otherwise. 'static_method' is `X.make()` on a
+                      -- class the file imports or declares.
                       -- Additive values, no schema change.
   call_line  INTEGER, -- POTENTIAL_CALL only: 1-indexed source line of the call site
   context    TEXT,    -- POTENTIAL_CALL only: trimmed source text of the call-site line
@@ -1163,7 +1164,7 @@ across all MCP tools, and what to do with each one:
 
 | Field | Carried by | Meaning | Agent action |
 |---|---|---|---|
-| `resolution` | `VerifiedCaller` entries (`mast_callers`, `mast_rename_impact`) | How this call site was statically resolved to the queried declaration — one of nine values (`import`, `field_type`, `parameter_type`, `new_expression`, `same_file`, `checker`, `this_method`, `super_method`, `construction` — `this_method`/`super_method` added by F4, Stage 3, for `this.foo()`/`super.foo()` call sites; `construction` is `new X()`, listed as a caller of X's constructor when the class declares one and of the class otherwise). | High confidence. Safe to act on directly (e.g. as a rename/refactor site) without further verification. |
+| `resolution` | `VerifiedCaller` entries (`mast_callers`, `mast_rename_impact`) | How this call site was statically resolved to the queried declaration — one of ten values (`import`, `field_type`, `parameter_type`, `new_expression`, `same_file`, `checker`, `this_method`, `super_method`, `construction`, `static_method` — `this_method`/`super_method` added by F4, Stage 3, for `this.foo()`/`super.foo()` call sites; `construction` is `new X()`, listed as a caller of X's constructor when the class declares one and of the class otherwise; `static_method` is `X.make()` on a class). | High confidence. Safe to act on directly (e.g. as a rename/refactor site) without further verification. |
 | `reason` | `PotentialMatch` entries (`mast_callers`, `mast_rename_impact`) | Why this call site could **not** be statically resolved — currently always `identifier_match_no_resolved_edge`. | Mandatory review. This is a name-match, not a verified edge; confirm it is a real call site before acting on it. |
 | `file_busy_returning_stale_cache` | JIT-refresh tools' results/envelopes (`mast_signature`, `mast_exports`, `mast_callers`, `mast_dependencies`, `mast_rename_impact`) | A refresh **was attempted** (this file's JIT re-parse) and lost to genuine write contention (`populateFile`'s `BEGIN IMMEDIATE` exhausted its `busy_timeout`), so the previous, possibly-stale chunk was returned instead. | Contended, not wrong-by-design. Retry shortly — the contention is expected to clear (§7.6). |
 | `stale` | `mast_search` / `mast_implementors` per-result (F7) | This result's `file_path` stat'd newer-on-disk than its indexed mtime, or the stat failed — **no refresh was attempted by design** (stat-and-flag, not JIT re-parse; see above). | Treat this result's line coordinates as untrustworthy. A `mast_reindex` call, or any JIT-refreshing tool call against the file, heals it. |
@@ -1562,14 +1563,17 @@ signal: the potential set is known-incomplete, not merely large.
 differently:
 
 - **`verified_callers`** — a call site the graph statically linked to the queried
-  symbol. The `resolution` field names how: five values come from the local heuristic
-  resolver (§10.3) — `import` (top-level named import), `field_type` (`this.x` where
-  `x` is a class field with a known type annotation), `parameter_type` (parameter
-  property or annotated parameter), `new_expression` (`new Foo()`-style construction),
-  `same_file` (call site and definition in the same file) — and one, `checker`, comes
+  symbol. The `resolution` field names how: nine values come from the local heuristic
+  resolver (§10.3) — `import` (a call of a top-level named import), `same_file` (call
+  site and definition in the same file), `field_type` (`this.x.m()` where `x` is a
+  class field with a type annotation), `parameter_type` (a method call on a parameter
+  property or annotated parameter), `new_expression` (a method call on a local bound
+  by `const x = new Foo()`), `this_method` (`this.m()`, on the class or the class it
+  extends), `super_method` (`super.m()`), `construction` (`new Foo()` itself) and
+  `static_method` (`Foo.make()` on a class) — and one, `checker`, comes
   from the opt-in `mast index --checker` pass (§10.3.2): a call site the heuristic left
   as `potential` that `ts.TypeChecker.getSymbolAtLocation` resolved to the queried
-  declaration. All six are high confidence; safe to act on.
+  declaration. All ten are high confidence; safe to act on.
 
 - **`potential_matches`** — `identifier_fts` matched the symbol name exactly inside a
   chunk, but neither the heuristic resolver nor (if it has run) the checker pass could
@@ -2299,6 +2303,13 @@ otherwise; which exists is known only once X's file is indexed, so the choice is
 made when the edge is written (`resolveCallTarget`). `new a.B()` and any other
 non-identifier callee get no edge. This is separate from `new_expression`, which
 is a method call on a value bound by `const x = new X()`.
+
+**Static calls.** `X.make()`, where `X` is not a value bound in scope and is a
+name the file imports or declares, is stored with `resolution` `static_method`
+to the symbol `X.make` in the file that declares `X`. The extractor does not
+know that `X` is a class; an object, an enum or a function of that name has no
+symbol `X.make`, and there is then no edge. A static method the class inherits
+has no edge.
 
 `mast_callers` and `mast_rename_impact` asked about a class return the callers
 of its constructor with the callers of the class (`queryVerifiedCallers`

@@ -478,6 +478,12 @@ export type CallerResolution =
    * by `const x = new X()`.
    */
   | 'construction'
+  /**
+   * `X.make()` where `X` is a name the file imports or declares: a static
+   * method of the class `X`. The extractor cannot tell a class from an object,
+   * so the edge exists only when the file declaring `X` has a symbol `X.make`.
+   */
+  | 'static_method'
   | 'same_file'
   /**
    * Additive (Stage 1.2, `mast index --checker`): the tree-sitter heuristic
