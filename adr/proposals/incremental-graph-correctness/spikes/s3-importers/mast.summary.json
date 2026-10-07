@@ -1,0 +1,333 @@
+{
+ "project": "/Users/spikedpunchvictim/projects/mast",
+ "code_files": 83,
+ "import_rows_resolved_to_no_indexed_file": 0,
+ "re_export_targets_resolved_to_no_indexed_file": 0,
+ "files_that_are_re_exported_by_a_barrel": 6,
+ "distribution": {
+  "direct": {
+   "zero": 7,
+   "p50": 1,
+   "p90": 8,
+   "p99": 28,
+   "p999": 28,
+   "max": 28,
+   "mean": 3.22,
+   "over_10": 5,
+   "over_100": 0,
+   "over_1000": 0
+  },
+  "via_file": {
+   "zero": 7,
+   "p50": 2,
+   "p90": 10,
+   "p99": 29,
+   "p999": 29,
+   "max": 29,
+   "mean": 3.52,
+   "over_10": 6,
+   "over_100": 0,
+   "over_1000": 0
+  },
+  "via_name": {
+   "zero": 7,
+   "p50": 2,
+   "p90": 8,
+   "p99": 29,
+   "p999": 29,
+   "max": 29,
+   "mean": 3.33,
+   "over_10": 5,
+   "over_100": 0,
+   "over_1000": 0
+  },
+  "edge": {
+   "zero": 15,
+   "p50": 1,
+   "p90": 4,
+   "p99": 11,
+   "p999": 11,
+   "max": 11,
+   "mean": 1.94,
+   "over_10": 1,
+   "over_100": 0,
+   "over_1000": 0
+  }
+ },
+ "top_via_name": [
+  {
+   "path": "src/ast/types.ts",
+   "direct": 28,
+   "barrels": 1,
+   "via_file": 29,
+   "via_name": 29,
+   "edge": 2,
+   "edges_in": 3
+  },
+  {
+   "path": "src/graph/db.ts",
+   "direct": 21,
+   "barrels": 1,
+   "via_file": 22,
+   "via_name": 22,
+   "edge": 6,
+   "edges_in": 7
+  },
+  {
+   "path": "src/store/config.ts",
+   "direct": 20,
+   "barrels": 0,
+   "via_file": 20,
+   "via_name": 20,
+   "edge": 10,
+   "edges_in": 14
+  },
+  {
+   "path": "src/mcp/context.ts",
+   "direct": 15,
+   "barrels": 0,
+   "via_file": 15,
+   "via_name": 15,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "src/telemetry/metrics.ts",
+   "direct": 11,
+   "barrels": 0,
+   "via_file": 11,
+   "via_name": 11,
+   "edge": 11,
+   "edges_in": 31
+  },
+  {
+   "path": "src/graph/queries.ts",
+   "direct": 9,
+   "barrels": 1,
+   "via_file": 10,
+   "via_name": 10,
+   "edge": 9,
+   "edges_in": 14
+  },
+  {
+   "path": "src/telemetry/tokenizer.ts",
+   "direct": 10,
+   "barrels": 0,
+   "via_file": 10,
+   "via_name": 10,
+   "edge": 8,
+   "edges_in": 16
+  },
+  {
+   "path": "src/indexer/index.ts",
+   "direct": 8,
+   "barrels": 0,
+   "via_file": 8,
+   "via_name": 8,
+   "edge": 8,
+   "edges_in": 11
+  },
+  {
+   "path": "src/mcp/tools/_helpers.ts",
+   "direct": 8,
+   "barrels": 0,
+   "via_file": 8,
+   "via_name": 8,
+   "edge": 8,
+   "edges_in": 22
+  },
+  {
+   "path": "src/indexer/walker.ts",
+   "direct": 5,
+   "barrels": 1,
+   "via_file": 14,
+   "via_name": 7,
+   "edge": 6,
+   "edges_in": 8
+  },
+  {
+   "path": "src/store/sqliteChunkStore.ts",
+   "direct": 7,
+   "barrels": 0,
+   "via_file": 7,
+   "via_name": 7,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "src/cli/hook.ts",
+   "direct": 5,
+   "barrels": 0,
+   "via_file": 5,
+   "via_name": 5,
+   "edge": 1,
+   "edges_in": 1
+  },
+  {
+   "path": "src/cli/version.ts",
+   "direct": 5,
+   "barrels": 0,
+   "via_file": 5,
+   "via_name": 5,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "src/store/lock.ts",
+   "direct": 5,
+   "barrels": 0,
+   "via_file": 5,
+   "via_name": 5,
+   "edge": 4,
+   "edges_in": 5
+  },
+  {
+   "path": "src/user-error.ts",
+   "direct": 5,
+   "barrels": 0,
+   "via_file": 5,
+   "via_name": 5,
+   "edge": 1,
+   "edges_in": 1
+  }
+ ],
+ "top_via_file": [
+  {
+   "path": "src/ast/types.ts",
+   "direct": 28,
+   "barrels": 1,
+   "via_file": 29,
+   "via_name": 29,
+   "edge": 2,
+   "edges_in": 3
+  },
+  {
+   "path": "src/graph/db.ts",
+   "direct": 21,
+   "barrels": 1,
+   "via_file": 22,
+   "via_name": 22,
+   "edge": 6,
+   "edges_in": 7
+  },
+  {
+   "path": "src/store/config.ts",
+   "direct": 20,
+   "barrels": 0,
+   "via_file": 20,
+   "via_name": 20,
+   "edge": 10,
+   "edges_in": 14
+  },
+  {
+   "path": "src/mcp/context.ts",
+   "direct": 15,
+   "barrels": 0,
+   "via_file": 15,
+   "via_name": 15,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "src/indexer/walker.ts",
+   "direct": 5,
+   "barrels": 1,
+   "via_file": 14,
+   "via_name": 7,
+   "edge": 6,
+   "edges_in": 8
+  }
+ ],
+ "top_edge": [
+  {
+   "path": "src/telemetry/metrics.ts",
+   "direct": 11,
+   "barrels": 0,
+   "via_file": 11,
+   "via_name": 11,
+   "edge": 11,
+   "edges_in": 31
+  },
+  {
+   "path": "src/store/config.ts",
+   "direct": 20,
+   "barrels": 0,
+   "via_file": 20,
+   "via_name": 20,
+   "edge": 10,
+   "edges_in": 14
+  },
+  {
+   "path": "src/graph/queries.ts",
+   "direct": 9,
+   "barrels": 1,
+   "via_file": 10,
+   "via_name": 10,
+   "edge": 9,
+   "edges_in": 14
+  },
+  {
+   "path": "src/indexer/index.ts",
+   "direct": 8,
+   "barrels": 0,
+   "via_file": 8,
+   "via_name": 8,
+   "edge": 8,
+   "edges_in": 11
+  },
+  {
+   "path": "src/mcp/tools/_helpers.ts",
+   "direct": 8,
+   "barrels": 0,
+   "via_file": 8,
+   "via_name": 8,
+   "edge": 8,
+   "edges_in": 22
+  },
+  {
+   "path": "src/telemetry/tokenizer.ts",
+   "direct": 10,
+   "barrels": 0,
+   "via_file": 10,
+   "via_name": 10,
+   "edge": 8,
+   "edges_in": 16
+  },
+  {
+   "path": "src/graph/db.ts",
+   "direct": 21,
+   "barrels": 1,
+   "via_file": 22,
+   "via_name": 22,
+   "edge": 6,
+   "edges_in": 7
+  },
+  {
+   "path": "src/indexer/walker.ts",
+   "direct": 5,
+   "barrels": 1,
+   "via_file": 14,
+   "via_name": 7,
+   "edge": 6,
+   "edges_in": 8
+  },
+  {
+   "path": "src/graph/sqliteBatch.ts",
+   "direct": 4,
+   "barrels": 0,
+   "via_file": 4,
+   "via_name": 4,
+   "edge": 4,
+   "edges_in": 8
+  },
+  {
+   "path": "src/indexer/scope.ts",
+   "direct": 4,
+   "barrels": 0,
+   "via_file": 4,
+   "via_name": 4,
+   "edge": 4,
+   "edges_in": 7
+  }
+ ]
+}

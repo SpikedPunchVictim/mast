@@ -1,0 +1,111 @@
+{
+ "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/n8n-git",
+ "files_walked": 13985,
+ "parseErrors": 0,
+ "parseMs": 26090,
+ "checker_edges_left_alone": 0,
+ "star_rows": {
+  "baseline": 1062,
+  "reference": 1062,
+  "only_baseline": 0,
+  "only_reference": 0
+ },
+ "re_exports_edge_count_after_each_pass": [
+  3726,
+  4135,
+  4168,
+  4168
+ ],
+ "resolveMs": 1824,
+ "edges": {
+  "baseline": 53681,
+  "reference": 55620
+ },
+ "by_type_baseline": {
+  "PARENT_OF/": 17650,
+  "POTENTIAL_CALL/same_file": 9355,
+  "POTENTIAL_CALL/this_method": 8873,
+  "POTENTIAL_CALL/import": 7581,
+  "RE_EXPORTS/": 3704,
+  "POTENTIAL_CALL/field_type": 2766,
+  "IMPLEMENTS/": 1823,
+  "EXTENDS/": 1331,
+  "POTENTIAL_CALL/parameter_type": 343,
+  "POTENTIAL_CALL/new_expression": 232,
+  "POTENTIAL_CALL/super_method": 23
+ },
+ "by_type_reference": {
+  "PARENT_OF/": 17650,
+  "POTENTIAL_CALL/same_file": 9355,
+  "POTENTIAL_CALL/this_method": 8873,
+  "POTENTIAL_CALL/import": 8844,
+  "RE_EXPORTS/": 4168,
+  "POTENTIAL_CALL/field_type": 2844,
+  "IMPLEMENTS/": 1823,
+  "EXTENDS/": 1331,
+  "POTENTIAL_CALL/parameter_type": 438,
+  "POTENTIAL_CALL/new_expression": 270,
+  "POTENTIAL_CALL/super_method": 24
+ },
+ "missing": {
+  "n": 1939,
+  "by_type": {
+   "POTENTIAL_CALL/import": 1263,
+   "RE_EXPORTS/": 464,
+   "POTENTIAL_CALL/parameter_type": 95,
+   "POTENTIAL_CALL/field_type": 78,
+   "POTENTIAL_CALL/new_expression": 38,
+   "POTENTIAL_CALL/super_method": 1
+  },
+  "distinct_targets": 765,
+  "distinct_caller_files": 701,
+  "top_target_files": {
+   "packages/workflow/src/utils.ts": 429,
+   "packages/@n8n/typeorm/src/find-options/operator/In.ts": 98,
+   "packages/workflow/src/workflow.ts": 62,
+   "packages/workflow/src/node-parameters/parameter-type-validation.ts": 60,
+   "packages/workflow/src/run-execution-data-factory.ts": 50,
+   "packages/workflow/src/node-helpers.ts": 49,
+   "packages/@n8n/typeorm/src/entity-manager/EntityManager.ts": 46,
+   "packages/@n8n/agents/src/types/sdk/memory.ts": 41,
+   "packages/workflow/src/type-guards.ts": 31,
+   "packages/nodes-base/nodes/Pipedrive/v2/helpers/customFields.ts": 30,
+   "packages/@n8n/agents/src/workspace/types.ts": 27,
+   "packages/@n8n/typeorm/src/find-options/operator/Not.ts": 25,
+   "packages/core/src/binary-data/binary-data.service.ts": 25,
+   "packages/@n8n/agents/src/types/sdk/agent.ts": 19,
+   "packages/@n8n/agents/src/sdk/guardrails/redactor.ts": 19
+  },
+  "caller_sorts_before_target": 1894
+ },
+ "retargeted": {
+  "n_reference_side": 0,
+  "n_baseline_side": 0,
+  "by_type": {}
+ },
+ "extra": {
+  "n": 0,
+  "by_type": {}
+ },
+ "variants": {
+  "stars_first": {
+   "edges": 54503,
+   "short_of_reference": 1117,
+   "short_by_type": {
+    "POTENTIAL_CALL/import": 675,
+    "RE_EXPORTS/": 442
+   },
+   "not_in_reference": 0
+  },
+  "re_exports_once": {
+   "edges": 55152,
+   "short_of_reference": 468,
+   "short_by_type": {
+    "RE_EXPORTS/": 442,
+    "POTENTIAL_CALL/import": 26
+   },
+   "not_in_reference": 0
+  }
+ },
+ "edges_after_rollback": 53681
+}

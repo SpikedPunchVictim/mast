@@ -1,0 +1,333 @@
+{
+ "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/n8n-git",
+ "code_files": 13460,
+ "import_rows_resolved_to_no_indexed_file": 408,
+ "re_export_targets_resolved_to_no_indexed_file": 111,
+ "files_that_are_re_exported_by_a_barrel": 2597,
+ "distribution": {
+  "direct": {
+   "zero": 5305,
+   "p50": 1,
+   "p90": 3,
+   "p99": 20,
+   "p999": 272,
+   "max": 4994,
+   "mean": 2.58,
+   "over_10": 298,
+   "over_100": 26,
+   "over_1000": 2
+  },
+  "via_file": {
+   "zero": 3881,
+   "p50": 1,
+   "p90": 67,
+   "p99": 1881,
+   "p999": 5552,
+   "max": 5591,
+   "mean": 104.64,
+   "over_10": 1858,
+   "over_100": 1057,
+   "over_1000": 334
+  },
+  "via_name": {
+   "zero": 3881,
+   "p50": 1,
+   "p90": 6,
+   "p99": 37,
+   "p999": 434,
+   "max": 5011,
+   "mean": 4.64,
+   "over_10": 816,
+   "over_100": 51,
+   "over_1000": 5
+  },
+  "edge": {
+   "zero": 10214,
+   "p50": 0,
+   "p90": 1,
+   "p99": 7,
+   "p999": 53,
+   "max": 1115,
+   "mean": 0.69,
+   "over_10": 70,
+   "over_100": 5,
+   "over_1000": 1
+  }
+ },
+ "top_via_name": [
+  {
+   "path": "packages/workflow/src/index.ts",
+   "direct": 4994,
+   "barrels": 20,
+   "via_file": 5535,
+   "via_name": 5011,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/workflow/src/interfaces.ts",
+   "direct": 55,
+   "barrels": 21,
+   "via_file": 5590,
+   "via_name": 4555,
+   "edge": 1115,
+   "edges_in": 1127
+  },
+  {
+   "path": "packages/@n8n/typeorm/src/index.ts",
+   "direct": 1304,
+   "barrels": 1,
+   "via_file": 1841,
+   "via_name": 1305,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/@n8n/typeorm/src/decorator/entity/Entity.ts",
+   "direct": 639,
+   "barrels": 2,
+   "via_file": 2383,
+   "via_name": 1217,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/@n8n/typeorm/src/decorator/columns/Column.ts",
+   "direct": 665,
+   "barrels": 2,
+   "via_file": 2441,
+   "via_name": 1181,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/@n8n/typeorm/src/data-source/DataSource.ts",
+   "direct": 500,
+   "barrels": 3,
+   "via_file": 2319,
+   "via_name": 882,
+   "edge": 16,
+   "edges_in": 67
+  },
+  {
+   "path": "packages/@n8n/typeorm/src/decorator/columns/PrimaryGeneratedColumn.ts",
+   "direct": 434,
+   "barrels": 2,
+   "via_file": 2234,
+   "via_name": 821,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/@n8n/api-types/src/index.ts",
+   "direct": 719,
+   "barrels": 14,
+   "via_file": 798,
+   "via_name": 727,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/@n8n/typeorm/test/utils/test-utils.ts",
+   "direct": 678,
+   "barrels": 0,
+   "via_file": 678,
+   "via_name": 678,
+   "edge": 2,
+   "edges_in": 2
+  },
+  {
+   "path": "packages/@n8n/db/src/index.ts",
+   "direct": 667,
+   "barrels": 0,
+   "via_file": 667,
+   "via_name": 667,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/workflow/src/errors/node-operation.error.ts",
+   "direct": 3,
+   "barrels": 22,
+   "via_file": 5550,
+   "via_name": 613,
+   "edge": 3,
+   "edges_in": 3
+  },
+  {
+   "path": "packages/workflow/src/utils.ts",
+   "direct": 19,
+   "barrels": 21,
+   "via_file": 5553,
+   "via_name": 553,
+   "edge": 20,
+   "edges_in": 43
+  },
+  {
+   "path": "packages/@n8n/backend-common/src/index.ts",
+   "direct": 500,
+   "barrels": 3,
+   "via_file": 611,
+   "via_name": 503,
+   "edge": 0,
+   "edges_in": 0
+  },
+  {
+   "path": "packages/@n8n/backend-common/src/logging/logger.ts",
+   "direct": 1,
+   "barrels": 5,
+   "via_file": 615,
+   "via_name": 434,
+   "edge": 4,
+   "edges_in": 10
+  },
+  {
+   "path": "packages/workflow/src/errors/node-api.error.ts",
+   "direct": 3,
+   "barrels": 22,
+   "via_file": 5550,
+   "via_name": 393,
+   "edge": 1,
+   "edges_in": 1
+  }
+ ],
+ "top_via_file": [
+  {
+   "path": "packages/workflow/src/execution-context.ts",
+   "direct": 3,
+   "barrels": 22,
+   "via_file": 5591,
+   "via_name": 65,
+   "edge": 1,
+   "edges_in": 1
+  },
+  {
+   "path": "packages/workflow/src/interfaces.ts",
+   "direct": 55,
+   "barrels": 21,
+   "via_file": 5590,
+   "via_name": 4555,
+   "edge": 1115,
+   "edges_in": 1127
+  },
+  {
+   "path": "packages/@n8n/utils/src/sleep.ts",
+   "direct": 58,
+   "barrels": 22,
+   "via_file": 5562,
+   "via_name": 80,
+   "edge": 57,
+   "edges_in": 61
+  },
+  {
+   "path": "packages/workflow/src/errors/expression.error.ts",
+   "direct": 13,
+   "barrels": 22,
+   "via_file": 5559,
+   "via_name": 43,
+   "edge": 1,
+   "edges_in": 1
+  },
+  {
+   "path": "packages/@n8n/errors/src/types.ts",
+   "direct": 1,
+   "barrels": 24,
+   "via_file": 5558,
+   "via_name": 31,
+   "edge": 0,
+   "edges_in": 0
+  }
+ ],
+ "top_edge": [
+  {
+   "path": "packages/workflow/src/interfaces.ts",
+   "direct": 55,
+   "barrels": 21,
+   "via_file": 5590,
+   "via_name": 4555,
+   "edge": 1115,
+   "edges_in": 1127
+  },
+  {
+   "path": "packages/@n8n/db/src/migrations/migration-types.ts",
+   "direct": 293,
+   "barrels": 1,
+   "via_file": 961,
+   "via_name": 296,
+   "edge": 308,
+   "edges_in": 308
+  },
+  {
+   "path": "packages/frontend/@n8n/i18n/src/index.ts",
+   "direct": 183,
+   "barrels": 0,
+   "via_file": 183,
+   "via_name": 183,
+   "edge": 112,
+   "edges_in": 131
+  },
+  {
+   "path": "packages/@n8n/typeorm/src/repository/Repository.ts",
+   "direct": 11,
+   "barrels": 2,
+   "via_file": 1853,
+   "via_name": 133,
+   "edge": 108,
+   "edges_in": 108
+  },
+  {
+   "path": "packages/@n8n/utils/src/is-record.ts",
+   "direct": 106,
+   "barrels": 0,
+   "via_file": 106,
+   "via_name": 106,
+   "edge": 103,
+   "edges_in": 280
+  },
+  {
+   "path": "packages/@n8n/utils/src/errors/ensure-error.ts",
+   "direct": 94,
+   "barrels": 0,
+   "via_file": 94,
+   "via_name": 94,
+   "edge": 92,
+   "edges_in": 154
+  },
+  {
+   "path": "packages/@n8n/cli/src/base-command.ts",
+   "direct": 51,
+   "barrels": 0,
+   "via_file": 51,
+   "via_name": 51,
+   "edge": 75,
+   "edges_in": 75
+  },
+  {
+   "path": "packages/@n8n/typeorm/src/error/TypeORMError.ts",
+   "direct": 74,
+   "barrels": 3,
+   "via_file": 1954,
+   "via_name": 113,
+   "edge": 69,
+   "edges_in": 69
+  },
+  {
+   "path": "packages/@n8n/db/src/entities/abstract-entity.ts",
+   "direct": 47,
+   "barrels": 1,
+   "via_file": 715,
+   "via_name": 80,
+   "edge": 63,
+   "edges_in": 64
+  },
+  {
+   "path": "packages/workflow/src/errors/base/user.error.ts",
+   "direct": 3,
+   "barrels": 22,
+   "via_file": 5552,
+   "via_name": 243,
+   "edge": 60,
+   "edges_in": 76
+  }
+ ]
+}

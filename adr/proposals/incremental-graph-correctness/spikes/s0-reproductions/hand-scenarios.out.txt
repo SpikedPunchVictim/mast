@@ -1,0 +1,25 @@
+== D081, two files, incremental run
+after init                                                 1|0|1
+incremental: files: 1 indexed, 1 skipped  chunks: +1 -1  duration: 28ms 0|0|1
+status: stale_files:    0                                  
+after full index                                           1|0|1
+== D081, two files, query-time re-parse
+after init                                                 1|0|1
+after mast_exports on the edited file                      0|0|1
+incremental: files: 0 indexed, 2 skipped  chunks: +0 -0  duration: 23ms 0|0|1
+status: stale_files:    0                                  
+after full index                                           1|0|1
+== D080, query-time re-parse of a file with its own edge and star re-export
+after init                                                 1|1|1
+after mast_exports on the edited file                      0|0|1
+mast_callers alpha: "verified_count":0                     
+incremental: files: 1 indexed, 2 skipped  chunks: +1 -1  duration: 27ms 1|1|1
+status: stale_files:    0                                  
+after full index                                           1|1|1
+== D080, query-time re-parse of a file with its own edge and no star re-export
+after init                                                 1|0|1
+after mast_exports on the edited file                      0|0|1
+mast_callers alpha: "verified_count":0                     
+incremental: files: 0 indexed, 2 skipped  chunks: +0 -0  duration: 22ms 0|0|1
+status: stale_files:    0                                  
+after full index                                           1|0|1

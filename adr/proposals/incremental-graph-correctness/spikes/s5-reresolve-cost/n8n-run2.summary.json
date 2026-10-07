@@ -1,0 +1,100 @@
+{
+ "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/n8n-git",
+ "target": "packages/workflow/src/interfaces.ts",
+ "edges_before": 53681,
+ "edges_after_reresolving_both_samples": 54051,
+ "holders_of_target": {
+  "files": 1115,
+  "records": {
+   "p50": 4,
+   "p90": 39,
+   "p99": 121,
+   "max": 208,
+   "sum": 14926
+  },
+  "json_bytes": {
+   "p50": 532,
+   "p90": 7820,
+   "p99": 24779,
+   "max": 41995,
+   "sum": 2834561
+  },
+  "parse_ms": {
+   "p50": 1.28,
+   "p90": 6.33,
+   "p99": 18.98,
+   "max": 43.53,
+   "sum": 3028.7
+  },
+  "decode_ms": {
+   "p50": 0,
+   "p90": 0.02,
+   "p99": 0.05,
+   "max": 2.67,
+   "sum": 9.4
+  },
+  "delete_ms": {
+   "p50": 0.03,
+   "p90": 0.08,
+   "p99": 0.36,
+   "max": 0.48,
+   "sum": 60.1
+  },
+  "resolve_ms": {
+   "p50": 0.16,
+   "p90": 0.55,
+   "p99": 1.54,
+   "max": 5.14,
+   "sum": 294.1
+  },
+  "with_reparse_total_ms": 3382.9,
+  "from_records_total_ms": 363.6
+ },
+ "stride_sample": {
+  "files": 1000,
+  "records": {
+   "p50": 6,
+   "p90": 38,
+   "p99": 154,
+   "max": 405,
+   "sum": 15498
+  },
+  "json_bytes": {
+   "p50": 1030,
+   "p90": 7097,
+   "p99": 31577,
+   "max": 82405,
+   "sum": 2902523
+  },
+  "parse_ms": {
+   "p50": 1.76,
+   "p90": 7.17,
+   "p99": 20.57,
+   "max": 45.12,
+   "sum": 3138.4
+  },
+  "decode_ms": {
+   "p50": 0,
+   "p90": 0.02,
+   "p99": 0.06,
+   "max": 0.13,
+   "sum": 7.2
+  },
+  "delete_ms": {
+   "p50": 0.05,
+   "p90": 0.25,
+   "p99": 0.43,
+   "max": 1.62,
+   "sum": 97.6
+  },
+  "resolve_ms": {
+   "p50": 0.37,
+   "p90": 1.11,
+   "p99": 4.18,
+   "max": 11.78,
+   "sum": 565.8
+  },
+  "with_reparse_total_ms": 3801.8,
+  "from_records_total_ms": 670.6
+ }
+}

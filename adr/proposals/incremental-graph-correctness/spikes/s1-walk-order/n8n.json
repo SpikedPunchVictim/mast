@@ -1,0 +1,518 @@
+{
+ "project": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/n8n-git",
+ "files_walked": 13985,
+ "parseErrors": 0,
+ "parseMs": 26090,
+ "checker_edges_left_alone": 0,
+ "star_rows": {
+  "baseline": 1062,
+  "reference": 1062,
+  "only_baseline": 0,
+  "only_reference": 0
+ },
+ "re_exports_edge_count_after_each_pass": [
+  3726,
+  4135,
+  4168,
+  4168
+ ],
+ "resolveMs": 1824,
+ "edges": {
+  "baseline": 53681,
+  "reference": 55620
+ },
+ "by_type_baseline": {
+  "PARENT_OF/": 17650,
+  "POTENTIAL_CALL/same_file": 9355,
+  "POTENTIAL_CALL/this_method": 8873,
+  "POTENTIAL_CALL/import": 7581,
+  "RE_EXPORTS/": 3704,
+  "POTENTIAL_CALL/field_type": 2766,
+  "IMPLEMENTS/": 1823,
+  "EXTENDS/": 1331,
+  "POTENTIAL_CALL/parameter_type": 343,
+  "POTENTIAL_CALL/new_expression": 232,
+  "POTENTIAL_CALL/super_method": 23
+ },
+ "by_type_reference": {
+  "PARENT_OF/": 17650,
+  "POTENTIAL_CALL/same_file": 9355,
+  "POTENTIAL_CALL/this_method": 8873,
+  "POTENTIAL_CALL/import": 8844,
+  "RE_EXPORTS/": 4168,
+  "POTENTIAL_CALL/field_type": 2844,
+  "IMPLEMENTS/": 1823,
+  "EXTENDS/": 1331,
+  "POTENTIAL_CALL/parameter_type": 438,
+  "POTENTIAL_CALL/new_expression": 270,
+  "POTENTIAL_CALL/super_method": 24
+ },
+ "missing": {
+  "n": 1939,
+  "by_type": {
+   "POTENTIAL_CALL/import": 1263,
+   "RE_EXPORTS/": 464,
+   "POTENTIAL_CALL/parameter_type": 95,
+   "POTENTIAL_CALL/field_type": 78,
+   "POTENTIAL_CALL/new_expression": 38,
+   "POTENTIAL_CALL/super_method": 1
+  },
+  "distinct_targets": 765,
+  "distinct_caller_files": 701,
+  "top_target_files": {
+   "packages/workflow/src/utils.ts": 429,
+   "packages/@n8n/typeorm/src/find-options/operator/In.ts": 98,
+   "packages/workflow/src/workflow.ts": 62,
+   "packages/workflow/src/node-parameters/parameter-type-validation.ts": 60,
+   "packages/workflow/src/run-execution-data-factory.ts": 50,
+   "packages/workflow/src/node-helpers.ts": 49,
+   "packages/@n8n/typeorm/src/entity-manager/EntityManager.ts": 46,
+   "packages/@n8n/agents/src/types/sdk/memory.ts": 41,
+   "packages/workflow/src/type-guards.ts": 31,
+   "packages/nodes-base/nodes/Pipedrive/v2/helpers/customFields.ts": 30,
+   "packages/@n8n/agents/src/workspace/types.ts": 27,
+   "packages/@n8n/typeorm/src/find-options/operator/Not.ts": 25,
+   "packages/core/src/binary-data/binary-data.service.ts": 25,
+   "packages/@n8n/agents/src/types/sdk/agent.ts": 19,
+   "packages/@n8n/agents/src/sdk/guardrails/redactor.ts": 19
+  },
+  "caller_sorts_before_target": 1894
+ },
+ "retargeted": {
+  "n_reference_side": 0,
+  "n_baseline_side": 0,
+  "by_type": {}
+ },
+ "extra": {
+  "n": 0,
+  "by_type": {}
+ },
+ "samples": {
+  "missing": [
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/api-types/src/dto/log-streaming/create-destination.dto.ts",
+    "fn": "WebhookDestination",
+    "fl": 17,
+    "tp": "packages/workflow/src/message-event-bus.ts",
+    "tn": "MessageEventBusDestinationWebhookOptions",
+    "tl": 221
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/api-types/src/dto/log-streaming/create-destination.dto.ts",
+    "fn": "SentryDestination",
+    "fl": 18,
+    "tp": "packages/workflow/src/message-event-bus.ts",
+    "tn": "MessageEventBusDestinationSentryOptions",
+    "tl": 237
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/api-types/src/dto/log-streaming/create-destination.dto.ts",
+    "fn": "SyslogDestination",
+    "fl": 19,
+    "tp": "packages/workflow/src/message-event-bus.ts",
+    "tn": "MessageEventBusDestinationSyslogOptions",
+    "tl": 229
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/db/src/index.ts",
+    "fn": "In",
+    "fl": 56,
+    "tp": "packages/@n8n/typeorm/src/find-options/operator/In.ts",
+    "tn": "In",
+    "tl": 7
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/db/src/index.ts",
+    "fn": "Like",
+    "fl": 56,
+    "tp": "packages/@n8n/typeorm/src/find-options/operator/Like.ts",
+    "tn": "Like",
+    "tl": 7
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/db/src/index.ts",
+    "fn": "MoreThanOrEqual",
+    "fl": 56,
+    "tp": "packages/@n8n/typeorm/src/find-options/operator/MoreThanOrEqual.ts",
+    "tn": "MoreThanOrEqual",
+    "tl": 7
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/db/src/index.ts",
+    "fn": "Not",
+    "fl": 56,
+    "tp": "packages/@n8n/typeorm/src/find-options/operator/Not.ts",
+    "tn": "Not",
+    "tl": 8
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/db/src/index.ts",
+    "fn": "FindManyOptions",
+    "fl": 57,
+    "tp": "packages/@n8n/typeorm/src/find-options/FindManyOptions.ts",
+    "tn": "FindManyOptions",
+    "tl": 6
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/db/src/index.ts",
+    "fn": "FindOptionsWhere",
+    "fl": 57,
+    "tp": "packages/@n8n/typeorm/src/find-options/FindOptionsWhere.ts",
+    "tn": "FindOptionsWhere",
+    "tl": 44
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/db/src/index.ts",
+    "fn": "EntityManager",
+    "fl": 58,
+    "tp": "packages/@n8n/typeorm/src/entity-manager/EntityManager.ts",
+    "tn": "EntityManager",
+    "tl": 44
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/index.ts",
+    "fn": "RedisSessionStore",
+    "fl": 3,
+    "tp": "packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/session/RedisSessionStore.ts",
+    "tn": "RedisSessionStore",
+    "tl": 11
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/index.ts",
+    "fn": "RedisPublisher",
+    "fl": 3,
+    "tp": "packages/@n8n/nodes-langchain/nodes/mcp/McpTrigger/session/RedisSessionStore.ts",
+    "tn": "RedisPublisher",
+    "tl": 5
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/scheduler/src/core/index.ts",
+    "fn": "ClaimedTask",
+    "fl": 11,
+    "tp": "packages/@n8n/scheduler/src/core/types/task.ts",
+    "tn": "ClaimedTask",
+    "tl": 50
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/scheduler/src/core/index.ts",
+    "fn": "CronSchedule",
+    "fl": 12,
+    "tp": "packages/@n8n/scheduler/src/core/types/schedule.ts",
+    "tn": "CronSchedule",
+    "tl": 25
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/scheduler/src/core/index.ts",
+    "fn": "IntervalSchedule",
+    "fl": 13,
+    "tp": "packages/@n8n/scheduler/src/core/types/schedule.ts",
+    "tn": "IntervalSchedule",
+    "tl": 36
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/scheduler/src/core/index.ts",
+    "fn": "OneOffSchedule",
+    "fl": 14,
+    "tp": "packages/@n8n/scheduler/src/core/types/schedule.ts",
+    "tn": "OneOffSchedule",
+    "tl": 42
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/scheduler/src/core/index.ts",
+    "fn": "RecurringCronSchedule",
+    "fl": 15,
+    "tp": "packages/@n8n/scheduler/src/core/types/schedule.ts",
+    "tn": "RecurringCronSchedule",
+    "tl": 59
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/scheduler/src/core/index.ts",
+    "fn": "Schedule",
+    "fl": 16,
+    "tp": "packages/@n8n/scheduler/src/core/types/schedule.ts",
+    "tn": "Schedule",
+    "tl": 68
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/frontend/@n8n/design-system/src/components/N8nCallout/index.ts",
+    "fn": "CalloutTheme",
+    "fl": 2,
+    "tp": "packages/frontend/@n8n/design-system/src/types/callout.ts",
+    "tn": "CalloutTheme",
+    "tl": 2
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/nodes-base/utils/highlightedData/utils.ts",
+    "fn": "getHighlightedInputKey",
+    "fl": 2,
+    "tp": "packages/workflow/src/highlighted-data.ts",
+    "tn": "getHighlightedInputKey",
+    "tl": 3
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/nodes-base/utils/highlightedData/utils.ts",
+    "fn": "getHighlightedResponseKey",
+    "fl": 3,
+    "tp": "packages/workflow/src/highlighted-data.ts",
+    "tn": "getHighlightedResponseKey",
+    "tl": 7
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/testing/playwright/scripts/backend-coverage-resolver.ts",
+    "fn": "forceSpecTn",
+    "fl": 151,
+    "tp": "packages/testing/test-impact/src/map-build.ts",
+    "tn": "forceSpecTn",
+    "tl": 9
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "BuiltTool",
+    "fl": 2,
+    "tp": "packages/@n8n/agents/src/types/sdk/tool.ts",
+    "tn": "BuiltTool",
+    "tl": 118
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "BuiltProviderTool",
+    "fl": 3,
+    "tp": "packages/@n8n/agents/src/types/sdk/tool.ts",
+    "tn": "BuiltProviderTool",
+    "tl": 189
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "BuiltAgent",
+    "fl": 4,
+    "tp": "packages/@n8n/agents/src/types/sdk/agent.ts",
+    "tn": "BuiltAgent",
+    "tl": 311
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "BuiltMemory",
+    "fl": 5,
+    "tp": "packages/@n8n/agents/src/types/sdk/memory.ts",
+    "tn": "BuiltMemory",
+    "tl": 36
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "BuiltEpisodicMemoryStore",
+    "fl": 6,
+    "tp": "packages/@n8n/agents/src/types/sdk/memory.ts",
+    "tn": "BuiltEpisodicMemoryStore",
+    "tl": 182
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "BuiltGuardrail",
+    "fl": 7,
+    "tp": "packages/@n8n/agents/src/types/sdk/guardrail.ts",
+    "tn": "BuiltGuardrail",
+    "tl": 14
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "PiiDetectionType",
+    "fl": 8,
+    "tp": "packages/@n8n/agents/src/types/sdk/guardrail.ts",
+    "tn": "PiiDetectionType",
+    "tl": 3
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "BuiltEval",
+    "fl": 9,
+    "tp": "packages/@n8n/agents/src/types/sdk/eval.ts",
+    "tn": "BuiltEval",
+    "tl": 37
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "RunOptions",
+    "fl": 10,
+    "tp": "packages/@n8n/agents/src/types/sdk/agent.ts",
+    "tn": "RunOptions",
+    "tl": 168
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "AgentResult",
+    "fl": 11,
+    "tp": "packages/@n8n/agents/src/types/sdk/agent.ts",
+    "tn": "AgentResult",
+    "tl": 67
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "GenerateResult",
+    "fl": 12,
+    "tp": "packages/@n8n/agents/src/types/sdk/agent.ts",
+    "tn": "GenerateResult",
+    "tl": 257
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "StreamResult",
+    "fl": 13,
+    "tp": "packages/@n8n/agents/src/types/sdk/agent.ts",
+    "tn": "StreamResult",
+    "tl": 292
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "EvalInput",
+    "fl": 14,
+    "tp": "packages/@n8n/agents/src/types/sdk/eval.ts",
+    "tn": "EvalInput",
+    "tl": 2
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "EvalScore",
+    "fl": 15,
+    "tp": "packages/@n8n/agents/src/types/sdk/eval.ts",
+    "tn": "EvalScore",
+    "tl": 14
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "EvalRunResult",
+    "fl": 16,
+    "tp": "packages/@n8n/agents/src/types/sdk/eval.ts",
+    "tn": "EvalRunResult",
+    "tl": 47
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "EvalResults",
+    "fl": 17,
+    "tp": "packages/@n8n/agents/src/types/sdk/eval.ts",
+    "tn": "EvalResults",
+    "tl": 55
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "ToolContext",
+    "fl": 18,
+    "tp": "packages/@n8n/agents/src/types/sdk/tool.ts",
+    "tn": "ToolContext",
+    "tl": 53
+   },
+   {
+    "t": "RE_EXPORTS",
+    "r": "",
+    "fp": "packages/@n8n/agents/src/index.ts",
+    "fn": "ToolCancellationContext",
+    "fl": 19,
+    "tp": "packages/@n8n/agents/src/types/sdk/tool.ts",
+    "tn": "ToolCancellationContext",
+    "tl": 107
+   }
+  ],
+  "retargeted_reference": [],
+  "retargeted_baseline": [],
+  "extra": []
+ },
+ "variants": {
+  "stars_first": {
+   "edges": 54503,
+   "short_of_reference": 1117,
+   "short_by_type": {
+    "POTENTIAL_CALL/import": 675,
+    "RE_EXPORTS/": 442
+   },
+   "not_in_reference": 0
+  },
+  "re_exports_once": {
+   "edges": 55152,
+   "short_of_reference": 468,
+   "short_by_type": {
+    "RE_EXPORTS/": 442,
+    "POTENTIAL_CALL/import": 26
+   },
+   "not_in_reference": 0
+  }
+ },
+ "edges_after_rollback": 53681
+}

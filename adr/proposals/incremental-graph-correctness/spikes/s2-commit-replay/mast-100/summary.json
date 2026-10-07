@@ -1,0 +1,92 @@
+{
+ "repo": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/mast-git",
+ "commits": 100,
+ "base": "b5cf281efc1280cbbacad4aec5cfca3b4a3678ee",
+ "final": "d0623390b8a806c3dbe19b88ea06891a88c5ea7e",
+ "init_output": "Indexed 82 files, 926 chunks in 627ms",
+ "status_after_replay": [
+  "stale_files:    0",
+  "index_fresh:    true",
+  "freshness_cause: none"
+ ],
+ "edges": {
+  "after_replay_I": 615,
+  "full_index_F": 669,
+  "ordered_R": 669
+ },
+ "star_rows": {
+  "after_replay": 0,
+  "full_index": 2,
+  "missing_after_replay": 2,
+  "extra_after_replay": 0
+ },
+ "missing_after_replay_vs_full_index": {
+  "n": 54,
+  "by_type": {
+   "POTENTIAL_CALL/import": 49,
+   "RE_EXPORTS/": 3,
+   "IMPLEMENTS/": 1,
+   "EXTENDS/": 1
+  },
+  "by_cause": {
+   "target file re-written after the caller; target declared at the start (D081)": 48,
+   "target file re-written after the caller; target not declared at the start (D081 or D084)": 6
+  }
+ },
+ "missing_after_replay_vs_ordered": {
+  "n": 54,
+  "by_type": {
+   "POTENTIAL_CALL/import": 49,
+   "RE_EXPORTS/": 3,
+   "IMPLEMENTS/": 1,
+   "EXTENDS/": 1
+  },
+  "by_cause": {
+   "target file re-written after the caller; target declared at the start (D081)": 48,
+   "target file re-written after the caller; target not declared at the start (D081 or D084)": 6
+  }
+ },
+ "in_replay_graph_but_not_in_ordered": {
+  "n": 0,
+  "by_type": {}
+ },
+ "in_replay_graph_and_ordered_but_not_full_index": {
+  "n": 0
+ },
+ "files_changed_in_replay": 68,
+ "s4_file_changes": {
+  "modified: names and re-exports unchanged": 93,
+  "file: modified": 125,
+  "file: added": 26,
+  "modified: declared names changed": 31,
+  "modified: exported names changed": 19,
+  "modified: re-exports changed": 1,
+  "file: deleted": 1
+ },
+ "s4_modified_detail": {
+  "body_only": 36,
+  "imports+outgoing_edges": 32,
+  "names+imports+outgoing_edges": 16,
+  "imports": 14,
+  "names+outgoing_edges": 10,
+  "outgoing_edges": 7,
+  "names": 4,
+  "decl_order_or_kind": 2,
+  "reexports": 1,
+  "decl_order_or_kind+imports+outgoing_edges": 1,
+  "decl_order_or_kind+outgoing_edges": 1,
+  "names+imports": 1
+ },
+ "incremental_duration_ms": {
+  "n": 100,
+  "p50": 86,
+  "p90": 262,
+  "max": 497
+ },
+ "indexed_per_step": {
+  "p50": 2,
+  "p90": 9,
+  "max": 39,
+  "total": 413
+ }
+}

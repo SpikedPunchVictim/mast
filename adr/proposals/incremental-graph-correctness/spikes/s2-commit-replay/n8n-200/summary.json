@@ -1,0 +1,109 @@
+{
+ "repo": "/private/tmp/claude-501/-Users-spikedpunchvictim-projects-mast/4250856a-d734-46ca-bbcc-3c6c58f75b1f/scratchpad/n8n-git",
+ "commits": 200,
+ "base": "f8941b10f29980a595a7f35a41806d3a7f62ed0f",
+ "final": "9d9e9bf97e8ae5382a930cd662637a9cf7046ef9",
+ "init_output": "Indexed 13887 files, 72380 chunks in 60883ms",
+ "status_after_replay": [
+  "stale_files:    0",
+  "index_fresh:    true",
+  "freshness_cause: none"
+ ],
+ "edges": {
+  "after_replay_I": 51579,
+  "full_index_F": 53681,
+  "ordered_R": 55620
+ },
+ "star_rows": {
+  "after_replay": 1026,
+  "full_index": 1062,
+  "missing_after_replay": 36,
+  "extra_after_replay": 0
+ },
+ "missing_after_replay_vs_full_index": {
+  "n": 2541,
+  "by_type": {
+   "IMPLEMENTS/": 1110,
+   "POTENTIAL_CALL/import": 573,
+   "RE_EXPORTS/": 297,
+   "POTENTIAL_CALL/field_type": 295,
+   "EXTENDS/": 140,
+   "POTENTIAL_CALL/parameter_type": 53,
+   "PARENT_OF/": 51,
+   "POTENTIAL_CALL/new_expression": 20,
+   "POTENTIAL_CALL/super_method": 2
+  },
+  "by_cause": {
+   "target file re-written after the caller; target declared at the start (D081)": 2415,
+   "target file re-written after the caller; target not declared at the start (D081 or D084)": 63,
+   "caller re-written at or after the target (barrel or other path)": 63
+  }
+ },
+ "missing_after_replay_vs_ordered": {
+  "n": 4098,
+  "by_type": {
+   "POTENTIAL_CALL/import": 1615,
+   "IMPLEMENTS/": 1110,
+   "RE_EXPORTS/": 654,
+   "POTENTIAL_CALL/field_type": 349,
+   "EXTENDS/": 140,
+   "POTENTIAL_CALL/parameter_type": 133,
+   "PARENT_OF/": 51,
+   "POTENTIAL_CALL/new_expression": 43,
+   "POTENTIAL_CALL/super_method": 3
+  },
+  "by_cause": {
+   "target file re-written after the caller; target declared at the start (D081)": 2415,
+   "a full index lacks it too (walk order, D083)": 1557,
+   "target file re-written after the caller; target not declared at the start (D081 or D084)": 63,
+   "caller re-written at or after the target (barrel or other path)": 63
+  }
+ },
+ "in_replay_graph_but_not_in_ordered": {
+  "n": 57,
+  "by_type": {
+   "EXTENDS/": 37,
+   "PARENT_OF/": 20
+  }
+ },
+ "in_replay_graph_and_ordered_but_not_full_index": {
+  "n": 382
+ },
+ "files_changed_in_replay": 840,
+ "s4_file_changes": {
+  "file: deleted": 21,
+  "modified: names and re-exports unchanged": 694,
+  "file: modified": 968,
+  "file: added": 114,
+  "modified: re-exports changed": 46,
+  "modified: exported names changed": 143,
+  "modified: declared names changed": 228
+ },
+ "s4_modified_detail": {
+  "body_only": 318,
+  "imports": 227,
+  "names+imports+outgoing_edges": 125,
+  "imports+outgoing_edges": 103,
+  "names+outgoing_edges": 59,
+  "reexports": 45,
+  "outgoing_edges": 38,
+  "names": 33,
+  "names+imports": 11,
+  "decl_order_or_kind+imports": 3,
+  "decl_order_or_kind": 3,
+  "decl_order_or_kind+imports+outgoing_edges": 2,
+  "reexports+imports": 1
+ },
+ "incremental_duration_ms": {
+  "n": 200,
+  "p50": 402,
+  "p90": 990,
+  "max": 2215
+ },
+ "indexed_per_step": {
+  "p50": 2,
+  "p90": 15,
+  "max": 93,
+  "total": 1119
+ }
+}

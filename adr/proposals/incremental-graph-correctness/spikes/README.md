@@ -1,0 +1,32 @@
+# Spikes — incremental graph correctness
+
+Throwaway, exploratory measurements behind `../PROPOSAL.md`. Nothing here is a registered
+experiment under ADR 010 and no number here may be quoted as a settled finding. Each spike has
+a directory holding the script that produced it and its raw output. Scripts were run from a
+session scratch directory and carry absolute paths to it; they are kept as the record of what
+was run, and need their paths changed to run again.
+
+Corpora:
+
+- **scratch projects**: two to eight files, built by the script itself.
+- **n8n copy**: `git archive` of `/Users/spikedpunchvictim/temp/enterprise-apps/n8n`, indexed with
+  mast's default config (which excludes `*.test.ts` and `*.spec.ts`): 13,985 files.
+  The copy was edited by the timing probes as they ran, so counts taken at different times
+  differ (see S0-T below).
+
+All runs: built CLI (`dist/`) from this branch, 2026-10-06, macOS, one machine.
+
+| Spike | Question | Status |
+|---|---|---|
+| S0-R | Do the reported edge losses reproduce? | done — `s0-reproductions/` |
+| S0-T | What does an incremental run cost, by number and kind of changed file? | done — `s0-timings/` |
+| S1 | How many edges does a full index miss because of walk order (D083)? | done — `s1-walk-order/`: n8n 1,939 of 55,620; mast 0 |
+| S2 | How many edges does a replayed sequence of real commits lose (D081, D084)? | done — `s2-commit-replay/`: n8n 2,541 of 53,681 over 200 commits; mast 54 of 669 over 100; found D085 |
+| S3 | How many files would need re-resolving per changed file? | done — `s3-importers/`: by stored edge p99 7, max 1,115; by name through barrels p99 37, max 5,011 |
+| S4 | How often does a real change alter a file's names or re-exports? | done — in `s2-commit-replay/RESULTS.md`: 72 to 74% of modifications do not |
+| S5 | What does re-resolving one file cost, by re-parse and from records? | done — `s5-reresolve-cost/`: about 3 to 4 ms against 0.3 to 0.8 ms per file |
+
+S1 to S5 (2026-10-06) used two further corpora, both scratch clones so that commits could be
+checked out: n8n at `9d9e9bf97e` (13,985 indexed files) and this repository at `d062339`
+(166 files, index built into a scratch state directory). The S1 to S5 scripts take their paths
+as arguments. `*.json` files beside each script are raw output; `RESULTS.md` is the reading.

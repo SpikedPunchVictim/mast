@@ -1,0 +1,74 @@
+{
+ "project": "/Users/spikedpunchvictim/projects/mast",
+ "files_walked": 166,
+ "parseErrors": 0,
+ "parseMs": 348,
+ "checker_edges_left_alone": 0,
+ "star_rows": {
+  "baseline": 2,
+  "reference": 2,
+  "only_baseline": 0,
+  "only_reference": 0
+ },
+ "re_exports_edge_count_after_each_pass": [
+  10,
+  10
+ ],
+ "resolveMs": 30,
+ "edges": {
+  "baseline": 669,
+  "reference": 669
+ },
+ "by_type_baseline": {
+  "POTENTIAL_CALL/same_file": 361,
+  "POTENTIAL_CALL/import": 246,
+  "PARENT_OF/": 35,
+  "RE_EXPORTS/": 10,
+  "IMPLEMENTS/": 5,
+  "POTENTIAL_CALL/this_method": 5,
+  "POTENTIAL_CALL/new_expression": 4,
+  "EXTENDS/": 3
+ },
+ "by_type_reference": {
+  "POTENTIAL_CALL/same_file": 361,
+  "POTENTIAL_CALL/import": 246,
+  "PARENT_OF/": 35,
+  "RE_EXPORTS/": 10,
+  "IMPLEMENTS/": 5,
+  "POTENTIAL_CALL/this_method": 5,
+  "POTENTIAL_CALL/new_expression": 4,
+  "EXTENDS/": 3
+ },
+ "missing": {
+  "n": 0,
+  "by_type": {},
+  "distinct_targets": 0,
+  "distinct_caller_files": 0,
+  "top_target_files": {},
+  "caller_sorts_before_target": 0
+ },
+ "retargeted": {
+  "n_reference_side": 0,
+  "n_baseline_side": 0,
+  "by_type": {}
+ },
+ "extra": {
+  "n": 0,
+  "by_type": {}
+ },
+ "variants": {
+  "stars_first": {
+   "edges": 669,
+   "short_of_reference": 0,
+   "short_by_type": {},
+   "not_in_reference": 0
+  },
+  "re_exports_once": {
+   "edges": 669,
+   "short_of_reference": 0,
+   "short_by_type": {},
+   "not_in_reference": 0
+  }
+ },
+ "edges_after_rollback": 669
+}

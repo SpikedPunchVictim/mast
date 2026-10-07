@@ -1,0 +1,17 @@
+EXTENDS||src/store/config.ts:ResolvedConfig -> src/ast/types.ts:MastConfig
+POTENTIAL_CALL|import|src/cli/index-cmd.ts:registerIndexCommand -> src/indexer/index.ts:runIndex
+POTENTIAL_CALL|import|src/cli/init.ts:registerInitCommand -> src/indexer/index.ts:runIndex
+POTENTIAL_CALL|import|src/cli/program.ts:buildProgram -> src/cli/prime-cmd.ts:registerPrimeCommand
+POTENTIAL_CALL|import|src/cli/program.ts:buildProgram -> src/cli/status.ts:registerStatusCommand
+POTENTIAL_CALL|import|src/cli/query.ts:runQuery -> src/indexer/index.ts:runIndex
+POTENTIAL_CALL|import|src/cli/status.ts:buildStatus -> src/indexer/index.ts:freshnessCause
+POTENTIAL_CALL|import|src/cli/status.ts:buildStatus -> src/indexer/index.ts:loadIndexMeta
+POTENTIAL_CALL|import|src/mcp/register-tools.ts:registerAllTools -> src/mcp/tools/status.ts:registerStatusTool
+POTENTIAL_CALL|import|src/mcp/server.ts:isNeverIndexed -> src/indexer/index.ts:loadIndexMeta
+POTENTIAL_CALL|import|src/mcp/startup.ts:bootstrapState -> src/indexer/index.ts:loadIndexMeta
+POTENTIAL_CALL|import|src/mcp/startup.ts:bootstrapState -> src/indexer/index.ts:writeIndexMeta
+POTENTIAL_CALL|import|src/mcp/tools/reindex.ts:registerReindexTool -> src/indexer/index.ts:runIndex
+POTENTIAL_CALL|import|src/mcp/tools/status.ts:registerStatusTool -> src/indexer/index.ts:freshnessCause
+POTENTIAL_CALL|import|src/mcp/tools/status.ts:registerStatusTool -> src/indexer/index.ts:loadIndexMeta
+RE_EXPORTS||src/graph/index.ts:DependencyEntry -> src/ast/types.ts:DependencyEntry
+RE_EXPORTS||src/graph/index.ts:ImplementorResult -> src/ast/types.ts:ImplementorResult

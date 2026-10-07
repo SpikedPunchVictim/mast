@@ -1,0 +1,3 @@
+#!/bin/bash
+# usage: e.sh <project> ; dumps edges + re_export_files by name
+sqlite3 "$1/.mast/graph.db" "select '  E '||f1.path||':'||s1.name||'@'||s1.line||' -> '||f2.path||':'||s2.name||'@'||s2.line||'('||s2.kind||') '||e.edge_type||' '||coalesce(e.resolution,'') from edges e join symbols s1 on s1.id=e.from_id join symbols s2 on s2.id=e.to_id join files f1 on f1.id=s1.file_id join files f2 on f2.id=s2.file_id order by 1; select '  R '||f1.path||' => '||f2.path from re_export_files r join files f1 on f1.id=r.from_file_id join files f2 on f2.id=r.to_file_id order by 1; select '  edges='||(select count(*) from edges)||' reexp='||(select count(*) from re_export_files)||' verdicts='||(select count(*) from checker_verdicts)"

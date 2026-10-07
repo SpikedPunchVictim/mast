@@ -1,0 +1,100 @@
+{
+ "project": "/Users/spikedpunchvictim/projects/mast",
+ "target": "src/ast/types.ts",
+ "edges_before": 669,
+ "edges_after_reresolving_both_samples": 669,
+ "holders_of_target": {
+  "files": 2,
+  "records": {
+   "p50": 21,
+   "p90": 21,
+   "p99": 21,
+   "max": 21,
+   "sum": 23
+  },
+  "json_bytes": {
+   "p50": 4095,
+   "p90": 4095,
+   "p99": 4095,
+   "max": 4095,
+   "sum": 4336
+  },
+  "parse_ms": {
+   "p50": 5.5,
+   "p90": 5.5,
+   "p99": 5.5,
+   "max": 5.5,
+   "sum": 6.3
+  },
+  "decode_ms": {
+   "p50": 0.01,
+   "p90": 0.01,
+   "p99": 0.01,
+   "max": 0.01,
+   "sum": 0
+  },
+  "delete_ms": {
+   "p50": 0.09,
+   "p90": 0.09,
+   "p99": 0.09,
+   "max": 0.09,
+   "sum": 0.2
+  },
+  "resolve_ms": {
+   "p50": 0.61,
+   "p90": 0.61,
+   "p99": 0.61,
+   "max": 0.61,
+   "sum": 1
+  },
+  "with_reparse_total_ms": 7.4,
+  "from_records_total_ms": 1.2
+ },
+ "stride_sample": {
+  "files": 67,
+  "records": {
+   "p50": 12,
+   "p90": 43,
+   "p99": 274,
+   "max": 274,
+   "sum": 1351
+  },
+  "json_bytes": {
+   "p50": 2178,
+   "p90": 8625,
+   "p99": 52774,
+   "max": 52774,
+   "sum": 260356
+  },
+  "parse_ms": {
+   "p50": 2.42,
+   "p90": 5.96,
+   "p99": 23.66,
+   "max": 23.66,
+   "sum": 225.6
+  },
+  "decode_ms": {
+   "p50": 0.01,
+   "p90": 0.02,
+   "p99": 1.68,
+   "max": 1.68,
+   "sum": 2.3
+  },
+  "delete_ms": {
+   "p50": 0.04,
+   "p90": 0.08,
+   "p99": 0.21,
+   "max": 0.21,
+   "sum": 3.4
+  },
+  "resolve_ms": {
+   "p50": 0.34,
+   "p90": 0.82,
+   "p99": 2.55,
+   "max": 2.55,
+   "sum": 31
+  },
+  "with_reparse_total_ms": 259.9,
+  "from_records_total_ms": 36.7
+ }
+}

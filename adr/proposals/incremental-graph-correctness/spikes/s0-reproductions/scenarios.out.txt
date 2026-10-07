@@ -1,0 +1,39 @@
+# run 2026-10-07T04:15:35Z  mast d062339 (dist built from this tree)  load { 2.93 2.88 2.73 }
+== n2 BEFORE
+== n2 INCREMENTAL: files: 1 indexed, 1 skipped  chunks: +2  stale_files: 0
+== n2 FULL
+   src/zc.ts:use -POTENTIAL_CALL-> src/x.ts:fresh(function)
+== n1 BEFORE
+== n1 INCREMENTAL: files: 1 indexed, 1 skipped  chunks: +1  stale_files: 0
+== n1 FULL
+   src/zc.ts:use -POTENTIAL_CALL-> src/x.ts:fn(function)
+== s4b BEFORE
+   src/zc.ts:use -POTENTIAL_CALL-> src/x.ts:fn(function)
+== s4b INCREMENTAL: files: 1 indexed, 1 skipped  chunks: +1  stale_files: 0
+== s4b FULL
+== s4e BEFORE
+   src/zc.ts:use -POTENTIAL_CALL-> src/x.ts:fn(function)
+   R src/barrel.ts => src/x.ts
+== s4e INCREMENTAL: files: 1 indexed, 3 skipped  chunks: +0  stale_files: 0
+   src/zc.ts:use -POTENTIAL_CALL-> src/x.ts:fn(function)
+   R src/barrel.ts => src/y.ts
+== s4e FULL
+   src/zc.ts:use -POTENTIAL_CALL-> src/y.ts:fn(function)
+   R src/barrel.ts => src/y.ts
+== m1 BEFORE
+   src/x.ts:fn -RE_EXPORTS-> src/impl.ts:fn(function)
+   src/zc.ts:use -POTENTIAL_CALL-> src/impl.ts:fn(function)
+== m1 INCREMENTAL: files: 1 indexed, 2 skipped  chunks: +1  stale_files: 0
+   src/zc.ts:use -POTENTIAL_CALL-> src/impl.ts:fn(function)
+== m1 FULL
+   src/zc.ts:use -POTENTIAL_CALL-> src/x.ts:fn(function)
+== s3k BEFORE
+   src/zc.ts:Impl -IMPLEMENTS-> src/x.ts:Opts(type)
+== s3k INCREMENTAL: files: 1 indexed, 1 skipped  chunks: +1  stale_files: 0
+== s3k FULL
+   src/zc.ts:Impl -IMPLEMENTS-> src/x.ts:Opts(interface)
+== r1 BEFORE
+   R src/barrel.ts => src/x.ts
+== r1 INCREMENTAL: files: 1 indexed, 1 skipped  chunks: +1  stale_files: 0
+== r1 FULL
+   R src/barrel.ts => src/x.ts

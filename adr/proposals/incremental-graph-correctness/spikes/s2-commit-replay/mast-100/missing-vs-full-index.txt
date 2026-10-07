@@ -1,0 +1,54 @@
+target file re-written after the caller; target declared at the start (D081)	EXTENDS||src/store/config.ts|ResolvedConfig|MastConfig|src/ast/types.ts
+target file re-written after the caller; target declared at the start (D081)	IMPLEMENTS||src/ast/extractors/markdown.ts|MarkdownExtractor|LanguageExtractor|src/ast/extractor.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/ast/extractors/markdown.ts|pushSectionChunks|chunkId|src/ast/extractors/typescript.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/ast/extractors/markdown.ts|pushSectionChunks|sha256|src/ast/extractors/typescript.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/ast/extractors/typescript.ts|TypeScriptExtractor.extract|getImportResolver|src/indexer/import-resolver.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/docs-cmd.ts|registerSkillCommand|resolveConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/index-cmd.ts|registerIndexCommand|resolveConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/index-cmd.ts|registerIndexCommand|runIndex|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/init.ts|registerInitCommand|resolveConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/init.ts|registerInitCommand|runIndex|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/init.ts|registerInitCommand|writeStateConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/program.ts|buildProgram|registerStatusCommand|src/cli/status.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/query.ts|runQuery|resolveConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/query.ts|runQuery|runIndex|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/serve.ts|registerServeCommand|resolveConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/status.ts|buildStatus|freshnessCause|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/status.ts|buildStatus|loadIndexMeta|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/cli/upgrade-cmd.ts|gatherUpgradeFacts|resolveConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/graph/checker-resolver.ts|runCheckerPass|collectPotentialMatchCandidates|src/search/potential-matches.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerCallersTool|src/mcp/tools/callers.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerDependenciesTool|src/mcp/tools/dependencies.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerExportsTool|src/mcp/tools/exports.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerImplementorsTool|src/mcp/tools/implementors.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerProjectSkeletonTool|src/mcp/tools/project-skeleton.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerReindexTool|src/mcp/tools/reindex.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerRenameImpactTool|src/mcp/tools/rename-impact.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerSearchTool|src/mcp/tools/search.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerSignatureTool|src/mcp/tools/signature.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/register-tools.ts|registerAllTools|registerStatusTool|src/mcp/tools/status.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/server.ts|isNeverIndexed|loadIndexMeta|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/server.ts|serve|startWatchMode|src/indexer/watcher.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/staleness.ts|checkAndRefreshIfStale|extractFile|src/ast/extract.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/startup.ts|bootstrapState|initLockMarkers|src/store/lock.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/startup.ts|bootstrapState|loadIndexMeta|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/startup.ts|bootstrapState|writeIndexMeta|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/startup.ts|bootstrapState|writeStateConfig|src/store/config.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/tools/project-skeleton.ts|registerProjectSkeletonTool|globToRegex|src/indexer/walker.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/tools/reindex.ts|registerReindexTool|runIndex|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/tools/status.ts|registerStatusTool|freshnessCause|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/mcp/tools/status.ts|registerStatusTool|loadIndexMeta|src/indexer/index.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/search/fused.ts|fusedSearch|searchFts|src/search/fts.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/search/fused.ts|gatherSuggestions|searchFts|src/search/fts.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/search/fused.ts|gatherSuggestions|searchIdentifierNearMiss|src/search/fts.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/search/fused.ts|gatherSuggestions|splitIdentifierTerms|src/search/fts.ts
+target file re-written after the caller; target declared at the start (D081)	POTENTIAL_CALL|import|src/search/scope.ts|compileScopeMatcher|globToRegex|src/indexer/walker.ts
+target file re-written after the caller; target declared at the start (D081)	RE_EXPORTS||src/graph/index.ts|DependencyEntry|DependencyEntry|src/ast/types.ts
+target file re-written after the caller; target declared at the start (D081)	RE_EXPORTS||src/graph/index.ts|ImplementorResult|ImplementorResult|src/ast/types.ts
+target file re-written after the caller; target declared at the start (D081)	RE_EXPORTS||src/mcp/tools/_helpers.ts|globToRegex|globToRegex|src/indexer/walker.ts
+target file re-written after the caller; target not declared at the start (D081 or D084)	POTENTIAL_CALL|import|src/cli/index-cmd.ts|registerIndexCommand|assertProjectRootIsDirectory|src/store/config.ts
+target file re-written after the caller; target not declared at the start (D081 or D084)	POTENTIAL_CALL|import|src/cli/init.ts|registerInitCommand|assertProjectRootIsDirectory|src/store/config.ts
+target file re-written after the caller; target not declared at the start (D081 or D084)	POTENTIAL_CALL|import|src/cli/installed-artifacts.ts|findInstalledArtifacts|hookFilePath|src/cli/setup-command.ts
+target file re-written after the caller; target not declared at the start (D081 or D084)	POTENTIAL_CALL|import|src/cli/program.ts|buildProgram|registerPrimeCommand|src/cli/prime-cmd.ts
+target file re-written after the caller; target not declared at the start (D081 or D084)	POTENTIAL_CALL|import|src/cli/setup-plan.ts|planClaude|isMastCommand|src/cli/setup-command.ts
+target file re-written after the caller; target not declared at the start (D081 or D084)	POTENTIAL_CALL|import|src/cli/setup-plan.ts|planFlat|isMastCommand|src/cli/setup-command.ts
