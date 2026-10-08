@@ -1,4 +1,4 @@
-# Reproductions for D121 to D133
+# Reproductions for D121 to D133 and D137 to D139
 
 `repro.sh <empty work dir>` builds each small project, runs the built CLI of this checkout
 (`pnpm build` first) and prints what it stored and answered. `serve-wipe.mjs` is the part
@@ -17,3 +17,6 @@ line; `duration` values differ from run to run and nothing else did between two 
 | D2 | D133 |
 
 D115 to D120 and D124 are stored edges, and are in `eval-suite/baselines/shapes.json`.
+
+`followup.sh` and `FOLLOWUP-OUTPUT.txt` are the same for D137 (case E), D138 (F) and D139 (G).
+Case E kills a process on a timer, so its counts differ from run to run.

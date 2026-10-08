@@ -1,0 +1,25 @@
+commit 5dbb896  node v24.18.0
+
+## E. a first index killed before it finished, then --incremental (D137). Corpus: this repository
+full index: files=207 edges=917
+killed at 0.7s: index.json absent  files=60 edges=0
+  --incremental: files: 207 indexed, 0 skipped  chunks: +1882 -489  duration: 1823ms
+  after: files=207 edges=917  stale_files: 0 index_fresh: true 
+killed at 1.3s: index.json absent  files=144 edges=0
+  --incremental: files: 193 indexed, 14 skipped  chunks: +1768 -1299  duration: 2274ms  re_resolved: 7
+  after: files=207 edges=906  stale_files: 0 index_fresh: true 
+killed at 1.8s: index.json absent  files=171 edges=0
+  --incremental: files: 180 indexed, 27 skipped  chunks: +1713 -1506  duration: 2247ms  re_resolved: 9
+  after: files=207 edges=885  stale_files: 0 index_fresh: true 
+
+## F. readers of an index stamped with another version (D138)
+index.json: "schema_version":"1.2.0",
+schema_version: 1.4.0
+index_fresh:    true
+search one: src/a.ts:1  one  function  (exported)
+
+## G. the alias column (D139)
+src/u1.ts  symbols=["Shape"]  aliases=NULL
+src/u2.ts  symbols=["\"string name\""]  aliases={"sn":"\"string name\""}
+src/u3.ts  symbols=["Shape"]  aliases=NULL
+function p(a: __proto__): void  =>  (type_context empty)
