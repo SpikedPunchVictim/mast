@@ -17,21 +17,28 @@ MAST_STATE_DIR=<state> node dist/cli/index.js index          # run from the corp
 # 2. Score that index.
 node eval-suite/graph-scorecard.mjs run --root <corpus> --tsconfig <tsconfig.json> \
      --db <state>/graph.db [--prefix <dir/>] [--workspace-src] --label "<build and corpus>" \
-     --out eval-suite/out/<name>.json.gz
+     --out eval-suite/out/<name>.json
 
 # 3. Compare with the committed baseline. Exit 1 if anything that agreed was lost or
 #    anything is newly wrong.
-node eval-suite/graph-scorecard.mjs compare eval-suite/baselines/<name>.json.gz eval-suite/out/<name>.json.gz
+node eval-suite/graph-scorecard.mjs compare eval-suite/baselines/<name>.json eval-suite/out/<name>.json
 ```
 
 When a change is accepted, its scorecard replaces the baseline in the same commit, so the
 baseline is always the graph of the commit it sits in.
 
+The baselines are plain JSON with one key per line, not compressed, so that git stores each
+new version as a difference from the last. A compressed file shares nothing with the one
+before it: six versions of the three files came to 9.6 MB of history, and the same six as
+plain JSON pack to 1.6 MB (measured 2026-10-08). The cost is in the checkout, where
+`n8n-cli.json` is 20 MB. `run` and `compare` still read and write `.json.gz` when a path ends
+that way.
+
 | Baseline | Corpus | `run` arguments |
 |---|---|---|
-| `baselines/mast.json.gz` | this repository | `--root . --tsconfig tsconfig.json` |
-| `baselines/n8n-core.json.gz` | n8n `9d9e9bf9`, whole monorepo indexed, `packages/core` scored | `--tsconfig packages/core/tsconfig.json --prefix packages/core/ --workspace-src` |
-| `baselines/n8n-cli.json.gz` | the same index, `packages/cli` scored | `--tsconfig packages/cli/tsconfig.json --prefix packages/cli/ --workspace-src` |
+| `baselines/mast.json` | this repository | `--root . --tsconfig tsconfig.json` |
+| `baselines/n8n-core.json` | n8n `9d9e9bf9`, whole monorepo indexed, `packages/core` scored | `--tsconfig packages/core/tsconfig.json --prefix packages/core/ --workspace-src` |
+| `baselines/n8n-cli.json` | the same index, `packages/cli` scored | `--tsconfig packages/cli/tsconfig.json --prefix packages/cli/ --workspace-src` |
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
 (`adr/proposals/graph-reference/spikes/RESULTS.md`). `packages/cli` takes about 15 s and

@@ -617,7 +617,7 @@ function runScore({ flags }) {
     items: Object.fromEntries(Object.entries(items).sort().map(([k, v]) => [k, normalise(v)])),
     breakdowns: Object.fromEntries(Object.entries(breakdowns).sort().map(([k, v]) => [k, normalise(v)])),
   };
-  const out = writeOut(flags.out ?? join(SUITE_DIR, 'out', 'graph-scorecard.json.gz'), card);
+  const out = writeOut(flags.out ?? join(SUITE_DIR, 'out', 'graph-scorecard.json'), card);
   console.log(formatScorecard(card));
   console.log('\nCalls, broken down:\n');
   console.log(formatScorecard({ items: card.breakdowns }));

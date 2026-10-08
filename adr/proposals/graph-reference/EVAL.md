@@ -19,7 +19,7 @@ Experiment scripts stay in `eval/` (ADR 001). Checks meant to be run again and a
 
 ## Artifacts
 
-- `eval-suite/baselines/mast.json.gz`, `n8n-core.json.gz`, `n8n-cli.json.gz` — first
+- `eval-suite/baselines/mast.json`, `n8n-core.json`, `n8n-cli.json` (`.json.gz` until 2026-10-08) — first
   written 2026-10-07 for the build of `4ca9a71`. Each is replaced, in the same commit, by
   the scorecard of a change that is accepted; `label` in the file says which build. Not under `eval/results/`: these
   are a moving baseline, not a published result.
