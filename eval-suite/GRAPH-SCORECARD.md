@@ -19,8 +19,8 @@ node eval-suite/graph-scorecard.mjs run --root <corpus> --tsconfig <tsconfig.jso
      --db <state>/graph.db [--prefix <dir/>] [--workspace-src] --label "<build and corpus>" \
      --out eval-suite/out/<name>.json
 
-# 3. Compare with the committed baseline. Exit 1 if anything that agreed was lost or
-#    anything is newly wrong.
+# 3. Compare with the committed baseline. Exit 1 if anything that agreed was lost, or
+#    anything is newly wrong, unjudged or extra, or the two are not of the same corpus.
 node eval-suite/graph-scorecard.mjs compare eval-suite/baselines/<name>.json eval-suite/out/<name>.json
 ```
 
@@ -29,9 +29,7 @@ baseline is always the graph of the commit it sits in.
 
 The baselines are plain JSON with one key per line, not compressed, so that git stores each
 new version as a difference from the last. A compressed file shares nothing with the one
-before it: six versions of the three files came to 9.6 MB of history, and the same six as
-plain JSON pack to 1.6 MB (measured 2026-10-08). The cost is in the checkout, where
-`n8n-cli.json` is 20 MB. `run` and `compare` still read and write `.json.gz` when a path ends
+before it. The cost is in the checkout, where `n8n-cli.json` is 20 MB. `run` and `compare` still read and write `.json.gz` when a path ends
 that way.
 
 | Baseline | Corpus | `run` arguments |
@@ -39,10 +37,20 @@ that way.
 | `baselines/mast.json` | this repository | `--root . --tsconfig tsconfig.json` |
 | `baselines/n8n-core.json` | n8n `9d9e9bf9`, whole monorepo indexed, `packages/core` scored | `--tsconfig packages/core/tsconfig.json --prefix packages/core/ --workspace-src` |
 | `baselines/n8n-cli.json` | the same index, `packages/cli` scored | `--tsconfig packages/cli/tsconfig.json --prefix packages/cli/ --workspace-src` |
+| `baselines/shapes.json` | `fixtures/resolver-shapes/`, indexed from that directory | `--root eval-suite/fixtures/resolver-shapes --tsconfig tsconfig.json --workspace-src` |
+
+`fixtures/resolver-shapes/` is a corpus of shapes the call resolver gets wrong, one
+directory under `packages/` for each. The three real corpora had none of them stored as a
+wrong edge, which is how they went unseen: a wrong edge is only counted where the corpus
+has the shape. Its baseline is therefore not clean, and is not meant to be. It holds the
+edges known to be wrong, so that a fix shows as `wrong -> agree` and a new wrong edge
+fails. A shape found by review or in use is added here, with the defect's ledger id, in the
+commit that files it. The directory is left out of this repository's own index
+(`mast.config.json`) and of lint.
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
 (`adr/proposals/graph-reference/spikes/RESULTS.md`). `packages/cli` takes about 15 s and
-1.4 GB.
+1.7 GB (measured 2026-10-08: 20.9 s, 1,653 MB peak).
 
 ## Buckets
 
@@ -57,10 +65,21 @@ row id, so the same thing has the same key in two runs.
 | extra | mast has it and the compiler has nothing there |
 | unjudged | mast has it and the compiler cannot say |
 
-`compare` fails on a key that leaves `agree` for another bucket, and on a key that arrives
-in `wrong`. Every other move is listed and does not fail: a `lacks` that becomes `agree` is
-the gain a change was made for, and a key gone from both sides (`agree -> absent`) is the
-corpus changing, which this repository's own source does with every change.
+`compare` fails on:
+
+- a key that leaves `agree` for another bucket;
+- a key that arrives in `wrong`, `unjudged` or `extra`: something mast stores that the
+  compiler does not confirm;
+- a key gone from both sides (`agree -> absent`) when the two runs scored the same files.
+  `meta.corpus_hash` is a hash of every file the tsconfig names under the prefix, so on a
+  fixed corpus such as n8n a key cannot leave unless mast lost the file or the symbol it
+  was judged by. When the files changed, as this repository's do with every change, the
+  move is listed and does not fail;
+- two scorecards whose `meta.root`, `tsconfig` or `prefix` differ, or a second scorecard
+  that scored no file. `run` itself exits 2 when it scored no file.
+
+Every other move is listed and does not fail: a `lacks` that becomes `agree` is the gain a
+change was made for.
 
 ## Line items
 
@@ -69,13 +88,15 @@ is from reading `src/graph/queries.ts` and `src/mcp/tools/`, on 2026-10-07.
 
 | Line item | Stored as | Read by | Compared with |
 |---|---|---|---|
-| `symbol: function` | `symbols`, kind `function` | `mast_signature`, `mast_exports`, `mast_project_skeleton`, `mast_callers` | top-level function declarations, and top-level variables initialized with an arrow function |
+| `file: indexed` | `files` | every tool | each TypeScript file the tsconfig names under the prefix. A file mast indexes and the tsconfig does not name is not counted |
+| `symbol: function` | `symbols`, kind `function` | `mast_signature`, `mast_project_skeleton`, `mast_callers` | top-level function declarations, and top-level variables initialized with an arrow function |
 | `symbol: class` | kind `class` | the same | top-level class declarations |
 | `symbol: method` | kind `method`, named `Class.member` | the same | methods, constructors, getters and setters of a top-level class |
 | `symbol: interface` | kind `interface` | the same, and `mast_implementors` | top-level interface declarations |
 | `symbol: type` | kind `type` | the same | top-level type aliases |
 | `symbol: export` | kind `export`, a marker | `mast_rename_impact` (barrel rows) | each name in `export { ... } from '...'`, and each named import exported by a clause with no `from` |
-| `symbol flag: is_exported` | `symbols.is_exported` | `mast_exports`, `mast_project_skeleton`, search ranking | the `export` modifier, or a later `export { name }`; a member is exported when its class is and it is not private |
+| `symbol: one key, more than one row` | two declaration rows of one `path:name` | whichever tool looks the name up | nothing: every such key is `unjudged`, and so is every edge with one at either end. A getter and setter of one property are not counted |
+| `symbol flag: is_exported` | `symbols.is_exported` | `mast_project_skeleton` | the `export` modifier, or a later `export { name }`; a member is exported when its class is and it is not private |
 | `edge: PARENT_OF` | class to member | `mast_callers` (a class's callers include its constructor's), `mast_implementors` | one per member above |
 | `edge: EXTENDS` | class or interface to its parent | no tool directly; the resolver follows it for a call of an inherited member (since 2026-10-08), and repair reads it | each `extends` type the compiler resolves to an indexed declaration |
 | `edge: IMPLEMENTS` | class to interface | `mast_implementors` | each `implements` type, the same way |
@@ -94,6 +115,9 @@ part of the verdict, since they hold the same keys:
 - by how the call is written (`f()`, `ident.m()`, `this.m()`, `this.field.m()`,
   `super.m()`, `new X()`, `expr.m()`), in the caller's file or another. This is where a
   lacking edge is counted, since an edge mast did not store has no label.
+
+`mast_exports` and the `only_exported` filter of search read `chunks`, not `symbols`
+(`src/mcp/tools/exports.ts`, `src/search/fused.ts`). Nothing here scores `chunks`.
 
 ## How a call edge is judged
 
@@ -116,7 +140,8 @@ the file. mast stores no row for these, so there is nothing to compare:
 - enums, namespaces and what a `declare module` or `declare global` block holds,
   `export default <expression>`, top-level variables that are not arrow
   functions, top-level destructuring;
-- default imports, namespace imports, imports for side effects;
+- the name a default or namespace import binds, and imports for side effects (the
+  statement's file is scored under `import: the file it resolves to`);
 - calls outside any declaration mast has a symbol for, and calls whose callee is not a name
   or a property (`a[b]()`, `f()()`).
 
@@ -124,6 +149,21 @@ Not scored at all: JavaScript and Markdown files, search ranking, chunk contents
 numbers, and the parameter types `mast_signature` resolves when asked.
 
 ## Limits
+
+- The reference is the compiler's, but three of its inputs are mast's rows: a call target
+  counts only when mast has a symbol at that `path:name`, the caller is the nearest
+  declaration mast has a symbol for, and outside `--prefix` no symbol is scored. A symbol
+  mast loses takes its edges out of both sides. On a fixed corpus that now fails as
+  `agree -> absent`; on a corpus that changed it does not.
+- A key is a path and a name. Two rows of one key cannot be told apart, so they are
+  `unjudged` (above) and not scored further.
+- `unjudged` holds a stored edge when any call of that name in the caller has no compiler
+  symbol (a receiver typed `any`), and also correct edges from syntax the script does not
+  visit: tagged templates and decorators that are not calls.
+- No tool's answer is scored. `mast_callers` returning nothing for a class merged with an
+  interface, and its transitive walk stopping at a class with a constructor, are both
+  `agree` here, since the stored edges are right.
+- Only `scorecard-lib.mjs` has tests. Nothing pins what `run` reports for a given graph.
 
 - An import the compiler resolves outside the index is `agree` if mast names the same file
   and `unjudged` otherwise. Only an indexed file can be lacking.

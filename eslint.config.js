@@ -54,6 +54,9 @@ export default [
       // deliberately unused/non-exported declarations) — they are test data, not
       // code to lint.
       'src/**/__tests__/fixtures/**',
+      // The scorecard's corpus of shapes the call resolver gets wrong: sample source, kept as
+      // written (eval-suite/GRAPH-SCORECARD.md).
+      'eval-suite/fixtures/**',
       // Not merely generated: this holds installed node_modules and materialised OSS corpora
       // (26321 files for n8n alone). Linting it would be slow and would report on third-party
       // source the harness only ever reads.

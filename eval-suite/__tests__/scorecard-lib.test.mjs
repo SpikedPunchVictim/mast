@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { scoreSets, countsOf, compareScorecards, formatComparison } from '../scorecard-lib.mjs';
 
 const card = (items) => ({ items });
+const meta = (m) => ({ root: 'r', tsconfig: 'tsconfig.json', prefix: '', scored_typescript_files: 3, ...m });
 const buckets = (b) => ({ agree: [], wrong: [], lacks: [], extra: [], unjudged: [], ...b });
 
 describe('scoreSets', () => {
@@ -59,14 +60,60 @@ describe('compareScorecards', () => {
 
   // The corpus changed: the reference no longer has the key either. Had it kept it, the
   // key would be in `lacks`.
-  it('does not fail on a key that agreed and that neither side has any more', () => {
-    const before = card({ calls: buckets({ agree: ['x'] }) });
-    const after = card({ calls: buckets({}) });
+  it('does not fail on a key that agreed and that neither side has any more, when the corpus changed', () => {
+    const before = { meta: meta({ corpus_hash: 'one' }), items: { calls: buckets({ agree: ['x'] }) } };
+    const after = { meta: meta({ corpus_hash: 'two' }), items: { calls: buckets({}) } };
 
     const result = compareScorecards(before, after);
 
     expect(result.rows[0].moves).toEqual({ 'agree -> absent': ['x'] });
     expect(result.pass).toBe(true);
+  });
+
+  // The same files, so the reference cannot have dropped it by itself: mast lost the file
+  // or the symbol the key was judged by.
+  it('fails on a key that agreed and that neither side has any more, when the corpus is the same', () => {
+    const before = { meta: meta({ corpus_hash: 'one' }), items: { calls: buckets({ agree: ['x'] }) } };
+    const after = { meta: meta({ corpus_hash: 'one' }), items: { calls: buckets({}) } };
+
+    const result = compareScorecards(before, after);
+
+    expect(result.lostAgree).toEqual([{ item: 'calls', key: 'x', now: 'absent' }]);
+    expect(result.pass).toBe(false);
+  });
+
+  it.each(['unjudged', 'extra'])('fails when a key arrives in %s', (bucket) => {
+    const before = card({ calls: buckets({}) });
+    const after = card({ calls: buckets({ [bucket]: ['x'] }) });
+
+    const result = compareScorecards(before, after);
+
+    expect(result.newUnverified).toEqual([{ item: 'calls', key: 'x', was: 'absent', now: bucket }]);
+    expect(result.pass).toBe(false);
+  });
+
+  it.each([
+    ['root', { root: 'other' }],
+    ['tsconfig', { tsconfig: 'packages/cli/tsconfig.json' }],
+    ['prefix', { prefix: 'packages/cli/' }],
+  ])('refuses two scorecards with a different %s', (field, change) => {
+    const before = { meta: meta({}), items: {} };
+    const after = { meta: meta(change), items: {} };
+
+    const result = compareScorecards(before, after);
+
+    expect(result.refused).toEqual([expect.stringContaining(field)]);
+    expect(result.pass).toBe(false);
+  });
+
+  it('refuses a scorecard that scored no file', () => {
+    const before = { meta: meta({}), items: {} };
+    const after = { meta: meta({ scored_typescript_files: 0 }), items: {} };
+
+    const result = compareScorecards(before, after);
+
+    expect(result.refused).toEqual([expect.stringContaining('no file')]);
+    expect(result.pass).toBe(false);
   });
 
   it('fails when a key is wrong that was not wrong before', () => {

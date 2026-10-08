@@ -66,17 +66,25 @@ function stateOfEachKey(buckets) {
  * each row also carries `moves`, every key whose bucket changed, grouped as
  * `"<before> -> <after>"` with `absent` for a key the run does not have.
  *
- * The comparison fails on either of two things, and lists the keys:
+ * The comparison fails on any of these, and lists the keys:
  *   - `lostAgree`: a key that agreed and no longer does. A key that is gone from both
- *     sides is listed as a move and is not a loss: the corpus changed, and had the
- *     reference kept it the key would be in `lacks`.
+ *     sides is a loss only when the two runs scored the same files (`meta.corpus_hash`):
+ *     the reference cannot have dropped it by itself, so mast lost the file or the symbol
+ *     it was judged by. When the files changed it is listed as a move.
  *   - `newWrong`: a key that is wrong and was not wrong before
+ *   - `newUnverified`: a key that arrives in `unjudged` or `extra`, which is something
+ *     mast stores and the reference does not confirm
+ *   - `refused`: the two scorecards are not of the same corpus (`meta.root`, `tsconfig`,
+ *     `prefix`), or the second scored no file. Checked only when both carry `meta`.
  */
 export function compareScorecards(before, after) {
+  const refused = refusalsOf(before.meta, after.meta);
+  const isSameCorpus = before.meta?.corpus_hash !== undefined && before.meta.corpus_hash === after.meta?.corpus_hash;
   const items = sortedUnique([...Object.keys(before.items), ...Object.keys(after.items)]);
   const rows = [];
   const lostAgree = [];
   const newWrong = [];
+  const newUnverified = [];
   for (const item of items) {
     const was = before.items[item] ?? emptyBuckets();
     const now = after.items[item] ?? emptyBuckets();
@@ -92,12 +100,25 @@ export function compareScorecards(before, after) {
       const to = nowState.get(key) ?? 'absent';
       if (from === to) continue;
       (moves[`${from} -> ${to}`] ??= []).push(key);
-      if (from === 'agree' && to !== 'absent') lostAgree.push({ item, key, now: to });
+      if (from === 'agree' && (to !== 'absent' || isSameCorpus)) lostAgree.push({ item, key, now: to });
       if (to === 'wrong') newWrong.push({ item, key, was: from });
+      if (to === 'unjudged' || to === 'extra') newUnverified.push({ item, key, was: from, now: to });
     }
     rows.push({ item, before: wasCounts, after: nowCounts, delta, moves });
   }
-  return { rows, lostAgree, newWrong, pass: lostAgree.length === 0 && newWrong.length === 0 };
+  const pass = refused.length === 0 && lostAgree.length === 0 && newWrong.length === 0 && newUnverified.length === 0;
+  return { rows, lostAgree, newWrong, newUnverified, refused, pass };
+}
+
+/** Why two scorecards cannot be compared, from their `meta`. Empty when either has none. */
+function refusalsOf(before, after) {
+  if (before === undefined || after === undefined) return [];
+  const reasons = [];
+  for (const field of ['root', 'tsconfig', 'prefix']) {
+    if (before[field] !== after[field]) reasons.push(`${field} differs: ${JSON.stringify(before[field])} and ${JSON.stringify(after[field])}`);
+  }
+  if (after.scored_typescript_files === 0) reasons.push('the second scorecard scored no file');
+  return reasons;
 }
 
 const COLUMNS = ['reference', 'mast', ...BUCKETS];
@@ -139,8 +160,10 @@ export function formatComparison(comparison, { keysPerMove = 20 } = {}) {
   lines.push(
     '',
     comparison.pass
-      ? 'PASS: nothing that agreed was lost, and nothing new is wrong.'
-      : `FAIL: ${comparison.lostAgree.length} that agreed no longer do, ${comparison.newWrong.length} newly wrong.`,
+      ? 'PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.'
+      : (comparison.refused ?? []).length > 0
+        ? `FAIL: not comparable: ${comparison.refused.join('; ')}.`
+        : `FAIL: ${comparison.lostAgree.length} that agreed no longer do, ${comparison.newWrong.length} newly wrong, ${(comparison.newUnverified ?? []).length} newly unjudged or extra.`,
   );
   return lines.join('\n');
 }

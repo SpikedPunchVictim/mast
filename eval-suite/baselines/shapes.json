@@ -1,0 +1,774 @@
+{
+ "check": "eval-suite/graph-scorecard",
+ "meta": {
+  "ran_at": "2026-10-08T20:00:02.265Z",
+  "typescript": "5.9.3",
+  "label": "22e8f05 build, resolver shapes",
+  "root": "resolver-shapes",
+  "tsconfig": "tsconfig.json",
+  "prefix": "",
+  "config_errors": [],
+  "workspace_packages_mapped_to_source": 3,
+  "scored_typescript_files": 31,
+  "tsconfig_files": 31,
+  "corpus_hash": "595f87372a5bbc1c869660be6dcc4a2959e5732e4275a3314d57929c24159d57",
+  "program_source_files": 208,
+  "repeated_symbol_rows": 3,
+  "wall_ms": 440,
+  "peak_rss_mb": 296
+ },
+ "notes": {
+  "call whose callee is not a name or a property": 2,
+  "named import with an alias": 3
+ },
+ "items": {
+  "edge: EXTENDS": {
+   "agree": [
+    "packages/property-override/src/child.ts:Child > packages/property-override/src/base.ts:Base",
+    "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:P"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Events"
+   ]
+  },
+  "edge: IMPLEMENTS": {
+   "agree": [],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "edge: PARENT_OF": {
+   "agree": [
+    "packages/barrel-private/src/barrel.ts:Client > packages/barrel-private/src/barrel.ts:Client.send",
+    "packages/barrel-private/src/barrel2.ts:Legacy > packages/barrel-private/src/barrel2.ts:Legacy.send",
+    "packages/barrel-private/src/real.ts:Client > packages/barrel-private/src/real.ts:Client.send",
+    "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/cls.ts:WithCtor.constructor",
+    "packages/constructor-callers/src/lib.ts:Gadget > packages/constructor-callers/src/lib.ts:Gadget.paint",
+    "packages/constructor-callers/src/lib.ts:Widget > packages/constructor-callers/src/lib.ts:Widget.paint",
+    "packages/local-shadow/src/repo.ts:Repo > packages/local-shadow/src/repo.ts:Repo.find",
+    "packages/new-binding/src/lib.ts:A > packages/new-binding/src/lib.ts:A.run",
+    "packages/new-binding/src/lib.ts:B > packages/new-binding/src/lib.ts:B.run",
+    "packages/new-binding/src/lib.ts:Repo > packages/new-binding/src/lib.ts:Repo.save",
+    "packages/property-override/src/base.ts:Base > packages/property-override/src/base.ts:Base.handle",
+    "packages/property-override/src/base.ts:Base > packages/property-override/src/base.ts:Base.log",
+    "packages/property-override/src/base.ts:Base > packages/property-override/src/base.ts:Base.render",
+    "packages/property-override/src/base.ts:Base > packages/property-override/src/base.ts:Base.value",
+    "packages/property-override/src/child.ts:Child > packages/property-override/src/child.ts:Child.constructor",
+    "packages/property-override/src/child.ts:Child > packages/property-override/src/child.ts:Child.go",
+    "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.create",
+    "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.inst",
+    "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.m",
+    "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.use",
+    "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.inst",
+    "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.make",
+    "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.save",
+    "packages/static-instance/src/st.ts:P > packages/static-instance/src/st.ts:P.make",
+    "packages/static-instance/src/st.ts:P > packages/static-instance/src/st.ts:P.save"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Emitter.emit",
+    "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.make",
+    "packages/same-name-rows/src/a.ts:K > packages/same-name-rows/src/a.ts:K.make"
+   ]
+  },
+  "edge: POTENTIAL_CALL": {
+   "agree": [
+    "packages/app/src/main.ts:main > packages/core/src/client/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/core/src/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/ui/src/components/Button.ts:Button",
+    "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
+    "packages/barrel-private/src/barrel.ts:Client.send > packages/barrel-private/src/barrel.ts:format",
+    "packages/barrel-private/src/barrel.ts:format > packages/barrel-private/src/barrel.ts:helper",
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send",
+    "packages/constructor-callers/src/cls.ts:NoCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/constructor-callers/src/mk.ts:makeNo > packages/constructor-callers/src/cls.ts:NoCtor",
+    "packages/constructor-callers/src/mk.ts:makeWith > packages/constructor-callers/src/cls.ts:WithCtor.constructor",
+    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
+    "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo",
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
+    "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
+    "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P",
+    "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
+   ],
+   "wrong": [
+    "packages/app/src/main.ts:main > packages/core/src/index.ts:setup",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client.send",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:helper",
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
+    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/remote.ts:run",
+    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A.run",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A.run",
+    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.handle",
+    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.log",
+    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.render",
+    "packages/property-override/src/child.ts:outer > packages/property-override/src/base.ts:Base.handle",
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.make",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.save"
+   ],
+   "lacks": [
+    "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client.send",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:format",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:helper",
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:internalFmt",
+    "packages/barrel-private/src/user.ts:use3 > packages/barrel-private/src/x.ts:main",
+    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
+    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run",
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save"
+   ],
+   "extra": [],
+   "unjudged": [
+    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:Repo.find",
+    "packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find",
+    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo.save",
+    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make",
+    "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
+    "packages/same-name-rows/src/a.ts:Handler > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:K",
+    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make",
+    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler"
+   ]
+  },
+  "edge: RE_EXPORTS (to the declaration)": {
+   "agree": [
+    "packages/barrel-private/src/barrel2.ts:Legacy2 > packages/barrel-private/src/real.ts:Client"
+   ],
+   "wrong": [],
+   "lacks": [
+    "packages/barrel-private/src/barrel3.ts:tool > packages/barrel-private/src/x.ts:main"
+   ],
+   "extra": [],
+   "unjudged": []
+  },
+  "export * (file to file)": {
+   "agree": [
+    "packages/barrel-private/src/barrel.ts => packages/barrel-private/src/real.ts"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "file: indexed": {
+   "agree": [
+    "packages/app/src/main.ts",
+    "packages/barrel-private/src/barrel.ts",
+    "packages/barrel-private/src/barrel2.ts",
+    "packages/barrel-private/src/barrel3.ts",
+    "packages/barrel-private/src/real.ts",
+    "packages/barrel-private/src/user.ts",
+    "packages/barrel-private/src/x.ts",
+    "packages/constructor-callers/src/cls.ts",
+    "packages/constructor-callers/src/lib.ts",
+    "packages/constructor-callers/src/mk.ts",
+    "packages/core/src/client/index.ts",
+    "packages/core/src/index.ts",
+    "packages/core/testing/index.ts",
+    "packages/dynamic-import-block/src/local.ts",
+    "packages/dynamic-import-block/src/remote.ts",
+    "packages/dynamic-import-block/src/user.ts",
+    "packages/local-shadow/src/loc.ts",
+    "packages/local-shadow/src/repo.ts",
+    "packages/local-shadow/src/use.ts",
+    "packages/local-shadow/src/useloc.ts",
+    "packages/merged-class/src/emitter.ts",
+    "packages/merged-class/src/user.ts",
+    "packages/new-binding/src/lib.ts",
+    "packages/new-binding/src/user.ts",
+    "packages/property-override/src/base.ts",
+    "packages/property-override/src/child.ts",
+    "packages/same-name-rows/src/a.ts",
+    "packages/same-name-rows/src/user.ts",
+    "packages/static-instance/src/st.ts",
+    "packages/ui/src/components/Button.ts",
+    "packages/ui/src/index.ts"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "import: named binding": {
+   "agree": [
+    "packages/app/src/main.ts { Button } from '@x/ui'",
+    "packages/app/src/main.ts { Button } from '@x/ui/components/Button'",
+    "packages/app/src/main.ts { connect } from '@x/core'",
+    "packages/app/src/main.ts { connect } from '@x/core/client'",
+    "packages/app/src/main.ts { helper } from '@x/core/helpers'",
+    "packages/app/src/main.ts { setup } from '@x/core/testing'",
+    "packages/barrel-private/src/barrel2.ts { Client } from './real'",
+    "packages/barrel-private/src/user.ts { Client } from './barrel'",
+    "packages/barrel-private/src/user.ts { Legacy2 } from './barrel2'",
+    "packages/barrel-private/src/user.ts { fmt2 } from './barrel2'",
+    "packages/barrel-private/src/user.ts { format } from './barrel'",
+    "packages/barrel-private/src/user.ts { helper } from './barrel'",
+    "packages/barrel-private/src/user.ts { tool } from './barrel3'",
+    "packages/constructor-callers/src/cls.ts { target } from './lib'",
+    "packages/constructor-callers/src/mk.ts { NoCtor } from './cls'",
+    "packages/constructor-callers/src/mk.ts { WithCtor } from './cls'",
+    "packages/dynamic-import-block/src/user.ts { run } from './local'",
+    "packages/dynamic-import-block/src/user.ts { run } from './remote'",
+    "packages/local-shadow/src/use.ts { Repo } from './repo'",
+    "packages/local-shadow/src/use.ts { pick } from './repo'",
+    "packages/local-shadow/src/useloc.ts { b } from './loc'",
+    "packages/merged-class/src/user.ts { Emitter } from './emitter'",
+    "packages/new-binding/src/user.ts { A } from './lib'",
+    "packages/new-binding/src/user.ts { B } from './lib'",
+    "packages/new-binding/src/user.ts { Repo } from './lib'",
+    "packages/property-override/src/child.ts { Base } from './base'",
+    "packages/same-name-rows/src/user.ts { Handler } from './a'",
+    "packages/same-name-rows/src/user.ts { K } from './a'"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "import: the file it resolves to": {
+   "agree": [
+    "packages/app/src/main.ts '@x/core' => packages/core/src/index.ts",
+    "packages/app/src/main.ts '@x/core/client' => packages/core/src/client/index.ts",
+    "packages/app/src/main.ts '@x/ui' => packages/ui/src/index.ts",
+    "packages/app/src/main.ts '@x/ui/components/Button' => packages/ui/src/components/Button.ts",
+    "packages/barrel-private/src/barrel2.ts './real' => packages/barrel-private/src/real.ts",
+    "packages/barrel-private/src/user.ts './barrel' => packages/barrel-private/src/barrel.ts",
+    "packages/barrel-private/src/user.ts './barrel2' => packages/barrel-private/src/barrel2.ts",
+    "packages/barrel-private/src/user.ts './barrel3' => packages/barrel-private/src/barrel3.ts",
+    "packages/constructor-callers/src/cls.ts './lib' => packages/constructor-callers/src/lib.ts",
+    "packages/constructor-callers/src/mk.ts './cls' => packages/constructor-callers/src/cls.ts",
+    "packages/dynamic-import-block/src/user.ts './local' => packages/dynamic-import-block/src/local.ts",
+    "packages/dynamic-import-block/src/user.ts './remote' => packages/dynamic-import-block/src/remote.ts",
+    "packages/local-shadow/src/use.ts './repo' => packages/local-shadow/src/repo.ts",
+    "packages/local-shadow/src/useloc.ts './loc' => packages/local-shadow/src/loc.ts",
+    "packages/merged-class/src/user.ts './emitter' => packages/merged-class/src/emitter.ts",
+    "packages/new-binding/src/user.ts './lib' => packages/new-binding/src/lib.ts",
+    "packages/property-override/src/child.ts './base' => packages/property-override/src/base.ts",
+    "packages/same-name-rows/src/user.ts './a' => packages/same-name-rows/src/a.ts"
+   ],
+   "wrong": [
+    "packages/app/src/main.ts '@x/core/testing' => packages/core/src/index.ts"
+   ],
+   "lacks": [
+    "packages/app/src/main.ts '@x/core/testing' => packages/core/testing/index.ts"
+   ],
+   "extra": [],
+   "unjudged": []
+  },
+  "symbol flag: is_exported": {
+   "agree": [
+    "packages/app/src/main.ts:main exported=true",
+    "packages/barrel-private/src/barrel.ts:Client exported=false",
+    "packages/barrel-private/src/barrel.ts:Client.send exported=false",
+    "packages/barrel-private/src/barrel.ts:format exported=false",
+    "packages/barrel-private/src/barrel.ts:helper exported=false",
+    "packages/barrel-private/src/barrel2.ts:Legacy exported=false",
+    "packages/barrel-private/src/barrel2.ts:Legacy.send exported=false",
+    "packages/barrel-private/src/barrel2.ts:fmt exported=false",
+    "packages/barrel-private/src/barrel2.ts:fmt2 exported=true",
+    "packages/barrel-private/src/barrel2.ts:internalFmt exported=false",
+    "packages/barrel-private/src/real.ts:Client exported=true",
+    "packages/barrel-private/src/real.ts:Client.send exported=true",
+    "packages/barrel-private/src/real.ts:format exported=true",
+    "packages/barrel-private/src/real.ts:helper exported=true",
+    "packages/barrel-private/src/user.ts:use exported=true",
+    "packages/barrel-private/src/user.ts:use2 exported=true",
+    "packages/barrel-private/src/user.ts:use3 exported=true",
+    "packages/barrel-private/src/x.ts:main exported=true",
+    "packages/barrel-private/src/x.ts:tool exported=true",
+    "packages/constructor-callers/src/cls.ts:NoCtor exported=true",
+    "packages/constructor-callers/src/cls.ts:WithCtor exported=true",
+    "packages/constructor-callers/src/cls.ts:WithCtor.constructor exported=true",
+    "packages/constructor-callers/src/lib.ts:Gadget exported=true",
+    "packages/constructor-callers/src/lib.ts:Gadget.paint exported=true",
+    "packages/constructor-callers/src/lib.ts:Widget exported=true",
+    "packages/constructor-callers/src/lib.ts:Widget.paint exported=true",
+    "packages/constructor-callers/src/lib.ts:target exported=true",
+    "packages/constructor-callers/src/mk.ts:makeNo exported=true",
+    "packages/constructor-callers/src/mk.ts:makeWith exported=true",
+    "packages/core/src/client/index.ts:connect exported=true",
+    "packages/core/src/index.ts:connect exported=true",
+    "packages/core/src/index.ts:helper exported=true",
+    "packages/core/src/index.ts:setup exported=true",
+    "packages/core/testing/index.ts:setup exported=true",
+    "packages/dynamic-import-block/src/local.ts:run exported=true",
+    "packages/dynamic-import-block/src/remote.ts:run exported=true",
+    "packages/dynamic-import-block/src/user.ts:main exported=true",
+    "packages/local-shadow/src/loc.ts:a exported=false",
+    "packages/local-shadow/src/loc.ts:b exported=true",
+    "packages/local-shadow/src/repo.ts:Repo exported=true",
+    "packages/local-shadow/src/repo.ts:Repo.find exported=true",
+    "packages/local-shadow/src/repo.ts:pick exported=true",
+    "packages/local-shadow/src/use.ts:f exported=true",
+    "packages/local-shadow/src/use.ts:g exported=true",
+    "packages/local-shadow/src/useloc.ts:h exported=true",
+    "packages/merged-class/src/emitter.ts:Emitter exported=true",
+    "packages/merged-class/src/emitter.ts:Emitter.constructor exported=true",
+    "packages/merged-class/src/emitter.ts:Emitter.emit exported=true",
+    "packages/merged-class/src/emitter.ts:Events exported=true",
+    "packages/merged-class/src/user.ts:build exported=true",
+    "packages/new-binding/src/lib.ts:A exported=true",
+    "packages/new-binding/src/lib.ts:A.run exported=true",
+    "packages/new-binding/src/lib.ts:B exported=true",
+    "packages/new-binding/src/lib.ts:B.run exported=true",
+    "packages/new-binding/src/lib.ts:Repo exported=true",
+    "packages/new-binding/src/lib.ts:Repo.save exported=true",
+    "packages/new-binding/src/user.ts:switchCases exported=true",
+    "packages/new-binding/src/user.ts:twoBlocks exported=true",
+    "packages/new-binding/src/user.ts:twoCallbacks exported=true",
+    "packages/property-override/src/base.ts:Base exported=true",
+    "packages/property-override/src/base.ts:Base.handle exported=true",
+    "packages/property-override/src/base.ts:Base.log exported=true",
+    "packages/property-override/src/base.ts:Base.render exported=true",
+    "packages/property-override/src/base.ts:Base.value exported=true",
+    "packages/property-override/src/child.ts:Child exported=true",
+    "packages/property-override/src/child.ts:Child.constructor exported=true",
+    "packages/property-override/src/child.ts:Child.go exported=true",
+    "packages/property-override/src/child.ts:K exported=true",
+    "packages/property-override/src/child.ts:K.create exported=true",
+    "packages/property-override/src/child.ts:K.inst exported=true",
+    "packages/property-override/src/child.ts:K.make exported=true",
+    "packages/property-override/src/child.ts:Over exported=true",
+    "packages/property-override/src/child.ts:Over.acc exported=true",
+    "packages/property-override/src/child.ts:Over.m exported=true",
+    "packages/property-override/src/child.ts:Over.use exported=true",
+    "packages/property-override/src/child.ts:outer exported=true",
+    "packages/same-name-rows/src/a.ts:Handler exported=true",
+    "packages/same-name-rows/src/a.ts:K exported=true",
+    "packages/same-name-rows/src/a.ts:K.make exported=true",
+    "packages/same-name-rows/src/a.ts:leaf exported=true",
+    "packages/same-name-rows/src/user.ts:top exported=true",
+    "packages/same-name-rows/src/user.ts:top2 exported=true",
+    "packages/static-instance/src/st.ts:K exported=true",
+    "packages/static-instance/src/st.ts:K.inst exported=true",
+    "packages/static-instance/src/st.ts:K.make exported=true",
+    "packages/static-instance/src/st.ts:K.save exported=true",
+    "packages/static-instance/src/st.ts:P exported=true",
+    "packages/static-instance/src/st.ts:P.make exported=true",
+    "packages/static-instance/src/st.ts:P.save exported=true",
+    "packages/static-instance/src/st.ts:f exported=true",
+    "packages/static-instance/src/st.ts:g exported=true",
+    "packages/ui/src/components/Button.ts:Button exported=true",
+    "packages/ui/src/index.ts:Button exported=true"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "symbol: class": {
+   "agree": [
+    "packages/barrel-private/src/barrel.ts:Client",
+    "packages/barrel-private/src/barrel2.ts:Legacy",
+    "packages/barrel-private/src/real.ts:Client",
+    "packages/constructor-callers/src/cls.ts:NoCtor",
+    "packages/constructor-callers/src/cls.ts:WithCtor",
+    "packages/constructor-callers/src/lib.ts:Gadget",
+    "packages/constructor-callers/src/lib.ts:Widget",
+    "packages/local-shadow/src/repo.ts:Repo",
+    "packages/merged-class/src/emitter.ts:Emitter",
+    "packages/new-binding/src/lib.ts:A",
+    "packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/lib.ts:Repo",
+    "packages/property-override/src/base.ts:Base",
+    "packages/property-override/src/child.ts:Child",
+    "packages/property-override/src/child.ts:K",
+    "packages/property-override/src/child.ts:Over",
+    "packages/same-name-rows/src/a.ts:K",
+    "packages/static-instance/src/st.ts:K",
+    "packages/static-instance/src/st.ts:P"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "symbol: export": {
+   "agree": [
+    "packages/barrel-private/src/barrel2.ts:Legacy2",
+    "packages/barrel-private/src/barrel3.ts:tool"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "symbol: function": {
+   "agree": [
+    "packages/app/src/main.ts:main",
+    "packages/barrel-private/src/barrel.ts:format",
+    "packages/barrel-private/src/barrel.ts:helper",
+    "packages/barrel-private/src/barrel2.ts:fmt",
+    "packages/barrel-private/src/barrel2.ts:fmt2",
+    "packages/barrel-private/src/barrel2.ts:internalFmt",
+    "packages/barrel-private/src/real.ts:format",
+    "packages/barrel-private/src/real.ts:helper",
+    "packages/barrel-private/src/user.ts:use",
+    "packages/barrel-private/src/user.ts:use2",
+    "packages/barrel-private/src/user.ts:use3",
+    "packages/barrel-private/src/x.ts:main",
+    "packages/barrel-private/src/x.ts:tool",
+    "packages/constructor-callers/src/lib.ts:target",
+    "packages/constructor-callers/src/mk.ts:makeNo",
+    "packages/constructor-callers/src/mk.ts:makeWith",
+    "packages/core/src/client/index.ts:connect",
+    "packages/core/src/index.ts:connect",
+    "packages/core/src/index.ts:helper",
+    "packages/core/src/index.ts:setup",
+    "packages/core/testing/index.ts:setup",
+    "packages/dynamic-import-block/src/local.ts:run",
+    "packages/dynamic-import-block/src/remote.ts:run",
+    "packages/dynamic-import-block/src/user.ts:main",
+    "packages/local-shadow/src/loc.ts:a",
+    "packages/local-shadow/src/loc.ts:b",
+    "packages/local-shadow/src/repo.ts:pick",
+    "packages/local-shadow/src/use.ts:f",
+    "packages/local-shadow/src/use.ts:g",
+    "packages/local-shadow/src/useloc.ts:h",
+    "packages/merged-class/src/user.ts:build",
+    "packages/new-binding/src/user.ts:switchCases",
+    "packages/new-binding/src/user.ts:twoBlocks",
+    "packages/new-binding/src/user.ts:twoCallbacks",
+    "packages/property-override/src/child.ts:outer",
+    "packages/same-name-rows/src/a.ts:Handler",
+    "packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/user.ts:top",
+    "packages/same-name-rows/src/user.ts:top2",
+    "packages/static-instance/src/st.ts:f",
+    "packages/static-instance/src/st.ts:g",
+    "packages/ui/src/components/Button.ts:Button",
+    "packages/ui/src/index.ts:Button"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "symbol: interface": {
+   "agree": [
+    "packages/merged-class/src/emitter.ts:Emitter",
+    "packages/merged-class/src/emitter.ts:Events"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "symbol: method": {
+   "agree": [
+    "packages/barrel-private/src/barrel.ts:Client.send",
+    "packages/barrel-private/src/barrel2.ts:Legacy.send",
+    "packages/barrel-private/src/real.ts:Client.send",
+    "packages/constructor-callers/src/cls.ts:WithCtor.constructor",
+    "packages/constructor-callers/src/lib.ts:Gadget.paint",
+    "packages/constructor-callers/src/lib.ts:Widget.paint",
+    "packages/local-shadow/src/repo.ts:Repo.find",
+    "packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/merged-class/src/emitter.ts:Emitter.emit",
+    "packages/new-binding/src/lib.ts:A.run",
+    "packages/new-binding/src/lib.ts:B.run",
+    "packages/new-binding/src/lib.ts:Repo.save",
+    "packages/property-override/src/base.ts:Base.handle",
+    "packages/property-override/src/base.ts:Base.log",
+    "packages/property-override/src/base.ts:Base.render",
+    "packages/property-override/src/base.ts:Base.value",
+    "packages/property-override/src/child.ts:Child.constructor",
+    "packages/property-override/src/child.ts:Child.go",
+    "packages/property-override/src/child.ts:K.create",
+    "packages/property-override/src/child.ts:K.inst",
+    "packages/property-override/src/child.ts:K.make",
+    "packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:Over.m",
+    "packages/property-override/src/child.ts:Over.use",
+    "packages/same-name-rows/src/a.ts:K.make",
+    "packages/static-instance/src/st.ts:K.inst",
+    "packages/static-instance/src/st.ts:K.make",
+    "packages/static-instance/src/st.ts:K.save",
+    "packages/static-instance/src/st.ts:P.make",
+    "packages/static-instance/src/st.ts:P.save"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "symbol: one key, more than one row": {
+   "agree": [],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/merged-class/src/emitter.ts:Emitter",
+    "packages/property-override/src/child.ts:K.make",
+    "packages/same-name-rows/src/a.ts:Handler",
+    "packages/same-name-rows/src/a.ts:K.make"
+   ]
+  },
+  "symbol: type": {
+   "agree": [
+    "packages/same-name-rows/src/a.ts:Handler"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  }
+ },
+ "breakdowns": {
+  "call edge, stored as construction": {
+   "agree": [
+    "packages/constructor-callers/src/mk.ts:makeNo > packages/constructor-callers/src/cls.ts:NoCtor",
+    "packages/constructor-callers/src/mk.ts:makeWith > packages/constructor-callers/src/cls.ts:WithCtor.constructor",
+    "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo",
+    "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
+   ],
+   "wrong": [
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client"
+   ],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
+    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:K"
+   ]
+  },
+  "call edge, stored as import": {
+   "agree": [
+    "packages/app/src/main.ts:main > packages/core/src/client/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/core/src/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/ui/src/components/Button.ts:Button",
+    "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
+    "packages/constructor-callers/src/cls.ts:NoCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick"
+   ],
+   "wrong": [
+    "packages/app/src/main.ts:main > packages/core/src/index.ts:setup",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:helper",
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
+    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/remote.ts:run",
+    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b"
+   ],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler"
+   ]
+  },
+  "call edge, stored as new_expression": {
+   "agree": [],
+   "wrong": [
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A.run",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A.run"
+   ],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:Repo.find",
+    "packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find",
+    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo.save"
+   ]
+  },
+  "call edge, stored as parameter_type": {
+   "agree": [
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send",
+    "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m"
+   ],
+   "wrong": [
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client.send",
+    "packages/property-override/src/child.ts:outer > packages/property-override/src/base.ts:Base.handle",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.save"
+   ],
+   "lacks": [],
+   "extra": [],
+   "unjudged": []
+  },
+  "call edge, stored as same_file": {
+   "agree": [
+    "packages/barrel-private/src/barrel.ts:Client.send > packages/barrel-private/src/barrel.ts:format",
+    "packages/barrel-private/src/barrel.ts:format > packages/barrel-private/src/barrel.ts:helper"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/same-name-rows/src/a.ts:Handler > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:leaf"
+   ]
+  },
+  "call edge, stored as static_method": {
+   "agree": [
+    "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
+   ],
+   "wrong": [
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.make"
+   ],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make"
+   ]
+  },
+  "call edge, stored as this_method": {
+   "agree": [
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m"
+   ],
+   "wrong": [
+    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.handle",
+    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.log",
+    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.render",
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save"
+   ],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make"
+   ]
+  },
+  "call written as f(), other file": {
+   "agree": [
+    "packages/app/src/main.ts:main > packages/core/src/client/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/core/src/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/ui/src/components/Button.ts:Button",
+    "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
+    "packages/constructor-callers/src/cls.ts:NoCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick"
+   ],
+   "wrong": [],
+   "lacks": [
+    "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:format",
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:helper",
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:internalFmt",
+    "packages/barrel-private/src/user.ts:use3 > packages/barrel-private/src/x.ts:main",
+    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
+    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a"
+   ],
+   "extra": [],
+   "unjudged": [
+    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler"
+   ]
+  },
+  "call written as f(), same file": {
+   "agree": [
+    "packages/barrel-private/src/barrel.ts:Client.send > packages/barrel-private/src/barrel.ts:format",
+    "packages/barrel-private/src/barrel.ts:format > packages/barrel-private/src/barrel.ts:helper"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/same-name-rows/src/a.ts:Handler > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:leaf"
+   ]
+  },
+  "call written as ident.m(), other file": {
+   "agree": [
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send"
+   ],
+   "wrong": [],
+   "lacks": [
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client.send",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run"
+   ],
+   "extra": [],
+   "unjudged": [
+    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make"
+   ]
+  },
+  "call written as ident.m(), same file": {
+   "agree": [
+    "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
+    "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
+   ],
+   "wrong": [],
+   "lacks": [
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save"
+   ],
+   "extra": [],
+   "unjudged": []
+  },
+  "call written as new X(), other file": {
+   "agree": [
+    "packages/constructor-callers/src/mk.ts:makeNo > packages/constructor-callers/src/cls.ts:NoCtor",
+    "packages/constructor-callers/src/mk.ts:makeWith > packages/constructor-callers/src/cls.ts:WithCtor.constructor",
+    "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo"
+   ],
+   "wrong": [],
+   "lacks": [
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client"
+   ],
+   "extra": [],
+   "unjudged": []
+  },
+  "call written as new X(), same file": {
+   "agree": [
+    "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
+   ],
+   "wrong": [],
+   "lacks": [],
+   "extra": [],
+   "unjudged": [
+    "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
+    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:K"
+   ]
+  },
+  "call written as this.m(), same file": {
+   "agree": [
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m"
+   ],
+   "wrong": [],
+   "lacks": [
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save"
+   ],
+   "extra": [],
+   "unjudged": [
+    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make"
+   ]
+  }
+ }
+}

@@ -9,7 +9,8 @@
     ".mast/**",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "integration/results/**"
+    "integration/results/**",
+    "eval-suite/fixtures/**"
   ],
   "include_dot_dirs": [
     ".agents"

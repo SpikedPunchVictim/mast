@@ -33,6 +33,7 @@
  * and the parameter types `mast_signature` resolves when asked. Line numbers are not
  * compared either: keys are paths and names so that two runs can be compared.
  */
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
@@ -153,9 +154,18 @@ function runScore({ flags }) {
   const mastSymbols = {};
   const mastExported = new Map();
   let repeatedRows = 0;
+  /**
+   * Keys that name more than one declaration row: a static and an instance member of one
+   * name, a class merged with an interface, a type and a value of one name. A key cannot
+   * say which row an edge is on, so nothing that touches one is counted as agreeing.
+   */
+  const sharedKeys = new Set();
   for (const s of symbolById.values()) {
     const key = keyOfSymbol(s);
-    if (s.kind !== 'export') declared.add(key);
+    if (s.kind !== 'export') {
+      if (declared.has(key)) sharedKeys.add(key);
+      declared.add(key);
+    }
     if (!scoredPaths.has(s.path)) continue;
     const kindKeys = (mastSymbols[s.kind] ??= new Set());
     if (kindKeys.has(key)) repeatedRows++;
@@ -198,6 +208,15 @@ function runScore({ flags }) {
     }
     parsed.options.paths = { ...paths, ...(parsed.options.paths ?? {}) };
   }
+  // The files the tsconfig names, whatever mast indexed: what `file: indexed` is scored
+  // against, and what says whether two runs are of the same corpus.
+  const configFiles = parsed.fileNames
+    .filter((f) => !f.endsWith('.d.ts') && /\.(ts|tsx|mts|cts)$/.test(f))
+    .map((f) => relative(root, resolve(f)).split(sep).join('/'))
+    .filter((p) => !p.startsWith('..') && p.startsWith(prefix))
+    .sort();
+  const corpusHash = createHash('sha256');
+  for (const p of configFiles) corpusHash.update(p).update('\0').update(readFileSync(join(root, p))).update('\0');
   const program = ts.createProgram({ rootNames: scored.map((f) => join(root, f.path)), options: { ...parsed.options, noEmit: true } });
   const checker = program.getTypeChecker();
   const rel = (fileName) => relative(root, resolve(fileName)).split(sep).join('/');
@@ -301,6 +320,8 @@ function runScore({ flags }) {
     return null;
   }
 
+  /** member key -> the shapes declared under it, to tell an accessor pair from two members. */
+  const accessorShapes = new Map();
   for (const sf of program.getSourceFiles()) {
     const path = rel(sf.fileName);
     if (!scoredPaths.has(path)) continue;
@@ -331,6 +352,11 @@ function runScore({ flags }) {
           add('method', `${className}.${name}`, hasExport(stmt) && !isPrivate);
           if (!isPrivate) publicMembers.push({ className, key: `${path}:${className}.${name}` });
           ref.parentOf.push(pairKey(`${path}:${className}`, `${path}:${className}.${name}`));
+          // A getter and a setter of one property are two rows and one thing.
+          const isAccessor = ts.isGetAccessorDeclaration(m) || ts.isSetAccessorDeclaration(m);
+          const isStatic = (ts.getCombinedModifierFlags(m) & ts.ModifierFlags.Static) !== 0;
+          const shapes = accessorShapes.get(`${path}:${className}.${name}`) ?? new Set();
+          accessorShapes.set(`${path}:${className}.${name}`, shapes.add(`${isAccessor ? 'accessor' : 'other'}:${isStatic}`));
         }
       } else if (ts.isVariableStatement(stmt)) {
         for (const d of stmt.declarationList.declarations) {
@@ -459,8 +485,21 @@ function runScore({ flags }) {
   }
 
   // ---- scoring -------------------------------------------------------------------------
+  for (const [key, shapes] of accessorShapes) {
+    if (shapes.size === 1 && [...shapes][0].startsWith('accessor:')) sharedKeys.delete(key);
+  }
+
   const items = {};
   const breakdowns = {};
+
+  // A file the tsconfig names and mast has no row for has no symbol, edge or import on
+  // either side below, so it is counted here or nowhere.
+  items['file: indexed'] = { ...scoreSets(configFiles, scored.map((f) => f.path)), extra: [] };
+  {
+    const shared = emptyBuckets();
+    for (const key of sharedKeys) if (scoredPaths.has(key.slice(0, key.lastIndexOf(':')))) shared.unjudged.push(key);
+    items['symbol: one key, more than one row'] = shared;
+  }
 
   for (const kind of Object.keys(ref.symbols)) {
     items[`symbol: ${kind}`] = scoreSets(ref.symbols[kind], mastSymbols[kind] ?? []);
@@ -595,6 +634,17 @@ function runScore({ flags }) {
     items['edge: POTENTIAL_CALL'] = all;
   }
 
+  // An edge is keyed by its two ends. One on a shared key may be on either row.
+  const touchesSharedKey = (key) => key.includes(' > ') && key.split(' > ').some((end) => sharedKeys.has(end));
+  for (const group of [items, breakdowns]) {
+    for (const buckets of Object.values(group)) {
+      const moved = buckets.agree.filter(touchesSharedKey);
+      if (moved.length === 0) continue;
+      buckets.agree = buckets.agree.filter((k) => !touchesSharedKey(k));
+      buckets.unjudged = [...buckets.unjudged, ...moved];
+    }
+  }
+
   const card = {
     check: 'eval-suite/graph-scorecard',
     meta: {
@@ -608,6 +658,8 @@ function runScore({ flags }) {
       config_errors: configErrors,
       workspace_packages_mapped_to_source: workspacePackages,
       scored_typescript_files: scored.length,
+      tsconfig_files: configFiles.length,
+      corpus_hash: corpusHash.digest('hex'),
       program_source_files: program.getSourceFiles().length,
       repeated_symbol_rows: repeatedRows,
       wall_ms: Date.now() - started,
@@ -624,6 +676,10 @@ function runScore({ flags }) {
   console.log('\nSeen by the compiler and given no line item:');
   for (const [what, n] of Object.entries(card.notes)) console.log(`  ${String(n).padStart(7)}  ${what}`);
   console.log(`\n${JSON.stringify(card.meta)}\nwritten: ${out}`);
+  if (scored.length === 0) {
+    console.error(`no indexed TypeScript file under ${JSON.stringify(prefix)}: nothing was scored`);
+    process.exit(2);
+  }
   if (configErrors.length > 0) {
     console.error(`tsconfig errors, the reference is not to be trusted: ${configErrors.join('; ')}`);
     process.exit(2);
