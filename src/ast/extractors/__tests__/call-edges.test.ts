@@ -19,6 +19,19 @@ function potentialCalls(edges: readonly EdgeRecord[]): EdgeRecord[] {
 // ---------------------------------------------------------------------------
 
 describe('extractEdges — POTENTIAL_CALL', () => {
+  it('does not give a function the calls made inside a class it declares', () => {
+    const edges = potentialCalls(edgesOf(`
+      function helper(): number { return 1; }
+      export function outer(): void {
+        class Inner { m(): number { return helper(); } }
+        void Inner;
+      }
+    `));
+
+    // `Inner.m` has no symbol, so the call has no caller to be stored under.
+    expect(edges.map((e) => `${e.fromName} -> ${e.toName}`)).toEqual([]);
+  });
+
   it('resolves a same-file function call', () => {
     const edges = potentialCalls(edgesOf(`
       function helper(): number { return 1; }

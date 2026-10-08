@@ -156,6 +156,16 @@ describe('import resolver (§13.7)', () => {
       expect(r.resolvedPath).toBe('pkgs/lib/src/index.ts');
     });
 
+    it('resolves an entry that is a built declaration file to its source, not to the declaration', () => {
+      workspacePackage({ types: 'dist/index.d.ts' });
+      write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');
+      write(root, 'pkgs/lib/dist/index.d.ts', 'export declare const s: number;');
+
+      const r = getImportResolver(root).resolve('@scope/lib', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/src/index.ts');
+    });
+
     it('resolves a `main` built into a format directory (dist/cjs) to its source', () => {
       workspacePackage({ main: 'dist/cjs/index.js', module: 'dist/esm/index.js' });
       write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');

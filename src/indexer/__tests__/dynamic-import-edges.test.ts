@@ -87,6 +87,56 @@ export function fixed(): void { go(); }
     ]);
   });
 
+  it('store nothing for a name the function declares a second time', async () => {
+    writeFiles(dir, {
+      'src/a-lib.ts': LIB_SRC,
+      'src/z-consumer.ts': `export async function f(flag: boolean): Promise<void> {
+  if (flag) {
+    const { go } = await import('./a-lib.js');
+    void go;
+  } else {
+    const go = (): void => {};
+    go();
+  }
+}
+`,
+    });
+
+    // Which `go` a call means is decided per function, so two of them decide nothing.
+    await expectEdges(dir, [LIB_OWN_EDGE]);
+  });
+
+  it('store nothing when the import is not awaited', async () => {
+    writeFiles(dir, {
+      'src/a-lib.ts': LIB_SRC,
+      // Without the await, \`go\` is taken from a promise. TypeScript rejects it; the parser does not.
+      'src/z-consumer.ts': `export function f(): void {
+  const { go } = import('./a-lib.js');
+  go();
+}
+`,
+    });
+
+    await expectEdges(dir, [LIB_OWN_EDGE]);
+  });
+
+  it('leave a call through a parameter typed with a static import of the same name where that import puts it', async () => {
+    writeFiles(dir, {
+      'src/a-lib.ts': LIB_SRC,
+      'src/b-lib.ts': `export class Agent {\n  run(): void {}\n}\n`,
+      'src/z-consumer.ts': `import type { Agent } from './b-lib.js';
+export async function f(given: Agent): Promise<void> {
+  const { Agent } = await import('./a-lib.js');
+  void Agent;
+  given.run();
+}
+`,
+    });
+
+    // The annotation names the type, and only the static import declares a type `Agent`.
+    await expectEdges(dir, [LIB_OWN_EDGE, 'POTENTIAL_CALL src/z-consumer.ts:f -> src/b-lib.ts:Agent.run']);
+  });
+
   it('store nothing for a local destructured from anything else', async () => {
     writeFiles(dir, {
       'src/a-lib.ts': LIB_SRC,
