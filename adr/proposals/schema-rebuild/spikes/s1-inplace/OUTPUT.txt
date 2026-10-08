@@ -1,0 +1,94 @@
+mast 24e5799, tree dirty: no
+
+== two connections (Q1, Q2, Q5) ==
+objects that would be dropped: table files, table symbols, table edges, table re_export_files, table edge_repair_pending, table star_reexport_unresolved, table reexport_aliases, table imports, table chunks, index idx_chunks_file_path, table chunk_fts, table identifier_fts, index idx_symbols_lookup, index idx_symbols_file, index idx_edges_from, index idx_edges_to, index idx_imports_file, index idx_imports_resolved, table checker_verdicts, index idx_checker_verdicts_file
+reader, statements prepared before the clear:
+  count symbols: {"c":100}
+  join symbols to files: {"c":100}
+  fts match: {"c":57}
+  select body_hash: {"c":98}
+  count metrics: {"c":2}
+
+case 1: clear with the same columns
+  clear: {"ms":4.502875,"dropped":["files","symbols","edges","re_export_files","edge_repair_pending","star_reexport_unresolved","reexport_aliases","imports","chunks","chunk_fts","identifier_fts","checker_verdicts"]}
+reader, same prepared statements, after:
+  count symbols: {"c":0}
+  join symbols to files: {"c":0}
+  fts match: {"c":0}
+  select body_hash: {"c":0}
+  count metrics: {"c":2}
+
+case 2: a row written by the writer after the clear
+reader after one file and one symbol were written:
+  count symbols: {"c":1}
+  join symbols to files: {"c":1}
+  fts match: {"c":0}
+  select body_hash: {"c":0}
+  count metrics: {"c":2}
+
+case 3: clear, and symbols comes back without body_hash and with a new NOT NULL column
+  clear: {"ms":9.024209,"dropped":["files","symbols","edges","re_export_files","edge_repair_pending","star_reexport_unresolved","reexport_aliases","imports","chunks","chunk_fts","identifier_fts","checker_verdicts"]}
+  symbols columns now: id,name,kind,file_id,line,is_exported,declaration_hash,shape
+reader, same prepared statements, after:
+  count symbols: {"c":0}
+  join symbols to files: {"c":0}
+  fts match: {"c":0}
+  select body_hash: THROWS SQLITE_ERROR no such column: body_hash
+  count metrics: {"c":2}
+
+case 4: the reader is in the middle of reading when the clear runs
+  clear while a read is open: {"ms":4.555833,"dropped":["files","symbols","edges","re_export_files","edge_repair_pending","star_reexport_unresolved","reexport_aliases","imports","chunks","chunk_fts","identifier_fts","checker_verdicts"]}
+  the open read went on to return 5000 rows (first s0)
+  a new read by the same reader: {"c":0}
+
+case 5: the reader holds a write transaction when the clear runs
+  clear while another connection is writing (busy_timeout 2000): THROWS SQLITE_BUSY database is locked
+
+metrics rows at the end: [33m2[39m
+integrity_check: ok
+page_count: [33m130[39m freelist_count: [33m86[39m bytes: [33m372736[39m
+
+== a running mast serve of this version (Q3, Q4) ==
+arm: remove
+  first index: files: 31 indexed, 0 skipped  chunks: +101 -0  duration: 167ms
+  server before: search "freshlyAdded" []  callers of K.save ["packages/static-instance/src/st.ts:K.inst","packages/static-instance/src/st.ts:f"]
+  metrics rows on disk before: 2
+  rebuild by a second process: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 178ms
+  on disk after: files 32  metrics rows 0
+  server after:  search "freshlyAdded" []  callers of K.save ["packages/static-instance/src/st.ts:K.inst","packages/static-instance/src/st.ts:f"]
+  a new process: callers of K.save ["packages/static-instance/src/fresh.ts:freshlyAdded","packages/static-instance/src/st.ts:K.inst","packages/static-instance/src/st.ts:f"]
+  server mast_status: {"stale_files":1,"cause":null}
+arm: clear
+  first index: files: 31 indexed, 0 skipped  chunks: +101 -0  duration: 133ms
+  server before: search "freshlyAdded" []  callers of K.save ["packages/static-instance/src/st.ts:K.inst","packages/static-instance/src/st.ts:f"]
+  metrics rows on disk before: 2
+  clear in place: "3.1" ms
+  rebuild by a second process: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 108ms
+  on disk after: files 32  metrics rows 2
+  server after:  search "freshlyAdded" ["packages/static-instance/src/fresh.ts"]  callers of K.save ["packages/static-instance/src/fresh.ts:freshlyAdded","packages/static-instance/src/st.ts:K.inst","packages/static-instance/src/st.ts:f"]
+  a new process: callers of K.save ["packages/static-instance/src/fresh.ts:freshlyAdded","packages/static-instance/src/st.ts:K.inst","packages/static-instance/src/st.ts:f"]
+  server mast_status: {"stale_files":0,"cause":null}
+
+== a running mast serve of schema CURRENT_SCHEMA_VERSION = '1.3.0', commit 00319c0 (Q7) ==
+arm: remove
+  index by the old mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 237ms
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [the imports table has no aliases column]
+  old server: search "viaAlias" ["packages/static-instance/src/al.ts"]
+  index by the new mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 189ms
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [{"Kay":"K"}]
+  al.ts edited. old server: search "addedLater" []
+  old server: mast_signature viaAlias -> {"results":[{"symbol":"viaAlias","file_path":"packages/static-instance/src/al.ts","line":2,"signature":"function viaAlias(k: Kay): void","doc":null,"params":[{"
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [{"Kay":"K"}] | files with no mark [] of 32
+  old server: mast_reindex -> {"pending_edge_repairs":0,"files_indexed":32,"files_skipped":0,"chunks_added":103,"chunks_removed":0,"parse_errors":0,"write_errors":0,"stale_write_rejections":
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [the imports table has no aliases column] | the files table has no written_by column
+arm: clear
+  index by the old mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 170ms
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [the imports table has no aliases column]
+  old server: search "viaAlias" ["packages/static-instance/src/al.ts"]
+  index by the new mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 131ms
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [{"Kay":"K"}]
+  al.ts edited. old server: search "addedLater" []
+  old server: mast_signature viaAlias -> {"results":[{"symbol":"viaAlias","file_path":"packages/static-instance/src/al.ts","line":2,"signature":"function viaAlias(k: Kay): void","doc":null,"params":[{"
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [NULL] | files with no mark [packages/static-instance/src/al.ts] of 32
+  old server: mast_reindex -> {"pending_edge_repairs":0,"files_indexed":32,"files_skipped":0,"chunks_added":103,"chunks_removed":0,"parse_errors":0,"write_errors":0,"stale_write_rejections":
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [the imports table has no aliases column] | the files table has no written_by column

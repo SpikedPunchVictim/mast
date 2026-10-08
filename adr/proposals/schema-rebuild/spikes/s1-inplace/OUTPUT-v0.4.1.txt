@@ -1,0 +1,22 @@
+arm: remove
+  index by the old mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 79ms
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [the imports table has no aliases column]
+  old server: search "viaAlias" ["packages/static-instance/src/al.ts"]
+  index by the new mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 98ms
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [{"Kay":"K"}]
+  al.ts edited. old server: search "addedLater" []
+  old server: mast_signature viaAlias -> {"results":[{"symbol":"viaAlias","file_path":"packages/static-instance/src/al.ts","line":2,"signature":"function viaAlias(k: Kay): void","doc":null,"params":[{"
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [{"Kay":"K"}] | files with no mark [] of 32
+  old server: mast_reindex -> {"files_indexed":1,"files_skipped":31,"chunks_added":2,"chunks_removed":1,"parse_errors":0,"write_errors":0,"stale_write_rejections":0,"miscased_imports":0,"dur
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [NULL] | files with no mark [packages/static-instance/src/al.ts] of 32
+arm: clear
+  index by the old mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 156ms
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [the imports table has no aliases column]
+  old server: search "viaAlias" ["packages/static-instance/src/al.ts"]
+  index by the new mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: 135ms
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [{"Kay":"K"}]
+  al.ts edited. old server: search "addedLater" []
+  old server: mast_signature viaAlias -> {"results":[{"symbol":"viaAlias","file_path":"packages/static-instance/src/al.ts","line":2,"signature":"function viaAlias(k: Kay): void","doc":null,"params":[{"
+  on disk: stamp 1.4.0, files 32, aliases of al.ts imports [NULL] | files with no mark [packages/static-instance/src/al.ts] of 32
+  old server: mast_reindex -> {"files_indexed":0,"files_skipped":32,"chunks_added":0,"chunks_removed":0,"parse_errors":0,"write_errors":0,"stale_write_rejections":0,"miscased_imports":0,"dur
+  on disk: stamp 1.3.0, files 32, aliases of al.ts imports [NULL] | files with no mark [packages/static-instance/src/al.ts] of 32

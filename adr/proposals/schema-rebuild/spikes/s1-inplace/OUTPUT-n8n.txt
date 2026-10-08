@@ -1,0 +1,15 @@
+mast 24e5799, n8n 9d9e9bf97e
+empty directory: files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 95908ms
+  files 13985, edge rows 71091, import rows 51963, chunks 73385, pages 108809, free 0, bytes 445681664
+before: db 445681664 bytes, wal 0 bytes, pages 108809, free 0, files 13985, metrics 0
+clear ms: 612.1
+after clear: db 445681664 bytes, wal 733392 bytes, pages 108809, free 108765, files 0, metrics 0
+after checkpoint: db 445681664 bytes, wal 0 bytes, pages 108809, free 108765, files 0, metrics 0
+after the clear: files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 118231ms
+  files 13985, edge rows 71091, import rows 51963, chunks 73385, pages 108809, free 0, bytes 445681664
+before: db 445681664 bytes, wal 0 bytes, pages 108809, free 0, files 13985, metrics 0
+clear ms: 3147.8
+after clear: db 445681664 bytes, wal 749872 bytes, pages 108809, free 108765, files 0, metrics 0
+after checkpoint: db 445681664 bytes, wal 0 bytes, pages 108809, free 108765, files 0, metrics 0
+after a second clear: files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 102825ms
+  files 13985, edge rows 71091, import rows 51963, chunks 73385, pages 108809, free 0, bytes 445681664
