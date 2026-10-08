@@ -30,6 +30,7 @@
  * a gap shows as a number that moves between runs instead of as silence.
  */
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
@@ -117,6 +118,25 @@ export function classifyImportedName({ importRow, edgeStored }) {
   return importRow.resolvedPath === null ? 'package_or_unresolved' : 'not_found';
 }
 
+const textHash = (text) => createHash('sha256').update(text).digest('hex').slice(0, 12);
+
+/**
+ * One line per stored row, by name and path, never by id. Every column a tool reads is in
+ * its line, so a row that an incremental run left as it was shows as a difference (D134).
+ * `chunks.file_mtime` is left out: it differs between two indexes of one tree.
+ */
+export function linesOf({ edges, stars, imports, symbols, reexportAliases, unresolvedStars, chunks }) {
+  return [
+    ...edges.map((e) => `edge|${e.t}|${e.r}|${e.fp}:${e.fn}@${e.fl}|${e.tp}:${e.tn}@${e.tl}|${e.cl ?? ''}|${e.cx ?? ''}`),
+    ...stars.map((s) => `star|${s.f}|${s.t}`),
+    ...imports.map((i) => `import|${i.f}|${i.m}|${i.s}|${i.x}|${i.p}|${i.a ?? ''}`),
+    ...symbols.map((s) => `symbol|${s.k}|${s.p}:${s.n}@${s.l}|${s.x}|${s.d ?? ''}|${s.b ?? ''}`),
+    ...reexportAliases.map((a) => `reexport_alias|${a.f}|${a.e}|${a.s}`),
+    ...unresolvedStars.map((u) => `unresolved_star|${u.f}|${u.m}`),
+    ...chunks.map((c) => `chunk|${c.f}:${c.sl}-${c.el}|${c.t}|${c.n ?? ''}|${c.pn ?? ''}|${c.x}|${textHash(c.c)}`),
+  ];
+}
+
 async function loadMast() {
   const dist = dirname(dirname(MAST_BIN));
   const mod = (path) => import(pathToFileURL(join(dist, path)).href);
@@ -127,14 +147,15 @@ async function loadMast() {
   return { resolveConfig, openDatabase, sql, extractFile, walkProject };
 }
 
-/** Every edge, star row and import row of an index, by name and path, never by id. */
+/** Every row of an index a tool reads, as `linesOf` writes it. */
 async function dumpGraph(mast, stateDir) {
   const { openDatabase, sql } = mast;
   const db = openDatabase(stateDir);
   try {
     const edges = await sql`
       SELECT e.edge_type AS t, COALESCE(e.resolution, '') AS r,
-             ff.path AS fp, fs.name AS fn, fs.line AS fl, tf.path AS tp, ts.name AS tn, ts.line AS tl
+             ff.path AS fp, fs.name AS fn, fs.line AS fl, tf.path AS tp, ts.name AS tn, ts.line AS tl,
+             e.call_line AS cl, e.context AS cx
       FROM edges e
       JOIN symbols fs ON fs.id = e.from_id JOIN files ff ON ff.id = fs.file_id
       JOIN symbols ts ON ts.id = e.to_id   JOIN files tf ON tf.id = ts.file_id
@@ -143,13 +164,25 @@ async function dumpGraph(mast, stateDir) {
       SELECT a.path AS f, b.path AS t FROM re_export_files x
       JOIN files a ON a.id = x.from_file_id JOIN files b ON b.id = x.to_file_id`.execute(db);
     const imports = await sql`
-      SELECT f.path AS f, i.module AS m, i.symbols AS s, i.is_external AS x, COALESCE(i.resolved_path, '') AS p
+      SELECT f.path AS f, i.module AS m, i.symbols AS s, i.is_external AS x, COALESCE(i.resolved_path, '') AS p,
+             i.aliases AS a
       FROM imports i JOIN files f ON f.id = i.file_id`.execute(db);
-    return [
-      ...edges.rows.map((e) => `edge|${e.t}|${e.r}|${e.fp}:${e.fn}@${e.fl}|${e.tp}:${e.tn}@${e.tl}`),
-      ...stars.rows.map((s) => `star|${s.f}|${s.t}`),
-      ...imports.rows.map((i) => `import|${i.f}|${i.m}|${i.s}|${i.x}|${i.p}`),
-    ];
+    const symbols = await sql`
+      SELECT s.kind AS k, f.path AS p, s.name AS n, s.line AS l, s.is_exported AS x,
+             s.declaration_hash AS d, s.body_hash AS b
+      FROM symbols s JOIN files f ON f.id = s.file_id`.execute(db);
+    const reexportAliases = await sql`
+      SELECT f.path AS f, a.exported_name AS e, a.source_name AS s
+      FROM reexport_aliases a JOIN files f ON f.id = a.file_id`.execute(db);
+    const unresolvedStars = await sql`
+      SELECT f.path AS f, u.module AS m FROM star_reexport_unresolved u JOIN files f ON f.id = u.file_id`.execute(db);
+    const chunks = await sql`
+      SELECT file_path AS f, start_line AS sl, end_line AS el, chunk_type AS t, symbol_name AS n,
+             parent_symbol AS pn, is_exported AS x, content AS c FROM chunks`.execute(db);
+    return linesOf({
+      edges: edges.rows, stars: stars.rows, imports: imports.rows, symbols: symbols.rows,
+      reexportAliases: reexportAliases.rows, unresolvedStars: unresolvedStars.rows, chunks: chunks.rows,
+    });
   } finally {
     await db.destroy();
   }
@@ -233,11 +266,13 @@ async function main() {
     git('checkout', '-q', '--detach', commits[0]);
     cli('index', '--state-dir', replayState, clone);
     const filesWritten = [];
+    const filesSkipped = [];
     for (let i = 1; i < commits.length; i++) {
       git('checkout', '-q', '--detach', commits[i]);
       const out = cli('index', '--incremental', '--state-dir', replayState, clone);
-      const match = /files: (\d+) indexed/.exec(out);
+      const match = /files: (\d+) indexed, (\d+) skipped/.exec(out);
       filesWritten.push(match === null ? null : Number(match[1]));
+      filesSkipped.push(match === null ? null : Number(match[2]));
       if (i % 20 === 0) process.stderr.write(`replayed ${i} of ${commits.length - 1}\n`);
     }
     const status = JSON.parse(cli('status', '--json', '--state-dir', replayState, clone));
@@ -264,6 +299,7 @@ async function main() {
       replayed: { base: commits[0], final: commits[commits.length - 1], commits: commits.length - 1, commits_asked_for: args.commits },
       runs_that_wrote_a_file: written.filter((n) => n > 0).length,
       files_written_per_run: { max: written[written.length - 1] ?? null, total: written.reduce((a, b) => a + b, 0), unparsed_runs: filesWritten.length - written.length },
+      files_skipped_per_run: { min: Math.min(...filesSkipped.filter((n) => n !== null)), max: Math.max(...filesSkipped.filter((n) => n !== null)) },
       status_after_replay: { stale_files: status.stale_files, pending_edge_repairs: status.pending_edge_repairs, index_fresh: status.index_fresh },
       lines: { after_replay: new Set(replayed).size, full_index: new Set(full).size },
       missing_after_replay: diff.missing,

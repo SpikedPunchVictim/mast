@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -15,7 +16,8 @@ import { runIndex } from '../index.js';
 //
 //   expectGraphEqualsFullIndex — the stored graph against a fresh full index
 //   of the same tree. Catches an incremental run that loses or keeps an edge
-//   (D080, D081, D084). It cannot see an edge the full index itself gets wrong.
+//   (D080, D081, D084), or leaves any other stored row as it was (D132, D133).
+//   It cannot see an edge the full index itself gets wrong.
 //
 //   expectEdges — a full index against edges written out by hand. Catches what
 //   the first cannot (D083, D085, D086), because the expected side does not
@@ -180,18 +182,91 @@ export async function expectStoredEdges(
   expect(dump.edges).toEqual([...expected].sort());
 }
 
+/** Everything `dumpGraph` leaves out, for index-against-index comparison only. */
+export interface StoredRowsDump {
+  /** One line per symbol row: kind, place, line, export flag, both hashes. */
+  readonly symbols: readonly string[];
+  /** One line per import row that has local names. */
+  readonly importAliases: readonly string[];
+  readonly reexportAliases: readonly string[];
+  readonly unresolvedStars: readonly string[];
+  /** One line per chunk: place, type, names, export flag, a hash of its text. */
+  readonly chunks: readonly string[];
+  /** One line per edge row, with its call line and context. Not a set: two calls are two lines. */
+  readonly edgeRows: readonly string[];
+}
+
+/**
+ * The rows `dumpGraph` does not list (D134). Kept apart from it because its
+ * other callers compare with lists written by hand, where a hash or a line
+ * number would make every expected line restate an implementation detail.
+ * `chunks.file_mtime` and every id are left out: they differ between two
+ * indexes of one tree.
+ */
+export async function dumpStoredRows(config: ResolvedConfig): Promise<StoredRowsDump> {
+  const db = openDatabase(config.resolved_state_dir);
+  try {
+    const lines = async (query: ReturnType<typeof sql<{ line: string }>>): Promise<readonly string[]> =>
+      (await query.execute(db)).rows.map((r) => r.line).sort();
+    const chunkRows = (
+      await sql<{ place: string; content: string }>`
+        SELECT file_path || ':' || start_line || '-' || end_line || ' ' || chunk_type || ' ' ||
+               COALESCE(symbol_name, '') || ' in ' || COALESCE(parent_symbol, '') ||
+               ' exported ' || is_exported || ' ' || language AS place, content
+        FROM chunks`.execute(db)
+    ).rows;
+    return {
+      symbols: await lines(sql<{ line: string }>`
+        SELECT s.kind || ' ' || f.path || ':' || s.name || ' line ' || s.line || ' exported ' ||
+               s.is_exported || ' decl ' || COALESCE(s.declaration_hash, '') || ' body ' ||
+               COALESCE(s.body_hash, '') AS line
+        FROM symbols s JOIN files f ON f.id = s.file_id`),
+      importAliases: await lines(sql<{ line: string }>`
+        SELECT f.path || ' <- ' || i.module || ' ' || i.aliases AS line
+        FROM imports i JOIN files f ON f.id = i.file_id WHERE i.aliases IS NOT NULL`),
+      reexportAliases: await lines(sql<{ line: string }>`
+        SELECT f.path || ': ' || a.exported_name || ' is ' || a.source_name AS line
+        FROM reexport_aliases a JOIN files f ON f.id = a.file_id`),
+      unresolvedStars: await lines(sql<{ line: string }>`
+        SELECT f.path || ' * ' || u.module AS line
+        FROM star_reexport_unresolved u JOIN files f ON f.id = u.file_id`),
+      chunks: chunkRows
+        .map((c) => `${c.place} ${createHash('sha256').update(c.content).digest('hex').slice(0, 12)}`)
+        .sort(),
+      edgeRows: await lines(sql<{ line: string }>`
+        SELECT e.edge_type || ' ' || ff.path || ':' || fs.name || ' -> ' || tf.path || ':' || ts.name ||
+               ' line ' || COALESCE(e.call_line, '') || ' ' || COALESCE(e.context, '') AS line
+        FROM edges e
+        JOIN symbols fs ON fs.id = e.from_id JOIN files ff ON ff.id = fs.file_id
+        JOIN symbols ts ON ts.id = e.to_id   JOIN files tf ON tf.id = ts.file_id
+        WHERE COALESCE(e.resolution, '') != 'checker'`),
+    };
+  } finally {
+    await db.destroy();
+  }
+}
+
 /**
  * T1. Requires the stored graph of `projectDir` to equal a fresh full index of
  * the same tree, built into a state directory of its own so the stored graph
- * is not disturbed.
+ * is not disturbed. `withChunks: false` is for a test whose own chunk store is
+ * a fake that keeps nothing.
  */
-export async function expectGraphEqualsFullIndex(projectDir: string): Promise<void> {
+export async function expectGraphEqualsFullIndex(
+  projectDir: string,
+  options: { readonly withChunks: boolean } = { withChunks: true },
+): Promise<void> {
   const freshStateDir = mkdtempSync(join(tmpdir(), 'mast-fresh-state-'));
   try {
     await indexFull(projectDir, freshStateDir);
     const stored = await dumpGraph(configFor(projectDir), { withResolution: true });
     const fresh = await dumpGraph(configFor(projectDir, freshStateDir), { withResolution: true });
     expect(stored).toEqual(fresh);
+    const storedRows = await dumpStoredRows(configFor(projectDir));
+    const freshRows = await dumpStoredRows(configFor(projectDir, freshStateDir));
+    expect(options.withChunks ? storedRows : { ...storedRows, chunks: [] }).toEqual(
+      options.withChunks ? freshRows : { ...freshRows, chunks: [] },
+    );
   } finally {
     rmSync(freshStateDir, { recursive: true, force: true });
   }

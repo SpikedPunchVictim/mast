@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { diffDumps, verdictOf, classifyImportedName, parseArgs, outPathOf } from '../replay-check.mjs';
+import { diffDumps, verdictOf, classifyImportedName, parseArgs, outPathOf, linesOf } from '../replay-check.mjs';
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 
@@ -28,6 +28,42 @@ describe('diffDumps', () => {
     const diff = diffDumps(['a'], ['a', 'b', 'b']);
 
     expect(diff.missing).toEqual(['b']);
+  });
+});
+
+describe('linesOf', () => {
+  const tables = {
+    edges: [{ t: 'POTENTIAL_CALL', r: 'import', fp: 'a.ts', fn: 'f', fl: 1, tp: 'b.ts', tn: 'g', tl: 2, cl: 3, cx: 'g()' }],
+    stars: [{ f: 'a.ts', t: 'b.ts' }],
+    imports: [{ f: 'a.ts', m: './b', s: '["g"]', x: 0, p: 'b.ts', a: '{"h":"g"}' }],
+    symbols: [{ k: 'function', p: 'b.ts', n: 'g', l: 2, x: 1, d: 'dh', b: 'bh' }],
+    reexportAliases: [{ f: 'a.ts', e: 'h', s: 'g' }],
+    unresolvedStars: [{ f: 'a.ts', m: './gone' }],
+    chunks: [{ f: 'b.ts', sl: 2, el: 4, t: 'function', n: 'g', pn: null, x: 1, c: 'function g() {}' }],
+  };
+  // One changed column per case: the lines must differ, or the replay cannot see it (D134).
+  const changes = [
+    ['the line of a call', 'edges', { cl: 9 }],
+    ['an import alias', 'imports', { a: null }],
+    ['a symbol export flag', 'symbols', { x: 0 }],
+    ['a symbol line', 'symbols', { l: 5 }],
+    ['a symbol declaration hash', 'symbols', { d: 'other' }],
+    ['a symbol body hash', 'symbols', { b: 'other' }],
+    ['the source of a re-export alias', 'reexportAliases', { s: 'k' }],
+    ['the module of an unresolved star', 'unresolvedStars', { m: './other' }],
+    ['a chunk export flag', 'chunks', { x: 0 }],
+    ['the text of a chunk', 'chunks', { c: 'function g() { return 1; }' }],
+    ['the end of a chunk', 'chunks', { el: 5 }],
+  ];
+
+  it('gives one line per row', () => {
+    expect(linesOf(tables)).toHaveLength(7);
+  });
+
+  it.each(changes)('gives another line when %s changes', (_what, table, change) => {
+    const changed = { ...tables, [table]: [{ ...tables[table][0], ...change }] };
+
+    expect(diffDumps(linesOf(changed), linesOf(tables)).missing).toHaveLength(1);
   });
 });
 

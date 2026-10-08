@@ -10,7 +10,10 @@ Experiment scripts stay in `eval/` (ADR 001). Checks meant to be run again and a
 
 - `eval-suite/replay-check.mjs` — T12. (In `eval/` until 2026-10-07, when the T12 runs were made.) Replays the last N first-parent commits of a repository
   through `mast index --incremental`, one at a time, in a temporary clone, and compares every
-  edge, star row and import row with a full index of the final tree. Passes when no line
+  edge (with its call line), star row, import row (with its aliases), symbol row (line, export
+  flag, both hashes), re-export alias, unresolved star and chunk with a full index of the final
+  tree. Until 2026-10-08 it compared edges, star rows and imports without aliases (D134). Not
+  compared: the two FTS tables and `files.language`. Passes when no line
   differs either way, nothing is stale and no repair is pending. Also counts, for the final
   tree, the imported names the resolver did not find. Not part of `pnpm gate`; run before a
   release. Pure logic pinned by `eval-suite/__tests__/replay-check.test.mjs`.

@@ -83,7 +83,9 @@ describe('a file whose parse fails', () => {
     expect(await indexedPaths(config.resolved_state_dir)).toEqual(['src/doomed.ts', 'src/good.ts']);
     expect(Object.keys(readManifest(config.resolved_state_dir)).sort())
       .toEqual(['src/doomed.ts', 'src/good.ts']);
-    await expectGraphEqualsFullIndex(dir);
+    // The fake store above kept no chunk of good.ts, and nothing re-reads an
+    // unchanged file, so chunks are the one thing that cannot match here.
+    await expectGraphEqualsFullIndex(dir, { withChunks: false });
   });
 
   it('keeps reporting the error for as long as it keeps failing', async () => {
@@ -135,7 +137,9 @@ describe('a file whose write fails', () => {
     expect(second.filesIndexed).toBe(1);
     expect(Object.keys(readManifest(config.resolved_state_dir)).sort())
       .toEqual(['src/doomed.ts', 'src/good.ts']);
-    await expectGraphEqualsFullIndex(dir);
+    // The fake store above kept no chunk of good.ts, and nothing re-reads an
+    // unchanged file, so chunks are the one thing that cannot match here.
+    await expectGraphEqualsFullIndex(dir, { withChunks: false });
   });
 });
 
