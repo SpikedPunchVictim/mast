@@ -1391,7 +1391,7 @@ function importResolvedPathFor(
  * edge to the real declaration; a star re-export (`export * from`) leaves a
  * `re_export_files` row. Both are walked before giving up.
  */
-async function resolveInFileOrReExportChain(
+export async function resolveInFileOrReExportChain(
   db: Db,
   resolvedPath: string,
   toName: string,

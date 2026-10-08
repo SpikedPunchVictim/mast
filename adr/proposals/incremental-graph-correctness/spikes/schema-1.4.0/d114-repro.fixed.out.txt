@@ -1,0 +1,4 @@
+export { Shape } from './types.js';
+[{"name":"Shape","signature":"export interface Shape { area(): number }\n","file_path":"src/types.ts","line":1,"truncated":false}]
+export * from './types.js';
+[{"name":"Shape","signature":"export interface Shape { area(): number }\n","file_path":"src/types.ts","line":1,"truncated":false}]

@@ -1,0 +1,19 @@
+{
+ "tally": {
+  "aliases": 655,
+  "external_or_unresolved": 279,
+  "in_resolved_file": 213,
+  "elsewhere": 62,
+  "none": 101
+ },
+ "elsewhere": [
+  "packages/@n8n/ai-workflow-builder.ee/evaluations/support/pin-data-generator.ts: buildSchemaContextsShared -> packages/@n8n/workflow-sdk/src/mock-data/context.ts",
+  "packages/@n8n/ai-workflow-builder.ee/evaluations/support/pin-data-generator.ts: workflowToMermaidShared -> packages/@n8n/workflow-sdk/src/mock-data/mermaid.ts",
+  "packages/@n8n/ai-workflow-builder.ee/src/chains/parameter-updater.ts: createPromptBuilder -> packages/@n8n/ai-workflow-builder.ee/src/prompts/builder/prompt-builder.ts",
+  "packages/@n8n/backend-common/src/logging/logger.ts: LoggerType -> packages/workflow/src/interfaces.ts",
+  "packages/@n8n/backend-test-utils/src/test-db.ts: Connection -> packages/@n8n/typeorm/src/data-source/DataSource.ts",
+  "packages/@n8n/computer-use/src/tools/browser/index.ts: BrowserConfig -> packages/@n8n/mcp-browser/src/types.ts",
+  "packages/@n8n/db/src/constants.ts: RoleDTO -> packages/@n8n/permissions/src/schemas.ee.ts",
+  "packages/@n8n/db/src/entities/scope.ts: ScopeType -> packages/@n8n/permissions/src/types.ee.ts"
+ ]
+}

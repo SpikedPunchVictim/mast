@@ -32,3 +32,12 @@ the local name (from reading the code; the 1.3.0 build was not run through this 
   for n8n (85 to 107 s on this machine, under load).
 - An old-version `mast serve` left running on a state directory the new version has rebuilt
   (noted under D113).
+
+## D114 fixed (2026-10-08)
+
+Same index, the build with the lookup following re-exports (`alias-check-n8n.fixed.json`): of
+the 376, 213 from the file the import resolves to, 62 from a file behind it, 101 nothing.
+Before: 205, 112, 59. The script cannot say whether an answer from another file is
+right; before the fix such an answer came from a lookup by name, and now it comes from the
+re-export walk. The 62 were not read one by one. `d114-repro.fixed.out.txt`: both forms give
+`src/types.ts`.

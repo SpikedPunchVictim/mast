@@ -2,6 +2,7 @@ import { sql } from 'kysely';
 import type { Db } from './db.js';
 import { EdgeType } from './db.js';
 import { pathPrefixUpperBound } from './path-range.js';
+import { resolveInFileOrReExportChain } from './populate.js';
 import type {
   DependencyEntry,
   ImplementorResult,
@@ -469,44 +470,48 @@ async function resolveOneType(
     .select(['s.name', 'f.path as file_path', 's.line'])
     .where('s.name', '=', typeName)
     .where('f.path', '=', containingFilePath)
+    // A marker is a name the file re-exports, not a declaration in it.
+    .where('s.kind', '!=', 'export')
     .executeTakeFirst();
 
   if (sameFile !== undefined) {
     return buildEntry(db, typeName, sameFile.file_path, sameFile.line, signatureLimit);
   }
 
-  // 2. Named imports — walk each internal import for the file and check if the
-  //    type is in the imported symbols list.
+  // 2. Named imports. A name an import binds is that import and nothing else:
+  //    when its declaration cannot be reached (a package, a module that matched
+  //    no file, a file that does not export it) the answer is nothing. Falling
+  //    through to step 3 would name an unrelated type that happens to share
+  //    the name, with no sign that it was a guess (D114).
   const imports = await db
     .selectFrom('imports as i')
     .innerJoin('files as f', 'f.id', 'i.file_id')
     .select(['i.symbols', 'i.aliases', 'i.resolved_path'])
     .where('f.path', '=', containingFilePath)
-    .where('i.is_external', '=', 0)
     .execute();
 
   for (const imp of imports) {
-    if (imp.resolved_path === null) continue;
     const exportedName = exportedNameOf(typeName, imp);
     if (exportedName === null) continue;
+    if (imp.resolved_path === null) return null;
 
-    // The resolved_path may lack an extension — use a prefix range to match
-    // `resolved/path.ts`, `resolved/path/index.ts`, etc.
-    const importedRow = await db
+    // The file the import resolves to is often a barrel, so the declaration is
+    // found the way the call resolver finds it: through named re-exports and
+    // `export *` rows.
+    const declarationId = await resolveInFileOrReExportChain(db, imp.resolved_path, exportedName);
+    if (declarationId === null) return null;
+    const declaration = await db
       .selectFrom('symbols as s')
       .innerJoin('files as f', 'f.id', 's.file_id')
       .select(['s.name', 'f.path as file_path', 's.line'])
-      .where('s.name', '=', exportedName)
-      .where('f.path', '>=', imp.resolved_path)
-      .where('f.path', '<', pathPrefixUpperBound(imp.resolved_path))
+      .where('s.id', '=', declarationId)
       .executeTakeFirst();
+    if (declaration === undefined) return null;
 
-    if (importedRow !== undefined) {
-      const entry = await buildEntry(db, exportedName, importedRow.file_path, importedRow.line, signatureLimit);
-      // The entry answers for the name the signature uses; its text is the
-      // declaration, under the name the module gives it.
-      return { ...entry, name: typeName };
-    }
+    const entry = await buildEntry(db, declaration.name, declaration.file_path, declaration.line, signatureLimit);
+    // The entry answers for the name the signature uses; its text is the
+    // declaration, under the name it was declared with.
+    return { ...entry, name: typeName };
   }
 
   // 3. Global fallback — any exported interface, type alias, or class.

@@ -199,3 +199,58 @@ describe('resolveTypeContext after only an import alias changes', () => {
     expect(result.map((entry) => entry.file_path)).toEqual(['types.ts']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// D114. The file an import resolves to is often not the file that declares the
+// name. A decoy exports an unrelated type of the same name and sorts first, so
+// a lookup that guesses by name lands on it.
+// ---------------------------------------------------------------------------
+describe('resolveTypeContext through a re-export', () => {
+  let dir: string;
+  let barrelDb: ReturnType<typeof openDatabase>;
+
+  const USER = (specifier: string, from: string): string =>
+    `import { ${specifier} } from '${from}';\n${'\n'.repeat(12)}export function draw(): void {}\n`;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-resolve-types-barrel-'));
+    writeFileSync(join(dir, 'types.ts'), TYPES_SRC);
+    writeFileSync(join(dir, 'a-decoy.ts'), `export interface Shape { decoy: true }\nexport interface Form { decoy: true }\n`);
+    writeFileSync(join(dir, 'named.ts'), `export { Shape } from './types';\n`);
+    writeFileSync(join(dir, 'star.ts'), `export * from './types';\n`);
+    writeFileSync(join(dir, 'renamed.ts'), `export { Shape as Form } from './types';\n`);
+    writeFileSync(join(dir, 'via-named.ts'), USER('Shape', './named'));
+    writeFileSync(join(dir, 'via-star.ts'), USER('Shape', './star'));
+    writeFileSync(join(dir, 'via-renamed.ts'), USER('Form', './renamed'));
+    writeFileSync(join(dir, 'via-package.ts'), USER('Shape', 'some-package'));
+    writeFileSync(join(dir, 'via-nothing.ts'), USER('Shape', './star-of-nothing'));
+    writeFileSync(join(dir, 'star-of-nothing.ts'), `export * from './consumers-absent';\nexport const unrelated = 1;\n`);
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    barrelDb = openDatabase(config.resolved_state_dir);
+  });
+  afterAll(async () => {
+    await barrelDb.destroy();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it.each([
+    ['a named re-export', 'via-named.ts', 'Shape'],
+    ['an export *', 'via-star.ts', 'Shape'],
+    ['a re-export under a second name', 'via-renamed.ts', 'Form'],
+  ])('reaches the declaration behind %s', async (_shape, file, name) => {
+    const result = await resolveTypeContext(barrelDb, [name], file);
+
+    expect(result.map((entry) => [entry.name, entry.file_path])).toEqual([[name, 'types.ts']]);
+    expect(result[0]?.signature).toContain('interface Shape');
+  });
+
+  it.each([
+    ['a package', 'via-package.ts'],
+    ['a file that does not export it', 'via-nothing.ts'],
+  ])('gives nothing for a name imported from %s, though another file exports one', async (_source, file) => {
+    const result = await resolveTypeContext(barrelDb, ['Shape'], file);
+
+    expect(result).toEqual([]);
+  });
+});

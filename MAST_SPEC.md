@@ -1483,15 +1483,20 @@ callers pattern already in §6.3.
 **`type_context` resolution rules:**
 1. Extract all named types from `params` and `return_type`.
 2. For each type name, resolve the declaration using this priority order:
-   a. **Same file first:** query `symbols` where `file_id = <containing file's id>` and
-      `name = <type name>`. This handles types defined alongside the function.
-   b. **Imports:** query `imports` for the containing file; find the row where `symbols`
-      contains the type name. Resolve `resolved_path` using the path resolver (see
-      §13.7) for tsconfig aliases and workspace packages.
-   c. **RE_EXPORTS chain:** if not found via imports, walk the `re_export_files` chain
-      recursively (same CTE as §6.3 barrel resolution) to find a file that defines the
-      type. This handles barrel files that re-export types without explicit `import`.
-   d. **Not found:** treat as external; omit from `type_context` (do not error).
+   a. **Same file first:** a `symbols` row of the containing file with that name that
+      is not a re-export marker. This handles types defined alongside the function.
+   b. **Imports:** the `imports` row of the containing file that binds the name. A
+      specifier written `{ a as b }` binds `b` and not `a` (`imports.aliases`, schema
+      1.4.0). The declaration is then looked for from `resolved_path` under the
+      exported name, through named re-exports and `export *` rows, by the walk the
+      call resolver uses (§10.3.1). The entry carries the name the signature uses and
+      the text of the declaration.
+   c. **Bound and not reached:** when an import binds the name and no declaration is
+      reached (a package, a module that matched no file, a file that does not export
+      it), omit the type. No other file is tried (D114).
+   d. **Not bound in the file:** any exported interface, type alias or class of that
+      name in the project, first by path. This is a guess, kept for global types and
+      for files mast did not get an import row from; omit when there is none.
 3. If found in the monorepo: extract the declaration from `graph.db` `symbols` table —
    signature only, no body. Do not re-parse the file with tree-sitter.
 4. Include as a `type_context` entry.
