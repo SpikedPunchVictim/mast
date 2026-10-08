@@ -2008,6 +2008,7 @@ declaration. Line-based splitting is a fallback, not the primary strategy.
 | `arrow_function` → `const` | `function` | variable name | `null` | has `export` modifier |
 | `class_declaration` | `class_shell` (synthesized) | class name | `null` | has `export` modifier |
 | `method_definition` (inside class) | `method` | `ClassName.methodName` | class name | inherits from class **and** non-`private` |
+| `abstract_method_signature`, `method_signature` (inside class) | `method` | `ClassName.methodName` | class name | as above. A method with no body: `abstract m(): T;` or `m?(): T;`. An overload beside its implementation is not a symbol of its own (D107) |
 | `interface_declaration` | `interface` | interface name | `null` | has `export` modifier |
 | `type_alias_declaration` | `type` | type name | `null` | has `export` modifier |
 | `export_statement` wrapping any above | inherits inner | inherits inner | inherits inner | `true` |

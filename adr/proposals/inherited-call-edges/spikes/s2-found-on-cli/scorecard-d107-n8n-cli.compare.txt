@@ -1,0 +1,148 @@
+before: eval-suite/baselines/n8n-cli.json.gz
+after:  eval-suite/out/n8n-cli.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+edge: PARENT_OF                            7561      7561      7561         0         0         0         0
+                                              .       +22       +22         .       -22         .         .
+edge: POTENTIAL_CALL                      23829     17811     17807         0      6022         0         4
+                                            +23        +2        +2         .       +21         .         .
+edge: RE_EXPORTS (to the declaration)       139       135       135         0         4         0         0
+export * (file to file)                      20        20        20         0         0         0         0
+import: named binding                     17721     17721     17721         0         0         0         0
+import: the file it resolves to           10010     10011     10010         0         0         0         1
+symbol flag: is_exported                  12824     12824     12824         0         0         0         0
+                                            +22       +22       +22         .         .         .         .
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              161       161       161         0         0         0         0
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7561      7561      7561         0         0         0         0
+                                              .       +22       +22         .       -22         .         .
+symbol: type                                976       976       976         0         0         0         0
+
+Keys that changed bucket:
+  edge: PARENT_OF: lacks -> agree (22)
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createBridgeExecutionContext
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createResumeExecutionContext
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeAction
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeContextQuery
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.formatActionDecisionMessage
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getPlatformAgentContext
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getReplyExpectation
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.handleUnauthenticatedWebhook
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.isUserAllowed
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.matchesWebhookConnection
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.normalizeComponents
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onAfterConnect
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeConnect
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeDisconnect
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onConnected
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onDisconnected
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.prepareInboundText
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.resolveWebhookRequest
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.settleActionMessage
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.shouldSubscribeToNewMention
+    ... 2 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> agree (2)
+    packages/cli/src/task-runners/task-runner-process-base.ts:TaskRunnerProcessBase.monitorProcess > packages/cli/src/task-runners/task-runner-process-base.ts:TaskRunnerProcessBase.setupProcessMonitoring
+    packages/cli/src/task-runners/task-runner-process-base.ts:TaskRunnerProcessBase.onProcessExit > packages/cli/src/task-runners/task-runner-process-base.ts:TaskRunnerProcessBase.analyzeExitReason
+  edge: POTENTIAL_CALL: absent -> lacks (21)
+    packages/cli/src/modules/agents/agent-integrations.controller.ts:AgentIntegrationsController.handleWebhook > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.handleUnauthenticatedWebhook
+    packages/cli/src/modules/agents/agent-integrations.controller.ts:AgentIntegrationsController.handleWebhook > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.resolveWebhookRequest
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.canUserAccess > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.isUserAllowed
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.constructor > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createResumeExecutionContext
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.constructor > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.formatActionDecisionMessage
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.executeAndStream > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getReplyExpectation
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.getPlatformAgentContext > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getPlatformAgentContext
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.prepareInboundText > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.prepareInboundText
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.registerHandlers > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.shouldSubscribeToNewMention
+    packages/cli/src/modules/agents/integrations/agent-chat-bridge.ts:AgentChatBridge.resolveBridgeExecutionContext > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createBridgeExecutionContext
+    packages/cli/src/modules/agents/integrations/chat-integration.service.ts:ChatIntegrationService.connect > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onAfterConnect
+    packages/cli/src/modules/agents/integrations/chat-integration.service.ts:ChatIntegrationService.connect > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeConnect
+    packages/cli/src/modules/agents/integrations/chat-integration.service.ts:ChatIntegrationService.connect > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onConnected
+    packages/cli/src/modules/agents/integrations/chat-integration.service.ts:ChatIntegrationService.disconnectOne > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeDisconnect
+    packages/cli/src/modules/agents/integrations/chat-integration.service.ts:ChatIntegrationService.getWebhookHandler > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.matchesWebhookConnection
+    packages/cli/src/modules/agents/integrations/chat-integration.service.ts:ChatIntegrationService.runDisconnectedHook > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onDisconnected
+    packages/cli/src/modules/agents/integrations/component-mapper.ts:ComponentMapper.toCard > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.normalizeComponents
+    packages/cli/src/modules/agents/integrations/integration-action-executor.ts:ChatIntegrationActionExecutor.execute > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeAction
+    packages/cli/src/modules/agents/integrations/integration-context-query-executor.ts:ChatIntegrationContextQueryExecutor.execute > packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeContextQuery
+    packages/cli/src/node-execution/ephemeral-node-executor.ts:EphemeralNodeExecutor.executeNodeDirectly > packages/workflow/src/interfaces.ts:Node.execute
+    ... 1 more, in the JSON
+  symbol flag: is_exported: absent -> agree (22)
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createBridgeExecutionContext exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createResumeExecutionContext exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeAction exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeContextQuery exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.formatActionDecisionMessage exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getPlatformAgentContext exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getReplyExpectation exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.handleUnauthenticatedWebhook exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.isUserAllowed exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.matchesWebhookConnection exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.normalizeComponents exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onAfterConnect exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeConnect exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeDisconnect exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onConnected exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onDisconnected exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.prepareInboundText exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.resolveWebhookRequest exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.settleActionMessage exported=true
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.shouldSubscribeToNewMention exported=true
+    ... 2 more, in the JSON
+  symbol: method: lacks -> agree (22)
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createBridgeExecutionContext
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.createResumeExecutionContext
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeAction
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.executeContextQuery
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.formatActionDecisionMessage
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getPlatformAgentContext
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.getReplyExpectation
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.handleUnauthenticatedWebhook
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.isUserAllowed
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.matchesWebhookConnection
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.normalizeComponents
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onAfterConnect
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeConnect
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onBeforeDisconnect
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onConnected
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.onDisconnected
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.prepareInboundText
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.resolveWebhookRequest
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.settleActionMessage
+    packages/cli/src/modules/agents/integrations/agent-chat-integration.ts:AgentChatIntegration.shouldSubscribeToNewMention
+    ... 2 more, in the JSON
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction               1710      1710      1710         0         0         0         0
+call edge, stored as field_type                 6067      6067      6067         0         0         0         0
+call edge, stored as import                     2694      2698      2694         0         0         0         4
+call edge, stored as new_expression               81        81        81         0         0         0         0
+call edge, stored as parameter_type              365       365       365         0         0         0         0
+call edge, stored as same_file                  1909      1909      1909         0         0         0         0
+call edge, stored as static_method                63        63        63         0         0         0         0
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4902      4902      4902         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .
+call written as expr.m(), other file            1174         3         3         0      1171         0         0
+call written as expr.m(), same file                7         0         0         0         7         0         0
+call written as f(), other file                 4679      2694      2694         0      1985         0         0
+call written as f(), same file                  1924      1909      1909         0        15         0         0
+call written as ident.m(), other file           1972       469       469         0      1503         0         0
+                                                 +13         .         .         .       +13         .         .
+call written as ident.m(), same file              40        37        37         0         3         0         0
+call written as new X(), other file             1711      1660      1660         0        51         0         0
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7352      6067      6067         0      1285         0         0
+                                                  +8         .         .         .        +8         .         .
+call written as this.field.m(), same file          1         0         0         0         1         0         0
+call written as this.m(), other file             225       224       224         0         1         0         0
+call written as this.m(), same file             4678      4678      4678         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .

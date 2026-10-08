@@ -344,8 +344,7 @@ function emitChunksForNode(
       // Method chunks
       if (bodyNode !== null && className !== null) {
         for (const member of nodeNamedChildren(bodyNode)) {
-          const mt = nodeType(member);
-          if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
+          if (!isMethodMember(member, bodyNode)) continue;
           const methodName = member.childForFieldName('name')?.text ?? null;
           if (methodName === null) continue;
 
@@ -669,8 +668,7 @@ export function extractSignatures(tree: Tree, src: string): ExtractedSignature[]
         const body = decl.childForFieldName('body') ?? findChildByType(decl, 'class_body');
         if (body !== null) {
           for (const member of nodeNamedChildren(body)) {
-            const mt = nodeType(member);
-            if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
+            if (!isMethodMember(member, body)) continue;
             const mName = member.childForFieldName('name')?.text;
             if (mName !== undefined) out.push(signatureFor(`${className}.${mName}`, member, member, body, src));
           }
@@ -775,6 +773,22 @@ function bodyHashOf(node: SyntaxNode, src: string): string {
  * method body changes — that change is captured by the method chunk's own hash.
  */
 /**
+ * Whether a child of a class body is a method with a symbol of its own: one
+ * with a body, an abstract one, or one written with no body (`m?(): T;`, or
+ * any method of a `declare class`). A bodiless method beside an implementation
+ * of the same name is an overload of it and is not a member (D107).
+ */
+function isMethodMember(member: SyntaxNode, classBody: SyntaxNode): boolean {
+  const type = nodeType(member);
+  if (type === 'method_definition' || type === 'abstract_method_signature') return true;
+  if (type !== 'method_signature') return false;
+  const name = member.childForFieldName('name')?.text;
+  return !nodeNamedChildren(classBody).some(
+    (other) => nodeType(other) === 'method_definition' && other.childForFieldName('name')?.text === name,
+  );
+}
+
+/**
  * Class-body members whose signatures make up the `class_shell` outline (§10.1).
  * Shared by `synthesiseClassShell` (the outline text) and `classShellBodyHashOf`
  * (its body hash) so the two cannot disagree on what counts as a member.
@@ -785,6 +799,7 @@ function isClassShellMember(memberType: string): boolean {
   return (
     memberType === 'method_definition' ||
     memberType === 'abstract_method_signature' ||
+    memberType === 'method_signature' ||
     memberType === 'public_field_definition' ||
     memberType === 'property_signature'
   );
@@ -1326,7 +1341,7 @@ function emitClassEdges(
       }
       continue;
     }
-    if (mt !== 'method_definition' && mt !== 'abstract_method_signature') continue;
+    if (!isMethodMember(member, bodyNode)) continue;
     const methodName = member.childForFieldName('name')?.text ?? null;
     if (methodName === null) continue;
 

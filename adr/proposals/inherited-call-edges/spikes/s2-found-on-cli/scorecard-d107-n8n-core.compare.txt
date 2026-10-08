@@ -1,0 +1,52 @@
+before: eval-suite/baselines/n8n-core.json.gz
+after:  eval-suite/out/n8n-core.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                32        32        32         0         0         0         0
+edge: IMPLEMENTS                             21        21        21         0         0         0         0
+edge: PARENT_OF                             535       535       535         0         0         0         0
+edge: POTENTIAL_CALL                       1125       921       921         0       204         0         0
+                                             +1         .         .         .        +1         .         .
+edge: RE_EXPORTS (to the declaration)        92        92        92         0         0         0         0
+export * (file to file)                      30        30        30         0         0         0         0
+import: named binding                      1328      1328      1328         0         0         0         0
+import: the file it resolves to             435       436       435         0         0         0         1
+symbol flag: is_exported                    888       888       888         0         0         0         0
+symbol: class                                72        72        72         0         0         0         0
+symbol: export                               99        99        99         0         0         0         0
+symbol: function                            217       217       217         0         0         0         0
+symbol: interface                            18        18        18         0         0         0         0
+symbol: method                              535       535       535         0         0         0         0
+symbol: type                                 46        46        46         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> lacks (1)
+    packages/core/src/execution-engine/workflow-execute.ts:WorkflowExecute.executeNode > packages/workflow/src/interfaces.ts:Node.execute
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction                162       162       162         0         0         0         0
+call edge, stored as field_type                   80        80        80         0         0         0         0
+call edge, stored as import                      188       188       188         0         0         0         0
+call edge, stored as new_expression               13        13        13         0         0         0         0
+call edge, stored as parameter_type               58        58        58         0         0         0         0
+call edge, stored as same_file                   140       140       140         0         0         0         0
+call edge, stored as static_method                 9         9         9         0         0         0         0
+call edge, stored as super_method                  6         6         6         0         0         0         0
+call edge, stored as this_method                 265       265       265         0         0         0         0
+call written as expr.m(), other file              55         0         0         0        55         0         0
+call written as expr.m(), same file                2         0         0         0         2         0         0
+call written as f(), other file                  213       188       188         0        25         0         0
+call written as f(), same file                   140       140       140         0         0         0         0
+call written as ident.m(), other file            172        74        74         0        98         0         0
+                                                  +1         .         .         .        +1         .         .
+call written as ident.m(), same file               6         6         6         0         0         0         0
+call written as new X(), other file              152       152       152         0         0         0         0
+call written as new X(), same file                10        10        10         0         0         0         0
+call written as super.m(), other file              7         6         6         0         1         0         0
+call written as this.field.m(), other file        95        80        80         0        15         0         0
+call written as this.m(), other file              30        22        22         0         8         0         0
+call written as this.m(), same file              243       243       243         0         0         0         0
