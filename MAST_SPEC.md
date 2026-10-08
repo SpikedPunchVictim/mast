@@ -2263,10 +2263,12 @@ the identifier match still lands in `identifier_fts` and surfaces as
   symbols are populated (see "Two-pass edge insertion" below).
 - **Generic type parameters.** `class Repo<T> { find(id: ID): T }` — the resolver
   treats `T` as opaque.
-- **A method declared above the direct parent.** `this.m()` or `super.m()` where `m` is
-  two or more classes up; and `repo.find()` where `repo: SubRepository` and `find` is
-  declared on the class `SubRepository` extends. A static method the class inherits
-  (`SubRepository.create()`) likewise.
+- **An inherited member whose chain of classes is not all stored.** A call of a member
+  the receiver's class inherits is caught by following stored `EXTENDS` edges (see "A
+  member the receiver's class does not declare" below). It is not caught when a class on
+  the way extends one outside the index, one named by a default or namespace import, an
+  expression (`extends mixin(Base)`), or has two stored `EXTENDS` edges. `new Sub()`
+  where `Sub` inherits its constructor goes to `Sub`, not to the constructor inherited.
 - **A receiver annotated with a union.** `function f(repo: UserRepository | undefined) {
   repo?.find() }`.
 - **An element or property of a typed value.** `repos[0].find()`, `this.ctx.repo.find()`.
@@ -2282,7 +2284,7 @@ the identifier match still lands in `identifier_fts` and surfaces as
   `packages/cli` had lost 19 right edges to such locals (7 when locals began to hide, 12
   with D106); binding them stored 61 edges there, all 61 agreeing with the compiler.
 
-The inherited, union, element and default-or-namespace cases were each run on a scratch
+The union, element and default-or-namespace cases were each run on a scratch
 project on 2026-10-07 and stored no edge. What
 the list covers, and what it misses, is measured against the TypeScript checker in
 `adr/proposals/graph-reference/spikes/RESULTS.md`.
@@ -2330,8 +2332,7 @@ file references resolve correctly.
 **Method calls on `super` and `this` without receiver.** `this.foo()` resolves to
 the enclosing class's `foo` method via the qualified `symbols` row. `super.foo()`
 resolves to `foo` on the class named in the `extends` clause, found through the
-file's imports or declarations as any receiver type is; the stored `EXTENDS` edge
-is not read. Implemented as ordinary
+file's imports or declarations as any receiver type is. Implemented as ordinary
 receiver bindings (F4, Stage 3): `emitClassEdges` seeds `this` → the enclosing
 class name and, only when an `extends` clause names a parent, `super` → that
 parent's name, riding the same `LocalTypeEnvironment` receiver-binding path
@@ -2344,14 +2345,21 @@ of guessing. `this.foo()` inside a nested non-arrow function/method/generator
 body is NOT the class instance and is excluded before it ever reaches the
 resolver — arrow functions inherit the enclosing `this` and are not excluded.
 
-**`this.foo()` where the class does not declare `foo`.** The edge goes to `foo`
-on the class named in the `extends` clause, placed as `super.foo()` is, and
-keeps the `resolution` `this_method`. One step up only: a method declared two
-or more classes up has no edge, because finding it means reading the parent's
-own `extends`, which is another file's record. Measured on n8n
-`packages/core`: 16 of the 30 such calls the TypeScript checker supports are
-one step up and written this way, 6 are further up
-(adr/proposals/graph-reference/spikes/RESULTS.md).
+**A member the receiver's class does not declare.** When a call is written on a
+class (`this.foo()`, `super.foo()`, `repo.foo()` with `repo` typed by a field,
+a parameter or `new`, and the static `X.foo()`) and that class has no `foo`,
+the stored `EXTENDS` edges are followed upward from it and the edge goes to
+`foo` on the nearest class that declares it. The `resolution` is the one the
+call would have had (`this_method`, `parameter_type`, and so on). The walk
+stops with no edge at a class that has no stored `EXTENDS` edge, at one that
+has two (the name after `extends` matched an interface and a class, say), and
+at a class it has already passed. `EXTENDS` edges are therefore written before
+any call is resolved (`insertGraphEdges`), so the result does not depend on
+the order files were walked in. Measured against the TypeScript compiler on n8n
+`9d9e9bf9` (2026-10-08): 941 more call edges in `packages/cli` and 9 in
+`packages/core`, every one agreeing with the compiler and none wrong; 1,069
+more over the whole monorepo and none lost
+(`adr/proposals/inherited-call-edges/spikes/RESULTS.md`).
 
 **Construction.** `new X()` is a call of X's constructor and is stored with
 `resolution` `construction`. X is placed by the same file evidence as a bare
@@ -2367,7 +2375,7 @@ name the file imports or declares, is stored with `resolution` `static_method`
 to the symbol `X.make` in the file that declares `X`. The extractor does not
 know that `X` is a class; an object, an enum or a function of that name has no
 symbol `X.make`, and there is then no edge. A static method the class inherits
-has no edge.
+is found on the class that declares it, as above.
 
 `mast_callers` and `mast_rename_impact` asked about a class return the callers
 of its constructor with the callers of the class (`queryVerifiedCallers`
@@ -2440,8 +2448,10 @@ behind a star in the same file.
 
 **Pass 2 is staged, so the graph does not depend on walk order.**
 `insertGraphEdges` writes every file's star rows, then `RE_EXPORTS` edges
-repeated until a round adds none, then every other edge. Written file by file,
-a caller that sorted before its barrel got no edge (ledger D083).
+repeated until a round adds none, then `EXTENDS`, `IMPLEMENTS` and `PARENT_OF`
+edges, then calls. Written file by file, a caller that sorted before its barrel
+got no edge (ledger D083), and a call of an inherited member is resolved along
+the `EXTENDS` edges, which have to be there first.
 
 **An incremental run resolves importers again.** Re-writing a file replaces its
 rows, and what other files' edges resolve to can change with it. So an
@@ -2491,12 +2501,25 @@ files exist, not on any name. So every file with an import resolved to a deleted
 or shadowed file is resolved again, and when a file is added, every file with an
 in-project import that matched nothing (ledger D093).
 
+A call of an inherited member depends on every class above its receiver's, and
+the file holding it neither imports those classes nor holds an edge into them.
+So the `EXTENDS` edges are read before the first file is re-written and again
+after each group of files is resolved. A class counts as changed when its file
+gained or lost a declaration of it or of one of its members, or when what it
+extends differs between two readings. For each changed class and every class
+that extends it, directly or not, the file declaring the class and the files
+importing its name are resolved again, including a file the run itself wrote.
+This repeats until a reading shows no change; under a budget, the files not
+reached stay recorded like any other.
+
 When a name is declared in more than one file behind a barrel's `export *`
-lines, the file with the lowest path is taken (ledger D094). This is a fixed
-choice, not TypeScript's: TypeScript exports neither.
+lines, the file with the lowest path is taken (ledger D094). The same holds
+when one file re-exports a name by name from two files (ledger D111). This is a
+fixed choice, not TypeScript's: TypeScript exports neither in the first case
+and rejects the second.
 
 Not followed, because nothing stored identifies the importer: an import or
-re-export under an alias; an `export *` through a path alias of a file added
+re-export under an alias (for `export { a as b } from`, ledger D112, open); an `export *` through a path alias of a file added
 later. A full index corrects both. (A call resolved without file evidence was
 a third such case, ledger D092; no such edge is made any more.)
 

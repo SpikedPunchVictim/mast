@@ -19,6 +19,11 @@ import type { Round, Scenario } from './equivalence-scenarios.js';
 // first seeds had been run. They draw from a second random stream, so what the
 // first stream decides for a seed is what it decided before.
 //
+// Classes that extend one another across files (`H0` to `H2`) were added with
+// the walk up `EXTENDS` edges (adr/proposals/inherited-call-edges, T6): with
+// two class names a call seldom landed two classes away from its receiver.
+// They draw from a third stream.
+//
 // Not generated, because each is a known gap with its own ledger row or
 // deferral: an import or re-export under an alias, a path alias (D087).
 // ---------------------------------------------------------------------------
@@ -38,6 +43,7 @@ const FUNCTIONS = ['f0', 'f1', 'f2'] as const;
 const CLASSES = ['K0', 'K1'] as const;
 const METHODS = ['m0', 'm1'] as const;
 const INTERFACES = ['I0', 'I1'] as const;
+const DEEP_CLASSES = ['H0', 'H1', 'H2'] as const;
 
 /** What one import or re-export names: the file a specifier stands for, without extension or `/index`. */
 type Stem = string;
@@ -399,6 +405,135 @@ const damageOrMendAFile: Edit = (project, _dice, extra) => {
   return damage === 'none' ? `mend ${path}` : `damage ${path} (${damage})`;
 };
 
+function isDeep(name: string): boolean {
+  return name.startsWith('H');
+}
+
+function namesInFile(spec: FileSpec): Set<string> {
+  return new Set([...spec.classes.map((cls) => cls.name), ...spec.imports.flatMap((imp) => imp.names)]);
+}
+
+function withImport(spec: FileSpec, stem: Stem, name: string): FileSpec {
+  const existing = spec.imports.find((imp) => imp.stem === stem);
+  const imports =
+    existing === undefined
+      ? [...spec.imports, { stem, names: [name] }]
+      : spec.imports.map((imp) => (imp === existing ? { stem, names: [...imp.names, name] } : imp));
+  return { ...spec, imports };
+}
+
+/**
+ * Where `path` imports `name` from: most of the time a file that declares it,
+ * since a chain of classes that resolves nowhere tests nothing.
+ */
+function stemToImportFrom(project: Project, deep: Dice, path: string, name: string): Stem | undefined {
+  const declaring = [...project]
+    .filter(([other, spec]) => other !== path && spec.classes.some((cls) => cls.name === name))
+    .map(([other]) => stemOf(other));
+  const anywhere = deep.pick(STEMS.filter((candidate) => candidate !== stemOf(path)));
+  return deep.chance(0.85) ? (deep.pick(declaring) ?? anywhere) : anywhere;
+}
+
+/** `spec` with one more class of the deep pool, which most of the time extends another it imports. */
+function withDeepClass(project: Project, deep: Dice, path: string, spec: FileSpec): FileSpec | null {
+  const taken = namesInFile(spec);
+  const name = deep.pick(DEEP_CLASSES.filter((candidate) => !taken.has(candidate)));
+  if (name === undefined) return null;
+  let next = spec;
+  let parent: string | null = null;
+  if (deep.chance(0.8)) {
+    const already = [...taken].filter(isDeep);
+    const fresh = deep.pick(DEEP_CLASSES.filter((candidate) => candidate !== name && !taken.has(candidate)));
+    const stem = fresh === undefined ? undefined : stemToImportFrom(project, deep, path, fresh);
+    if (already.length > 0 && deep.chance(0.5)) {
+      parent = deep.pick(already) ?? null;
+    } else if (fresh !== undefined && stem !== undefined) {
+      next = withImport(spec, stem, fresh);
+      parent = fresh;
+    }
+  }
+  return { ...next, classes: [...next.classes, { name, parent, implemented: null, methods: deep.some(METHODS, 0.4) }] };
+}
+
+type DeepEdit = (project: Project, deep: Dice) => string | null;
+
+function pickDeepClass(project: Project, deep: Dice): { path: string; spec: FileSpec; cls: ClassSpec } | null {
+  const candidates = [...project].flatMap(([path, spec]) =>
+    spec.classes.filter((cls) => isDeep(cls.name)).map((cls) => ({ path, spec, cls })),
+  );
+  return deep.pick(candidates) ?? null;
+}
+
+function replaceClass(project: Project, path: string, spec: FileSpec, from: ClassSpec, to: ClassSpec | null): void {
+  const classes = spec.classes.flatMap((cls) => (cls === from ? (to === null ? [] : [to]) : [cls]));
+  project.set(path, { ...spec, classes });
+}
+
+const addOrRemoveAMethodUpTheChain: DeepEdit = (project, deep) => {
+  const chosen = pickDeepClass(project, deep);
+  const method = deep.pick(METHODS);
+  if (chosen === null || method === undefined) return null;
+  const { path, spec, cls } = chosen;
+  const has = cls.methods.includes(method);
+  const methods = has ? cls.methods.filter((m) => m !== method) : [...cls.methods, method];
+  replaceClass(project, path, spec, cls, { ...cls, methods });
+  return `${has ? 'remove' : 'add'} ${cls.name}.${method} in ${path}`;
+};
+
+const changeWhatADeepClassExtends: DeepEdit = (project, deep) => {
+  const chosen = pickDeepClass(project, deep);
+  if (chosen === null) return null;
+  const { path, spec, cls } = chosen;
+  const inScope = [...namesInFile(spec)].filter((name) => isDeep(name) && name !== cls.name && name !== cls.parent);
+  const parent = cls.parent !== null && deep.chance(0.5) ? null : (deep.pick(inScope) ?? null);
+  if (parent === cls.parent) return null;
+  replaceClass(project, path, spec, cls, { ...cls, parent });
+  return `${cls.name} in ${path} extends ${parent ?? 'nothing'}`;
+};
+
+const addOrRemoveADeepClass: DeepEdit = (project, deep) => {
+  if (deep.chance(0.5)) {
+    const chosen = pickDeepClass(project, deep);
+    if (chosen === null) return null;
+    replaceClass(project, chosen.path, chosen.spec, chosen.cls, null);
+    return `remove ${chosen.cls.name} from ${chosen.path}`;
+  }
+  const chosen = deep.pick([...project]);
+  if (chosen === undefined) return null;
+  const [path, spec] = chosen;
+  const next = withDeepClass(project, deep, path, spec);
+  if (next === null) return null;
+  project.set(path, next);
+  return `add ${next.classes.at(-1)?.name ?? 'a class'} to ${path}`;
+};
+
+/** A file starts or stops importing a deep class, which makes it a caller of what the class inherits. */
+const importOrDropADeepClass: DeepEdit = (project, deep) => {
+  const chosen = deep.pick([...project]);
+  const name = deep.pick(DEEP_CLASSES);
+  if (chosen === undefined || name === undefined) return null;
+  const [path, spec] = chosen;
+  const stem = stemToImportFrom(project, deep, path, name);
+  if (stem === undefined) return null;
+  if (spec.imports.some((imp) => imp.names.includes(name))) {
+    const imports = spec.imports.map((imp) => ({ stem: imp.stem, names: imp.names.filter((n) => n !== name) }));
+    project.set(path, { ...spec, imports });
+    return `${path} stops importing ${name}`;
+  }
+  if (spec.classes.some((cls) => cls.name === name)) return null;
+  project.set(path, withImport(spec, stem, name));
+  return `${path} imports ${name} from ${stem}`;
+};
+
+/** Drawn by the third stream. */
+const DEEP_EDITS: readonly DeepEdit[] = [
+  addOrRemoveAMethodUpTheChain,
+  addOrRemoveAMethodUpTheChain,
+  changeWhatADeepClassExtends,
+  addOrRemoveADeepClass,
+  importOrDropADeepClass,
+];
+
 /** Drawn by the second stream, on top of what the first one chose for the round. */
 const EXTRA_EDITS: readonly Edit[] = [changeAnInterface, changeAnInterface, changeWhatAClassImplements, damageOrMendAFile];
 
@@ -429,8 +564,18 @@ export function generateScenario(seed: number, steps: number): GeneratedScenario
   const dice = new Dice(randomSource(seed));
   const extra = new Dice(randomSource(seed ^ 0x5bd1e995));
   const project: Project = new Map();
+  const deep = new Dice(randomSource(seed ^ 0x2545f491));
   for (const path of PATHS) {
     if (dice.chance(0.6)) project.set(path, randomFile(dice, extra, path));
+  }
+  for (const [path, spec] of [...project]) {
+    if (deep.chance(0.6)) project.set(path, withDeepClass(project, deep, path, spec) ?? spec);
+  }
+  // Callers: a file that imports a deep class calls a method on it, declared there or above.
+  for (const [path, spec] of [...project]) {
+    const name = deep.pick(DEEP_CLASSES.filter((candidate) => !namesInFile(spec).has(candidate)));
+    const stem = name === undefined ? undefined : stemToImportFrom(project, deep, path, name);
+    if (name !== undefined && stem !== undefined && deep.chance(0.5)) project.set(path, withImport(spec, stem, name));
   }
 
   const files = renderAll(project);
@@ -447,6 +592,10 @@ export function generateScenario(seed: number, steps: number): GeneratedScenario
     }
     if (extra.chance(0.4)) {
       const description = extra.pick(EXTRA_EDITS)?.(project, dice, extra) ?? null;
+      if (description !== null) descriptions.push(description);
+    }
+    if (deep.chance(0.5)) {
+      const description = deep.pick(DEEP_EDITS)?.(project, deep) ?? null;
       if (description !== null) descriptions.push(description);
     }
     const after = renderAll(project);

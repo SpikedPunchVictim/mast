@@ -25,6 +25,15 @@ export interface Scenario {
 
 const CALLER = `import { fn } from './x.js';\nexport function use(): void { fn(); }\n`;
 
+// A chain of three classes and the callers of a method the last one inherits
+// (adr/proposals/inherited-call-edges, T5). The callers hold no edge into the
+// file that declares the method's class and import nothing from it.
+const H_BASE = `export class Base {\n  find(): void {}\n  top(): void {}\n}\n`;
+const H_MID = `import { Base } from './h-base.js';\nexport class Mid extends Base {}\n`;
+const H_LEAF = `import { Mid } from './h-mid.js';\nexport class Leaf extends Mid {\n  own(): void { this.top(); }\n}\n`;
+const H_USE = `import { Leaf } from './h-leaf.js';\nexport function use(leaf: Leaf): void { leaf.find(); }\n`;
+const HIERARCHY = { 'src/h-base.ts': H_BASE, 'src/h-mid.ts': H_MID, 'src/h-leaf.ts': H_LEAF, 'src/z-use.ts': H_USE };
+
 export const SCENARIOS: readonly Scenario[] = [
   {
     name: 'the body of a called function is edited',
@@ -348,5 +357,101 @@ export const SCENARIOS: readonly Scenario[] = [
       'src/zc.ts': `import { fn } from './x.js';\nexport function use(): void { fn(); }\n`,
     },
     rounds: [{ 'src/x.ts': `export function fn(): number { return 2; }\n` }],
+  },
+  {
+    name: 'a method two classes up is removed, and put back',
+    files: HIERARCHY,
+    rounds: [{ 'src/h-base.ts': H_BASE.replace('  find(): void {}\n', '') }, { 'src/h-base.ts': H_BASE }],
+  },
+  {
+    name: 'a method one class up is removed, and put back',
+    files: HIERARCHY,
+    rounds: [{ 'src/h-base.ts': H_BASE.replace('  top(): void {}\n', '') }, { 'src/h-base.ts': H_BASE }],
+  },
+  {
+    name: 'the class between gains an override of an inherited method, and loses it',
+    files: HIERARCHY,
+    rounds: [
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  find(): void {}\n}\n` },
+      { 'src/h-mid.ts': H_MID },
+    ],
+  },
+  {
+    name: 'the class between is given another parent, and its first one back',
+    files: { ...HIERARCHY, 'src/h-other.ts': `export class Other {\n  find(): void {}\n}\n` },
+    rounds: [
+      { 'src/h-mid.ts': `import { Other } from './h-other.js';\nexport class Mid extends Other {}\n` },
+      { 'src/h-mid.ts': H_MID },
+    ],
+  },
+  {
+    name: 'the class between stops extending anything, and extends again',
+    files: HIERARCHY,
+    rounds: [{ 'src/h-mid.ts': `export class Mid {}\n` }, { 'src/h-mid.ts': H_MID }],
+  },
+  {
+    name: 'the file of the class between is deleted, and written again',
+    files: HIERARCHY,
+    rounds: [{ 'src/h-mid.ts': null }, { 'src/h-mid.ts': H_MID }],
+  },
+  {
+    name: 'the class at the top is renamed, and then the class that extends it follows',
+    files: HIERARCHY,
+    rounds: [
+      { 'src/h-base.ts': H_BASE.replace('class Base', 'class Root') },
+      { 'src/h-mid.ts': `import { Root } from './h-base.js';\nexport class Mid extends Root {}\n` },
+    ],
+  },
+  {
+    name: 'the file of the class at the top is written after everything below it',
+    files: { 'src/h-mid.ts': H_MID, 'src/h-leaf.ts': H_LEAF, 'src/z-use.ts': H_USE },
+    rounds: [{ 'src/h-base.ts': H_BASE }],
+  },
+  {
+    // The class between gets its parent only when it is resolved again, which
+    // is after the caller, written in the same run, had its calls resolved.
+    name: 'the file of the class at the top is written in the same run as a change to the caller',
+    files: { 'src/h-mid.ts': H_MID, 'src/h-leaf.ts': H_LEAF, 'src/z-use.ts': H_USE },
+    rounds: [
+      { 'src/h-base.ts': H_BASE, 'src/z-use.ts': `${H_USE}export function again(leaf: Leaf): void { leaf.top(); }\n` },
+    ],
+  },
+  {
+    name: 'a class four files from the caller gains the method the caller calls',
+    files: {
+      ...HIERARCHY,
+      'src/h-base.ts': `import { Root } from './h-root.js';\nexport class Base extends Root {\n  top(): void {}\n}\n`,
+      'src/h-root.ts': `export class Root {}\n`,
+    },
+    rounds: [{ 'src/h-root.ts': `export class Root {\n  find(): void {}\n}\n` }, { 'src/h-root.ts': `export class Root {}\n` }],
+  },
+  {
+    // Not valid TypeScript, and seen in a generated sequence (seed 22). Which
+    // of the two an importer reaches must not depend on which was written first.
+    name: 'a file is added that re-exports one name from two files, one of them behind a star',
+    files: {
+      'src/b.ts': `export * from './lib';\n`,
+      'src/y.ts': `export * from './x';\n`,
+      'src/zd.ts': `export class K {\n  n(): void {}\n}\n`,
+      'src/c.ts': `import { K } from './y';\nexport function use(k: K): void { k.m(); new K(); }\n`,
+    },
+    rounds: [
+      {
+        'src/lib.ts': `export class K {\n  m(): void {}\n}\n`,
+        'src/x.ts': `export { K } from './b';\nexport { K } from './zd';\n`,
+      },
+    ],
+  },
+  {
+    // The importer names `g`, the changed file declares `fn`, and the marker
+    // row holds `g` only, so nothing connects the two when `x.ts` changes.
+    name: 'a name appears in a file another re-exports under a second name',
+    openDefect: 'D112',
+    files: {
+      'src/x.ts': `export function other(): void {}\n`,
+      'src/barrel.ts': `export { fn as g } from './x.js';\n`,
+      'src/zc.ts': `import { g } from './barrel.js';\nexport function use(): void { g(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export function fn(): void {}\n` }],
   },
 ];

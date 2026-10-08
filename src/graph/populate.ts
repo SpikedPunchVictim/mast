@@ -856,26 +856,14 @@ async function insertEdgesReportingUnresolved(
     }
   }
 
-  // `this.m()` where the class does not declare `m`: the method of the class
-  // it extends, placed exactly as `super.m()` is, by the name in this file's
-  // own `extends` clause. One step up. Further up means reading the parent's
-  // `extends`, which is another file's record and may not be stored yet.
-  const parentByClass = new Map<string, EdgeRecord>();
-  for (const e of edges) {
-    if (e.edgeType === 'EXTENDS' && !parentByClass.has(e.fromName)) parentByClass.set(e.fromName, e);
-  }
-  const resolveOnParentClass = async (toName: string): Promise<number | null> => {
-    const dot = toName.indexOf('.');
-    const parent = parentByClass.get(toName.slice(0, dot));
-    if (dot === -1 || parent === undefined) return null;
-    return resolveQualifiedNameScoped(db, fromFile.id, importPlacerFor(imports, parent.importModule), `${parent.toName}${toName.slice(dot)}`);
-  };
-
+  // A member the receiver's class does not declare is looked for on the
+  // classes above it (`resolveInheritedMember`).
   const callToMap = new Map<string, number>();
   for (const [key, edge] of callEdgesByKey) {
+    const placer = importPlacerFor(imports, edge.importModule);
     const targetId =
-      (await resolveCallTarget(db, fromFile.id, importPlacerFor(imports, edge.importModule), edge.resolution, edge.toName)) ??
-      (edge.resolution === 'this_method' ? await resolveOnParentClass(edge.toName) : null);
+      (await resolveCallTarget(db, fromFile.id, placer, edge.resolution, edge.toName)) ??
+      (await resolveInheritedMember(db, fromFile.id, placer, edge.resolution, edge.toName));
     if (targetId !== null) callToMap.set(key, targetId);
   }
 
@@ -1016,7 +1004,8 @@ const EDGE_BATCH_SIZE = 16;
 
 /**
  * Pass 2 for a set of files whose symbols are already written: star re-export
- * rows, then named re-export edges, then every other edge.
+ * rows, then named re-export edges, then the edges of a class (`extends`,
+ * `implements`, its members), then calls.
  *
  * The order is what makes the result independent of the order of `files`
  * (D083). A call or an `implements` that goes through a barrel resolves by
@@ -1029,6 +1018,12 @@ const EDGE_BATCH_SIZE = 16;
  * resolves only once the inner one's edge exists. So that stage repeats over
  * the records still unresolved until a round resolves none. Every round but
  * the last resolves at least one record, which bounds it.
+ *
+ * Calls come after every structural edge for the same reason. A call of a
+ * method its receiver's class inherits is resolved by following the stored
+ * `EXTENDS` edges, which belong to other files. In one stage with the calls,
+ * 287 of the 1,064 such edges on n8n were missing, with nothing reported
+ * (adr/proposals/inherited-call-edges/spikes/RESULTS.md).
  */
 export async function insertGraphEdges(
   db: Db,
@@ -1062,7 +1057,10 @@ export async function insertGraphEdges(
   }
 
   await inBatches(files, async (file) => {
-    await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType !== 'RE_EXPORTS'));
+    await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType !== 'RE_EXPORTS' && e.edgeType !== 'POTENTIAL_CALL'));
+  });
+  await inBatches(files, async (file) => {
+    await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType === 'POTENTIAL_CALL'));
   });
 }
 
@@ -1160,6 +1158,70 @@ async function resolveCallTarget(
       // no file evidence to resolve by.
       return null;
   }
+}
+
+/** The rules whose `toName` is `Class.member`, with `Class` placed by the file's own evidence. */
+const MEMBER_OF_A_CLASS: ReadonlySet<CallerResolution> = new Set<CallerResolution>([
+  'this_method',
+  'super_method',
+  'field_type',
+  'parameter_type',
+  'new_expression',
+  'static_method',
+]);
+
+/**
+ * `Class.member` where `Class` does not declare `member`: the member of the
+ * nearest class above it that does.
+ *
+ * `Class` is placed as the rule places it. From there the stored `EXTENDS`
+ * edges are followed, each of which was placed by its own file's evidence
+ * (D085), and the member is read from the file that declares each class, under
+ * the name the class has there. No name is matched across the graph.
+ *
+ * Null, and so no edge, when a class on the way has no stored parent (a class
+ * outside the index, a default import, a mixin), when the chain comes back to a
+ * class it has passed, and when a class has two stored parents: a class and an
+ * interface of one name are one symbol, and which parent declares the member
+ * is not decided here.
+ *
+ * Reads edges other files wrote, so `insertGraphEdges` writes every structural
+ * edge before any call.
+ */
+async function resolveInheritedMember(
+  db: Db,
+  fromFileId: number,
+  placeImport: ImportPlacer,
+  resolution: CallerResolution | undefined,
+  toName: string,
+): Promise<number | null> {
+  const dot = toName.indexOf('.');
+  if (resolution === undefined || !MEMBER_OF_A_CLASS.has(resolution) || dot === -1) return null;
+  const member = toName.slice(dot);
+  const className = toName.slice(0, dot);
+
+  // `this` is the class the call is written in, which is in this file.
+  let current = resolution === 'this_method'
+    ? await resolveSameFileScoped(db, fromFileId, className)
+    : await resolveQualifiedNameScoped(db, fromFileId, placeImport, className);
+  const passed = new Set<number>();
+  while (current !== null && !passed.has(current)) {
+    passed.add(current);
+    const parents = await db
+      .selectFrom('edges as e')
+      .innerJoin('symbols as p', 'p.id', 'e.to_id')
+      .select(['p.id', 'p.name', 'p.file_id'])
+      .where('e.from_id', '=', current)
+      .where('e.edge_type', '=', 'EXTENDS')
+      .limit(2)
+      .execute();
+    const parent = parents[0];
+    if (parent === undefined || parents.length > 1) return null;
+    const declared = await resolveSameFileScoped(db, parent.file_id, `${parent.name}${member}`);
+    if (declared !== null) return declared;
+    current = parent.id;
+  }
+  return null;
 }
 
 /**
@@ -1409,18 +1471,19 @@ const MAX_RE_EXPORT_HOPS = 5;
 async function followReExportEdgeChain(db: Db, markerId: number): Promise<number | null> {
   let currentId = markerId;
   for (let hop = 0; hop < MAX_RE_EXPORT_HOPS; hop++) {
-    const edge = await db
-      .selectFrom('edges')
-      .select('to_id')
-      .where('from_id', '=', currentId)
-      .where('edge_type', '=', 'RE_EXPORTS')
-      .executeTakeFirst();
-    if (edge === undefined) return null;
-
+    // A file can re-export one name from two files. It is not valid
+    // TypeScript, and the marker then has two edges; the one in the lowest
+    // path is followed, so the answer does not depend on which was written
+    // first (D111, as D094 for two stars).
     const target = await db
-      .selectFrom('symbols')
-      .select(['id', 'kind'])
-      .where('id', '=', edge.to_id)
+      .selectFrom('edges as e')
+      .innerJoin('symbols as s', 's.id', 'e.to_id')
+      .innerJoin('files as f', 'f.id', 's.file_id')
+      .select(['s.id', 's.kind'])
+      .where('e.from_id', '=', currentId)
+      .where('e.edge_type', '=', 'RE_EXPORTS')
+      .orderBy('f.path', 'asc')
+      .orderBy('s.id', 'asc')
       .executeTakeFirst();
     if (target === undefined) return null;
     if (target.kind !== 'export') return target.id;

@@ -144,9 +144,18 @@ Each seen failing first.
 ## Order of work
 
 1. D104 and D105 (decision 3). **Done 2026-10-07**; `spikes/RESULTS.md`, "After the fixes". D106 was found on the way and is open.
-2. M1 and M2 with T1 to T4 and T7. Full index only is correct at this point.
-3. M3a with T5 and T6. Not shipped until the replay check is clean.
-4. `MAST_SPEC.md` §10.3.1, and a measurement of the cost on a quiet machine.
+2. M1 and M2 with T1 to T4 and T7. Full index only is correct at this point. **Done 2026-10-08**, in one commit with step 3.
+3. M3a with T5 and T6. Not shipped until the replay check is clean. **Done 2026-10-08**; `spikes/RESULTS.md`, "The walk as built". M3a is built another way than "Order inside repair" above describes, and D111 was found on the way; both are there.
+4. `MAST_SPEC.md` §10.3.1 (**done 2026-10-08**), and a measurement of the cost on a quiet machine (**not done**).
+
+R1 is **not built, and waits on the user**. It was promoted on 2026-10-07 "after checking the
+two `packages/core` pairs". Checked 2026-10-08 on the scorecard of this build: `packages/core`
+lacks no construction edge (162 of 162 agree) and `packages/cli` lacks 6 of 1,761, none of
+them an inherited constructor (each is a class in another workspace package that declares
+its own, or declares none). The rule decided later the same day sends `new X()` to `X` when
+`X` declares no constructor, the scorecard judges by it, and `mast_callers X` reads it. R1
+would move those edges to the parent's constructor: nothing to gain on either package, and
+edges that agree today would stop agreeing.
 
 ## Method
 
@@ -158,5 +167,7 @@ experiment; it settles no `FINDINGS.md` claim.
 - What the walk and the extra stage cost in index time.
 - Whether a second real corpus with deep hierarchies behaves like n8n. This repository shows
   nothing either way.
-- Whether M3a's four rules are complete. Only T5 and T6 can show that.
+- Whether M3a's rules are complete. T5, T6 and the replay found no case they miss
+  (2026-10-08); that is ten scenario rows, 900 generated sequences and two replays, not a proof.
+- How many files M3a resolves twice on a real edit, having no rule for order.
 - Whether the 114 unjudged edges are right.

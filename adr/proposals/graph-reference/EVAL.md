@@ -41,3 +41,11 @@ not by a scorecard: none of the three corpora has one in a scored file. Its fix 
 through `compare` like the others (PASS on all three; n8n gained 5 symbols and no edge).
 What `declare module`, `declare global` and `declare namespace` blocks hold is still given
 no symbol, and the scorecard has no line item for it.
+
+The walk up stored `EXTENDS` edges (`adr/proposals/inherited-call-edges`, 2026-10-08) was
+run through `compare` on all three: PASS, with 941 calls on `packages/cli` and 9 on
+`packages/core` moving from `lacks` to `agree`. Outputs:
+`adr/proposals/inherited-call-edges/spikes/s2-found-on-cli/scorecard-walk-*.compare.txt`.
+Its incremental side was checked by `eval-suite/replay-check.mjs` on this repository and on
+n8n; results in `adr/proposals/inherited-call-edges/spikes/t6-replay/`. D111 (one name
+re-exported by name from two files) was found by the generated edit sequences on the way.

@@ -135,3 +135,38 @@ describe.each([
     expect(await pending()).toBe(0);
   });
 });
+
+// A call of an inherited member is put out of date by a class it neither
+// imports nor holds an edge into. Under a budget the class between waits like
+// any other file, so the caller's edge is right only once that class has been
+// resolved and the caller after it.
+describe('a class hierarchy left to resolve again when the budget runs out', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = makeProject('edge-repair-pending-hierarchy');
+    writeFiles(dir, {
+      'src/h-base.ts': `export class Base {\n  top(): void {}\n}\n`,
+      'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {}\n`,
+      'src/h-leaf.ts': `import { Mid } from './h-mid.js';\nexport class Leaf extends Mid {}\n`,
+      'src/a-use.ts': `import { Leaf } from './h-leaf.js';\nexport function use(leaf: Leaf): void { leaf.find(); }\n`,
+    });
+    await indexFull(dir);
+    editFile(dir, 'src/h-base.ts', `export class Base {\n  top(): void {}\n  find(): void {}\n}\n`);
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('is finished by the next run, which leaves the graph equal to a full index', async () => {
+    const first = await runIndex(configFor(dir), { incremental: true, edgeRepairBudgetMs: 0 });
+
+    const second = await runIndex(configFor(dir), { incremental: true });
+
+    expect({ leftByFirst: first.edgeRepairsPending > 0, leftBySecond: second.edgeRepairsPending }).toEqual({
+      leftByFirst: true,
+      leftBySecond: 0,
+    });
+    await expectGraphEqualsFullIndex(dir);
+  });
+});

@@ -70,7 +70,7 @@ is from reading `src/graph/queries.ts` and `src/mcp/tools/`, on 2026-10-07.
 | `symbol: export` | kind `export`, a marker | `mast_rename_impact` (barrel rows) | each name in `export { ... } from '...'`, and each named import exported by a clause with no `from` |
 | `symbol flag: is_exported` | `symbols.is_exported` | `mast_exports`, `mast_project_skeleton`, search ranking | the `export` modifier, or a later `export { name }`; a member is exported when its class is and it is not private |
 | `edge: PARENT_OF` | class to member | `mast_callers` (a class's callers include its constructor's), `mast_implementors` | one per member above |
-| `edge: EXTENDS` | class or interface to its parent | no tool; no query reads a stored row | each `extends` type the compiler resolves to an indexed declaration |
+| `edge: EXTENDS` | class or interface to its parent | no tool directly; the resolver follows it for a call of an inherited member (since 2026-10-08), and repair reads it | each `extends` type the compiler resolves to an indexed declaration |
 | `edge: IMPLEMENTS` | class to interface | `mast_implementors` | each `implements` type, the same way |
 | `edge: RE_EXPORTS (to the declaration)` | marker to the next marker or the declaration | `mast_rename_impact`, and the resolver's chain walk | the declaration the compiler reaches from the exported name; mast's chain is followed to its end first |
 | `export * (file to file)` | `re_export_files` | the same | the file each `export * from` resolves to |

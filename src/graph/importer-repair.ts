@@ -188,6 +188,90 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
   return [...found];
 }
 
+// ---------------------------------------------------------------------------
+// Which classes extend which (adr/proposals/inherited-call-edges, M3a)
+//
+// A call of a member a class inherits is resolved by following stored
+// `EXTENDS` edges upward. So where it lands depends on every class above the
+// receiver's, and a file two classes away from the one that changed holds
+// neither an edge into it nor an import of it.
+// ---------------------------------------------------------------------------
+
+/** A class or interface, named the way it is in two indexes of the same source. */
+export interface ClassRef {
+  readonly path: string;
+  readonly name: string;
+}
+
+/** Each class with a stored `EXTENDS` edge, and what it extends. Keyed by `classKey`. */
+export type Hierarchy = ReadonlyMap<string, { readonly child: ClassRef; readonly parents: readonly ClassRef[] }>;
+
+export function classKey(ref: ClassRef): string {
+  return `${ref.path}\n${ref.name}`;
+}
+
+/** Every stored `EXTENDS` edge. Read before a write to know what the write removes. */
+export async function readHierarchy(db: Db): Promise<Hierarchy> {
+  const rows = await db
+    .selectFrom('edges as e')
+    .innerJoin('symbols as child', 'child.id', 'e.from_id')
+    .innerJoin('files as child_f', 'child_f.id', 'child.file_id')
+    .innerJoin('symbols as parent', 'parent.id', 'e.to_id')
+    .innerJoin('files as parent_f', 'parent_f.id', 'parent.file_id')
+    .select(['child_f.path as childPath', 'child.name as childName', 'parent_f.path as parentPath', 'parent.name as parentName'])
+    .where('e.edge_type', '=', 'EXTENDS')
+    .execute();
+  const hierarchy = new Map<string, { child: ClassRef; parents: ClassRef[] }>();
+  for (const row of rows) {
+    const child = { path: row.childPath, name: row.childName };
+    const entry = hierarchy.get(classKey(child)) ?? { child, parents: [] };
+    entry.parents.push({ path: row.parentPath, name: row.parentName });
+    hierarchy.set(classKey(child), entry);
+  }
+  return hierarchy;
+}
+
+/** The classes whose parents differ between two readings. */
+export function classesWithChangedParents(before: Hierarchy, after: Hierarchy): ClassRef[] {
+  const parentsIn = (hierarchy: Hierarchy, key: string): string =>
+    (hierarchy.get(key)?.parents ?? []).map(classKey).sort().join('\n\n');
+  const changed: ClassRef[] = [];
+  for (const key of new Set([...before.keys(), ...after.keys()])) {
+    if (parentsIn(before, key) === parentsIn(after, key)) continue;
+    const entry = before.get(key) ?? after.get(key);
+    if (entry !== undefined) changed.push(entry.child);
+  }
+  return changed;
+}
+
+/**
+ * `classes`, and every class that extends one of them, directly or not.
+ *
+ * One reading is enough even though a write removes the edges into the file
+ * it re-writes: a class that lost an edge that way is one whose parents
+ * changed, so the caller already has it in `classes`.
+ */
+export function classesAtOrBelow(classes: readonly ClassRef[], hierarchy: Hierarchy): ClassRef[] {
+  const children = new Map<string, ClassRef[]>();
+  for (const { child, parents } of hierarchy.values()) {
+    for (const parent of parents) {
+      const list = children.get(classKey(parent));
+      if (list === undefined) children.set(classKey(parent), [child]);
+      else list.push(child);
+    }
+  }
+  const found = new Map(classes.map((ref) => [classKey(ref), ref]));
+  const queue = [...found.values()];
+  for (let ref = queue.pop(); ref !== undefined; ref = queue.pop()) {
+    for (const child of children.get(classKey(ref)) ?? []) {
+      if (found.has(classKey(child))) continue;
+      found.set(classKey(child), child);
+      queue.push(child);
+    }
+  }
+  return [...found.values()];
+}
+
 /**
  * Paths of the files with an import that resolved to one of `paths`, whatever
  * it names.

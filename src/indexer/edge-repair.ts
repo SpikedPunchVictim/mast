@@ -2,6 +2,8 @@ import type { extractFile } from '../ast/extract.js';
 import type { Db } from '../graph/db.js';
 import {
   changedExports,
+  classesAtOrBelow,
+  classesWithChangedParents,
   clearEdgeRepairsPending,
   findFilesShadowedBy,
   findImportersOfFiles,
@@ -13,8 +15,11 @@ import {
   markEdgeRepairsPending,
   namesExportedThrough,
   readExportSurface,
+  readHierarchy,
   replaceImports,
+  type ClassRef,
   type ExportSurface,
+  type Hierarchy,
 } from '../graph/importer-repair.js';
 import {
   clearOutgoingEdges,
@@ -54,10 +59,16 @@ export interface EdgeRepairMemo {
   readonly reExportingHolders: Set<string>;
   /** What each file exported beforehand. A path with no entry had no row. */
   readonly surfaces: Map<string, ExportSurface>;
+  /**
+   * Which class extends which, read before the first removal. A write removes
+   * the `EXTENDS` edges into the file it re-writes, and the classes that lost
+   * one are found by comparing with this.
+   */
+  hierarchy: Hierarchy | undefined;
 }
 
 export function newEdgeRepairMemo(): EdgeRepairMemo {
-  return { holders: new Set(), reExportingHolders: new Set(), surfaces: new Map() };
+  return { holders: new Set(), reExportingHolders: new Set(), surfaces: new Map(), hierarchy: undefined };
 }
 
 /**
@@ -65,6 +76,7 @@ export function newEdgeRepairMemo(): EdgeRepairMemo {
  * Call it BEFORE the write or delete, in the same critical section.
  */
 export async function rememberBeforeRemoval(db: Db, memo: EdgeRepairMemo, paths: readonly string[]): Promise<void> {
+  memo.hierarchy ??= await readHierarchy(db);
   const holders = await findFilesWithEdgesInto(db, paths);
   for (const holder of holders) memo.holders.add(holder);
   for (const holder of await findReExporters(db, holders)) memo.reExportingHolders.add(holder);
@@ -111,7 +123,8 @@ export interface EdgeRepairResult {
  */
 export async function repairEdgesAfterWrites(db: Db, input: EdgeRepairInput): Promise<EdgeRepairResult> {
   const { memo, inLock } = input;
-  const writtenPaths = new Set(input.written.map((file) => file.filePath));
+  const writtenData = new Map(input.written.map((file) => [file.filePath, file]));
+  const writtenPaths = new Set(writtenData.keys());
   const edgeData: FileEdgeData[] = [...input.written];
 
   // Files resolved again without being re-written: their own rows are current
@@ -131,6 +144,13 @@ export async function repairEdgesAfterWrites(db: Db, input: EdgeRepairInput): Pr
     for (let i = 0; i < paths.length; i += REPAIR_BATCH) {
       await inLock(async () => {
         for (const path of paths.slice(i, i + REPAIR_BATCH)) {
+          // A file this call wrote has current import rows and its records to hand.
+          const own = writtenData.get(path);
+          if (own !== undefined) {
+            await clearOutgoingEdges(db, path);
+            prepared.push(own);
+            continue;
+          }
           const records = reExtracted.get(path);
           if (records === undefined) continue;
           await clearOutgoingEdges(db, path);
@@ -175,10 +195,15 @@ export async function repairEdgesAfterWrites(db: Db, input: EdgeRepairInput): Pr
   });
   const changedNames = new Set<string>();
   const changedStarTargets = new Set<string>();
+  // A class that gained or lost a member, or came or went itself.
+  const changedClasses: ClassRef[] = [];
   for (const path of new Set([...input.deleted, ...writtenPaths])) {
     const after = writtenPaths.has(path) ? await readExportSurface(db, path) : null;
     const changed = changedExports(memo.surfaces.get(path) ?? null, after);
-    for (const name of changed.names) changedNames.add(name);
+    for (const name of changed.names) {
+      changedNames.add(name);
+      changedClasses.push({ path, name: name.split('.', 1)[0] ?? name });
+    }
     for (const target of changed.starTargets) changedStarTargets.add(target);
   }
   for (const name of await namesExportedThrough(db, [...changedStarTargets, ...shadowed])) changedNames.add(name);
@@ -197,6 +222,25 @@ export async function repairEdgesAfterWrites(db: Db, input: EdgeRepairInput): Pr
     await markEdgeRepairsPending(db, toReResolve);
   });
 
+  // A call of an inherited member is resolved along stored `EXTENDS` edges
+  // (`resolveInheritedMember`), so it is out of date when any class above the
+  // receiver's changed its members or its parent. The files that can hold
+  // such a call are the one declaring a class at or below the changed one and
+  // the ones importing it. They are looked for after every group resolved,
+  // because resolving a file again can itself change what its classes extend.
+  let hierarchy = memo.hierarchy ?? (await readHierarchy(db));
+  const filesToResolveAfter = async (changed: readonly ClassRef[], justResolved: ReadonlySet<string>): Promise<string[]> => {
+    const now = await readHierarchy(db);
+    const affected = classesAtOrBelow([...changed, ...classesWithChangedParents(hierarchy, now)], now);
+    hierarchy = now;
+    if (affected.length === 0) return [];
+    const declaring = [...new Set(affected.map((ref) => ref.path))];
+    const importing = await findImportersOfNames(db, { names: [...new Set(affected.map((ref) => ref.name))], sources: declaring });
+    // A file in the group just resolved had its calls resolved after the
+    // group's `EXTENDS` edges went in, so it is current.
+    return [...new Set([...declaring, ...importing])].filter((path) => input.canReResolve(path) && !justResolved.has(path));
+  };
+
   // Files that re-export are resolved in full, with the written files,
   // whatever the budget — see `findReExporters`.
   const reExporters = await findReExporters(db, toReResolve);
@@ -204,23 +248,35 @@ export async function repairEdgesAfterWrites(db: Db, input: EdgeRepairInput): Pr
   const reExporterData = await prepareReResolve(reExporterPaths);
   let filesReResolved = reExporterData.length;
   edgeData.push(...reExporterData);
-  let waiting = toReResolve.filter((path) => !reExporters.has(path)).sort();
+  const waiting = new Set(toReResolve.filter((path) => !reExporters.has(path)));
   await insertGraphEdges(db, edgeData, inLock);
+
+  // What a group put out of date is recorded before the group is taken off
+  // the list, so a process that stops in between leaves the larger list.
+  const queue = async (paths: readonly string[]): Promise<void> => {
+    if (paths.length === 0) return;
+    for (const path of paths) waiting.add(path);
+    await inLock(() => markEdgeRepairsPending(db, paths));
+  };
+  await queue(await filesToResolveAfter(changedClasses, new Set([...reExporterPaths, ...writtenPaths])));
   await inLock(() => clearEdgeRepairsPending(db, [...reExporterPaths, ...writtenPaths]));
 
   // The rest only import. Each is right as soon as it is resolved against the
-  // finished barrels, so they can be done a batch at a time and stopped at the
-  // budget; what is left stays recorded.
+  // finished barrels and classes, so they can be done a batch at a time and
+  // stopped at the budget; what is left stays recorded.
   const repairStart = Date.now();
   const budgetMs = input.budgetMs ?? Number.POSITIVE_INFINITY;
-  while (waiting.length > 0 && Date.now() - repairStart < budgetMs) {
-    const batch = waiting.slice(0, REPAIR_BATCH);
-    waiting = waiting.slice(REPAIR_BATCH);
+  while (waiting.size > 0 && Date.now() - repairStart < budgetMs) {
+    const batch = [...waiting].sort().slice(0, REPAIR_BATCH);
+    for (const path of batch) waiting.delete(path);
     const batchData = await prepareReResolve(batch);
-    filesReResolved += batchData.length;
+    filesReResolved += batchData.filter((file) => !writtenPaths.has(file.filePath)).length;
     await insertGraphEdges(db, batchData, inLock);
+    if (batchData.some((file) => file.edges.some((edge) => edge.edgeType === 'EXTENDS'))) {
+      await queue(await filesToResolveAfter([], new Set(batch)));
+    }
     await inLock(() => clearEdgeRepairsPending(db, batch));
   }
 
-  return { filesReResolved, pending: waiting.length };
+  return { filesReResolved, pending: waiting.size };
 }

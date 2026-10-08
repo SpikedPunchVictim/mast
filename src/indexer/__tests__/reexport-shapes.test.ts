@@ -49,6 +49,7 @@ export class Child extends Base implements Shape {
 }
 export function go(): void { make(); }
 export function greet(b: Base): void { b.hello(); }
+export function viaChild(c: Child): void { c.hello(); }
 `;
 }
 
@@ -214,6 +215,8 @@ describe.each([
       `POTENTIAL_CALL src/z-consumer.ts:go -> ${shape.leaf}:make`,
       // A method is exported by nothing; it is reached through its class.
       `POTENTIAL_CALL src/z-consumer.ts:greet -> ${shape.leaf}:Base.hello`,
+      // And inherited by a class whose parent is behind the same chain.
+      `POTENTIAL_CALL src/z-consumer.ts:viaChild -> ${shape.leaf}:Base.hello`,
     ]);
   });
 });
@@ -315,6 +318,7 @@ describe('an import that is then exported, after an edit', () => {
       'IMPLEMENTS src/z-consumer.ts:Child -> src/a-leaf.ts:Shape',
       'POTENTIAL_CALL src/z-consumer.ts:go -> src/a-leaf.ts:make',
       'POTENTIAL_CALL src/z-consumer.ts:greet -> src/a-leaf.ts:Base.hello',
+      'POTENTIAL_CALL src/z-consumer.ts:viaChild -> src/a-leaf.ts:Base.hello',
     ]);
   });
 

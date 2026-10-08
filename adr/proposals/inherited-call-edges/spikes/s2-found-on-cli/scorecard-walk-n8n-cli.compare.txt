@@ -1,0 +1,78 @@
+before: eval-suite/baselines/n8n-cli.json.gz
+after:  eval-suite/out/n8n-cli.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+edge: PARENT_OF                            7561      7561      7561         0         0         0         0
+edge: POTENTIAL_CALL                      23829     18862     18858         0      4971         0         4
+                                              .      +941      +941         .      -941         .         .
+edge: RE_EXPORTS (to the declaration)       151       151       151         0         0         0         0
+export * (file to file)                      20        20        20         0         0         0         0
+import: named binding                     18038     18038     18038         0         0         0         0
+import: the file it resolves to           10257     10258     10257         0         0         0         1
+symbol flag: is_exported                  12824     12824     12824         0         0         0         0
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              174       174       174         0         0         0         0
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7561      7561      7561         0         0         0         0
+symbol: type                                976       976       976         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: lacks -> agree (941)
+    packages/cli/src/active-executions.ts:ActiveExecutions.stopExecution > packages/@n8n/backend-common/src/typed-emitter.ts:TypedEmitter.emit
+    packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.clearWebhooks > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.findOne
+    packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.handleAddWebhooksAndNonWebhookTriggers > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.update
+    packages/cli/src/auth/auth.service.ts:AuthService.authenticateUserBasedOnToken > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.existsBy
+    packages/cli/src/auth/auth.service.ts:AuthService.authenticateUserByCookie > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.existsBy
+    packages/cli/src/auth/auth.service.ts:AuthService.createAuthMiddleware > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.existsBy
+    packages/cli/src/auth/auth.service.ts:AuthService.invalidateToken > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.insert
+    packages/cli/src/auth/auth.service.ts:AuthService.resolvePasswordResetToken > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.findOne
+    packages/cli/src/auth/auth.service.ts:AuthService.validateCookieToken > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.existsBy
+    packages/cli/src/auth/auth.service.ts:AuthService.validateToken > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.findOne
+    packages/cli/src/auth/handlers/email.auth-handler.ts:EmailAuthHandler.handleLogin > packages/@n8n/backend-common/src/typed-emitter.ts:TypedEmitter.emit
+    packages/cli/src/auth/handlers/email.auth-handler.ts:EmailAuthHandler.handleLogin > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.findOne
+    packages/cli/src/binary-data/database.manager.ts:DatabaseManager.copyByFilePath > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.insert
+    packages/cli/src/binary-data/database.manager.ts:DatabaseManager.deleteMany > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.delete
+    packages/cli/src/binary-data/database.manager.ts:DatabaseManager.deleteManyByFileId > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.delete
+    packages/cli/src/binary-data/database.manager.ts:DatabaseManager.getAsBuffer > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.findOneOrFail
+    packages/cli/src/binary-data/database.manager.ts:DatabaseManager.getMetadata > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.findOneOrFail
+    packages/cli/src/binary-data/database.manager.ts:DatabaseManager.rename > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.update
+    packages/cli/src/binary-data/database.manager.ts:DatabaseManager.store > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.insert
+    packages/cli/src/chat/chat-execution-manager.ts:ChatExecutionManager.cancelExecution > packages/@n8n/typeorm/src/repository/Repository.ts:Repository.update
+    ... 921 more, in the JSON
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction               1755      1755      1755         0         0         0         0
+call edge, stored as field_type                 7003      7003      7003         0         0         0         0
+                                                +928      +928      +928         .         .         .         .
+call edge, stored as import                     2730      2734      2730         0         0         0         4
+call edge, stored as new_expression               97        97        97         0         0         0         0
+call edge, stored as parameter_type              377       377       377         0         0         0         0
+                                                 +12       +12       +12         .         .         .         .
+call edge, stored as same_file                  1909      1909      1909         0         0         0         0
+call edge, stored as static_method                68        68        68         0         0         0         0
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4903      4903      4903         0         0         0         0
+                                                  +1        +1        +1         .         .         .         .
+call written as expr.m(), other file            1174         3         3         0      1171         0         0
+call written as expr.m(), same file                7         0         0         0         7         0         0
+call written as f(), other file                 4679      2730      2730         0      1949         0         0
+call written as f(), same file                  1924      1909      1909         0        15         0         0
+call written as ident.m(), other file           1972       502       502         0      1470         0         0
+                                                   .       +12       +12         .       -12         .         .
+call written as ident.m(), same file              40        37        37         0         3         0         0
+call written as new X(), other file             1711      1705      1705         0         6         0         0
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7352      7003      7003         0       349         0         0
+                                                   .      +928      +928         .      -928         .         .
+call written as this.field.m(), same file          1         0         0         0         1         0         0
+call written as this.m(), other file             225       225       225         0         0         0         0
+                                                   .        +1        +1         .        -1         .         .
+call written as this.m(), same file             4678      4678      4678         0         0         0         0

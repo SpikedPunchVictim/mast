@@ -238,6 +238,109 @@ and `scorecard-dynamic-import-*.compare.txt`.
     `{ new (): SecretsProvider }` as lacking; it now applies only when the signature is a
     constructor's or the implicit one.
 
+## The walk as built (2026-10-08)
+
+M1, M2 and M3a, with R2 (no edge for a class with two stored parents). R1 is not built.
+Files: `s2-found-on-cli/scorecard-walk-*.compare.txt` (each corpus against the baseline of
+`9698465`), `s2-found-on-cli/n8n-walk-vs-9698465.gone.txt` and `.new.txt` (every edge of
+the whole n8n index), `t6-replay/replay-check-*.json`.
+
+### Full index (T7)
+
+| | `9698465` | this build |
+|---|---|---|
+| Edges, whole n8n | 70,022 | 71,091 (0 gone, 1,069 new) |
+| `packages/cli` calls that agree with the compiler | 17,917 | 18,858 |
+| `packages/cli` calls mast lacks | 5,912 | 4,971 |
+| `packages/cli` calls wrong / unjudged | 0 / 4 | 0 / 4 |
+| `packages/core` calls that agree | 921 | 930 |
+| `packages/core` calls mast lacks | 204 | 195 |
+
+- Scorecard: PASS on all three. `packages/cli` has 941 calls move from `lacks` to `agree`
+  and `packages/core` 9, the numbers S1 predicted. No other line item moves on n8n.
+- 119 of the 1,069 new edges are outside the two judged packages and are not judged.
+- This repository gains 35 agreeing call edges. That is its own source growing with the
+  change, not the walk: the build of M1 and M2 alone, before the repair was written,
+  gained 3.
+- The D111 fix (below) changes no edge on n8n: the edge list of this build equals that of
+  the build of M1 and M2 alone.
+
+### Incremental runs (T5, T6)
+
+M1 and M2 alone made every edit to a class hierarchy leave an incremental run or a
+query-time refresh different from a full index: nine scenario rows written for T5 failed in
+both equivalence tables (18 failures). With M3a all pass, with a tenth row for a caller
+written in the same run as the class at the top.
+
+M3a is not built as the proposal's "Order inside repair" has it. It does not put the files
+that hold an `EXTENDS` edge in the first group. It reads the `EXTENDS` edges before the
+first write and after each group resolved, and for every class whose members or parent
+changed it resolves again the files that declare or import that class or one below it,
+until a reading shows no change. The first-group rule was written and then taken out: with
+it removed no scenario and no generated seed failed, since a file resolved too early is
+resolved again when its parent's edge comes back. What that costs in files resolved twice
+is not measured.
+
+Each part was removed in turn to see what fails:
+
+| Removed | Fails |
+|---|---|
+| Classes whose members changed | 4 of the 9 rows, in both tables |
+| The reading after each batch | 2 of the 9 rows, in both tables |
+| Resolving a written file again | the tenth row, incremental table |
+| The reading from before the write, for finding classes below | nothing: a class that lost an edge to a write is itself one whose parent changed. Taken out |
+
+Generated edit sequences (`generated-edits.ts`) now build classes `H0` to `H2` that extend
+one another across files, and add and remove their methods, parents and importers:
+
+| Build | Seeds 1 to 200 |
+|---|---|
+| M1 and M2, repair as in `9698465` | 10 fail (19, 29, 32, 48, 113, 122, 144, 148, 167, 194) |
+| With M3a | 0 fail; 0 of seeds 1 to 900 |
+
+Before those edits were added, the same 200 seeds caught the missing repair in none: the
+one failure was seed 22, which is D111 and fails without the walk as well. Seeds 19 and 29
+are now among the fixed seeds the gate runs.
+
+**D111**, found on the way: a file that re-exports one name by name from two files has two
+`RE_EXPORTS` edges on one marker, and the one followed was the first written. Ordered by
+path now, as D094 did for two stars.
+
+### A review that tried to break it
+
+A separate pass was briefed to write scenarios where an incremental run differs from a full
+index, and ran 64 through three loops (incremental; budget 0 then unlimited; query-time
+refresh then incremental). 56 passed, among them chains of four and six files with 40
+importers, cycles, a parent switched between two files with a class of the same name, a
+class with two stored parents, and two levels edited in one round. 8 failed, all one case:
+the caller reaches the class through `export { Leaf as Blatt } from`. That is **D112**,
+which fails without any class as well and on the build of `9698465` (two of the eight run
+again here, one on that build). It is open; the walk widens it from "the re-exported
+declaration changed" to "any class above it changed".
+
+From its reading, not reproduced: the list of waiting files was cleared for a group before
+the files that group put out of date were recorded, so a process stopping between the two
+lost them. The order is now the other way round. Not tried by it: a budget running out
+part-way, concurrent writers, mixins.
+
+### Replay of real commits
+
+`eval-suite/replay-check.mjs`, with the build of this change (the tree was not yet
+committed, so the files say `mast_tree_dirty: true` on `9698465`):
+
+| | This repository | n8n |
+|---|---|---|
+| Commits replayed, one incremental run each | 100 (`f815a3b` to `9698465`) | 200 (`f8941b1` to `9d9e9bf`) |
+| Runs that wrote a file | 98 | 144 |
+| Files written, total / most in one run | 571 / 39 | 1,119 / 93 |
+| Lines of the graph after the replay / in a full index | 1,324 / 1,324 | 124,110 / 124,110 |
+| Missing / extra after the replay | 0 / 0 | 0 / 0 |
+| Files stale / waiting for repair | 0 / 0 | 0 / 0 |
+| Verdict | PASS | PASS |
+
+A pass means the incremental path and the full path agree on this history. It does not
+mean an edit to a class hierarchy was among the 200 commits; that was not counted.
+
 ## Limits
 
 - One real corpus shows any gain. This repository has no call that needs the walk.

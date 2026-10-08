@@ -1,0 +1,131 @@
+before: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/base-mast-head.json.gz
+after:  eval-suite/out/mast.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 5         5         5         0         0         0         0
+edge: IMPLEMENTS                              7         7         7         0         0         0         0
+edge: PARENT_OF                              49        49        49         0         0         0         0
+edge: POTENTIAL_CALL                        865       835       835         0        30         0         0
+                                            +41       +35       +35         .        +6         .         .
+edge: RE_EXPORTS (to the declaration)        16        16        16         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+import: named binding                       743       743       743         0         0         0         0
+                                             +5        +5        +5         .         .         .         .
+import: the file it resolves to             292       292       292         0         0         0         0
+symbol flag: is_exported                    791       791       791         0         0         0         0
+                                            +19       +19       +19         .         .         .         .
+symbol: class                                24        24        24         0         0         0         0
+symbol: export                               20        20        20         0         0         0         0
+symbol: function                            461       461       461         0         0         0         0
+                                            +16       +16       +16         .         .         .         .
+symbol: interface                           197       197       197         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: method                               49        49        49         0         0         0         0
+symbol: type                                 60        60        60         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (35)
+    src/graph/importer-repair.ts:classesAtOrBelow > src/graph/importer-repair.ts:classKey
+    src/graph/importer-repair.ts:readHierarchy > src/graph/importer-repair.ts:classKey
+    src/graph/populate.ts:insertEdgesReportingUnresolved > src/graph/populate.ts:resolveInheritedMember
+    src/graph/populate.ts:resolveInheritedMember > src/graph/populate.ts:resolveQualifiedNameScoped
+    src/graph/populate.ts:resolveInheritedMember > src/graph/populate.ts:resolveSameFileScoped
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass > src/indexer/__tests__/generated-edits.ts:pickDeepClass
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass > src/indexer/__tests__/generated-edits.ts:replaceClass
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass > src/indexer/__tests__/generated-edits.ts:withDeepClass
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveAMethodUpTheChain > src/indexer/__tests__/generated-edits.ts:pickDeepClass
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveAMethodUpTheChain > src/indexer/__tests__/generated-edits.ts:replaceClass
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends > src/indexer/__tests__/generated-edits.ts:isDeep
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends > src/indexer/__tests__/generated-edits.ts:namesInFile
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends > src/indexer/__tests__/generated-edits.ts:pickDeepClass
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends > src/indexer/__tests__/generated-edits.ts:replaceClass
+    src/indexer/__tests__/generated-edits.ts:generateScenario > src/indexer/__tests__/generated-edits.ts:namesInFile
+    src/indexer/__tests__/generated-edits.ts:generateScenario > src/indexer/__tests__/generated-edits.ts:stemToImportFrom
+    src/indexer/__tests__/generated-edits.ts:generateScenario > src/indexer/__tests__/generated-edits.ts:withDeepClass
+    src/indexer/__tests__/generated-edits.ts:generateScenario > src/indexer/__tests__/generated-edits.ts:withImport
+    src/indexer/__tests__/generated-edits.ts:importOrDropADeepClass > src/indexer/__tests__/generated-edits.ts:stemToImportFrom
+    src/indexer/__tests__/generated-edits.ts:importOrDropADeepClass > src/indexer/__tests__/generated-edits.ts:withImport
+    ... 15 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> lacks (6)
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass > src/indexer/__tests__/generated-edits.ts:Dice.chance
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass > src/indexer/__tests__/generated-edits.ts:Dice.pick
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveAMethodUpTheChain > src/indexer/__tests__/generated-edits.ts:Dice.pick
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends > src/indexer/__tests__/generated-edits.ts:Dice.chance
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends > src/indexer/__tests__/generated-edits.ts:Dice.pick
+    src/indexer/__tests__/generated-edits.ts:importOrDropADeepClass > src/indexer/__tests__/generated-edits.ts:Dice.pick
+  import: named binding: absent -> agree (5)
+    src/indexer/edge-repair.ts { ClassRef } from '../graph/importer-repair.js'
+    src/indexer/edge-repair.ts { Hierarchy } from '../graph/importer-repair.js'
+    src/indexer/edge-repair.ts { classesAtOrBelow } from '../graph/importer-repair.js'
+    src/indexer/edge-repair.ts { classesWithChangedParents } from '../graph/importer-repair.js'
+    src/indexer/edge-repair.ts { readHierarchy } from '../graph/importer-repair.js'
+  symbol flag: is_exported: absent -> agree (19)
+    src/graph/importer-repair.ts:ClassRef exported=true
+    src/graph/importer-repair.ts:Hierarchy exported=true
+    src/graph/importer-repair.ts:classKey exported=true
+    src/graph/importer-repair.ts:classesAtOrBelow exported=true
+    src/graph/importer-repair.ts:classesWithChangedParents exported=true
+    src/graph/importer-repair.ts:readHierarchy exported=true
+    src/graph/populate.ts:resolveInheritedMember exported=false
+    src/indexer/__tests__/generated-edits.ts:DeepEdit exported=false
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass exported=false
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveAMethodUpTheChain exported=false
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends exported=false
+    src/indexer/__tests__/generated-edits.ts:importOrDropADeepClass exported=false
+    src/indexer/__tests__/generated-edits.ts:isDeep exported=false
+    src/indexer/__tests__/generated-edits.ts:namesInFile exported=false
+    src/indexer/__tests__/generated-edits.ts:pickDeepClass exported=false
+    src/indexer/__tests__/generated-edits.ts:replaceClass exported=false
+    src/indexer/__tests__/generated-edits.ts:stemToImportFrom exported=false
+    src/indexer/__tests__/generated-edits.ts:withDeepClass exported=false
+    src/indexer/__tests__/generated-edits.ts:withImport exported=false
+  symbol: function: absent -> agree (16)
+    src/graph/importer-repair.ts:classKey
+    src/graph/importer-repair.ts:classesAtOrBelow
+    src/graph/importer-repair.ts:classesWithChangedParents
+    src/graph/importer-repair.ts:readHierarchy
+    src/graph/populate.ts:resolveInheritedMember
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass
+    src/indexer/__tests__/generated-edits.ts:addOrRemoveAMethodUpTheChain
+    src/indexer/__tests__/generated-edits.ts:changeWhatADeepClassExtends
+    src/indexer/__tests__/generated-edits.ts:importOrDropADeepClass
+    src/indexer/__tests__/generated-edits.ts:isDeep
+    src/indexer/__tests__/generated-edits.ts:namesInFile
+    src/indexer/__tests__/generated-edits.ts:pickDeepClass
+    src/indexer/__tests__/generated-edits.ts:replaceClass
+    src/indexer/__tests__/generated-edits.ts:stemToImportFrom
+    src/indexer/__tests__/generated-edits.ts:withDeepClass
+    src/indexer/__tests__/generated-edits.ts:withImport
+  symbol: interface: absent -> agree (1)
+    src/graph/importer-repair.ts:ClassRef
+  symbol: type: absent -> agree (2)
+    src/graph/importer-repair.ts:Hierarchy
+    src/indexer/__tests__/generated-edits.ts:DeepEdit
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            20        20        20         0         0         0         0
+call edge, stored as import                 296       296       296         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+call edge, stored as new_expression           7         7         7         0         0         0         0
+call edge, stored as parameter_type          14        14        14         0         0         0         0
+                                             +6        +6        +6         .         .         .         .
+call edge, stored as same_file              489       489       489         0         0         0         0
+                                            +25       +25       +25         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              8         8         8         0         0         0         0
+call written as f(), other file             302       296       296         0         6         0         0
+                                             +4        +4        +4         .         .         .         .
+call written as f(), same file              490       489       489         0         1         0         0
+                                            +25       +25       +25         .         .         .         .
+call written as ident.m(), other file         6         6         6         0         0         0         0
+call written as ident.m(), same file         38        15        15         0        23         0         0
+                                            +12        +6        +6         .        +6         .         .
+call written as new X(), other file          11        11        11         0         0         0         0
+call written as new X(), same file            9         9         9         0         0         0         0
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           8         8         8         0         0         0         0
