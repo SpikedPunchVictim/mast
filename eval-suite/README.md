@@ -16,3 +16,4 @@ Rules:
 | Check | What it answers | Run |
 |---|---|---|
 | `replay-check.mjs` | Does a run of real commits, indexed one at a time, leave the graph a full index would build? | `node eval-suite/replay-check.mjs` (needs `dist/`; see the file header) |
+| `graph-scorecard.mjs` | For each kind of symbol, edge and import mast stores, how much agrees with the TypeScript compiler, and what a change moved | See [`GRAPH-SCORECARD.md`](GRAPH-SCORECARD.md). Baselines are in `baselines/` |

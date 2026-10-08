@@ -45,7 +45,7 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106. **Rung**: brief — declined for promotion 2026-09-01, reason below.
+**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever
@@ -317,7 +317,7 @@ sits in the join between the instrument and the registration — a place neither
 
 ## S-07 — Absence read as evidence
 
-**Instances**: D001, D002, D010, D017, D045, D048, D049, D071, D079, D082, D084, D087, D090, D091, D092, D093, D095, D100, D102. **Rung**: brief.
+**Instances**: D001, D002, D010, D017, D045, D048, D049, D071, D079, D082, D084, D087, D090, D091, D092, D093, D095, D100, D102, D108. **Rung**: brief.
 
 The package's severity zero, generalised past code. D010 registered an experiment whose answer was
 already committed and unread for four days — "we have no result" was actually "we did not look".
