@@ -315,8 +315,9 @@ importers, cycles, a parent switched between two files with a class of the same 
 class with two stored parents, and two levels edited in one round. 8 failed, all one case:
 the caller reaches the class through `export { Leaf as Blatt } from`. That is **D112**,
 which fails without any class as well and on the build of `9698465` (two of the eight run
-again here, one on that build). It is open; the walk widens it from "the re-exported
-declaration changed" to "any class above it changed".
+again here, one on that build). The walk widens it from "the re-exported declaration
+changed" to "any class above it changed". Fixed in the next commit with a table of such
+re-exports; see the ledger row.
 
 From its reading, not reproduced: the list of waiting files was cleared for a group before
 the files that group put out of date were recorded, so a process stopping between the two

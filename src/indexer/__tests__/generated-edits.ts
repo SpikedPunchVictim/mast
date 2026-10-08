@@ -24,8 +24,8 @@ import type { Round, Scenario } from './equivalence-scenarios.js';
 // two class names a call seldom landed two classes away from its receiver.
 // They draw from a third stream.
 //
-// Not generated, because each is a known gap with its own ledger row or
-// deferral: an import or re-export under an alias, a path alias (D087).
+// Not generated: an import or re-export under an alias (scenario rows cover
+// both, since D112) and a path alias (D087).
 // ---------------------------------------------------------------------------
 
 const PATHS = [

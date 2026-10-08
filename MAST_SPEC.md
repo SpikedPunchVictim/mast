@@ -321,6 +321,16 @@ CREATE TABLE IF NOT EXISTS star_reexport_unresolved (
   PRIMARY KEY (file_id, module)
 );
 
+CREATE TABLE IF NOT EXISTS reexport_aliases (
+  -- One `export { source_name as exported_name }` of a file (§10.3.1). The marker
+  -- symbol holds the exported name only; this ties it to the name it re-exports,
+  -- whether or not that name resolves. Read when another file changes.
+  file_id        INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+  exported_name  TEXT NOT NULL,
+  source_name    TEXT NOT NULL,
+  PRIMARY KEY (file_id, exported_name)
+);
+
 CREATE TABLE IF NOT EXISTS imports (
   file_id       INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
   module        TEXT NOT NULL,
@@ -2518,10 +2528,17 @@ when one file re-exports a name by name from two files (ledger D111). This is a
 fixed choice, not TypeScript's: TypeScript exports neither in the first case
 and rejects the second.
 
-Not followed, because nothing stored identifies the importer: an import or
-re-export under an alias (for `export { a as b } from`, ledger D112, open); an `export *` through a path alias of a file added
-later. A full index corrects both. (A call resolved without file evidence was
-a third such case, ledger D092; no such edge is made any more.)
+A name re-exported under another (`export { a as b }`, with or without `from`)
+is recorded in `reexport_aliases`, and the importers of `b` are resolved again
+when `a` changes, through as many such re-exports as there are (ledger D112).
+
+An import under a local name (`import { a as b }`) needs nothing more: its
+import row holds `a`.
+
+Not followed, because nothing stored identifies the importer: an `export *`
+through a path alias of a file added later. A full index corrects it. (A call
+resolved without file evidence was another such case, ledger D092; no such
+edge is made any more.)
 
 ### 10.3.2 TypeScript-Checker Enrichment Pass (`mast index --checker`)
 

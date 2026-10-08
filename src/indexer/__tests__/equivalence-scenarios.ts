@@ -443,15 +443,55 @@ export const SCENARIOS: readonly Scenario[] = [
     ],
   },
   {
-    // The importer names `g`, the changed file declares `fn`, and the marker
-    // row holds `g` only, so nothing connects the two when `x.ts` changes.
-    name: 'a name appears in a file another re-exports under a second name',
-    openDefect: 'D112',
+    // D112. The importer names `g` and the changed file declares `fn`; only
+    // the re-export says they are one thing.
+    name: 'a name appears in a file another re-exports under a second name, and goes again',
     files: {
       'src/x.ts': `export function other(): void {}\n`,
       'src/barrel.ts': `export { fn as g } from './x.js';\n`,
       'src/zc.ts': `import { g } from './barrel.js';\nexport function use(): void { g(); }\n`,
     },
-    rounds: [{ 'src/x.ts': `export function fn(): void {}\n` }],
+    rounds: [{ 'src/x.ts': `export function fn(): void {}\n` }, { 'src/x.ts': `export function other(): void {}\n` }],
+  },
+  {
+    name: 'a class re-exported under a second name gains a method, and loses it',
+    files: {
+      'src/x.ts': `export class K {}\n`,
+      'src/barrel.ts': `export { K as J } from './x.js';\n`,
+      'src/zc.ts': `import { J } from './barrel.js';\nexport function use(j: J): void { j.find(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export class K {\n  find(): void {}\n}\n` }, { 'src/x.ts': `export class K {}\n` }],
+  },
+  {
+    name: 'a name re-exported under a second name and then a third, imported then exported, changes',
+    files: {
+      'src/x.ts': `export class K {}\n`,
+      'src/b1.ts': `import { K } from './x.js';\nexport { K as J };\n`,
+      'src/b2.ts': `export { J as I } from './b1.js';\n`,
+      'src/b3.ts': `export * from './b2.js';\n`,
+      'src/zc.ts': `import { I } from './b3.js';\nexport function use(i: I): void { i.find(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export class K {\n  find(): void {}\n}\n` }, { 'src/x.ts': `export class K {}\n` }],
+  },
+  {
+    name: 'the class between changes its parent, and the caller has the class at the bottom under a second name',
+    files: {
+      ...HIERARCHY,
+      'src/h-other.ts': `export class Other {\n  find(): void {}\n  top(): void {}\n  more(): void {}\n}\n`,
+      'src/h-barrel.ts': `export { Leaf as Blatt } from './h-leaf.js';\n`,
+      'src/z-use.ts': `import { Blatt } from './h-barrel.js';\nexport function use(leaf: Blatt): void { leaf.more(); }\n`,
+    },
+    rounds: [
+      { 'src/h-mid.ts': `import { Other } from './h-other.js';\nexport class Mid extends Other {}\n` },
+      { 'src/h-mid.ts': H_MID },
+    ],
+  },
+  {
+    name: 'a class imported under a local name gains a method, and loses it',
+    files: {
+      'src/x.ts': `export class K {}\n`,
+      'src/zc.ts': `import { K as Local } from './x.js';\nexport function use(k: Local): void { k.find(); }\n`,
+    },
+    rounds: [{ 'src/x.ts': `export class K {\n  find(): void {}\n}\n` }, { 'src/x.ts': `export class K {}\n` }],
   },
 ];

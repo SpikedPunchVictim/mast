@@ -121,6 +121,18 @@ interface StarReexportUnresolvedTable {
   readonly module: string;
 }
 
+/**
+ * One `export { source_name as exported_name }` of a file, with or without
+ * `from`. The marker symbol holds `exported_name` only, and its `RE_EXPORTS`
+ * edge exists only while the source resolves; this row is what ties the two
+ * names together when it does not (D112).
+ */
+interface ReexportAliasesTable {
+  readonly file_id: number;
+  readonly exported_name: string;
+  readonly source_name: string;
+}
+
 interface ImportsTable {
   readonly file_id: number;
   readonly module: string;
@@ -280,6 +292,7 @@ export interface MastDatabase {
   readonly re_export_files: ReExportFilesTable;
   readonly edge_repair_pending: EdgeRepairPendingTable;
   readonly star_reexport_unresolved: StarReexportUnresolvedTable;
+  readonly reexport_aliases: ReexportAliasesTable;
   readonly imports: ImportsTable;
   readonly metrics: MetricsTable;
   readonly metrics_daily: MetricsDailyTable;
@@ -346,6 +359,13 @@ CREATE TABLE IF NOT EXISTS star_reexport_unresolved (
   file_id  INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
   module   TEXT NOT NULL,
   PRIMARY KEY (file_id, module)
+);
+
+CREATE TABLE IF NOT EXISTS reexport_aliases (
+  file_id        INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+  exported_name  TEXT NOT NULL,
+  source_name    TEXT NOT NULL,
+  PRIMARY KEY (file_id, exported_name)
 );
 
 CREATE TABLE IF NOT EXISTS imports (

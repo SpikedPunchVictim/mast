@@ -1,0 +1,54 @@
+{
+  "instrument": "eval-suite/replay-check.mjs",
+  "name": "mast",
+  "ran_at": "2026-10-08T17:27:50.136Z",
+  "mast_commit": "94d75668dba974fe4110ec609a1f631de0664575",
+  "mast_tree_dirty": true,
+  "replayed": {
+    "base": "6e5e26e96328279173a4c767a096384301eab76a",
+    "final": "94d75668dba974fe4110ec609a1f631de0664575",
+    "commits": 100,
+    "commits_asked_for": 100
+  },
+  "runs_that_wrote_a_file": 98,
+  "files_written_per_run": {
+    "max": 39,
+    "total": 574,
+    "unparsed_runs": 0
+  },
+  "status_after_replay": {
+    "stale_files": 0,
+    "pending_edge_repairs": 0,
+    "index_fresh": true
+  },
+  "lines": {
+    "after_replay": 1359,
+    "full_index": 1359
+  },
+  "missing_after_replay": [],
+  "extra_after_replay": [],
+  "verdict": {
+    "pass": true,
+    "reasons": []
+  },
+  "imported_names_on_the_final_tree": {
+    "import_calls": {
+      "records": 415,
+      "found": 276,
+      "not_found": 1,
+      "package_or_unresolved": 138,
+      "no_import_row": 0
+    },
+    "structural": {
+      "records": 21,
+      "found": 12,
+      "not_found": 0,
+      "package_or_unresolved": 3,
+      "no_import_row": 6
+    },
+    "extract_failures": 0,
+    "not_found": [
+      "POTENTIAL_CALL|src/graph/populate.ts|sql"
+    ]
+  }
+}

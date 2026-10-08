@@ -28,6 +28,9 @@ Experiment scripts stay in `eval/` (ADR 001). Checks meant to be run again and a
   time, `eval/replay-check.mjs`. **A run no longer replaces them**: the script now writes to
   `--out`, or to `eval-suite/out/replay-check-<name>.json` (ignored by git), and refuses a
   path inside `eval/results/`. To publish a new run, copy its file there by hand.
+- `spikes/d112-reexport-alias/replay-check-{mast,n8n}.json`, `scorecard-d112-mast.compare.txt` —
+  the replays and this repository's scorecard comparison on the build that fixed D112
+  (2026-10-08).
 
 ## What a pass does not show
 

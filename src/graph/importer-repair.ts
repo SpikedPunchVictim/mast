@@ -13,9 +13,7 @@ import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 // edges stay as they were. The functions here work out which names changed and
 // which files import them.
 //
-// Known not covered, because the index stores nothing to find the file by:
-// an `import { a as b }` or `export { a as b } from`, which is recorded under
-// one of the two names only (D087's neighbour, deferred).
+// An `export { a as b }` is found through the `reexport_aliases` table (D112).
 // ---------------------------------------------------------------------------
 
 /** What other files can see of one file. */
@@ -154,7 +152,27 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
   // file that imports `Base`.
   const imported = new Set(query.names.map((name) => name.split('.', 1)[0] ?? name));
 
+  // A name re-exported under another (`export { a as b }`) is imported as the
+  // other, and that one may be re-exported under a third (D112).
   const found = new Set<string>();
+  for (let fresh = [...imported]; fresh.length > 0; ) {
+    const next: string[] = [];
+    for (const batch of chunkValuesForSqlite(fresh)) {
+      const rows = await db
+        .selectFrom('reexport_aliases as a')
+        .innerJoin('files as f', 'f.id', 'a.file_id')
+        .select(['f.path', 'a.exported_name'])
+        .where('a.source_name', 'in', batch)
+        .execute();
+      for (const row of rows) {
+        found.add(row.path);
+        if (imported.has(row.exported_name)) continue;
+        imported.add(row.exported_name);
+        next.push(row.exported_name);
+      }
+    }
+    fresh = next;
+  }
   for (const batch of chunkValuesForSqlite([...imported])) {
     const rows = await db
       .selectFrom('symbols as s')

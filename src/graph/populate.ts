@@ -1044,6 +1044,7 @@ export async function insertGraphEdges(
   let pending = files
     .map((file) => ({ filePath: file.filePath, edges: file.edges.filter((e) => e.edgeType === 'RE_EXPORTS') }))
     .filter((file) => file.edges.length > 0);
+  await inBatches(pending, (file) => insertReExportAliases(db, file.filePath, file.edges));
   for (;;) {
     const stillPending: typeof pending = [];
     let resolvedAny = false;
@@ -1537,6 +1538,25 @@ async function resolveThroughStarChain(db: Db, startFileId: number, toName: stri
     if (target !== null) return target;
   }
   return null;
+}
+
+/**
+ * Records each name `filePath` re-exports under another name
+ * (`export { a as b }`). Written whether or not the source resolves: repair
+ * reads it to find the importers of `b` when a file gains or loses `a`, which
+ * is exactly when the marker has no edge to say so (D112). A re-written file's
+ * rows went with its `files` row.
+ */
+async function insertReExportAliases(db: Db, filePath: string, reExports: readonly EdgeRecord[]): Promise<void> {
+  const renamed = reExports.filter((edge) => edge.fromName !== edge.toName);
+  if (renamed.length === 0) return;
+  const file = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();
+  if (file === undefined) return;
+  await db
+    .insertInto('reexport_aliases')
+    .values(renamed.map((edge) => ({ file_id: file.id, exported_name: edge.fromName, source_name: edge.toName })))
+    .onConflict((oc) => oc.doNothing())
+    .execute();
 }
 
 /**
