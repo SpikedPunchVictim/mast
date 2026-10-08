@@ -269,6 +269,60 @@ describe('the §7.1 skip does not fire on an edit outside every symbol body (D03
 });
 
 // ---------------------------------------------------------------------------
+// D132, D133 — statements that sit in no chunk and change no hash
+// ---------------------------------------------------------------------------
+
+/**
+ * `export { foo };` thirty lines below `foo` is outside the chunk's context
+ * lines, and an `export *` that resolves to nothing has no `re_export_files`
+ * row. Adding or removing either changed nothing the §7.1 skip compared, so the
+ * file was passed over and kept the rows of the text before the edit.
+ */
+describe('the stability skip does not pass over a statement outside every chunk (D132, D133)', () => {
+  let dir: string;
+  const FAR = '\n'.repeat(30);
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-far-'));
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  async function indexThenEdit(before: string, after: string): Promise<ReturnType<typeof openDatabase>> {
+    writeFileSync(join(dir, 'x.ts'), before);
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    writeFileSync(join(dir, 'x.ts'), after);
+    await runIndex(config, { incremental: true });
+    return openDatabase(config.resolved_state_dir, {});
+  }
+
+  it.each([
+    { edit: 'removed', before: `${FAR}export { foo };\n`, after: `${FAR}\n`, expected: 0 },
+    { edit: 'added', before: `${FAR}\n`, after: `${FAR}export { foo };\n`, expected: 1 },
+  ])('stores the export flag of a function whose far export list was $edit', async ({ before, after, expected }) => {
+    const declaration = 'function foo(): number { return 1; }\n';
+
+    const db = await indexThenEdit(declaration + before, declaration + after);
+    const stored = await db.selectFrom('symbols').select('is_exported').where('name', '=', 'foo').execute();
+    await db.destroy();
+
+    expect(stored.map((s) => s.is_exported)).toEqual([expected]);
+  });
+
+  it('forgets an unresolved `export *` that was removed', async () => {
+    const own = `${FAR}export function own(): void {}\n`;
+
+    const db = await indexThenEdit(`export * from './missing';\n${own}`, `\n${own}`);
+    const stored = await db.selectFrom('star_reexport_unresolved').select('module').execute();
+    await db.destroy();
+
+    expect(stored).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // D079 — a file that extracts to nothing but `export *` lines
 // ---------------------------------------------------------------------------
 

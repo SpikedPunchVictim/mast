@@ -812,6 +812,15 @@ async function isFileUnchanged(
     .limit(1)
     .executeTakeFirst();
   if (storedReExport !== undefined) return false;
+  // A star that resolved to no file has no row above; it is recorded on its
+  // own, and removing the statement has to remove that record (D133).
+  const storedUnresolvedStar = await db
+    .selectFrom('star_reexport_unresolved')
+    .select('module')
+    .where('file_id', '=', fileRow.id)
+    .limit(1)
+    .executeTakeFirst();
+  if (storedUnresolvedStar !== undefined) return false;
 
   // Named re-exports, for the same reason (D089). `export { x } from './a.js'`
   // leaves a symbol with no hash, no chunk and no import row, so re-pointing it
@@ -840,7 +849,7 @@ async function isFileUnchanged(
   const storedSymbols = await db
     .selectFrom('symbols as s')
     .innerJoin('files as f', 'f.id', 's.file_id')
-    .select(['s.name', 's.line', 's.declaration_hash', 's.body_hash'])
+    .select(['s.name', 's.line', 's.declaration_hash', 's.body_hash', 's.is_exported'])
     .where('f.path', '=', filePath)
     .execute();
 
@@ -890,15 +899,20 @@ function importSignature(
     .join('\n');
 }
 
-/** Order-independent signature of a symbol set's identity + stability hashes. */
+/**
+ * Order-independent signature of a symbol set's identity + stability hashes.
+ * The export flag is part of it: `export { foo };` can sit far below `foo`,
+ * outside its chunk and its hashes, and still decides the flag (D132).
+ */
 function symbolSignature(
-  symbols: readonly { name: string; line: number; declarationHash?: string | null; declaration_hash?: string | null; bodyHash?: string | null; body_hash?: string | null }[],
+  symbols: readonly { name: string; line: number; declarationHash?: string | null; declaration_hash?: string | null; bodyHash?: string | null; body_hash?: string | null; isExported?: boolean; is_exported?: number }[],
 ): string {
   return symbols
     .map((s) => {
       const decl = s.declarationHash ?? s.declaration_hash ?? '';
       const body = s.bodyHash ?? s.body_hash ?? '';
-      return `${s.name}|${s.line}|${decl}|${body}`;
+      const exported = s.isExported ?? s.is_exported === 1;
+      return `${s.name}|${s.line}|${decl}|${body}|${exported ? 1 : 0}`;
     })
     .sort()
     .join('\n');
