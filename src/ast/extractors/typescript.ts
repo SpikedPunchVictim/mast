@@ -1204,6 +1204,26 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
     imports.push({ module, symbols, isExternal, resolvedPath });
   }
 
+  // `const { X } = await import('./x')`, anywhere in the file: the file imports
+  // `X` from `./x` as surely as a static import does. A call of `X` is placed
+  // by this row, and repair finds the file by it when `./x` changes. After the
+  // static rows, so a lookup by name still finds a static import first.
+  const dynamic = new Map<string, string[]>();
+  const visit = (node: SyntaxNode): void => {
+    if (nodeType(node) === 'variable_declarator') {
+      for (const { binding } of destructuredFromDynamicImport(node)) {
+        const names = dynamic.get(binding.module) ?? [];
+        if (!names.includes(binding.exported)) names.push(binding.exported);
+        dynamic.set(binding.module, names);
+      }
+    }
+    for (const child of nodeNamedChildren(node)) visit(child);
+  };
+  visit(parsedTree.rootNode);
+  for (const [module, symbols] of dynamic) {
+    imports.push({ module, symbols, isExternal: !module.startsWith('.') && !module.startsWith('/'), resolvedPath: null });
+  }
+
   return imports;
 }
 
@@ -1302,6 +1322,8 @@ function placedByImport(
   importBindings: ReadonlyMap<string, ImportBinding>,
 ): EdgeRecord {
   if (edge.edgeType === 'PARENT_OF' || edge.resolution === 'same_file' || edge.resolution === 'this_method') return edge;
+  // Already placed, by a dynamic import in the function that makes the call.
+  if (edge.importModule !== undefined) return edge;
   const dot = edge.toName.indexOf('.');
   const binding = importBindings.get(dot === -1 ? edge.toName : edge.toName.slice(0, dot));
   if (binding === undefined) return { ...edge, importModule: null };
@@ -1482,6 +1504,10 @@ function emitCallEdges(
   onCallSite?: (outcome: CallSiteOutcome) => void,
 ): void {
   const env = new LocalTypeEnvironment();
+  // Before the file's scope, so that it wins over a static import or a
+  // declaration of the same name: the first record of a name is kept.
+  const dynamicImports = dynamicImportBindings(bodyNode);
+  for (const local of dynamicImports.keys()) env.recordImport(local);
   seedFileScope(env);
   for (const b of classScopeBindings) env.recordReceiverType(b.receiver, b.type, b.resolution);
   if (paramsNode !== null) {
@@ -1489,7 +1515,11 @@ function emitCallEdges(
   }
   for (const b of collectNewBindings(bodyNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
 
-  for (const site of collectCallSites(bodyNode, paramsNode)) {
+  for (const found of collectCallSites(bodyNode, paramsNode)) {
+    // A local taken from a dynamic import is bound to a module, and is not hidden.
+    const site = dynamicImports.size === 0
+      ? found
+      : { ...found, locals: new Set([...found.locals].filter((name) => !dynamicImports.has(name))) };
     const { call } = site;
     const isConstruction = nodeType(call) === 'new_expression';
     const parsed = isConstruction ? parseConstructed(call) : parseCallee(call);
@@ -1512,13 +1542,105 @@ function emitCallEdges(
     const line = calleeLine(call);
     edges.push({
       fromName,
-      toName: resolved.callee,
+      ...placedByDynamicImport(resolved, dynamicImports),
       edgeType: 'POTENTIAL_CALL',
       resolution: resolved.resolution,
       callLine: line,
       context: (lines[line - 1] ?? '').trim(),
     });
   }
+}
+
+/** Resolutions whose first name is a value in scope, which a local can be. A type annotation is not. */
+const VALUE_ROOTED: ReadonlySet<CallerResolution> = new Set(['import', 'construction', 'static_method', 'new_expression']);
+
+/**
+ * The target of a call whose first name is a local taken from a dynamic
+ * import: the name the module exports, and the module. Any other call keeps
+ * its name and is placed by the file's imports afterwards (`placedByImport`).
+ */
+function placedByDynamicImport(
+  resolved: { readonly callee: string; readonly resolution: CallerResolution },
+  dynamicImports: ReadonlyMap<string, ImportBinding>,
+): { toName: string; importModule?: string } {
+  const dot = resolved.callee.indexOf('.');
+  const binding = VALUE_ROOTED.has(resolved.resolution)
+    ? dynamicImports.get(dot === -1 ? resolved.callee : resolved.callee.slice(0, dot))
+    : undefined;
+  if (binding === undefined) return { toName: resolved.callee };
+  return { toName: `${binding.exported}${dot === -1 ? '' : resolved.callee.slice(dot)}`, importModule: binding.module };
+}
+
+/** `import('./x')` with a literal specifier, awaited or not; the specifier, or null. */
+function dynamicImportSpecifier(value: SyntaxNode | null): string | null {
+  const call = value !== null && nodeType(value) === 'await_expression' ? value.namedChildren[0] ?? null : value;
+  if (call === null || nodeType(call) !== 'call_expression') return null;
+  const callee = call.childForFieldName('function');
+  const args = call.childForFieldName('arguments');
+  const only = args !== null && args.namedChildren.length === 1 ? args.namedChildren[0] ?? null : null;
+  if (callee === null || nodeType(callee) !== 'import' || only === null || nodeType(only) !== 'string') return null;
+  return only.text.slice(1, -1);
+}
+
+/** What each destructured name of `const { X, Y: Z } = await import('./x')` is in its module. */
+function destructuredFromDynamicImport(declarator: SyntaxNode): { local: string; binding: ImportBinding }[] {
+  const pattern = declarator.childForFieldName('name');
+  const value = declarator.childForFieldName('value');
+  if (pattern === null || nodeType(pattern) !== 'object_pattern') return [];
+  // Only `await import(...)`: without the await the names are a promise's.
+  const module = value !== null && nodeType(value) === 'await_expression' ? dynamicImportSpecifier(value) : null;
+  if (module === null) return [];
+  const found: { local: string; binding: ImportBinding }[] = [];
+  for (const part of nodeNamedChildren(pattern)) {
+    if (nodeType(part) === 'shorthand_property_identifier_pattern') {
+      found.push({ local: part.text, binding: { exported: part.text, module } });
+    } else if (nodeType(part) === 'pair_pattern') {
+      const key = part.childForFieldName('key');
+      const local = part.childForFieldName('value');
+      if (key !== null && local !== null && nodeType(key) === 'property_identifier' && nodeType(local) === 'identifier') {
+        found.push({ local: local.text, binding: { exported: key.text, module } });
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * The locals of a function body that are taken from a dynamic import. Nested
+ * functions are not entered, as `declaredLocals` does not enter them. A name
+ * declared more than once in the body, nested functions included, is left
+ * out: which declaration a call sees is not decided here, and no edge is
+ * better than one through the wrong binding.
+ */
+function dynamicImportBindings(bodyNode: SyntaxNode): Map<string, ImportBinding> {
+  const bindings = new Map<string, ImportBinding>();
+  const collect = (node: SyntaxNode): void => {
+    if (NESTED_FUNCTION_TYPES.has(nodeType(node)) || NESTED_CLASS_TYPES.has(nodeType(node))) return;
+    if (nodeType(node) === 'variable_declarator') {
+      for (const { local, binding } of destructuredFromDynamicImport(node)) bindings.set(local, binding);
+    }
+    for (const child of nodeNamedChildren(node)) collect(child);
+  };
+  collect(bodyNode);
+  if (bindings.size === 0) return bindings;
+
+  const timesDeclared = new Map<string, number>();
+  const count = (node: SyntaxNode): void => {
+    const t = nodeType(node);
+    const names: string[] = [];
+    if (NAMED_LOCAL_DECLARATION_TYPES.has(t)) {
+      const name = node.childForFieldName('name')?.text;
+      if (name !== undefined) names.push(name);
+    }
+    const bindingField = LOCAL_BINDING_FIELDS.get(t);
+    const pattern = bindingField === undefined ? null : node.childForFieldName(bindingField);
+    if (pattern !== null) names.push(...namesBoundBy(pattern));
+    for (const name of names) timesDeclared.set(name, (timesDeclared.get(name) ?? 0) + 1);
+    for (const child of nodeNamedChildren(node)) count(child);
+  };
+  count(bodyNode);
+  for (const local of [...bindings.keys()]) if (timesDeclared.get(local) !== 1) bindings.delete(local);
+  return bindings;
 }
 
 interface ReceiverBinding {

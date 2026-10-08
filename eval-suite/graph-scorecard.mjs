@@ -271,12 +271,25 @@ function runScore({ flags }) {
   }
 
   const isHolder = (d) => ts.isVariableDeclaration(d) || ts.isBindingElement(d) || ts.isParameter(d) || ts.isPropertyDeclaration(d);
-  /** What a call through a holder reaches: the signature's declaration, or for `new` of a class with no constructor, the class. */
+  /**
+   * What a call through a holder reaches: the signature's declaration. For `new` it is the
+   * class constructed, by the same rule as a `new` of a name: its own constructor when it
+   * declares one, and the class otherwise. The signature's declaration is not used there,
+   * since for a class with no constructor it is the one a parent declares. A holder typed
+   * with a construct signature (`{ new (): T }`) holds no particular class, and keeps the
+   * signature.
+   */
   function heldBy(call) {
     const signature = checker.getResolvedSignature(call);
-    if (signature?.declaration) return [signature.declaration];
-    if (!ts.isNewExpression(call) || signature === undefined) return [];
-    return (checker.getReturnTypeOfSignature(signature).getSymbol()?.declarations ?? []).filter(ts.isClassDeclaration);
+    if (signature === undefined) return [];
+    const declared = signature.declaration;
+    const ofAClass = declared === undefined || ts.isConstructorDeclaration(declared);
+    if (!ts.isNewExpression(call) || !ofAClass) return declared ? [declared] : [];
+    const classes = (checker.getReturnTypeOfSignature(signature).getSymbol()?.declarations ?? []).filter(ts.isClassDeclaration);
+    if (classes.length === 0) return declared ? [declared] : [];
+    const ctors = classes.flatMap((c) => c.members.filter(ts.isConstructorDeclaration));
+    const ctor = ctors.find((c) => c.body) ?? ctors[0];
+    return ctor ? [ctor] : classes;
   }
 
   /** The nearest enclosing declaration mast has a symbol for. A field initializer's is its class. */
@@ -398,6 +411,18 @@ function runScore({ flags }) {
     }
 
     const visit = (node) => {
+      // `const { X } = await import('./x')`: mast records it as an import of `X`.
+      if (ts.isVariableDeclaration(node) && ts.isObjectBindingPattern(node.name) && node.initializer && ts.isAwaitExpression(node.initializer)) {
+        const call = node.initializer.expression;
+        const specifier = ts.isCallExpression(call) && call.expression.kind === ts.SyntaxKind.ImportKeyword && call.arguments.length === 1 ? call.arguments[0] : null;
+        if (specifier !== null && ts.isStringLiteralLike(specifier)) {
+          ref.importFiles.push({ path, module: specifier.text, target: fileOfSpecifier(specifier) });
+          for (const element of node.name.elements) {
+            const exported = element.propertyName ?? element.name;
+            if (ts.isIdentifier(exported) && ts.isIdentifier(element.name)) ref.importNames.push(`${path} { ${exported.text} } from '${specifier.text}'`);
+          }
+        }
+      }
       if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
         const callee = node.expression;
         const nameNode = ts.isIdentifier(callee) ? callee : ts.isPropertyAccessExpression(callee) ? callee.name : null;

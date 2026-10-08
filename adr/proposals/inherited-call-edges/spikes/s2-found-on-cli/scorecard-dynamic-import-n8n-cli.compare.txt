@@ -1,0 +1,129 @@
+before: eval-suite/baselines/n8n-cli.json.gz
+after:  eval-suite/out/n8n-cli.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+edge: PARENT_OF                            7561      7561      7561         0         0         0         0
+edge: POTENTIAL_CALL                      23829     17921     17917         0      5912         0         4
+                                              .       +61       +61         .       -61         .         .
+edge: RE_EXPORTS (to the declaration)       151       151       151         0         0         0         0
+export * (file to file)                      20        20        20         0         0         0         0
+import: named binding                     18038     18038     18038         0         0         0         0
+                                           +317      +317      +317         .         .         .         .
+import: the file it resolves to           10257     10258     10257         0         0         0         1
+                                           +247      +247      +247         .         .         .         .
+symbol flag: is_exported                  12824     12824     12824         0         0         0         0
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              174       174       174         0         0         0         0
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7561      7561      7561         0         0         0         0
+symbol: type                                976       976       976         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (1)
+    packages/cli/src/modules/agents/json-config/vector-store-factory.ts:buildBackend > packages/@n8n/agents/src/vector-stores/pinecone.ts:PineconeVectorStore
+  edge: POTENTIAL_CALL: lacks -> absent (1)
+    packages/cli/src/modules/agents/json-config/vector-store-factory.ts:buildBackend > packages/@n8n/agents/src/storage/base-vector-store.ts:BaseVectorStore.constructor
+  edge: POTENTIAL_CALL: lacks -> agree (60)
+    packages/cli/src/evaluation.ee/insights/eval-insights.service.ts:EvalInsightsService.invokeAgent > packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor
+    packages/cli/src/modules/agent-evals/agent-eval-case-generation.service.ts:AgentEvalCaseGenerationService.invokeModel > packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor
+    packages/cli/src/modules/agents/agent-model-catalog.service.ts:AgentModelCatalogService.getCatalogModels > packages/@n8n/agents/src/sdk/catalog.ts:fetchProviderCatalog
+    packages/cli/src/modules/agents/agent-runtime-reconstruction.service.ts:AgentRuntimeReconstructionService.injectRuntimeDependencies > packages/cli/src/modules/agents/tools/knowledge/search-knowledge.tool.ts:createKnowledgeRetrievalTools
+    packages/cli/src/modules/agents/agents-catalog.controller.ts:AgentsCatalogController.getModelCatalog > packages/@n8n/agents/src/sdk/catalog.ts:fetchProviderCatalog
+    packages/cli/src/modules/agents/agents.module.ts:AgentsModule.init > packages/cli/src/modules/agents/register-blob-byte-stores.ts:registerAgentBlobByteStores
+    packages/cli/src/modules/agents/agents.module.ts:AgentsModule.settings > packages/cli/src/modules/agents/agent-knowledge-gate.ts:isAgentKnowledgeBaseEnabled
+    packages/cli/src/modules/agents/builder/agents-builder.service.ts:AgentsBuilderService.createBuilderAgent > packages/@n8n/agents/src/runtime/tools/planner-todos-tool.ts:createPlannerTodosTool
+    packages/cli/src/modules/agents/builder/agents-builder.service.ts:AgentsBuilderService.createBuilderAgent > packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor
+    packages/cli/src/modules/agents/builder/agents-builder.service.ts:AgentsBuilderService.createBuilderAgent > packages/@n8n/agents/src/sdk/memory.ts:Memory
+    packages/cli/src/modules/agents/builder/builder-model-live-lookup.service.ts:BuilderModelLiveLookupService.discoverModels > packages/@n8n/ai-utilities/src/model-discovery/index.ts:listModelsForProvider
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:applyMemoryFromConfig > packages/@n8n/agents/src/runtime/memory/observation-log-defaults.ts:createObservationLogObserveFn
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:applyMemoryFromConfig > packages/@n8n/agents/src/runtime/memory/observation-log-defaults.ts:createObservationLogReflectFn
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:applyMemoryFromConfig > packages/@n8n/agents/src/sdk/memory.ts:Memory
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:applyMemoryFromConfig > packages/@n8n/agents/src/sdk/memory.ts:Memory.episodicMemory
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:applyMemoryFromConfig > packages/@n8n/agents/src/sdk/memory.ts:Memory.observationalMemory
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:applyMemoryFromConfig > packages/@n8n/agents/src/sdk/memory.ts:Memory.storage
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:applyMemoryFromConfig > packages/@n8n/agents/src/sdk/memory.ts:Memory.titleGeneration
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.configuration
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor
+    ... 40 more, in the JSON
+  import: named binding: absent -> agree (317)
+    packages/cli/src/abstract-server.ts { setupExpressErrorHandler } from '@sentry/node'
+    packages/cli/src/commands/audit.ts { SecurityAuditService } from '@/security-audit/security-audit.service.js'
+    packages/cli/src/commands/base-command.ts { AzureBlobService } from '@n8n/blob-storage/azure-blob'
+    packages/cli/src/commands/base-command.ts { CommunityPackagesService } from '@/modules/community-packages/community-packages.service.js'
+    packages/cli/src/commands/base-command.ts { DatabaseManager } from '@/binary-data/database.manager.js'
+    packages/cli/src/commands/base-command.ts { ObjectStoreService } from '@n8n/blob-storage/object-store'
+    packages/cli/src/commands/base-command.ts { RedisLockService } from '@/scaling/redis-lock.service.js'
+    packages/cli/src/commands/base-command.ts { TaskRunnerModule } from '@/task-runners/task-runner-module.js'
+    packages/cli/src/commands/start.ts { AuthHandlerRegistry } from '@/auth/auth-handler.registry.js'
+    packages/cli/src/commands/start.ts { EnqueuedExecutionRecoveryService } from '@/executions/enqueued-execution-recovery.service.js'
+    packages/cli/src/commands/start.ts { InstanceSettingsLoaderService } from '@/instance-settings-loader/instance-settings-loader.service.js'
+    packages/cli/src/commands/start.ts { WorkflowPublicationOutboxCleanupService } from '@/workflows/publication/workflow-publication-outbox-cleanup.service.js'
+    packages/cli/src/commands/start.ts { WorkflowPublicationOutboxConsumer } from '@/workflows/publication/workflow-publication-outbox-consumer.js'
+    packages/cli/src/commands/start.ts { WorkflowPublicationReconciler } from '@/workflows/publication/workflow-publication-reconciler.service.js'
+    packages/cli/src/commands/webhook.ts { ScalingService } from '@/scaling/scaling.service.js'
+    packages/cli/src/commands/worker.ts { ScalingService } from '@/scaling/scaling.service.js'
+    packages/cli/src/commands/worker.ts { WorkerServer } from '@/scaling/worker-server.js'
+    packages/cli/src/credentials-overwrites.ts { Publisher } from '@/scaling/pubsub/publisher.service.js'
+    packages/cli/src/events/relays/telemetry.event-relay.ts { OtelConfig } from '@/modules/otel/otel.config.js'
+    packages/cli/src/events/relays/telemetry.event-relay.ts { get } from 'psl'
+    ... 297 more, in the JSON
+  import: the file it resolves to: absent -> agree (247)
+    packages/cli/src/commands/audit.ts '@/security-audit/security-audit.service.js' => packages/cli/src/security-audit/security-audit.service.ts
+    packages/cli/src/commands/base-command.ts '@/binary-data/database.manager.js' => packages/cli/src/binary-data/database.manager.ts
+    packages/cli/src/commands/base-command.ts '@/modules/community-packages/community-packages.service.js' => packages/cli/src/modules/community-packages/community-packages.service.ts
+    packages/cli/src/commands/base-command.ts '@/scaling/redis-lock.service.js' => packages/cli/src/scaling/redis-lock.service.ts
+    packages/cli/src/commands/base-command.ts '@/task-runners/task-runner-module.js' => packages/cli/src/task-runners/task-runner-module.ts
+    packages/cli/src/commands/base-command.ts '@n8n/blob-storage/azure-blob' => packages/@n8n/blob-storage/src/azure-blob/index.ts
+    packages/cli/src/commands/base-command.ts '@n8n/blob-storage/object-store' => packages/@n8n/blob-storage/src/object-store/index.ts
+    packages/cli/src/commands/start.ts '@/auth/auth-handler.registry.js' => packages/cli/src/auth/auth-handler.registry.ts
+    packages/cli/src/commands/start.ts '@/executions/enqueued-execution-recovery.service.js' => packages/cli/src/executions/enqueued-execution-recovery.service.ts
+    packages/cli/src/commands/start.ts '@/instance-settings-loader/instance-settings-loader.service.js' => packages/cli/src/instance-settings-loader/instance-settings-loader.service.ts
+    packages/cli/src/commands/start.ts '@/workflows/publication/workflow-publication-outbox-cleanup.service.js' => packages/cli/src/workflows/publication/workflow-publication-outbox-cleanup.service.ts
+    packages/cli/src/commands/start.ts '@/workflows/publication/workflow-publication-outbox-consumer.js' => packages/cli/src/workflows/publication/workflow-publication-outbox-consumer.ts
+    packages/cli/src/commands/start.ts '@/workflows/publication/workflow-publication-reconciler.service.js' => packages/cli/src/workflows/publication/workflow-publication-reconciler.service.ts
+    packages/cli/src/commands/webhook.ts '@/scaling/scaling.service.js' => packages/cli/src/scaling/scaling.service.ts
+    packages/cli/src/commands/worker.ts '@/scaling/scaling.service.js' => packages/cli/src/scaling/scaling.service.ts
+    packages/cli/src/commands/worker.ts '@/scaling/worker-server.js' => packages/cli/src/scaling/worker-server.ts
+    packages/cli/src/credentials-overwrites.ts '@/scaling/pubsub/publisher.service.js' => packages/cli/src/scaling/pubsub/publisher.service.ts
+    packages/cli/src/events/relays/telemetry.event-relay.ts '@/modules/otel/otel.config.js' => packages/cli/src/modules/otel/otel.config.ts
+    packages/cli/src/execution-lifecycle/execute-error-workflow.ts '@/workflows/workflow-execution.service.js' => packages/cli/src/workflows/workflow-execution.service.ts
+    packages/cli/src/executions/execution-recovery.service.ts '@/workflows/workflow.service.js' => packages/cli/src/workflows/workflow.service.ts
+    ... 227 more, in the JSON
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction               1755      1755      1755         0         0         0         0
+                                                 +16       +16       +16         .         .         .         .
+call edge, stored as field_type                 6075      6075      6075         0         0         0         0
+call edge, stored as import                     2730      2734      2730         0         0         0         4
+                                                 +28       +28       +28         .         .         .         .
+call edge, stored as new_expression               97        97        97         0         0         0         0
+                                                 +16       +16       +16         .         .         .         .
+call edge, stored as parameter_type              365       365       365         0         0         0         0
+call edge, stored as same_file                  1909      1909      1909         0         0         0         0
+call edge, stored as static_method                68        68        68         0         0         0         0
+                                                  +1        +1        +1         .         .         .         .
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4902      4902      4902         0         0         0         0
+call written as expr.m(), other file            1174         3         3         0      1171         0         0
+call written as expr.m(), same file                7         0         0         0         7         0         0
+call written as f(), other file                 4679      2730      2730         0      1949         0         0
+                                                   .       +28       +28         .       -28         .         .
+call written as f(), same file                  1924      1909      1909         0        15         0         0
+call written as ident.m(), other file           1972       490       490         0      1482         0         0
+                                                   .       +17       +17         .       -17         .         .
+call written as ident.m(), same file              40        37        37         0         3         0         0
+call written as new X(), other file             1711      1705      1705         0         6         0         0
+                                                   .       +16       +16         .       -16         .         .
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7352      6075      6075         0      1277         0         0
+call written as this.field.m(), same file          1         0         0         0         1         0         0
+call written as this.m(), other file             225       224       224         0         1         0         0
+call written as this.m(), same file             4678      4678      4678         0         0         0         0

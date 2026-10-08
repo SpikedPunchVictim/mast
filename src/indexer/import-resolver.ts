@@ -212,6 +212,19 @@ function buildResolver(projectRoot: string): ImportResolver {
           const rel = probe(aliasBase, ctx);
           if (rel !== null) return { resolvedPath: rel, isExternal: false };
         }
+        // D110: `@/x.js` names the source `x.ts`, as `./x.js` does. The matcher
+        // looks for a file by appending an extension and finds none for `x.js`,
+        // so it is asked for the stem and the written extension is put back for
+        // `probe`, which owns the source-first substitution.
+        for (const [jsExt] of JS_TO_TS_EXTS) {
+          if (!spec.endsWith(jsExt)) continue;
+          const stemBase = matchPath(spec.slice(0, -jsExt.length), undefined, undefined, [...CANDIDATE_EXTS]);
+          if (stemBase !== undefined) {
+            const rel = probe(stemBase + jsExt, ctx);
+            if (rel !== null) return { resolvedPath: rel, isExternal: false };
+          }
+          break; // a specifier ends in at most one of these extensions
+        }
       }
 
       // 3. pnpm workspace package.

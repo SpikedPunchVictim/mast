@@ -29,3 +29,9 @@ Experiment scripts stay in `eval/` (ADR 001). Checks meant to be run again and a
 D107 (an optional method of a class has no symbol) and D108 (a name imported and then
 exported with no `from` breaks the chain). Both fixed the same day, each measured by a
 `compare` against the baseline, which its scorecard then replaced.
+
+D110 (a path alias written with a `.js` extension is marked external) was found by the
+`compare` of the dynamic-import change, on the 68 import rows it left without a file, and
+fixed with it. That run also found an error in the reference: `new` through a variable was
+judged by the constructor the class inherits. Both are in
+`adr/proposals/inherited-call-edges/spikes/RESULTS.md`.

@@ -2269,12 +2269,15 @@ the identifier match still lands in `identifier_fts` and surfaces as
 - **An element or property of a typed value.** `repos[0].find()`, `this.ctx.repo.find()`.
 - **Default and namespace imports.** `import Repo from './repo'` and `import * as lib
   from './lib'; lib.Repo.create()` — only named imports are tracked.
-- **A local taken from a dynamic import.** `const { Agent } = await import('./agents');
-  new Agent()`. `Agent` is a local, and locals hide the file's `import type { Agent }` of
-  the same name. n8n lost 7 edges to this when locals began to hide (6 `new`, 1 static),
-  all on the right declaration, and 12 more when an aliased import stopped standing in for
-  the local (D106: `agent.model()` on `const agent = new Agent()`). 19 on n8n
-  `packages/cli` in all.
+- **A dynamic import that is not destructured where it is awaited.** `const { Agent } =
+  await import('./agents'); new Agent()` is caught: inside that function `Agent` is the
+  name `./agents` exports, whatever the file imports statically under the same name, and
+  the file has an import row for `./agents`. Not caught: `const lib = await
+  import('./agents'); new lib.Agent()`, `import('./agents').then(...)`, a specifier that
+  is not a string literal, a destructuring inside a nested function (it binds there, and
+  only the outer function's own are read), and a name the function declares twice. n8n
+  `packages/cli` had lost 19 right edges to such locals (7 when locals began to hide, 12
+  with D106); binding them stored 61 edges there, all 61 agreeing with the compiler.
 
 The inherited, union, element and default-or-namespace cases were each run on a scratch
 project on 2026-10-07 and stored no edge. What
@@ -2386,7 +2389,7 @@ import or a same-file declaration. For these, and for `construction`, the chain
 is followed for the type name and the member is then read from the file that
 declares the type: a member is not exported, so no re-export names it (D102).
 When a rule has no such evidence (e.g. a
-default/namespace import or a destructured dynamic import, neither of which is
+default/namespace import, which is not
 tracked as a named import; or a TypeScript lib type) there is no edge. Until
 2026-10-07 these three rules then took the first symbol with the name anywhere
 in the graph; that match was measured at 7 of 30,740 call edges on n8n and

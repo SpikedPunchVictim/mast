@@ -201,7 +201,42 @@ Scorecard verdicts: this repository PASS, `packages/core` PASS, `packages/cli` F
 12. The baselines were replaced with this build's scorecards knowing that.
 
 A local taken from a dynamic import now costs 19 right edges on `packages/cli` (7 from D104,
-12 here). Binding such a local to its module would get them back; not done.
+12 here). Binding such a local to its module would get them back; done in the next section.
+
+### After binding a local taken from a dynamic import (2026-10-07)
+
+`const { X, Y: Z } = await import('m')` now binds `X` and `Z` to `m` for the function it
+is in, and the file gets an import row for `m`. Files: `s2-found-on-cli/n8n-dyn-vs-eca3f88.gone.txt`
+and `.new.txt` (every edge of the whole n8n index, build of `eca3f88` against this one),
+and `scorecard-dynamic-import-*.compare.txt`.
+
+| | `eca3f88` | this build |
+|---|---|---|
+| Edges, whole n8n | 69,951 | 70,022 (0 gone, 71 new) |
+| Call edges | 44,671 | 44,742 |
+| Import rows | 51,617 | 51,963 |
+| Import rows with a resolved file | 43,599 | 43,868 |
+| `packages/cli` calls that agree with the compiler | 17,856 | 17,917 |
+| `packages/cli` calls mast lacks | 5,973 | 5,912 |
+
+- Of the 71 new edges, 61 are in `packages/cli` and all 61 agree with the compiler. 22 of
+  them are in `from-json-config.ts`, which holds the 12 lost with D106. The other 10 are in
+  five packages that are not judged.
+- Scorecard: PASS on all three. `packages/core` has no new edge; this repository has 12.
+- The first scoring of this build failed on `packages/cli` for two reasons, neither in the
+  change:
+  - **D110**, in mast: 68 of the 247 new import rows had no file, all of them a path alias
+    written with a `.js` extension (`@/security-audit/security-audit.service.js`). No static
+    import in `packages/cli` is written that way, which is why the baseline had none
+    lacking. Fixed in the same commit. Across the whole n8n index it resolved no static
+    import that was unresolved before (0 rows).
+  - In the scorecard: one `new PineconeVectorStore()` through a destructured local was
+    marked wrong. The class declares no constructor, and the reference followed the
+    compiler's signature to the constructor of the class it extends, where the rule decided
+    on 2026-10-07 is the class itself. `heldBy` now applies that rule. A first correction
+    applied it to every `new` through a variable and added six calls of a variable typed
+    `{ new (): SecretsProvider }` as lacking; it now applies only when the signature is a
+    constructor's or the implicit one.
 
 ## Limits
 

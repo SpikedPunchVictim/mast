@@ -75,7 +75,7 @@ is from reading `src/graph/queries.ts` and `src/mcp/tools/`, on 2026-10-07.
 | `edge: RE_EXPORTS (to the declaration)` | marker to the next marker or the declaration | `mast_rename_impact`, and the resolver's chain walk | the declaration the compiler reaches from the exported name; mast's chain is followed to its end first |
 | `export * (file to file)` | `re_export_files` | the same | the file each `export * from` resolves to |
 | `import: the file it resolves to` | `imports.resolved_path` | `mast_dependencies`, `mast_signature` (parameter types), incremental repair | the file the compiler resolves the specifier to |
-| `import: named binding` | `imports.symbols` | the same | each name in `import { ... }`, under the name the module exports |
+| `import: named binding` | `imports.symbols` | the same | each name in `import { ... }`, under the name the module exports, and each name destructured from `await import('...')` |
 | `edge: POTENTIAL_CALL` | caller to callee, one row per pair | `mast_callers`, `mast_rename_impact` | each call or `new` the compiler resolves to an indexed declaration, per caller |
 
 Two breakdowns of `edge: POTENTIAL_CALL` are printed and kept in the file. They are not
@@ -94,8 +94,10 @@ part of the verdict, since they hold the same keys:
 - `new X()` reaches `X`'s constructor when the class declares one, and the class otherwise
   (decided 2026-10-07).
 - When the name called is a variable, a parameter or a field, the target is the declaration
-  of the signature the compiler picked: `const { X } = await import('./x'); new X()` reaches
-  `X`.
+  of the signature the compiler picked. For `new` with a constructor's signature it is the
+  class constructed, by the rule above: `const { X } = await import('./x'); new X()` reaches
+  `X.constructor` when `X` declares one and `X` otherwise, not the constructor `X` inherits.
+  A variable typed `{ new (): T }` keeps the signature, which is no indexed declaration.
 - A stored edge the compiler does not have is `wrong` when every call of that name in the
   caller resolved, and `unjudged` when one did not.
 

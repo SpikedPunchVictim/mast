@@ -47,6 +47,29 @@ describe('import resolver (§13.7)', () => {
     expect(r).toEqual({ resolvedPath: 'src/types.ts', isExternal: false });
   });
 
+  // D110. NodeNext source writes the output extension after an alias too.
+  it('resolves an alias written with a .js extension to its TypeScript source', () => {
+    write(root, 'tsconfig.json', JSON.stringify({
+      compilerOptions: { baseUrl: '.', paths: { '@app/*': ['src/*'] } },
+    }));
+    write(root, 'src/audit.service.ts', 'export class AuditService {}');
+
+    const r = getImportResolver(root).resolve('@app/audit.service.js', 'src/a.ts');
+
+    expect(r).toEqual({ resolvedPath: 'src/audit.service.ts', isExternal: false });
+  });
+
+  it('does not resolve an alias written with a .js extension to a directory of that stem', () => {
+    write(root, 'tsconfig.json', JSON.stringify({
+      compilerOptions: { baseUrl: '.', paths: { '@app/*': ['src/*'] } },
+    }));
+    write(root, 'src/audit/index.ts', 'export class AuditService {}');
+
+    const r = getImportResolver(root).resolve('@app/audit.js', 'src/a.ts');
+
+    expect(r.resolvedPath).toBeNull();
+  });
+
   // D087. A monorepo's root tsconfig.json often holds only `references`, and
   // each package declares its own aliases, usually the same `@/*`.
   it('resolves an alias declared only in the importing package\'s tsconfig.json', () => {
