@@ -820,11 +820,12 @@ async function insertEdgesReportingUnresolved(
   // name match across the graph (D085). A member is declared in its class's own
   // file. The target of `implements` / `extends` is a name the file imports or
   // declares; with neither — a built-in such as `Error` or `Record`, a default
-  // or aliased import — there is no edge. A name match there linked 27 such
+  // import — there is no edge. A name match there linked 27 such
   // records on n8n and all 27 were wrong
   // (adr/proposals/incremental-graph-correctness/spikes/s6-structural-fallback).
   // Keyed by edge type as well as name: the two rules differ.
-  const structuralKey = (e: EdgeRecord): string => `${e.edgeType === 'PARENT_OF' ? 'member' : 'type'}::${e.toName}`;
+  // The module is part of the key: two imports can bind one exported name.
+  const structuralKey = (e: EdgeRecord): string => `${e.edgeType === 'PARENT_OF' ? 'member' : 'type'}::${e.toName}::${String(e.importModule)}`;
   const structuralToMap = new Map<string, number>();
   const structuralSeen = new Set<string>();
   for (const e of edges) {
@@ -834,7 +835,7 @@ async function insertEdgesReportingUnresolved(
     structuralSeen.add(key);
     const targetId = e.edgeType === 'PARENT_OF'
       ? await resolveSameFileScoped(db, fromFile.id, e.toName)
-      : await resolveQualifiedNameScoped(db, fromFile.id, imports, e.toName);
+      : await resolveQualifiedNameScoped(db, fromFile.id, importPlacerFor(imports, e.importModule), e.toName);
     if (targetId !== null) structuralToMap.set(key, targetId);
   }
 
@@ -847,7 +848,7 @@ async function insertEdgesReportingUnresolved(
   //
   // Construction is keyed apart: `new X()` and a call `X()` name the same
   // thing and can land on different symbols (the constructor, the class).
-  const callKey = (e: EdgeRecord): string => (e.resolution === 'construction' ? `new ${e.toName}` : e.toName);
+  const callKey = (e: EdgeRecord): string => `${e.resolution === 'construction' ? 'new ' : ''}${e.toName}::${String(e.importModule)}`;
   const callEdgesByKey = new Map<string, EdgeRecord>();
   for (const e of edges) {
     if (e.edgeType === 'POTENTIAL_CALL' && !callEdgesByKey.has(callKey(e))) {
@@ -859,21 +860,21 @@ async function insertEdgesReportingUnresolved(
   // it extends, placed exactly as `super.m()` is, by the name in this file's
   // own `extends` clause. One step up. Further up means reading the parent's
   // `extends`, which is another file's record and may not be stored yet.
-  const parentNameByClass = new Map<string, string>();
+  const parentByClass = new Map<string, EdgeRecord>();
   for (const e of edges) {
-    if (e.edgeType === 'EXTENDS' && !parentNameByClass.has(e.fromName)) parentNameByClass.set(e.fromName, e.toName);
+    if (e.edgeType === 'EXTENDS' && !parentByClass.has(e.fromName)) parentByClass.set(e.fromName, e);
   }
   const resolveOnParentClass = async (toName: string): Promise<number | null> => {
     const dot = toName.indexOf('.');
-    const parentName = parentNameByClass.get(toName.slice(0, dot));
-    if (dot === -1 || parentName === undefined) return null;
-    return resolveQualifiedNameScoped(db, fromFile.id, imports, `${parentName}${toName.slice(dot)}`);
+    const parent = parentByClass.get(toName.slice(0, dot));
+    if (dot === -1 || parent === undefined) return null;
+    return resolveQualifiedNameScoped(db, fromFile.id, importPlacerFor(imports, parent.importModule), `${parent.toName}${toName.slice(dot)}`);
   };
 
   const callToMap = new Map<string, number>();
   for (const [key, edge] of callEdgesByKey) {
     const targetId =
-      (await resolveCallTarget(db, fromFile.id, imports, edge.resolution, edge.toName)) ??
+      (await resolveCallTarget(db, fromFile.id, importPlacerFor(imports, edge.importModule), edge.resolution, edge.toName)) ??
       (edge.resolution === 'this_method' ? await resolveOnParentClass(edge.toName) : null);
     if (targetId !== null) callToMap.set(key, targetId);
   }
@@ -1087,7 +1088,7 @@ export async function insertGraphEdges(
 async function resolveCallTarget(
   db: Db,
   fromFileId: number,
-  imports: ImportIndexLoader,
+  imports: ImportPlacer,
   resolution: CallerResolution | undefined,
   toName: string,
 ): Promise<number | null> {
@@ -1106,7 +1107,7 @@ async function resolveCallTarget(
       return resolveSameFileScoped(db, fromFileId, toName);
 
     case 'import': {
-      const lookup = importResolvedPathFor(await imports(), toName);
+      const lookup = await imports(toName);
       // An `import`-resolution edge is only emitted for a name the extractor
       // saw in this file's own import_clause (local-type-env.ts
       // recordImport), so an import row always exists; `lookup === null`
@@ -1189,13 +1190,13 @@ async function resolveSameFileScoped(db: Db, fromFileId: number, toName: string)
 async function resolveQualifiedNameScoped(
   db: Db,
   fromFileId: number,
-  imports: ImportIndexLoader,
+  placeImport: ImportPlacer,
   toName: string,
 ): Promise<number | null> {
   const dot = toName.indexOf('.');
   const typeName = dot === -1 ? toName : toName.slice(0, dot);
 
-  const lookup = importResolvedPathFor(await imports(), typeName);
+  const lookup = await placeImport(typeName);
   if (lookup !== null) {
     if (lookup.resolvedPath === null) return null; // imported but unresolved — no edge
     return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName);
@@ -1228,7 +1229,35 @@ async function resolveQualifiedNameScoped(
  * caller must treat as "no edge", not "no evidence" (the import statement
  * proves the receiver came from *some* module; that module just isn't ours).
  */
-type FileImportIndex = ReadonlyMap<string, string | null>;
+interface FileImportIndex {
+  readonly byName: ReadonlyMap<string, string | null>;
+  /** The same resolved paths by module specifier, for a record that names its module. */
+  readonly byModule: ReadonlyMap<string, string | null>;
+}
+
+/**
+ * Where one edge record's name is imported from: `{ resolvedPath }` when this
+ * file imports it (`null` inside for a module that is not an indexed file),
+ * `null` when it does not.
+ */
+type ImportPlacer = (name: string) => Promise<{ resolvedPath: string | null } | null>;
+
+/**
+ * The placer for a record. A record that names its module (`importModule`, set
+ * by the extractor) is placed by that import alone, and one that says the name
+ * is not imported is placed by none, so a name the file imports under an alias
+ * is never mistaken for a declaration of its own, nor the other way (D106). A
+ * record with neither is placed by name, the first import that has it.
+ */
+function importPlacerFor(imports: ImportIndexLoader, importModule: string | null | undefined): ImportPlacer {
+  if (importModule === null) return () => Promise.resolve(null);
+  return async (name) => {
+    const index = await imports();
+    if (importModule === undefined) return importResolvedPathFor(index, name);
+    const resolvedPath = index.byModule.get(importModule);
+    return resolvedPath === undefined ? null : { resolvedPath };
+  };
+}
 
 /**
  * Deferred, memoised access to one file's import index.
@@ -1254,12 +1283,14 @@ type ImportIndexLoader = () => Promise<FileImportIndex>;
 async function buildFileImportIndex(db: Db, fromFileId: number): Promise<FileImportIndex> {
   const rows = await db
     .selectFrom('imports')
-    .select(['symbols', 'resolved_path'])
+    .select(['module', 'symbols', 'resolved_path'])
     .where('file_id', '=', fromFileId)
     .execute();
 
   const index = new Map<string, string | null>();
+  const byModule = new Map<string, string | null>();
   for (const row of rows) {
+    if (!byModule.has(row.module)) byModule.set(row.module, row.resolved_path);
     let importedSymbols: string[];
     try {
       importedSymbols = JSON.parse(row.symbols) as string[];
@@ -1270,7 +1301,7 @@ async function buildFileImportIndex(db: Db, fromFileId: number): Promise<FileImp
       if (!index.has(symbol)) index.set(symbol, row.resolved_path);
     }
   }
-  return index;
+  return { byName: index, byModule };
 }
 
 function fileImportIndexLoader(db: Db, fromFileId: number): ImportIndexLoader {
@@ -1282,7 +1313,7 @@ function importResolvedPathFor(
   index: FileImportIndex,
   name: string,
 ): { resolvedPath: string | null } | null {
-  const resolvedPath = index.get(name);
+  const resolvedPath = index.byName.get(name);
   // `undefined` can only mean absent — the map never stores it, only `null`.
   if (resolvedPath === undefined) return null;
   return { resolvedPath };

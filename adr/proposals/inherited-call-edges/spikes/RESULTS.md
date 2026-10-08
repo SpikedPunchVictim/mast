@@ -181,6 +181,28 @@ whole body is a class was no longer read (11).
 Reading the 7 also found D106: `import { Agent as RuntimeAgent }` is recorded as an import
 of `Agent`, so two of the 7 had linked through a name the file never binds. Open.
 
+### After D106 (2026-10-07)
+
+Fixed by the record carrying the import that binds its name; no schema change. Files:
+`s2-found-on-cli/n8n-d106-vs-4ca9a71.gone.txt` and `.new.txt` (every edge of the whole n8n
+index, before and after), and `scorecard-d106-*.compare.txt` (`eval-suite/graph-scorecard.mjs
+compare` against the baselines of `4ca9a71`).
+
+Whole n8n copy: 69,412 edges before, 69,542 after. 22 gone, 152 new.
+
+| Edges | Change | Why |
+|---|---|---|
+| 8 gone, 8 new | From the import's declaration to the file's own (5 calls, 3 `new`) | `import { toDateTime as stringToDateTime }` beside the file's own `toDateTime`. The old edges were wrong |
+| 2 gone | `hasErrorOutput(node)` where the file has `export const hasErrorOutput = checkHasErrorOutput` | The call is of the file's `const`, which has no symbol |
+| 12 gone | `agent.model()` and eleven like it in `from-json-config.ts` | Right edges. `Agent` there is `const { Agent } = await import(...)`; they had linked through `import type { Agent as RuntimeAgent }` |
+| 144 new | 25 `EXTENDS`, 3 `IMPLEMENTS`, 116 calls, through an alias | 18 are in the two judged packages and all 18 agree with the compiler. The rest are not judged |
+
+Scorecard verdicts: this repository PASS, `packages/core` PASS, `packages/cli` FAIL for the
+12. The baselines were replaced with this build's scorecards knowing that.
+
+A local taken from a dynamic import now costs 19 right edges on `packages/cli` (7 from D104,
+12 here). Binding such a local to its module would get them back; not done.
+
 ## Limits
 
 - One real corpus shows any gain. This repository has no call that needs the walk.

@@ -67,7 +67,9 @@ function stateOfEachKey(buckets) {
  * `"<before> -> <after>"` with `absent` for a key the run does not have.
  *
  * The comparison fails on either of two things, and lists the keys:
- *   - `lostAgree`: a key that agreed and no longer does
+ *   - `lostAgree`: a key that agreed and no longer does. A key that is gone from both
+ *     sides is listed as a move and is not a loss: the corpus changed, and had the
+ *     reference kept it the key would be in `lacks`.
  *   - `newWrong`: a key that is wrong and was not wrong before
  */
 export function compareScorecards(before, after) {
@@ -90,7 +92,7 @@ export function compareScorecards(before, after) {
       const to = nowState.get(key) ?? 'absent';
       if (from === to) continue;
       (moves[`${from} -> ${to}`] ??= []).push(key);
-      if (from === 'agree') lostAgree.push({ item, key, now: to });
+      if (from === 'agree' && to !== 'absent') lostAgree.push({ item, key, now: to });
       if (to === 'wrong') newWrong.push({ item, key, was: from });
     }
     rows.push({ item, before: wasCounts, after: nowCounts, delta, moves });

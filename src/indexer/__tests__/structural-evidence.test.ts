@@ -69,20 +69,24 @@ describe('structural edges with no evidence in the file', () => {
         'src/noop.ts': `import type { Tracer } from '@opentelemetry/api';\nexport class Noop implements Tracer { trace(): void {} }\n`,
       },
     },
-    {
-      name: 'an aliased import, beside an unrelated class with the alias as its name',
-      files: {
-        'src/0-b.ts': `export class B { unrelated(): void {} }\n`,
-        'src/a.ts': `export class A { real(): void {} }\n`,
-        'src/c.ts': `import { A as B } from './a.js';\nexport class C extends B {}\n`,
-      },
-    },
   ];
 
   it.each(CASES)('records no edge for $name', async ({ files }) => {
     writeFiles(dir, files);
 
     await expectEdges(dir, [], STRUCTURAL);
+  });
+
+  // Was a no-edge case until D106: the import is the evidence, under the name
+  // the module exports. The unrelated class named as the alias is still not it.
+  it('follows an aliased import to the class its module exports', async () => {
+    writeFiles(dir, {
+      'src/0-b.ts': `export class B { unrelated(): void {} }\n`,
+      'src/a.ts': `export class A { real(): void {} }\n`,
+      'src/c.ts': `import { A as B } from './a.js';\nexport class C extends B {}\n`,
+    });
+
+    await expectEdges(dir, ['EXTENDS src/c.ts:C -> src/a.ts:A'], STRUCTURAL);
   });
 });
 

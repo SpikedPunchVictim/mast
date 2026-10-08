@@ -57,6 +57,18 @@ describe('compareScorecards', () => {
     expect(result.pass).toBe(false);
   });
 
+  // The corpus changed: the reference no longer has the key either. Had it kept it, the
+  // key would be in `lacks`.
+  it('does not fail on a key that agreed and that neither side has any more', () => {
+    const before = card({ calls: buckets({ agree: ['x'] }) });
+    const after = card({ calls: buckets({}) });
+
+    const result = compareScorecards(before, after);
+
+    expect(result.rows[0].moves).toEqual({ 'agree -> absent': ['x'] });
+    expect(result.pass).toBe(true);
+  });
+
   it('fails when a key is wrong that was not wrong before', () => {
     const before = card({ calls: buckets({ unjudged: ['x'] }) });
     const after = card({ calls: buckets({ wrong: ['x'] }) });

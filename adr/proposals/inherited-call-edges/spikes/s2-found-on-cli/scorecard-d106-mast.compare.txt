@@ -1,0 +1,70 @@
+before: eval-suite/baselines/mast.json.gz
+after:  eval-suite/out/mast.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 5         5         5         0         0         0         0
+edge: IMPLEMENTS                              7         7         7         0         0         0         0
+edge: PARENT_OF                              49        49        49         0         0         0         0
+edge: POTENTIAL_CALL                        787       763       763         0        24         0         0
+                                             +1        +2        +2         .        -1         .         .
+edge: RE_EXPORTS (to the declaration)        13        13        13         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+import: named binding                       733       733       733         0         0         0         0
+import: the file it resolves to             288       288       288         0         0         0         0
+symbol flag: is_exported                    761       761       761         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+symbol: class                                24        24        24         0         0         0         0
+symbol: export                               16        16        16         0         0         0         0
+symbol: function                            435       435       435         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: interface                           195       195       195         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: method                               49        49        49         0         0         0         0
+symbol: type                                 58        58        58         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (3)
+    src/ast/extractors/typescript.ts:extractEdges > src/ast/extractors/typescript.ts:placedByImport
+    src/graph/populate.ts:importPlacerFor > src/graph/populate.ts:importResolvedPathFor
+    src/graph/populate.ts:insertEdgesReportingUnresolved > src/graph/populate.ts:importPlacerFor
+  edge: POTENTIAL_CALL: agree -> absent (2)
+    src/graph/populate.ts:resolveCallTarget > src/graph/populate.ts:importResolvedPathFor
+    src/graph/populate.ts:resolveQualifiedNameScoped > src/graph/populate.ts:importResolvedPathFor
+  edge: POTENTIAL_CALL: lacks -> agree (1)
+    src/telemetry/tokenizer.ts:estimateFullFileBound > src/telemetry/tokenizer.ts:countTokens
+  symbol flag: is_exported: absent -> agree (3)
+    src/ast/extractors/typescript.ts:placedByImport exported=false
+    src/graph/populate.ts:ImportPlacer exported=false
+    src/graph/populate.ts:importPlacerFor exported=false
+  symbol: function: absent -> agree (2)
+    src/ast/extractors/typescript.ts:placedByImport
+    src/graph/populate.ts:importPlacerFor
+  symbol: interface: absent -> agree (1)
+    src/graph/populate.ts:FileImportIndex
+  symbol: type: absent -> agree (1)
+    src/graph/populate.ts:ImportPlacer
+  symbol: type: agree -> absent (1)
+    src/graph/populate.ts:FileImportIndex
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            20        20        20         0         0         0         0
+call edge, stored as import                 291       291       291         0         0         0         0
+call edge, stored as new_expression           6         6         6         0         0         0         0
+call edge, stored as parameter_type           8         8         8         0         0         0         0
+call edge, stored as same_file              429       429       429         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              8         8         8         0         0         0         0
+call written as f(), other file             297       291       291         0         6         0         0
+call written as f(), same file              430       429       429         0         1         0         0
+                                             +1        +2        +2         .        -1         .         .
+call written as ident.m(), other file         5         5         5         0         0         0         0
+call written as ident.m(), same file         26         9         9         0        17         0         0
+call written as new X(), other file          11        11        11         0         0         0         0
+call written as new X(), same file            9         9         9         0         0         0         0
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           8         8         8         0         0         0         0

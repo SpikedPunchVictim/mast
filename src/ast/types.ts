@@ -96,6 +96,14 @@ export interface EdgeRecord {
   readonly edgeType: string;
   /** How a POTENTIAL_CALL receiver was statically linked (§10.3.1). */
   readonly resolution?: CallerResolution;
+  /**
+   * Where the first name of `toName` comes from, for a call, `extends` or
+   * `implements` record: the specifier of the import that binds it, or `null`
+   * when the file does not import it. `toName` then carries the name the module
+   * exports, not a local alias. Absent on a record built without this
+   * knowledge, which is placed by name.
+   */
+  readonly importModule?: string | null;
   /** 1-indexed source line of the call site (POTENTIAL_CALL only). */
   readonly callLine?: number;
   /** Trimmed source text of the call-site line (POTENTIAL_CALL only). */

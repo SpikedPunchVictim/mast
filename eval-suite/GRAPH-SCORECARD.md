@@ -50,9 +50,10 @@ row id, so the same thing has the same key in two runs.
 | extra | mast has it and the compiler has nothing there |
 | unjudged | mast has it and the compiler cannot say |
 
-`compare` fails on a key that leaves `agree`, and on a key that arrives in `wrong`. Every
-other move is listed and does not fail: a `lacks` that becomes `agree` is the gain a change
-was made for.
+`compare` fails on a key that leaves `agree` for another bucket, and on a key that arrives
+in `wrong`. Every other move is listed and does not fail: a `lacks` that becomes `agree` is
+the gain a change was made for, and a key gone from both sides (`agree -> absent`) is the
+corpus changing, which this repository's own source does with every change.
 
 ## Line items
 

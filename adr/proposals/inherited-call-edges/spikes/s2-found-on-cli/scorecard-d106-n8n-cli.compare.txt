@@ -1,0 +1,92 @@
+before: eval-suite/baselines/n8n-cli.json.gz
+after:  eval-suite/out/n8n-cli.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+                                              .        +1        +1         .        -1         .         .
+edge: PARENT_OF                            7561      7539      7539         0        22         0         0
+edge: POTENTIAL_CALL                      23806     17809     17805         0      6001         0         4
+                                              .        +4        +4         .        -4         .         .
+edge: RE_EXPORTS (to the declaration)       139       135       135         0         4         0         0
+export * (file to file)                      20        20        20         0         0         0         0
+import: named binding                     17721     17721     17721         0         0         0         0
+import: the file it resolves to           10010     10011     10010         0         0         0         1
+symbol flag: is_exported                  12802     12802     12802         0         0         0         0
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              161       161       161         0         0         0         0
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7561      7539      7539         0        22         0         0
+symbol: type                                976       976       976         0         0         0         0
+
+Keys that changed bucket:
+  edge: IMPLEMENTS: lacks -> agree (1)
+    packages/cli/src/evaluation.ee/evaluation-api-error.ts:EvaluationApiError > packages/@n8n/api-types/src/dto/evaluations/evaluation-error-code.ts:EvaluationApiError
+  edge: POTENTIAL_CALL: agree -> lacks (12)
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.configuration
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.instructions
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.mcp
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.model
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.modelFetch
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.promptCaching
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.providerTool
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.reasoning
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.skills
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.tool
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.toolCallConcurrency
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson > packages/@n8n/agents/src/sdk/agent.ts:Agent.vectorStore
+  edge: POTENTIAL_CALL: lacks -> agree (16)
+    packages/cli/src/commands/db/revert.ts:DbRevertMigrationCommand.finally > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.destroy
+    packages/cli/src/commands/db/revert.ts:DbRevertMigrationCommand.run > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.constructor
+    packages/cli/src/commands/db/revert.ts:DbRevertMigrationCommand.run > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.initialize
+    packages/cli/src/commands/db/revert.ts:main > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.destroy
+    packages/cli/src/commands/db/revert.ts:main > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.undoLastMigration
+    packages/cli/src/modules/agents/agent-runtime-reconstruction.service.ts:AgentRuntimeReconstructionService.attachWriteTodosTool > packages/@n8n/agents/src/sdk/agent.ts:Agent.tool
+    packages/cli/src/modules/agents/agent-workflow-execution.service.ts:AgentWorkflowExecutionService.applyPerCallAgentExtras > packages/@n8n/agents/src/sdk/agent.ts:Agent.structuredOutput
+    packages/cli/src/modules/agents/agent-workflow-execution.service.ts:AgentWorkflowExecutionService.applyPerCallAgentExtras > packages/@n8n/agents/src/sdk/agent.ts:Agent.tool
+    packages/cli/src/modules/instance-ai/eval/agent-execution.service.ts:EvalAgentExecutionService.executeWithLlmMock > packages/@n8n/agents/src/sdk/tool.ts:sanitizeToolName
+    packages/cli/src/modules/instance-ai/sandbox-provider.ts:normalizeSandboxProvider > packages/@n8n/agents/src/workspace/sandbox/provider.ts:normalizeSandboxProvider
+    packages/cli/src/workflows/workflow.service.ts:WorkflowService._findConflictingWebhooks > packages/cli/src/workflow-execute-additional-data.ts:getBase
+    packages/cli/test/global-setup.ts:teardown > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.constructor
+    packages/cli/test/global-setup.ts:teardown > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.destroy
+    packages/cli/test/global-setup.ts:teardown > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.initialize
+    packages/cli/test/global-setup.ts:teardown > packages/@n8n/typeorm/src/data-source/DataSource.ts:DataSource.query
+    packages/cli/test/integration/shared/utils/index.ts:buildDefaultNodes > packages/nodes-base/nodes/Webhook/Webhook.node.ts:Webhook
+
+FAIL: 12 that agreed no longer do, 0 newly wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction               1710      1710      1710         0         0         0         0
+                                                  +3        +3        +3         .         .         .         .
+call edge, stored as field_type                 6067      6067      6067         0         0         0         0
+                                                  +1        +1        +1         .         .         .         .
+call edge, stored as import                     2694      2698      2694         0         0         0         4
+                                                  +3        +3        +3         .         .         .         .
+call edge, stored as new_expression               81        81        81         0         0         0         0
+                                                  -8        -8        -8         .         .         .         .
+call edge, stored as parameter_type              365       365       365         0         0         0         0
+                                                  +5        +5        +5         .         .         .         .
+call edge, stored as same_file                  1909      1909      1909         0         0         0         0
+call edge, stored as static_method                63        63        63         0         0         0         0
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4900      4900      4900         0         0         0         0
+call written as expr.m(), other file            1174         3         3         0      1171         0         0
+call written as expr.m(), same file                7         0         0         0         7         0         0
+call written as f(), other file                 4679      2694      2694         0      1985         0         0
+                                                   .        +3        +3         .        -3         .         .
+call written as f(), same file                  1924      1909      1909         0        15         0         0
+call written as ident.m(), other file           1959       469       469         0      1490         0         0
+                                                   .        -3        -3         .        +3         .         .
+call written as ident.m(), same file              40        37        37         0         3         0         0
+call written as new X(), other file             1711      1660      1660         0        51         0         0
+                                                   .        +3        +3         .        -3         .         .
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7344      6067      6067         0      1277         0         0
+                                                   .        +1        +1         .        -1         .         .
+call written as this.field.m(), same file          1         0         0         0         1         0         0
+call written as this.m(), other file             225       224       224         0         1         0         0
+call written as this.m(), same file             4676      4676      4676         0         0         0         0

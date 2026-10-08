@@ -2262,14 +2262,12 @@ the identifier match still lands in `identifier_fts` and surfaces as
 - **An element or property of a typed value.** `repos[0].find()`, `this.ctx.repo.find()`.
 - **Default and namespace imports.** `import Repo from './repo'` and `import * as lib
   from './lib'; lib.Repo.create()` — only named imports are tracked.
-- **An aliased named import.** `import { Repo as R }`: `R.create()` and `new R()` store no
-  edge. The import is recorded under the exported name, so a call of some *other* `Repo`
-  in that file (a global, a `declare`d value) is linked to the import. That is a wrong
-  edge and is open as D106.
 - **A local taken from a dynamic import.** `const { Agent } = await import('./agents');
   new Agent()`. `Agent` is a local, and locals hide the file's `import type { Agent }` of
   the same name. n8n lost 7 edges to this when locals began to hide (6 `new`, 1 static),
-  all on the right declaration.
+  all on the right declaration, and 12 more when an aliased import stopped standing in for
+  the local (D106: `agent.model()` on `const agent = new Agent()`). 19 on n8n
+  `packages/cli` in all.
 
 The inherited, union, element and default-or-namespace cases were each run on a scratch
 project on 2026-10-07 and stored no edge. What
@@ -2406,9 +2404,20 @@ same false-green class for `mast_rename_impact`'s `barrel_exports`
 `PARENT_OF` resolves a member in its class's own file. `IMPLEMENTS` and
 `EXTENDS` resolve the target through the file's own imports, then its own
 declarations. With neither — a built-in such as `Error` or `Record`, a default
-import, an aliased import — no edge is recorded. Before this, all three
+import — no edge is recorded. Before this, all three
 matched the name against the whole graph and took the first row, so the target
 depended on symbol ids (ledger D085).
+
+**A named import with an alias (2026-10-07, D106).** `import { Repo as R }` puts `R` in
+the file's scope, not `Repo`. `R.create()`, `new R()`, `r.find()` with `r: R`, and
+`extends R` / `implements R` reach the module's `Repo`. Anything else the file calls
+`Repo` (a declaration of its own, a global) is not the import. Each call, `extends` and
+`implements` record carries the specifier of the import that binds its first name, or says
+the file does not import it, and the resolver places it by that import alone; so two
+imports that bind one exported name from two modules each reach their own. The `imports`
+row still holds the exported name, which is what repair and `mast_rename_impact` look
+importers up by. Not covered: `mast_signature` does not resolve a parameter typed with an
+alias, since it reads the `imports` row by the written name.
 
 **A name is found through any mix of star and named re-exports.** A lookup in
 a file tries a declaration there, then a named re-export there, then the files

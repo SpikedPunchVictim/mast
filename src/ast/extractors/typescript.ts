@@ -1175,17 +1175,25 @@ export function extractEdges(
   const edges: EdgeRecord[] = [];
 
   // File-scoped callables: named imports + same-file top-level symbol names.
+  // An import is in scope under its local name (`Y` of `import { X as Y }`);
+  // `importBindings` keeps what that name is in its module (D106). The first
+  // import of a local name wins, as the scope's seeding does.
   const importedNames: string[] = [];
+  const importBindings = new Map<string, { readonly exported: string; readonly module: string }>();
   const sameFileNames: string[] = [];
   for (const node of topLevel) {
     if (nodeType(node) === 'import_statement') {
       const importClause = findChildByType(node, 'import_clause');
       const namedImports = importClause !== null ? findChildByType(importClause, 'named_imports') : null;
-      if (namedImports !== null) {
+      const moduleNode = findChildByType(node, 'string');
+      if (namedImports !== null && moduleNode !== null) {
         for (const spec of nodeNamedChildren(namedImports)) {
           if (nodeType(spec) !== 'import_specifier') continue;
-          const name = spec.childForFieldName('name')?.text;
-          if (name !== undefined) importedNames.push(name);
+          const exported = spec.childForFieldName('name')?.text;
+          if (exported === undefined) continue;
+          const local = spec.childForFieldName('alias')?.text ?? exported;
+          importedNames.push(local);
+          if (!importBindings.has(local)) importBindings.set(local, { exported, module: moduleNode.text.slice(1, -1) });
         }
       }
       continue;
@@ -1230,7 +1238,23 @@ export function extractEdges(
     }
   }
 
-  return edges;
+  return edges.map((edge) => placedByImport(edge, importBindings));
+}
+
+/**
+ * Say where a record's first name comes from, and name it as its module does.
+ * A member (`PARENT_OF`) and a call the scope placed in this file are left as
+ * they are: the file is their evidence.
+ */
+function placedByImport(
+  edge: EdgeRecord,
+  importBindings: ReadonlyMap<string, { readonly exported: string; readonly module: string }>,
+): EdgeRecord {
+  if (edge.edgeType === 'PARENT_OF' || edge.resolution === 'same_file' || edge.resolution === 'this_method') return edge;
+  const dot = edge.toName.indexOf('.');
+  const binding = importBindings.get(dot === -1 ? edge.toName : edge.toName.slice(0, dot));
+  if (binding === undefined) return { ...edge, importModule: null };
+  return { ...edge, toName: `${binding.exported}${dot === -1 ? '' : edge.toName.slice(dot)}`, importModule: binding.module };
 }
 
 /** IMPLEMENTS + EXTENDS + PARENT_OF + per-method POTENTIAL_CALL for one class. */
