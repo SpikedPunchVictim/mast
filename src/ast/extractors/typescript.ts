@@ -1223,7 +1223,8 @@ export function extractEdges(
       if (name !== null && value !== null && nodeType(value) === 'arrow_function') {
         const body = value.childForFieldName('body');
         if (body !== null) {
-          emitCallEdges(name, value.childForFieldName('parameters'), body, edges, seedFileScope, lines, [], onCallSite);
+          const params = value.childForFieldName('parameters') ?? value.childForFieldName('parameter');
+          emitCallEdges(name, params, body, edges, seedFileScope, lines, [], onCallSite);
         }
       }
     }
@@ -1525,6 +1526,17 @@ interface CallSite {
    * any import or top-level symbol of the same name.
    */
   readonly nestedParams: ReadonlyMap<string, string | null>;
+  /**
+   * Names declared in the scope and in the nested functions around the call,
+   * other than those parameters: the scope's own parameters, variables,
+   * functions and classes declared inside. A name here is not the import or
+   * top-level symbol of the same name (D104).
+   *
+   * Held per function, not per block: a name declared anywhere in a function
+   * counts throughout it. That can drop the edge of a call written outside the
+   * block that declares the name, and cannot place one.
+   */
+  readonly locals: ReadonlySet<string>;
 }
 
 const NESTED_FUNCTION_TYPES = new Set([
@@ -1546,30 +1558,48 @@ const NESTED_CLASS_TYPES = new Set(['class_declaration', 'abstract_class_declara
  */
 function collectCallSites(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = null): CallSite[] {
   const sites: CallSite[] = [];
-  const consider = (node: SyntaxNode, ownThis: boolean, nestedParams: ReadonlyMap<string, string | null>): void => {
+  const consider = (
+    node: SyntaxNode,
+    ownThis: boolean,
+    nestedParams: ReadonlyMap<string, string | null>,
+    locals: ReadonlySet<string>,
+  ): void => {
     const t = nodeType(node);
     if (NESTED_CLASS_TYPES.has(t) || t === 'decorator') return;
 
     let innerOwnThis = ownThis;
     let innerParams = nestedParams;
+    let innerLocals = locals;
     if (NESTED_FUNCTION_TYPES.has(t)) {
       innerOwnThis = ownThis || t !== 'arrow_function';
       innerParams = new Map([...nestedParams, ...declaredParams(node)]);
+      const body = node.childForFieldName('body');
+      if (body !== null) innerLocals = new Set([...locals, ...declaredLocals(body)]);
     } else if (t === 'call_expression' || t === 'new_expression') {
-      sites.push({ call: node, ownThis, nestedParams });
+      sites.push({ call: node, ownThis, nestedParams, locals });
     }
-    for (const child of nodeNamedChildren(node)) consider(child, innerOwnThis, innerParams);
+    for (const child of nodeNamedChildren(node)) consider(child, innerOwnThis, innerParams, innerLocals);
   };
 
   const outermost: ReadonlyMap<string, string | null> = new Map();
-  if (paramsNode !== null) consider(paramsNode, false, outermost);
-  // The body is the scope itself, not something nested in it: an arrow whose
-  // body is a single call hands that call in directly.
-  const bodyType = nodeType(bodyNode);
-  if (bodyType === 'call_expression' || bodyType === 'new_expression') {
-    sites.push({ call: bodyNode, ownThis: false, nestedParams: outermost });
+  const locals = new Set(declaredLocals(bodyNode));
+  if (paramsNode !== null) {
+    // `x => ...` hands in its one bare identifier in place of a list.
+    if (nodeType(paramsNode) === 'identifier') locals.add(paramsNode.text);
+    for (const name of paramsIn(paramsNode).keys()) locals.add(name);
+    consider(paramsNode, false, outermost, locals);
   }
-  for (const child of nodeNamedChildren(bodyNode)) consider(child, false, outermost);
+  // The body is the scope itself, not something nested in it. An arrow whose
+  // body is a single call hands that call in, and a field initializer can be
+  // a function with parameters of its own; both are considered whole. Anything
+  // else is entered without the check on its own type, so that a class which
+  // is the whole body of an arrow is read.
+  const bodyType = nodeType(bodyNode);
+  if (bodyType === 'call_expression' || bodyType === 'new_expression' || NESTED_FUNCTION_TYPES.has(bodyType)) {
+    consider(bodyNode, false, outermost, locals);
+  } else {
+    for (const child of nodeNamedChildren(bodyNode)) consider(child, false, outermost, locals);
+  }
   return sites;
 }
 
@@ -1594,6 +1624,13 @@ function declaredParams(fn: SyntaxNode): Map<string, string | null> {
 
   const list = fn.childForFieldName('parameters');
   if (list === null) return declared;
+  for (const [name, type] of paramsIn(list)) declared.set(name, type);
+  return declared;
+}
+
+/** The parameters in a parameter list: name to annotated type, or null. */
+function paramsIn(list: SyntaxNode): Map<string, string | null> {
+  const declared = new Map<string, string | null>();
   for (const param of nodeNamedChildren(list)) {
     const pattern = param.childForFieldName('pattern') ?? findChildByType(param, 'identifier');
     if (pattern === null) continue;
@@ -1601,16 +1638,65 @@ function declaredParams(fn: SyntaxNode): Map<string, string | null> {
       declared.set(pattern.text, annotationTypeName(param));
       continue;
     }
-    // Destructured: every name bound in the pattern, none with a type this
-    // resolver can read. Default values inside the pattern are swept up too,
-    // which can only hide a binding, never invent one.
-    const names = (node: SyntaxNode): void => {
-      const nt = nodeType(node);
-      if (nt === 'identifier' || nt === 'shorthand_property_identifier_pattern') declared.set(node.text, null);
-      for (const child of nodeNamedChildren(node)) names(child);
-    };
-    names(pattern);
+    // Destructured: none of the names has a type this resolver can read.
+    for (const name of namesBoundBy(pattern)) declared.set(name, null);
   }
+  return declared;
+}
+
+const DEFAULTED_PATTERN_TYPES = new Set(['assignment_pattern', 'object_assignment_pattern']);
+
+/**
+ * Every name a binding pattern binds (`x`, `{ a, b: c }`, `[d, ...e]`). A
+ * default value (`{ a = make() }`) is an expression, and no name in it is
+ * bound.
+ */
+function namesBoundBy(pattern: SyntaxNode): string[] {
+  const bound: string[] = [];
+  const visit = (node: SyntaxNode): void => {
+    const nt = nodeType(node);
+    if (nt === 'identifier' || nt === 'shorthand_property_identifier_pattern') bound.push(node.text);
+    if (DEFAULTED_PATTERN_TYPES.has(nt)) {
+      const left = node.childForFieldName('left');
+      if (left !== null) visit(left);
+      return;
+    }
+    for (const child of nodeNamedChildren(node)) visit(child);
+  };
+  visit(pattern);
+  return bound;
+}
+
+const NAMED_LOCAL_DECLARATION_TYPES = new Set([
+  'function_declaration', 'generator_function_declaration', 'class_declaration', 'abstract_class_declaration',
+]);
+/** Node type to the field holding the pattern it binds. */
+const LOCAL_BINDING_FIELDS: ReadonlyMap<string, string> = new Map([
+  ['variable_declarator', 'name'],
+  ['for_in_statement', 'left'],
+  ['catch_clause', 'parameter'],
+]);
+
+/**
+ * The names declared in a function body: variables, loop variables, caught
+ * values, and functions and classes declared inside. Stops at nested functions
+ * and classes, whose own names belong to them.
+ */
+function declaredLocals(body: SyntaxNode): string[] {
+  const declared: string[] = [];
+  const visit = (node: SyntaxNode): void => {
+    const t = nodeType(node);
+    if (NAMED_LOCAL_DECLARATION_TYPES.has(t)) {
+      const name = node.childForFieldName('name')?.text;
+      if (name !== undefined) declared.push(name);
+    }
+    if (NESTED_FUNCTION_TYPES.has(t) || NESTED_CLASS_TYPES.has(t)) return;
+    const bindingField = LOCAL_BINDING_FIELDS.get(t);
+    const pattern = bindingField === undefined ? null : node.childForFieldName(bindingField);
+    if (pattern !== null) declared.push(...namesBoundBy(pattern));
+    for (const child of nodeNamedChildren(node)) visit(child);
+  };
+  visit(body);
   return declared;
 }
 
@@ -1625,8 +1711,9 @@ function resolveCallSite(
 ): { callee: string; resolution: CallerResolution } | null {
   const { receiver, method } = parsed;
   if (receiver === null) {
-    // Calling a nested parameter (`cb()`), whatever import shares its name.
-    return site.nestedParams.has(method) ? null : env.resolveCall(null, method);
+    // Calling a nested parameter (`cb()`) or a local, whatever import shares
+    // its name.
+    return site.nestedParams.has(method) || site.locals.has(method) ? null : env.resolveCall(null, method);
   }
 
   const root = receiver.split('.')[0] ?? receiver;
@@ -1637,7 +1724,11 @@ function resolveCallSite(
       ? null
       : { callee: `${type}.${method}`, resolution: 'parameter_type' };
   }
-  return env.resolveCall(receiver, method);
+  const resolved = env.resolveCall(receiver, method);
+  // A local has whatever type the scope bound it to (`const r = new Repo()`,
+  // an annotated parameter). With none, it is not the class of the same name.
+  if (resolved?.resolution === 'static_method' && site.locals.has(root)) return null;
+  return resolved;
 }
 
 /** The class a `new` expression names, as a bare callee, or null for `new a.B()` and the like. */

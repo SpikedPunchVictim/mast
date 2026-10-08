@@ -143,7 +143,7 @@ Each seen failing first.
 
 ## Order of work
 
-1. D104 and D105 (decision 3).
+1. D104 and D105 (decision 3). **Done 2026-10-07**; `spikes/RESULTS.md`, "After the fixes". D106 was found on the way and is open.
 2. M1 and M2 with T1 to T4 and T7. Full index only is correct at this point.
 3. M3a with T5 and T6. Not shipped until the replay check is clean.
 4. `MAST_SPEC.md` §10.3.1, and a measurement of the cost on a quiet machine.

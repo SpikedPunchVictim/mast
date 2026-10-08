@@ -1321,13 +1321,21 @@ async function resolveInFileOrReExportChain(
   if (dot !== -1) {
     const ownerId = await resolveInFileOrReExportChain(db, resolvedPath, toName.slice(0, dot));
     if (ownerId === null) return null;
+    // The member is stored under the name its type was declared with, which a
+    // renaming re-export (`export { Column as DslColumn }`) makes differ from
+    // the name the import uses (D105).
+    const owner = await db
+      .selectFrom('symbols')
+      .select(['file_id', 'name'])
+      .where('id', '=', ownerId)
+      .executeTakeFirst();
+    if (owner === undefined) return null;
     const member = await db
-      .selectFrom('symbols as owner')
-      .innerJoin('symbols as member', 'member.file_id', 'owner.file_id')
-      .select('member.id')
-      .where('owner.id', '=', ownerId)
-      .where('member.name', '=', toName)
-      .where('member.kind', '!=', 'export')
+      .selectFrom('symbols')
+      .select('id')
+      .where('file_id', '=', owner.file_id)
+      .where('name', '=', `${owner.name}${toName.slice(dot)}`)
+      .where('kind', '!=', 'export')
       .executeTakeFirst();
     return member?.id ?? null;
   }

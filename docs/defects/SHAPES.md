@@ -12,7 +12,7 @@ it into the review brief. Copy the questions, not the prose, and not the whole f
 
 ## S-01 — Damage that leaves the exit code alone
 
-**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085, D088, D094, D101. **Rung**: brief, with one instance promoted (below).
+**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085, D088, D094, D101, D104, D106. **Rung**: brief, with one instance promoted (below).
 
 The package's own operating manual calls this the worst class most systems have, and it is the one
 `mast` is structurally most exposed to: an index is a *derived* artifact, so nothing downstream can
@@ -45,7 +45,7 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105. **Rung**: brief — declined for promotion 2026-09-01, reason below.
+**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever

@@ -144,6 +144,43 @@ src/shadow.ts:run|import|lib/helpers.ts:fail (function)|5
 `run` calls its own local `fail`, not the import. `make` constructs a class that has a
 constructor. `use(c: DslColumn) { c.build() }` has no row at all.
 
+### After the fixes (2026-10-07, same day)
+
+D104 and D105 were fixed ahead of the walk. Files: `reproduce.fixed.out.txt`,
+`n8n-fixed-vs-head.edges.json` (written by `edge-diff.py` from the index of `563ecaf` and
+the index of the fixed build), `n8n-cli.fixed.summary.json`.
+
+```
+src/alias.ts:make|construction|lib/column.ts:Column.constructor (method)|3
+src/alias.ts:use|parameter_type|lib/column.ts:Column.build (method)|4
+src/shadow.ts:other|import|lib/helpers.ts:fail (function)|9
+```
+
+Whole n8n copy: 69,414 edges before, 69,412 after. 10 gone, 8 new.
+
+| Edges | Change | Why |
+|---|---|---|
+| 1 gone | `execute -> unsupportedAction [import]` | D104 |
+| 2 gone, 2 new | `new DslColumn()` moves from `Column` to `Column.constructor` | D105 |
+| 1 new | `name.timestampTimezone()` on a local bound to `new DslColumn()` | D105 |
+| 7 gone | `new X()` (6) and `X.m()` (1) where `X` is `const { X } = await import('...')` | A local now hides the file's static import of the name. All 7 were on the right declaration, read in the source. Listed in `MAST_SPEC.md` §10.3.1 as not caught |
+| 5 new | `state.markEnvAsNeeded()` and four like it, in `visitIdentifier = (node, state: BuiltInsParserState) => ...` | The parameters of an arrow that initializes a field were not read before. Read in the source; outside the two packages the checker judged |
+
+Checker on `packages/cli`, before and after: edges on another declaration 30 to 27 (`import`
+1 to 0, `construction` 29 to 27; the 27 left are the `lazyClass` pairs above). `static_method`
+agreeing 64 to 63 and `construction` not judged 27 to 21 are the 7 dynamic-import edges.
+Pairs mast lacks: 4,736 both times. The checker's program held 9,412 source files in the
+second run and 9,524 in the first, on the same copy and the same 1,758 indexed files; why
+is not known.
+
+The first version of the D104 fix removed 24 edges, not 10. Reading them found two faults
+in it, both then pinned by tests: a default value in a destructured pattern
+(`{ telemetry = useTelemetry() }`) was taken for a bound name (3 edges), and an arrow whose
+whole body is a class was no longer read (11).
+
+Reading the 7 also found D106: `import { Agent as RuntimeAgent }` is recorded as an import
+of `Agent`, so two of the 7 had linked through a name the file never binds. Open.
+
 ## Limits
 
 - One real corpus shows any gain. This repository has no call that needs the walk.

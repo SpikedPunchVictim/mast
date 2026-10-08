@@ -1,0 +1,216 @@
+{
+ "old_edges": 69414,
+ "new_edges": 69412,
+ "gone": [
+  [
+   "packages/cli/src/evaluation.ee/insights/eval-insights.service.ts",
+   "EvalInsightsService.invokeAgent",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/agents/src/sdk/agent.ts",
+   "Agent.constructor",
+   "method",
+   282,
+   "const agent = new Agent('eval-insights')"
+  ],
+  [
+   "packages/cli/src/modules/agent-evals/agent-eval-case-generation.service.ts",
+   "AgentEvalCaseGenerationService.invokeModel",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/agents/src/sdk/agent.ts",
+   "Agent.constructor",
+   "method",
+   202,
+   "const agent: Agent = new Agent('agent-eval-case-generation')"
+  ],
+  [
+   "packages/cli/src/modules/agents/builder/agents-builder.service.ts",
+   "AgentsBuilderService.createBuilderAgent",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/agents/src/sdk/agent.ts",
+   "Agent.constructor",
+   "method",
+   271,
+   "const builder = new Agent('agent-builder')"
+  ],
+  [
+   "packages/cli/src/modules/agents/integrations/integration-action-executor.ts",
+   "ChatIntegrationActionExecutor.execute",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/cli/src/modules/agents/integrations/integration-helpers.ts",
+   "unsupportedAction",
+   "function",
+   97,
+   "return unsupportedAction();"
+  ],
+  [
+   "packages/cli/src/modules/agents/json-config/from-json-config.ts",
+   "buildFromJson",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/agents/src/sdk/agent.ts",
+   "Agent.constructor",
+   "method",
+   141,
+   "const agent = new Agent(config.name);"
+  ],
+  [
+   "packages/cli/src/modules/agents/json-config/mcp-client-factory.ts",
+   "buildMcpClientForServer",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/agents/src/sdk/mcp-client.ts",
+   "McpClient.constructor",
+   "method",
+   235,
+   "return new McpClient([sdkServerConfig]);"
+  ],
+  [
+   "packages/cli/src/modules/data-table/data-table-ddl.service.ts",
+   "DataTableDDLService.createTableWithColumns",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/db/src/migrations/dsl/column.ts",
+   "Column",
+   "class",
+   35,
+   "const dslColumns = [new DslColumn('id').int.autoGenerate2.primary, ...toDslColumns(columns)];"
+  ],
+  [
+   "packages/cli/src/modules/data-table/utils/sql-utils.ts",
+   "toDslColumns",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/db/src/migrations/dsl/column.ts",
+   "Column",
+   "class",
+   27,
+   "const name = new DslColumn(col.name.trim());"
+  ],
+  [
+   "packages/cli/src/modules/instance-ai/browser/instance-ai-browser-session.service.ts",
+   "InstanceAiBrowserSessionService.createSession",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/mcp-browser/src/cdp-relay.ts",
+   "CDPRelayServer.constructor",
+   "method",
+   159,
+   "const relay = new CDPRelayServer({ noServer: true });"
+  ],
+  [
+   "packages/cli/src/task-runners/task-runner-module.ts",
+   "TaskRunnerModule.startInternalTaskRunners",
+   "POTENTIAL_CALL",
+   "static_method",
+   "packages/cli/src/task-runners/task-runner-process-py.ts",
+   "PyTaskRunnerProcess.checkRequirements",
+   "method",
+   137,
+   "const failureReason = await PyTaskRunnerProcess.checkRequirements();"
+  ]
+ ],
+ "added": [
+  [
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser.ts",
+   "BuiltInsParser",
+   "POTENTIAL_CALL",
+   "parameter_type",
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser-state.ts",
+   "BuiltInsParserState.markEnvAsNeeded",
+   "method",
+   164,
+   "state.markEnvAsNeeded();"
+  ],
+  [
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser.ts",
+   "BuiltInsParser",
+   "POTENTIAL_CALL",
+   "parameter_type",
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser-state.ts",
+   "BuiltInsParserState.markExecutionAsNeeded",
+   "method",
+   184,
+   "state.markExecutionAsNeeded();"
+  ],
+  [
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser.ts",
+   "BuiltInsParser",
+   "POTENTIAL_CALL",
+   "parameter_type",
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser-state.ts",
+   "BuiltInsParserState.markInputAsNeeded",
+   "method",
+   177,
+   "state.markInputAsNeeded();"
+  ],
+  [
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser.ts",
+   "BuiltInsParser",
+   "POTENTIAL_CALL",
+   "parameter_type",
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser-state.ts",
+   "BuiltInsParserState.markNeedsAllNodes",
+   "method",
+   169,
+   "state.markNeedsAllNodes();"
+  ],
+  [
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser.ts",
+   "BuiltInsParser",
+   "POTENTIAL_CALL",
+   "parameter_type",
+   "packages/@n8n/task-runner/src/js-task-runner/built-ins-parser/built-ins-parser-state.ts",
+   "BuiltInsParserState.markPrevNodeAsNeeded",
+   "method",
+   186,
+   "state.markPrevNodeAsNeeded();"
+  ],
+  [
+   "packages/cli/src/modules/data-table/data-table-ddl.service.ts",
+   "DataTableDDLService.createTableWithColumns",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/db/src/migrations/dsl/column.ts",
+   "Column.constructor",
+   "method",
+   35,
+   "const dslColumns = [new DslColumn('id').int.autoGenerate2.primary, ...toDslColumns(columns)];"
+  ],
+  [
+   "packages/cli/src/modules/data-table/utils/sql-utils.ts",
+   "toDslColumns",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/db/src/migrations/dsl/column.ts",
+   "Column.constructor",
+   "method",
+   27,
+   "const name = new DslColumn(col.name.trim());"
+  ],
+  [
+   "packages/cli/src/modules/data-table/utils/sql-utils.ts",
+   "toDslColumns",
+   "POTENTIAL_CALL",
+   "new_expression",
+   "packages/@n8n/db/src/migrations/dsl/column.ts",
+   "Column.timestampTimezone",
+   "method",
+   37,
+   "return name.timestampTimezone();"
+  ]
+ ],
+ "gone_by_resolution": {
+  "construction": 8,
+  "import": 1,
+  "static_method": 1
+ },
+ "added_by_resolution": {
+  "parameter_type": 5,
+  "construction": 2,
+  "new_expression": 1
+ }
+}

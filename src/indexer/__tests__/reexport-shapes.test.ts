@@ -174,3 +174,64 @@ describe.each([
     ]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// A re-export that renames (D105). The consumer knows the class by the name
+// the index file gives it; its members are stored under the name the class was
+// declared with. n8n's `export { Column as DslColumn }` put `new DslColumn()`
+// on the class though it declares a constructor, and gave `c.build()` no edge.
+// ---------------------------------------------------------------------------
+
+describe('edges through a re-export that renames', () => {
+  let dir: string;
+
+  const COLUMN_SRC = `export class Column {
+  constructor(readonly name: string) {}
+  build(): string { return this.name; }
+  static of(name: string): Column { return new Column(name); }
+}
+export function fail(): never { throw new Error('x'); }
+`;
+  const CONSUMER_SRC = `import { DslColumn, raise } from './b-index.js';
+export function make(): unknown { return new DslColumn('a'); }
+export function use(c: DslColumn): string { return c.build(); }
+export function viaStatic(): unknown { return DslColumn.of('a'); }
+export function stop(): void { raise(); }
+`;
+  const EXPECTED = [
+    'POTENTIAL_CALL src/z-consumer.ts:make -> src/a-column.ts:Column.constructor',
+    'POTENTIAL_CALL src/z-consumer.ts:stop -> src/a-column.ts:fail',
+    'POTENTIAL_CALL src/z-consumer.ts:use -> src/a-column.ts:Column.build',
+    'POTENTIAL_CALL src/z-consumer.ts:viaStatic -> src/a-column.ts:Column.of',
+    'POTENTIAL_CALL src/a-column.ts:Column.of -> src/a-column.ts:Column.constructor',
+  ];
+  const RENAME = (from: string): string => `export { Column as DslColumn, fail as raise } from '${from}';\n`;
+
+  beforeEach(() => {
+    dir = makeProject('reexport-rename');
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('reach the members of the class under its declared name', async () => {
+    writeFiles(dir, {
+      'src/a-column.ts': COLUMN_SRC,
+      'src/b-index.ts': RENAME('./a-column.js'),
+      'src/z-consumer.ts': CONSUMER_SRC,
+    });
+
+    await expectEdges(dir, EXPECTED);
+  });
+
+  it('reach them when the renaming file sits behind a star', async () => {
+    writeFiles(dir, {
+      'src/a-column.ts': COLUMN_SRC,
+      'src/b-0.ts': RENAME('./a-column.js'),
+      'src/b-index.ts': `export * from './b-0.js';\n`,
+      'src/z-consumer.ts': CONSUMER_SRC,
+    });
+
+    await expectEdges(dir, EXPECTED);
+  });
+});

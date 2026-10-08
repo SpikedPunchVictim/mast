@@ -298,6 +298,99 @@ describe('extractEdges — POTENTIAL_CALL by position (D098)', () => {
 
     expect(calls(src)).toEqual([]);
   });
+
+  // D104. A name declared inside the function is that declaration, whatever
+  // the file imports or declares at the top under the same name. n8n has
+  // `const unsupportedAction = () => ...` in a method of a file that imports a
+  // function of that name; the call was stored as a call of the import.
+  const IMPORTS = `import { fail, Repo } from './lib';`;
+
+  it.each([
+    ['a local const', `export function f(): unknown { const fail = () => 1; return fail(); }`],
+    ['a local let', `export function f(): unknown { let fail = () => 1; return fail(); }`],
+    ['a function declared inside', `export function f(): unknown { function fail(): number { return 1; } return fail(); }`],
+    ['a destructured local', `export function f(o: { fail(): void }): void { const { fail } = o; fail(); }`],
+    ['a renamed destructured local', `export function f(o: { x(): void }): void { const { x: fail } = o; fail(); }`],
+    ['a loop variable', `export function f(fs: (() => void)[]): void { for (const fail of fs) fail(); }`],
+    ['a caught value', `export function f(): void { try { g(); } catch (fail) { fail(); } }`],
+    ['its own parameter', `export function f(fail: () => void): void { fail(); }`],
+    ['its own destructured parameter', `export function f({ fail }: { fail(): void }): void { fail(); }`],
+    ['a parameter of the method it is in', `export class K { m(fail: () => void): void { fail(); } }`],
+    ['a local used as a receiver', `export function f(): unknown { const Repo = pick(); return Repo.make(); }`],
+    ['a local that is constructed', `export function f(): unknown { const Repo = pick(); return new Repo(); }`],
+    ['a class declared inside', `export function f(): unknown { class Repo {} return new Repo(); }`],
+    ['its own parameter used as a receiver', `export function f(Repo: Maker): unknown { return Repo.make(); }`.replace(': Maker', '')],
+    ['the one bare parameter of an arrow', `export const f = fail => fail();`],
+    ['a parameter of an arrow that initializes a field', `export class K { h = (fail: () => void) => fail(); }`],
+    [
+      'a local of the function around the one it is in',
+      `export function f(xs: number[]): unknown { const fail = () => 1; return xs.map(() => fail()); }`,
+    ],
+  ])('does not read a call of %s as a call of the import it is named after', (_what, src) => {
+    expect(calls(`${IMPORTS}\n${src}`)).toEqual([]);
+  });
+
+  it('does not read a call of a local as a call of the top-level function it is named after', () => {
+    const src = `${LOCAL}
+      export function f(): unknown { const local = () => 1; return local(); }`;
+
+    expect(calls(src)).toEqual([]);
+  });
+
+  it('keeps the import for a function that declares no such name', () => {
+    const src = `${IMPORTS}
+      export function f(): unknown { const fail = () => 1; return fail(); }
+      export function g(): unknown { return [fail(), Repo.make(), new Repo()]; }`;
+
+    expect(calls(src)).toEqual([
+      'g -> Repo [construction]',
+      'g -> Repo.make [static_method]',
+      'g -> fail [import]',
+    ]);
+  });
+
+  // A default value is an expression, not a name the pattern binds. n8n has
+  // `({ telemetry = useTelemetry() })` as a parameter.
+  it.each([
+    ['its own destructured parameter', `export function f({ t = fail() }: { t?: number }): void {}`],
+    ['a destructured local', `export function f(o: { t?: number }): unknown { const { t = fail() } = o; return t; }`],
+    ['a destructured array local', `export function f(o: number[]): unknown { const [t = fail()] = o; return t; }`],
+    [
+      'a destructured parameter of a nested function',
+      `export function f(xs: { t?: number }[]): unknown { return xs.map(({ t = fail() }) => t); }`,
+    ],
+  ])('keeps the import for a call in the default value of %s', (_what, src) => {
+    expect(calls(`${IMPORTS}\n${src}`)).toEqual(['f -> fail [import]']);
+  });
+
+  // n8n's `createVectorStoreNode = (args) => class ... { execute() { handleInsertOperation(...) } }`.
+  it('keeps the calls in a class that is the whole body of an arrow', () => {
+    const src = `${IMPORTS}
+      export const f = (n: number) => class { m(): unknown { return fail(); } };`;
+
+    expect(calls(src)).toEqual(['f -> fail [import]']);
+  });
+
+  it('keeps the import outside the nested function that declares the name', () => {
+    const src = `${IMPORTS}
+      export function f(xs: number[]): unknown { xs.forEach(() => { const fail = 1; return fail; }); return fail(); }`;
+
+    expect(calls(src)).toEqual(['f -> fail [import]']);
+  });
+
+  it('still reads a local bound to `new X()` as an X', () => {
+    const src = `${IMPORTS}
+      export function f(): unknown { const repo = new Repo(); return repo.find(); }`;
+
+    expect(calls(src)).toEqual(['f -> Repo [construction]', 'f -> Repo.find [new_expression]']);
+  });
+
+  it('reads its own annotated parameter by the annotation, not as the import of the same name', () => {
+    const src = `import { repo, Repo } from './lib';
+      export function f(repo: Repo): unknown { return repo.find(); }`;
+
+    expect(calls(src)).toEqual(['f -> Repo.find [parameter_type]']);
+  });
 });
 
 // ---------------------------------------------------------------------------

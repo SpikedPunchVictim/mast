@@ -2230,6 +2230,14 @@ import, followed through re-exporting index files to the declaration, or a decla
 in the same file. A call is read wherever it sits in the declaration: nested functions,
 object-literal methods, parameter defaults and class field initializers included.
 
+A name declared inside the declaration is that declaration and not the import or
+top-level symbol of the same name: a parameter, a `const`, `let` or `var` (destructured or
+not), a loop variable, a caught value, a function or class declared inside (D101, D104).
+A call of it, a `new` of it, or a static-looking call on it stores no edge, unless the
+scope gives it a type the rules above read (`const r = new Repo()`, `r: Repo`). This is
+held per function, not per block: a name declared anywhere in a function counts for the
+whole of it, so a call written outside the block that declares the name loses its edge.
+
 **What the resolver does NOT catch (will NOT produce a `POTENTIAL_CALL` edge — but
 the identifier match still lands in `identifier_fts` and surfaces as
 `potential_matches`):**
@@ -2253,10 +2261,18 @@ the identifier match still lands in `identifier_fts` and surfaces as
   repo?.find() }`.
 - **An element or property of a typed value.** `repos[0].find()`, `this.ctx.repo.find()`.
 - **Default and namespace imports.** `import Repo from './repo'` and `import * as lib
-  from './lib'; lib.Repo.create()` — only named imports are tracked. An aliased named
-  import (`import { Repo as R }`) is in the same position.
+  from './lib'; lib.Repo.create()` — only named imports are tracked.
+- **An aliased named import.** `import { Repo as R }`: `R.create()` and `new R()` store no
+  edge. The import is recorded under the exported name, so a call of some *other* `Repo`
+  in that file (a global, a `declare`d value) is linked to the import. That is a wrong
+  edge and is open as D106.
+- **A local taken from a dynamic import.** `const { Agent } = await import('./agents');
+  new Agent()`. `Agent` is a local, and locals hide the file's `import type { Agent }` of
+  the same name. n8n lost 7 edges to this when locals began to hide (6 `new`, 1 static),
+  all on the right declaration.
 
-Each of the last four was run on a scratch project on 2026-10-07 and stored no edge. What
+The inherited, union, element and default-or-namespace cases were each run on a scratch
+project on 2026-10-07 and stored no edge. What
 the list covers, and what it misses, is measured against the TypeScript checker in
 `adr/proposals/graph-reference/spikes/RESULTS.md`.
 
