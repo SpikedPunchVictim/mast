@@ -6,6 +6,15 @@ import { DEFAULT_FILE_EXTENSIONS, DEFAULT_STATE_DIR } from './defaults.js';
 import { normalizeDotDirs } from '../indexer/scope.js';
 import { UserError } from '../user-error.js';
 
+// 1.4.0 (2026-10-08): what the graph holds changed, in ways no column shows.
+// `reexport_aliases` has a row per `export { a as b }` and repair relies on it
+// (D112): an index built before has none, and there a change to `a` never
+// reaches the files importing `b`. `imports.aliases` is new, and the graph
+// fixes of October 2026 (docs/defects/LEDGER.md, up to D112) changed which
+// edges and star rows a file gets. A file is only re-written when it changes,
+// so without the bump an old index keeps its old rows for every file nobody
+// edits, and answers from them.
+//
 // 1.3.0 (F5, Stage 3): identifier_fts rows now carry QUALIFIED compound
 // strings ("Class.method") appended after the bare-identifier bag — see
 // ast/extractors/typescript.ts's `appendQualifiedCompounds` and MAST_SPEC.md
@@ -31,7 +40,7 @@ import { UserError } from '../user-error.js';
 // 1.1.0: vectors.lance gained a `content_hash` column so re-embedding is keyed
 // on chunk content, not just chunk_id (H1). A bump forces the §7.4 Step 2 wipe
 // so an old vectors table (without the column) is rebuilt rather than read.
-export const CURRENT_SCHEMA_VERSION = '1.3.0';
+export const CURRENT_SCHEMA_VERSION = '1.4.0';
 
 const DEFAULTS: MastConfig = {
   state_dir: DEFAULT_STATE_DIR,

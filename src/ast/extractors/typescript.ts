@@ -38,7 +38,7 @@ export class TypeScriptExtractor implements LanguageExtractor {
     const resolver = getImportResolver(options.projectRoot);
     const imports = extractImports(tree, filePath).map((imp) => {
       const r = resolver.resolve(imp.module, filePath);
-      return { module: imp.module, symbols: imp.symbols, isExternal: r.isExternal, resolvedPath: r.resolvedPath };
+      return { ...imp, isExternal: r.isExternal, resolvedPath: r.resolvedPath };
     });
 
     // Re-exports (§10.1): named ones become exported marker symbols (kind
@@ -1249,6 +1249,7 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
 
     // Extract named imports from the import_clause.
     const symbols: string[] = [];
+    const aliases: Record<string, string> = {};
     const importClause = findChildByType(node, 'import_clause');
     if (importClause !== null) {
       const namedImports = findChildByType(importClause, 'named_imports');
@@ -1256,12 +1257,16 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
         for (const specifier of nodeNamedChildren(namedImports)) {
           if (nodeType(specifier) !== 'import_specifier') continue;
           const name = specifier.childForFieldName('name')?.text;
-          if (name !== undefined) symbols.push(name);
+          if (name === undefined) continue;
+          symbols.push(name);
+          const local = specifier.childForFieldName('alias')?.text;
+          if (local !== undefined && local !== name) aliases[local] = name;
         }
       }
     }
 
-    imports.push({ module, symbols, isExternal, resolvedPath });
+    const renamed = Object.keys(aliases).length > 0 ? { aliases } : {};
+    imports.push({ module, symbols, ...renamed, isExternal, resolvedPath });
   }
 
   // `const { X } = await import('./x')`, anywhere in the file: the file imports

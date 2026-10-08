@@ -1,0 +1,4 @@
+export { Shape } from './types.js';
+[{"name":"Shape","signature":"Shape","file_path":"src/index.ts","line":1,"truncated":false}]
+export * from './types.js';
+[{"name":"Shape","signature":"export interface Shape { decoy: true }\n","file_path":"src/a-decoy.ts","line":1,"truncated":false}]

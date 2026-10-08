@@ -239,7 +239,7 @@ describe('spec conformance — MAST_SPEC.md ↔ src/', () => {
     expect(example.schema_version).toBe(CURRENT_SCHEMA_VERSION);
   });
 
-  it("§7.4 Step 3's constant prose (\"currently `\\\"1.3.0\\\"`\") ↔ CURRENT_SCHEMA_VERSION", () => {
+  it("§7.4 Step 3's constant prose (\"currently `\\\"1.4.0\\\"`\") ↔ CURRENT_SCHEMA_VERSION", () => {
     const spec = readSpec();
     const window = windowAfter(spec, '`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently');
     const match = /currently `"([\d.]+)"`/.exec(window);

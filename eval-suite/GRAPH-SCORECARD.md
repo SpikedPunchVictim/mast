@@ -129,8 +129,9 @@ numbers, and the parameter types `mast_signature` resolves when asked.
   and `unjudged` otherwise. Only an indexed file can be lacking.
 - `--workspace-src` maps a workspace package to its source only when the package has a
   `src/` directory. One import on n8n is unjudged for this reason.
-- A named import with an alias is compared under the exported name, which is what mast
-  records. That record is D106; when it is fixed this line item changes with it.
+- A named import with an alias is compared under the exported name, which is what
+  `imports.symbols` holds. The local name is in `imports.aliases` since schema 1.4.0 and is
+  not scored.
 - The `checker` label does not appear in the baselines: they are indexes built without
   `--checker`.
 - Members of a class that is not at the top level of its file are not symbols on either

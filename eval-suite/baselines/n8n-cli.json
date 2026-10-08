@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-08T17:45:20.839Z",
+  "ran_at": "2026-10-08T18:06:08.358Z",
   "typescript": "5.9.3",
-  "label": "D096 build, n8n packages/cli",
+  "label": "schema 1.4.0 build, n8n packages/cli",
   "root": "n8n-ref",
   "tsconfig": "packages/cli/tsconfig.json",
   "prefix": "packages/cli/",
@@ -12,8 +12,8 @@
   "scored_typescript_files": 1758,
   "program_source_files": 9589,
   "repeated_symbol_rows": 4,
-  "wall_ms": 15277,
-  "peak_rss_mb": 1403
+  "wall_ms": 16047,
+  "peak_rss_mb": 1273
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 4965,

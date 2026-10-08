@@ -85,6 +85,13 @@ export interface SymbolRecord {
 export interface ImportRecord {
   readonly module: string;
   readonly symbols: readonly string[];
+  /**
+   * Local name to exported name, for each specifier written `{ a as b }`.
+   * `symbols` holds the exported name, which is what a change to the module is
+   * matched on; this is what the importing file calls it. Absent when no
+   * specifier is renamed.
+   */
+  readonly aliases?: Readonly<Record<string, string>>;
   readonly isExternal: boolean;
   /** Resolved relative path for intra-monorepo imports; null for external. */
   readonly resolvedPath: string | null;

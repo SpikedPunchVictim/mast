@@ -480,15 +480,15 @@ async function resolveOneType(
   const imports = await db
     .selectFrom('imports as i')
     .innerJoin('files as f', 'f.id', 'i.file_id')
-    .select(['i.symbols', 'i.resolved_path'])
+    .select(['i.symbols', 'i.aliases', 'i.resolved_path'])
     .where('f.path', '=', containingFilePath)
     .where('i.is_external', '=', 0)
     .execute();
 
   for (const imp of imports) {
     if (imp.resolved_path === null) continue;
-    const importedSymbols = JSON.parse(imp.symbols) as string[];
-    if (!importedSymbols.includes(typeName)) continue;
+    const exportedName = exportedNameOf(typeName, imp);
+    if (exportedName === null) continue;
 
     // The resolved_path may lack an extension — use a prefix range to match
     // `resolved/path.ts`, `resolved/path/index.ts`, etc.
@@ -496,13 +496,16 @@ async function resolveOneType(
       .selectFrom('symbols as s')
       .innerJoin('files as f', 'f.id', 's.file_id')
       .select(['s.name', 'f.path as file_path', 's.line'])
-      .where('s.name', '=', typeName)
+      .where('s.name', '=', exportedName)
       .where('f.path', '>=', imp.resolved_path)
       .where('f.path', '<', pathPrefixUpperBound(imp.resolved_path))
       .executeTakeFirst();
 
     if (importedRow !== undefined) {
-      return buildEntry(db, typeName, importedRow.file_path, importedRow.line, signatureLimit);
+      const entry = await buildEntry(db, exportedName, importedRow.file_path, importedRow.line, signatureLimit);
+      // The entry answers for the name the signature uses; its text is the
+      // declaration, under the name the module gives it.
+      return { ...entry, name: typeName };
     }
   }
 
@@ -522,6 +525,24 @@ async function resolveOneType(
   }
 
   return null;
+}
+
+/**
+ * The name the module exports for what an import row binds as `localName`, or
+ * null when the row does not bind it. `import { Shape as Outline }` binds
+ * `Outline`, not `Shape`: `symbols` holds the exported name of every specifier,
+ * so an exported name counts only where a specifier leaves it unrenamed.
+ */
+function exportedNameOf(
+  localName: string,
+  row: { readonly symbols: string; readonly aliases: string | null },
+): string | null {
+  const exported = JSON.parse(row.symbols) as string[];
+  const aliases = row.aliases === null ? {} : (JSON.parse(row.aliases) as Record<string, string>);
+  if (Object.hasOwn(aliases, localName)) return aliases[localName] ?? null;
+  const written = exported.filter((name) => name === localName).length;
+  const renamed = Object.values(aliases).filter((name) => name === localName).length;
+  return written > renamed ? localName : null;
 }
 
 /**

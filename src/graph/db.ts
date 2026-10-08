@@ -138,6 +138,8 @@ interface ImportsTable {
   readonly module: string;
   /** JSON-serialised string[]. Stored as TEXT; parse on read. */
   readonly symbols: string;
+  /** JSON object, local name to exported name, for `{ a as b }`; null when none is renamed. */
+  readonly aliases: string | null;
   readonly is_external: BoolCol;
   /** Null for external modules; resolved real path for monorepo imports. */
   readonly resolved_path: string | null;
@@ -373,7 +375,8 @@ CREATE TABLE IF NOT EXISTS imports (
   module        TEXT NOT NULL,
   symbols       TEXT NOT NULL,
   is_external   INTEGER NOT NULL DEFAULT 0,
-  resolved_path TEXT
+  resolved_path TEXT,
+  aliases       TEXT
 );
 
 CREATE TABLE IF NOT EXISTS chunks (
@@ -585,6 +588,14 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
   ] as const) {
     if (!edgeColumns.has(name)) sqlite.exec(ddl);
   }
+
+  // `imports.aliases` (schema 1.4.0). An index of an older version is rebuilt by
+  // the first index run or server start, but `mast search` and `mast status`
+  // open it before either, and a query naming the column must not throw there.
+  const importColumns = new Set(
+    sqlite.prepare('PRAGMA table_info(imports)').all().map((c) => (c as { name: string }).name),
+  );
+  if (!importColumns.has('aliases')) sqlite.exec('ALTER TABLE imports ADD COLUMN aliases TEXT');
 
   // Same additive-migration precedent for the files table's FTS rowid blocks
   // (Stage 4.6). Databases indexed before these columns existed keep working:

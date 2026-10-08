@@ -395,6 +395,7 @@ export async function replaceImports(db: Db, filePath: string, imports: readonly
       file_id: file.id,
       module: imp.module,
       symbols: JSON.stringify(imp.symbols),
+      aliases: imp.aliases === undefined ? null : JSON.stringify(imp.aliases),
       is_external: imp.isExternal ? (1 as const) : (0 as const),
       resolved_path: imp.resolvedPath,
     }));

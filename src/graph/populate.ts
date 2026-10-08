@@ -581,12 +581,14 @@ async function writePopulatedFileRows(
       file_id: number;
       module: string;
       symbols: string;
+      aliases: string | null;
       is_external: 0 | 1;
       resolved_path: string | null;
     }[] = data.imports.map((imp) => ({
       file_id: fileId,
       module: imp.module,
       symbols: JSON.stringify(imp.symbols),
+      aliases: imp.aliases === undefined ? null : JSON.stringify(imp.aliases),
       is_external: imp.isExternal ? 1 : 0,
       resolved_path: imp.resolvedPath,
     }));

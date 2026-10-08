@@ -1,0 +1,82 @@
+before: eval-suite/baselines/mast.json
+after:  eval-suite/out/mast.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 5         5         5         0         0         0         0
+edge: IMPLEMENTS                              7         7         7         0         0         0         0
+edge: PARENT_OF                              49        49        49         0         0         0         0
+edge: POTENTIAL_CALL                        869       839       839         0        30         0         0
+                                             +3        +3        +3         .         .         .         .
+edge: RE_EXPORTS (to the declaration)        17        17        17         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+export * (file to file)                       4         4         4         0         0         0         0
+import: named binding                       747       747       747         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+import: the file it resolves to             294       294       294         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol flag: is_exported                    794       794       794         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: class                                24        24        24         0         0         0         0
+symbol: export                               21        21        21         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: function                            463       463       463         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: interface                           198       198       198         0         0         0         0
+symbol: method                               49        49        49         0         0         0         0
+symbol: type                                 60        60        60         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (4)
+    src/graph/queries.ts:resolveOneType > src/graph/queries.ts:exportedNameOf
+    src/indexer/index.ts:runIndex > src/indexer/index.ts:loadIndexMeta
+    src/indexer/index.ts:runIndex > src/store/derived-state.ts:wipeDerivedState
+    src/mcp/startup.ts:bootstrapState > src/store/derived-state.ts:wipeDerivedState
+  edge: POTENTIAL_CALL: agree -> absent (1)
+    src/mcp/startup.ts:bootstrapState > src/mcp/startup.ts:wipeDerivedState
+  edge: RE_EXPORTS (to the declaration): absent -> agree (1)
+    src/mcp/startup.ts:wipeDerivedState > src/store/derived-state.ts:wipeDerivedState
+  import: named binding: absent -> agree (4)
+    src/indexer/index.ts { wipeDerivedState } from '../store/derived-state.js'
+    src/mcp/startup.ts { wipeDerivedState } from '../store/derived-state.js'
+    src/store/derived-state.ts { join } from 'node:path'
+    src/store/derived-state.ts { rmSync } from 'node:fs'
+  import: the file it resolves to: absent -> agree (2)
+    src/indexer/index.ts '../store/derived-state.js' => src/store/derived-state.ts
+    src/mcp/startup.ts '../store/derived-state.js' => src/store/derived-state.ts
+  symbol flag: is_exported: absent -> agree (2)
+    src/graph/queries.ts:exportedNameOf exported=false
+    src/store/derived-state.ts:wipeDerivedState exported=true
+  symbol flag: is_exported: agree -> absent (1)
+    src/mcp/startup.ts:wipeDerivedState exported=true
+  symbol: export: absent -> agree (1)
+    src/mcp/startup.ts:wipeDerivedState
+  symbol: function: absent -> agree (2)
+    src/graph/queries.ts:exportedNameOf
+    src/store/derived-state.ts:wipeDerivedState
+  symbol: function: agree -> absent (1)
+    src/mcp/startup.ts:wipeDerivedState
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            20        20        20         0         0         0         0
+call edge, stored as import                 298       298       298         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call edge, stored as new_expression           7         7         7         0         0         0         0
+call edge, stored as parameter_type          14        14        14         0         0         0         0
+call edge, stored as same_file              491       491       491         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              8         8         8         0         0         0         0
+call written as f(), other file             304       298       298         0         6         0         0
+                                             +2        +2        +2         .         .         .         .
+call written as f(), same file              492       491       491         0         1         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as ident.m(), other file         6         6         6         0         0         0         0
+call written as ident.m(), same file         38        15        15         0        23         0         0
+call written as new X(), other file          11        11        11         0         0         0         0
+call written as new X(), same file            9         9         9         0         0         0         0
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           8         8         8         0         0         0         0

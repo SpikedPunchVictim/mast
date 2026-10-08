@@ -40,6 +40,15 @@ export function printArea(r: number): void {
 }
 `;
 
+// aliased.ts — imports Shape under a local name. decoy.ts exports an unrelated
+// type under that local name, which the global fallback would find.
+const ALIASED_SRC = `import { Shape as Outline, Color } from './types';
+
+export function draw(o: Outline, c: Color): void {}
+`;
+const DECOY_SRC = `export interface Outline { decoy: true }
+`;
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
@@ -53,6 +62,8 @@ beforeAll(async () => {
   writeFileSync(join(tmpDir, 'types.ts'), TYPES_SRC);
   writeFileSync(join(tmpDir, 'geometry.ts'), GEOMETRY_SRC);
   writeFileSync(join(tmpDir, 'consumers.ts'), CONSUMERS_SRC);
+  writeFileSync(join(tmpDir, 'aliased.ts'), ALIASED_SRC);
+  writeFileSync(join(tmpDir, 'decoy.ts'), DECOY_SRC);
 
   const config = resolveConfig({ projectRoot: tmpDir });
   await runIndex(config, { incremental: false });
@@ -95,6 +106,15 @@ describe('resolveTypeContext', () => {
     expect(entry.name).toBe('Shape');
     expect(entry.file_path).toBe('types.ts');
     expect(entry.signature).toContain('Shape');
+  });
+
+  it('resolves a type imported under a local name to the declaration it names', async () => {
+    const result = await resolveTypeContext(db, ['Outline'], 'aliased.ts');
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.name).toBe('Outline');
+    expect(result[0]?.file_path).toBe('types.ts');
+    expect(result[0]?.signature).toContain('interface Shape');
   });
 
   it('falls back to global lookup for types not in same file or imports', async () => {
@@ -145,5 +165,37 @@ describe('resolveTypeContext', () => {
     } finally {
       await db2.destroy();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// An edit that changes nothing but the local name of an import. No chunk of the
+// file changes, so the import rows are what has to notice.
+// ---------------------------------------------------------------------------
+describe('resolveTypeContext after only an import alias changes', () => {
+  let dir: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-resolve-types-alias-'));
+  });
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('resolves the new local name', async () => {
+    // Far enough below the import that no chunk's context lines reach it.
+    const body = `${'\n'.repeat(12)}export function draw(): void {}\n`;
+    const config = resolveConfig({ projectRoot: dir });
+    writeFileSync(join(dir, 'types.ts'), TYPES_SRC);
+    writeFileSync(join(dir, 'user.ts'), `import { Shape as Outline } from './types';${body}`);
+    await runIndex(config, { incremental: false });
+    writeFileSync(join(dir, 'user.ts'), `import { Shape as Form } from './types';${body}`);
+    await runIndex(config, { incremental: true });
+
+    const aliasDb = openDatabase(config.resolved_state_dir);
+    const result = await resolveTypeContext(aliasDb, ['Form'], 'user.ts');
+    await aliasDb.destroy();
+
+    expect(result.map((entry) => entry.file_path)).toEqual(['types.ts']);
   });
 });

@@ -195,7 +195,7 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 `index.json` example:
 ```json
 {
-  "schema_version": "1.3.0",
+  "schema_version": "1.4.0",
   "last_indexed": "2026-05-13T14:22:00Z",
   "file_count": 142,
   "chunk_count": 1840
@@ -336,7 +336,10 @@ CREATE TABLE IF NOT EXISTS imports (
   module        TEXT NOT NULL,
   symbols       TEXT NOT NULL,   -- JSON array of imported symbol names
   is_external   INTEGER NOT NULL DEFAULT 0,
-  resolved_path TEXT             -- NULL for external modules; populated by path resolver
+  resolved_path TEXT,            -- NULL for external modules; populated by path resolver
+  aliases       TEXT             -- JSON object, local name -> exported name, for `{ a as b }`;
+                                 -- NULL when no specifier is renamed. `symbols` keeps the
+                                 -- exported name (since 1.4.0)
 );
 
 -- FTS5 with built-in content: stores content directly alongside the index structures.
@@ -673,7 +676,7 @@ state and runs as a full index, whether or not `--incremental` was asked for
 (D113). Without it the first `mast index --incremental` from a git hook after an
 upgrade kept the old graph and wrote the new version over it.
 
-`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.3.0"`). A
+`CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.4.0"`). A
 version bump is required any time the SQLite schema or `index.json` fields change
 in a way that makes old on-disk state unreadable by the new code. Incrementing
 without a state wipe causes a corrupt or partial index; wiping without
@@ -685,6 +688,12 @@ migration guard, not a display string.
 COLUMN` — do NOT require a bump, since `openDatabase` migrates them in place.) On
 schema bump the seed index in `/opt/mast-seed` is also invalidated and a full
 reindex runs in the background.
+
+A bump is also required when the rows written for an unchanged file change and a
+reader relies on the new ones. An old index stays readable in that case and is
+still wrong: a file is re-written only when it changes, so the rest keep what the
+old version stored. 1.4.0 is such a bump (repair relies on `reexport_aliases`
+rows, D112; `mast_signature` on `imports.aliases`).
 
 **Fast first-task latency.** With a baked seed (§13.8), Steps 1–3 typically complete
 in **2–4 seconds** on a cold container. Step 4 then catches up any files changed
@@ -908,7 +917,7 @@ Output:
 ```
 state_dir:      /workspace/.kluster/.mast
 project_root:   /workspace/.kluster
-schema_version: 1.3.0
+schema_version: 1.4.0
 last_indexed:   2026-05-13T14:22:00Z (3 minutes ago)
 indexed_files:  142
 chunk_count:    1840
@@ -1838,7 +1847,7 @@ Index health snapshot.
 ```json
 {
   "state_dir": "/workspace/.kluster/.mast",
-  "schema_version": "1.3.0",
+  "schema_version": "1.4.0",
   "last_indexed": "2026-05-13T14:22:00Z",
   "indexed_files": 142,
   "chunk_count": 1840,
