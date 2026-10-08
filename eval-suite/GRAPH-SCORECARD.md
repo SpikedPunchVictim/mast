@@ -48,6 +48,18 @@ fails. A shape found by review or in use is added here, with the defect's ledger
 commit that files it. The directory is left out of this repository's own index
 (`mast.config.json`) and of lint.
 
+| Directory under `packages/` | Ledger row |
+|---|---|
+| `property-override` | D115 |
+| `new-binding` | D116 |
+| `dynamic-import-block` | D117 |
+| `static-instance` | D118 |
+| `app`, `core`, `ui` | D119 |
+| `barrel-private` | D120 |
+| `merged-class`, `same-name-rows` | D121 |
+| `constructor-callers` | D122 (the stored edges agree; the defect is in `mast_callers`) |
+| `local-shadow` | D123 (`use.ts`), D124 (`loc.ts`) |
+
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
 (`adr/proposals/graph-reference/spikes/RESULTS.md`). `packages/cli` takes about 15 s and
 1.7 GB (measured 2026-10-08: 20.9 s, 1,653 MB peak).

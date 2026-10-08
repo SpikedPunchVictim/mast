@@ -12,7 +12,7 @@ it into the review brief. Copy the questions, not the prose, and not the whole f
 
 ## S-01 — Damage that leaves the exit code alone
 
-**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085, D088, D094, D101, D104, D106, D111. **Rung**: brief, with one instance promoted (below).
+**Instances**: D002, D003, D012, D022, D038, D075, D080, D081, D083, D084, D085, D088, D094, D101, D104, D106, D111, D125, D127, D129, D132. **Rung**: brief, with one instance promoted (below).
 
 The package's own operating manual calls this the worst class most systems have, and it is the one
 `mast` is structurally most exposed to: an index is a *derived* artifact, so nothing downstream can
@@ -45,7 +45,7 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112. **Rung**: brief — declined for promotion 2026-09-01, reason below.
+**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112, D115, D116, D117, D118, D119, D120, D121, D122, D123, D124, D127, D128, D130, D131, D132, D133. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever
@@ -95,6 +95,20 @@ that — re-running the finished fix against the production-scale artifact did, 
 (below)" and no such subsection existed under this shape — the pointer had been dangling since
 2026-08-18. See LEDGER D050.)*
 
+### The resolver's instances (2026-10-08)
+
+Ten of the rows above, D115 to D124, are one finding repeated: a rule of the call resolver that is
+right for the code it was tested on and stores a wrong edge on a shape nobody wrote a test for. An
+adversarial review found all ten in one pass; the scorecard had shown 0 wrong, because the three
+corpora it scores store none of them.
+
+**Promoted in part.** `eval-suite/fixtures/resolver-shapes/` holds each shape, and
+`eval-suite/baselines/shapes.json` its wrong, lacking and unjudged keys, so `compare` fails when a
+change stores a new wrong edge there. Two limits: `compare` is run by hand and is not in
+`pnpm gate`, and the corpus holds only shapes somebody has already found. Finding the next one
+stays a review question, and the brief for it is the Ask above, put to each rule the resolver
+applies by name.
+
 ---
 
 ## S-03 — A number that travelled through prose
@@ -137,7 +151,7 @@ checked. This is CLAUDE.md §11.6 as a defect rather than as advice.
 
 ## S-04 — A confident claim about code nobody opened
 
-**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046, D052, D054, D056, D058, D059.
+**Instances**: D004, D005, D009, D020, D039, D040, D041, D044, D046, D052, D054, D056, D058, D059, D123, D126, D131, D136.
 **Rung**: brief, plus **two partial promotions** (2026-08-20 and 2026-09-03) recorded below.
 
 The richest family here, and the one that produced this package's only two S0s. D009 had two
@@ -226,7 +240,7 @@ the code and confirm — stays first.
 
 ## S-05 — Two producers of one value, drifting apart
 
-**Instances**: D014, D016, D023, D024, D043, D066, D072, D074, D076, D077, D079, D080, D089, D113. **Rung**: **promoted in part — see below.**
+**Instances**: D014, D016, D023, D024, D043, D066, D072, D074, D076, D077, D079, D080, D089, D113, D122, D125, D126, D130, D133. **Rung**: **promoted in part — see below.**
 
 The same quantity computed in two places, by two authors, drifting apart. Renamed from "two
 implementations of one statistic" when D023 arrived: the value that disagreed there was a **file
@@ -296,7 +310,7 @@ published is precisely D014's hazard.
 
 ## S-06 — An instrument calibrated for a different decision than the one registered
 
-**Instances**: D011, D014, D015. **Rung**: brief.
+**Instances**: D011, D014, D015, D134, D135. **Rung**: brief.
 
 Distinct from S-05: here there is only one implementation and it is internally correct — it is
 answering a different question than the one asked. D015 sized a sample for a *mean* when the
@@ -317,7 +331,7 @@ sits in the join between the instrument and the registration — a place neither
 
 ## S-07 — Absence read as evidence
 
-**Instances**: D001, D002, D010, D017, D045, D048, D049, D071, D079, D082, D084, D087, D090, D091, D092, D093, D095, D100, D102, D108, D112. **Rung**: brief.
+**Instances**: D001, D002, D010, D017, D045, D048, D049, D071, D079, D082, D084, D087, D090, D091, D092, D093, D095, D100, D102, D108, D112, D115, D119, D134, D135. **Rung**: brief.
 
 The package's severity zero, generalised past code. D010 registered an experiment whose answer was
 already committed and unread for four days — "we have no result" was actually "we did not look".
@@ -382,7 +396,7 @@ itself have to admit the key) — the same rung, the same file.
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103, D105, D109. **Rung**: brief.
+**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103, D105, D109, D120, D121, D124. **Rung**: brief.
 
 The first three S0s in this ledger share it, and D047 — filed 2026-09-01, and the first slash-terminated import specifier any fixture in this package has ever contained — is the fourth. (The ledger now holds ten S0s; the six from the 2026-08-20 bug hunt have not been assessed against this shape.) D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,
