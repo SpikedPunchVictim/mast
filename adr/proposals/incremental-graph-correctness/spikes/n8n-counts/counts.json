@@ -1,0 +1,16 @@
+{
+  "mast_commit": "4922858",
+  "mast_tree_dirty": false,
+  "n8n_commit": "9d9e9bf97e",
+  "n8n_tree_dirty": false,
+  "index_line": "files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 82761ms",
+  "files": 13985,
+  "edge_rows": 71091,
+  "distinct_edges_of_every_type": 71091,
+  "re_export_files_rows": 926,
+  "import_rows": 51963,
+  "import_rows_with_an_alias": 560,
+  "files_with_an_aliased_import": 448,
+  "reexport_aliases_rows": 391,
+  "star_reexport_unresolved_rows": 0
+}

@@ -113,7 +113,7 @@ applies by name.
 
 ## S-03 — A number that travelled through prose
 
-**Instances**: D008, D017, D018. **Rung**: brief.
+**Instances**: D008, D017, D018, D141. **Rung**: brief.
 
 A figure enters a plan, a comment, or a summary; it is then re-quoted, reasoned from, and built on,
 without anyone returning to the artifact it came from. D008's "~2 MB page cache" was wrong by 8×

@@ -35,6 +35,9 @@ Experiment scripts stay in `eval/` (ADR 001). Checks meant to be run again and a
   rows and edges of the whole n8n index before and after (2026-10-08).
 - `spikes/schema-1.4.0/` — the same for the schema bump, with `alias-check.mjs` (where each
   aliased import's local name resolves, run on an index) and `d114-repro.sh` (2026-10-08).
+- `spikes/n8n-counts/counts.sh`, `counts.json` — the whole-n8n counts the three results above
+  quote (edges, star rows, import rows, aliased imports), derived from one full index on a clean
+  tree. `RESULTS.md` there lists which quoted counts it does not cover (2026-10-08).
 
 ## What a pass does not show
 
