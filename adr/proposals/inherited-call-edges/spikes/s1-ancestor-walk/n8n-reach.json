@@ -1,0 +1,107 @@
+{
+ "extends_edges": 1283,
+ "classes_with_a_parent_edge": 1277,
+ "classes_with_two_parent_edges": 6,
+ "chain_length_of_classes_with_a_parent_edge": {
+  "1": 925,
+  "2": 309,
+  "3": 39,
+  "4": 4
+ },
+ "files_declaring_an_extended_class": 274,
+ "files_indexed": 13985,
+ "holders_now": {
+  "n": 274,
+  "median": 2,
+  "p90": 15,
+  "p99": 334,
+  "max": 1132,
+  "sum": 4539,
+  "nonzero": 238
+ },
+ "files_below": {
+  "n": 274,
+  "median": 1,
+  "p90": 6,
+  "p99": 69,
+  "max": 178,
+  "sum": 1282,
+  "nonzero": 181
+ },
+ "files_below_not_held_now": {
+  "n": 274,
+  "median": 0,
+  "p90": 1,
+  "p99": 17,
+  "max": 172,
+  "sum": 324,
+  "nonzero": 29
+ },
+ "files_below_or_using_a_class_below_not_held_now": {
+  "n": 274,
+  "median": 0,
+  "p90": 5,
+  "p99": 821,
+  "max": 1620,
+  "sum": 4525,
+  "nonzero": 94
+ },
+ "largest": [
+  {
+   "file": "packages/workflow/src/errors/base/base.error.ts",
+   "holders_now": 7,
+   "below": 178,
+   "below_not_held": 172,
+   "below_or_users_not_held": 1620
+  },
+  {
+   "file": "packages/workflow/src/errors/abstract/execution-base.error.ts",
+   "holders_now": 7,
+   "below": 23,
+   "below_not_held": 17,
+   "below_or_users_not_held": 874
+  },
+  {
+   "file": "packages/workflow/src/errors/abstract/node.error.ts",
+   "holders_now": 3,
+   "below": 4,
+   "below_not_held": 2,
+   "below_or_users_not_held": 821
+  },
+  {
+   "file": "packages/cli/src/errors/response-errors/abstract/response.error.ts",
+   "holders_now": 18,
+   "below": 33,
+   "below_not_held": 15,
+   "below_or_users_not_held": 251
+  },
+  {
+   "file": "packages/@n8n/typeorm/src/repository/Repository.ts",
+   "holders_now": 111,
+   "below": 122,
+   "below_not_held": 14,
+   "below_or_users_not_held": 216
+  },
+  {
+   "file": "packages/workflow/src/errors/base/unexpected.error.ts",
+   "holders_now": 205,
+   "below": 34,
+   "below_not_held": 0,
+   "below_or_users_not_held": 94
+  },
+  {
+   "file": "packages/workflow/src/errors/base/user.error.ts",
+   "holders_now": 208,
+   "below": 60,
+   "below_not_held": 1,
+   "below_or_users_not_held": 88
+  },
+  {
+   "file": "packages/@n8n/db/src/repositories/base-repository.ts",
+   "holders_now": 15,
+   "below": 14,
+   "below_not_held": 0,
+   "below_or_users_not_held": 75
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "walks_with_a_chain": 7073,
+ "distinct_file_and_class_pairs": 4905,
+ "files_some_other_files_walk_passed_through": 717,
+ "visiting_files": {
+  "n": 717,
+  "median": 1,
+  "p90": 6,
+  "p99": 45,
+  "max": 252,
+  "sum": 2758,
+  "nonzero": 717
+ },
+ "visiting_files_not_held_now": {
+  "n": 717,
+  "median": 1,
+  "p90": 4,
+  "p99": 32,
+  "max": 116,
+  "sum": 1777,
+  "nonzero": 536
+ },
+ "largest": [
+  {
+   "file": "packages/workflow/src/interfaces.ts",
+   "visiting_files": 136,
+   "not_held_now": 116
+  },
+  {
+   "file": "packages/cli/src/events/event.service.ts",
+   "visiting_files": 93,
+   "not_held_now": 93
+  },
+  {
+   "file": "packages/@n8n/db/src/repositories/base-repository.ts",
+   "visiting_files": 92,
+   "not_held_now": 78
+  },
+  {
+   "file": "packages/nodes-base/nodes/Pipedrive/v2/transport/pipedrive.api.ts",
+   "visiting_files": 50,
+   "not_held_now": 49
+  },
+  {
+   "file": "packages/nodes-base/nodes/TheHiveProject/transport/requestApi.ts",
+   "visiting_files": 45,
+   "not_held_now": 45
+  },
+  {
+   "file": "packages/nodes-base/nodes/Microsoft/Outlook/v2/transport/index.ts",
+   "visiting_files": 41,
+   "not_held_now": 41
+  },
+  {
+   "file": "packages/@n8n/typeorm/src/query-runner/QueryRunner.ts",
+   "visiting_files": 33,
+   "not_held_now": 33
+  },
+  {
+   "file": "packages/@n8n/nodes-langchain/nodes/vendors/OpenAi/transport/index.ts",
+   "visiting_files": 32,
+   "not_held_now": 32
+  }
+ ]
+}

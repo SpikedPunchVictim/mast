@@ -45,7 +45,7 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086. **Rung**: brief — declined for promotion 2026-09-01, reason below.
+**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever
@@ -382,7 +382,7 @@ itself have to admit the key) — the same rung, the same file.
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103. **Rung**: brief.
+**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103, D105. **Rung**: brief.
 
 The first three S0s in this ledger share it, and D047 — filed 2026-09-01, and the first slash-terminated import specifier any fixture in this package has ever contained — is the fourth. (The ledger now holds ten S0s; the six from the 2026-08-20 bug hunt have not been assessed against this shape.) D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,

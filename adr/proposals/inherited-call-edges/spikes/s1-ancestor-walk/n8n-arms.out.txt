@@ -1,0 +1,15 @@
+16:33  up 12 days,  4:43, 2 users, load averages: 23.40 28.79 34.54
+off files: 13985 indexed, 0 skipped  chunks: +73359 -0  duration: 154224ms
+off real 156.54
+off user 66.69
+off sys 36.24
+16:36  up 12 days,  4:45, 2 users, load averages: 20.68 25.44 32.20
+walk files: 13985 indexed, 0 skipped  chunks: +73359 -0  duration: 138765ms
+walk real 140.03
+walk user 63.66
+walk sys 33.46
+16:38  up 12 days,  4:48, 2 users, load averages: 15.76 21.75 29.68
+single files: 13985 indexed, 0 skipped  chunks: +73359 -0  duration: 197497ms
+single real 199.42
+single user 72.40
+single sys 41.39

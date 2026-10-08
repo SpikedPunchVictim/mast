@@ -1,0 +1,26 @@
+{
+ "a_edges": 70478,
+ "b_edges": 70191,
+ "only_a": 287,
+ "only_b": 0,
+ "only_b_by_type_and_resolution": {},
+ "only_a_by_type_and_resolution": {
+  "POTENTIAL_CALL/field_type": 166,
+  "POTENTIAL_CALL/this_method": 112,
+  "POTENTIAL_CALL/parameter_type": 9
+ },
+ "walks_by_outcome": {
+  "owner_unresolved": 6211,
+  "owner_has_no_parent_edge": 5810,
+  "linked": 573,
+  "chain_ended": 7
+ },
+ "linked_by_resolution_and_depth": {
+  "field_type depth 1": 416,
+  "field_type depth 2": 144,
+  "new_expression depth 1": 1,
+  "parameter_type depth 1": 9,
+  "parameter_type depth 2": 2,
+  "super_method depth 1": 1
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "a_edges": 69414,
+ "b_edges": 70478,
+ "only_a": 0,
+ "only_b": 1064,
+ "only_b_by_type_and_resolution": {
+  "POTENTIAL_CALL/field_type": 930,
+  "POTENTIAL_CALL/parameter_type": 20,
+  "POTENTIAL_CALL/this_method": 112,
+  "POTENTIAL_CALL/super_method": 1,
+  "POTENTIAL_CALL/new_expression": 1
+ },
+ "only_a_by_type_and_resolution": {}
+}

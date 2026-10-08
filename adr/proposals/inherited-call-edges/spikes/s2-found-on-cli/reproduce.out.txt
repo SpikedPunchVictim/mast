@@ -1,0 +1,3 @@
+src/alias.ts:make|construction|lib/column.ts:Column (class)|3
+src/shadow.ts:other|import|lib/helpers.ts:fail (function)|9
+src/shadow.ts:run|import|lib/helpers.ts:fail (function)|5

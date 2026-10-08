@@ -1,0 +1,590 @@
+{
+ "q3_checker_says_another_declaration": [
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/integrations/integration-action-executor.ts:ChatIntegrationActionExecutor.execute@73",
+   "call_line": 97,
+   "to": "packages/cli/src/modules/agents/integrations/integration-helpers.ts:unsupportedAction@34",
+   "checker": [
+    "packages/cli/src/modules/agents/integrations/integration-action-executor.ts:88 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/data-table/data-table-ddl.service.ts:DataTableDDLService.createTableWithColumns@25",
+   "call_line": 35,
+   "to": "packages/@n8n/db/src/migrations/dsl/column.ts:Column@4",
+   "checker": [
+    "packages/@n8n/db/src/migrations/dsl/column.ts:37 Constructor"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/data-table/utils/sql-utils.ts:toDslColumns@25",
+   "call_line": 27,
+   "to": "packages/@n8n/db/src/migrations/dsl/column.ts:Column@4",
+   "checker": [
+    "packages/@n8n/db/src/migrations/dsl/column.ts:37 Constructor"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/eval/llm-completion-mock.ts:createLlmCompletionMockHandler@251",
+   "call_line": 272,
+   "to": "packages/@n8n/instance-ai/src/index.ts:Tool@386",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:386 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:387 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/eval/mock-handler.ts:createSubmitResponseTool@659",
+   "call_line": 664,
+   "to": "packages/@n8n/instance-ai/src/index.ts:Tool@386",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:386 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:387 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/eval/mock-handler.ts:createQuirksLookupTool@752",
+   "call_line": 758,
+   "to": "packages/@n8n/instance-ai/src/index.ts:Tool@386",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:386 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:387 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai-terminal-outcome.service.ts:InstanceAiTerminalOutcomeService.evaluateTerminalResponse@217",
+   "call_line": 230,
+   "to": "packages/@n8n/instance-ai/src/index.ts:InstanceAiTerminalResponseGuard@509",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:509 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:511 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai-terminal-outcome.service.ts:InstanceAiTerminalOutcomeService.evaluateWaitingResponse@250",
+   "call_line": 256,
+   "to": "packages/@n8n/instance-ai/src/index.ts:InstanceAiTerminalResponseGuard@509",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:509 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:511 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai-terminal-outcome.service.ts:InstanceAiTerminalOutcomeService.createTerminalOutcomeStorage@321",
+   "call_line": 322,
+   "to": "packages/@n8n/instance-ai/src/index.ts:TerminalOutcomeStorage@337",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:337 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:338 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.adapter.service.ts:InstanceAiAdapterService.getTemplatesService@499",
+   "call_line": 501,
+   "to": "packages/@n8n/instance-ai/src/index.ts:BuilderTemplatesService@453",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:453 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:457 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.mcpClientManager@520",
+   "call_line": 522,
+   "to": "packages/@n8n/instance-ai/src/index.ts:McpClientManager@364",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:364 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:365 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService@516",
+   "call_line": 538,
+   "to": "packages/@n8n/instance-ai/src/index.ts:RunStateRegistry@489",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:489 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:490 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService@516",
+   "call_line": 540,
+   "to": "packages/@n8n/instance-ai/src/index.ts:BackgroundTaskManager@476",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:476 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:477 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.constructor@620",
+   "call_line": 686,
+   "to": "packages/@n8n/instance-ai/src/index.ts:InstanceAiLivenessPolicy@543",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:543 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:544 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createPlannedTaskState@2055",
+   "call_line": 2057,
+   "to": "packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage@328",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:328 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:329 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createPlannedTaskState@2055",
+   "call_line": 2058,
+   "to": "packages/@n8n/instance-ai/src/index.ts:PlannedTaskStorage@332",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:332 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:333 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createPlannedTaskState@2055",
+   "call_line": 2059,
+   "to": "packages/@n8n/instance-ai/src/index.ts:PlannedTaskCoordinator@594",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:594 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:595 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment@2115",
+   "call_line": 2255,
+   "to": "packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage@328",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:328 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:329 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment@2115",
+   "call_line": 2258,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage@344",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:344 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:345 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment@2115",
+   "call_line": 2262,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowTaskCoordinator@558",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:558 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:559 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment@2115",
+   "call_line": 2264,
+   "to": "packages/@n8n/instance-ai/src/index.ts:PlannedTaskStorage@332",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:332 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:333 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment@2115",
+   "call_line": 2265,
+   "to": "packages/@n8n/instance-ai/src/index.ts:PlannedTaskCoordinator@594",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:594 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:595 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.listWorkflowLoopRecords@2893",
+   "call_line": 2894,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage@344",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:344 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:345 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.claimWorkItemSetupRouting@2907",
+   "call_line": 2912,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage@344",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:344 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:345 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.markWorkItemSetupRouted@2920",
+   "call_line": 2925,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage@344",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:344 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:345 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.releaseWorkItemSetupRoutingClaim@2933",
+   "call_line": 2938,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage@344",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:344 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:345 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/workflow-verification-obligation-service.ts:WorkflowVerificationObligationService.storage@29",
+   "call_line": 30,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage@344",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:344 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:345 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/workflow-verification-task-projector.ts:WorkflowVerificationTaskProjector.syncFromWorkflowLoop@336",
+   "call_line": 338,
+   "to": "packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage@328",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:328 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:329 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/workflow-verification-task-projector.ts:WorkflowVerificationTaskProjector.syncFromWorkflowLoop@336",
+   "call_line": 342,
+   "to": "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage@344",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:344 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:345 VariableDeclaration"
+   ]
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/workflow-verification-task-projector.ts:WorkflowVerificationTaskProjector.upsertItems@382",
+   "call_line": 384,
+   "to": "packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage@328",
+   "checker": [
+    "packages/@n8n/instance-ai/src/index.ts:328 TypeAliasDeclaration",
+    "packages/@n8n/instance-ai/src/index.ts:329 VariableDeclaration"
+   ]
+  }
+ ],
+ "q3_not_judged": [
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/controllers/binary-data.controller.ts:BinaryDataController.validateBinaryDataId@50",
+   "call_line": 63,
+   "to": "packages/core/src/binary-data/utils.ts:isStoredMode@7",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/evaluation.ee/insights/eval-insights.service.ts:EvalInsightsService.invokeAgent@242",
+   "call_line": 282,
+   "to": "packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agent-evals/agent-eval-case-generation.service.ts:AgentEvalCaseGenerationService.invokeModel@194",
+   "call_line": 202,
+   "to": "packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/agent-knowledge-sandbox.service.ts:isDaytonaNotFoundError@155",
+   "call_line": 156,
+   "to": "packages/@n8n/agents/src/workspace/sandbox/lazy-daytona.ts:loadDaytona@5",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/agent-knowledge-sandbox.service.ts:AgentKnowledgeSandboxService.destroySandbox@232",
+   "call_line": 236,
+   "to": "packages/@n8n/agents/src/workspace/sandbox/lazy-daytona.ts:loadDaytona@5",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/agent-knowledge-sandbox.service.ts:AgentKnowledgeSandboxService.acquireSandboxFresh@716",
+   "call_line": 722,
+   "to": "packages/@n8n/agents/src/workspace/sandbox/lazy-daytona.ts:loadDaytona@5",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/agent-runtime-reconstruction.service.ts:AgentRuntimeReconstructionService.resolveManagedEmbeddingProviderOptions@481",
+   "call_line": 509,
+   "to": "packages/@n8n/ai-utilities/src/utils/http-proxy-agent.ts:proxyFetch@107",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/agents-tools.service.ts:AgentsToolsService.buildSearchNodesTool@129",
+   "call_line": 130,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/agents-tools.service.ts:AgentsToolsService.buildGetNodeTypesTool@144",
+   "call_line": 145,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/agents-tools.service.ts:AgentsToolsService.buildListCredentialsTool@181",
+   "call_line": 185,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/builder/agents-builder-model-recommendations.ts:fetchProviderCatalogWithTimeout@96",
+   "call_line": 102,
+   "to": "packages/@n8n/agents/src/sdk/catalog.ts:fetchProviderCatalog@128",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/agents-builder-tools.service.ts:AgentsBuilderToolsService.getJsonTools@273",
+   "call_line": 288,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/agents-builder-tools.service.ts:AgentsBuilderToolsService.getSharedTools@888",
+   "call_line": 894,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/agents-builder.service.ts:AgentsBuilderService.createBuilderAgent@197",
+   "call_line": 271,
+   "to": "packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/get-resource-locator-options.tool.ts:buildGetResourceLocatorOptionsTool@242",
+   "call_line": 245,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/interactive/ask-credential.tool.ts:buildAskCredentialTool@159",
+   "call_line": 160,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/interactive/ask-credential.tool.ts:buildAskEmbeddingCredentialTool@188",
+   "call_line": 189,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/interactive/ask-questions.tool.ts:buildAskQuestionsTool@93",
+   "call_line": 94,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/interactive/configure-channel.tool.ts:buildConfigureChannelTool@30",
+   "call_line": 31,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/interactive/finish-setup.tool.ts:buildFinishSetupTool@435",
+   "call_line": 436,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/interactive/resolve-llm.tool.ts:buildResolveLlmTool@229",
+   "call_line": 230,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/resolve-integration.tool.ts:buildResolveIntegrationTool@22",
+   "call_line": 23,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/search-mcp-servers.tool.ts:buildSearchMcpServersTool@20",
+   "call_line": 21,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/builder/verify-mcp-server.tool.ts:buildVerifyMcpServerTool@111",
+   "call_line": 112,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/json-config/from-json-config.ts:buildFromJson@135",
+   "call_line": 141,
+   "to": "packages/@n8n/agents/src/sdk/agent.ts:Agent.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/json-config/from-json-config.ts:resolveToolRef@431",
+   "call_line": 458,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:wrapToolForApproval@90",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/json-config/mcp-client-factory.ts:buildMcpClientForServer@178",
+   "call_line": 235,
+   "to": "packages/@n8n/agents/src/sdk/mcp-client.ts:McpClient.constructor@63",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/tools/environment-tool.ts:createGetEnvironmentTool@13",
+   "call_line": 15,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/tools/input-data-tool.ts:createInputDataTool@25",
+   "call_line": 32,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/tools/knowledge/search-knowledge.tool.ts:createKnowledgeRetrievalTools@239",
+   "call_line": 248,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/tools/node-tool-factory.ts:resolveInputSchema@93",
+   "call_line": 97,
+   "to": "packages/@n8n/ai-utilities/src/utils/fromai-helpers.ts:extractFromAIParameters@20",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/tools/node-tool-factory.ts:resolveInputSchema@93",
+   "call_line": 100,
+   "to": "packages/@n8n/ai-utilities/src/utils/fromai-helpers.ts:createZodSchemaFromArgs@35",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/tools/node-tool-factory.ts:resolveNodeTool@143",
+   "call_line": 166,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/tools/workflow-context-tool.ts:createWorkflowContextTool@38",
+   "call_line": 42,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/agents/tools/workflow-tool-factory.ts:buildWorkflowTool@586",
+   "call_line": 630,
+   "to": "packages/@n8n/agents/src/sdk/tool.ts:Tool.constructor@235",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/agents/utils/node-tool-validation.ts:validateNodeToolExpressions@17",
+   "call_line": 21,
+   "to": "packages/@n8n/ai-utilities/src/utils/fromai-helpers.ts:extractFromAIParameters@20",
+   "verdict": "checker_has_no_symbol"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/insights/database/repositories/insights-by-period-query.helper.ts:getDateRangesSelectQuery@65",
+   "call_line": 84,
+   "to": "packages/@n8n/db/src/utils/sql.ts:sql@4",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/insights/database/repositories/insights-by-period.repository.ts:InsightsByPeriodRepository.compactSourceDataIntoInsightPeriod@204",
+   "call_line": 238,
+   "to": "packages/@n8n/db/src/utils/sql.ts:sql@4",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/insights/database/repositories/insights-by-period.repository.ts:InsightsByPeriodRepository.getPreviousAndCurrentPeriodTypeAggregates@303",
+   "call_line": 320,
+   "to": "packages/@n8n/db/src/utils/sql.ts:sql@4",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "import",
+   "from": "packages/cli/src/modules/insights/database/repositories/insights-by-period.repository.ts:InsightsByPeriodRepository.getInsightsByWorkflow@368",
+   "call_line": 386,
+   "to": "packages/@n8n/db/src/utils/sql.ts:sql@4",
+   "verdict": "no_call_of_that_name_on_the_line"
+  },
+  {
+   "resolution": "construction",
+   "from": "packages/cli/src/modules/instance-ai/browser/instance-ai-browser-session.service.ts:InstanceAiBrowserSessionService.createSession@153",
+   "call_line": 159,
+   "to": "packages/@n8n/mcp-browser/src/cdp-relay.ts:CDPRelayServer.constructor@107",
+   "verdict": "no_call_of_that_name_on_the_line"
+  }
+ ]
+}

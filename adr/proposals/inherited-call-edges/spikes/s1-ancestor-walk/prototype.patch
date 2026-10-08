@@ -1,0 +1,89 @@
+diff --git a/src/graph/populate.ts b/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/proto/src/graph/populate.ts
+index b0739d0..a94d851 100644
+--- a/src/graph/populate.ts
++++ b/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/proto/src/graph/populate.ts
+@@ -1,3 +1,4 @@
++import { appendFileSync } from 'node:fs';
+ import { sql, type Db } from './db.js';
+ import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../ast/types.js';
+ import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
+@@ -875,7 +876,9 @@ async function insertEdgesReportingUnresolved(
+     const targetId =
+       (await resolveCallTarget(db, fromFile.id, imports, edge.resolution, edge.toName)) ??
+       (edge.resolution === 'this_method' ? await resolveOnParentClass(edge.toName) : null);
+-    if (targetId !== null) callToMap.set(key, targetId);
++    if (targetId !== null) { callToMap.set(key, targetId); continue; }
++    const walked = await spikeWalkAncestors(db, fromFile.id, imports, filePath, edge);
++    if (walked !== null) callToMap.set(key, walked);
+   }
+ 
+   // RE_EXPORTS edges: resolve each unique (toName, toResolvedPath) pair once,
+@@ -1060,11 +1063,67 @@ export async function insertGraphEdges(
+     if (!resolvedAny || pending.length === 0) break;
+   }
+ 
++  if (process.env['MAST_SPIKE_ORDER'] === 'single') {
++    await inBatches(files, async (file) => {
++      await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType !== 'RE_EXPORTS'));
++    });
++    return;
++  }
++  await inBatches(files, async (file) => {
++    await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType !== 'RE_EXPORTS' && e.edgeType !== 'POTENTIAL_CALL'));
++  });
+   await inBatches(files, async (file) => {
+-    await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType !== 'RE_EXPORTS'));
++    await insertEdges(db, file.filePath, file.edges.filter((e) => e.edgeType === 'POTENTIAL_CALL'));
+   });
+ }
+ 
++// SPIKE (throwaway): a method the receiver's class does not declare, looked for
++// up the stored EXTENDS edges.
++const SPIKE_WALKED = new Set(['this_method', 'super_method', 'field_type', 'parameter_type', 'new_expression', 'static_method']);
++function spikeLog(row: Record<string, unknown>): void {
++  const out = process.env['MAST_SPIKE_LOG'];
++  if (out !== undefined) appendFileSync(out, `${JSON.stringify(row)}\n`);
++}
++async function spikeWalkAncestors(
++  db: Db,
++  fromFileId: number,
++  imports: ImportIndexLoader,
++  filePath: string,
++  edge: EdgeRecord,
++): Promise<number | null> {
++  if (process.env['MAST_SPIKE_WALK'] === 'off') return null;
++  if (edge.resolution === undefined || !SPIKE_WALKED.has(edge.resolution)) return null;
++  const dot = edge.toName.indexOf('.');
++  if (dot === -1) return null;
++  const base = { file: filePath, toName: edge.toName, resolution: edge.resolution, line: edge.callLine ?? null };
++  const ownerId = await resolveQualifiedNameScoped(db, fromFileId, imports, edge.toName.slice(0, dot));
++  if (ownerId === null) { spikeLog({ ...base, outcome: 'owner_unresolved' }); return null; }
++  const member = edge.toName.slice(dot);
++  const seen = new Set<number>([ownerId]);
++  let current = ownerId;
++  for (let depth = 1; ; depth++) {
++    const parent = await db
++      .selectFrom('edges as e')
++      .innerJoin('symbols as p', 'p.id', 'e.to_id')
++      .select(['p.id', 'p.name', 'p.file_id'])
++      .where('e.from_id', '=', current)
++      .where('e.edge_type', '=', 'EXTENDS')
++      .executeTakeFirst();
++    if (parent === undefined) { spikeLog({ ...base, outcome: depth === 1 ? 'owner_has_no_parent_edge' : 'chain_ended', depth: depth - 1, chain: [...seen] }); return null; }
++    if (seen.has(parent.id)) { spikeLog({ ...base, outcome: 'cycle', depth }); return null; }
++    seen.add(parent.id);
++    const found = await db
++      .selectFrom('symbols')
++      .select('id')
++      .where('file_id', '=', parent.file_id)
++      .where('name', '=', `${parent.name}${member}`)
++      .where('kind', '!=', 'export')
++      .executeTakeFirst();
++    if (found !== undefined) { spikeLog({ ...base, outcome: 'linked', depth, target: `${parent.name}${member}`, chain: [...seen] }); return found.id; }
++    current = parent.id;
++  }
++}
++
+ // ---------------------------------------------------------------------------
+ // POTENTIAL_CALL target resolution — file-scoped by resolution-rule evidence
+ // ---------------------------------------------------------------------------
