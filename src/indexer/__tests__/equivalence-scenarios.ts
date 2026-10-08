@@ -265,6 +265,15 @@ export const SCENARIOS: readonly Scenario[] = [
     rounds: [{ 'src/a.ts': `export function fn(): number { return 3; }\n` }],
   },
   {
+    name: 'a star gains a namespace name, and loses it (D096)',
+    files: {
+      'src/a.ts': `export function fn(): number { return 1; }\n`,
+      'src/barrel.ts': `export * from './a.js';\n`,
+      'src/zc.ts': `import { fn } from './barrel.js';\nexport function use(): void { fn(); }\n`,
+    },
+    rounds: [{ 'src/barrel.ts': `export * as ns from './a.js';\n` }, { 'src/barrel.ts': `export * from './a.js';\n` }],
+  },
+  {
     name: 'a file is deleted that stood in front of a directory index others re-export from',
     files: {
       'src/x.ts': `export function other(): void {}\n`,

@@ -2075,7 +2075,9 @@ simple.
 records `bar` as an exported **marker symbol** (kind `export`, no hashes) in
 the barrel's `symbols` rows plus a `RE_EXPORTS` edge from the marker to `foo`'s
 declaration; `export * from './x'` becomes a `re_export_files` row instead
-(file-level — stars name no symbols). Marker rows exist to anchor the edge for
+(file-level — stars name no symbols). `export * as ns from './x'` becomes
+nothing: it exports the one name `ns`, a namespace, and no name behind it
+(D096), so a call written `ns.fn()` gets no edge. Marker rows exist to anchor the edge for
 `mast_rename_impact`'s barrel checklist and are **excluded from symbol lookups**
 (`querySymbolByName` filters kind `export`), so `mast_signature`/`mast_callers`
 keep resolving to the real declaration rather than the barrel. Import

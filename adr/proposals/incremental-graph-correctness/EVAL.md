@@ -31,6 +31,8 @@ Experiment scripts stay in `eval/` (ADR 001). Checks meant to be run again and a
 - `spikes/d112-reexport-alias/replay-check-{mast,n8n}.json`, `scorecard-d112-mast.compare.txt` —
   the replays and this repository's scorecard comparison on the build that fixed D112
   (2026-10-08).
+- `spikes/d096-namespace-star/` — the same for the D096 fix, with `RESULTS.md` giving the star
+  rows and edges of the whole n8n index before and after (2026-10-08).
 
 ## What a pass does not show
 

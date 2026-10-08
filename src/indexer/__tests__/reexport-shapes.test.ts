@@ -283,6 +283,45 @@ export function stop(): void { raise(); }
 });
 
 // ---------------------------------------------------------------------------
+// D096. `export * as ns from './a'` exports one name, `ns`. What `a` declares
+// is reachable as `ns.fn` and not as `fn`, so the line is no `export *`.
+// ---------------------------------------------------------------------------
+describe('a star re-export under a namespace name', () => {
+  let dir: string;
+
+  const FN = (value: number): string => `export function fn(): number { return ${String(value)}; }\n`;
+  const CONSUMER_SRC = `import { fn } from './barrel.js';\nexport function use(): number { return fn(); }\n`;
+
+  beforeEach(() => {
+    dir = makeProject('reexport-namespace-star');
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('does not export the names behind it', async () => {
+    writeFiles(dir, {
+      'src/a.ts': FN(1),
+      'src/barrel.ts': `export * as ns from './a.js';\n`,
+      'src/zc.ts': CONSUMER_SRC,
+    });
+
+    await expectEdges(dir, []);
+  });
+
+  it('leaves a name to the plain star beside it', async () => {
+    writeFiles(dir, {
+      'src/a.ts': FN(1),
+      'src/b.ts': FN(2),
+      'src/barrel.ts': `export * as ns from './a.js';\nexport * from './b.js';\n`,
+      'src/zc.ts': CONSUMER_SRC,
+    });
+
+    await expectEdges(dir, ['POTENTIAL_CALL src/zc.ts:use -> src/b.ts:fn']);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // D108, on the incremental path. The file between holds no `from`; what ties it
 // to the leaf is its import. An edit to the leaf, and to the file between, has
 // to leave the graph a full index would build.

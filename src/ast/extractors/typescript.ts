@@ -1043,9 +1043,10 @@ export interface StarReExport {
  * Extract `from`-clause re-exports from a file's top level (§10.1).
  *
  * - `export { Foo, Bar as Baz } from './x'` → named records (one per specifier).
- * - `export * from './x'` (incl. `export * as ns from`) → star record; stars
- *   carry no per-symbol names, so they map to `re_export_files` rows rather
- *   than symbols/edges.
+ * - `export * from './x'` → star record; stars carry no per-symbol names, so
+ *   they map to `re_export_files` rows rather than symbols/edges.
+ * - `export * as ns from './x'` → nothing. It exports the one name `ns`, a
+ *   namespace, and mast has no symbol for a namespace (D096).
  *
  * - `import { Foo as F } from './x'; export { F as Baz };` → a named record, as
  *   if written `export { Foo as Baz } from './x'`. Only named imports: a
@@ -1087,7 +1088,9 @@ export function extractReExports(parsedTree: Tree): { named: NamedReExport[]; st
 
     const clause = findChildByType(node, 'export_clause');
     if (clause === null) {
-      // No specifier list + a from clause = `export * from` / `export * as ns from`.
+      // `export * as ns from` exports `ns` and none of the names behind it, so a
+      // star record would put those names where TypeScript has none (D096).
+      if (findChildByType(node, 'namespace_export') !== null) continue;
       stars.push({ module, line: nodeStartLine(node) });
       continue;
     }

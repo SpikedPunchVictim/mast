@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-08T17:39:25.439Z",
+  "ran_at": "2026-10-08T17:45:01.037Z",
   "typescript": "5.9.3",
-  "label": "D112 build, this repository",
+  "label": "D096 build, this repository",
   "root": "mast",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -12,8 +12,8 @@
   "scored_typescript_files": 98,
   "program_source_files": 747,
   "repeated_symbol_rows": 0,
-  "wall_ms": 1369,
-  "peak_rss_mb": 488
+  "wall_ms": 1615,
+  "peak_rss_mb": 437
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 79,

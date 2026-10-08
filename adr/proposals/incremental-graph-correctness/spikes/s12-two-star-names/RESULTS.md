@@ -77,3 +77,11 @@ table above says no import row on n8n is in that position. Ledger row D096, open
 - Test and spec files are outside both indexes.
 - Not checked for D096: whether `import { ns } from './barrel'` then `ns.fn()` gets an edge;
   what `mast_exports` and `mast_rename_impact` list for such a barrel.
+
+## D096 fixed (2026-10-08)
+
+The extractor makes no star record for `export * as ns from`. `ns-star-repro.sh` on the fixed
+build prints `POTENTIAL_CALL|src/zc.ts:use|src/b.ts:fn` and one star row, `barrel -> b`.
+Whole n8n: 1,063 star rows before, 926 after, and the same 71,091 edges. The check left open
+above was made: `import { ns } from './barrel'` then `ns.fn()` gets no edge, before the fix
+and after. Evidence in `../d096-namespace-star/`.
