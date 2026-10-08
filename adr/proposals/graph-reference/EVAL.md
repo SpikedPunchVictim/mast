@@ -35,3 +35,9 @@ D110 (a path alias written with a `.js` extension is marked external) was found 
 fixed with it. That run also found an error in the reference: `new` through a variable was
 judged by the constructor the class inherits. Both are in
 `adr/proposals/inherited-call-edges/spikes/RESULTS.md`.
+
+D109 (a declaration under `declare` has no symbol) was found while writing the D107 test,
+not by a scorecard: none of the three corpora has one in a scored file. Its fix was run
+through `compare` like the others (PASS on all three; n8n gained 5 symbols and no edge).
+What `declare module`, `declare global` and `declare namespace` blocks hold is still given
+no symbol, and the scorecard has no line item for it.

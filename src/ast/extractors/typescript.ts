@@ -151,7 +151,7 @@ export class TypeScriptExtractor implements LanguageExtractor {
           }
         }
       } else {
-        const name = getDeclName(node);
+        const name = getDeclName(unwrapAmbient(node));
         if (name !== null) knownDeclNames.add(name);
       }
     }
@@ -185,6 +185,10 @@ export class TypeScriptExtractor implements LanguageExtractor {
     // Emit chunks
     // -------------------------------------------------------------------------
     const chunks: Chunk[] = [];
+    // `declare function f(a: string): void; declare function f(a: number): void;`
+    // is one function. The first signature is its symbol; a later one keeps its
+    // text as a block, as an overload of a function with a body does.
+    const ambientFunctions = new Set<string>();
 
     for (const node of topLevel) {
       const t = nodeType(node);
@@ -199,8 +203,15 @@ export class TypeScriptExtractor implements LanguageExtractor {
         declNode = decl;
         isExported = true;
       } else {
-        const name = getDeclName(node);
+        declNode = unwrapAmbient(node);
+        const name = getDeclName(declNode);
         isExported = name !== null && exportedNames.has(name);
+      }
+
+      if (isAmbientFunction(declNode)) {
+        const name = getDeclName(declNode);
+        if (name !== null && ambientFunctions.has(name)) declNode = node;
+        else if (name !== null) ambientFunctions.add(name);
       }
 
       emitChunksForNode(
@@ -265,7 +276,9 @@ function emitChunksForNode(
   const startLine = nodeStartLine(node);
   const endLine = nodeEndLine(node);
 
-  switch (t) {
+  // An overload of a function with a body is a `function_signature` too, and
+  // is a block; only the ambient one is a function.
+  switch (isAmbientFunction(node) ? 'function_declaration' : t) {
     case 'function_declaration':
     case 'generator_function_declaration': {
       const name = node.childForFieldName('name')?.text ?? null;
@@ -614,18 +627,20 @@ export function extractSignatures(tree: Tree, src: string): ExtractedSignature[]
   const root = tree.rootNode;
 
   for (const node of nodeChildren(root)) {
-    const isExport = nodeType(node) === 'export_statement';
-    const decl = isExport ? getWrappedDeclaration(node) : node;
+    const decl = topLevelDeclaration(node);
     if (decl === null) continue;
-    // Doc precedes the export wrapper when there is one.
-    const docHost = isExport ? node : decl;
-    const t = nodeType(decl);
+    // Doc precedes the `export` or `declare` wrapper when there is one.
+    const docHost = node;
+    // The first signature of an ambient function is the one reported (D109).
+    const isAmbient = isAmbientFunction(decl);
+    if (isAmbient && out.some((o) => o.name === getDeclName(decl))) continue;
+    const t = isAmbient ? 'function_declaration' : nodeType(decl);
 
     switch (t) {
       case 'function_declaration':
       case 'generator_function_declaration': {
         const name = decl.childForFieldName('name')?.text;
-        if (name !== undefined) out.push(signatureFor(name, decl, decl, root, src));
+        if (name !== undefined) out.push(signatureFor(name, decl, docHost, root, src));
         break;
       }
       case 'lexical_declaration':
@@ -877,7 +892,7 @@ function findChildByType(node: SyntaxNode, type: string): SyntaxNode | null {
  */
 function getWrappedDeclaration(exportStmtNode: SyntaxNode): SyntaxNode | null {
   const fieldDecl = exportStmtNode.childForFieldName('declaration');
-  if (fieldDecl !== null) return fieldDecl;
+  if (fieldDecl !== null) return unwrapAmbient(fieldDecl);
 
   // Fallback: look for a named child that is a declaration-type node
   for (const child of nodeNamedChildren(exportStmtNode)) {
@@ -897,6 +912,47 @@ function getWrappedDeclaration(exportStmtNode: SyntaxNode): SyntaxNode | null {
     }
   }
   return null;
+}
+
+/**
+ * What `declare` can stand in front of and still be the declaration it would
+ * be without it. A `declare module`, `declare global` or `declare namespace`
+ * block is not here: what it holds is not declared at the top of this file.
+ */
+const AMBIENT_DECLARATION_TYPES: ReadonlySet<string> = new Set([
+  'class_declaration',
+  'abstract_class_declaration',
+  'interface_declaration',
+  'type_alias_declaration',
+  'function_signature',
+  'lexical_declaration',
+  'variable_declaration',
+  'enum_declaration',
+]);
+
+/**
+ * The declaration inside `declare <declaration>`, and any other node as it is.
+ * The parser wraps the former in an `ambient_declaration`, which no reader of
+ * declarations knows (D109).
+ */
+function unwrapAmbient(node: SyntaxNode): SyntaxNode {
+  if (nodeType(node) !== 'ambient_declaration') return node;
+  const inner = nodeNamedChildren(node)[0];
+  return inner !== undefined && AMBIENT_DECLARATION_TYPES.has(nodeType(inner)) ? inner : node;
+}
+
+/** The declaration a top-level node holds, under `export`, `declare`, both or neither. */
+function topLevelDeclaration(node: SyntaxNode): SyntaxNode | null {
+  return nodeType(node) === 'export_statement' ? getWrappedDeclaration(node) : unwrapAmbient(node);
+}
+
+/**
+ * `declare function f(): T;`. It has no body and is the whole function. The
+ * same node without `declare` is an overload of a function that has a body,
+ * and that function is the symbol.
+ */
+function isAmbientFunction(node: SyntaxNode): boolean {
+  return nodeType(node) === 'function_signature' && node.parent !== null && nodeType(node.parent) === 'ambient_declaration';
 }
 
 /**
@@ -1066,7 +1122,8 @@ function getDeclName(node: SyntaxNode): string | null {
     t === 'abstract_class_declaration' ||
     t === 'interface_declaration' ||
     t === 'type_alias_declaration' ||
-    t === 'enum_declaration'
+    t === 'enum_declaration' ||
+    isAmbientFunction(node)
   ) {
     return node.childForFieldName('name')?.text ?? null;
   }
@@ -1269,7 +1326,7 @@ export function extractEdges(
   const sameFileNames: string[] = [];
   for (const node of topLevel) {
     if (nodeType(node) === 'import_statement') continue;
-    const decl = nodeType(node) === 'export_statement' ? getWrappedDeclaration(node) : node;
+    const decl = topLevelDeclaration(node);
     if (decl === null) continue;
     const name = getDeclName(decl);
     if (name !== null) sameFileNames.push(name);
@@ -1281,7 +1338,7 @@ export function extractEdges(
   };
 
   for (const node of topLevel) {
-    const declNode = nodeType(node) === 'export_statement' ? getWrappedDeclaration(node) : node;
+    const declNode = topLevelDeclaration(node);
     if (declNode === null) continue;
     const t = nodeType(declNode);
 

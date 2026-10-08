@@ -2012,6 +2012,9 @@ declaration. Line-based splitting is a fallback, not the primary strategy.
 | `interface_declaration` | `interface` | interface name | `null` | has `export` modifier |
 | `type_alias_declaration` | `type` | type name | `null` | has `export` modifier |
 | `export_statement` wrapping any above | inherits inner | inherits inner | inherits inner | `true` |
+| `ambient_declaration` wrapping any above (`declare class`, `declare interface`, `declare type`, `declare const`), with or without `export` | inherits inner | inherits inner | inherits inner | as the inner declaration would be without `declare` (D109) |
+| `function_signature` under `ambient_declaration` (`declare function f(): T;`) | `function` | function name | `null` | has `export` modifier. The first signature of a name is the symbol; a later overload is a `block`. Without `declare`, a `function_signature` is an overload of a function with a body and is a `block` |
+| `ambient_declaration` wrapping `declare module`, `declare global` or `declare namespace` | `block` | `null` | `null` | `false`. What the block declares gets no symbol |
 | Everything else at top level | `block` | `null` | `null` | `false` |
 
 **Class decomposition: shell + methods.** A `class_declaration` node does NOT

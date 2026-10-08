@@ -100,7 +100,8 @@ export const keep = go;
 `,
     });
 
-    await expectEdges(dir, [LIB_OWN_EDGE]);
+    // `load` is a function of this file (D109) and `f` calls it. `go` is its own local.
+    await expectEdges(dir, [LIB_OWN_EDGE, 'POTENTIAL_CALL src/z-consumer.ts:f -> src/z-consumer.ts:load']);
   });
 
   it('follow an edit to the module on an incremental run', async () => {

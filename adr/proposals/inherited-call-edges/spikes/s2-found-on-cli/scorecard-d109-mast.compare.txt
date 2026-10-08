@@ -1,0 +1,80 @@
+before: eval-suite/baselines/mast.json.gz
+after:  eval-suite/out/mast.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 5         5         5         0         0         0         0
+edge: IMPLEMENTS                              7         7         7         0         0         0         0
+edge: PARENT_OF                              49        49        49         0         0         0         0
+edge: POTENTIAL_CALL                        824       800       800         0        24         0         0
+                                            +15       +15       +15         .         .         .         .
+edge: RE_EXPORTS (to the declaration)        16        16        16         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+import: named binding                       738       738       738         0         0         0         0
+import: the file it resolves to             292       292       292         0         0         0         0
+symbol flag: is_exported                    772       772       772         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+symbol: class                                24        24        24         0         0         0         0
+symbol: export                               20        20        20         0         0         0         0
+symbol: function                            445       445       445         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+symbol: interface                           196       196       196         0         0         0         0
+symbol: method                               49        49        49         0         0         0         0
+symbol: type                                 58        58        58         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (17)
+    src/ast/extractors/typescript.ts:TypeScriptExtractor.extractChunks > src/ast/extractors/typescript.ts:isAmbientFunction
+    src/ast/extractors/typescript.ts:TypeScriptExtractor.extractChunks > src/ast/extractors/typescript.ts:unwrapAmbient
+    src/ast/extractors/typescript.ts:emitChunksForNode > src/ast/extractors/typescript.ts:isAmbientFunction
+    src/ast/extractors/typescript.ts:extractEdges > src/ast/extractors/typescript.ts:topLevelDeclaration
+    src/ast/extractors/typescript.ts:extractSignatures > src/ast/extractors/typescript.ts:getDeclName
+    src/ast/extractors/typescript.ts:extractSignatures > src/ast/extractors/typescript.ts:isAmbientFunction
+    src/ast/extractors/typescript.ts:extractSignatures > src/ast/extractors/typescript.ts:topLevelDeclaration
+    src/ast/extractors/typescript.ts:getDeclName > src/ast/extractors/typescript.ts:isAmbientFunction
+    src/ast/extractors/typescript.ts:getWrappedDeclaration > src/ast/extractors/typescript.ts:unwrapAmbient
+    src/ast/extractors/typescript.ts:isAmbientFunction > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:topLevelDeclaration > src/ast/extractors/typescript.ts:getWrappedDeclaration
+    src/ast/extractors/typescript.ts:topLevelDeclaration > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:topLevelDeclaration > src/ast/extractors/typescript.ts:unwrapAmbient
+    src/ast/extractors/typescript.ts:unwrapAmbient > src/ast/extractors/typescript.ts:nodeNamedChildren
+    src/ast/extractors/typescript.ts:unwrapAmbient > src/ast/extractors/typescript.ts:nodeType
+    src/indexer/__tests__/graph-fixture.ts:dumpSymbols > src/graph/db.ts:openDatabase
+    src/indexer/__tests__/graph-fixture.ts:dumpSymbols > src/indexer/__tests__/graph-fixture.ts:configFor
+  edge: POTENTIAL_CALL: agree -> absent (2)
+    src/ast/extractors/typescript.ts:extractEdges > src/ast/extractors/typescript.ts:getWrappedDeclaration
+    src/ast/extractors/typescript.ts:extractSignatures > src/ast/extractors/typescript.ts:getWrappedDeclaration
+  symbol flag: is_exported: absent -> agree (4)
+    src/ast/extractors/typescript.ts:isAmbientFunction exported=false
+    src/ast/extractors/typescript.ts:topLevelDeclaration exported=false
+    src/ast/extractors/typescript.ts:unwrapAmbient exported=false
+    src/indexer/__tests__/graph-fixture.ts:dumpSymbols exported=true
+  symbol: function: absent -> agree (4)
+    src/ast/extractors/typescript.ts:isAmbientFunction
+    src/ast/extractors/typescript.ts:topLevelDeclaration
+    src/ast/extractors/typescript.ts:unwrapAmbient
+    src/indexer/__tests__/graph-fixture.ts:dumpSymbols
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            20        20        20         0         0         0         0
+call edge, stored as import                 292       292       292         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call edge, stored as new_expression           7         7         7         0         0         0         0
+call edge, stored as parameter_type           8         8         8         0         0         0         0
+call edge, stored as same_file              464       464       464         0         0         0         0
+                                            +14       +14       +14         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              8         8         8         0         0         0         0
+call written as f(), other file             298       292       292         0         6         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as f(), same file              465       464       464         0         1         0         0
+                                            +14       +14       +14         .         .         .         .
+call written as ident.m(), other file         6         6         6         0         0         0         0
+call written as ident.m(), same file         26         9         9         0        17         0         0
+call written as new X(), other file          11        11        11         0         0         0         0
+call written as new X(), same file            9         9         9         0         0         0         0
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           8         8         8         0         0         0         0

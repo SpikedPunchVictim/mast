@@ -106,7 +106,8 @@ part of the verdict, since they hold the same keys:
 Counted under "Seen by the compiler and given no line item" in each run, and in `notes` in
 the file. mast stores no row for these, so there is nothing to compare:
 
-- enums, namespaces, `export default <expression>`, top-level variables that are not arrow
+- enums, namespaces and what a `declare module` or `declare global` block holds,
+  `export default <expression>`, top-level variables that are not arrow
   functions, top-level destructuring;
 - default imports, namespace imports, imports for side effects;
 - calls outside any declaration mast has a symbol for, and calls whose callee is not a name

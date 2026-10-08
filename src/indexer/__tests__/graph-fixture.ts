@@ -138,6 +138,25 @@ export async function dumpGraph(
 }
 
 /**
+ * The symbols of the stored graph of `projectDir`, as `kind file:name`, with
+ * `exported ` before the kind of an exported one. Sorted; a name declared
+ * twice in a file is listed twice.
+ */
+export async function dumpSymbols(projectDir: string): Promise<readonly string[]> {
+  const db = openDatabase(configFor(projectDir).resolved_state_dir);
+  try {
+    const rows = (
+      await sql<{ k: string; p: string; n: string; x: number }>`
+        SELECT s.kind AS k, f.path AS p, s.name AS n, s.is_exported AS x
+        FROM symbols s JOIN files f ON f.id = s.file_id`.execute(db)
+    ).rows;
+    return rows.map((r) => `${r.x === 1 ? 'exported ' : ''}${r.k} ${r.p}:${r.n}`).sort();
+  } finally {
+    await db.destroy();
+  }
+}
+
+/**
  * T14. Runs a full index of `projectDir` and requires its edges of the given
  * types to equal `expected`, in both directions: a missing edge and an extra
  * one both fail.
