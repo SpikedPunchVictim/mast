@@ -667,6 +667,12 @@ empty-index case is surfaced to callers instead. With the startup reindex
 enabled (the default), this check is a no-op and Step 3 opens the transport
 exactly as described above.
 
+The same check is made by every index run, not only at server startup: `runIndex`
+reads `index.json` first, and when it names another version removes the derived
+state and runs as a full index, whether or not `--incremental` was asked for
+(D113). Without it the first `mast index --incremental` from a git hook after an
+upgrade kept the old graph and wrote the new version over it.
+
 `CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.3.0"`). A
 version bump is required any time the SQLite schema or `index.json` fields change
 in a way that makes old on-disk state unreadable by the new code. Incrementing

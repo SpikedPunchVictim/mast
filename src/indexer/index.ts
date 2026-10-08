@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { sql } from 'kysely';
 import type { ResolvedConfig } from '../store/config.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
+import { wipeDerivedState } from '../store/derived-state.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
 import type { LockMetricsSink } from '../store/lockMetrics.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
@@ -301,12 +302,22 @@ function statMtimeSecondsOrFallback(absPath: string, fallbackSeconds: number): n
  */
 export async function runIndex(
   config: ResolvedConfig,
-  options: IndexOptions,
+  requested: IndexOptions,
 ): Promise<IndexResult> {
   const startMs = Date.now();
   // initLockMarkers is idempotent — safe to call on every run so that
   // `mast index` works even without a prior `mast init`.
   initLockMarkers(config.resolved_state_dir);
+
+  // An index stamped with another schema version was not built by this binary,
+  // and this run writes the stamp. `mast serve` checks at startup; a git hook's
+  // incremental run is often first after an upgrade, and without this it kept
+  // the old graph under the new version (D113). `index.json` is left as it is
+  // until the run ends, so a run that dies here is rebuilt by the next.
+  const stamped = loadIndexMeta(config.resolved_state_dir);
+  const isFromAnotherSchema = stamped !== null && stamped.schema_version !== CURRENT_SCHEMA_VERSION;
+  if (isFromAnotherSchema) wipeDerivedState(config.resolved_state_dir);
+  const options: IndexOptions = isFromAnotherSchema ? { ...requested, incremental: false } : requested;
 
   const lockOptions = {
     maxRetries: 5,
