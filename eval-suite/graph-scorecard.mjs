@@ -370,7 +370,14 @@ function runScore({ flags }) {
         } else if (stmt.moduleSpecifier) note('export * as namespace');
         else if (stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
           for (const spec of stmt.exportClause.elements) {
-            if (spec.propertyName && spec.propertyName.text !== spec.name.text) aliases.push({ local: spec.propertyName.text, alias: spec.name.text });
+            // A named import that is then exported is a re-export with the `from` on
+            // another line (D108): a marker, and an edge to the declaration.
+            const local = checker.getExportSpecifierLocalTargetSymbol(spec);
+            if ((local?.declarations ?? []).some(ts.isImportSpecifier)) {
+              add('export', spec.name.text, true);
+              const symbol = resolveAlias(local);
+              ref.reExports.push({ marker: `${path}:${spec.name.text}`, resolved: (symbol?.declarations ?? []).length > 0, targets: declaredKeysOf(symbol) });
+            } else if (spec.propertyName && spec.propertyName.text !== spec.name.text) aliases.push({ local: spec.propertyName.text, alias: spec.name.text });
             else exportedLocally.add(spec.name.text);
           }
         }

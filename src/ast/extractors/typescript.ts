@@ -936,6 +936,35 @@ function hasFromClause(node: SyntaxNode): boolean {
   return false;
 }
 
+/** A named import: what the local name is in its module, and the module's specifier. */
+interface ImportBinding {
+  readonly exported: string;
+  readonly module: string;
+}
+
+/**
+ * The file's named imports by local name (`Y` of `import { X as Y }`). The
+ * first import of a local name wins, as the call scope's seeding does.
+ */
+function namedImportBindings(topLevel: readonly SyntaxNode[]): Map<string, ImportBinding> {
+  const bindings = new Map<string, ImportBinding>();
+  for (const node of topLevel) {
+    if (nodeType(node) !== 'import_statement') continue;
+    const importClause = findChildByType(node, 'import_clause');
+    const namedImports = importClause !== null ? findChildByType(importClause, 'named_imports') : null;
+    const moduleNode = findChildByType(node, 'string');
+    if (namedImports === null || moduleNode === null) continue;
+    for (const spec of nodeNamedChildren(namedImports)) {
+      if (nodeType(spec) !== 'import_specifier') continue;
+      const exported = spec.childForFieldName('name')?.text;
+      if (exported === undefined) continue;
+      const local = spec.childForFieldName('alias')?.text ?? exported;
+      if (!bindings.has(local)) bindings.set(local, { exported, module: moduleNode.text.slice(1, -1) });
+    }
+  }
+  return bindings;
+}
+
 export interface NamedReExport {
   /** Name the barrel exposes (`bar` in `export { foo as bar } from './x'`). */
   readonly exportedName: string;
@@ -962,16 +991,39 @@ export interface StarReExport {
  *   carry no per-symbol names, so they map to `re_export_files` rows rather
  *   than symbols/edges.
  *
- * Local aliases without `from` are NOT re-exports — they are handled by
- * `localExportAliases`.
+ * - `import { Foo as F } from './x'; export { F as Baz };` → a named record, as
+ *   if written `export { Foo as Baz } from './x'`. Only named imports: a
+ *   default or namespace import that is then exported is not followed.
+ *
+ * An alias of a declaration of the file itself (`export { foo as bar }`) is NOT
+ * a re-export — it is handled by `localExportAliases`.
  */
 export function extractReExports(parsedTree: Tree): { named: NamedReExport[]; stars: StarReExport[] } {
   const named: NamedReExport[] = [];
   const stars: StarReExport[] = [];
+  const topLevel = nodeChildren(parsedTree.rootNode);
+  const imported = namedImportBindings(topLevel);
 
-  for (const node of nodeChildren(parsedTree.rootNode)) {
+  for (const node of topLevel) {
     if (nodeType(node) !== 'export_statement') continue;
-    if (!hasFromClause(node)) continue;
+    if (!hasFromClause(node)) {
+      // `import { Foo } from './x'; export { Foo };` re-exports as surely as the
+      // `from` form does, and a chain through this file has to find it (D108).
+      const clause = getWrappedDeclaration(node) === null ? findChildByType(node, 'export_clause') : null;
+      for (const spec of clause === null ? [] : nodeNamedChildren(clause)) {
+        if (nodeType(spec) !== 'export_specifier') continue;
+        const local = spec.childForFieldName('name')?.text;
+        const binding = local === undefined ? undefined : imported.get(local);
+        if (local === undefined || binding === undefined) continue;
+        named.push({
+          exportedName: spec.childForFieldName('alias')?.text ?? local,
+          sourceName: binding.exported,
+          line: nodeStartLine(spec),
+          module: binding.module,
+        });
+      }
+      continue;
+    }
 
     const moduleNode = findChildByType(node, 'string');
     if (moduleNode === null) continue;
@@ -1191,28 +1243,12 @@ export function extractEdges(
 
   // File-scoped callables: named imports + same-file top-level symbol names.
   // An import is in scope under its local name (`Y` of `import { X as Y }`);
-  // `importBindings` keeps what that name is in its module (D106). The first
-  // import of a local name wins, as the scope's seeding does.
-  const importedNames: string[] = [];
-  const importBindings = new Map<string, { readonly exported: string; readonly module: string }>();
+  // `importBindings` keeps what that name is in its module (D106).
+  const importBindings = namedImportBindings(topLevel);
+  const importedNames = [...importBindings.keys()];
   const sameFileNames: string[] = [];
   for (const node of topLevel) {
-    if (nodeType(node) === 'import_statement') {
-      const importClause = findChildByType(node, 'import_clause');
-      const namedImports = importClause !== null ? findChildByType(importClause, 'named_imports') : null;
-      const moduleNode = findChildByType(node, 'string');
-      if (namedImports !== null && moduleNode !== null) {
-        for (const spec of nodeNamedChildren(namedImports)) {
-          if (nodeType(spec) !== 'import_specifier') continue;
-          const exported = spec.childForFieldName('name')?.text;
-          if (exported === undefined) continue;
-          const local = spec.childForFieldName('alias')?.text ?? exported;
-          importedNames.push(local);
-          if (!importBindings.has(local)) importBindings.set(local, { exported, module: moduleNode.text.slice(1, -1) });
-        }
-      }
-      continue;
-    }
+    if (nodeType(node) === 'import_statement') continue;
     const decl = nodeType(node) === 'export_statement' ? getWrappedDeclaration(node) : node;
     if (decl === null) continue;
     const name = getDeclName(decl);
@@ -1263,7 +1299,7 @@ export function extractEdges(
  */
 function placedByImport(
   edge: EdgeRecord,
-  importBindings: ReadonlyMap<string, { readonly exported: string; readonly module: string }>,
+  importBindings: ReadonlyMap<string, ImportBinding>,
 ): EdgeRecord {
   if (edge.edgeType === 'PARENT_OF' || edge.resolution === 'same_file' || edge.resolution === 'this_method') return edge;
   const dot = edge.toName.indexOf('.');

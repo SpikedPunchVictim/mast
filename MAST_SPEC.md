@@ -2069,6 +2069,12 @@ keep resolving to the real declaration rather than the barrel. Import
 specifiers are resolved with the same §13.7 resolver used for `import`
 statements.
 
+**A named import that is then exported (2026-10-07, D108).**
+`import { Foo as F } from './x'; export { F as Bar };` is recorded as
+`export { Foo as Bar } from './x'` is: a marker `Bar` and a `RE_EXPORTS` edge to
+`Foo`'s declaration, placed by the import's module. A default or namespace
+import that is then exported is not followed.
+
 **Implementation note — local aliases.** For a *local* alias
 (`export { foo as bar }`, no `from`), the chunker does not use the
 `RE_EXPORTS`-edge path above. It instead emits an extra chunk for `bar` that

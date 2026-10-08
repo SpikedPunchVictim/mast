@@ -1,0 +1,114 @@
+before: eval-suite/baselines/n8n-cli.json.gz
+after:  eval-suite/out/n8n-cli.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+edge: PARENT_OF                            7561      7561      7561         0         0         0         0
+edge: POTENTIAL_CALL                      23829     17860     17856         0      5973         0         4
+                                              .       +49       +49         .       -49         .         .
+edge: RE_EXPORTS (to the declaration)       151       151       151         0         0         0         0
+                                            +12       +16       +16         .        -4         .         .
+export * (file to file)                      20        20        20         0         0         0         0
+import: named binding                     17721     17721     17721         0         0         0         0
+import: the file it resolves to           10010     10011     10010         0         0         0         1
+symbol flag: is_exported                  12824     12824     12824         0         0         0         0
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              174       174       174         0         0         0         0
+                                            +13       +13       +13         .         .         .         .
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7561      7561      7561         0         0         0         0
+symbol: type                                976       976       976         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: lacks -> agree (49)
+    packages/cli/src/commands/user-management/reset.ts:Reset.getInstanceOwner > packages/@n8n/db/src/entities/user.ts:User
+    packages/cli/src/controllers/password-reset.controller.ts:PasswordResetController.forgotPassword > packages/cli/src/user-management/email/user-management-mailer.ts:UserManagementMailer.passwordReset
+    packages/cli/src/controllers/project.controller.ts:ProjectController.addProjectUsers > packages/cli/src/user-management/email/user-management-mailer.ts:UserManagementMailer.notifyProjectShared
+    packages/cli/src/credentials/credentials.controller.ts:CredentialsController.shareCredentials > packages/cli/src/user-management/email/user-management-mailer.ts:UserManagementMailer.notifyCredentialsShared
+    packages/cli/src/credentials/credentials.service.ts:CredentialsService.save > packages/@n8n/db/src/entities/credentials-entity.ts:CredentialsEntity
+    packages/cli/src/events/relays/workflow-failure-notification.event-relay.ts:WorkflowFailureNotificationEventRelay.onFirstProductionWorkflowFailed > packages/cli/src/user-management/email/user-management-mailer.ts:UserManagementMailer.workflowFailure
+    packages/cli/src/modules/agents/agent-config.service.ts:AgentConfigService.updateConfig > packages/cli/src/modules/agents/utils/agent-capabilities.ts:isUnconfiguredAgent
+    packages/cli/src/modules/agents/agent-integration-persistence.service.ts:AgentIntegrationPersistenceService.removeCredentialIntegration > packages/cli/src/modules/agents/utils/agent-capabilities.ts:isUnconfiguredAgent
+    packages/cli/src/modules/agents/agent-integration-persistence.service.ts:AgentIntegrationPersistenceService.saveCredentialIntegration > packages/cli/src/modules/agents/utils/agent-capabilities.ts:isUnconfiguredAgent
+    packages/cli/src/modules/agents/integrations/n8n-memory.ts:N8nMemoryImpl.applyEpisodicMemoryReflection > packages/@n8n/db/src/utils/is-unique-constraint-error.ts:isUniqueConstraintError
+    packages/cli/src/modules/agents/integrations/n8n-memory.ts:N8nMemoryImpl.saveEpisodicMemoryEntryWithSources > packages/@n8n/db/src/utils/is-unique-constraint-error.ts:isUniqueConstraintError
+    packages/cli/src/modules/chat-hub/chat-hub-workflow.service.ts:ChatHubWorkflowService.createChatWorkflow > packages/@n8n/db/src/entities/workflow-entity.ts:WorkflowEntity
+    packages/cli/src/modules/chat-hub/chat-hub-workflow.service.ts:ChatHubWorkflowService.createEmbeddingsInsertionWorkflow > packages/@n8n/db/src/entities/workflow-entity.ts:WorkflowEntity
+    packages/cli/src/modules/chat-hub/chat-hub-workflow.service.ts:ChatHubWorkflowService.createTitleGenerationWorkflow > packages/@n8n/db/src/entities/workflow-entity.ts:WorkflowEntity
+    packages/cli/src/modules/ldap.ee/helpers.ee.ts:createLdapAuthIdentity > packages/@n8n/db/src/entities/auth-identity.ts:AuthIdentity.create
+    packages/cli/src/modules/ldap.ee/helpers.ee.ts:mapLdapUserToDbUser > packages/@n8n/db/src/entities/user.ts:User
+    packages/cli/src/modules/ldap.ee/helpers.ee.ts:processUsers > packages/@n8n/db/src/entities/auth-identity.ts:AuthIdentity.create
+    packages/cli/src/modules/mcp/tools/workflow-builder/create-workflow-from-code.tool.ts:createCreateWorkflowFromCodeTool > packages/@n8n/db/src/entities/workflow-entity.ts:WorkflowEntity
+    packages/cli/src/modules/mcp/tools/workflow-builder/restore-workflow-version.tool.ts:createRestoreWorkflowVersionTool > packages/@n8n/db/src/entities/workflow-entity.ts:WorkflowEntity
+    packages/cli/src/modules/mcp/tools/workflow-builder/update-workflow.tool.ts:createUpdateWorkflowTool > packages/@n8n/db/src/entities/workflow-entity.ts:WorkflowEntity
+    ... 29 more, in the JSON
+  edge: RE_EXPORTS (to the declaration): absent -> agree (12)
+    packages/cli/src/modules/agents/agent-modification-telemetry.service.ts:isUnconfiguredAgent > packages/cli/src/modules/agents/utils/agent-capabilities.ts:isUnconfiguredAgent
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:ManagedEmbeddingProviderOptions > packages/cli/src/modules/agents/json-config/embedding-credential.ts:ManagedEmbeddingProviderOptions
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:ManagedEmbeddingProviderOptionsResolver > packages/cli/src/modules/agents/json-config/embedding-credential.ts:ManagedEmbeddingProviderOptionsResolver
+    packages/cli/src/modules/instance-ai/eval/workflow-analysis.ts:isAiRootNodeType > packages/@n8n/workflow-sdk/src/mock-data/ai-root-shapes.ts:isAiRootNodeType
+    packages/cli/src/modules/mcp/tools/execute-workflow.tool.ts:FoundWorkflow > packages/cli/src/modules/mcp/tools/workflow-validation.utils.ts:FoundWorkflow
+    packages/cli/src/oauth/oauth.service.ts:CreateCsrfStateData > packages/cli/src/oauth/types.ts:CreateCsrfStateData
+    packages/cli/src/oauth/oauth.service.ts:CsrfState > packages/cli/src/oauth/types.ts:CsrfState
+    packages/cli/src/oauth/oauth.service.ts:OAuth1CredentialData > packages/cli/src/oauth/types.ts:OAuth1CredentialData
+    packages/cli/src/response-helper.ts:isUniqueConstraintError > packages/@n8n/db/src/utils/is-unique-constraint-error.ts:isUniqueConstraintError
+    packages/cli/src/user-management/email/index.ts:UserManagementMailer > packages/cli/src/user-management/email/user-management-mailer.ts:UserManagementMailer
+    packages/cli/src/workflows/workflow-published-data.service.ts:PublishedWorkflowDataForExecution > packages/@n8n/db/src/repositories/workflow-published-version.repository.ts:PublishedWorkflowDataForExecution
+    packages/cli/test/integration/access-control/shared-setup.ts:linkUserToProject > packages/@n8n/backend-test-utils/src/db/projects.ts:linkUserToProject
+  edge: RE_EXPORTS (to the declaration): lacks -> agree (4)
+    packages/cli/src/modules/agents/observation-log-observer.ts:N8nObservationLogObserveFn > packages/@n8n/agents/src/types/sdk/observation-log.ts:ObservationLogObserveFn
+    packages/cli/src/modules/agents/observation-log-observer.ts:N8nObservationLogObserverInput > packages/@n8n/agents/src/types/sdk/observation-log.ts:ObservationLogObserverInput
+    packages/cli/src/modules/agents/observation-log-reflector.ts:N8nObservationLogReflectFn > packages/@n8n/agents/src/types/sdk/observation-log.ts:ObservationLogReflectFn
+    packages/cli/src/modules/agents/observation-log-reflector.ts:N8nObservationLogReflectorInput > packages/@n8n/agents/src/types/sdk/observation-log.ts:ObservationLogReflectorInput
+  symbol: export: absent -> agree (13)
+    packages/cli/src/modules/agents/agent-modification-telemetry.service.ts:isUnconfiguredAgent
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:ManagedEmbeddingProviderOptions
+    packages/cli/src/modules/agents/json-config/from-json-config.ts:ManagedEmbeddingProviderOptionsResolver
+    packages/cli/src/modules/instance-ai/eval/workflow-analysis.ts:isAiRootNodeType
+    packages/cli/src/modules/mcp/tools/execute-workflow.tool.ts:FoundWorkflow
+    packages/cli/src/oauth/oauth.service.ts:CreateCsrfStateData
+    packages/cli/src/oauth/oauth.service.ts:CsrfState
+    packages/cli/src/oauth/oauth.service.ts:OAuth1CredentialData
+    packages/cli/src/oauth/oauth.service.ts:OauthVersion
+    packages/cli/src/response-helper.ts:isUniqueConstraintError
+    packages/cli/src/user-management/email/index.ts:UserManagementMailer
+    packages/cli/src/workflows/workflow-published-data.service.ts:PublishedWorkflowDataForExecution
+    packages/cli/test/integration/access-control/shared-setup.ts:linkUserToProject
+
+PASS: nothing that agreed was lost, and nothing new is wrong.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction               1739      1739      1739         0         0         0         0
+                                                 +29       +29       +29         .         .         .         .
+call edge, stored as field_type                 6075      6075      6075         0         0         0         0
+                                                  +8        +8        +8         .         .         .         .
+call edge, stored as import                     2702      2706      2702         0         0         0         4
+                                                  +8        +8        +8         .         .         .         .
+call edge, stored as new_expression               81        81        81         0         0         0         0
+call edge, stored as parameter_type              365       365       365         0         0         0         0
+call edge, stored as same_file                  1909      1909      1909         0         0         0         0
+call edge, stored as static_method                67        67        67         0         0         0         0
+                                                  +4        +4        +4         .         .         .         .
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4902      4902      4902         0         0         0         0
+call written as expr.m(), other file            1174         3         3         0      1171         0         0
+call written as expr.m(), same file                7         0         0         0         7         0         0
+call written as f(), other file                 4679      2702      2702         0      1977         0         0
+                                                   .        +8        +8         .        -8         .         .
+call written as f(), same file                  1924      1909      1909         0        15         0         0
+call written as ident.m(), other file           1972       473       473         0      1499         0         0
+                                                   .        +4        +4         .        -4         .         .
+call written as ident.m(), same file              40        37        37         0         3         0         0
+call written as new X(), other file             1711      1689      1689         0        22         0         0
+                                                   .       +29       +29         .       -29         .         .
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7352      6075      6075         0      1277         0         0
+                                                   .        +8        +8         .        -8         .         .
+call written as this.field.m(), same file          1         0         0         0         1         0         0
+call written as this.m(), other file             225       224       224         0         1         0         0
+call written as this.m(), same file             4678      4678      4678         0         0         0         0

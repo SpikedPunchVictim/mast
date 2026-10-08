@@ -1,6 +1,15 @@
 import { rmSync } from 'node:fs';
 import { afterEach, beforeEach, describe, it } from 'vitest';
-import { expectEdges, makeProject, writeFiles } from './graph-fixture.js';
+import {
+  editFile,
+  expectEdges,
+  expectGraphEqualsFullIndex,
+  expectStoredEdges,
+  indexFull,
+  indexIncremental,
+  makeProject,
+  writeFiles,
+} from './graph-fixture.js';
 
 // ---------------------------------------------------------------------------
 // T15 — every re-export shape, on a full index, against edges written by hand
@@ -45,6 +54,8 @@ export function greet(b: Base): void { b.hello(); }
 
 const NAMED = (from: string): string => `export { Base, Shape, make } from '${from}';\n`;
 const STAR = (from: string): string => `export * from '${from}';\n`;
+const IMPORT_THEN_EXPORT = (from: string): string =>
+  `import { Base, make } from '${from}';\nimport type { Shape } from '${from}';\nexport { Base, make };\nexport type { Shape };\n`;
 
 interface Shape {
   readonly name: string;
@@ -141,6 +152,38 @@ const SHAPES: readonly Shape[] = [
       'src/pkg/index.ts': STAR('./errors/index.js'),
     },
   },
+  // D108: the file between imports the names and exports them in a clause of
+  // its own, with no `from`. n8n's `@n8n/agents` passes types through so.
+  {
+    name: 'an import, then an export clause with no from',
+    leaf: 'src/a-leaf.ts',
+    entry: './b1.js',
+    between: { 'src/b1.ts': IMPORT_THEN_EXPORT('./a-leaf.js') },
+  },
+  {
+    name: 'an import, then an export clause, behind a named re-export',
+    leaf: 'src/a-leaf.ts',
+    entry: './b2.js',
+    between: { 'src/b1.ts': IMPORT_THEN_EXPORT('./a-leaf.js'), 'src/b2.ts': NAMED('./b1.js') },
+  },
+  {
+    name: 'an import, then an export clause, behind a star',
+    leaf: 'src/a-leaf.ts',
+    entry: './b2.js',
+    between: { 'src/b1.ts': IMPORT_THEN_EXPORT('./a-leaf.js'), 'src/b2.ts': STAR('./b1.js') },
+  },
+  {
+    name: 'an import under one name, exported under the declared one',
+    leaf: 'src/a-leaf.ts',
+    entry: './b1.js',
+    between: {
+      'src/b1.ts': `import { Base as B0, make as m0 } from './a-leaf.js';
+import type { Shape as S0 } from './a-leaf.js';
+export { B0 as Base, m0 as make };
+export type { S0 as Shape };
+`,
+    },
+  },
 ];
 
 describe.each([
@@ -233,5 +276,58 @@ export function stop(): void { raise(); }
     });
 
     await expectEdges(dir, EXPECTED);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D108, on the incremental path. The file between holds no `from`; what ties it
+// to the leaf is its import. An edit to the leaf, and to the file between, has
+// to leave the graph a full index would build.
+// ---------------------------------------------------------------------------
+describe('an import that is then exported, after an edit', () => {
+  let dir: string;
+  const FILES = {
+    'src/a-leaf.ts': LEAF_SRC,
+    'src/b1.ts': IMPORT_THEN_EXPORT('./a-leaf.js'),
+    'src/z-consumer.ts': consumerSrc('./b1.js'),
+  };
+
+  beforeEach(() => {
+    dir = makeProject('reexport-import-then-export');
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('loses the edge to a function the leaf no longer declares, and gets it back', async () => {
+    writeFiles(dir, FILES);
+    await indexFull(dir);
+
+    editFile(dir, 'src/a-leaf.ts', LEAF_SRC.replace('export function make(): void {}\n', ''));
+    await indexIncremental(dir);
+    await expectGraphEqualsFullIndex(dir);
+
+    editFile(dir, 'src/a-leaf.ts', LEAF_SRC);
+    await indexIncremental(dir);
+    await expectGraphEqualsFullIndex(dir);
+    await expectStoredEdges(dir, [
+      'EXTENDS src/z-consumer.ts:Child -> src/a-leaf.ts:Base',
+      'IMPLEMENTS src/z-consumer.ts:Child -> src/a-leaf.ts:Shape',
+      'POTENTIAL_CALL src/z-consumer.ts:go -> src/a-leaf.ts:make',
+      'POTENTIAL_CALL src/z-consumer.ts:greet -> src/a-leaf.ts:Base.hello',
+    ]);
+  });
+
+  it('follows the file between when it stops exporting a name, and when it starts again', async () => {
+    writeFiles(dir, FILES);
+    await indexFull(dir);
+
+    editFile(dir, 'src/b1.ts', FILES['src/b1.ts'].replace('export { Base, make };', 'export { Base };'));
+    await indexIncremental(dir);
+    await expectGraphEqualsFullIndex(dir);
+
+    editFile(dir, 'src/b1.ts', FILES['src/b1.ts']);
+    await indexIncremental(dir);
+    await expectGraphEqualsFullIndex(dir);
   });
 });

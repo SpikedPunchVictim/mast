@@ -67,7 +67,7 @@ is from reading `src/graph/queries.ts` and `src/mcp/tools/`, on 2026-10-07.
 | `symbol: method` | kind `method`, named `Class.member` | the same | methods, constructors, getters and setters of a top-level class |
 | `symbol: interface` | kind `interface` | the same, and `mast_implementors` | top-level interface declarations |
 | `symbol: type` | kind `type` | the same | top-level type aliases |
-| `symbol: export` | kind `export`, a marker | `mast_rename_impact` (barrel rows) | each name in `export { ... } from '...'` |
+| `symbol: export` | kind `export`, a marker | `mast_rename_impact` (barrel rows) | each name in `export { ... } from '...'`, and each named import exported by a clause with no `from` |
 | `symbol flag: is_exported` | `symbols.is_exported` | `mast_exports`, `mast_project_skeleton`, search ranking | the `export` modifier, or a later `export { name }`; a member is exported when its class is and it is not private |
 | `edge: PARENT_OF` | class to member | `mast_callers` (a class's callers include its constructor's), `mast_implementors` | one per member above |
 | `edge: EXTENDS` | class or interface to its parent | no tool; no query reads a stored row | each `extends` type the compiler resolves to an indexed declaration |
