@@ -239,3 +239,58 @@ are done and the remaining gap is measured again.
   call line is outside the caller. The count is a lower bound: a chunk's lines are the
   declaration's own.
 - Whether verdicts (not edges) are ever wrong because of the same five-line window.
+
+## Decisions taken, 2026-10-09
+
+All three recommendations were accepted: the order P1, P2, P3; lifetime rule L1; fix the
+shipped pass.
+
+## P1, done
+
+One change, because the four defects meet in `runCheckerPass`. Measured on n8n `9d9e9bf9`
+with the index of `14a67bf` and the pass of this commit
+(`spikes/s3-existing-pass-on-n8n/after-the-fix/`, `spikes/s1-cost-yield/n8n-after-the-fixed-pass.json`):
+
+| | Shipped pass | After P1 |
+|---|---|---|
+| Finishes | No: heap out of memory at 319.5 s, exit 134 | Yes: exit 0, 375.7 s |
+| Maximum resident memory | 2,495 MB at the crash | 1,498 MB |
+| `checker` edges | 5,591 | 754 |
+| Call written outside the caller's own lines | 2,637 | 0 |
+| Agree with the compiler | 756 | 734 |
+| Wrong by the compiler | 1,814 | 0 |
+| Not judged | 3,021 | 20 |
+| Call pairs the graph has, of the compiler's 60,298 | 45,789 before the pass | 46,523 |
+
+The times are not comparable with each other or with a quiet machine: the load average was
+14 to 40 during the second. A second run of `s1` for timing (`n8n-second-run.json`, 248.4 s
+summed against 239.5 s) reproduced every count and was also taken under load.
+
+What changed, by defect:
+
+- **D154.** A call is looked for on the candidate's own lines, and the edge is written from
+  the innermost declaration around it. The second half was not in the proposal: 387 of the
+  shipped pass's edges on n8n were from a class for a call inside one of its methods.
+- **D155.** A constructed class's edge goes to its constructor, as rule 9 does.
+- **D153.** `spikes/s5-root-project/`: n8n's root project names 19,018 files and is given 110.
+  A program is built from the files its project is given, and a file goes to the deeper of
+  two projects that name it.
+- **D150, D151 (L1).** Every write of a file removes all `checker` edges and verdicts, and
+  `mast index` and `mast_reindex` report the counts. This reverses the second half of T6 of
+  `adr/proposals/incremental-graph-correctness/`, which kept a caller's rows about files
+  that did not change; its log has the entry.
+
+A review of the change before commit found four gaps, each reproduced with a failing test
+and fixed: a second pass kept the first's edges; a file written while a pass is classifying;
+a one-line class; and file ownership following discovery order.
+
+Left open:
+
+- 19 of the 20 unjudged edges are a decorator on a method, stored from the class. P2's spike
+  has to say whose call that is.
+- A re-parse on read between the pass's check and its inserts in one batch is not seen.
+- The watcher and the re-parse on read remove the results without saying so; `mast_status`
+  does not show whether any exist.
+- Not measured: the pass on a second repository after the fix, what L1's delete costs a full
+  index, and timing on a quiet machine.
+

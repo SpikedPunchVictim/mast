@@ -25,6 +25,7 @@ describe('toReindexResult', () => {
       miscasedImports: { count: 9, samples: [] },
       edgeRepairsPending: 0,
       filesReResolved: 0,
+      checkerResultsRemoved: { edges: 0, verdicts: 0 },
       durationMs: 123,
       appliedPragmas: { cache_size: -2000, mmap_size: 0 },
       phaseMs: { walk: 1, parse: 2, write: 3, edges: 4, finalise: 5 },
@@ -54,6 +55,7 @@ describe('toReindexResult', () => {
       miscasedImports: { count: 9, samples: [] },
       edgeRepairsPending: 0,
       filesReResolved: 0,
+      checkerResultsRemoved: { edges: 0, verdicts: 0 },
       durationMs: 123,
       appliedPragmas: { cache_size: -2000, mmap_size: 0 },
       phaseMs: { walk: 1, parse: 2, write: 3, edges: 4, finalise: 5 },
@@ -84,6 +86,7 @@ describe('toReindexResult', () => {
       },
       edgeRepairsPending: 0,
       filesReResolved: 0,
+      checkerResultsRemoved: { edges: 0, verdicts: 0 },
       durationMs: 123,
       appliedPragmas: { cache_size: -2000, mmap_size: 0 },
       phaseMs: { walk: 1, parse: 2, write: 3, edges: 4, finalise: 5 },
@@ -91,4 +94,31 @@ describe('toReindexResult', () => {
 
     expect(toReindexResult(result).miscased_imports).toBe(9);
   });
+  // A caller that reads `verified_callers` before and after a reindex has to be
+  // able to tell "the code changed" from "the checker pass's edges were removed"
+  // (D151). Two different numbers, so a swapped mapping fails.
+  it('maps checkerResultsRemoved to checker_edges_removed and checker_verdicts_removed', () => {
+    const result: IndexResult = {
+      filesIndexed: 1,
+      filesSkipped: 0,
+      chunksAdded: 0,
+      chunksRemoved: 0,
+      parseErrors: 0,
+      writeErrors: 0,
+      staleWriteRejections: 0,
+      miscasedImports: { count: 0, samples: [] },
+      edgeRepairsPending: 0,
+      filesReResolved: 0,
+      checkerResultsRemoved: { edges: 11, verdicts: 13 },
+      durationMs: 1,
+      appliedPragmas: { cache_size: -2000, mmap_size: 0 },
+      phaseMs: { walk: 1, parse: 2, write: 3, edges: 4, finalise: 5 },
+    };
+
+    const mapped = toReindexResult(result);
+
+    expect(mapped.checker_edges_removed).toBe(11);
+    expect(mapped.checker_verdicts_removed).toBe(13);
+  });
+
 });

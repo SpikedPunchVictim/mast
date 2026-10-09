@@ -1,0 +1,6 @@
+      375.74 real       208.42 user        91.50 sys
+          1570914304  maximum resident set size
+          3450588160  peak memory footprint
+load averages before and after:
+12:18  up 14 days, 28 mins, 2 users, load averages: 39.85 28.95 22.78
+12:25  up 14 days, 34 mins, 2 users, load averages: 13.81 18.89 20.10

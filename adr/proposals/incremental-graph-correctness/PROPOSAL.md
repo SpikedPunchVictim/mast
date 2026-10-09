@@ -333,6 +333,7 @@ Each step ends with `pnpm gate`.
 | 2026-10-06 | M3a, re-resolve holders by re-parse | Promoted: p99 7 files, worst 3.3 s | `spikes/s3-importers`, `spikes/s5-reresolve-cost` |
 | 2026-10-06 | M3b, re-resolve importers by name | Promoted with an open bound: p99 37 files, worst 5,011 | same, and `spikes/s2-commit-replay` for how often |
 | 2026-10-06 | Following barrels by file | Rejected: 334 files over 1,000 | `spikes/s3-importers/RESULTS.md` |
+| 2026-10-09 | T6's second half, keep a caller's checker rows about files that did not change | Superseded: any write of a file now removes every checker edge and verdict. A checker edge survived a change in a third file (D150) | `adr/proposals/checker-widening/spikes/s2-checker-edge-lifetime/` |
 | 2026-10-06 | M4, stored records | Held: 5 to 10 times cheaper per file, extra table and write | `spikes/s5-reresolve-cost/RESULTS.md` |
 | 2026-10-06 | M8 for `PARENT_OF` | Promoted | D085; `spikes/s2-commit-replay/RESULTS.md` |
 | 2026-10-06 | M8 for `IMPLEMENTS` / `EXTENDS`, no edge without evidence | Promoted, with the D086 fix (user, 2026-10-06): guess wrong 27 of 27 on n8n | `spikes/s6-structural-fallback/RESULTS.md` |

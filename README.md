@@ -477,7 +477,8 @@ Options:
   --show-progress      Print indexing progress to stderr
   --checker            Opt-in TypeScript-checker pass: upgrades heuristic potential_matches
                         into verified caller edges (or drops non-call-site noise). Can take
-                        tens of seconds on a large monorepo — not part of the default path.
+                        minutes on a large monorepo — not part of the default path. Its
+                        results last until the next index run that writes a file.
 ```
 
 **Why incremental:** The incremental path diffs the current file manifest against stored mtimes. Only stale, added, or deleted files are processed — for a large codebase this cuts index time from seconds to milliseconds on most runs.

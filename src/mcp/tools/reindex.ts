@@ -41,6 +41,8 @@ export function toReindexResult(result: IndexResult): ReindexResult {
     write_errors:    result.writeErrors,
     stale_write_rejections: result.staleWriteRejections,
     miscased_imports: result.miscasedImports.count,
+    checker_edges_removed: result.checkerResultsRemoved.edges,
+    checker_verdicts_removed: result.checkerResultsRemoved.verdicts,
     duration_ms:     result.durationMs,
   };
 }

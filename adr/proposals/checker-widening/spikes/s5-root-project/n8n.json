@@ -1,0 +1,119 @@
+{
+ "projects": 81,
+ "files_in_a_project": 21196,
+ "root": {
+  "order": 81,
+  "project": ".",
+  "names": 19018,
+  "owns_first": 103,
+  "owns_nearest": 110
+ },
+ "largest_by_names": [
+  {
+   "order": 81,
+   "project": ".",
+   "names": 19018,
+   "owns_first": 103,
+   "owns_nearest": 110
+  },
+  {
+   "order": 72,
+   "project": "packages/nodes-base",
+   "names": 6744,
+   "owns_first": 6744,
+   "owns_nearest": 6737
+  },
+  {
+   "order": 59,
+   "project": "packages/cli",
+   "names": 3031,
+   "owns_first": 3031,
+   "owns_nearest": 3031
+  },
+  {
+   "order": 55,
+   "project": "packages/@n8n/typeorm",
+   "names": 2551,
+   "owns_first": 2551,
+   "owns_nearest": 2551
+  },
+  {
+   "order": 70,
+   "project": "packages/frontend/editor-ui",
+   "names": 2111,
+   "owns_first": 2111,
+   "owns_nearest": 2111
+  },
+  {
+   "order": 47,
+   "project": "packages/@n8n/nodes-langchain",
+   "names": 773,
+   "owns_first": 773,
+   "owns_nearest": 773
+  }
+ ],
+ "projects_owning_nothing_first": 0,
+ "projects_owning_nothing_nearest": 0,
+ "root_only_files_by_directory": [
+  [
+   "packages/core/nodes-testing",
+   7
+  ],
+  [
+   "packages/@n8n/node-cli",
+   7
+  ],
+  [
+   "packages/frontend/editor-ui",
+   6
+  ],
+  [
+   "packages/@n8n/workflow-sdk",
+   5
+  ],
+  [
+   "packages/extensions/insights",
+   5
+  ],
+  [
+   "packages/@n8n/codemirror-lang-html",
+   4
+  ],
+  [
+   "packages/node-dev/templates",
+   4
+  ],
+  [
+   "packages/@n8n/agents",
+   3
+  ],
+  [
+   "packages/@n8n/ai-workflow-builder.ee",
+   3
+  ],
+  [
+   "packages/@n8n/mcp-browser-extension",
+   3
+  ],
+  [
+   "packages/frontend/@n8n",
+   3
+  ],
+  [
+   "packages/@n8n/engine",
+   2
+  ],
+  [
+   "packages/@n8n/instance-ai",
+   2
+  ],
+  [
+   "packages/@n8n/mcp-apps",
+   2
+  ],
+  [
+   "packages/@n8n/scheduler",
+   2
+  ]
+ ]
+}

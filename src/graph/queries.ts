@@ -134,7 +134,7 @@ const IS_CONSTRUCTOR_OF_OWNER = sql<boolean>`member.name = owner.name || '.const
  * The `constructor` symbol of the class `classId`, by its PARENT_OF edge.
  * Empty when `classId` is not a class or the class declares no constructor.
  */
-async function constructorIdsOf(db: Db, classId: number): Promise<readonly number[]> {
+export async function constructorIdsOf(db: Db, classId: number): Promise<readonly number[]> {
   const rows = await db
     .selectFrom('edges as e')
     .innerJoin('symbols as owner', 'owner.id', 'e.from_id')

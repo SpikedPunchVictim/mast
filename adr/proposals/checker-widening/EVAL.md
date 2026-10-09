@@ -46,6 +46,17 @@ Spike scripts and their output stay under `spikes/`. Nothing here writes into
 The cards the two scripts read are the per-project scorecards `s1/run.mjs` leaves in its work
 dir. They are not kept (n8n's are 80 files); `run.mjs` writes them again.
 
+## P1, after the fix
+
+| File | What it is |
+|---|---|
+| `s3-existing-pass-on-n8n/after-the-fix/pass.out.txt`, `time.txt` | `run.sh` on n8n with the fixed pass: exit 0, the counts, `time -l`, and the load averages |
+| `s3-existing-pass-on-n8n/after-the-fix/caller-span.out.txt`, `checker-edges.json` | `caller-span.sql` and `classify-checker-edges.py` on that index |
+| `s1-cost-yield/n8n-after-the-fixed-pass.json` | `s1` over that index, root project skipped |
+| `s1-cost-yield/n8n-second-run.json` | `s1` over the plain index a second time, for timing; under load, see its `note` |
+| `s2-checker-edge-lifetime/repro.after-the-fix.out.txt` | `repro.sh` on the fixed build |
+| `s5-root-project/owners.mjs <corpus>`, `n8n.json` | Which project each file is given to, by discovery order and by the nearest tsconfig. Builds no program |
+
 ## D152 (`spikes/d152/`)
 
 | File | What it is |

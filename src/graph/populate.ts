@@ -52,6 +52,33 @@ export interface PopulateFileResult {
    * precedent this mirrors).
    */
   readonly written: boolean;
+  /** What `mast index --checker` had stored and this write removed; see {@link removeCheckerResults}. */
+  readonly checkerResultsRemoved: CheckerResultCounts;
+}
+
+/** Rows of the two kinds `mast index --checker` writes. */
+export interface CheckerResultCounts {
+  readonly edges: number;
+  readonly verdicts: number;
+}
+
+/**
+ * Deletes every edge and verdict `mast index --checker` wrote, and returns how
+ * many there were.
+ *
+ * Called by every write that changes a file's rows. The compiler resolved each
+ * call against the whole program, so what a call resolves to can change when a
+ * file that is neither end of the edge changes: a re-exporting index file, a
+ * type a receiver is declared with. The cascade from an edge's two ends does
+ * not see that, and an edge left behind is a verified caller of something the
+ * code no longer calls (D150). The pass's results are therefore a snapshot of
+ * one tree, removed whole at the first write after it and computed again by
+ * the next `--checker` run.
+ */
+export async function removeCheckerResults(db: Db): Promise<CheckerResultCounts> {
+  const edges = await db.deleteFrom('edges').where('resolution', '=', 'checker').executeTakeFirst();
+  const verdicts = await db.deleteFrom('checker_verdicts').executeTakeFirst();
+  return { edges: Number(edges.numDeletedRows), verdicts: Number(verdicts.numDeletedRows) };
 }
 
 /**
@@ -497,7 +524,7 @@ async function writePopulatedFileRows(
       `[mast] WARN: monotonic write-guard rejected a stale write for ${data.filePath} ` +
       `(stored mtime ${existing.mtime} > incoming ${data.mtime}) — existing row left unchanged\n`,
     );
-    return { fileId: existing.id, chunksRemoved: 0, written: false };
+    return { fileId: existing.id, chunksRemoved: 0, written: false, checkerResultsRemoved: { edges: 0, verdicts: 0 } };
   }
 
   // Reserved before the old rows are deleted, so the new block cannot overlap
@@ -506,6 +533,9 @@ async function writePopulatedFileRows(
   // rows), so they are reserved independently.
   const chunkBlock = await timed(spans, 'rest', () => reserveFtsBlock(trx, 'chunk_fts', data.chunks.length));
   const identBlock = await timed(spans, 'rest', () => reserveFtsBlock(trx, 'identifier_fts', data.identifierRows.length));
+
+  // Before the delete below, whose cascade would take some of them uncounted.
+  const checkerResultsRemoved = await timed(spans, 'rest', () => removeCheckerResults(trx));
 
   // Delete-and-replace: FK cascades remove symbols, edges, imports.
   const file = await timed(spans, 'rest', async () => {
@@ -694,7 +724,7 @@ async function writePopulatedFileRows(
     }
   });
 
-  return { fileId, chunksRemoved, written: true };
+  return { fileId, chunksRemoved, written: true, checkerResultsRemoved };
 }
 
 /**
@@ -1027,9 +1057,9 @@ export async function findFilesWithEdgesInto(db: Db, paths: readonly string[]): 
  * resolving its records again. Without the delete, an edge whose target has
  * since moved would stay beside the new one.
  *
- * Checker edges are left: they are written by `mast index --checker`, not from
- * the file's records, and those into a re-written file are already gone by
- * cascade along with the verdicts about it.
+ * Checker edges are not this function's to delete: they are not written from
+ * the file's records. The write that made this re-resolve necessary has
+ * already removed all of them (`removeCheckerResults`).
  */
 export async function clearOutgoingEdges(db: Db, filePath: string): Promise<void> {
   const file = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();

@@ -8,11 +8,12 @@ import { configFor, editFile, indexFull, indexIncremental, makeProject, writeFil
 // (adr/proposals/incremental-graph-correctness, prior decision 3).
 //
 // A verdict or checker edge about a re-written file's symbols was computed
-// against the old content and must go; the delete-and-replace cascade does
-// that and nothing here may undo it. Restoring a caller's edges after the
-// cascade (D081) re-resolves that caller, and must neither bring those rows
-// back nor take the caller's other checker rows with them: they are about
-// files that did not change, and only `mast index --checker` can rewrite them.
+// against the old content and must go. Since D150 every other checker row goes
+// with it: what `kept.go()` resolves to was decided by the compiler against the
+// whole program, and a write of any file can change it. This file first pinned
+// the opposite for the caller's other rows ("they are about files that did not
+// change"), which is the reasoning D150 is the counter-example to. Restoring a
+// caller's edges after the cascade (D081) must still not bring any of them back.
 //
 // Rows are planted directly. Running the compiler here would test the checker,
 // which has its own suite.
@@ -101,15 +102,12 @@ describe('checker rows across an incremental run', () => {
     });
   });
 
-  it('drops the rows about the re-written file and keeps the caller\'s others', async () => {
+  it('drops every checker row when a file is re-written, the ones about other files included', async () => {
     editFile(dir, 'src/edited.ts', `export function fn(): number { return 2; }\nexport function run(): void {}\n`);
 
     await indexIncremental(dir);
 
-    expect(await checkerRows()).toEqual({
-      edges: ['use -> go'],
-      verdicts: ['go @ src/zz-caller.ts'],
-    });
+    expect(await checkerRows()).toEqual({ edges: [], verdicts: [] });
   });
 
   it('still restores the caller\'s own edge into the re-written file', async () => {

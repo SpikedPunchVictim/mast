@@ -616,6 +616,11 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
   ] as const) {
     if (!edgeColumns.has(name)) sqlite.exec(ddl);
   }
+  // Every write of a file removes the checker pass's edges (`removeCheckerResults`).
+  // Partial, so the delete costs nothing in an index the pass never ran on and
+  // an ordinary edge insert never touches it. After the ALTERs above because
+  // it names a column they may have just added.
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_edges_checker ON edges(resolution) WHERE resolution = 'checker'`);
 
   // `imports.aliases` (schema 1.4.0). An index of an older version is rebuilt by
   // the first index run or server start, but `mast search` and `mast status`

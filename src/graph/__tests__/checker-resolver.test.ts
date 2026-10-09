@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ts from 'typescript';
@@ -10,6 +10,7 @@ import { SqliteChunkStore } from '../../store/sqliteChunkStore.js';
 import { querySymbolByName, queryVerifiedCallers, queryCheckerVerdicts } from '../queries.js';
 import { populateFile } from '../populate.js';
 import { extractFile } from '../../ast/extract.js';
+import { checkAndRefreshIfStale } from '../../mcp/staleness.js';
 import {
   discoverTsConfigProjects,
   RealTsProjectResolver,
@@ -388,6 +389,68 @@ describe('RealTsProjectResolver.classify — non-call-site and unresolved outcom
 });
 
 // ---------------------------------------------------------------------------
+// D154: a candidate is a chunk the name occurs near, and a chunk's stored text
+// runs past its declaration. A call on a neighbour's line is the neighbour's.
+// ---------------------------------------------------------------------------
+
+describe('RealTsProjectResolver.classify — a call outside the candidate\'s own lines (D154)', () => {
+  let tmpDir: string;
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-checker-adjacent-'));
+    writeFileSync(join(tmpDir, 'target.ts'), `export function helper(): void {}\n`);
+    writeFileSync(
+      join(tmpDir, 'adjacent.ts'),
+      [
+        `import { helper } from './target';`,
+        `export function init(): void {`,
+        `  helper();`,
+        `}`,
+        `export function cleanup(): void {}`,
+      ].join('\n') + '\n',
+    );
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('does not find a call for a declaration whose neighbour, one line above, makes it', () => {
+    const resolver = new RealTsProjectResolver(tmpDir);
+    const handle = resolver.loadProgram(project(tmpDir, ['target.ts', 'adjacent.ts']));
+
+    const result = handle.classify({
+      relFilePath: 'adjacent.ts',
+      bareName: 'helper',
+      startLine: 5,
+      endLine: 5,
+      queriedFilePath: 'target.ts',
+      queriedLine: 1,
+    });
+
+    expect(result.kind).toBe('non_call_site');
+    handle.dispose();
+  });
+
+  it('finds the call for the declaration it is written in', () => {
+    const resolver = new RealTsProjectResolver(tmpDir);
+    const handle = resolver.loadProgram(project(tmpDir, ['target.ts', 'adjacent.ts']));
+
+    const result = handle.classify({
+      relFilePath: 'adjacent.ts',
+      bareName: 'helper',
+      startLine: 2,
+      endLine: 4,
+      queriedFilePath: 'target.ts',
+      queriedLine: 1,
+    });
+
+    expect(result).toMatchObject({ kind: 'resolves_to_queried', callLine: 3 });
+    handle.dispose();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // runCheckerPass orchestration — fake resolver (no real compiler cost),
 // proving persistence/filtering/one-program-at-a-time behaviour.
 // ---------------------------------------------------------------------------
@@ -395,11 +458,15 @@ describe('RealTsProjectResolver.classify — non-call-site and unresolved outcom
 /** Deterministic fake: classifications keyed by `relFilePath::bareName`, ignoring line detail. */
 class FakeTsProjectResolver implements TsProjectResolver {
   public readonly loadCalls: string[] = [];
+  /** The root file names each loaded program was given, by project. */
+  public readonly loadedFileNames = new Map<string, readonly string[]>();
   public readonly disposeCalls: string[] = [];
 
   constructor(
     private readonly discovery: TsProjectDiscoveryResult,
     private readonly classifications: ReadonlyMap<string, CallSiteClassification>,
+    /** Runs at every classification: a write by another process while the pass is working. */
+    private readonly onClassify: () => void = () => {},
   ) {}
 
   discoverProjects(): TsProjectDiscoveryResult {
@@ -408,10 +475,12 @@ class FakeTsProjectResolver implements TsProjectResolver {
 
   loadProgram(descriptor: TsProjectDescriptor): TsProjectHandle {
     this.loadCalls.push(descriptor.configDir);
+    this.loadedFileNames.set(descriptor.configDir, descriptor.fileNames);
     let disposed = false;
     return {
       classify: (input) => {
         if (disposed) throw new Error('classify() called after dispose() (fake)');
+        this.onClassify();
         const key = `${input.relFilePath}::${input.bareName}`;
         return this.classifications.get(key) ?? { kind: 'unresolved' };
       },
@@ -490,28 +559,57 @@ describe('runCheckerPass — orchestration (fake resolver)', () => {
     expect(fakeResolver.disposeCalls).toEqual(['.']);
   });
 
-  it('re-running the pass is idempotent: edges_upgraded reports actual NEW edge rows, not re-classification attempts', async () => {
-    // Same discovery + classifications as the first test — every
-    // resolves_to_queried edge already exists in `edges` from that run, so the
-    // ON CONFLICT DO NOTHING insert affects zero rows. An agent reading the
-    // CLI summary must see 0, not a re-count of classification outcomes
-    // (attempts ≠ upgrades; on the monorepo run 3,935 attempts collapsed to
-    // 1,885 distinct rows — the summary must report what actually landed).
+  it('a second run stores the same edges again, and not a second copy of them', async () => {
+    // The pass removes what the run before it stored and computes it again, so
+    // `edges_upgraded` is what this run stored and the table holds it once.
     const discovery: TsProjectDiscoveryResult = {
       projects: [project(tmpDir, ['math.ts', 'caller.ts'])],
       skipped: [],
     };
-    const fakeResolver = new FakeTsProjectResolver(
-      discovery,
-      new Map<string, CallSiteClassification>([
-        ['caller.ts::multiply', { kind: 'resolves_to_queried', callLine: 2, context: 'multiply(1, 2);' }],
-        ['caller.ts::subtract', { kind: 'non_call_site' }],
-      ]),
-    );
+    const classifications = new Map<string, CallSiteClassification>([
+      ['caller.ts::multiply', { kind: 'resolves_to_queried', callLine: 2, context: 'multiply(1, 2);' }],
+      ['caller.ts::subtract', { kind: 'non_call_site' }],
+    ]);
+    const first = await runCheckerPass(db, chunkStore, config, { resolver: new FakeTsProjectResolver(discovery, classifications) });
 
-    const rerun = await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
+    const rerun = await runCheckerPass(db, chunkStore, config, { resolver: new FakeTsProjectResolver(discovery, classifications) });
 
-    expect(rerun.edgesUpgraded).toBe(0);
+    const stored = await db.selectFrom('edges').select((eb) => eb.fn.countAll<number>().as('n')).where('resolution', '=', 'checker').executeTakeFirstOrThrow();
+    expect(rerun.edgesUpgraded).toBe(first.edgesUpgraded);
+    expect(stored.n).toBe(first.edgesUpgraded);
+  });
+
+  it('gives a file two projects name to the deeper one, whichever is found first (D153)', async () => {
+    // Discovery sorts by path, so a root `tsconfig.json` comes before `web/`.
+    const discovery: TsProjectDiscoveryResult = {
+      projects: [
+        project(tmpDir, ['math.ts', 'caller.ts']),
+        { configDir: 'web', fileNames: [join(tmpDir, 'caller.ts')], compilerOptions: MINIMAL_OPTIONS },
+      ],
+      skipped: [],
+    };
+    const fakeResolver = new FakeTsProjectResolver(discovery, new Map());
+
+    await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
+
+    expect(fakeResolver.loadedFileNames.get('web')).toEqual([join(tmpDir, 'caller.ts')]);
+  });
+
+  it('builds a project\'s program from the files no earlier project names (D153)', async () => {
+    // A root tsconfig names every package's files again. n8n's names 19,018
+    // and is given 103 of them; a program of all 19,018 ran out of memory.
+    const discovery: TsProjectDiscoveryResult = {
+      projects: [
+        { configDir: 'one', fileNames: [join(tmpDir, 'math.ts')], compilerOptions: MINIMAL_OPTIONS },
+        project(tmpDir, ['math.ts', 'caller.ts']),
+      ],
+      skipped: [],
+    };
+    const fakeResolver = new FakeTsProjectResolver(discovery, new Map());
+
+    await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
+
+    expect(fakeResolver.loadedFileNames.get('.')).toEqual([join(tmpDir, 'caller.ts')]);
   });
 
   it('does not load a program for a project with zero candidates', async () => {
@@ -525,6 +623,150 @@ describe('runCheckerPass — orchestration (fake resolver)', () => {
     const fakeResolver = new FakeTsProjectResolver(discovery, new Map());
     await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
     expect(fakeResolver.loadCalls).not.toContain('empty');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D154, the second way: a class has a chunk of its whole body and each method
+// has its own, so a call in a method is inside two candidates.
+// ---------------------------------------------------------------------------
+
+describe('runCheckerPass — the caller is the innermost declaration around the call (D154)', () => {
+  let tmpDir: string;
+  let db: Db;
+  let chunkStore: SqliteChunkStore;
+  let config: ReturnType<typeof resolveConfig>;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-checker-innermost-'));
+    writeFileSync(join(tmpDir, 'math.ts'), `export function multiply(a: number, b: number): number {\n  return a * b;\n}\n`);
+    writeFileSync(
+      join(tmpDir, 'service.ts'),
+      [
+        // The field puts the name in the class's own chunk, which holds the
+        // class's members without the method bodies.
+        `export class Service {`,
+        `  multiply = 0;`,
+        `  start(): void {`,
+        `    (globalThis as unknown as { multiply: (a: number, b: number) => number }).multiply(1, 2);`,
+        `  }`,
+        `}`,
+      ].join('\n') + '\n',
+    );
+    config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    db = openDatabase(config.resolved_state_dir);
+    chunkStore = new SqliteChunkStore(db);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('stores a call in a one-line class from its method, where the two chunks have the same lines', async () => {
+    writeFileSync(
+      join(tmpDir, 'oneline.ts'),
+      `export class Tiny { multiply = 0; go(): void { (globalThis as unknown as { multiply: (a: number, b: number) => number }).multiply(1, 2); } }\n`,
+    );
+    await runIndex(config, { incremental: true });
+    const fakeResolver = new FakeTsProjectResolver(
+      { projects: [project(tmpDir, ['math.ts', 'oneline.ts'])], skipped: [] },
+      new Map<string, CallSiteClassification>([
+        ['oneline.ts::multiply', { kind: 'resolves_to_queried', callLine: 1, context: 'multiply(1, 2);' }],
+      ]),
+    );
+    const freshDb = openDatabase(config.resolved_state_dir);
+    try {
+      await runCheckerPass(freshDb, new SqliteChunkStore(freshDb), config, { resolver: fakeResolver });
+
+      const [multiplySym] = await querySymbolByName(freshDb, 'multiply', 'math.ts');
+      const callers = await queryVerifiedCallers(freshDb, [multiplySym!.id], false);
+      expect(callers.filter((c) => c.resolution === 'checker').map((c) => c.caller_symbol)).toEqual(['Tiny.go']);
+    } finally {
+      await freshDb.destroy();
+    }
+  });
+
+  it('stores a call in a method from the method and not from its class', async () => {
+    const fakeResolver = new FakeTsProjectResolver(
+      { projects: [project(tmpDir, ['math.ts', 'service.ts'])], skipped: [] },
+      new Map<string, CallSiteClassification>([
+        ['service.ts::multiply', { kind: 'resolves_to_queried', callLine: 4, context: 'multiply(1, 2);' }],
+      ]),
+    );
+
+    await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
+
+    const [multiplySym] = await querySymbolByName(db, 'multiply', 'math.ts');
+    const callers = await queryVerifiedCallers(db, [multiplySym!.id], false);
+    expect(callers.filter((c) => c.resolution === 'checker').map((c) => c.caller_symbol)).toEqual(['Service.start']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D155: the resolver's rule for `new X()` stores the caller on `X.constructor`
+// when the class declares one (§10.3.1 rule 9). The pass has to agree with it.
+// ---------------------------------------------------------------------------
+
+describe('runCheckerPass — `new X()` is a call of the constructor X declares (D155)', () => {
+  let tmpDir: string;
+  let db: Db;
+  let chunkStore: SqliteChunkStore;
+  let config: ReturnType<typeof resolveConfig>;
+
+  const CONSTRUCT = (name: string): string =>
+    `  new (globalThis as unknown as { ${name}: new () => object }).${name}();`;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-checker-construct-'));
+    writeFileSync(
+      join(tmpDir, 'widgets.ts'),
+      [
+        `export class Widget {`,
+        `  constructor() {}`,
+        `}`,
+        ``,
+        `export class Plain {}`,
+      ].join('\n') + '\n',
+    );
+    writeFileSync(
+      join(tmpDir, 'caller.ts'),
+      [`export function build(): void {`, CONSTRUCT('Widget'), CONSTRUCT('Plain'), `}`].join('\n') + '\n',
+    );
+    config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    db = openDatabase(config.resolved_state_dir);
+    chunkStore = new SqliteChunkStore(db);
+
+    const fakeResolver = new FakeTsProjectResolver(
+      { projects: [project(tmpDir, ['widgets.ts', 'caller.ts'])], skipped: [] },
+      new Map<string, CallSiteClassification>([
+        ['caller.ts::Widget', { kind: 'resolves_to_queried', callLine: 2, context: 'new Widget();' }],
+        ['caller.ts::Plain', { kind: 'resolves_to_queried', callLine: 3, context: 'new Plain();' }],
+      ]),
+    );
+    await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  async function checkerCallees(): Promise<string[]> {
+    const rows = await db
+      .selectFrom('edges as e')
+      .innerJoin('symbols as callee', 'callee.id', 'e.to_id')
+      .select('callee.name')
+      .where('e.resolution', '=', 'checker')
+      .orderBy('callee.name')
+      .execute();
+    return rows.map((r) => r.name);
+  }
+
+  it('stores the edge on the constructor when the class declares one, on the class otherwise', async () => {
+    expect(await checkerCallees()).toEqual(['Plain', 'Widget.constructor']);
   });
 });
 
@@ -600,5 +842,168 @@ describe('checker_verdicts — staleness (severity-zero invariant)', () => {
 
     const after = await queryCheckerVerdicts(db, helperSym!.id);
     expect(after.some((v) => v.file_path === 'caller.ts' && v.call_site_line === 1)).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D150, D151: what a call resolves to depends on files other than the two an
+// edge joins, so the pass's results are a snapshot of one tree. Any write of a
+// file removes them all, and the run says how many.
+// ---------------------------------------------------------------------------
+
+describe('checker results — removed when any file is written again (D150, D151)', () => {
+  let tmpDir: string;
+  let config: ReturnType<typeof resolveConfig>;
+  let later = Date.now() / 1_000;
+
+  /** Rewrites `name` with a stamp later than any before it. */
+  function edit(name: string, content: string): void {
+    writeFileSync(join(tmpDir, name), content);
+    later += 100;
+    utimesSync(join(tmpDir, name), later, later);
+  }
+
+  /** A fresh index of the fixture with one checker edge, `run > multiply`, and one verdict. */
+  async function indexWithCheckerResults(): Promise<void> {
+    rmSync(tmpDir, { recursive: true, force: true });
+    mkdirSync(tmpDir, { recursive: true });
+    writeFileSync(join(tmpDir, 'math.ts'), `export function multiply(a: number, b: number): number {\n  return a * b;\n}\n`);
+    writeFileSync(
+      join(tmpDir, 'caller.ts'),
+      `export function run(): void {\n  (globalThis as unknown as { multiply: (a: number, b: number) => number }).multiply(1, 2);\n}\n`,
+    );
+    writeFileSync(join(tmpDir, 'third.ts'), `export const unrelated = 1;\n`);
+    config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    await runPass();
+  }
+
+  /** The pass over the fixture; `duringThePass` gets the pass's own connection at every classification. */
+  async function runPass(duringThePass: (db: Db) => void = () => {}): Promise<Awaited<ReturnType<typeof runCheckerPass>>> {
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      const fakeResolver = new FakeTsProjectResolver(
+        { projects: [project(tmpDir, ['math.ts', 'caller.ts', 'third.ts'])], skipped: [] },
+        new Map<string, CallSiteClassification>([
+          ['caller.ts::multiply', { kind: 'resolves_to_queried', callLine: 2, context: 'multiply(1, 2);' }],
+        ]),
+        () => duringThePass(db),
+      );
+      return await runCheckerPass(db, new SqliteChunkStore(db), config, { resolver: fakeResolver });
+    } finally {
+      await db.destroy();
+    }
+  }
+
+  async function stored(): Promise<{ edges: number; verdicts: number }> {
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      const edges = await db.selectFrom('edges').select((eb) => eb.fn.countAll<number>().as('n')).where('resolution', '=', 'checker').executeTakeFirstOrThrow();
+      const verdicts = await db.selectFrom('checker_verdicts').select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirstOrThrow();
+      return { edges: edges.n, verdicts: verdicts.n };
+    } finally {
+      await db.destroy();
+    }
+  }
+
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-checker-lifetime-'));
+  });
+
+  afterAll(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('the fixture has one checker edge and one verdict to lose', async () => {
+    await indexWithCheckerResults();
+
+    expect(await stored()).toEqual({ edges: 1, verdicts: 1 });
+  });
+
+  it('an incremental run that writes a third file removes them and reports the counts', async () => {
+    await indexWithCheckerResults();
+    edit('third.ts', `export const unrelated = 2;\n`);
+
+    const result = await runIndex(config, { incremental: true });
+
+    expect(result.checkerResultsRemoved).toEqual({ edges: 1, verdicts: 1 });
+    expect(await stored()).toEqual({ edges: 0, verdicts: 0 });
+  });
+
+  it('an incremental run that writes nothing keeps them', async () => {
+    await indexWithCheckerResults();
+
+    const result = await runIndex(config, { incremental: true });
+
+    expect(result.checkerResultsRemoved).toEqual({ edges: 0, verdicts: 0 });
+    expect(await stored()).toEqual({ edges: 1, verdicts: 1 });
+  });
+
+  it('a full run reports the ones it removed', async () => {
+    await indexWithCheckerResults();
+
+    const result = await runIndex(config, { incremental: false });
+
+    expect(result.checkerResultsRemoved).toEqual({ edges: 1, verdicts: 1 });
+  });
+
+  it('an incremental run after a file is deleted removes them', async () => {
+    await indexWithCheckerResults();
+    rmSync(join(tmpDir, 'third.ts'));
+
+    const result = await runIndex(config, { incremental: true });
+
+    expect(result.checkerResultsRemoved).toEqual({ edges: 1, verdicts: 1 });
+    expect(await stored()).toEqual({ edges: 0, verdicts: 0 });
+  });
+
+  it('a refresh on read of a third file removes them', async () => {
+    await indexWithCheckerResults();
+    edit('third.ts', `export const unrelated = 3;\n`);
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      const row = await db.selectFrom('files').select('mtime').where('path', '=', 'third.ts').executeTakeFirstOrThrow();
+
+      await checkAndRefreshIfStale(db, config, 'third.ts', row.mtime);
+    } finally {
+      await db.destroy();
+    }
+
+    expect(await stored()).toEqual({ edges: 0, verdicts: 0 });
+  });
+
+  it('a second pass removes an edge the first stored and no longer finds', async () => {
+    // An index the pass ran on before D154 holds callers that do not call, and
+    // no file has to change for them to be wrong.
+    await indexWithCheckerResults();
+    const db = openDatabase(config.resolved_state_dir);
+    try {
+      const [multiplySym] = await querySymbolByName(db, 'multiply', 'math.ts');
+      await db
+        .insertInto('edges')
+        .values({ from_id: multiplySym!.id, to_id: multiplySym!.id, edge_type: 'POTENTIAL_CALL', resolution: 'checker', call_line: 1, context: '' })
+        .execute();
+    } finally {
+      await db.destroy();
+    }
+
+    await runPass();
+
+    expect((await stored()).edges).toBe(1);
+  });
+
+  it('stores nothing and says so when a file is written while the pass is working', async () => {
+    await indexWithCheckerResults();
+    let written = false;
+
+    const result = await runPass((db) => {
+      if (written) return;
+      written = true;
+      // Queued on the pass's connection ahead of its next statement.
+      void db.updateTable('files').set((eb) => ({ mtime: eb('mtime', '+', 1) })).where('path', '=', 'third.ts').execute();
+    });
+
+    expect(result.indexChangedDuringPass).toBe(true);
+    expect(await stored()).toEqual({ edges: 0, verdicts: 0 });
   });
 });

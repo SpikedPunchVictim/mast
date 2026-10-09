@@ -880,9 +880,10 @@ Options:
   --checker            Opt-in TypeScript-checker enrichment pass (§10.3.2) —
                         upgrades potential_matches into verified 'checker'
                         edges or drops non-call-site/wrong-declaration noise.
-                        Holds one ts.Program at a time; can take tens of
-                        seconds on a large monorepo — not part of the default
-                        index path.
+                        Holds one ts.Program at a time; can take minutes
+                        on a large monorepo — not part of the default
+                        index path. Its results last until the next index
+                        run that writes a file, which removes them.
 ```
 
 ---
@@ -1906,9 +1907,16 @@ state of the filesystem.
   "chunks_removed": 18,
   "parse_errors": 0,
   "write_errors": 0,
+  "checker_edges_removed": 0,
+  "checker_verdicts_removed": 0,
   "duration_ms": 380
 }
 ```
+
+`checker_edges_removed` and `checker_verdicts_removed` are what `mast index --checker` had
+stored and this run removed: a run that writes or deletes any file removes all of them
+(§10.3.2). Both are `0` when the pass never ran. A nonzero count beside fewer verified
+callers means the pass's results are gone, not that the code stopped calling.
 
 `parse_errors > 0` means one or more files were skipped due to tree-sitter parse failures. `write_errors > 0` means a file parsed successfully but its chunk/graph/FTS write failed — a distinct failure mode from a parse error (a chunk-store write failure must never be conflated with an unparseable file). The agent should call `mast_status` for details, or check the mast server log for the specific file paths.
 
@@ -2722,6 +2730,12 @@ the `--checker` flag.
 - Holds exactly **one** `ts.Program` at a time, disposed before the next
   tsconfig project loads (the spike's cautionary tale: holding all programs
   alive made a "warm" re-check *slower* than cold, via GC pressure).
+- A file named by two projects is given to the one whose `tsconfig.json` is
+  deeper, and each program is
+  built from the files its project was given. A root `tsconfig.json` that names
+  every package's files again is given the few that no package names; a file it
+  names without owning is still loaded when an owned file imports it. One
+  program is not otherwise bounded in size (D153).
 - Every candidate is one of the shipped `potential_matches` pool
   (`collectPotentialMatchCandidates`, shared with `mast_callers` — never a
   second definition of "what counts as a potential match").
@@ -2736,6 +2750,14 @@ the `--checker` flag.
   resolves to a DIFFERENT declaration and is classified `resolves_to_different`
   — never written as a `checker` edge. A wrong "verified" edge is worse than no
   edge (adversarial fixtures: `src/graph/__tests__/checker-resolver.test.ts`).
+- **The caller is the declaration the call is written in.** A candidate is a
+  chunk the name occurs in or near, and a chunk's stored text runs
+  `context_lines` past its declaration. A call is looked for on the
+  declaration's own lines only, and the edge is written from the innermost
+  declaration around the call: a call in a method is the method's, and the
+  class, whose chunk spans the method, writes none (D154).
+- **`new X()` is stored as rule 9 of §10.3.1 stores it:** on `X.constructor`
+  when the class declares one, on the class otherwise (D155).
 
 **What it does to each candidate:**
 
@@ -2765,6 +2787,28 @@ the `--checker` flag.
   package's compiled `.d.ts` output (not the `.ts` source `mast` indexed) fail
   the `(file, line)` match safely — classified `resolves_to_different`, not a
   false positive, just a missed upgrade.
+
+**How long the results last.** The compiler resolves a call against the whole
+program, so what a call resolves to can change when a file that is neither end
+of the edge changes: an index file that re-exports the callee from somewhere
+else, the declaration a receiver's type comes from. The pass's edges and
+verdicts are therefore a snapshot of one tree. **Any write that changes a
+file's rows removes all of them** (`removeCheckerResults`): a `mast index` or
+`mast_reindex` that writes or deletes a file, the watcher's run, and the
+re-parse of a stale file on read (§9.0). The callers they verified are
+potential matches again until `mast index --checker` runs again. A run that
+changes nothing keeps them. `mast index` and `mast_reindex` say what they
+removed: `checker_edges_removed` and `checker_verdicts_removed` on the summary
+line and in the response, and `mast index` adds a line on stderr naming the
+command that computes them again. The watcher and the re-parse on read remove
+them without a report. A full `mast index` writes every file, so it always
+removes them (D150, D151).
+
+A `--checker` run starts by removing what the run before it stored, so an edge
+it no longer finds does not stay. It classifies without holding the write lock;
+if any file's row has changed by the time it comes to store a project's
+results, it stores nothing, removes what it had stored, prints that on stderr
+and exits 1.
 
 **Verdict staleness — the severity-zero invariant.** A verdict must not
 outlive the file content it was computed against: a stale verdict silently

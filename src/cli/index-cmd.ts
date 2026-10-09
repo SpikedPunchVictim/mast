@@ -121,8 +121,9 @@ export function registerIndexCommand(program: Command): void {
     .option(
       '--checker',
       'Opt-in TypeScript-checker pass (Stage 1.2): upgrade heuristic potential_matches into verified edges ' +
-      'or drop non-call-site/wrong-declaration noise. Holds one ts.Program at a time; can take tens of seconds ' +
-      'on a large monorepo — not part of the default index path (MAST_SPEC §10.3.2).',
+      'or drop non-call-site/wrong-declaration noise. Holds one ts.Program at a time; can take minutes ' +
+      'on a large monorepo — not part of the default index path. Its results last until the next index run ' +
+      'that writes a file, which removes them (MAST_SPEC §10.3.2).',
     )
     .option(
       '--phase-timing',
@@ -223,8 +224,21 @@ export function registerIndexCommand(program: Command): void {
         (result.miscasedImports.count > 0 ? `  miscased_imports: ${result.miscasedImports.count}` : '') +
         (result.filesReResolved > 0 ? `  re_resolved: ${result.filesReResolved}` : '') +
         (result.edgeRepairsPending > 0 ? `  pending_edge_repairs: ${result.edgeRepairsPending}` : '') +
+        (result.checkerResultsRemoved.edges > 0 ? `  checker_edges_removed: ${result.checkerResultsRemoved.edges}` : '') +
+        (result.checkerResultsRemoved.verdicts > 0 ? `  checker_verdicts_removed: ${result.checkerResultsRemoved.verdicts}` : '') +
         '\n',
       );
+
+      // The pass's results are a snapshot of one tree and this run changed the
+      // tree (§10.3.2). Said in words as well as counted, because the callers
+      // they verified are potential matches again and nothing else says why.
+      const { edges: checkerEdges, verdicts: checkerVerdicts } = result.checkerResultsRemoved;
+      if ((checkerEdges > 0 || checkerVerdicts > 0) && !opts.checker) {
+        process.stderr.write(
+          `[mast] removed the --checker pass's results (${checkerEdges} edge(s), ${checkerVerdicts} verdict(s)): ` +
+          'files changed since it ran. Run `mast index --incremental --checker` to compute them again.\n',
+        );
+      }
 
       // A mis-cased import is a defect in the indexed repository, not in MAST:
       // it compiles on APFS/NTFS and fails on a case-sensitive filesystem. MAST
@@ -301,6 +315,14 @@ export function registerIndexCommand(program: Command): void {
           if (opts.showProgress && process.stderr.isTTY) process.stderr.write('\n');
 
           // No silent caps: every project the pass skipped is named, not just counted.
+          if (checkerResult.indexChangedDuringPass) {
+            // Not a summary of nothing: the pass ran and its work was discarded.
+            process.stderr.write(
+              '[mast] checker: a file was indexed again while the pass was working, so it stored nothing. ' +
+              'Run `mast index --incremental --checker` again.\n',
+            );
+            process.exitCode = 1;
+          }
           for (const skip of checkerResult.projectsSkipped) {
             process.stderr.write(`[mast] checker: skipped ${skip.configDir} (${skip.reason})\n`);
           }

@@ -875,6 +875,14 @@ export interface ReindexResult {
    * the wire; `mast index` prints the offending files.
    */
   readonly miscased_imports: number;
+  /**
+   * Edges and verdicts of `mast index --checker` this run removed. A run that
+   * writes or deletes any file removes all of them (§10.3.2), so a fall in
+   * verified callers beside a nonzero count here is the pass's results going,
+   * not the code changing. Zero when the pass never ran.
+   */
+  readonly checker_edges_removed: number;
+  readonly checker_verdicts_removed: number;
   readonly duration_ms: number;
 }
 

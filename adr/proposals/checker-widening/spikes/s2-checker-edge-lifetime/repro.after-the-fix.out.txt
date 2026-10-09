@@ -1,0 +1,40 @@
+=== A and B: a function reached through a namespace import and a re-export
+files: 4 indexed, 0 skipped  chunks: +3 -0  duration: 57ms
+-- index
+-- (0 call edges)
+  edges_upgraded: 1  non_call_site: 5  different_declaration: 1  unresolved: 0
+-- index --checker
+run > src/b.ts:persist [checker]
+-- (1 call edges)
+-- the compiler: store.persist() is declared in src/b.ts
+[mast] removed the --checker pass's results (1 edge(s), 7 verdict(s)): files changed since it ran. Run `mast index --incremental --checker` to compute them again.
+-- B: index again, nothing changed
+-- (0 call edges)
+  edges_upgraded: 1  non_call_site: 5  different_declaration: 1  unresolved: 0
+-- index --checker
+run > src/b.ts:persist [checker]
+-- (1 call edges)
+... src/c.ts now re-exports ./d.js
+-- the compiler: store.persist() is declared in src/d.ts
+[mast] removed the --checker pass's results (1 edge(s), 7 verdict(s)): files changed since it ran. Run `mast index --incremental --checker` to compute them again.
+-- A: index --incremental
+-- (0 call edges)
+  edges_upgraded: 1  non_call_site: 5  different_declaration: 1  unresolved: 0
+-- A: index --incremental --checker
+run > src/d.ts:persist [checker]
+-- (1 call edges)
+
+=== C: a method called on what a function returns
+files: 3 indexed, 0 skipped  chunks: +4 -0  duration: 40ms
+  edges_upgraded: 0  non_call_site: 6  different_declaration: 0  unresolved: 0
+-- index --checker
+make > src/b.ts:Bravo [construction]
+run > src/c.ts:make [import]
+-- (2 call edges)
+-- the compiler: make().persist() is declared in src/b.ts
+-- verdict rows, by the file of the candidate:
+Bravo in src/b.ts: non_call_site
+Bravo.persist in src/b.ts: non_call_site
+make in src/a.ts: resolves_to_queried
+make in src/c.ts: non_call_site
+run in src/a.ts: non_call_site

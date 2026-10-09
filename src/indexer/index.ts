@@ -13,9 +13,10 @@ import {
   populateFile,
   insertGraphEdges,
   removeDeletedFiles,
+  removeCheckerResults,
   type FileEdgeData,
 } from '../graph/populate.js';
-import type { PopulateFileOptions, WriteSpansMs } from '../graph/populate.js';
+import type { CheckerResultCounts, PopulateFileOptions, WriteSpansMs } from '../graph/populate.js';
 import { extractFile } from '../ast/extract.js';
 import { walkProject, buildManifest, diffManifest, type FileEntry } from './walker.js';
 import { getImportResolver, type MiscasedImportReport } from './import-resolver.js';
@@ -70,6 +71,13 @@ export interface IndexResult {
    * by an earlier run. Zero on a full run, which re-writes everything.
    */
   readonly filesReResolved: number;
+  /**
+   * Edges and verdicts of `mast index --checker` this run removed. Any run that
+   * writes or deletes a file removes all of them, because what a call resolves
+   * to can change with a file that is neither end of the edge (D150). Both are
+   * zero when the pass never ran, or when the run changed nothing.
+   */
+  readonly checkerResultsRemoved: CheckerResultCounts;
   readonly durationMs: number;
   /**
    * The `cache_size` / `mmap_size` actually in force on this run's connection,
@@ -380,6 +388,12 @@ export async function runIndex(
   const { stale, added, deleted } = diffManifest(currentFiles, prevManifest);
 
   let chunksRemoved = 0;
+  let checkerEdgesRemoved = 0;
+  let checkerVerdictsRemoved = 0;
+  const countCheckerResultsRemoved = (removed: CheckerResultCounts): void => {
+    checkerEdgesRemoved += removed.edges;
+    checkerVerdictsRemoved += removed.verdicts;
+  };
 
   // Deleted-file cleanup — cascade removes symbols/edges/imports/chunks from
   // the graph (one transaction, `removeDeletedFiles`). Its own short lock
@@ -391,6 +405,9 @@ export async function runIndex(
 
   await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
     if (options.incremental) await rememberBeforeRemoval(db, repairMemo, deleted);
+    // A file that is gone changes what calls resolve to as much as one that
+    // was edited. Counted before the delete, whose cascade takes some of them.
+    if (deleted.length > 0) countCheckerResultsRemoved(await removeCheckerResults(db));
     chunksRemoved += await removeDeletedFiles(db, deleted);
 
     // Full reindex: also purge DB entries for files no longer in the current
@@ -403,6 +420,7 @@ export async function runIndex(
       const dbRows = await db.selectFrom('files').select('path').execute();
       const orphans = dbRows.map((r) => r.path).filter((p) => !currentPaths.has(p));
       if (orphans.length > 0) {
+        countCheckerResultsRemoved(await removeCheckerResults(db));
         chunksRemoved += await removeDeletedFiles(db, orphans);
       }
     }
@@ -575,7 +593,7 @@ export async function runIndex(
         // it reads disk state AFTER doExtract already read the content, so a
         // concurrent edit landing in between gets stamped as newer-than-content.
         try {
-          const { chunksRemoved: removed, written } = await populateFile(db, {
+          const { chunksRemoved: removed, written, checkerResultsRemoved: checkerRows } = await populateFile(db, {
             filePath: entry.relativePath,
             language: result.language,
             mtime,
@@ -597,6 +615,7 @@ export async function runIndex(
             continue;
           }
           chunksRemoved += removed;
+          countCheckerResultsRemoved(checkerRows);
           // Counted HERE, not in the parse loop: this is the first point at
           // which the file is known to be in the index (D038). A stale-write
           // rejection `continue`s above and a write failure `continue`s below,
@@ -758,6 +777,7 @@ export async function runIndex(
     miscasedImports: getImportResolver(config.resolved_project_root).drainMiscased(),
     edgeRepairsPending,
     filesReResolved,
+    checkerResultsRemoved: { edges: checkerEdgesRemoved, verdicts: checkerVerdictsRemoved },
     durationMs: Date.now() - startMs,
     phaseMs: phase,
     appliedPragmas,

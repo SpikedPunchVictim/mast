@@ -6,9 +6,10 @@ import type { ChunkStore } from '../store/sqliteChunkStore.js';
 import type { ResolvedConfig } from '../store/config.js';
 import type { VerifiedCaller, CallerResolution } from '../ast/types.js';
 import { withLock } from '../store/lock.js';
-import { queryVerifiedCallers, querySymbolByName } from './queries.js';
+import { constructorIdsOf, queryVerifiedCallers, querySymbolByName } from './queries.js';
 import { collectPotentialMatchCandidates, type ChunkByIdSource, type CandidateChunkRecord } from '../search/potential-matches.js';
 import { chunkValuesForSqlite } from './sqliteBatch.js';
+import { removeCheckerResults } from './populate.js';
 
 // ---------------------------------------------------------------------------
 // `mast index --checker` — opt-in TypeScript-checker enrichment pass
@@ -150,7 +151,9 @@ export interface ClassifyInput {
   readonly relFilePath: string;
   /** Bare (post-`.`) name being searched for — `ClassName.method` → `method`. */
   readonly bareName: string;
-  /** Padded search window: the potential match's chunk start/end lines. */
+  /** The potential match's chunk start/end lines: its declaration's own lines.
+   *  A call is looked for on these lines only, so a `resolves_to_queried`
+   *  result's `callLine` is always inside them. */
   readonly startLine: number;
   readonly endLine: number;
   /** The queried symbol's own declaration site, for the resolved-declaration comparison. */
@@ -190,13 +193,6 @@ export interface TsProjectResolver {
   loadProgram(descriptor: TsProjectDescriptor): TsProjectHandle;
 }
 
-/** Chunk `content` extends `context_lines` (default 3, MAST_SPEC §6.1) beyond
- *  strict AST boundaries — padding the identifier search window past that
- *  default with margin catches a call site sitting just outside
- *  [start_line, end_line] (Stage 1.1 spike finding: 10/50 samples
- *  false-classified as non-call-site before this pad was added). */
-const CONTEXT_PAD = 5;
-
 /** Bounded hop count for `ts.Symbol.getAliasedSymbol` chains. MANDATORY per
  *  the Stage 1.1 spike: without alias-following, `getSymbolAtLocation` on an
  *  imported identifier returns the local import binding (not its real
@@ -206,7 +202,6 @@ const ALIAS_HOP_LIMIT = 8;
 interface IdentifierOccurrence {
   readonly node: ts.Identifier;
   readonly line: number;
-  readonly distance: number;
   readonly callShaped: boolean;
 }
 
@@ -225,31 +220,35 @@ function isCallShaped(node: ts.Identifier): boolean {
 }
 
 /**
- * All `Identifier` nodes named `name` whose 1-indexed line falls in the
- * padded `[startLine - pad, endLine + pad]` window, nearest-to-the-original-
- * range first (ties broken by line, then source position — deterministic).
+ * All `Identifier` nodes named `name` whose 1-indexed line falls in
+ * `[startLine, endLine]`, in line then source order.
+ *
+ * A chunk's stored text runs `context_lines` (MAST_SPEC §6.1) past its
+ * declaration, so the name can be matched from a line outside these. That
+ * line belongs to a neighbouring declaration, which is a candidate of its own.
+ * The window was once padded by five lines to reach it, and the edge was then
+ * written from this chunk's symbol: 2,637 of 5,591 checker edges on n8n named
+ * a caller that does not contain the call (D154).
  */
 function findIdentifierOccurrences(
   sourceFile: ts.SourceFile,
   name: string,
   startLine: number,
   endLine: number,
-  pad: number,
 ): IdentifierOccurrence[] {
   const occurrences: IdentifierOccurrence[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isIdentifier(node) && node.text === name) {
       const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
       const line1 = line + 1;
-      if (line1 >= startLine - pad && line1 <= endLine + pad) {
-        const distance = line1 < startLine ? startLine - line1 : line1 > endLine ? line1 - endLine : 0;
-        occurrences.push({ node, line: line1, distance, callShaped: isCallShaped(node) });
+      if (line1 >= startLine && line1 <= endLine) {
+        occurrences.push({ node, line: line1, callShaped: isCallShaped(node) });
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
-  occurrences.sort((a, b) => a.distance - b.distance || a.line - b.line || a.node.getStart(sourceFile) - b.node.getStart(sourceFile));
+  occurrences.sort((a, b) => a.line - b.line || a.node.getStart(sourceFile) - b.node.getStart(sourceFile));
   return occurrences;
 }
 
@@ -272,7 +271,7 @@ class RealTsProjectHandle implements TsProjectHandle {
     // discovered as a member of THIS project's fileNames.
     if (sourceFile === undefined) return { kind: 'unresolved' };
 
-    const occurrences = findIdentifierOccurrences(sourceFile, input.bareName, input.startLine, input.endLine, CONTEXT_PAD);
+    const occurrences = findIdentifierOccurrences(sourceFile, input.bareName, input.startLine, input.endLine);
     const callSite = occurrences.find((o) => o.callShaped);
     if (callSite === undefined) return { kind: 'non_call_site' };
 
@@ -354,9 +353,11 @@ export interface CheckerPassResult {
   readonly symbolsChecked: number;
   /** Potential-match candidates whose file has no owning tsconfig project — left untouched, not silently dropped. */
   readonly potentialSitesOutsideScope: number;
-  /** Distinct NEW edge rows actually inserted — not classification attempts
-   *  (duplicates and already-heuristic-verified pairs collapse via the
-   *  (from_id, to_id, edge_type) PK, so a rerun reports 0). */
+  /** Distinct edge rows this run stored, not classification attempts:
+   *  several call sites in one caller, and a pair a heuristic rule already
+   *  verified, collapse on the (from_id, to_id, edge_type) key. A run starts by
+   *  removing the run before's, so a rerun over an unchanged tree reports the
+   *  same number. Zero when `indexChangedDuringPass`. */
   readonly edgesUpgraded: number;
   readonly classifiedDifferentDeclaration: number;
   readonly classifiedNonCallSite: number;
@@ -373,6 +374,21 @@ export interface CheckerPassResult {
    */
   readonly peakRssBytes: number;
   readonly durationMs: number;
+  /**
+   * True when a file's row changed between the start of the pass and one of
+   * its writes. The pass then stores nothing and removes what it had stored:
+   * the programs it classified against were of a tree that no longer exists.
+   */
+  readonly indexChangedDuringPass: boolean;
+}
+
+/**
+ * Every indexed file's row id and stamp, as one string. Any write of a file
+ * gives it a new stamp, and a deleted or added file changes the ids.
+ */
+async function indexedTreeStamp(db: Db): Promise<string> {
+  const rows = await db.selectFrom('files').select(['id', 'mtime']).orderBy('id').execute();
+  return rows.map((r) => `${r.id}:${r.mtime}`).join(',');
 }
 
 interface Candidate {
@@ -384,6 +400,31 @@ interface Candidate {
   readonly startLine: number;
   readonly endLine: number;
   readonly chunkSymbolName: string | null;
+}
+
+/**
+ * Whether the candidate chunk is the innermost declaration around `callLine`.
+ *
+ * A class has a chunk spanning its whole body and each method has its own, so
+ * a call in a method is on the lines of two candidates. The caller is the
+ * method; the class's candidate must not write a second edge (D154).
+ */
+function isInnermostDeclaration(
+  candidate: Pick<Candidate, 'startLine' | 'endLine' | 'chunkSymbolName'>,
+  callLine: number,
+  declarationsInFile: readonly CandidateChunkRecord[],
+): boolean {
+  return !declarationsInFile.some(
+    (other) =>
+      other.symbol_name !== candidate.chunkSymbolName &&
+      other.start_line <= callLine &&
+      callLine <= other.end_line &&
+      other.start_line >= candidate.startLine &&
+      other.end_line <= candidate.endLine &&
+      (other.end_line - other.start_line < candidate.endLine - candidate.startLine ||
+        // A class written on one line has the same lines as its method.
+        (candidate.chunkSymbolName !== null && other.symbol_name?.startsWith(`${candidate.chunkSymbolName}.`) === true)),
+  );
 }
 
 type PendingWrite =
@@ -452,6 +493,16 @@ export async function runCheckerPass(
 
   try {
     const { projects, skipped } = resolver.discoverProjects();
+    const lockOptions = { maxRetries: 5, retryIntervalMs: 1_000, caller: 'checker-resolver' };
+
+    // The results are a snapshot of one tree, so a run starts from none: what
+    // an earlier run stored is computed again or is gone. Without this an edge
+    // the pass no longer finds stays for as long as no file is written.
+    const treeAtStart = await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
+      await removeCheckerResults(db);
+      return indexedTreeStamp(db);
+    });
+    let indexChangedDuringPass = false;
 
     // --- Phase A: gather candidates (pure DB/FTS reads, no compiler) ---
     const allSymbols = await db
@@ -461,12 +512,28 @@ export async function runCheckerPass(
       .where('s.kind', '!=', 'export')
       .execute();
 
+    // A file named by two projects is given to the deeper. `ownedFiles` is what
+    // each project's program is then built from: a root tsconfig that names
+    // every package's files again is given the few no package names, and a
+    // program of all of them is what ran the pass out of memory on n8n (D153).
+    // A file a project names without owning is still loaded when an owned file
+    // imports it.
     const fileToProject = new Map<string, TsProjectDescriptor>();
-    for (const project of projects) {
+    const ownedFiles = new Map<string, string[]>();
+    // Deepest first: discovery sorts by path, which puts a root `tsconfig.json`
+    // ahead of `web/` and behind `packages/`, and the root must not own a
+    // package's files in either case.
+    const depth = (project: TsProjectDescriptor): number =>
+      project.configDir === '.' || project.configDir === '' ? 0 : project.configDir.split('/').length;
+    for (const project of [...projects].sort((a, b) => depth(b) - depth(a))) {
+      const owned: string[] = [];
       for (const absFile of project.fileNames) {
         const rel = relPath(absFile, config.resolved_project_root);
-        if (!fileToProject.has(rel)) fileToProject.set(rel, project);
+        if (fileToProject.has(rel)) continue;
+        fileToProject.set(rel, project);
+        owned.push(absFile);
       }
+      ownedFiles.set(project.configDir, owned);
     }
 
     const byProject = new Map<string, Candidate[]>();
@@ -479,6 +546,13 @@ export async function runCheckerPass(
     // `collectPotentialMatchCandidates` only needs "chunks by id".
     const allChunks = await chunkStore.getAllChunks();
     const chunkById = new Map<string, CandidateChunkRecord>(allChunks.map((c) => [c.chunk_id, c]));
+    const declarationsByFile = new Map<string, CandidateChunkRecord[]>();
+    for (const chunk of allChunks) {
+      if (chunk.symbol_name === null) continue;
+      const inFile = declarationsByFile.get(chunk.file_path) ?? [];
+      inFile.push(chunk);
+      declarationsByFile.set(chunk.file_path, inFile);
+    }
     const chunkSource: ChunkByIdSource = {
       getChunksByIds: (ids) =>
         Promise.resolve(ids.flatMap((id) => {
@@ -535,7 +609,7 @@ export async function runCheckerPass(
       if (bucket === undefined || bucket.length === 0) continue; // nothing to check — don't pay program cost
 
       const t0 = Date.now();
-      const handle = resolver.loadProgram(project);
+      const handle = resolver.loadProgram({ ...project, fileNames: ownedFiles.get(project.configDir) ?? project.fileNames });
       const pending: PendingWrite[] = [];
       try {
         // File id/mtime cache — one query for the whole project's bucket
@@ -590,10 +664,17 @@ export async function runCheckerPass(
           // re-surfaces as a review site), just not upgraded to a graph edge,
           // because there is no valid `from_id` to write one against.
           if (c.chunkSymbolName === null) continue;
+          if (!isInnermostDeclaration(c, result.callLine, declarationsByFile.get(c.candidateFilePath) ?? [])) continue;
           const [fromSymbol] = await querySymbolByName(db, c.chunkSymbolName, c.candidateFilePath);
           if (fromSymbol === undefined) continue;
 
-          pending.push({ kind: 'edge', fromId: fromSymbol.id, toId: c.symbolId, callLine: result.callLine, context: result.context });
+          // A call that resolves to a class is `new X()`, and the resolver's
+          // rule for it stores the caller on the constructor X declares
+          // (§10.3.1 rule 9). Stored on the class, the two rules disagree and
+          // one caller is listed under both (D155).
+          const [constructorId] = await constructorIdsOf(db, c.symbolId);
+
+          pending.push({ kind: 'edge', fromId: fromSymbol.id, toId: constructorId ?? c.symbolId, callLine: result.callLine, context: result.context });
         }
       } finally {
         handle.dispose();
@@ -601,7 +682,16 @@ export async function runCheckerPass(
 
       // --- Flush this project's writes in one short lock-held batch (§7.6) ---
       if (pending.length > 0) {
-        await withLock(config.resolved_state_dir, 'structure', { maxRetries: 5, retryIntervalMs: 1_000, caller: 'checker-resolver' }, async () => {
+        await withLock(config.resolved_state_dir, 'structure', lockOptions, async () => {
+          // Classification holds no lock, so the watcher or a read-time refresh
+          // can have written a file since the programs were built. Its write
+          // removed everything stored so far; storing more would put back
+          // results of the tree before it.
+          if ((await indexedTreeStamp(db)) !== treeAtStart) {
+            await removeCheckerResults(db);
+            indexChangedDuringPass = true;
+            return;
+          }
           for (const w of pending) {
             if (w.kind === 'verdict') {
               await db
@@ -633,12 +723,9 @@ export async function runCheckerPass(
                 })
                 .onConflict((oc) => oc.doNothing())
                 .execute();
-              // `edgesUpgraded` reports rows that actually landed, not
-              // classification attempts: ON CONFLICT collapses duplicate
-              // (from,to) pairs (several call sites in one caller) and edges a
-              // heuristic rule already verified — on the monorepo validation
-              // run, 3,935 attempts collapsed to 1,885 distinct rows. A rerun
-              // therefore honestly reports 0.
+              // Rows that landed, not attempts: ON CONFLICT collapses several
+              // call sites in one caller and a pair a heuristic rule already
+              // verified (3,935 attempts to 1,885 rows on the first monorepo run).
               edgesUpgraded += Number(insert?.numInsertedOrUpdatedRows ?? 0n);
             }
           }
@@ -651,6 +738,7 @@ export async function runCheckerPass(
         candidateCount: bucket.length,
         durationMs: Date.now() - t0,
       });
+      if (indexChangedDuringPass) break;
     }
 
     return {
@@ -658,13 +746,14 @@ export async function runCheckerPass(
       projectsSkipped: skipped,
       symbolsChecked: allSymbols.length,
       potentialSitesOutsideScope,
-      edgesUpgraded,
+      edgesUpgraded: indexChangedDuringPass ? 0 : edgesUpgraded,
       classifiedDifferentDeclaration,
       classifiedNonCallSite,
       unresolved,
       perProjectTiming,
       peakRssBytes,
       durationMs: Date.now() - startMs,
+      indexChangedDuringPass,
     };
   } finally {
     clearInterval(rssTimer);

@@ -1,0 +1,29 @@
+{
+ "checker_edges_scored": 754,
+ "counts": {
+  "agree": 734,
+  "unjudged: the compiler has calls from this caller, none to this name (unknown)": 19,
+  "unjudged: the compiler has no call from this caller (method)": 1
+ },
+ "samples": {
+  "agree": [
+   "packages/@n8n/agents/examples/basic-agent.ts:main > packages/@n8n/agents/src/sdk/agent.ts:Agent.generate",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAlwaysErrorTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithConcurrentInterruptibleCalls > packages/@n8n/agents/src/sdk/agent.ts:Agent.model",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithConcurrentMixedTools > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithParallelInterruptibleCalls > packages/@n8n/agents/src/sdk/agent.ts:Agent.model"
+  ],
+  "unjudged: the compiler has calls from this caller, none to this name (unknown)": [
+   "packages/@n8n/typeorm/test/functional/embedded/embedded-listeners/entity/PostCounter.ts:PostCounter > packages/@n8n/typeorm/src/decorator/listeners/BeforeInsert.ts:BeforeInsert",
+   "packages/@n8n/typeorm/test/functional/embedded/embedded-listeners/entity/PostCounter.ts:PostCounter > packages/@n8n/typeorm/src/decorator/listeners/BeforeUpdate.ts:BeforeUpdate",
+   "packages/@n8n/typeorm/test/functional/embedded/embedded-listeners/entity/PostInformation.ts:PostInformation > packages/@n8n/typeorm/src/decorator/listeners/BeforeInsert.ts:BeforeInsert",
+   "packages/@n8n/typeorm/test/functional/embedded/optional-embedded-listeners/entity/PostCounter.ts:PostCounter > packages/@n8n/typeorm/src/decorator/listeners/BeforeInsert.ts:BeforeInsert",
+   "packages/@n8n/typeorm/test/functional/embedded/optional-embedded-listeners/entity/PostCounter.ts:PostCounter > packages/@n8n/typeorm/src/decorator/listeners/BeforeUpdate.ts:BeforeUpdate",
+   "packages/@n8n/typeorm/test/functional/embedded/optional-embedded-listeners/entity/PostInformation.ts:PostInformation > packages/@n8n/typeorm/src/decorator/listeners/BeforeInsert.ts:BeforeInsert"
+  ],
+  "unjudged: the compiler has no call from this caller (method)": [
+   "packages/cli/src/modules/source-control.ee/source-control-preferences.service.ee.ts:SourceControlPreferencesService.sourceControlPreferences@45 > packages/cli/src/modules/source-control.ee/types/source-control-preferences.ts:SourceControlPreferences.merge"
+  ]
+ }
+}
