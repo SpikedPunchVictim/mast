@@ -1555,7 +1555,8 @@ callers pattern already in §6.3.
       is not a re-export marker. This handles types defined alongside the function.
    b. **Imports:** the `imports` row of the containing file that binds the name. A
       specifier written `{ a as b }` binds `b` and not `a` (`imports.aliases`, schema
-      1.4.0). The declaration is then looked for from `resolved_path` under the
+      1.4.0). `import b from` binds `b` to the name `default` in the same way
+      (2026-10-09, D130). The declaration is then looked for from `resolved_path` under the
       exported name, through named re-exports and `export *` rows, by the walk the
       call resolver uses (§10.3.1). The entry carries the name the signature uses and
       the text of the declaration.
@@ -2168,8 +2169,8 @@ declaration (`symbols.is_default_export`); `is_exported` is unchanged by the
 last form. The name `default`, in `export { default as x } from` and
 `import { default as x }`, is looked up by that flag and not by name. An
 `export *` does not pass a default export on. A default export that is an
-expression has no flagged row and gets no edge. `import x from` is not yet
-placed by this (D130).
+expression has no flagged row and gets no edge. `import x from` is stored as
+`import { default as x }` and placed the same way (D130).
 
 **Re-export aliases** (`export { foo as bar } from './x'`): the extractor
 records `bar` as an exported **marker symbol** (kind `export`, no hashes) in
@@ -2395,14 +2396,18 @@ the identifier match still lands in `identifier_fts` and surfaces as
 - **An inherited member whose chain of classes is not all stored.** A call of a member
   the receiver's class inherits is caught by following stored `EXTENDS` edges (see "A
   member the receiver's class does not declare" below). It is not caught when a class on
-  the way extends one outside the index, one named by a default or namespace import, an
+  the way extends one outside the index, one named by a namespace import, an
   expression (`extends mixin(Base)`), or has two stored `EXTENDS` edges. `new Sub()`
   where `Sub` inherits its constructor goes to `Sub`, not to the constructor inherited.
 - **A receiver annotated with a union.** `function f(repo: UserRepository | undefined) {
   repo?.find() }`.
 - **An element or property of a typed value.** `repos[0].find()`, `this.ctx.repo.find()`.
-- **Default and namespace imports.** `import Repo from './repo'` and `import * as lib
-  from './lib'; lib.Repo.create()` — only named imports are tracked.
+- **Namespace imports.** `import * as lib from './lib'; lib.Repo.create()`. A default
+  import is tracked since 2026-10-09 (D130): `import Repo from './repo'` is stored as an
+  import of `default` under the name `Repo`, and is placed on the declaration `./repo`
+  exports as its default when that is a named function, class or interface. A default
+  export that is an expression, an unnamed function or class, or itself an import, gives
+  no edge.
 - **A dynamic import that is not destructured where it is awaited.** `const { Agent } =
   await import('./agents'); new Agent()` is caught: in sight of that declaration `Agent` is the
   name `./agents` exports, whatever the file imports statically under the same name, and

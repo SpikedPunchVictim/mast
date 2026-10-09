@@ -709,3 +709,55 @@ before. Of the three that passed before, two expect no edge and one is the
 `export { name as default }` form. Two scenarios in `equivalence-scenarios.ts`; the
 first failed in both equivalence suites until F4.
 
+## D130 — a default import binds nothing
+
+**The defect.** `import Shape from './shape.js'` stored an import row with no names. A
+parameter typed `Shape` was then answered by the lookup by name across the project, and
+`mast_signature` showed a decoy's declaration. A call, a `new` or an `extends` through a
+default import had no edge.
+
+**Prior decisions.** `MAST_SPEC.md` listed "Default and namespace imports … only named
+imports are tracked" among the calls not caught, and the inherited-call work tested that
+a parent named by a default import gives no edge (T2). Both describe a limit, and neither
+gives a reason to keep it. D148 added the flag that says which row a file's default
+export is.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| I1 | Store `import X from` as what `import { default as X }` already stores: the name `default`, and the alias `X` for it | **Built.** Every reader of an import row that handles an alias then handles a default import, with no second path |
+| I2 | A column on the import row for the default binding | **Reject.** A second way to say what `aliases` says |
+| I3 | Follow `import * as ns` | **Not done.** `ns.X` is a member access the call scope does not model; its own row if it is wanted |
+
+**Measured** (`spikes/d130/`):
+
+- n8n: 2,057 import rows now bind `default`; 576 resolve to an indexed path; 83 of those
+  to a file with a flagged default export (`default-imports.n8n.txt`). 71,126 edge rows
+  before and after, none different. The eight of the 83 I listed are oclif command
+  classes imported into a registry in `packages/@n8n/cli/src/index.ts`, which neither
+  calls nor constructs them. I did not read the rest.
+- Not measured on n8n: how many parameter types now get their context from a default
+  import. The type context is computed when asked for and is not stored.
+- Scorecard: its reference now counts a default import as a binding (`{ default } from`).
+  Before that change the new rows were `extra` (6 in this repository, 44 in n8n-core, 278
+  in n8n-cli); after it all agree, and `compare` against the D148 baselines exits 0 on
+  all four.
+- Shapes corpus, new package `default-import`: one `EXTENDS`, four call edges and four
+  import bindings, all agreeing with the compiler, no `wrong`, no `lacks`.
+
+As for D148, n8n shows that the change does no harm and places nothing there. The
+evidence that it places edges correctly is the shapes corpus and the unit tests.
+
+**Not fixed, not checked.**
+
+- `import * as ns` and `ns.Shape`, reported by the review and not run by me.
+- `import X = require('./x')` and CommonJS.
+- `mast_dependencies` now lists `default` among the names a file imports. Not looked at
+  in the tool's output.
+- A default import named `__proto__` has the fault D139 describes for a named alias.
+
+**Tests.** `resolve-types.test.ts`: four cases (a default import, `default as`, a default
+import beside named ones, a default export that is no declaration); three failed before,
+with the decoy as the answer. `default-export.test.ts`, "imported with `import name
+from`": five cases, three failing before. `inherited-method-edges.test.ts`: the T2 case
+is turned round, and a case added for a default export that is an expression.
+

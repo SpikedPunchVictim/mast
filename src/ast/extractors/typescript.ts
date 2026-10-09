@@ -1068,8 +1068,17 @@ interface ImportBinding {
 }
 
 /**
- * The file's named imports by local name (`Y` of `import { X as Y }`). The
- * first import of a local name wins, as the call scope's seeding does.
+ * The local name of a default import (`X` of `import X from` and of
+ * `import X, { a } from`), which binds the name `default` of the module (D130).
+ */
+function defaultImportName(importClause: SyntaxNode): string | undefined {
+  return nodeNamedChildren(importClause).find((child) => nodeType(child) === 'identifier')?.text;
+}
+
+/**
+ * The file's imports of a name by local name: `Y` of `import { X as Y }`, and
+ * `X` of `import X from`, which is `default` under a name. The first import of
+ * a local name wins, as the call scope's seeding does.
  */
 function namedImportBindings(topLevel: readonly SyntaxNode[]): Map<string, ImportBinding> {
   const bindings = new Map<string, ImportBinding>();
@@ -1078,7 +1087,12 @@ function namedImportBindings(topLevel: readonly SyntaxNode[]): Map<string, Impor
     const importClause = findChildByType(node, 'import_clause');
     const namedImports = importClause !== null ? findChildByType(importClause, 'named_imports') : null;
     const moduleNode = findChildByType(node, 'string');
-    if (namedImports === null || moduleNode === null) continue;
+    if (moduleNode === null) continue;
+    const defaultLocal = importClause === null ? undefined : defaultImportName(importClause);
+    if (defaultLocal !== undefined && !bindings.has(defaultLocal)) {
+      bindings.set(defaultLocal, { exported: 'default', module: moduleNode.text.slice(1, -1) });
+    }
+    if (namedImports === null) continue;
     for (const spec of nodeNamedChildren(namedImports)) {
       if (nodeType(spec) !== 'import_specifier') continue;
       const exported = spec.childForFieldName('name')?.text;
@@ -1291,9 +1305,10 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
 /**
  * Extract import records from the tree-sitter AST.
  *
- * Handles named imports (`import { foo } from './bar'`). Side-effect imports
- * (`import './side-effect'`), default imports, and namespace imports are
- * recorded with an empty `symbols` array.
+ * Handles named imports (`import { foo } from './bar'`) and default imports
+ * (`import foo from './bar'`, stored as the name `default` under the alias
+ * `foo`, D130). Side-effect imports (`import './side-effect'`) and namespace
+ * imports are recorded with an empty `symbols` array.
  *
  * Specifier-to-file resolution (relative probing, tsconfig aliases, workspace
  * packages) is NOT done here — it needs project context and is applied by
@@ -1323,6 +1338,12 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
     const aliases: Record<string, string> = {};
     const importClause = findChildByType(node, 'import_clause');
     if (importClause !== null) {
+      // `import X from` is `import { default as X } from` and is stored as it.
+      const defaultLocal = defaultImportName(importClause);
+      if (defaultLocal !== undefined) {
+        symbols.push('default');
+        aliases[defaultLocal] = 'default';
+      }
       const namedImports = findChildByType(importClause, 'named_imports');
       if (namedImports !== null) {
         for (const specifier of nodeNamedChildren(namedImports)) {

@@ -101,10 +101,22 @@ export function byStatic(): void { Leaf.create(); }
     await expectEdges(dir, [], ['POTENTIAL_CALL']);
   });
 
-  it('links nothing when the class above is a default import', async () => {
+  // Until D130 a default import bound nothing, `Mid` had no stored parent and
+  // this gave no edge. The import now names the file's default export.
+  it('follows a class above that is a default import', async () => {
     writeFiles(dir, {
       'src/base.ts': `export default class Base { find(): void {} }\n`,
-      'src/mid.ts': `import Base from './base.js';\nexport class Mid extends Base {}\n`,
+      'src/mid.ts': `import Parent from './base.js';\nexport class Mid extends Parent {}\n`,
+      'src/use.ts': `import { Mid } from './mid.js';\nexport function byParam(mid: Mid): void { mid.find(); }\n`,
+    });
+
+    await expectEdges(dir, ['POTENTIAL_CALL src/use.ts:byParam -> src/base.ts:Base.find'], ['POTENTIAL_CALL']);
+  });
+
+  it('links nothing when the class above is a default import of something that is no declaration', async () => {
+    writeFiles(dir, {
+      'src/base.ts': `class Base { find(): void {} }\nexport default (Base as typeof Base);\n`,
+      'src/mid.ts': `import Parent from './base.js';\nexport class Mid extends Parent {}\n`,
       'src/use.ts': `import { Mid } from './mid.js';\nexport function byParam(mid: Mid): void { mid.find(); }\n`,
     });
 

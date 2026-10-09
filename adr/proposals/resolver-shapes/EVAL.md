@@ -120,3 +120,15 @@ The four baselines are regenerated from the D124 build.
 
 The four baselines are regenerated from the D148 build.
 
+## D130 (`spikes/d130/`)
+
+| File | What it is |
+|---|---|
+| `default-imports.n8n.txt` | Import rows of the D130 n8n index that bind `default`, those resolved, and those resolved to a file with a flagged default export |
+| `edge-rows-vs-d148.*.txt` | `spikes/d121/edge-rows-diff.py`, D148 index against D130, before the shapes corpus gained its package |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D148 commit) with the D130 build |
+
+`eval-suite/graph-scorecard.mjs` changed in this row: the reference counts a default
+import as a binding of `default`. The shapes corpus gained `packages/default-import/`.
+The four baselines are regenerated from the D130 build.
+

@@ -1,0 +1,105 @@
+before: eval-suite/baselines/shapes.json
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/sc-d130/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 4         4         4         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              35        35        35         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+edge: POTENTIAL_CALL                         51        51        51         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+edge: RE_EXPORTS (to the declaration)         2         2         2         0         0         0         0
+export * (file to file)                       1         1         1         0         0         0         0
+file: indexed                                37        37        37         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+import: named binding                        34        34        34         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+import: the file it resolves to              23        23        23         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+symbol flag: is_exported                    104       104       104         0         0         0         0
+                                             +9        +9        +9         .         .         .         .
+symbol: class                                22        22        22         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             49        49        49         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+symbol: interface                             2         2         2         0         0         0         0
+symbol: method                               32        32        32         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: one key, more than one row            0         4         0         0         0         0         4
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: EXTENDS: absent -> agree (1)
+    packages/default-import/src/use.ts:Square > packages/default-import/src/shape.ts:RealShape
+  edge: PARENT_OF: absent -> agree (2)
+    packages/default-import/src/shape.ts:RealShape > packages/default-import/src/shape.ts:RealShape.area
+    packages/default-import/src/shape.ts:Shape > packages/default-import/src/shape.ts:Shape.area
+  edge: POTENTIAL_CALL: absent -> agree (4)
+    packages/default-import/src/use.ts:use > packages/default-import/src/run.ts:main
+    packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:RealShape
+    packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:RealShape.area
+    packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:Shape.area
+  file: indexed: absent -> agree (4)
+    packages/default-import/src/run.ts
+    packages/default-import/src/shape.ts
+    packages/default-import/src/use.ts
+    packages/default-import/src/value.ts
+  import: named binding: absent -> agree (4)
+    packages/default-import/src/use.ts { Shape } from './shape'
+    packages/default-import/src/use.ts { default } from './run'
+    packages/default-import/src/use.ts { default } from './shape'
+    packages/default-import/src/use.ts { default } from './value'
+  import: the file it resolves to: absent -> agree (3)
+    packages/default-import/src/use.ts './run' => packages/default-import/src/run.ts
+    packages/default-import/src/use.ts './shape' => packages/default-import/src/shape.ts
+    packages/default-import/src/use.ts './value' => packages/default-import/src/value.ts
+  symbol flag: is_exported: absent -> agree (9)
+    packages/default-import/src/run.ts:go exported=true
+    packages/default-import/src/run.ts:main exported=false
+    packages/default-import/src/shape.ts:RealShape exported=true
+    packages/default-import/src/shape.ts:RealShape.area exported=true
+    packages/default-import/src/shape.ts:Shape exported=true
+    packages/default-import/src/shape.ts:Shape.area exported=true
+    packages/default-import/src/use.ts:Square exported=true
+    packages/default-import/src/use.ts:use exported=true
+    packages/default-import/src/value.ts:tool exported=true
+  symbol: class: absent -> agree (3)
+    packages/default-import/src/shape.ts:RealShape
+    packages/default-import/src/shape.ts:Shape
+    packages/default-import/src/use.ts:Square
+  symbol: function: absent -> agree (4)
+    packages/default-import/src/run.ts:go
+    packages/default-import/src/run.ts:main
+    packages/default-import/src/use.ts:use
+    packages/default-import/src/value.ts:tool
+  symbol: method: absent -> agree (2)
+    packages/default-import/src/shape.ts:RealShape.area
+    packages/default-import/src/shape.ts:Shape.area
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            13        13        13         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call edge, stored as import                  17        17        17         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call edge, stored as new_expression           2         2         2         0         0         0         0
+call edge, stored as parameter_type           6         6         6         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call edge, stored as same_file                4         4         4         0         0         0         0
+call edge, stored as static_method            4         4         4         0         0         0         0
+call edge, stored as this_method              5         5         5         0         0         0         0
+call written as f(), other file              17        17        17         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as f(), same file                4         4         4         0         0         0         0
+call written as ident.m(), other file         7         7         7         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call written as ident.m(), same file          5         5         5         0         0         0         0
+call written as new X(), other file          10        10        10         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as new X(), same file            3         3         3         0         0         0         0
+call written as this.m(), same file           5         5         5         0         0         0         0

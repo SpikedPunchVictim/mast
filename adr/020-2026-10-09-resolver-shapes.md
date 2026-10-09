@@ -83,8 +83,8 @@ agree / wrong / lacks / extra / unjudged:
 ## Open, with a ledger row
 
 - D148: `export { default as x } from` was not followed. Fixed after this record was
-  written (proposal, "D148"); the shapes corpus then has no `lacks`. `import x from` is
-  D130.
+  written (proposal, "D148"); the shapes corpus then has no `lacks`. `import x from` was
+  D130, fixed the same way (proposal, "D130").
 - D146 and D147 were found and fixed inside D121; D145 inside D118.
 - Each row's "Not fixed" list in the proposal: among them a shifted line landing a record
   on its sibling row (D121), a subclass that inherits its constructor in a transitive

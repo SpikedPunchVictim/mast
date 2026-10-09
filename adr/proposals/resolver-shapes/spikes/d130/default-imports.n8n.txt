@@ -1,0 +1,3 @@
+import rows that bind default: 2057
+  of those, resolved to an indexed path: 576
+  of those, to a file with a flagged default export: 83

@@ -253,6 +253,15 @@ describe('resolveTypeContext through a re-export', () => {
     writeFileSync(join(dir, 'via-package.ts'), USER('Shape', 'some-package'));
     writeFileSync(join(dir, 'via-nothing.ts'), USER('Shape', './star-of-nothing'));
     writeFileSync(join(dir, 'star-of-nothing.ts'), `export * from './consumers-absent';\nexport const unrelated = 1;\n`);
+    // D130: a default export, which the importer names as it likes. The decoy has both names.
+    writeFileSync(join(dir, 'a-decoy2.ts'), `export interface Sh { decoy: true }\nexport class Circle { decoy = true; }\n`);
+    writeFileSync(join(dir, 'default-shape.ts'), `export default interface RealShape { real: true }\n`);
+    writeFileSync(join(dir, 'default-circle.ts'), `class RealCircle { real = true; }\nexport default RealCircle;\n`);
+    writeFileSync(join(dir, 'default-value.ts'), `export default { real: true };\n`);
+    writeFileSync(join(dir, 'via-default.ts'), `import Shape from './default-shape';\n${'\n'.repeat(12)}export function draw(): void {}\n`);
+    writeFileSync(join(dir, 'via-default-as.ts'), `import { default as Sh } from './default-shape';\n${'\n'.repeat(12)}export function draw(): void {}\n`);
+    writeFileSync(join(dir, 'via-default-class.ts'), `import Circle, { type Color } from './default-circle';\n${'\n'.repeat(12)}export function draw(c: Color): void { void c; }\n`);
+    writeFileSync(join(dir, 'via-default-value.ts'), `import Shape from './default-value';\n${'\n'.repeat(12)}export function draw(): void {}\n`);
     const config = resolveConfig({ projectRoot: dir });
     await runIndex(config, { incremental: false });
     barrelDb = openDatabase(config.resolved_state_dir);
@@ -271,6 +280,23 @@ describe('resolveTypeContext through a re-export', () => {
 
     expect(result.map((entry) => [entry.name, entry.file_path])).toEqual([[name, 'types.ts']]);
     expect(result[0]?.signature).toContain('interface Shape');
+  });
+
+  it.each([
+    ['a default import', 'via-default.ts', 'Shape', 'default-shape.ts', 'interface RealShape'],
+    ['an import of `default` under a name', 'via-default-as.ts', 'Sh', 'default-shape.ts', 'interface RealShape'],
+    ['a default import beside named ones', 'via-default-class.ts', 'Circle', 'default-circle.ts', 'class RealCircle'],
+  ])('reaches the default export behind %s', async (_shape, file, name, declaredIn, signature) => {
+    const result = await resolveTypeContext(barrelDb, [name], file);
+
+    expect(result.map((entry) => [entry.name, entry.file_path])).toEqual([[name, declaredIn]]);
+    expect(result[0]?.signature).toContain(signature);
+  });
+
+  it('gives nothing for a default import of a file whose default export is no declaration', async () => {
+    const result = await resolveTypeContext(barrelDb, ['Shape'], 'via-default-value.ts');
+
+    expect(result).toEqual([]);
   });
 
   it.each([

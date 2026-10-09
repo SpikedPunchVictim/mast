@@ -120,4 +120,62 @@ describe('a default export reached by the name `default`', () => {
 
     await expectEdges(dir, [], TYPES);
   });
+
+  // D130. `import main from './x'` binds the default export under a name the
+  // importer chooses, which need not be the declaration's.
+  describe('imported with `import name from`', () => {
+    it('is called under the name the importer gives it, not a declaration of that name', async () => {
+      writeFiles(dir, {
+        'src/x.ts': `export default function main(): void {}\nexport function tool(): void {}\n`,
+        'src/z.ts': `import tool from './x.js';\nexport function use(): void { tool(); }\n`,
+      });
+
+      await expectEdges(dir, ['POTENTIAL_CALL src/z.ts:use -> src/x.ts:main'], TYPES);
+    });
+
+    it('is a class that is constructed, has its methods called and is extended', async () => {
+      writeFiles(dir, {
+        'src/x.ts': `export default class K { m(): void {} }\n`,
+        'src/z.ts': `import Base, { type Other } from './x.js';\nexport class Sub extends Base {}\nexport function use(k: Base, s: Sub): Base { k.m(); s.m(); return new Base(); }\n`,
+      });
+
+      await expectEdges(
+        dir,
+        [
+          'EXTENDS src/z.ts:Sub -> src/x.ts:K',
+          'POTENTIAL_CALL src/z.ts:use -> src/x.ts:K',
+          'POTENTIAL_CALL src/z.ts:use -> src/x.ts:K.m',
+        ],
+        ['POTENTIAL_CALL', 'EXTENDS'],
+      );
+    });
+
+    it('is found through a barrel that passes the default on', async () => {
+      writeFiles(dir, {
+        'src/x.ts': `function main(): void {}\nexport default main;\n`,
+        'src/barrel.ts': `export { default } from './x.js';\n`,
+        'src/z.ts': `import go from './barrel.js';\nexport function use(): void { go(); }\n`,
+      });
+
+      await expectEdges(dir, ['POTENTIAL_CALL src/z.ts:use -> src/x.ts:main'], ['POTENTIAL_CALL']);
+    });
+
+    it('gives no edge when the default export is not a declaration', async () => {
+      writeFiles(dir, {
+        'src/x.ts': `export function tool(): void {}\nexport default tool();\n`,
+        'src/z.ts': `import tool from './x.js';\nexport function use(): void { tool(); }\n`,
+      });
+
+      await expectEdges(dir, [], ['POTENTIAL_CALL']);
+    });
+
+    it('is hidden by a local declaration of the name', async () => {
+      writeFiles(dir, {
+        'src/x.ts': `export default function main(): void {}\n`,
+        'src/z.ts': `import go from './x.js';\nexport function use(): void { const go = (): void => {}; go(); }\n`,
+      });
+
+      await expectEdges(dir, [], ['POTENTIAL_CALL']);
+    });
+  });
 });

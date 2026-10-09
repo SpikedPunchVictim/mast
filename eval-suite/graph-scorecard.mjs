@@ -428,7 +428,8 @@ function runScore({ flags }) {
         ref.importFiles.push({ path, module, target });
         const clause = stmt.importClause;
         if (!clause) note('import for side effects');
-        if (clause?.name) note('default import');
+        // `import X from` binds the module's `default`, and mast stores it as that name (D130).
+        if (clause?.name) ref.importNames.push(`${path} { default } from '${module}'`);
         if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) note('namespace import');
         if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
           for (const spec of clause.namedBindings.elements) {
