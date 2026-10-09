@@ -1,6 +1,6 @@
 # resolver-shapes — the wrong edges of D115 to D124
 
-**Status:** all ten rows are built (2026-10-09) and decided in [ADR 020](../../020-2026-10-09-resolver-shapes.md). D144 and D131 were built after it and are the last two sections here. What each row leaves unfixed is listed under it.
+**Status:** all ten rows are built (2026-10-09) and decided in [ADR 020](../../020-2026-10-09-resolver-shapes.md). D144, D131 and D139 were built after it and are the last three sections here. What each row leaves unfixed is listed under it.
 
 Ten ledger rows (D115 to D124) came out of one review pass over the call resolver. Each is a
 shape of code where a stored edge names the wrong declaration, or a tool answers wrongly over
@@ -850,4 +850,55 @@ tested and was not counted in any checkout.
 **Tests.** `import-resolver.test.ts` › `a declaration file`: 11 cases, 8 failing
 before; the three that passed pin the order (source first, `x.js` over its `x.d.ts`).
 `resolve-types.test.ts` › `reaches a declaration file that has no source beside it`.
+
+## D139 — import names a style guide would not allow
+
+**The defect.** Three imports stored the wrong thing in `imports.aliases` or
+`imports.symbols`: a local name `__proto__` was lost, a name written as a string kept
+its quotes, and the rename in `const { a: b } = await import()` was not stored.
+
+**Prior decisions.** The alias column is schema 1.4.0 (D106, D114) and its text in
+`MAST_SPEC.md` §5 names only `{ a as b }`. Nothing decides on string names or on the
+dynamic form's rename. No alternative mechanism was weighed for any of the three: each
+is the stored value being wrong for what is written.
+
+**Reproduced first** (`spikes/d139/repro.sh`, `repro.before.txt`, at c5869de), with
+four cases added to the reviewer's three:
+
+- `import __proto__ from` loses its alias as the named form does. Same fault.
+- `export { run as "other name" } from` names its symbol `"other name"`, quotes
+  included, and so does the `reexport_aliases` row. The export side had the fault too.
+- `import { run as constructor }` was stored correctly (an assignment to `constructor`
+  makes an own key).
+- `const { run: go } = await import()`: the call `go()` already had its edge, placed by
+  the extractor's own binding; only the stored row lacked the rename.
+
+**Two corrections to the ledger row.** A string name did match its export when the two
+were quoted alike, since both kept their quotes; it failed when one side used `'` and
+the other `"`. And the row's symptom, `p(a: __proto__)` with an empty `type_context`,
+has a second cause that this fix does not touch: `mast_signature` only asks about names
+that begin with a capital. `resolveTypeContext` asked directly now answers. Filed as
+D149, open.
+
+**What changed.** Local names are collected in a Map and turned into the record with
+`Object.fromEntries`. One function reads a specifier's `name` or `alias` field and
+drops the quotes of a string; all 13 places that read those fields use it. The dynamic
+row carries the renames of its patterns.
+
+**Measured after** (`repro.after.txt`, `alias-diff.n8n.txt`): the seven repro rows are
+right. In n8n 19 import rows change, all dynamic imports gaining a rename (two read in
+source: `scaling.service.ts:60`, `vector-stores/postgres.ts:238`); n8n has no string
+name and no `__proto__`, so those two are measured on the repro and the tests alone. No
+n8n edge row changes; all four scorecard compares exit 0.
+
+**Not fixed.** The dynamic row is one per module for the whole file: a local name used
+in two scopes for two different exports keeps the first, and the row binds its names
+outside the function that wrote them (the reviewer's fourth case, still not run).
+Escapes inside a string name are not decoded. Other plain objects keyed by a name from
+source: one grep for assignments by computed key in `src/`, three hits, none keyed by
+an identifier from source; spot-checked, not exhaustive.
+
+**Tests.** `src/indexer/__tests__/unusual-import-names.test.ts`: 7 cases, all failing
+before (the string-name edge case only once the import was quoted the other way than
+the export).
 

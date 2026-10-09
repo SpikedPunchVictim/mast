@@ -154,3 +154,12 @@ expression is a function in the reference. The four baselines are regenerated.
 | `edge-rows.directus.txt` | `spikes/d121/edge-rows-diff.py` on the two directus indexes |
 | `scorecard-*.compare.txt` | `compare` of each baseline (as of the D144 commit) with the D131 build |
 
+## D139 (`spikes/d139/`)
+
+| File | What it is |
+|---|---|
+| `repro.sh`, `repro.before.txt`, `repro.after.txt` | Seven imports and one re-export with unusual names, indexed in a work dir: the stored import rows, symbol names, `reexport_aliases`, call edges and `mast_signature` for `p`. Before is commit c5869de. The call-edge query in the before run failed on a column name (`e.type`); it is `edge_type` in the script as committed |
+| `alias-diff.sh`, `alias-diff.n8n.txt` | Import rows whose symbols or aliases differ between the D131 and D139 n8n indexes, and counts of names holding a quote |
+| `edge-rows-vs-d131.n8n.txt` | `spikes/d121/edge-rows-diff.py`, D131 index against D139 |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D131 commit) with the D139 build |
+

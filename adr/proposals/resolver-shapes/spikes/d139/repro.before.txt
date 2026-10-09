@@ -1,0 +1,16 @@
+commit c5869de  node v24.18.0
+src/u1.ts  symbols=["Shape"]  aliases=NULL
+src/u2.ts  symbols=["\"string name\""]  aliases={"sn":"\"string name\""}
+src/u3.ts  symbols=["Shape"]  aliases=NULL
+src/u4.ts  symbols=["run"]  aliases={"constructor":"run"}
+src/u5.ts  symbols=["default"]  aliases=NULL
+src/u7.ts  symbols=["run"]  aliases=NULL
+-- symbols that are not plain names
+src/u6.ts  export "other name"
+-- reexport_aliases
+7|"other name"|run
+-- call edges
+Error: in prepare, no such column: e.type
+  =a.file_id join files tf on tf.id=b.file_id where e.type like '%CALL%' order b
+                                      error here ---^
+function p(a: __proto__): void  =>  (type_context empty)

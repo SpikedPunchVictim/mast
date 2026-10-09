@@ -342,9 +342,12 @@ CREATE TABLE IF NOT EXISTS imports (
   symbols       TEXT NOT NULL,   -- JSON array of imported symbol names
   is_external   INTEGER NOT NULL DEFAULT 0,
   resolved_path TEXT,            -- NULL for external modules; populated by path resolver
-  aliases       TEXT             -- JSON object, local name -> exported name, for `{ a as b }`;
-                                 -- NULL when no specifier is renamed. `symbols` keeps the
-                                 -- exported name (since 1.4.0)
+  aliases       TEXT             -- JSON object, local name -> exported name, for `{ a as b }`,
+                                 -- `import b from` (-> `default`) and `const { a: b } = await
+                                 -- import()`; NULL when no specifier is renamed. `symbols` keeps
+                                 -- the exported name (since 1.4.0). A name written as a string
+                                 -- (`{ "a b" as c }`) is stored without its quotes, here and in
+                                 -- `symbols.name` and `reexport_aliases` (D139)
 );
 
 -- FTS5 with built-in content: stores content directly alongside the index structures.

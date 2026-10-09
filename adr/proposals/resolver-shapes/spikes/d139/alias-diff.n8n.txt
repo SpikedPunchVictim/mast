@@ -1,0 +1,27 @@
+import rows before|51963
+import rows after|51963
+rows only before|19
+rows only after|19
+symbol names holding a quote, before|0
+symbol names holding a quote, after|0
+import rows whose symbols hold an escaped quote, before|0
+import rows whose symbols hold an escaped quote, after|0
+after: packages/@n8n/agents/src/vector-stores/postgres.ts <- pg symbols=["Pool"] aliases={"PoolCtor":"Pool"}
+after: packages/@n8n/agents/src/vector-stores/qdrant.ts <- @qdrant/js-client-rest symbols=["QdrantClient"] aliases={"QdrantClientCtor":"QdrantClient"}
+after: packages/@n8n/ai-utilities/src/utils/loaders/n8n-pdf-loader.ts <- @thednp/dommatrix symbols=["default"] aliases={"DOMMatrix":"default"}
+after: packages/@n8n/computer-use/src/tools/monitor-utils.ts <- node-screenshots symbols=["Monitor"] aliases={"MonitorClass":"Monitor"}
+after: packages/@n8n/computer-use/src/tools/mouse-keyboard/mouse-keyboard.ts <- @jitsi/robotjs symbols=["default"] aliases={"robot":"default"}
+after: packages/@n8n/instance-ai/src/parsers/pdf-parser.ts <- @thednp/dommatrix symbols=["default"] aliases={"DOMMatrix":"default"}
+after: packages/@n8n/instance-ai/src/tools/research.tool.ts <- psl symbols=["get"] aliases={"pslGet":"get"}
+after: packages/cli/src/events/relays/telemetry.event-relay.ts <- psl symbols=["get"] aliases={"pslGet":"get"}
+after: packages/cli/src/load-nodes-and-credentials.ts <- lodash/debounce.js symbols=["default"] aliases={"debounce":"default"}
+after: packages/cli/src/modules/external-secrets.ee/providers/gcp-secrets-manager/gcp-secrets-manager.ts <- @google-cloud/secret-manager symbols=["SecretManagerServiceClient"] aliases={"GcpClient":"SecretManagerServiceClient"}
+after: packages/cli/src/modules/source-control.ee/source-control-helper.ee.ts <- sshpk symbols=["default"] aliases={"sshpk":"default"}
+after: packages/cli/src/node-catalog/node-catalog.service.ts <- @n8n/ai-utilities/node-catalog symbols=["searchCodeBuilderNodes","getNodeTypes","getSuggestedNodes","NodeTypeParser","getNodeTypeDefinition"] aliases={"NodeTypeParserClass":"NodeTypeParser"}
+after: packages/cli/src/public-api/index.ts <- express-openapi-validator symbols=["middleware"] aliases={"openApiValidatorMiddleware":"middleware"}
+after: packages/cli/src/scaling/scaling.service.ts <- bull symbols=["default"] aliases={"BullQueue":"default"}
+after: packages/frontend/editor-ui/src/main.ts <- z-vue-scan symbols=["default"] aliases={"VueScan":"default"}
+after: packages/nodes-base/utils/binary.ts <- @thednp/dommatrix symbols=["default"] aliases={"DOMMatrix":"default"}
+after: packages/nodes-base/utils/binary.ts <- pdfjs-dist/legacy/build/pdf.mjs symbols=["getDocument","version"] aliases={"readPDF":"getDocument","pdfJsVersion":"version"}
+after: packages/testing/containers/services/victoria-logs.ts <- node:timers/promises symbols=["setTimeout"] aliases={"wait":"setTimeout"}
+after: packages/testing/containers/services/victoria-metrics.ts <- node:timers/promises symbols=["setTimeout"] aliases={"wait":"setTimeout"}

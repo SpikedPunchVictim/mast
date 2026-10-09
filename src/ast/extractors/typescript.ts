@@ -181,8 +181,8 @@ export class TypeScriptExtractor implements LanguageExtractor {
 
       for (const child of nodeNamedChildren(exportClause)) {
         if (nodeType(child) !== 'export_specifier') continue;
-        const localName = child.childForFieldName('name')?.text;
-        const alias = child.childForFieldName('alias')?.text;
+        const localName = specifierName(child, 'name');
+        const alias = specifierName(child, 'alias');
         // `export { foo as bar }` exports `foo` UNDER `bar`, not as `foo` — the
         // alias is emitted as its own exported chunk in pass 3, so the local
         // name is not marked exported here.
@@ -1049,8 +1049,8 @@ function localExportAliases(
     if (clause === null) continue;
     for (const spec of nodeNamedChildren(clause)) {
       if (nodeType(spec) !== 'export_specifier') continue;
-      const local = spec.childForFieldName('name')?.text;
-      const alias = spec.childForFieldName('alias')?.text;
+      const local = specifierName(spec, 'name');
+      const alias = specifierName(spec, 'alias');
       if (local !== undefined && alias !== undefined && alias !== local) {
         aliases.push({ local, alias, line: nodeStartLine(spec) });
       }
@@ -1088,6 +1088,17 @@ function defaultImportName(importClause: SyntaxNode): string | undefined {
  * `X` of `import X from`, which is `default` under a name. The first import of
  * a local name wins, as the call scope's seeding does.
  */
+/**
+ * The name in the `name` or `alias` field of an import or export specifier.
+ * Either may be written as a string (`import { "a b" as c }`), and the name is
+ * then what is between the quotes, however it is quoted (D139).
+ */
+function specifierName(specifier: SyntaxNode, field: 'name' | 'alias'): string | undefined {
+  const node = specifier.childForFieldName(field);
+  if (node === null) return undefined;
+  return nodeType(node) === 'string' ? node.text.slice(1, -1) : node.text;
+}
+
 function namedImportBindings(topLevel: readonly SyntaxNode[]): Map<string, ImportBinding> {
   const bindings = new Map<string, ImportBinding>();
   for (const node of topLevel) {
@@ -1103,9 +1114,9 @@ function namedImportBindings(topLevel: readonly SyntaxNode[]): Map<string, Impor
     if (namedImports === null) continue;
     for (const spec of nodeNamedChildren(namedImports)) {
       if (nodeType(spec) !== 'import_specifier') continue;
-      const exported = spec.childForFieldName('name')?.text;
+      const exported = specifierName(spec, 'name');
       if (exported === undefined) continue;
-      const local = spec.childForFieldName('alias')?.text ?? exported;
+      const local = specifierName(spec, 'alias') ?? exported;
       if (!bindings.has(local)) bindings.set(local, { exported, module: moduleNode.text.slice(1, -1) });
     }
   }
@@ -1160,11 +1171,11 @@ export function extractReExports(parsedTree: Tree): { named: NamedReExport[]; st
       const clause = getWrappedDeclaration(node) === null ? findChildByType(node, 'export_clause') : null;
       for (const spec of clause === null ? [] : nodeNamedChildren(clause)) {
         if (nodeType(spec) !== 'export_specifier') continue;
-        const local = spec.childForFieldName('name')?.text;
+        const local = specifierName(spec, 'name');
         const binding = local === undefined ? undefined : imported.get(local);
         if (local === undefined || binding === undefined) continue;
         named.push({
-          exportedName: spec.childForFieldName('alias')?.text ?? local,
+          exportedName: specifierName(spec, 'alias') ?? local,
           sourceName: binding.exported,
           line: nodeStartLine(spec),
           module: binding.module,
@@ -1188,9 +1199,9 @@ export function extractReExports(parsedTree: Tree): { named: NamedReExport[]; st
 
     for (const spec of nodeNamedChildren(clause)) {
       if (nodeType(spec) !== 'export_specifier') continue;
-      const sourceName = spec.childForFieldName('name')?.text;
+      const sourceName = specifierName(spec, 'name');
       if (sourceName === undefined) continue;
-      const alias = spec.childForFieldName('alias')?.text;
+      const alias = specifierName(spec, 'alias');
       named.push({
         exportedName: alias ?? sourceName,
         sourceName,
@@ -1343,53 +1354,63 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
 
     // Extract named imports from the import_clause.
     const symbols: string[] = [];
-    const aliases: Record<string, string> = {};
+    // A Map, not an object: a local name may be `__proto__`, which assigned as
+    // a key of an object sets its prototype and stores nothing (D139).
+    const aliases = new Map<string, string>();
     const importClause = findChildByType(node, 'import_clause');
     if (importClause !== null) {
       // `import X from` is `import { default as X } from` and is stored as it.
       const defaultLocal = defaultImportName(importClause);
       if (defaultLocal !== undefined) {
         symbols.push('default');
-        aliases[defaultLocal] = 'default';
+        aliases.set(defaultLocal, 'default');
       }
       const namedImports = findChildByType(importClause, 'named_imports');
       if (namedImports !== null) {
         for (const specifier of nodeNamedChildren(namedImports)) {
           if (nodeType(specifier) !== 'import_specifier') continue;
-          const name = specifier.childForFieldName('name')?.text;
+          const name = specifierName(specifier, 'name');
           if (name === undefined) continue;
           symbols.push(name);
-          const local = specifier.childForFieldName('alias')?.text;
-          if (local !== undefined && local !== name) aliases[local] = name;
+          const local = specifierName(specifier, 'alias');
+          if (local !== undefined && local !== name) aliases.set(local, name);
         }
       }
     }
 
-    const renamed = Object.keys(aliases).length > 0 ? { aliases } : {};
-    imports.push({ module, symbols, ...renamed, isExternal, resolvedPath });
+    imports.push({ module, symbols, ...renamedBy(aliases), isExternal, resolvedPath });
   }
 
   // `const { X } = await import('./x')`, anywhere in the file: the file imports
   // `X` from `./x` as surely as a static import does. A call of `X` is placed
   // by this row, and repair finds the file by it when `./x` changes. After the
   // static rows, so a lookup by name still finds a static import first.
-  const dynamic = new Map<string, string[]>();
+  // The row is one per module for the whole file, so a local name written in
+  // two scopes for two exports keeps the first.
+  const dynamic = new Map<string, { symbols: string[]; aliases: Map<string, string> }>();
   const visit = (node: SyntaxNode): void => {
     if (nodeType(node) === 'variable_declarator') {
-      for (const { binding } of destructuredFromDynamicImport(node)) {
-        const names = dynamic.get(binding.module) ?? [];
-        if (!names.includes(binding.exported)) names.push(binding.exported);
-        dynamic.set(binding.module, names);
+      for (const { local, binding } of destructuredFromDynamicImport(node)) {
+        const row = dynamic.get(binding.module) ?? { symbols: [], aliases: new Map<string, string>() };
+        if (!row.symbols.includes(binding.exported)) row.symbols.push(binding.exported);
+        if (local !== binding.exported && !row.aliases.has(local)) row.aliases.set(local, binding.exported);
+        dynamic.set(binding.module, row);
       }
     }
     for (const child of nodeNamedChildren(node)) visit(child);
   };
   visit(parsedTree.rootNode);
-  for (const [module, symbols] of dynamic) {
-    imports.push({ module, symbols, isExternal: !module.startsWith('.') && !module.startsWith('/'), resolvedPath: null });
+  for (const [module, { symbols, aliases }] of dynamic) {
+    imports.push({ module, symbols, ...renamedBy(aliases), isExternal: !module.startsWith('.') && !module.startsWith('/'), resolvedPath: null });
   }
 
   return imports;
+}
+
+/** The `aliases` field of an import record, absent when nothing is renamed. */
+function renamedBy(aliases: ReadonlyMap<string, string>): { aliases?: Readonly<Record<string, string>> } {
+  // `Object.fromEntries` defines each key as the object's own, `__proto__` too.
+  return aliases.size > 0 ? { aliases: Object.fromEntries(aliases) } : {};
 }
 
 /**
@@ -2217,7 +2238,7 @@ function annotationTypeName(node: SyntaxNode): string | null {
   for (const child of nodeNamedChildren(annotation)) {
     const t = nodeType(child);
     if (t === 'type_identifier') return child.text;
-    if (t === 'generic_type') return child.childForFieldName('name')?.text ?? null;
+    if (t === 'generic_type') return specifierName(child, 'name') ?? null;
   }
   return null;
 }
