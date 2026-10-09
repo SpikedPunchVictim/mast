@@ -1,6 +1,6 @@
 # resolver-shapes — the wrong edges of D115 to D124
 
-**Status:** in progress. D115 is built (2026-10-08). The other rows are open.
+**Status:** in progress. D115 and D116 are built (2026-10-08). The other rows are open.
 
 Ten ledger rows (D115 to D124) came out of one review pass over the call resolver. Each is a
 shape of code where a stored edge names the wrong declaration, or a tool answers wrongly over
@@ -85,3 +85,49 @@ redeclares as a field" (four cases); three rows in
 `src/indexer/__tests__/equivalence-scenarios.ts` ("gains a field…", "gains a parameter
 property…"); the column is in `dumpStoredRows`, so every incremental-equals-full comparison
 includes it.
+
+## D116 — the first `new` bound to a name types it for the whole function
+
+**The defect.** `collectNewBindings` walked a whole function body and kept the first
+`const x = new A()` for the name `x`. A second block that declares `x` again was read by the
+first block's class.
+
+**Prior decision.** The spec recorded scope as held per function and its cost as a lost edge
+("cannot place one", in the extractor's own comment). For a name hidden from imports that
+holds. For a receiver's class it does not: the binding carries a class, so the wrong block's
+binding places a wrong edge. Nothing found decides against reading by block.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| B1 | Keep a `new` binding only when the name is declared once in the function, as `dynamicImportBindings` does | **Reject.** Removes the wrong edges and the right ones with them; still wrong for a call written after the declaring block |
+| B2 | Per call, find the declaration of the receiver in the smallest block, loop, `catch` or nested function around it. A `new` gives its class; anything else gives no edge | **Built** |
+| B3 | The same lookup for bare names (`CallSite.locals`), so a call outside the declaring block keeps its import | **Reserve.** That is D117's question, and it changes which edges are dropped on purpose (D104) |
+
+**Measured** (`spikes/d116/`, against the D115 build):
+
+- Shapes corpus: `twoBlocks` and `switchCases` go from a wrong edge to `A.run` to the right
+  one to `B.run` (2 `wrong -> absent`, 2 `lacks -> agree`); `twoCallbacks -> Repo.save` goes
+  from `unjudged` to absent. `compare` exits 0.
+- n8n: 71,091 edges before, 71,092 after. None gone. The one added is
+  `Code.execute -> PythonTaskRunnerSandbox.runUsingIncomingItems`
+  (`packages/nodes-base/nodes/Code/Code.node.ts:230`). Read by me: two blocks each declare
+  `const sandbox`, the first with `new JsTaskRunnerSandbox`, and the old rule read the second
+  by the first, found no such method and stored nothing. `nodes-base` is not a scored
+  package, so the compiler has not judged this edge.
+- `n8n-core` and `n8n-cli`: compare exits 0, no key changed bucket. This repository:
+  compare exits 0, and the keys that changed are the calls in the new code.
+- The reviewer's unrun claim, that an annotated parameter wins over a later block-local
+  `new`, reproduced as a failing test before the fix.
+
+**Left as it was:** a parameter of the function itself is still read from its annotation
+through the function-wide table, which is right unless a block declares the name again, and
+that case now goes to the block's declaration. The order of statements inside one block is
+not looked at: a call above `const x = new A()` in the same block is read as `A`, where the
+language throws.
+
+**Not checked:** a `using` declaration; a class or function declared in a block and then
+called as a receiver from outside it (it stores no edge either way); cost, beyond n8n's full
+index taking 81.9 s on one run against 86.4 s for D115's.
+
+**Tests.** `src/ast/extractors/__tests__/call-edges.test.ts`, "a local bound to `new X()`,
+by block (D116)": ten cases, seven of which failed before the change.

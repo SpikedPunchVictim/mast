@@ -19,3 +19,10 @@ rows; a fix shows there as `wrong -> agree` or `wrong -> absent`.
 | `field-shadows.out.txt` | Its output on this repository, n8n `9d9e9bf9` and the shapes corpus |
 | `n8n-edges-vs-0156146.json` | n8n edges of the D115 build against those of `0156146`, by `inherited-call-edges/spikes/s2-found-on-cli/edge-diff.py` |
 | `scorecard-*.compare.txt` | `compare` of each baseline with the D115 build |
+
+## D116 (`spikes/d116/`)
+
+| File | What it is |
+|---|---|
+| `n8n-edges-vs-d115.json` | n8n edges of the D116 build against those of the D115 build, by the same `edge-diff.py` |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D115 commit) with the D116 build |

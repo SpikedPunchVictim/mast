@@ -1612,7 +1612,7 @@ function emitCallEdges(
   if (paramsNode !== null) {
     for (const b of collectParamBindings(paramsNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
   }
-  for (const b of collectNewBindings(bodyNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
+  const declarations = localDeclarations(bodyNode);
 
   for (const found of collectCallSites(bodyNode, paramsNode)) {
     // A local taken from a dynamic import is bound to a module, and is not hidden.
@@ -1626,7 +1626,7 @@ function emitCallEdges(
       onCallSite?.('unparseable_callee');
       continue;
     }
-    const linked = resolveCallSite(env, site, parsed);
+    const linked = resolveCallSite(env, site, parsed, declarations, dynamicImports);
     // `new X()` is placed like a bare call of `X` (an import or a same-file
     // declaration) and stored as a construction, so the graph writer can
     // choose between the class and its constructor.
@@ -1787,23 +1787,87 @@ function collectParamBindings(paramsNode: SyntaxNode): ReceiverBinding[] {
   return bindings;
 }
 
-/** `const x = new Foo()` → `x` resolves to type `Foo`. */
-function collectNewBindings(bodyNode: SyntaxNode): ReceiverBinding[] {
-  const bindings: ReceiverBinding[] = [];
-  const visit = (node: SyntaxNode): void => {
-    if (nodeType(node) === 'variable_declarator') {
-      const value = node.childForFieldName('value');
-      const name = node.childForFieldName('name')?.text ?? null;
-      if (name !== null && value !== null && nodeType(value) === 'new_expression') {
-        const ctor = value.childForFieldName('constructor') ?? value.namedChildren[0] ?? null;
-        const type = ctor !== null && nodeType(ctor) === 'identifier' ? ctor.text : null;
-        if (type !== null) bindings.push({ receiver: name, type, resolution: 'new_expression' });
+/** A name declared inside a function, with the part of the function it is visible in. */
+interface LocalDeclaration {
+  readonly name: string;
+  /** The node the name is visible in: a block, a loop, a `catch`, or a function. */
+  readonly scope: SyntaxNode;
+  /** A parameter of a function nested in the scope. `CallSite.nestedParams` holds its type. */
+  readonly isNestedParam: boolean;
+  /** The class in `= new X()` when that is the whole initializer, and null for anything else. */
+  readonly constructed: string | null;
+}
+
+/** The nodes that bound a `let`, a `const`, a function or a class declared directly in them. */
+const BLOCK_SCOPE_TYPES = new Set(['statement_block', 'switch_body', 'for_statement', 'for_in_statement', 'catch_clause']);
+
+/**
+ * Every name declared in a function body, nested functions included, each
+ * with the node it is visible in. A `var` is visible in the whole function
+ * that declares it; anything else in its block. Nested classes are not
+ * entered: `collectCallSites` reads no call there.
+ */
+function localDeclarations(bodyNode: SyntaxNode): LocalDeclaration[] {
+  const found: LocalDeclaration[] = [];
+  const declare = (pattern: SyntaxNode | null, scope: SyntaxNode, constructed: string | null = null): void => {
+    if (pattern === null) return;
+    for (const name of namesBoundBy(pattern)) found.push({ name, scope, isNestedParam: false, constructed });
+  };
+  const visit = (node: SyntaxNode, block: SyntaxNode, fn: SyntaxNode): void => {
+    const t = nodeType(node);
+    if (NAMED_LOCAL_DECLARATION_TYPES.has(t)) declare(node.childForFieldName('name'), block);
+    if (NESTED_CLASS_TYPES.has(t)) return;
+
+    let innerBlock = block;
+    let innerFn = fn;
+    if (NESTED_FUNCTION_TYPES.has(t)) {
+      for (const name of declaredParams(node).keys()) found.push({ name, scope: node, isNestedParam: true, constructed: null });
+      innerBlock = node;
+      innerFn = node;
+    } else if (BLOCK_SCOPE_TYPES.has(t)) {
+      innerBlock = node;
+    }
+
+    if (t === 'for_in_statement') declare(node.childForFieldName('left'), node);
+    if (t === 'catch_clause') declare(node.childForFieldName('parameter'), node);
+    if (t === 'variable_declaration' || t === 'lexical_declaration') {
+      const scope = t === 'variable_declaration' ? fn : block;
+      for (const declarator of nodeNamedChildren(node)) {
+        if (nodeType(declarator) !== 'variable_declarator') continue;
+        const pattern = declarator.childForFieldName('name');
+        const isOneName = pattern !== null && nodeType(pattern) === 'identifier';
+        declare(pattern, scope, isOneName ? constructedClass(declarator.childForFieldName('value')) : null);
       }
     }
-    for (const child of nodeNamedChildren(node)) visit(child);
+    for (const child of nodeNamedChildren(node)) visit(child, innerBlock, innerFn);
   };
-  visit(bodyNode);
-  return bindings;
+  visit(bodyNode, bodyNode, bodyNode);
+  return found;
+}
+
+/** `X` in `new X()`, or null for any other expression and for `new a.B()`. */
+function constructedClass(value: SyntaxNode | null): string | null {
+  if (value === null || nodeType(value) !== 'new_expression') return null;
+  const ctor = value.childForFieldName('constructor') ?? value.namedChildren[0] ?? null;
+  return ctor !== null && nodeType(ctor) === 'identifier' ? ctor.text : null;
+}
+
+/**
+ * The declaration of `name` that code at `at` sees: the one whose scope is
+ * the smallest around `at`. Null when none of them is around it. Two in one
+ * scope that disagree (`var` written twice) are read as a name of no known
+ * class.
+ */
+function visibleDeclaration(declarations: readonly LocalDeclaration[], name: string, at: SyntaxNode): LocalDeclaration | null {
+  const around = declarations.filter(
+    ({ name: declared, scope }) => declared === name && scope.startIndex <= at.startIndex && at.endIndex <= scope.endIndex,
+  );
+  const sizeOf = (declaration: LocalDeclaration): number => declaration.scope.endIndex - declaration.scope.startIndex;
+  const smallest = Math.min(...around.map(sizeOf));
+  const nearest = around.filter((declaration) => sizeOf(declaration) === smallest);
+  const first = nearest[0];
+  if (first === undefined) return null;
+  return nearest.every((declaration) => declaration.constructed === first.constructed) ? first : { ...first, constructed: null };
 }
 
 /** A call found in a scope, with what the functions nested around it change. */
@@ -2004,6 +2068,8 @@ function resolveCallSite(
   env: LocalTypeEnvironment,
   site: CallSite,
   parsed: { receiver: string | null; method: string },
+  declarations: readonly LocalDeclaration[],
+  dynamicImports: ReadonlyMap<string, ImportBinding>,
 ): { callee: string; resolution: CallerResolution } | null {
   const { receiver, method } = parsed;
   if (receiver === null) {
@@ -2014,6 +2080,16 @@ function resolveCallSite(
 
   const root = receiver.split('.')[0] ?? receiver;
   if (site.ownThis && (root === 'this' || root === 'super')) return null;
+  // A local is what the declaration the call sees made it: an instance of the
+  // class it was constructed from, or nothing this resolver can name. Asked
+  // per call, because two blocks of one function can each declare the name
+  // (D116). A local taken from a dynamic import is placed by its module below.
+  const declared = visibleDeclaration(declarations, root, site.call);
+  if (declared !== null && !declared.isNestedParam && !dynamicImports.has(root)) {
+    return declared.constructed !== null && receiver === root
+      ? { callee: `${declared.constructed}.${method}`, resolution: 'new_expression' }
+      : null;
+  }
   if (site.nestedParams.has(root)) {
     const type = site.nestedParams.get(root) ?? null;
     return type === null || receiver !== root
@@ -2021,8 +2097,8 @@ function resolveCallSite(
       : { callee: `${type}.${method}`, resolution: 'parameter_type' };
   }
   const resolved = env.resolveCall(receiver, method);
-  // A local has whatever type the scope bound it to (`const r = new Repo()`,
-  // an annotated parameter). With none, it is not the class of the same name.
+  // The scope's own parameter has the type it is annotated with. With none,
+  // it is not the class of the same name.
   if (resolved?.resolution === 'static_method' && site.locals.has(root)) return null;
   return resolved;
 }

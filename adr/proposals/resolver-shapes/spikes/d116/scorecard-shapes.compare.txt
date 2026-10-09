@@ -1,0 +1,54 @@
+before: eval-suite/baselines/shapes.json
+after:  <tmp>/sc-d116/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 2         3         2         0         0         0         1
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              26        30        26         0         0         0         4
+edge: POTENTIAL_CALL                         48        46        25        11        12         0        10
+                                             -2        -1        +2        -2        -2         .        -1
+edge: RE_EXPORTS (to the declaration)         2         1         1         0         1         0         0
+export * (file to file)                       1         1         1         0         0         0         0
+file: indexed                                31        31        31         0         0         0         0
+import: named binding                        28        28        28         0         0         0         0
+import: the file it resolves to              20        19        18         1         1         0         0
+symbol flag: is_exported                     93        93        93         0         0         0         0
+symbol: class                                19        19        19         0         0         0         0
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             43        43        43         0         0         0         0
+symbol: interface                             2         2         2         0         0         0         0
+symbol: method                               30        30        30         0         0         0         0
+symbol: one key, more than one row            0         4         0         0         0         0         4
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: lacks -> agree (2)
+    packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run
+    packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run
+  edge: POTENTIAL_CALL: unjudged -> absent (1)
+    packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo.save
+  edge: POTENTIAL_CALL: wrong -> absent (2)
+    packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A.run
+    packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A.run
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            10        12         9         1         0         0         2
+call edge, stored as import                  13        14         7         6         0         0         1
+call edge, stored as new_expression           2         4         2         0         0         0         2
+                                              .        -1        +2        -2         .         .        -1
+call edge, stored as parameter_type           4         4         2         2         0         0         0
+call edge, stored as same_file                2         4         2         0         0         0         2
+call edge, stored as static_method            2         3         1         1         0         0         1
+call edge, stored as this_method              3         5         2         1         0         0         2
+call written as f(), other file              14         8         7         0         7         0         1
+call written as f(), same file                2         4         2         0         0         0         2
+call written as ident.m(), other file         4         4         3         0         1         0         1
+                                              .        +2        +2         .        -2         .         .
+call written as ident.m(), same file          4         2         2         0         2         0         0
+call written as new X(), other file           9         8         8         0         1         0         0
+call written as new X(), same file            1         3         1         0         0         0         2
+call written as this.m(), same file           3         4         2         0         1         0         2

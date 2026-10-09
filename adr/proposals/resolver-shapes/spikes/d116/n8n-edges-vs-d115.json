@@ -1,0 +1,22 @@
+{
+ "old_edges": 71091,
+ "new_edges": 71092,
+ "gone": [],
+ "added": [
+  [
+   "packages/nodes-base/nodes/Code/Code.node.ts",
+   "Code.execute",
+   "POTENTIAL_CALL",
+   "new_expression",
+   "packages/nodes-base/nodes/Code/PythonTaskRunnerSandbox.ts",
+   "PythonTaskRunnerSandbox.runUsingIncomingItems",
+   "method",
+   230,
+   "return [await sandbox.runUsingIncomingItems()];"
+  ]
+ ],
+ "gone_by_resolution": {},
+ "added_by_resolution": {
+  "new_expression": 1
+ }
+}

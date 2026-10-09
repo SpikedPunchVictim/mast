@@ -2338,9 +2338,16 @@ A name declared inside the declaration is that declaration and not the import or
 top-level symbol of the same name: a parameter, a `const`, `let` or `var` (destructured or
 not), a loop variable, a caught value, a function or class declared inside (D101, D104).
 A call of it, a `new` of it, or a static-looking call on it stores no edge, unless the
-scope gives it a type the rules above read (`const r = new Repo()`, `r: Repo`). This is
-held per function, not per block: a name declared anywhere in a function counts for the
-whole of it, so a call written outside the block that declares the name loses its edge.
+scope gives it a type the rules above read (`const r = new Repo()`, `r: Repo`).
+
+Which declaration a receiver is read by is decided per block, as the language decides it:
+`r.find()` is read by the declaration of `r` in the smallest block, loop, `catch` or
+nested function around the call (a `var` counts for the whole function that declares it).
+When that is `const r = new Repo()` the call is `Repo.find`; when it is anything else,
+there is no edge, whatever a parameter or another block of the function calls `r` (D116).
+Whether a bare name is hidden from the file's imports and top-level symbols is still held
+per function, not per block: a name declared anywhere in a function counts for the whole
+of it, so a bare call written outside the block that declares the name loses its edge.
 
 **What the resolver does NOT catch (will NOT produce a `POTENTIAL_CALL` edge — but
 the identifier match still lands in `identifier_fts` and surfaces as

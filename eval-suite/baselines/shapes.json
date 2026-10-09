@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T05:41:59.343Z",
+  "ran_at": "2026-10-09T05:47:48.113Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, D115",
+  "label": "resolver shapes, d116",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -14,8 +14,8 @@
   "corpus_hash": "595f87372a5bbc1c869660be6dcc4a2959e5732e4275a3314d57929c24159d57",
   "program_source_files": 208,
   "repeated_symbol_rows": 3,
-  "wall_ms": 418,
-  "peak_rss_mb": 298
+  "wall_ms": 371,
+  "peak_rss_mb": 318
  },
  "notes": {
   "call whose callee is not a name or a property": 2,
@@ -97,8 +97,10 @@
     "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run",
     "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
@@ -115,8 +117,6 @@
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/remote.ts:run",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b",
-    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A.run",
-    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A.run",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.make",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.save"
@@ -131,8 +131,6 @@
     "packages/barrel-private/src/user.ts:use3 > packages/barrel-private/src/x.ts:main",
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
-    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
-    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save"
@@ -141,7 +139,6 @@
    "unjudged": [
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:Repo.find",
     "packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find",
-    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo.save",
     "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
     "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make",
     "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
@@ -584,17 +581,16 @@
    ]
   },
   "call edge, stored as new_expression": {
-   "agree": [],
-   "wrong": [
-    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A.run",
-    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A.run"
+   "agree": [
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run"
    ],
+   "wrong": [],
    "lacks": [],
    "extra": [],
    "unjudged": [
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:Repo.find",
-    "packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find",
-    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo.save"
+    "packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find"
    ]
   },
   "call edge, stored as parameter_type": {
@@ -691,13 +687,13 @@
   },
   "call written as ident.m(), other file": {
    "agree": [
-    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send"
+    "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send",
+    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run"
    ],
    "wrong": [],
    "lacks": [
-    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client.send",
-    "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
-    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run"
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client.send"
    ],
    "extra": [],
    "unjudged": [

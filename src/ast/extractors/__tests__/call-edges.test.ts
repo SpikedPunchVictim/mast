@@ -410,6 +410,110 @@ describe('extractEdges — POTENTIAL_CALL by position (D098)', () => {
 // POTENTIAL_CALL — construction
 // ---------------------------------------------------------------------------
 
+// D116. Which declaration of a name a call sees is decided by the blocks
+// around the call, as the language decides it, not by the first `new` bound to
+// the name anywhere in the function.
+describe('extractEdges — a local bound to `new X()`, by block (D116)', () => {
+  const memberCalls = (body: string): string[] =>
+    potentialCalls(edgesOf(`
+      class A { run(): void {} }
+      class B { run(): void {} }
+      declare function other(): any;
+      ${body}
+    `))
+      .filter((e) => e.resolution !== 'construction')
+      .map((e) => `${e.fromName} -> ${e.toName}`);
+
+  it('reads the binding of the block the call is in, when another block binds the name first', () => {
+    expect(memberCalls(`
+      export function f(kind: string): void {
+        if (kind === 'a') { const c = new A(); void c; } else { const c = new B(); c.run(); }
+      }
+    `)).toEqual(['f -> B.run']);
+  });
+
+  it('reads the binding of the `case` block the call is in', () => {
+    expect(memberCalls(`
+      export function f(kind: string): void {
+        switch (kind) {
+          case 'a': { const h = new A(); void h; break; }
+          default: { const h = new B(); h.run(); }
+        }
+      }
+    `)).toEqual(['f -> B.run']);
+  });
+
+  it('does not read a local of one callback by the `new` bound to its name in another', () => {
+    expect(memberCalls(`
+      export function f(items: any[]): void {
+        items.forEach(() => { const r = new A(); void r; });
+        items.forEach((x) => { const r = x.other; r.run(); });
+      }
+    `)).toEqual([]);
+  });
+
+  it('reads a block-local `new` over the annotated parameter of the same name', () => {
+    expect(memberCalls(`
+      export function f(c: A, flag: boolean): void {
+        if (flag) { const c = new B(); c.run(); }
+      }
+    `)).toEqual(['f -> B.run']);
+  });
+
+  it('does not read a block-local of unknown type by the annotated parameter of the same name', () => {
+    expect(memberCalls(`
+      export function f(c: A, flag: boolean): void {
+        if (flag) { const c = other(); c.run(); }
+      }
+    `)).toEqual(['f -> other']);
+  });
+
+  it('reads the enclosing block\'s binding from a block inside it', () => {
+    expect(memberCalls(`
+      export function f(flag: boolean): void {
+        const c = new A();
+        if (flag) { c.run(); }
+      }
+    `)).toEqual(['f -> A.run']);
+  });
+
+  it('does not read a call written after the block that binds the name', () => {
+    expect(memberCalls(`
+      export function f(flag: boolean): void {
+        if (flag) { const c = new A(); void c; }
+        c.run();
+      }
+    `)).toEqual([]);
+  });
+
+  it('reads a `var` bound in a block from anywhere in the function', () => {
+    expect(memberCalls(`
+      export function f(flag: boolean): void {
+        if (flag) { var c = new A(); }
+        c.run();
+      }
+    `)).toEqual(['f -> A.run']);
+  });
+
+  it('does not read a loop variable by the `new` bound to its name outside the loop', () => {
+    expect(memberCalls(`
+      export function f(items: any[]): void {
+        const c = new A();
+        for (const c of items) { c.run(); }
+        void c;
+      }
+    `)).toEqual([]);
+  });
+
+  it('still reads a `new` bound inside a callback, in that callback', () => {
+    expect(memberCalls(`
+      export function f(items: any[]): void {
+        items.forEach(() => { const r = new A(); r.run(); });
+      }
+    `)).toEqual(['f -> A.run']);
+  });
+});
+
 describe('extractEdges — construction', () => {
   it('emits a construction edge to the class named in `new X()`', () => {
     const edges = potentialCalls(edgesOf(`
