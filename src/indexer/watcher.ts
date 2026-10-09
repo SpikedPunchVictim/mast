@@ -164,6 +164,8 @@ export function shouldWatchPath(filter: WatchPathFilter, absPath: string): boole
 export interface ListedEntry {
   readonly name: string;
   readonly isDirectory: boolean;
+  /** False for a directory and for a symbolic link, whatever the link points at. */
+  readonly isFile: boolean;
 }
 
 export interface UnwatchedEntries {
@@ -185,8 +187,12 @@ export interface FindUnwatchedInput {
   readonly watched: Readonly<Record<string, readonly string[]>>;
   readonly projectRoot: string;
   readonly listDirectory: (directory: string) => Promise<readonly ListedEntry[]>;
-  /** The same predicate the watcher was constructed with, applied to files and directories. */
-  readonly isIgnored: (absPath: string) => boolean;
+  /**
+   * The same rule the watcher was constructed with, applied to files and directories.
+   * `isFile` is the entry's own type, so a file can be out of scope by its extension
+   * while a directory or a link of the same name is not.
+   */
+  readonly isIgnored: (absPath: string, isFile: boolean) => boolean;
   /** Checked between directories, so a closed watcher stops walking a large tree. */
   readonly signal?: AbortSignal;
 }
@@ -226,7 +232,7 @@ export async function findUnwatchedEntries(input: FindUnwatchedInput): Promise<U
     if (input.signal?.aborted === true) return;
     for (const entry of await list(directory)) {
       const abs = join(directory, entry.name);
-      if (input.isIgnored(abs)) continue;
+      if (input.isIgnored(abs, entry.isFile)) continue;
       if (entry.isDirectory) {
         directories.push(abs);
         await walkUnknown(abs);
@@ -243,7 +249,7 @@ export async function findUnwatchedEntries(input: FindUnwatchedInput): Promise<U
     for (const entry of await list(directory)) {
       if (known.has(entry.name)) continue;
       const abs = join(directory, entry.name);
-      if (input.isIgnored(abs)) continue;
+      if (input.isIgnored(abs, entry.isFile)) continue;
       roots.push(abs);
       if (entry.isDirectory) {
         directories.push(abs);
@@ -259,7 +265,7 @@ export async function findUnwatchedEntries(input: FindUnwatchedInput): Promise<U
 
 async function listDirectoryOnDisk(directory: string): Promise<readonly ListedEntry[]> {
   const entries = await readdir(directory, { withFileTypes: true });
-  return entries.map((e) => ({ name: e.name, isDirectory: e.isDirectory() }));
+  return entries.map((e) => ({ name: e.name, isDirectory: e.isDirectory(), isFile: e.isFile() }));
 }
 
 /** Resolves true after `ms`, or false at once if `signal` aborts first. */
@@ -284,7 +290,11 @@ export interface FsWatcher {
 
 export interface FsWatcherOptions {
   readonly ignoreInitial: true;
-  readonly ignored: (path: string) => boolean;
+  /**
+   * chokidar asks about a path before it has read its type and again after;
+   * `stats` is absent the first time.
+   */
+  readonly ignored: (path: string, stats?: { isFile(): boolean }) => boolean;
 }
 
 export type FsWatcherFactory = (root: string, options: FsWatcherOptions) => FsWatcher;
@@ -374,12 +384,18 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
   });
 
   // Prune ignored subtrees at the directory level so chokidar never descends
-  // into node_modules/ or the state dir. Files are re-checked (with the
-  // extension allowlist) in shouldWatchPath; `rel + '/'` lets patterns like
+  // into node_modules/ or the state dir. `rel + '/'` lets patterns like
   // `**/node_modules/**` match the directory itself, not just its contents.
   // Shared with reconciliation so both agree on what is out of scope.
-  const isIgnored = (path: string): boolean => {
+  //
+  // A file that would never be indexed is out of scope too (D158): chokidar
+  // holds an open file for every file it watches, for as long as it runs, and
+  // a watch of this repository held 1,026 of them for 219 indexed files. Only
+  // a path known to be a file is judged by its extension, because a directory
+  // can be named `icons.png`.
+  const isIgnored = (path: string, isFile: boolean): boolean => {
     const abs = resolve(path);
+    if (isFile) return !shouldWatchPath(filter, abs);
     if (isInStateDir(filter, abs)) return true;
     const rel = relative(filter.projectRoot, abs);
     if (rel === '' || leavesRoot(rel)) return false;
@@ -393,7 +409,7 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
   const watcher = (options.watcherFactory ?? defaultWatcherFactory)(config.resolved_project_root, {
     // The startup ladder already reindexed — only future changes matter.
     ignoreInitial: true,
-    ignored: isIgnored,
+    ignored: (path, stats) => isIgnored(path, stats?.isFile() === true),
   });
 
   // Aborted by `close()`; cancels the settle wait and the reconciliation walk.

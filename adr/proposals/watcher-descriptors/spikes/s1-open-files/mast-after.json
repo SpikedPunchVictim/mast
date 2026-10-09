@@ -1,0 +1,13 @@
+{
+ "label": "after, files of an extension that is not indexed are ignored",
+ "root": "/Users/spikedpunchvictim/projects/mast",
+ "held_by_type": {
+  "CHR": 0,
+  "DIR": 0,
+  "KQUEUE": 0,
+  "PIPE": 0,
+  "REG": 219,
+  "unix": 0
+ },
+ "warnings": 0
+}

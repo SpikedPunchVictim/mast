@@ -1,0 +1,8 @@
+change an existing .ts -> batch
+create a new .ts -> batch
+change the new .ts -> batch
+change a .png -> no batch
+rename notes.txt to notes.md -> batch
+change notes.md -> batch
+new directory with a .ts -> batch
+change the .ts in the new directory -> batch

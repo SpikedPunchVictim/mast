@@ -6,7 +6,7 @@ import { resolveConfig } from '../../store/config.js';
 import {
   WatchScheduler, shouldWatchPath, startWatchMode, findUnwatchedEntries,
   type WatchPathFilter, type WatchHandle, type StartWatchModeOptions,
-  type FsWatcher, type ListedEntry,
+  type FsWatcher, type FsWatcherOptions, type ListedEntry,
 } from '../watcher.js';
 
 // ---------------------------------------------------------------------------
@@ -260,8 +260,8 @@ describe('findUnwatchedEntries', () => {
       return entries;
     };
   }
-  const file = (name: string): ListedEntry => ({ name, isDirectory: false });
-  const dir = (name: string): ListedEntry => ({ name, isDirectory: true });
+  const file = (name: string): ListedEntry => ({ name, isDirectory: false, isFile: true });
+  const dir = (name: string): ListedEntry => ({ name, isDirectory: true, isFile: false });
   const notIgnored = (): boolean => false;
 
   it('reports a file that is on disk but unknown to the watcher', async () => {
@@ -314,6 +314,20 @@ describe('findUnwatchedEntries', () => {
       directories: ['/proj/newdir', '/proj/newdir/deep'],
       roots: ['/proj/newdir'],
     });
+  });
+
+  it('tells the predicate which entries are files, so a file can be ignored by its name alone', async () => {
+    const result = await findUnwatchedEntries({
+      watched: { '/proj': [] },
+      projectRoot: root,
+      listDirectory: fakeDisk({
+        '/proj': [file('logo.png'), dir('icons.png'), { name: 'link.png', isDirectory: false, isFile: false }],
+        '/proj/icons.png': [],
+      }),
+      isIgnored: (p, isFile) => isFile && p.endsWith('.png'),
+    });
+
+    expect(result.roots).toEqual(['/proj/icons.png', '/proj/link.png']);
   });
 
   it('skips ignored entries, and does not descend into an ignored directory', async () => {
@@ -512,9 +526,9 @@ describe('startWatchMode — which directories it asks chokidar to ignore', () =
   function ignoredPredicate(
     includeDotDirs: readonly string[],
     otherConfig: Record<string, unknown> = {},
-  ): (path: string) => boolean {
+  ): FsWatcherOptions['ignored'] {
     writeFileSync(join(dir, 'mast.config.json'), JSON.stringify({ include_dot_dirs: includeDotDirs, ...otherConfig }));
-    let ignored: ((path: string) => boolean) | undefined;
+    let ignored: FsWatcherOptions['ignored'] | undefined;
     handle = startWatchMode({
       config: resolveConfig({ projectRoot: dir }),
       runBatch: async () => {},
@@ -567,6 +581,34 @@ describe('startWatchMode — which directories it asks chokidar to ignore', () =
     const ignored = ignoredPredicate([], { state_dir: 'mast-state' });
 
     expect(ignored(join(dir, 'mast-state'))).toBe(true);
+  });
+
+  // D158: chokidar holds one open file per file it is not told to ignore.
+  const aFile = { isFile: (): boolean => true };
+  const aDirectory = { isFile: (): boolean => false };
+
+  it('ignores a file whose extension is not indexed', () => {
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, 'src', 'logo.png'), aFile)).toBe(true);
+  });
+
+  it('watches a file whose extension is indexed', () => {
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, 'src', 'index.ts'), aFile)).toBe(false);
+  });
+
+  it('descends into a directory whose name ends like a file that is not indexed', () => {
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, 'icons.png'), aDirectory)).toBe(false);
+  });
+
+  it('does not ignore by extension a path it has not been told is a file', () => {
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, 'icons.png'))).toBe(false);
   });
 
   it('still descends into ordinary directories', () => {

@@ -2922,7 +2922,12 @@ Behaviour:
 - A chokidar watcher covers `file_extensions` under the project root,
   respecting `exclude_patterns` **and the state directory itself** — watching
   the state dir would self-trigger on every index write. A dot directory that
-  `include_dot_dirs` does not name is not watched, matching the walk.
+  `include_dot_dirs` does not name is not watched, matching the walk. A file
+  of any other extension is not watched at all: chokidar holds one open file
+  for every file it watches, for as long as the server runs, so the server's
+  cost in open files is the number of files it indexes. Until D158 only the
+  events were filtered, and every file under a watched directory was held
+  open (1,026 for this repository's 219 indexed files).
 - Events are debounced (~500ms) and coalesced: rapid saves of one file collapse
   to a single entry; distinct files within the window share one batch.
 - Each batch runs the existing **incremental indexer** (§7.1) (acquiring

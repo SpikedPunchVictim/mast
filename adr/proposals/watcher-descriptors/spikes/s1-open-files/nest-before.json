@@ -1,0 +1,13 @@
+{
+ "label": "before, build of 0cfcfcd plus P2",
+ "root": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/nest-ref",
+ "held_by_type": {
+  "CHR": 0,
+  "DIR": 0,
+  "KQUEUE": 0,
+  "PIPE": 0,
+  "REG": 1658,
+  "unix": 0
+ },
+ "warnings": 0
+}
