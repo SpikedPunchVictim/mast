@@ -2,6 +2,7 @@ import type { ImportRecord } from '../ast/types.js';
 import type { Db } from './db.js';
 import { pathPrefixUpperBound } from './path-range.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
+import { fieldNamesOf } from './class-fields.js';
 
 // ---------------------------------------------------------------------------
 // Which files must be resolved again after other files changed what they
@@ -18,7 +19,12 @@ import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 
 /** What other files can see of one file. */
 export interface ExportSurface {
-  /** `name|kind` of every declared symbol, members included (`Class.method`). */
+  /**
+   * `name|kind` of every declared symbol, members included (`Class.method`),
+   * and of every field of a class, which has no symbol (`Class.field|field`,
+   * or `|static field`): a field appearing changes what a call of that name
+   * on the class reaches as a method does (D115).
+   */
   readonly declared: ReadonlySet<string>;
   /** Names the file re-exports by name (`export { x } from`). */
   readonly markers: ReadonlySet<string>;
@@ -31,7 +37,14 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
   const file = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();
   if (file === undefined) return null;
 
-  const symbols = await db.selectFrom('symbols').select(['name', 'kind']).where('file_id', '=', file.id).execute();
+  const symbols = await db.selectFrom('symbols').select(['name', 'kind', 'fields']).where('file_id', '=', file.id).execute();
+  const fields = symbols.flatMap((s) => {
+    const names = fieldNamesOf(s.fields);
+    return [
+      ...names.instance.map((field) => `${s.name}.${field}|field`),
+      ...names.static.map((field) => `${s.name}.${field}|static field`),
+    ];
+  });
   const stars = await db
     .selectFrom('re_export_files as r')
     .innerJoin('files as f', 'f.id', 'r.to_file_id')
@@ -40,7 +53,7 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
     .execute();
 
   return {
-    declared: new Set(symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.kind}`)),
+    declared: new Set([...symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.kind}`), ...fields]),
     markers: new Set(symbols.filter((s) => s.kind === 'export').map((s) => s.name)),
     starTargets: new Set(stars.map((s) => s.path)),
   };

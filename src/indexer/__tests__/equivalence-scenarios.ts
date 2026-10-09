@@ -386,6 +386,35 @@ export const SCENARIOS: readonly Scenario[] = [
     ],
   },
   {
+    // D115: the field has no symbol row, so the class's rows do not change.
+    name: 'the class between gains a field with the name of an inherited method, and loses it',
+    files: HIERARCHY,
+    rounds: [
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  find = (): void => {};\n}\n` },
+      { 'src/h-mid.ts': H_MID },
+    ],
+  },
+  {
+    name: 'the class at the bottom gains a field with the name of an inherited method, and loses it',
+    files: HIERARCHY,
+    rounds: [
+      {
+        'src/h-leaf.ts': `import { Mid } from './h-mid.js';\nexport class Leaf extends Mid {\n  find = (): void => {};\n  own(): void { this.top(); }\n}\n`,
+      },
+      { 'src/h-leaf.ts': H_LEAF },
+    ],
+  },
+  {
+    name: 'the class at the bottom gains a parameter property with the name of an inherited method, and loses it',
+    files: HIERARCHY,
+    rounds: [
+      {
+        'src/h-leaf.ts': `import { Mid } from './h-mid.js';\nexport class Leaf extends Mid {\n  constructor(readonly find: () => void) { super(); }\n  own(): void { this.top(); }\n}\n`,
+      },
+      { 'src/h-leaf.ts': H_LEAF },
+    ],
+  },
+  {
     name: 'the class between is given another parent, and its first one back',
     files: { ...HIERARCHY, 'src/h-other.ts': `export class Other {\n  find(): void {}\n}\n` },
     rounds: [

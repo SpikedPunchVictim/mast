@@ -5,6 +5,7 @@ import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 import { pathPrefixUpperBound } from './path-range.js';
 import { markEdgeRepairsPending } from './importer-repair.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
+import { fieldNamesOf } from './class-fields.js';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -559,6 +560,7 @@ async function writePopulatedFileRows(
       is_exported: 0 | 1;
       declaration_hash: string | null;
       body_hash: string | null;
+      fields: string | null;
     }[] = data.symbols.map((s) => ({
       name: s.name,
       kind: s.kind,
@@ -567,6 +569,7 @@ async function writePopulatedFileRows(
       is_exported: s.isExported ? 1 : 0,
       declaration_hash: s.declarationHash,
       body_hash: s.bodyHash,
+      fields: s.fields === undefined ? null : JSON.stringify(s.fields),
     }));
     await timed(spans, 'rest', async () => {
       for (const batch of chunkRowsForSqlite(symbolRows)) {
@@ -1190,6 +1193,12 @@ const MEMBER_OF_A_CLASS: ReadonlySet<CallerResolution> = new Set<CallerResolutio
  * interface of one name are one symbol, and which parent declares the member
  * is not decided here.
  *
+ * Null also when a class on the way, the receiver's included, has a field of
+ * the name. A field has no symbol row and is still the nearest declaration:
+ * the call runs what the field holds, which is not stored (D115). A call
+ * written on the class (`X.m()`) is stopped by a static field, every other by
+ * an instance one. `this.m()` in a static method is read as an instance call.
+ *
  * Reads edges other files wrote, so `insertGraphEdges` writes every structural
  * edge before any call.
  */
@@ -1204,18 +1213,23 @@ async function resolveInheritedMember(
   if (resolution === undefined || !MEMBER_OF_A_CLASS.has(resolution) || dot === -1) return null;
   const member = toName.slice(dot);
   const className = toName.slice(0, dot);
+  const side = resolution === 'static_method' ? 'static' : 'instance';
 
   // `this` is the class the call is written in, which is in this file.
   let current = resolution === 'this_method'
     ? await resolveSameFileScoped(db, fromFileId, className)
     : await resolveQualifiedNameScoped(db, fromFileId, placeImport, className);
+  if (current === null) return null;
+  const own = await db.selectFrom('symbols').select('fields').where('id', '=', current).executeTakeFirst();
+  if (fieldNamesOf(own?.fields ?? null)[side].includes(member.slice(1))) return null;
+
   const passed = new Set<number>();
   while (current !== null && !passed.has(current)) {
     passed.add(current);
-    const parents = await db
+    const parents: { id: number; name: string; file_id: number; fields: string | null }[] = await db
       .selectFrom('edges as e')
       .innerJoin('symbols as p', 'p.id', 'e.to_id')
-      .select(['p.id', 'p.name', 'p.file_id'])
+      .select(['p.id', 'p.name', 'p.file_id', 'p.fields'])
       .where('e.from_id', '=', current)
       .where('e.edge_type', '=', 'EXTENDS')
       .limit(2)
@@ -1224,6 +1238,7 @@ async function resolveInheritedMember(
     if (parent === undefined || parents.length > 1) return null;
     const declared = await resolveSameFileScoped(db, parent.file_id, `${parent.name}${member}`);
     if (declared !== null) return declared;
+    if (fieldNamesOf(parent.fields)[side].includes(member.slice(1))) return null;
     current = parent.id;
   }
   return null;

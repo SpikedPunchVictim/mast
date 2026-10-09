@@ -1,0 +1,12 @@
+== mast
+{"classes_with_fields": 10, "fields": 21, "fields_over_a_method_above": 0}
+== n8n
+{"classes_with_fields": 4338, "fields": 17117, "fields_over_a_method_above": 3}
+   packages/core/src/execution-engine/node-execution-context/execute-context.ts ExecuteContext instance getNodeParameter NodeExecutionContext
+   packages/core/src/execution-engine/node-execution-context/supply-data-context.ts SupplyDataContext instance getNodeParameter NodeExecutionContext
+   packages/core/src/execution-engine/node-execution-context/workflow-node-context.ts LoadWorkflowNodeContext instance getNodeParameter NodeExecutionContext
+== shapes
+{"classes_with_fields": 4, "fields": 6, "fields_over_a_method_above": 3}
+   packages/property-override/src/child.ts Child instance handle Base
+   packages/property-override/src/child.ts Child instance log Base
+   packages/property-override/src/child.ts Child instance render Base

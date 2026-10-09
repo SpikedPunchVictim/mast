@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
 import { parseSource, type Tree, type SyntaxNode } from '../parser.js';
 import type { LanguageExtractor, FileExtraction, ExtractorOptions, IdentifierRow, StarReExportRecord } from '../extractor.js';
-import type { Chunk, ChunkType, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution, ParamEntry } from '../types.js';
+import type { Chunk, ChunkType, ClassFieldNames, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution, ParamEntry } from '../types.js';
 import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
 import { getImportResolver } from '../../indexer/import-resolver.js';
 
@@ -352,6 +352,7 @@ function emitChunksForNode(
         file_mtime: fileMtime,
         declaration_hash: declHashOf(node, src),
         body_hash: bodyNode !== null ? classShellBodyHashOf(bodyNode, src) : sha256(''),
+        ...classFieldsOf(bodyNode),
       });
 
       // Method chunks
@@ -820,6 +821,38 @@ function isClassShellMember(memberType: string): boolean {
   );
 }
 
+/** A constructor parameter is a property of the class when it carries one of these. */
+const PARAMETER_PROPERTY_MARKS: ReadonlySet<string> = new Set(['accessibility_modifier', 'override_modifier', 'readonly']);
+
+/**
+ * The fields of a class body as `{ class_fields }`, or `{}` when it has none
+ * (D115). A field written `static` is a member of the class itself.
+ */
+function classFieldsOf(bodyNode: SyntaxNode | null): { readonly class_fields?: ClassFieldNames } {
+  if (bodyNode === null) return {};
+  const instance = new Set<string>();
+  const statics = new Set<string>();
+  for (const member of nodeNamedChildren(bodyNode)) {
+    const mt = nodeType(member);
+    if (mt === 'public_field_definition' || mt === 'property_signature') {
+      const name = member.childForFieldName('name')?.text;
+      if (name === undefined) continue;
+      const isStatic = nodeChildren(member).some((child) => nodeType(child) === 'static');
+      (isStatic ? statics : instance).add(name);
+    } else if (mt === 'method_definition' && member.childForFieldName('name')?.text === 'constructor') {
+      for (const param of nodeNamedChildren(member.childForFieldName('parameters') ?? member)) {
+        const pt = nodeType(param);
+        if (pt !== 'required_parameter' && pt !== 'optional_parameter') continue;
+        if (!nodeChildren(param).some((child) => PARAMETER_PROPERTY_MARKS.has(nodeType(child)))) continue;
+        const name = findChildByType(param, 'identifier')?.text;
+        if (name !== undefined) instance.add(name);
+      }
+    }
+  }
+  if (instance.size === 0 && statics.size === 0) return {};
+  return { class_fields: { instance: [...instance].sort(), static: [...statics].sort() } };
+}
+
 function classShellBodyHashOf(bodyNode: SyntaxNode, src: string): string {
   const sigs: string[] = [];
   for (const member of nodeNamedChildren(bodyNode)) {
@@ -1212,6 +1245,7 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
       // symbol chunk somehow lacked them (defensive; should not happen).
       declarationHash: c.declaration_hash ?? null,
       bodyHash: c.body_hash ?? null,
+      ...(c.class_fields === undefined ? {} : { fields: c.class_fields }),
     });
   }
   return records;

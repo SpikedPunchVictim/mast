@@ -1,0 +1,214 @@
+before: eval-suite/baselines/mast.json
+after:  <tmp>/sc-d115/mast.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 7         7         7         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+edge: IMPLEMENTS                              7         7         7         0         0         0         0
+edge: PARENT_OF                              51        51        51         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+edge: POTENTIAL_CALL                        905       875       875         0        30         0         0
+                                            +36       +36       +36         .         .         .         .
+edge: RE_EXPORTS (to the declaration)        17        17        17         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+file: indexed                                84        84        84         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+import: named binding                       782       782       782         0         0         0         0
+                                            +34       +34       +34         .         .         .         .
+import: the file it resolves to             315       315       315         0         0         0         0
+                                            +20       +20       +20         .         .         .         .
+symbol flag: is_exported                    815       815       815         0         0         0         0
+                                            +21       +21       +21         .         .         .         .
+symbol: class                                26        26        26         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: export                               21        21        21         0         0         0         0
+symbol: function                            477       477       477         0         0         0         0
+                                            +14       +14       +14         .         .         .         .
+symbol: interface                           200       200       200         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: method                               51        51        51         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                 61        61        61         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+
+Keys that changed bucket:
+  edge: EXTENDS: absent -> agree (2)
+    src/store/index-stamp.ts:NewerIndexError > src/user-error.ts:UserError
+    src/store/index-stamp.ts:OlderIndexError > src/user-error.ts:UserError
+  edge: PARENT_OF: absent -> agree (2)
+    src/store/index-stamp.ts:NewerIndexError > src/store/index-stamp.ts:NewerIndexError.constructor
+    src/store/index-stamp.ts:OlderIndexError > src/store/index-stamp.ts:OlderIndexError.constructor
+  edge: POTENTIAL_CALL: absent -> agree (43)
+    src/ast/extractors/typescript.ts:classFieldsOf > src/ast/extractors/typescript.ts:findChildByType
+    src/ast/extractors/typescript.ts:classFieldsOf > src/ast/extractors/typescript.ts:nodeChildren
+    src/ast/extractors/typescript.ts:classFieldsOf > src/ast/extractors/typescript.ts:nodeNamedChildren
+    src/ast/extractors/typescript.ts:classFieldsOf > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:emitChunksForNode > src/ast/extractors/typescript.ts:classFieldsOf
+    src/cli/status.ts:buildStatus > src/store/index-stamp.ts:readIndexStamp
+    src/cli/status.ts:buildStatus > src/store/index-stamp.ts:stampFreshnessCause
+    src/cli/status.ts:buildStatus > src/store/index-stamp.ts:stampedVersion
+    src/cli/status.ts:registerStatusCommand > src/cli/status.ts:stampAdvice
+    src/graph/importer-repair.ts:readExportSurface > src/graph/class-fields.ts:fieldNamesOf
+    src/graph/populate.ts:resolveInheritedMember > src/graph/class-fields.ts:fieldNamesOf
+    src/indexer/__tests__/graph-fixture.ts:dumpStoredRows > src/graph/db.ts:openDatabase
+    src/indexer/__tests__/graph-fixture.ts:expectGraphEqualsFullIndex > src/indexer/__tests__/graph-fixture.ts:dumpStoredRows
+    src/indexer/index.ts:loadIndexMeta > src/store/index-stamp.ts:readIndexStamp
+    src/indexer/index.ts:markIndexCleared > src/indexer/index.ts:writeIndexMeta
+    src/indexer/index.ts:runIndex > src/indexer/index.ts:markIndexCleared
+    src/indexer/index.ts:runIndex > src/store/derived-state.ts:clearDerivedState
+    src/indexer/index.ts:runIndex > src/store/index-stamp.ts:NewerIndexError.constructor
+    src/indexer/index.ts:runIndex > src/store/index-stamp.ts:readIndexStamp
+    src/indexer/index.ts:runIndex > src/store/index-stamp.ts:rebuildNotice
+    ... 23 more, in the JSON
+  edge: POTENTIAL_CALL: agree -> absent (7)
+    src/cli/status.ts:buildStatus > src/indexer/index.ts:loadIndexMeta
+    src/indexer/index.ts:runIndex > src/indexer/index.ts:loadIndexMeta
+    src/indexer/index.ts:runIndex > src/store/derived-state.ts:wipeDerivedState
+    src/mcp/startup.ts:bootstrapState > src/indexer/index.ts:loadIndexMeta
+    src/mcp/startup.ts:bootstrapState > src/indexer/index.ts:writeIndexMeta
+    src/mcp/startup.ts:bootstrapState > src/store/derived-state.ts:wipeDerivedState
+    src/mcp/tools/status.ts:registerStatusTool > src/indexer/index.ts:loadIndexMeta
+  edge: RE_EXPORTS (to the declaration): absent -> agree (1)
+    src/mcp/startup.ts:clearDerivedState > src/store/derived-state.ts:clearDerivedState
+  edge: RE_EXPORTS (to the declaration): agree -> absent (1)
+    src/mcp/startup.ts:wipeDerivedState > src/store/derived-state.ts:wipeDerivedState
+  file: indexed: absent -> agree (2)
+    src/graph/class-fields.ts
+    src/store/index-stamp.ts
+  import: named binding: absent -> agree (41)
+    src/ast/extractors/typescript.ts { ClassFieldNames } from '../types.js'
+    src/cli/status.ts { existsSync } from 'node:fs'
+    src/cli/status.ts { join } from 'node:path'
+    src/cli/status.ts { readIndexStamp } from '../store/index-stamp.js'
+    src/cli/status.ts { stampFreshnessCause } from '../store/index-stamp.js'
+    src/cli/status.ts { stampedVersion } from '../store/index-stamp.js'
+    src/graph/class-fields.ts { ClassFieldNames } from '../ast/types.js'
+    src/graph/class-fields.ts { z } from 'zod'
+    src/graph/importer-repair.ts { fieldNamesOf } from './class-fields.js'
+    src/graph/populate.ts { CURRENT_SCHEMA_VERSION } from '../store/config.js'
+    src/graph/populate.ts { fieldNamesOf } from './class-fields.js'
+    src/indexer/__tests__/graph-fixture.ts { createHash } from 'node:crypto'
+    src/indexer/freshness.ts { CURRENT_SCHEMA_VERSION } from '../store/config.js'
+    src/indexer/index.ts { NewerIndexError } from '../store/index-stamp.js'
+    src/indexer/index.ts { clearDerivedState } from '../store/derived-state.js'
+    src/indexer/index.ts { readIndexStamp } from '../store/index-stamp.js'
+    src/indexer/index.ts { rebuildNotice } from '../store/index-stamp.js'
+    src/mcp/startup.ts { NewerIndexError } from '../store/index-stamp.js'
+    src/mcp/startup.ts { clearDerivedState } from '../store/derived-state.js'
+    src/mcp/startup.ts { markIndexCleared } from '../indexer/index.js'
+    ... 21 more, in the JSON
+  import: named binding: agree -> absent (7)
+    src/cli/status.ts { loadIndexMeta } from '../indexer/index.js'
+    src/indexer/index.ts { wipeDerivedState } from '../store/derived-state.js'
+    src/mcp/startup.ts { CURRENT_SCHEMA_VERSION } from '../store/config.js'
+    src/mcp/startup.ts { loadIndexMeta } from '../indexer/index.js'
+    src/mcp/startup.ts { wipeDerivedState } from '../store/derived-state.js'
+    src/mcp/startup.ts { writeIndexMeta } from '../indexer/index.js'
+    src/mcp/tools/status.ts { loadIndexMeta } from '../../indexer/index.js'
+  import: the file it resolves to: absent -> agree (20)
+    src/cli/status.ts '../store/index-stamp.js' => src/store/index-stamp.ts
+    src/graph/class-fields.ts '../ast/types.js' => src/ast/types.ts
+    src/graph/importer-repair.ts './class-fields.js' => src/graph/class-fields.ts
+    src/graph/populate.ts '../store/config.js' => src/store/config.ts
+    src/graph/populate.ts './class-fields.js' => src/graph/class-fields.ts
+    src/indexer/index.ts '../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/startup.ts '../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/callers.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/dependencies.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/exports.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/implementors.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/project-skeleton.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/rename-impact.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/search.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/signature.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/mcp/tools/status.ts '../../store/index-stamp.js' => src/store/index-stamp.ts
+    src/store/derived-state.ts '../graph/db.js' => src/graph/db.ts
+    src/store/index-stamp.ts '../ast/types.js' => src/ast/types.ts
+    src/store/index-stamp.ts '../user-error.js' => src/user-error.ts
+    src/store/index-stamp.ts './config.js' => src/store/config.ts
+  symbol flag: is_exported: absent -> agree (22)
+    src/ast/extractors/typescript.ts:classFieldsOf exported=false
+    src/ast/types.ts:ClassFieldNames exported=true
+    src/cli/status.ts:stampAdvice exported=true
+    src/graph/class-fields.ts:fieldNamesOf exported=true
+    src/graph/db.ts:clearDerivedTables exported=true
+    src/indexer/__tests__/graph-fixture.ts:StoredRowsDump exported=true
+    src/indexer/__tests__/graph-fixture.ts:dumpStoredRows exported=true
+    src/indexer/index.ts:markIndexCleared exported=true
+    src/store/derived-state.ts:clearDerivedState exported=true
+    src/store/index-stamp.ts:IndexStamp exported=true
+    src/store/index-stamp.ts:NewerIndexError exported=true
+    src/store/index-stamp.ts:NewerIndexError.constructor exported=true
+    src/store/index-stamp.ts:OlderIndexError exported=true
+    src/store/index-stamp.ts:OlderIndexError.constructor exported=true
+    src/store/index-stamp.ts:assertIndexOfThisVersion exported=true
+    src/store/index-stamp.ts:compareVersions exported=false
+    src/store/index-stamp.ts:isEmptiedForRebuild exported=false
+    src/store/index-stamp.ts:readIndexStamp exported=true
+    src/store/index-stamp.ts:rebuildNotice exported=true
+    src/store/index-stamp.ts:stampFreshnessCause exported=true
+    ... 2 more, in the JSON
+  symbol flag: is_exported: agree -> absent (1)
+    src/store/derived-state.ts:wipeDerivedState exported=true
+  symbol: class: absent -> agree (2)
+    src/store/index-stamp.ts:NewerIndexError
+    src/store/index-stamp.ts:OlderIndexError
+  symbol: export: absent -> agree (1)
+    src/mcp/startup.ts:clearDerivedState
+  symbol: export: agree -> absent (1)
+    src/mcp/startup.ts:wipeDerivedState
+  symbol: function: absent -> agree (15)
+    src/ast/extractors/typescript.ts:classFieldsOf
+    src/cli/status.ts:stampAdvice
+    src/graph/class-fields.ts:fieldNamesOf
+    src/graph/db.ts:clearDerivedTables
+    src/indexer/__tests__/graph-fixture.ts:dumpStoredRows
+    src/indexer/index.ts:markIndexCleared
+    src/store/derived-state.ts:clearDerivedState
+    src/store/index-stamp.ts:assertIndexOfThisVersion
+    src/store/index-stamp.ts:compareVersions
+    src/store/index-stamp.ts:isEmptiedForRebuild
+    src/store/index-stamp.ts:readIndexStamp
+    src/store/index-stamp.ts:rebuildNotice
+    src/store/index-stamp.ts:stampFreshnessCause
+    src/store/index-stamp.ts:stampedVersion
+    src/store/index-stamp.ts:versionParts
+  symbol: function: agree -> absent (1)
+    src/store/derived-state.ts:wipeDerivedState
+  symbol: interface: absent -> agree (2)
+    src/ast/types.ts:ClassFieldNames
+    src/indexer/__tests__/graph-fixture.ts:StoredRowsDump
+  symbol: method: absent -> agree (2)
+    src/store/index-stamp.ts:NewerIndexError.constructor
+    src/store/index-stamp.ts:OlderIndexError.constructor
+  symbol: type: absent -> agree (1)
+    src/store/index-stamp.ts:IndexStamp
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            24        24        24         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+call edge, stored as import                 318       318       318         0         0         0         0
+                                            +20       +20       +20         .         .         .         .
+call edge, stored as new_expression           7         7         7         0         0         0         0
+call edge, stored as parameter_type          14        14        14         0         0         0         0
+call edge, stored as same_file              503       503       503         0         0         0         0
+                                            +12       +12       +12         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              8         8         8         0         0         0         0
+call written as f(), other file             324       318       318         0         6         0         0
+                                            +20       +20       +20         .         .         .         .
+call written as f(), same file              504       503       503         0         1         0         0
+                                            +12       +12       +12         .         .         .         .
+call written as ident.m(), other file         6         6         6         0         0         0         0
+call written as ident.m(), same file         38        15        15         0        23         0         0
+call written as new X(), other file          13        13        13         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call written as new X(), same file           11        11        11         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           8         8         8         0         0         0         0

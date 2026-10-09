@@ -239,3 +239,107 @@ export class Child extends Base { run(): number { return this.helper(); } }
     ]);
   });
 });
+
+// D115. A field, a `declare`d property and a constructor parameter property
+// have no symbol row, and a class that has one of the name declares the name:
+// the call runs whatever the field holds, not the method above it.
+describe('a call of a name the class redeclares as a field', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = makeProject('inherited-field-shadow');
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const BASE_M = `export class Base {
+  handle(): void {}
+  render(): void {}
+  log(): void {}
+  keep(): void {}
+  kept(): void {}
+}
+`;
+
+  it('has no edge to the parent\'s method, on `this` or on a receiver typed as the class', async () => {
+    writeFiles(dir, {
+      'src/base.ts': BASE_M,
+      'src/child.ts': `import { Base } from './base.js';
+export class Child extends Base {
+  handle = (): void => {};
+  declare render: () => void;
+  constructor(public log: () => void, readonly keep: () => void) { super(); }
+  go(): void { this.handle(); this.render(); this.log(); this.keep(); this.kept(); }
+}
+`,
+      'src/use.ts': `import { Child } from './child.js';
+export function outer(c: Child): void { c.handle(); c.kept(); }
+`,
+    });
+
+    await expectEdges(
+      dir,
+      [
+        'POTENTIAL_CALL src/child.ts:Child.go -> src/base.ts:Base.kept',
+        'POTENTIAL_CALL src/use.ts:outer -> src/base.ts:Base.kept',
+      ],
+      ['POTENTIAL_CALL'],
+    );
+  });
+
+  it('has no edge when a class between the receiver\'s and the method\'s has the field', async () => {
+    writeFiles(dir, {
+      'src/base.ts': BASE_M,
+      'src/mid.ts': `import { Base } from './base.js';
+export class Mid extends Base { handle = (): void => {}; }
+`,
+      'src/leaf.ts': `import { Mid } from './mid.js';
+export class Leaf extends Mid { go(): void { this.handle(); this.kept(); } }
+`,
+    });
+
+    await expectEdges(dir, ['POTENTIAL_CALL src/leaf.ts:Leaf.go -> src/base.ts:Base.kept'], ['POTENTIAL_CALL']);
+  });
+
+  // A static field and an instance method of one name are two members.
+  it('is not stopped by a static field on an instance receiver, nor by an instance field on the class itself', async () => {
+    writeFiles(dir, {
+      'src/base.ts': `export class Base {
+  handle(): void {}
+  static make(): void {}
+}
+`,
+      'src/child.ts': `import { Base } from './base.js';
+export class Child extends Base {
+  static handle = (): void => {};
+  make = (): void => {};
+}
+export function onInstance(c: Child): void { c.handle(); }
+export function onClass(): void { Child.make(); }
+`,
+    });
+
+    await expectEdges(
+      dir,
+      [
+        'POTENTIAL_CALL src/child.ts:onClass -> src/base.ts:Base.make',
+        'POTENTIAL_CALL src/child.ts:onInstance -> src/base.ts:Base.handle',
+      ],
+      ['POTENTIAL_CALL'],
+    );
+  });
+
+  it('is stopped by a static field on a call written on the class', async () => {
+    writeFiles(dir, {
+      'src/base.ts': `export class Base { static make(): void {} static other(): void {} }
+`,
+      'src/child.ts': `import { Base } from './base.js';
+export class Child extends Base { static make = (): void => {}; }
+export function onClass(): void { Child.make(); Child.other(); }
+`,
+    });
+
+    await expectEdges(dir, ['POTENTIAL_CALL src/child.ts:onClass -> src/base.ts:Base.other'], ['POTENTIAL_CALL']);
+  });
+});

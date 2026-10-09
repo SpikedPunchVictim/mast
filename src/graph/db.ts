@@ -76,6 +76,12 @@ interface SymbolsTable {
   readonly declaration_hash: string | null;
   /** sha256 of body text; for class_shell, over sorted member signatures. */
   readonly body_hash: string | null;
+  /**
+   * On a class row: the names it declares as fields, as JSON
+   * `{"instance":[...],"static":[...]}`. NULL when it has none, and on every
+   * other row. A field has no row of its own (D115).
+   */
+  readonly fields: string | null;
 }
 
 /**
@@ -343,7 +349,8 @@ CREATE TABLE IF NOT EXISTS symbols (
   line             INTEGER NOT NULL,
   is_exported      INTEGER NOT NULL DEFAULT 0,
   declaration_hash TEXT,
-  body_hash        TEXT
+  body_hash        TEXT,
+  fields           TEXT
 );
 
 CREATE TABLE IF NOT EXISTS edges (
@@ -605,6 +612,12 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
     sqlite.prepare('PRAGMA table_info(imports)').all().map((c) => (c as { name: string }).name),
   );
   if (!importColumns.has('aliases')) sqlite.exec('ALTER TABLE imports ADD COLUMN aliases TEXT');
+
+  // `symbols.fields` (schema 1.4.0, D115), for the same reason.
+  const symbolColumns = new Set(
+    sqlite.prepare('PRAGMA table_info(symbols)').all().map((c) => (c as { name: string }).name),
+  );
+  if (!symbolColumns.has('fields')) sqlite.exec('ALTER TABLE symbols ADD COLUMN fields TEXT');
 
   // Same additive-migration precedent for the files table's FTS rowid blocks
   // (Stage 4.6). Databases indexed before these columns existed keep working:

@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-08T20:00:02.265Z",
+  "ran_at": "2026-10-09T05:41:59.343Z",
   "typescript": "5.9.3",
-  "label": "22e8f05 build, resolver shapes",
+  "label": "resolver shapes, D115",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -14,8 +14,8 @@
   "corpus_hash": "595f87372a5bbc1c869660be6dcc4a2959e5732e4275a3314d57929c24159d57",
   "program_source_files": 208,
   "repeated_symbol_rows": 3,
-  "wall_ms": 440,
-  "peak_rss_mb": 296
+  "wall_ms": 418,
+  "peak_rss_mb": 298
  },
  "notes": {
   "call whose callee is not a name or a property": 2,
@@ -117,10 +117,6 @@
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A.run",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A.run",
-    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.handle",
-    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.log",
-    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.render",
-    "packages/property-override/src/child.ts:outer > packages/property-override/src/base.ts:Base.handle",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.make",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.save"
@@ -608,7 +604,6 @@
    ],
    "wrong": [
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client.send",
-    "packages/property-override/src/child.ts:outer > packages/property-override/src/base.ts:Base.handle",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.save"
    ],
    "lacks": [],
@@ -647,9 +642,6 @@
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m"
    ],
    "wrong": [
-    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.handle",
-    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.log",
-    "packages/property-override/src/child.ts:Child.go > packages/property-override/src/base.ts:Base.render",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save"
    ],
    "lacks": [],

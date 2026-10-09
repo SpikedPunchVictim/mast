@@ -263,7 +263,9 @@ CREATE TABLE IF NOT EXISTS symbols (
   line             INTEGER NOT NULL,
   is_exported      INTEGER NOT NULL DEFAULT 0,  -- boolean
   declaration_hash TEXT,            -- sha256 of signature text only (excludes body)
-  body_hash        TEXT             -- sha256 of body text only (excludes signature)
+  body_hash        TEXT,            -- sha256 of body text only (excludes signature)
+  fields           TEXT             -- on a class: the names of its fields, which have no row,
+                                    -- as {"instance":[...],"static":[...]}; NULL otherwise
   -- If both declaration_hash and body_hash are unchanged on incremental reindex:
   -- skip the KG rebuild for this symbol (§7.1's file-level stability-hash skip).
 );
@@ -2447,7 +2449,15 @@ stops with no edge at a class that has no stored `EXTENDS` edge, at one that
 has two (the name after `extends` matched an interface and a class, say), and
 at a class it has already passed. `EXTENDS` edges are therefore written before
 any call is resolved (`insertGraphEdges`), so the result does not depend on
-the order files were walked in. Measured against the TypeScript compiler on n8n
+the order files were walked in.
+
+The walk also stops with no edge at a class that has a field of the name, the
+receiver's own class included: `handle = () => {}`, `declare handle: …` and
+`constructor(public handle: …)` each declare `handle`, and the call runs what
+the field holds, not the method of a class above (D115). A field has no symbol
+row, so the class's row lists its field names (`symbols.fields`), static and
+instance apart: `X.m()` is stopped by a static field, every other call by an
+instance one. Measured against the TypeScript compiler on n8n
 `9d9e9bf9` (2026-10-08): 941 more call edges in `packages/cli` and 9 in
 `packages/core`, every one agreeing with the compiler and none wrong; 1,069
 more over the whole monorepo and none lost

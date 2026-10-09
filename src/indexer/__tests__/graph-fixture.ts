@@ -184,7 +184,7 @@ export async function expectStoredEdges(
 
 /** Everything `dumpGraph` leaves out, for index-against-index comparison only. */
 export interface StoredRowsDump {
-  /** One line per symbol row: kind, place, line, export flag, both hashes. */
+  /** One line per symbol row: kind, place, line, export flag, both hashes, a class's field names. */
   readonly symbols: readonly string[];
   /** One line per import row that has local names. */
   readonly importAliases: readonly string[];
@@ -221,7 +221,7 @@ export async function dumpStoredRows(config: ResolvedConfig): Promise<StoredRows
       symbols: await lines(sql<{ line: string }>`
         SELECT s.kind || ' ' || f.path || ':' || s.name || ' line ' || s.line || ' exported ' ||
                s.is_exported || ' decl ' || COALESCE(s.declaration_hash, '') || ' body ' ||
-               COALESCE(s.body_hash, '') AS line
+               COALESCE(s.body_hash, '') || ' fields ' || COALESCE(s.fields, '') AS line
         FROM symbols s JOIN files f ON f.id = s.file_id`),
       importAliases: await lines(sql<{ line: string }>`
         SELECT f.path || ' <- ' || i.module || ' ' || i.aliases AS line

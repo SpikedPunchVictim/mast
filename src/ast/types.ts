@@ -55,6 +55,23 @@ export interface Chunk {
    * `symbolsFromChunks` skips these (D097). Transient — see `declaration_hash`.
    */
   readonly continues_declaration?: true;
+  /**
+   * On a `class_shell`: the members the class declares that get no chunk and
+   * no symbol. Absent when there are none. Transient — see `declaration_hash`.
+   */
+  readonly class_fields?: ClassFieldNames;
+}
+
+/**
+ * The names a class declares as a field, a `declare`d property or a
+ * constructor parameter property. None of these has a symbol row, and a class
+ * that has one of the name still declares the name: a call of it does not run
+ * the method a class above declares (D115). Static and instance members are
+ * two namespaces.
+ */
+export interface ClassFieldNames {
+  readonly instance: readonly string[];
+  readonly static: readonly string[];
 }
 
 /** Stability hashes stored per chunk for incremental reindex optimisation. */
@@ -80,6 +97,8 @@ export interface SymbolRecord {
   readonly declarationHash: string | null;
   /** sha256 of body text; for class_shell, over sorted member signatures. */
   readonly bodyHash: string | null;
+  /** On a class: its fields, which have no row of their own. Absent when it has none. */
+  readonly fields?: ClassFieldNames;
 }
 
 export interface ImportRecord {
