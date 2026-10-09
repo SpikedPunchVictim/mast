@@ -35,10 +35,11 @@
  */
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
+import { workspacePackageDirs } from './workspace-packages.mjs';
 import { compareScorecards, emptyBuckets, formatComparison, formatScorecard, normalise, scoreSets } from './scorecard-lib.mjs';
 
 const SUITE_DIR = dirname(fileURLToPath(import.meta.url));
@@ -195,13 +196,8 @@ function runScore({ flags }) {
   let workspacePackages = 0;
   if (flags['workspace-src']) {
     const paths = {};
-    const dirs = [];
-    for (const d of readdirSync(join(root, 'packages'))) {
-      if (d.startsWith('@')) for (const e of readdirSync(join(root, 'packages', d))) dirs.push(join(root, 'packages', d, e));
-      else dirs.push(join(root, 'packages', d));
-    }
-    for (const dir of dirs) {
-      if (!existsSync(join(dir, 'package.json')) || !existsSync(join(dir, 'src'))) continue;
+    for (const dir of workspacePackageDirs(root)) {
+      if (!existsSync(join(dir, 'src'))) continue;
       const name = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).name;
       if (!name || name in paths) continue;
       const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));

@@ -179,8 +179,10 @@ numbers, and the parameter types `mast_signature` resolves when asked.
 
 - An import the compiler resolves outside the index is `agree` if mast names the same file
   and `unjudged` otherwise. Only an indexed file can be lacking.
-- `--workspace-src` maps a workspace package to its source only when the package has a
-  `src/` directory. One import on n8n is unjudged for this reason.
+- `--workspace-src` maps a workspace package to its source only when the package is under
+  `<root>/packages` (at any depth, D152) and has a `src/` directory. A call into a package
+  it does not map resolves to build output, and a right edge into its source is then
+  scored as wrong. One import on n8n is unjudged for this reason.
 - A named import with an alias is compared under the exported name, which is what
   `imports.symbols` holds. The local name is in `imports.aliases` since schema 1.4.0 and is
   not scored.
