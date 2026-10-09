@@ -561,6 +561,7 @@ async function writePopulatedFileRows(
       declaration_hash: string | null;
       body_hash: string | null;
       fields: string | null;
+      is_static: 0 | 1;
     }[] = data.symbols.map((s) => ({
       name: s.name,
       kind: s.kind,
@@ -570,6 +571,7 @@ async function writePopulatedFileRows(
       declaration_hash: s.declarationHash,
       body_hash: s.bodyHash,
       fields: s.fields === undefined ? null : JSON.stringify(s.fields),
+      is_static: s.isStatic === true ? 1 : 0,
     }));
     await timed(spans, 'rest', async () => {
       for (const batch of chunkRowsForSqlite(symbolRows)) {
@@ -855,7 +857,8 @@ async function insertEdgesReportingUnresolved(
   //
   // Construction is keyed apart: `new X()` and a call `X()` name the same
   // thing and can land on different symbols (the constructor, the class).
-  const callKey = (e: EdgeRecord): string => `${e.resolution === 'construction' ? 'new ' : ''}${e.toName}::${String(e.importModule)}`;
+  const callKey = (e: EdgeRecord): string =>
+    `${e.resolution === 'construction' ? 'new ' : ''}${e.toName}::${String(e.importModule)}::${String(memberSideOf(e))}`;
   const callEdgesByKey = new Map<string, EdgeRecord>();
   for (const e of edges) {
     if (e.edgeType === 'POTENTIAL_CALL' && !callEdgesByKey.has(callKey(e))) {
@@ -869,8 +872,8 @@ async function insertEdgesReportingUnresolved(
   for (const [key, edge] of callEdgesByKey) {
     const placer = importPlacerFor(imports, edge.importModule);
     const targetId =
-      (await resolveCallTarget(db, fromFile.id, placer, edge.resolution, edge.toName)) ??
-      (await resolveInheritedMember(db, fromFile.id, placer, edge.resolution, edge.toName));
+      (await resolveCallTarget(db, fromFile.id, placer, edge.resolution, edge.toName, memberSideOf(edge))) ??
+      (await resolveInheritedMember(db, fromFile.id, placer, edge.resolution, edge.toName, memberSideOf(edge)));
     if (targetId !== null) callToMap.set(key, targetId);
   }
 
@@ -1097,6 +1100,7 @@ async function resolveCallTarget(
   imports: ImportPlacer,
   resolution: CallerResolution | undefined,
   toName: string,
+  side: MemberSide | null,
 ): Promise<number | null> {
   switch (resolution) {
     case 'same_file':
@@ -1110,7 +1114,7 @@ async function resolveCallTarget(
     // file-scoped lookup `same_file` uses, keyed on the qualified
     // `ClassName.methodName` toName instead of a bare name.
     case 'this_method':
-      return resolveSameFileScoped(db, fromFileId, toName);
+      return resolveSameFileScoped(db, fromFileId, toName, side);
 
     case 'import': {
       const lookup = await imports(toName);
@@ -1135,7 +1139,7 @@ async function resolveCallTarget(
       // graph used to be taken instead, and an incremental run had nothing
       // to find that edge's holder by (D092; measured at 7 of 30,740 call
       // edges on n8n, spikes/s9-call-fallback).
-      return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName, side);
 
     // `new X()` — toName is the class name, placed by the same file evidence
     // as a receiver's type. The constructor is the thing called, so the edge
@@ -1151,13 +1155,13 @@ async function resolveCallTarget(
     // like a field_type receiver's type (import first, then same-file
     // declaration), with no edge when the parent name has no file evidence.
     case 'super_method':
-      return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName, side);
 
     // `X.make()` — toName is `X.make`, with `X` placed by this file's imports
     // or declarations. An object or an enum of that name has no such symbol,
     // and there is no edge.
     case 'static_method':
-      return resolveQualifiedNameScoped(db, fromFileId, imports, toName);
+      return resolveQualifiedNameScoped(db, fromFileId, imports, toName, side);
 
     default:
       // A POTENTIAL_CALL edge always carries a resolution (`emitCallEdges`
@@ -1178,9 +1182,23 @@ const MEMBER_OF_A_CLASS: ReadonlySet<CallerResolution> = new Set<CallerResolutio
   'static_method',
 ]);
 
+/** Which members of a class a call can reach: its statics, or those of an instance. */
+type MemberSide = 'static' | 'instance';
+
+/**
+ * The side a call record's member is on, or null when the record names no
+ * member of a class. A call written on the class (`X.m()`) reaches statics, and
+ * so do `this.m()` and `super.m()` written in a static method; a call on a
+ * value of the class reaches instance members (D118).
+ */
+function memberSideOf(edge: EdgeRecord): MemberSide | null {
+  if (edge.resolution === undefined || !MEMBER_OF_A_CLASS.has(edge.resolution)) return null;
+  return edge.resolution === 'static_method' || edge.inStaticMethod === true ? 'static' : 'instance';
+}
+
 /**
  * `Class.member` where `Class` does not declare `member`: the member of the
- * nearest class above it that does.
+ * nearest class above it that does. A member of the other side is not one.
  *
  * `Class` is placed as the rule places it. From there the stored `EXTENDS`
  * edges are followed, each of which was placed by its own file's evidence
@@ -1195,9 +1213,8 @@ const MEMBER_OF_A_CLASS: ReadonlySet<CallerResolution> = new Set<CallerResolutio
  *
  * Null also when a class on the way, the receiver's included, has a field of
  * the name. A field has no symbol row and is still the nearest declaration:
- * the call runs what the field holds, which is not stored (D115). A call
- * written on the class (`X.m()`) is stopped by a static field, every other by
- * an instance one. `this.m()` in a static method is read as an instance call.
+ * the call runs what the field holds, which is not stored (D115). A call that
+ * reaches statics is stopped by a static field, every other by an instance one.
  *
  * Reads edges other files wrote, so `insertGraphEdges` writes every structural
  * edge before any call.
@@ -1208,12 +1225,12 @@ async function resolveInheritedMember(
   placeImport: ImportPlacer,
   resolution: CallerResolution | undefined,
   toName: string,
+  side: MemberSide | null,
 ): Promise<number | null> {
   const dot = toName.indexOf('.');
-  if (resolution === undefined || !MEMBER_OF_A_CLASS.has(resolution) || dot === -1) return null;
+  if (side === null || dot === -1) return null;
   const member = toName.slice(dot);
   const className = toName.slice(0, dot);
-  const side = resolution === 'static_method' ? 'static' : 'instance';
 
   // `this` is the class the call is written in, which is in this file.
   let current = resolution === 'this_method'
@@ -1236,13 +1253,16 @@ async function resolveInheritedMember(
       .execute();
     const parent = parents[0];
     if (parent === undefined || parents.length > 1) return null;
-    const declared = await resolveSameFileScoped(db, parent.file_id, `${parent.name}${member}`);
+    const declared = await resolveSameFileScoped(db, parent.file_id, `${parent.name}${member}`, side);
     if (declared !== null) return declared;
     if (fieldNamesOf(parent.fields)[side].includes(member.slice(1))) return null;
     current = parent.id;
   }
   return null;
 }
+
+/** A row's static flag, with a row written before the column existed read as not static. */
+const IS_STATIC = sql<number>`COALESCE(is_static, 0)`;
 
 /**
  * The call target must be declared in exactly `fromFileId` — the file
@@ -1252,13 +1272,19 @@ async function resolveInheritedMember(
  * is fixed, since the enclosing class is always declared in the same file
  * as the `this`-call site that names it.
  */
-async function resolveSameFileScoped(db: Db, fromFileId: number, toName: string): Promise<number | null> {
+async function resolveSameFileScoped(
+  db: Db,
+  fromFileId: number,
+  toName: string,
+  side: MemberSide | null = null,
+): Promise<number | null> {
   const row = await db
     .selectFrom('symbols')
     .select('id')
     .where('name', '=', toName)
     .where('file_id', '=', fromFileId)
     .where('kind', '!=', 'export')
+    .$if(side !== null, (q) => q.where(IS_STATIC, '=', side === 'static' ? 1 : 0))
     .executeTakeFirst();
   return row?.id ?? null;
 }
@@ -1274,6 +1300,7 @@ async function resolveQualifiedNameScoped(
   fromFileId: number,
   placeImport: ImportPlacer,
   toName: string,
+  side: MemberSide | null = null,
 ): Promise<number | null> {
   const dot = toName.indexOf('.');
   const typeName = dot === -1 ? toName : toName.slice(0, dot);
@@ -1281,7 +1308,7 @@ async function resolveQualifiedNameScoped(
   const lookup = await placeImport(typeName);
   if (lookup !== null) {
     if (lookup.resolvedPath === null) return null; // imported but unresolved — no edge
-    return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName);
+    return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName, side);
   }
 
   const sameFileType = await db
@@ -1292,7 +1319,7 @@ async function resolveQualifiedNameScoped(
     .where('kind', '!=', 'export')
     .executeTakeFirst();
   if (sameFileType !== undefined) {
-    return resolveSameFileScoped(db, fromFileId, toName);
+    return resolveSameFileScoped(db, fromFileId, toName, side);
   }
 
   // Neither an import nor a same-file declaration names `typeName` — e.g. a
@@ -1407,11 +1434,15 @@ function importResolvedPathFor(
  * a named re-export leaves an `export`-kind marker symbol with a RE_EXPORTS
  * edge to the real declaration; a star re-export (`export * from`) leaves a
  * `re_export_files` row. Both are walked before giving up.
+ *
+ * `side`, for a `Type.member` name, keeps the lookup to the type's static
+ * members or to its instance ones.
  */
 export async function resolveInFileOrReExportChain(
   db: Db,
   resolvedPath: string,
   toName: string,
+  side: 'static' | 'instance' | null = null,
 ): Promise<number | null> {
   // The import resolver (`src/indexer/import-resolver.ts`) always returns an
   // extension-inclusive path, but prefix matching mirrors the existing
@@ -1449,6 +1480,7 @@ export async function resolveInFileOrReExportChain(
       .where('file_id', '=', owner.file_id)
       .where('name', '=', `${owner.name}${toName.slice(dot)}`)
       .where('kind', '!=', 'export')
+      .$if(side !== null, (q) => q.where(IS_STATIC, '=', side === 'static' ? 1 : 0))
       .executeTakeFirst();
     return member?.id ?? null;
   }

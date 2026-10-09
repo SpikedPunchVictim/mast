@@ -37,3 +37,14 @@ rows; a fix shows there as `wrong -> agree` or `wrong -> absent`.
 
 The shapes corpus gained `dynamic-import-block/src/arrow.ts` and `held.ts` for D143; they
 are in `baselines/shapes.json` from this commit.
+
+## D118 (`spikes/d118/`)
+
+| File | What it is |
+|---|---|
+| `static-members.sh <graph.db>` | Counts method rows, static ones, and names a file has both a static and an instance method row for |
+| `static-members.out.txt` | Its output on n8n `9d9e9bf9`, this repository and the shapes corpus |
+| `n8n-edges-vs-d117.json` | n8n edges of the D118 build against those of the D117 build |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D117 commit) with the D118 build |
+
+The timings quoted in `PROPOSAL.md` were read off the terminal and are not kept as a file.

@@ -201,3 +201,63 @@ index taking 73.5 s and 72.9 s on two runs.
 nine cases, six of which failed before the change. `dynamic-import-edges.test.ts`: the case
 that stored nothing for a name declared twice now expects the edge from the block that
 imports it.
+
+## D118 — a static and an instance member of one name
+
+**The defect.** A member is stored as `Class.name` whether or not it is static, and every
+lookup took the first row of that name. `K.make()` went to an instance `make` on `K` where
+the compiler has the static on the class above; `k.save()` and `this.save()` went to a
+static `save` on `K`.
+
+**Prior decisions.** The inherited-member walk (`adr/proposals/inherited-call-edges/`, built in
+`94d7566`; static calls on a class in `5497f3a`) stops at the first class with a member of
+the name. D115 added the two sides for fields
+(`symbols.fields`) and recorded that `this.m()` in a static method is read as an instance
+call, "part of D118". Schema 1.4.0 is unreleased, and `symbols.fields` was added to it
+without a version bump; the same is done here. Nothing found decides against a flag on the
+row.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| S1 | A second name form for statics (`Class.static.name` or the like) | **Reject.** The name is what `mast_search`, `mast_signature` and `mast_callers` are asked with |
+| S2 | List a class's static method names on the class row, beside its fields | **Reject.** A class that declares a static and an instance method of one name has two rows of that name, and a list on the class cannot say which row is which (4 such names in n8n) |
+| S3 | `symbols.is_static` on the method's row. Each lookup of `Class.member` for a call is kept to one side: statics for `X.m()` and for `this`/`super` in a static method, instance methods for everything else. The extractor marks a `this`/`super` call written in a static method (`EdgeRecord.inStaticMethod`) | **Built** |
+| S4 | Add the flag to what incremental edge repair compares, as D115 did for fields | **Reserve.** The scenario written for it passes without it: a method that changes side has a changed declaration hash, its file's rows are rewritten, and the classes at or below it are resolved again. Why that suffices was read from the probe's result, not traced |
+
+**Measured** (`spikes/d118/`, against the D117 build):
+
+- Shapes corpus: the three wrong edges are gone and the three the compiler has are stored
+  (3 `wrong -> absent`, 3 `lacks -> agree`). `compare` exits 0.
+- n8n: 71,112 edges before and after, none gone, none added. The edge diff names a target
+  by file and name, so a move between a static and an instance method of one name in one
+  class would not show in it; n8n has 4 such names (`static-members.out.txt`), and I did
+  not look at the calls of those four.
+- n8n has 17,690 method rows, 317 of them static.
+- `n8n-core`, `n8n-cli`: no key changed. This repository: the keys that changed are calls
+  in the changed code.
+
+**Cost: not established.** n8n's full index, old build against new, alternating, on a
+machine with a load average between 7 and 12 from other work: old 83.1, 91.2, 84.4 and
+111.2 s; new 92.9, 102.6, 99.4 and 92.5 s. The medians are 87.8 and 96.2 s and the ranges
+overlap. The change adds one comparison to lookups that already ran and one column to
+each symbol row; I know of no reason for a tenth more time, and these runs cannot rule it
+out. To be run again on a quiet machine.
+
+**Judgment calls.**
+
+- A row written before the column existed has `NULL` and is read as an instance method, so
+  an index built by an earlier commit of this branch keeps its answers for static calls
+  wrong (no edge to a static) until it is rebuilt. Same position as `symbols.fields`.
+- `this.x.m()` in a static method is still read through the class's field types, static
+  or not.
+- An accessor (`static get x()`) is a method row with the flag like any other.
+
+**Not checked:** an interface's or an abstract class's members; a static block; JS files;
+`mast_callers` asked about `K.m` when `K` has both sides (it is asked by name and returns
+the callers of both rows, which is D121's subject).
+
+**Tests.** `src/indexer/__tests__/inherited-method-edges.test.ts`, "a static and an
+instance member of one name": four cases, all failing before the change. One scenario in
+`equivalence-scenarios.ts` (a static method between the receiver and the inherited one
+becomes an instance method and back), which passed before S4 was tried and is kept as a
+pin.

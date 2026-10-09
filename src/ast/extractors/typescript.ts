@@ -382,6 +382,7 @@ function emitChunksForNode(
             file_mtime: fileMtime,
             declaration_hash: declHashOf(member, src),
             body_hash: bodyHashOf(member, src),
+            ...(isStaticMember(member) ? { is_static: true as const } : {}),
           });
         }
       }
@@ -794,6 +795,11 @@ function bodyHashOf(node: SyntaxNode, src: string): string {
  * any method of a `declare class`). A bodiless method beside an implementation
  * of the same name is an overload of it and is not a member (D107).
  */
+/** Whether a class member is declared `static`. */
+function isStaticMember(member: SyntaxNode): boolean {
+  return nodeChildren(member).some((child) => nodeType(child) === 'static');
+}
+
 function isMethodMember(member: SyntaxNode, classBody: SyntaxNode): boolean {
   const type = nodeType(member);
   if (type === 'method_definition' || type === 'abstract_method_signature') return true;
@@ -837,8 +843,7 @@ function classFieldsOf(bodyNode: SyntaxNode | null): { readonly class_fields?: C
     if (mt === 'public_field_definition' || mt === 'property_signature') {
       const name = member.childForFieldName('name')?.text;
       if (name === undefined) continue;
-      const isStatic = nodeChildren(member).some((child) => nodeType(child) === 'static');
-      (isStatic ? statics : instance).add(name);
+      (isStaticMember(member) ? statics : instance).add(name);
     } else if (mt === 'method_definition' && member.childForFieldName('name')?.text === 'constructor') {
       for (const param of nodeNamedChildren(member.childForFieldName('parameters') ?? member)) {
         const pt = nodeType(param);
@@ -1245,6 +1250,7 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
       // symbol chunk somehow lacked them (defensive; should not happen).
       declarationHash: c.declaration_hash ?? null,
       bodyHash: c.body_hash ?? null,
+      ...(c.is_static === true ? { isStatic: true as const } : {}),
       ...(c.class_fields === undefined ? {} : { fields: c.class_fields }),
     });
   }
@@ -1515,6 +1521,7 @@ function emitClassEdges(
       lines,
       classScopeBindings,
       onCallSite,
+      isStaticMember(member),
     );
   }
 }
@@ -1601,6 +1608,8 @@ function emitCallEdges(
   // function/arrow scopes, which have no enclosing class.
   classScopeBindings: readonly ReceiverBinding[] = [],
   onCallSite?: (outcome: CallSiteOutcome) => void,
+  // The scope is a static method, whose `this` is the class itself.
+  isStaticScope = false,
 ): void {
   const env = new LocalTypeEnvironment();
   seedFileScope(env);
@@ -1633,6 +1642,7 @@ function emitCallEdges(
       fromName,
       toName: resolved.callee,
       ...(resolved.importModule === undefined ? {} : { importModule: resolved.importModule }),
+      ...(isStaticScope && OWN_CLASS_RESOLUTIONS.has(resolved.resolution) ? { inStaticMethod: true as const } : {}),
       edgeType: 'POTENTIAL_CALL',
       resolution: resolved.resolution,
       callLine: line,
@@ -1640,6 +1650,9 @@ function emitCallEdges(
     });
   }
 }
+
+/** The rules that read `this` or `super`, which a static method gives another meaning. */
+const OWN_CLASS_RESOLUTIONS: ReadonlySet<CallerResolution> = new Set(['this_method', 'super_method']);
 
 /** `import('./x')` with a literal specifier, awaited or not; the specifier, or null. */
 function dynamicImportSpecifier(value: SyntaxNode | null): string | null {

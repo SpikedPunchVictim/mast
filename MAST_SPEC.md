@@ -264,8 +264,9 @@ CREATE TABLE IF NOT EXISTS symbols (
   is_exported      INTEGER NOT NULL DEFAULT 0,  -- boolean
   declaration_hash TEXT,            -- sha256 of signature text only (excludes body)
   body_hash        TEXT,            -- sha256 of body text only (excludes signature)
-  fields           TEXT             -- on a class: the names of its fields, which have no row,
+  fields           TEXT,            -- on a class: the names of its fields, which have no row,
                                     -- as {"instance":[...],"static":[...]}; NULL otherwise
+  is_static        INTEGER          -- 1 on a method declared `static`, 0 otherwise
   -- If both declaration_hash and body_hash are unchanged on incremental reindex:
   -- skip the KG rebuild for this symbol (§7.1's file-level stability-hash skip).
 );
@@ -2467,7 +2468,15 @@ receiver's own class included: `handle = () => {}`, `declare handle: …` and
 the field holds, not the method of a class above (D115). A field has no symbol
 row, so the class's row lists its field names (`symbols.fields`), static and
 instance apart: `X.m()` is stopped by a static field, every other call by an
-instance one. Measured against the TypeScript compiler on n8n
+instance one.
+
+A static and an instance member of one name are two members (D118). A call
+written on the class (`X.m()`), and `this.m()` or `super.m()` written in a
+static method, reach static methods only; every other call reaches instance
+methods only. A method of the other side neither takes the call nor ends the
+walk, so `k.save()` passes a `static save()` on `K` and goes to `save()` on
+the class above. The symbol row of a method says which it is
+(`symbols.is_static`). Measured against the TypeScript compiler on n8n
 `9d9e9bf9` (2026-10-08): 941 more call edges in `packages/cli` and 9 in
 `packages/core`, every one agreeing with the compiler and none wrong; 1,069
 more over the whole monorepo and none lost
@@ -2486,8 +2495,9 @@ is a method call on a value bound by `const x = new X()`.
 name the file imports or declares, is stored with `resolution` `static_method`
 to the symbol `X.make` in the file that declares `X`. The extractor does not
 know that `X` is a class; an object, an enum or a function of that name has no
-symbol `X.make`, and there is then no edge. A static method the class inherits
-is found on the class that declares it, as above.
+symbol `X.make`, and there is then no edge. Nor is there one when `X.make` is
+an instance method. A static method the class inherits is found on the class
+that declares it, as above.
 
 `mast_callers` and `mast_rename_impact` asked about a class return the callers
 of its constructor with the callers of the class (`queryVerifiedCallers`

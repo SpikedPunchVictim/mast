@@ -395,6 +395,18 @@ export const SCENARIOS: readonly Scenario[] = [
     ],
   },
   {
+    // D118: the row keeps its name and kind, and the callers hold no edge into its file.
+    name: 'a static method between the receiver and the inherited one becomes an instance method, and static again',
+    files: {
+      ...HIERARCHY,
+      'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  static find(): void {}\n}\n`,
+    },
+    rounds: [
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  find(): void {}\n}\n` },
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  static find(): void {}\n}\n` },
+    ],
+  },
+  {
     name: 'the class at the bottom gains a field with the name of an inherited method, and loses it',
     files: HIERARCHY,
     rounds: [

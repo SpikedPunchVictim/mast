@@ -1,0 +1,12 @@
+== n8n
+methods|17690
+static methods|317
+names with a static and an instance row in one file|4
+== mast
+methods|51
+static methods|0
+names with a static and an instance row in one file|0
+== shapes
+methods|33
+static methods|5
+names with a static and an instance row in one file|2

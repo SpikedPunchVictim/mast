@@ -60,6 +60,8 @@ export interface Chunk {
    * no symbol. Absent when there are none. Transient — see `declaration_hash`.
    */
   readonly class_fields?: ClassFieldNames;
+  /** On a `method`: declared `static`. Transient — see `declaration_hash`. */
+  readonly is_static?: true;
 }
 
 /**
@@ -97,6 +99,8 @@ export interface SymbolRecord {
   readonly declarationHash: string | null;
   /** sha256 of body text; for class_shell, over sorted member signatures. */
   readonly bodyHash: string | null;
+  /** On a method: declared `static`. */
+  readonly isStatic?: true;
   /** On a class: its fields, which have no row of their own. Absent when it has none. */
   readonly fields?: ClassFieldNames;
 }
@@ -130,6 +134,12 @@ export interface EdgeRecord {
    * knowledge, which is placed by name.
    */
   readonly importModule?: string | null;
+  /**
+   * On a `this_method` or `super_method` call written in a static method,
+   * where `this` is the class and `super` the class above it, so the member
+   * called is a static one (D118).
+   */
+  readonly inStaticMethod?: true;
   /** 1-indexed source line of the call site (POTENTIAL_CALL only). */
   readonly callLine?: number;
   /** Trimmed source text of the call-site line (POTENTIAL_CALL only). */

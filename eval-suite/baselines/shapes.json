@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T06:29:53.856Z",
+  "ran_at": "2026-10-09T07:14:05.764Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, d117",
+  "label": "resolver shapes, d118",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -14,8 +14,8 @@
   "corpus_hash": "b0c7c32087a01be0ccc2077833ab0dd21543cd81c13aacfc188e89955cd0213d",
   "program_source_files": 210,
   "repeated_symbol_rows": 3,
-  "wall_ms": 363,
-  "peak_rss_mb": 298
+  "wall_ms": 889,
+  "peak_rss_mb": 301
  },
  "notes": {
   "call through a variable, judged by its signature": 1,
@@ -109,7 +109,10 @@
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
     "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
     "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save",
     "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
    ],
    "wrong": [
@@ -119,10 +122,7 @@
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
-    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b",
-    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save",
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.make",
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.save"
+    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b"
    ],
    "lacks": [
     "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
@@ -132,10 +132,7 @@
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:internalFmt",
     "packages/barrel-private/src/user.ts:use3 > packages/barrel-private/src/x.ts:main",
-    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
-    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save"
+    "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a"
    ],
    "extra": [],
    "unjudged": [
@@ -603,11 +600,11 @@
   "call edge, stored as parameter_type": {
    "agree": [
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send",
-    "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m"
+    "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save"
    ],
    "wrong": [
-    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client.send",
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.save"
+    "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client.send"
    ],
    "lacks": [],
    "extra": [],
@@ -628,11 +625,10 @@
   },
   "call edge, stored as static_method": {
    "agree": [
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
     "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
    ],
-   "wrong": [
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.make"
-   ],
+   "wrong": [],
    "lacks": [],
    "extra": [],
    "unjudged": [
@@ -642,11 +638,10 @@
   "call edge, stored as this_method": {
    "agree": [
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
-    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m"
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save"
    ],
-   "wrong": [
-    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save"
-   ],
+   "wrong": [],
    "lacks": [],
    "extra": [],
    "unjudged": [
@@ -711,13 +706,12 @@
   "call written as ident.m(), same file": {
    "agree": [
     "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save",
     "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
    ],
    "wrong": [],
-   "lacks": [
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save"
-   ],
+   "lacks": [],
    "extra": [],
    "unjudged": []
   },
@@ -754,12 +748,11 @@
   "call written as this.m(), same file": {
    "agree": [
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
-    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m"
-   ],
-   "wrong": [],
-   "lacks": [
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save"
    ],
+   "wrong": [],
+   "lacks": [],
    "extra": [],
    "unjudged": [
     "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",

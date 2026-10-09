@@ -1,0 +1,49 @@
+before: eval-suite/baselines/n8n-cli.json
+after:  <tmp>/sc-d118/n8n-cli.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+edge: PARENT_OF                            7561      7561      7561         0         0         0         0
+edge: POTENTIAL_CALL                      23830     18879     18875         0      4955         0         4
+edge: RE_EXPORTS (to the declaration)       151       151       151         0         0         0         0
+export * (file to file)                      20        20        20         0         0         0         0
+file: indexed                              3029      1748      1748         0      1281         0         0
+import: named binding                     18038     18038     18038         0         0         0         0
+import: the file it resolves to           10257     10258     10257         0         0         0         1
+symbol flag: is_exported                  12824     12824     12824         0         0         0         0
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              174       174       174         0         0         0         0
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7561      7561      7561         0         0         0         0
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                976       976       976         0         0         0         0
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction               1758      1758      1758         0         0         0         0
+call edge, stored as field_type                 7003      7003      7003         0         0         0         0
+call edge, stored as import                     2740      2744      2740         0         0         0         4
+call edge, stored as new_expression              100       100       100         0         0         0         0
+call edge, stored as parameter_type              377       377       377         0         0         0         0
+call edge, stored as same_file                  1909      1909      1909         0         0         0         0
+call edge, stored as static_method                69        69        69         0         0         0         0
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4903      4903      4903         0         0         0         0
+call written as expr.m(), other file            1174         3         3         0      1171         0         0
+call written as expr.m(), same file                7         0         0         0         7         0         0
+call written as f(), other file                 4680      2740      2740         0      1940         0         0
+call written as f(), same file                  1924      1909      1909         0        15         0         0
+call written as ident.m(), other file           1972       506       506         0      1466         0         0
+call written as ident.m(), same file              40        37        37         0         3         0         0
+call written as new X(), other file             1711      1708      1708         0         3         0         0
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7352      7003      7003         0       349         0         0
+call written as this.field.m(), same file          1         0         0         0         1         0         0
+call written as this.m(), other file             225       225       225         0         0         0         0
+call written as this.m(), same file             4678      4678      4678         0         0         0         0
