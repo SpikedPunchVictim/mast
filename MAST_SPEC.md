@@ -3100,7 +3100,11 @@ behind the entry, whether or not the package has been built
    targets of `exports["./sub"]`, then `sub` itself). If it is a TypeScript source
    file, that file. Otherwise its first directory is replaced by `src` and leading
    directories are dropped until a file is found: `dist/index.js`, `dist/index.d.ts`
-   and `dist/cjs/index.js` all give `src/index.ts`.
+   and `dist/cjs/index.js` all give `src/index.ts`. For a subpath, more than the first
+   directory is dropped only when what is dropped is the directory of one of the
+   package's root entries (`dist/cjs` where `main` is `dist/cjs/index.js`): a directory
+   that names the module is kept, so `dist/testing/index.js` with no `src/testing/` has
+   no source here and does not become `src/index.ts` (D119).
 2. If no entry has a source: `main` as written, then `<packageDir>/src/index`, then
    `<packageDir>/index`; for a subpath, `<packageDir>/<sub>` then
    `<packageDir>/src/<sub>`.

@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T07:14:05.764Z",
+  "ran_at": "2026-10-09T08:20:45.865Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, d118",
+  "label": "resolver shapes, d119",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -14,8 +14,8 @@
   "corpus_hash": "b0c7c32087a01be0ccc2077833ab0dd21543cd81c13aacfc188e89955cd0213d",
   "program_source_files": 210,
   "repeated_symbol_rows": 3,
-  "wall_ms": 889,
-  "peak_rss_mb": 301
+  "wall_ms": 417,
+  "peak_rss_mb": 297
  },
  "notes": {
   "call through a variable, judged by its signature": 1,
@@ -86,6 +86,7 @@
    "agree": [
     "packages/app/src/main.ts:main > packages/core/src/client/index.ts:connect",
     "packages/app/src/main.ts:main > packages/core/src/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
     "packages/app/src/main.ts:main > packages/ui/src/components/Button.ts:Button",
     "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
     "packages/barrel-private/src/barrel.ts:Client.send > packages/barrel-private/src/barrel.ts:format",
@@ -116,7 +117,6 @@
     "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
    ],
    "wrong": [
-    "packages/app/src/main.ts:main > packages/core/src/index.ts:setup",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client.send",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format",
@@ -125,7 +125,6 @@
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b"
    ],
    "lacks": [
-    "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client.send",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:format",
@@ -249,6 +248,7 @@
    "agree": [
     "packages/app/src/main.ts '@x/core' => packages/core/src/index.ts",
     "packages/app/src/main.ts '@x/core/client' => packages/core/src/client/index.ts",
+    "packages/app/src/main.ts '@x/core/testing' => packages/core/testing/index.ts",
     "packages/app/src/main.ts '@x/ui' => packages/ui/src/index.ts",
     "packages/app/src/main.ts '@x/ui/components/Button' => packages/ui/src/components/Button.ts",
     "packages/barrel-private/src/barrel2.ts './real' => packages/barrel-private/src/real.ts",
@@ -267,12 +267,8 @@
     "packages/property-override/src/child.ts './base' => packages/property-override/src/base.ts",
     "packages/same-name-rows/src/user.ts './a' => packages/same-name-rows/src/a.ts"
    ],
-   "wrong": [
-    "packages/app/src/main.ts '@x/core/testing' => packages/core/src/index.ts"
-   ],
-   "lacks": [
-    "packages/app/src/main.ts '@x/core/testing' => packages/core/testing/index.ts"
-   ],
+   "wrong": [],
+   "lacks": [],
    "extra": [],
    "unjudged": []
   },
@@ -566,6 +562,7 @@
    "agree": [
     "packages/app/src/main.ts:main > packages/core/src/client/index.ts:connect",
     "packages/app/src/main.ts:main > packages/core/src/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
     "packages/app/src/main.ts:main > packages/ui/src/components/Button.ts:Button",
     "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
     "packages/constructor-callers/src/cls.ts:NoCtor > packages/constructor-callers/src/lib.ts:target",
@@ -575,7 +572,6 @@
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick"
    ],
    "wrong": [
-    "packages/app/src/main.ts:main > packages/core/src/index.ts:setup",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
@@ -653,6 +649,7 @@
    "agree": [
     "packages/app/src/main.ts:main > packages/core/src/client/index.ts:connect",
     "packages/app/src/main.ts:main > packages/core/src/index.ts:connect",
+    "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
     "packages/app/src/main.ts:main > packages/ui/src/components/Button.ts:Button",
     "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
     "packages/constructor-callers/src/cls.ts:NoCtor > packages/constructor-callers/src/lib.ts:target",
@@ -663,7 +660,6 @@
    ],
    "wrong": [],
    "lacks": [
-    "packages/app/src/main.ts:main > packages/core/testing/index.ts:setup",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:format",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:internalFmt",

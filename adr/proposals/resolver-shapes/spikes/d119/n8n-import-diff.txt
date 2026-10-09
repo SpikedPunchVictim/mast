@@ -1,0 +1,5 @@
+n8n 9d9e9bf9: import rows (file, module, resolved_path, is_external), D118 build against D119 build
+rows new build|51963|unresolved|8095
+rows old build|51963|unresolved|8095
+only in new|0
+only in old|0

@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T07:14:04.629Z",
+  "ran_at": "2026-10-09T08:20:45.234Z",
   "typescript": "5.9.3",
-  "label": "mast, d118",
+  "label": "mast, d119",
   "root": "mast",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -11,11 +11,11 @@
   "workspace_packages_mapped_to_source": 0,
   "scored_typescript_files": 101,
   "tsconfig_files": 84,
-  "corpus_hash": "3d719c615153d038130cfd090904f7869a2be6c56660d07195c2cb040b0fb226",
+  "corpus_hash": "1cb0949b859705754ca63b83e200594356da26ea252e844992db65a1ec250a88",
   "program_source_files": 750,
   "repeated_symbol_rows": 0,
-  "wall_ms": 2773,
-  "peak_rss_mb": 468
+  "wall_ms": 1756,
+  "peak_rss_mb": 444
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 102,

@@ -1,0 +1,18 @@
+package	subpath	target	dropped	kept	found	root entry source	dropped more than one: is it a root entry dir
+@opentelemetry/api	./experimental	./build/esnext/experimental/index.js	build/esnext	experimental/index	src/experimental/index.ts		root dir
+@opentelemetry/api	./experimental	./build/esm/experimental/index.js	build/esm	experimental/index	src/experimental/index.ts		root dir
+@opentelemetry/api	./experimental	./build/src/experimental/index.d.ts	build/src	experimental/index	src/experimental/index.ts		root dir
+@opentelemetry/api	./experimental	./build/src/experimental/index.js	build/src	experimental/index	src/experimental/index.ts		root dir
+@opentelemetry/otlp-exporter-base	./node-http	./build/esnext/index-node-http.js	build/esnext	index-node-http	src/index-node-http.ts		root dir
+@opentelemetry/otlp-exporter-base	./node-http	./build/esm/index-node-http.js	build/esm	index-node-http	src/index-node-http.ts		root dir
+@opentelemetry/otlp-exporter-base	./node-http	./build/src/index-node-http.d.ts	build/src	index-node-http	src/index-node-http.ts		root dir
+@opentelemetry/otlp-exporter-base	./node-http	./build/src/index-node-http.js	build/src	index-node-http	src/index-node-http.ts		root dir
+@opentelemetry/otlp-exporter-base	./browser-http	./build/esnext/index-browser-http.js	build/esnext	index-browser-http	src/index-browser-http.ts		root dir
+@opentelemetry/otlp-exporter-base	./browser-http	./build/esm/index-browser-http.js	build/esm	index-browser-http	src/index-browser-http.ts		root dir
+@opentelemetry/otlp-exporter-base	./browser-http	./build/src/index-browser-http.d.ts	build/src	index-browser-http	src/index-browser-http.ts		root dir
+@opentelemetry/otlp-exporter-base	./browser-http	./build/src/index-browser-http.js	build/src	index-browser-http	src/index-browser-http.ts		root dir
+@opentelemetry/shim-opencensus	./register	./build/src/register.js	build/src	register	src/register.ts		root dir
+@opentelemetry/semantic-conventions	./incubating	./build/esnext/index-incubating.js	build/esnext	index-incubating	src/index-incubating.ts		root dir
+@opentelemetry/semantic-conventions	./incubating	./build/esm/index-incubating.js	build/esm	index-incubating	src/index-incubating.ts		root dir
+@opentelemetry/semantic-conventions	./incubating	./build/src/index-incubating.d.ts	build/src	index-incubating	src/index-incubating.ts		root dir
+@opentelemetry/semantic-conventions	./incubating	./build/src/index-incubating.js	build/src	index-incubating	src/index-incubating.ts		root dir

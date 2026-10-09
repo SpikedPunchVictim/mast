@@ -283,7 +283,7 @@ function resolveWorkspace(
     if (spec.startsWith(`${name}/`)) {
       const sub = spec.slice(name.length + 1);
       for (const target of [...(pkg.subpathEntries.get(`./${sub}`) ?? []), sub]) {
-        const source = sourceOf(dir, target, probe);
+        const source = sourceOf(dir, target, probe, pkg.rootEntryDirs);
         if (source !== null) return source;
       }
       return probe(join(dir, sub)) ?? probe(join(dir, 'src', sub));
@@ -305,6 +305,14 @@ const BUILT_EXTENSION = /(?:\.d\.(?:ts|mts|cts)|\.(?:js|jsx|mjs|cjs))$/;
  * directory per module format. So the first directory is replaced by `src`
  * and leading directories are dropped one at a time until a file is found.
  *
+ * For a subpath, `buildDirs` names the directories the package's root entries
+ * are written into, and more than the first directory is dropped only when
+ * what is dropped is one of them. Without that, `dist/testing/index.js` whose
+ * source is not under `src/` loses `testing` and ends at `src/index.ts`
+ * (D119). In ten repositories every subpath that needed more than one
+ * directory dropped lost exactly such a directory
+ * (`adr/proposals/resolver-shapes/spikes/d119/`).
+ *
  * This reads no `outDir` or `rootDir`: the build's tsconfig is often not the
  * one named `tsconfig.json`. A package whose sources are not under `src/`
  * gets null here and falls back to the path as written.
@@ -313,6 +321,7 @@ function sourceOf(
   packageDir: string,
   entry: string,
   probe: (base: string) => string | null,
+  buildDirs: ReadonlySet<string> | null = null,
 ): string | null {
   const relativeEntry = entry.replace(/^\.\//, '');
   const literal = probe(join(packageDir, relativeEntry));
@@ -321,6 +330,7 @@ function sourceOf(
   const segments = relativeEntry.replace(BUILT_EXTENSION, '').split('/');
   if (segments[0] === 'src') return null;
   for (let drop = 1; drop < segments.length; drop++) {
+    if (drop > 1 && buildDirs !== null && !buildDirs.has(segments.slice(0, drop).join('/'))) continue;
     const source = probe(join(packageDir, 'src', ...segments.slice(drop)));
     if (source !== null) return source;
   }
@@ -423,6 +433,8 @@ interface WorkspacePackage {
   readonly entries: readonly string[];
   /** `exports` keys other than `"."` (`"./sub"`) to the paths each names. */
   readonly subpathEntries: ReadonlyMap<string, readonly string[]>;
+  /** The directory of each of `entries`, package-relative (`dist/cjs`). */
+  readonly rootEntryDirs: ReadonlySet<string>;
 }
 
 function buildWorkspaceMap(projectRoot: string): ReadonlyMap<string, WorkspacePackage> {
@@ -512,7 +524,8 @@ function readWorkspacePackage(dir: string): (WorkspacePackage & { readonly name:
 
   const entries = [...rootTargets, stringField('module'), main, stringField('types')]
     .filter((entry): entry is string => entry !== null);
-  return { name: manifest['name'], dir, main, entries: [...new Set(entries)], subpathEntries };
+  const rootEntryDirs = new Set(entries.map((entry) => entry.replace(/^\.\//, '').split('/').slice(0, -1).join('/')));
+  return { name: manifest['name'], dir, main, entries: [...new Set(entries)], subpathEntries, rootEntryDirs };
 }
 
 /**

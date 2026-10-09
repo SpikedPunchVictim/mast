@@ -48,3 +48,13 @@ are in `baselines/shapes.json` from this commit.
 | `scorecard-*.compare.txt` | `compare` of each baseline (as of the D117 commit) with the D118 build |
 
 The timings quoted in `PROPOSAL.md` were read off the terminal and are not kept as a file.
+
+## D119 (`spikes/d119/`)
+
+| File | What it is |
+|---|---|
+| `subpath-drops.mjs <repo dir>` | Replays `sourceOf`'s search for every `exports` subpath of every `package.json` under a directory and prints which leading directories it dropped. Reads only |
+| `subpath-drops.<repo>.tsv` | Its output on n8n `9d9e9bf9`, backstage `25463a867ce7`, directus `9dca3724a6`, langchainjs `62fc484b2`, opentelemetry-js `7f3e7eaa9`, strapi `0a8a9b40d0`, and cdk8s, nest, pulumi and vscode (header only: no subpath of the kind) |
+| `n8n-import-diff.txt` | n8n import rows of the D119 build against those of the D118 build |
+| `n8n-edges-vs-d118.json` | The same for edges |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D118 commit) with the D119 build |

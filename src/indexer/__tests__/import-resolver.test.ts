@@ -204,6 +204,45 @@ describe('import resolver (§13.7)', () => {
       expect(r.resolvedPath).toBe('pkgs/lib/src/expression-sandboxing.ts');
     });
 
+    // D119. Only the directories the build adds may be dropped on the way to
+    // `src/`; a directory that names the module may not, or every subpath
+    // without a source under `src/` ends at the package's root entry.
+    it('resolves a subpath whose source is outside `src/` to that source, not to the root entry', () => {
+      workspacePackage({
+        main: 'dist/index.js',
+        exports: { '.': './dist/index.js', './testing': { types: './dist/testing/index.d.ts', default: './dist/testing/index.js' } },
+      });
+      write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');
+      write(root, 'pkgs/lib/testing/index.ts', 'export const t = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib/testing', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/testing/index.ts');
+    });
+
+    it('resolves a subpath that has no source to nothing, not to the root entry', () => {
+      workspacePackage({ main: 'dist/index.js', exports: { '.': './dist/index.js', './testing': './dist/testing/index.js' } });
+      write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib/testing', 'app/a.ts');
+
+      expect(r.resolvedPath).toBeNull();
+    });
+
+    it('resolves a subpath built into the format directory of the root entry to its source', () => {
+      workspacePackage({
+        main: 'build/src/index.js',
+        module: 'build/esm/index.js',
+        exports: { '.': './build/src/index.js', './testing': { import: './build/esm/testing/index.js', require: './build/src/testing/index.js' } },
+      });
+      write(root, 'pkgs/lib/src/index.ts', 'export const s = 1;');
+      write(root, 'pkgs/lib/src/testing/index.ts', 'export const t = 1;');
+
+      const r = getImportResolver(root).resolve('@scope/lib/testing', 'app/a.ts');
+
+      expect(r.resolvedPath).toBe('pkgs/lib/src/testing/index.ts');
+    });
+
     it('resolves a deep import of build output to its source', () => {
       workspacePackage({ main: 'dist/index.js' });
       write(root, 'pkgs/lib/src/util/foo.ts', 'export const f = 1;');

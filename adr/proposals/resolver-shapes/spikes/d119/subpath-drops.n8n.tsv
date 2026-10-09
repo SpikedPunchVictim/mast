@@ -1,0 +1,128 @@
+package	subpath	target	dropped	kept	found	root entry source	dropped more than one: is it a root entry dir
+@n8n/agents	./package.json	./package.json	-	-	NONE		
+@n8n/agents	./tool	./dist/sdk/tool.d.ts	dist	sdk/tool	src/sdk/tool.ts		
+@n8n/agents	./tool	./dist/sdk/tool.js	dist	sdk/tool	src/sdk/tool.ts		
+@n8n/agents	./catalog	./dist/sdk/catalog.d.ts	dist	sdk/catalog	src/sdk/catalog.ts		
+@n8n/agents	./catalog	./dist/sdk/catalog.js	dist	sdk/catalog	src/sdk/catalog.ts		
+@n8n/agents	./sandbox	./dist/workspace/sandbox/index.d.ts	dist	workspace/sandbox/index	src/workspace/sandbox/index.ts		
+@n8n/agents	./sandbox	./dist/workspace/sandbox/index.js	dist	workspace/sandbox/index	src/workspace/sandbox/index.ts		
+@n8n/agents	./vector-stores/postgres	./dist/vector-stores/postgres.d.ts	dist	vector-stores/postgres	src/vector-stores/postgres.ts		
+@n8n/agents	./vector-stores/postgres	./dist/vector-stores/postgres.js	dist	vector-stores/postgres	src/vector-stores/postgres.ts		
+@n8n/agents	./vector-stores/pinecone	./dist/vector-stores/pinecone.d.ts	dist	vector-stores/pinecone	src/vector-stores/pinecone.ts		
+@n8n/agents	./vector-stores/pinecone	./dist/vector-stores/pinecone.js	dist	vector-stores/pinecone	src/vector-stores/pinecone.ts		
+@n8n/agents	./vector-stores/qdrant	./dist/vector-stores/qdrant.d.ts	dist	vector-stores/qdrant	src/vector-stores/qdrant.ts		
+@n8n/agents	./vector-stores/qdrant	./dist/vector-stores/qdrant.js	dist	vector-stores/qdrant	src/vector-stores/qdrant.ts		
+@n8n/agents	./vector-stores/supabase	./dist/vector-stores/supabase.d.ts	dist	vector-stores/supabase	src/vector-stores/supabase.ts		
+@n8n/agents	./vector-stores/supabase	./dist/vector-stores/supabase.js	dist	vector-stores/supabase	src/vector-stores/supabase.ts		
+@n8n/ai-utilities	./text-editor	./dist/esm/utils/workflow-text-editor.d.ts	dist/esm	utils/workflow-text-editor	src/utils/workflow-text-editor.ts		root dir
+@n8n/ai-utilities	./text-editor	./dist/esm/utils/workflow-text-editor.js	dist/esm	utils/workflow-text-editor	src/utils/workflow-text-editor.ts		root dir
+@n8n/ai-utilities	./text-editor	./dist/cjs/utils/workflow-text-editor.js	dist/cjs	utils/workflow-text-editor	src/utils/workflow-text-editor.ts		root dir
+@n8n/ai-utilities	./generic-text-editor	./dist/esm/utils/text-editor.d.ts	dist/esm	utils/text-editor	src/utils/text-editor.ts		root dir
+@n8n/ai-utilities	./generic-text-editor	./dist/esm/utils/text-editor.js	dist/esm	utils/text-editor	src/utils/text-editor.ts		root dir
+@n8n/ai-utilities	./generic-text-editor	./dist/cjs/utils/text-editor.js	dist/cjs	utils/text-editor	src/utils/text-editor.ts		root dir
+@n8n/ai-utilities	./node-catalog	./dist/esm/node-catalog/index.d.ts	dist/esm	node-catalog/index	src/node-catalog/index.ts		root dir
+@n8n/ai-utilities	./node-catalog	./dist/esm/node-catalog/index.js	dist/esm	node-catalog/index	src/node-catalog/index.ts		root dir
+@n8n/ai-utilities	./node-catalog	./dist/cjs/node-catalog/index.js	dist/cjs	node-catalog/index	src/node-catalog/index.ts		root dir
+@n8n/ai-utilities	./agent-config	./dist/esm/agent-config/index.d.ts	dist/esm	agent-config/index	src/agent-config/index.ts		root dir
+@n8n/ai-utilities	./agent-config	./dist/esm/agent-config/index.js	dist/esm	agent-config/index	src/agent-config/index.ts		root dir
+@n8n/ai-utilities	./agent-config	./dist/cjs/agent-config/index.js	dist/cjs	agent-config/index	src/agent-config/index.ts		root dir
+@n8n/ai-utilities	./fromai-helpers	./dist/esm/utils/fromai-helpers.d.ts	dist/esm	utils/fromai-helpers	src/utils/fromai-helpers.ts		root dir
+@n8n/ai-utilities	./fromai-helpers	./dist/esm/utils/fromai-helpers.js	dist/esm	utils/fromai-helpers	src/utils/fromai-helpers.ts		root dir
+@n8n/ai-utilities	./fromai-helpers	./dist/cjs/utils/fromai-helpers.js	dist/cjs	utils/fromai-helpers	src/utils/fromai-helpers.ts		root dir
+@n8n/ai-utilities	./http-proxy-agent	./dist/esm/utils/http-proxy-agent.d.ts	dist/esm	utils/http-proxy-agent	src/utils/http-proxy-agent.ts		root dir
+@n8n/ai-utilities	./http-proxy-agent	./dist/esm/utils/http-proxy-agent.js	dist/esm	utils/http-proxy-agent	src/utils/http-proxy-agent.ts		root dir
+@n8n/ai-utilities	./http-proxy-agent	./dist/cjs/utils/http-proxy-agent.js	dist/cjs	utils/http-proxy-agent	src/utils/http-proxy-agent.ts		root dir
+@n8n/ai-utilities	./tokenizer	./dist/esm/utils/tokenizer/tiktoken.d.ts	dist/esm	utils/tokenizer/tiktoken	src/utils/tokenizer/tiktoken.ts		root dir
+@n8n/ai-utilities	./tokenizer	./dist/esm/utils/tokenizer/tiktoken.js	dist/esm	utils/tokenizer/tiktoken	src/utils/tokenizer/tiktoken.ts		root dir
+@n8n/ai-utilities	./tokenizer	./dist/cjs/utils/tokenizer/tiktoken.js	dist/cjs	utils/tokenizer/tiktoken	src/utils/tokenizer/tiktoken.ts		root dir
+@n8n/ai-utilities	./web-search	./dist/esm/web-search/index.d.ts	dist/esm	web-search/index	src/web-search/index.ts		root dir
+@n8n/ai-utilities	./web-search	./dist/esm/web-search/index.js	dist/esm	web-search/index	src/web-search/index.ts		root dir
+@n8n/ai-utilities	./web-search	./dist/cjs/web-search/index.js	dist/cjs	web-search/index	src/web-search/index.ts		root dir
+@n8n/ai-utilities	./model-discovery	./dist/esm/model-discovery/index.d.ts	dist/esm	model-discovery/index	src/model-discovery/index.ts		root dir
+@n8n/ai-utilities	./model-discovery	./dist/esm/model-discovery/index.js	dist/esm	model-discovery/index	src/model-discovery/index.ts		root dir
+@n8n/ai-utilities	./model-discovery	./dist/cjs/model-discovery/index.js	dist/cjs	model-discovery/index	src/model-discovery/index.ts		root dir
+@n8n/backend-network	./testing	./dist/testing.d.ts	dist	testing	src/testing.ts		
+@n8n/backend-network	./testing	./dist/testing.js	dist	testing	src/testing.ts		
+@n8n/backend-network	./transport	./dist/transport.d.ts	dist	transport	src/transport.ts		
+@n8n/backend-network	./transport	./dist/transport.js	dist	transport	src/transport.ts		
+@n8n/backend-network	./proxy	./dist/proxy/index.d.ts	dist	proxy/index	src/proxy/index.ts		
+@n8n/backend-network	./proxy	./dist/proxy/index.js	dist	proxy/index	src/proxy/index.ts		
+@n8n/blob-storage	./object-store	./dist/object-store/index.d.ts	dist	object-store/index	src/object-store/index.ts		
+@n8n/blob-storage	./object-store	./dist/object-store/index.js	dist	object-store/index	src/object-store/index.ts		
+@n8n/blob-storage	./azure-blob	./dist/azure-blob/index.d.ts	dist	azure-blob/index	src/azure-blob/index.ts		
+@n8n/blob-storage	./azure-blob	./dist/azure-blob/index.js	dist	azure-blob/index	src/azure-blob/index.ts		
+@n8n/computer-use	./config	./dist/config.js	dist	config	src/config.ts		
+@n8n/computer-use	./gateway-client	./dist/gateway-client.js	dist	gateway-client	src/gateway-client.ts		
+@n8n/computer-use	./logger	./dist/logger.js	dist	logger	src/logger.ts		
+@n8n/computer-use	./gateway-session	./dist/gateway-session.js	dist	gateway-session	src/gateway-session.ts		
+@n8n/computer-use	./settings-store	./dist/settings-store.js	dist	settings-store	src/settings-store.ts		
+@n8n/eslint-config	./base	./dist/configs/base.d.js	-	-	NONE		
+@n8n/eslint-config	./base	./dist/configs/base.js	dist	configs/base	src/configs/base.ts		
+@n8n/eslint-config	./frontend	./dist/configs/frontend.d.js	-	-	NONE		
+@n8n/eslint-config	./frontend	./dist/configs/frontend.js	dist	configs/frontend	src/configs/frontend.ts		
+@n8n/eslint-config	./node	./dist/configs/node.d.js	-	-	NONE		
+@n8n/eslint-config	./node	./dist/configs/node.js	dist	configs/node	src/configs/node.ts		
+@n8n/extension-sdk	./backend	./dist/backend/index.d.mts	dist	backend/index	src/backend/index.ts		
+@n8n/extension-sdk	./backend	./dist/backend/index.mjs	dist	backend/index	src/backend/index.ts		
+@n8n/extension-sdk	./backend	./dist/backend/index.cjs	dist	backend/index	src/backend/index.ts		
+@n8n/extension-sdk	./frontend	./dist/frontend/index.d.mts	dist	frontend/index	src/frontend/index.ts		
+@n8n/extension-sdk	./frontend	./dist/frontend/index.mjs	dist	frontend/index	src/frontend/index.ts		
+@n8n/extension-sdk	./frontend	./dist/frontend/index.cjs	dist	frontend/index	src/frontend/index.ts		
+@n8n/instance-ai	./parsers	./dist/parsers/index.js	dist	parsers/index	src/parsers/index.ts		
+@n8n/instance-ai	./parsers	./dist/parsers/index.d.ts	dist	parsers/index	src/parsers/index.ts		
+@n8n/mcp-apps	./server	./dist/server/index.d.ts	dist	server/index	src/server/index.ts		
+@n8n/mcp-apps	./server	./dist/server/index.js	dist	server/index	src/server/index.ts		
+@n8n/mcp-apps	./package.json	./package.json	-	-	NONE		
+@n8n/node-cli	./eslint	./dist/configs/eslint.d.js	-	-	NONE		
+@n8n/node-cli	./eslint	./dist/configs/eslint.js	dist	configs/eslint	src/configs/eslint.ts		
+@n8n/n8n-nodes-langchain	./mcp/core	./dist/nodes/mcp/McpTrigger/index.d.ts	-	-	NONE		
+@n8n/n8n-nodes-langchain	./mcp/core	./dist/nodes/mcp/McpTrigger/index.js	-	-	NONE		
+@n8n/n8n-nodes-langchain	./package.json	./package.json	-	-	NONE		
+@n8n/stylelint-config	./base	./dist/configs/base.js	dist	configs/base	src/configs/base.ts		
+@n8n/stylelint-config	./base	./dist/configs/base.d.ts	dist	configs/base	src/configs/base.ts		
+@n8n/stylelint-config	./rules	./dist/rules/index.js	dist	rules/index	src/rules/index.ts		
+@n8n/stylelint-config	./rules	./dist/rules/index.d.ts	dist	rules/index	src/rules/index.ts		
+@n8n/task-runner	./start	./dist/start.d.ts	dist	start	src/start.ts		
+@n8n/task-runner	./start	./dist/start.js	dist	start	src/start.ts		
+@n8n/typescript-config	./tsconfig.backend.json	./tsconfig.backend.json	-	-	NONE		
+@n8n/typescript-config	./tsconfig.build.json	./tsconfig.build.json	-	-	NONE		
+@n8n/typescript-config	./tsconfig.common.json	./tsconfig.common.json	-	-	NONE		
+@n8n/typescript-config	./tsconfig.frontend.json	./tsconfig.frontend.json	-	-	NONE		
+@n8n/vitest-config	./backend	./backend.mjs	-	-	NONE		
+@n8n/vitest-config	./backend	./backend.d.ts	-	-	NONE		
+@n8n/vitest-config	./frontend	./dist/frontend.js	-	-	NONE		
+@n8n/vitest-config	./frontend	./dist/frontend.d.ts	-	-	NONE		
+@n8n/vitest-config	./setup/frontend	./dist/setup/frontend.js	-	-	NONE		
+@n8n/vitest-config	./setup/frontend	./dist/setup/frontend.d.ts	-	-	NONE		
+@n8n/vitest-config	./node	./dist/node.js	-	-	NONE		
+@n8n/vitest-config	./node	./dist/node.d.ts	-	-	NONE		
+@n8n/vitest-config	./node-decorators	./dist/node-decorators.js	-	-	NONE		
+@n8n/vitest-config	./node-decorators	./dist/node-decorators.d.ts	-	-	NONE		
+@n8n/workflow-sdk	./package.json	./package.json	-	-	NONE		
+@n8n/workflow-sdk	./dist/generate-types/generate-types	./dist/generate-types/generate-types.js	dist	generate-types/generate-types	src/generate-types/generate-types.ts		
+@n8n/workflow-sdk	./dist/generate-types/generate-node-defs-cli	./dist/generate-types/generate-node-defs-cli.js	dist	generate-types/generate-node-defs-cli	src/generate-types/generate-node-defs-cli.ts		
+@n8n/workflow-sdk	./prompts/sdk-reference	./dist/prompts/sdk-reference/index.d.ts	dist	prompts/sdk-reference/index	src/prompts/sdk-reference/index.ts		
+@n8n/workflow-sdk	./prompts/sdk-reference	./dist/prompts/sdk-reference/index.js	dist	prompts/sdk-reference/index	src/prompts/sdk-reference/index.ts		
+@n8n/workflow-sdk	./prompts/node-guidance/parameter-guides	./dist/prompts/node-guidance/parameter-guides/index.d.ts	dist	prompts/node-guidance/parameter-guides/index	src/prompts/node-guidance/parameter-guides/index.ts		
+@n8n/workflow-sdk	./prompts/node-guidance/parameter-guides	./dist/prompts/node-guidance/parameter-guides/index.js	dist	prompts/node-guidance/parameter-guides/index	src/prompts/node-guidance/parameter-guides/index.ts		
+@n8n/workflow-sdk	./prompts/node-guidance/node-recommendations	./dist/prompts/node-guidance/node-recommendations/index.d.ts	dist	prompts/node-guidance/node-recommendations/index	src/prompts/node-guidance/node-recommendations/index.ts		
+@n8n/workflow-sdk	./prompts/node-guidance/node-recommendations	./dist/prompts/node-guidance/node-recommendations/index.js	dist	prompts/node-guidance/node-recommendations/index	src/prompts/node-guidance/node-recommendations/index.ts		
+@n8n/workflow-sdk	./prompts/best-practices	./dist/prompts/best-practices/index.d.ts	dist	prompts/best-practices/index	src/prompts/best-practices/index.ts		
+@n8n/workflow-sdk	./prompts/best-practices	./dist/prompts/best-practices/index.js	dist	prompts/best-practices/index	src/prompts/best-practices/index.ts		
+@n8n/workflow-sdk	./prompts/node-selection	./dist/prompts/node-selection/index.d.ts	dist	prompts/node-selection/index	src/prompts/node-selection/index.ts		
+@n8n/workflow-sdk	./prompts/node-selection	./dist/prompts/node-selection/index.js	dist	prompts/node-selection/index	src/prompts/node-selection/index.ts		
+@n8n/n8n-extension-insights	./backend	./dist/backend/index.d.mts	dist	backend/index	src/backend/index.ts		
+@n8n/n8n-extension-insights	./backend	./dist/backend/index.mjs	dist	backend/index	src/backend/index.ts		
+@n8n/n8n-extension-insights	./backend	./dist/backend/index.cjs	dist	backend/index	src/backend/index.ts		
+@n8n/n8n-extension-insights	./frontend	./dist/frontend/index.d.mts	dist	frontend/index	src/frontend/index.ts		
+@n8n/n8n-extension-insights	./frontend	./dist/frontend/index.mjs	dist	frontend/index	src/frontend/index.ts		
+@n8n/n8n-extension-insights	./frontend	./dist/frontend/index.umd.cjs	-	-	NONE		
+@n8n/chat	./style.css	./dist/style.css	-	-	NONE		
+@n8n/rules-engine	./ast	./dist/ast/index.d.ts	dist	ast/index	src/ast/index.ts		
+@n8n/rules-engine	./ast	./dist/ast/index.js	dist	ast/index	src/ast/index.ts		
+n8n-workflow	./common	./dist/esm/common/index.d.ts	dist/esm	common/index	src/common/index.ts		root dir
+n8n-workflow	./common	./dist/esm/common/index.js	dist/esm	common/index	src/common/index.ts		root dir
+n8n-workflow	./common	./dist/cjs/common/index.js	dist/cjs	common/index	src/common/index.ts		root dir
+n8n-workflow	./expression-sandboxing	./dist/esm/expression-sandboxing.d.ts	dist/esm	expression-sandboxing	src/expression-sandboxing.ts		root dir
+n8n-workflow	./expression-sandboxing	./dist/esm/expression-sandboxing.js	dist/esm	expression-sandboxing	src/expression-sandboxing.ts		root dir
+n8n-workflow	./expression-sandboxing	./dist/cjs/expression-sandboxing.js	dist/cjs	expression-sandboxing	src/expression-sandboxing.ts		root dir

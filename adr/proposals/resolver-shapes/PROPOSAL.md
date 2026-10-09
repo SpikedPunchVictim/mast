@@ -265,3 +265,74 @@ instance member of one name": four cases, all failing before the change. One sce
 `equivalence-scenarios.ts` (a static method between the receiver and the inherited one
 becomes an instance method and back), which passes with or without S4, and three more
 with no class between the changed one and the caller, which fail without it (D145).
+
+## D119 — a subpath export resolved to the package's root entry
+
+**The defect.** `@x/core` exports `./testing` as `./dist/testing/index.js`; its source is
+`testing/index.ts`, outside `src/`. `sourceOf` replaces the first directory by `src` and
+then drops leading directories until a file exists, so it tried `src/testing/index`,
+then `src/index`, and took the root entry. The import and the call through it were stored
+against `core/src/index.ts`, which has its own `setup`.
+
+**Prior decisions.** D100 (`612f962`; `adr/proposals/graph-reference/spikes/RESULTS.md`)
+introduced the mapping from build output to source and the dropping of directories, for
+`dist/cjs/index.js` and `dist/esm/index.js` in n8n. It reads no `outDir` or `rootDir` on
+purpose. Nothing recorded limits which directories may be dropped.
+
+**Spike** (`spikes/d119/subpath-drops.mjs`, a replay of `sourceOf`'s search over every
+`exports` subpath of every `package.json`; read-only). Ten repositories, 1,240 subpath
+targets that are not already a TypeScript source and are not patterns:
+
+| | Targets |
+|---|---|
+| No source found under `src/` | 343 |
+| Found by replacing the first directory | 847 |
+| Found after dropping more than one directory | 50 |
+| ...of which the dropped directories are the directory of one of the package's root entries | 50 |
+| ...of which the file found is the package's `src/index` | 0 |
+
+The 50 are `dist/esm` (22) and `dist/cjs` (11) in n8n, and `build/src` (9), `build/esm`
+(4) and `build/esnext` (4) in opentelemetry-js. backstage, directus, langchainjs and
+strapi have subpaths and none that drops more than one directory; cdk8s, nest, pulumi and
+vscode have no subpath of the kind. So no package in the ten shows the defect as a wrong
+answer. One in n8n has its shape and is saved by having no `src/index.ts`:
+`@n8n/n8n-nodes-langchain` `./mcp/core` to `./dist/nodes/mcp/McpTrigger/index.js`.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| R1 | A subpath may not lose a directory its own key names (`./testing`) | **Reject.** Leaves `./testing` to `dist/test-utils/index.js` wrong |
+| R2 | A subpath may not resolve to the root entry's source | **Reject.** Guards the one landing place; `./a` to `dist/x/y.js` with a `src/y.ts` is the same defect |
+| R3 | A closed list of format directory names (`cjs`, `esm`, ...) | **Reject.** The list is what the ten repositories happen to use |
+| R4 | For a subpath, more than the first directory is dropped only when what is dropped is the directory of one of the package's root entries | **Built.** Keeps all 897 targets the spike finds a source for |
+| R5 | Read `outDir` and `rootDir` from the build's tsconfig | **Reserve.** D100 declined it; nothing measured here asks for it |
+
+Root entries are resolved as before: the rule is for subpaths only, since a root entry's
+directory is by definition one of the directories the rule allows.
+
+**Measured** (`spikes/d119/`, against the D118 build):
+
+- Shapes corpus: the wrong import row and the wrong edge are gone and the ones the
+  reference has are stored (import: 1 `wrong -> absent`, 1 `lacks -> agree`; call edge the
+  same). `compare` exits 0.
+- n8n: 51,963 import rows before and after, 8,095 unresolved both times, no row differs
+  (`n8n-import-diff.txt`). 71,112 edges before and after, none gone, none added.
+- `mast`, `n8n-core`, `n8n-cli`: `compare` exits 0.
+
+**Judgment calls.**
+
+- A subpath whose target has no source now falls to `<packageDir>/<sub>` and
+  `<packageDir>/src/<sub>`, and failing those the import is stored as external with no
+  path, as any unresolved workspace import was before.
+- The right file for the fixture is `testing/index.ts` because the fallback finds a
+  directory of the subpath's name at the package root. A package whose `./testing` is
+  built from somewhere else gets no path, not that one.
+
+**Not checked:** `exports` patterns (`./*`), which are still not read; a package whose root
+entry is built into a directory its subpaths are not (`dist/index.js` beside
+`dist/esm/sub.js`): the subpath would lose its edge, and none of the ten repositories
+has one; npm and yarn workspaces.
+
+**Tests.** `src/indexer/__tests__/import-resolver.test.ts`, three cases under "a workspace
+package whose entry points are build output": two failing before the change (both
+resolved to `src/index.ts`), one pinning a subpath built into the root entry's format
+directory.
