@@ -87,13 +87,13 @@ export function fixed(): void { go(); }
     ]);
   });
 
-  it('store nothing for a name the function declares a second time', async () => {
+  it('reach the module from the block that imports it, and from no other block that declares the name', async () => {
     writeFiles(dir, {
       'src/a-lib.ts': LIB_SRC,
       'src/z-consumer.ts': `export async function f(flag: boolean): Promise<void> {
   if (flag) {
     const { go } = await import('./a-lib.js');
-    void go;
+    go();
   } else {
     const go = (): void => {};
     go();
@@ -102,8 +102,8 @@ export function fixed(): void { go(); }
 `,
     });
 
-    // Which `go` a call means is decided per function, so two of them decide nothing.
-    await expectEdges(dir, [LIB_OWN_EDGE]);
+    // Each call is read by the declaration its own block sees (D117).
+    await expectEdges(dir, [LIB_OWN_EDGE, 'POTENTIAL_CALL src/z-consumer.ts:f -> src/a-lib.ts:go']);
   });
 
   it('store nothing when the import is not awaited', async () => {

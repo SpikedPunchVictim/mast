@@ -52,7 +52,7 @@ commit that files it. The directory is left out of this repository's own index
 |---|---|
 | `property-override` | D115 |
 | `new-binding` | D116 |
-| `dynamic-import-block` | D117 |
+| `dynamic-import-block` | D117 (`user.ts`); D143, a scorecard defect, and D144 (`held.ts`, `arrow.ts`) |
 | `static-instance` | D118 |
 | `app`, `core`, `ui` | D119 |
 | `barrel-private` | D120 |

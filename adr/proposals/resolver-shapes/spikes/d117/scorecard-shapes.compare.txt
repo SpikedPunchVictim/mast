@@ -1,0 +1,75 @@
+before: eval-suite/baselines/shapes.json
+after:  <tmp>/sc-d117c/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 2         3         2         0         0         0         1
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              26        30        26         0         0         0         4
+edge: POTENTIAL_CALL                         48        45        27        10        11         0         8
+                                              .        -1        +2        -1        -1         .        -2
+edge: RE_EXPORTS (to the declaration)         2         1         1         0         1         0         0
+export * (file to file)                       1         1         1         0         0         0         0
+file: indexed                                33        33        33         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+import: named binding                        30        30        30         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+import: the file it resolves to              21        20        19         1         1         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol flag: is_exported                     95        95        95         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: class                                19        19        19         0         0         0         0
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             45        45        45         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: interface                             2         2         2         0         0         0         0
+symbol: method                               30        30        30         0         0         0         0
+symbol: one key, more than one row            0         4         0         0         0         0         4
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (1)
+    packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go
+  edge: POTENTIAL_CALL: lacks -> agree (1)
+    packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run
+  edge: POTENTIAL_CALL: unjudged -> absent (2)
+    packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:Repo.find
+    packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find
+  edge: POTENTIAL_CALL: wrong -> absent (1)
+    packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/remote.ts:run
+  file: indexed: absent -> agree (2)
+    packages/dynamic-import-block/src/arrow.ts
+    packages/dynamic-import-block/src/held.ts
+  import: named binding: absent -> agree (2)
+    packages/dynamic-import-block/src/held.ts { go } from './arrow'
+    packages/dynamic-import-block/src/held.ts { named } from './arrow'
+  import: the file it resolves to: absent -> agree (1)
+    packages/dynamic-import-block/src/held.ts './arrow' => packages/dynamic-import-block/src/arrow.ts
+  symbol flag: is_exported: absent -> agree (2)
+    packages/dynamic-import-block/src/arrow.ts:go exported=true
+    packages/dynamic-import-block/src/held.ts:viaArrow exported=true
+  symbol: function: absent -> agree (2)
+    packages/dynamic-import-block/src/arrow.ts:go
+    packages/dynamic-import-block/src/held.ts:viaArrow
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            10        12         9         1         0         0         2
+call edge, stored as import                  14        15         9         5         0         0         1
+                                             +1        +1        +2        -1         .         .         .
+call edge, stored as new_expression           2         2         2         0         0         0         0
+                                              .        -2         .         .         .         .        -2
+call edge, stored as parameter_type           4         4         2         2         0         0         0
+call edge, stored as same_file                2         4         2         0         0         0         2
+call edge, stored as static_method            2         3         1         1         0         0         1
+call edge, stored as this_method              3         5         2         1         0         0         2
+call written as f(), other file              15        10         9         0         6         0         1
+                                             +1        +2        +2         .        -1         .         .
+call written as f(), same file                2         4         2         0         0         0         2
+call written as ident.m(), other file         4         4         3         0         1         0         1
+call written as ident.m(), same file          4         2         2         0         2         0         0
+call written as new X(), other file           9         8         8         0         1         0         0
+call written as new X(), same file            1         3         1         0         0         0         2
+call written as this.m(), same file           3         4         2         0         1         0         2

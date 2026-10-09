@@ -2345,9 +2345,11 @@ Which declaration a receiver is read by is decided per block, as the language de
 nested function around the call (a `var` counts for the whole function that declares it).
 When that is `const r = new Repo()` the call is `Repo.find`; when it is anything else,
 there is no edge, whatever a parameter or another block of the function calls `r` (D116).
-Whether a bare name is hidden from the file's imports and top-level symbols is still held
-per function, not per block: a name declared anywhere in a function counts for the whole
-of it, so a bare call written outside the block that declares the name loses its edge.
+A bare name is read the same way (D117): `run()` is the import or top-level symbol `run`
+unless a declaration of `run` is in sight of the call, so a call written outside the block
+that declares the name keeps its edge. The class in `const r = new Repo()` is `Repo` as
+that `new` reads it: when a local or a parameter in sight has the name, `r` has no class
+(D123). The order of statements inside one block is not looked at.
 
 **What the resolver does NOT catch (will NOT produce a `POTENTIAL_CALL` edge — but
 the identifier match still lands in `identifier_fts` and surfaces as
@@ -2376,14 +2378,15 @@ the identifier match still lands in `identifier_fts` and surfaces as
 - **Default and namespace imports.** `import Repo from './repo'` and `import * as lib
   from './lib'; lib.Repo.create()` — only named imports are tracked.
 - **A dynamic import that is not destructured where it is awaited.** `const { Agent } =
-  await import('./agents'); new Agent()` is caught: inside that function `Agent` is the
+  await import('./agents'); new Agent()` is caught: in sight of that declaration `Agent` is the
   name `./agents` exports, whatever the file imports statically under the same name, and
   the file has an import row for `./agents`. Not caught: `const lib = await
   import('./agents'); new lib.Agent()`, `import('./agents').then(...)`, a specifier that
-  is not a string literal, a destructuring inside a nested function (it binds there, and
-  only the outer function's own are read), and a name the function declares twice. n8n
-  `packages/cli` had lost 19 right edges to such locals (7 when locals began to hide, 12
-  with D106); binding them stored 61 edges there, all 61 agreeing with the compiler.
+  is not a string literal. The destructured name is a declaration of its block like any
+  other, so it is read from a nested function and beside another block that declares the
+  name (D117). n8n `packages/cli` had lost 19 right edges to such locals (7 when locals
+  began to hide, 12 with D106); binding them per function stored 61 edges there, and
+  reading them per block 17 more, all agreeing with the compiler.
 
 The union, element and default-or-namespace cases were each run on a scratch
 project on 2026-10-07 and stored no edge. What

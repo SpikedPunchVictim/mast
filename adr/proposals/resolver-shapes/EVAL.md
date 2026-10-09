@@ -26,3 +26,14 @@ rows; a fix shows there as `wrong -> agree` or `wrong -> absent`.
 |---|---|
 | `n8n-edges-vs-d115.json` | n8n edges of the D116 build against those of the D115 build, by the same `edge-diff.py` |
 | `scorecard-*.compare.txt` | `compare` of each baseline (as of the D115 commit) with the D116 build |
+
+## D117 and D123 (`spikes/d117/`)
+
+| File | What it is |
+|---|---|
+| `n8n-edges-vs-d116.json` | n8n edges of the D117 build against those of the D116 build, by the same `edge-diff.py` |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D116 commit) with the D117 build, scored after the D143 fix |
+| `scorecard-n8n-cli.before-d143.compare.txt` | The same for `n8n-cli` before the scorecard fix: exit 1, one right edge counted `wrong` |
+
+The shapes corpus gained `dynamic-import-block/src/arrow.ts` and `held.ts` for D143; they
+are in `baselines/shapes.json` from this commit.

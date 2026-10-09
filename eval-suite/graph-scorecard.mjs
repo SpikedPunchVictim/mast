@@ -301,7 +301,12 @@ function runScore({ flags }) {
   function heldBy(call) {
     const signature = checker.getResolvedSignature(call);
     if (signature === undefined) return [];
-    const declared = signature.declaration;
+    const written = signature.declaration;
+    // `export const f = () => {}`: the signature is the arrow's, and the symbol mast has
+    // is the variable it initializes.
+    const isInitializer = written !== undefined && (ts.isArrowFunction(written) || ts.isFunctionExpression(written)) &&
+      ts.isVariableDeclaration(written.parent) && written.parent.initializer === written;
+    const declared = isInitializer ? written.parent : written;
     const ofAClass = declared === undefined || ts.isConstructorDeclaration(declared);
     if (!ts.isNewExpression(call) || !ofAClass) return declared ? [declared] : [];
     const classes = (checker.getReturnTypeOfSignature(signature).getSymbol()?.declarations ?? []).filter(ts.isClassDeclaration);

@@ -1,0 +1,107 @@
+before: eval-suite/baselines/mast.json
+after:  <tmp>/sc-d117c/mast.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 7         7         7         0         0         0         0
+edge: IMPLEMENTS                              7         7         7         0         0         0         0
+edge: PARENT_OF                              51        51        51         0         0         0         0
+edge: POTENTIAL_CALL                        905       877       877         0        28         0         0
+                                             -5        -3        -3         .        -2         .         .
+edge: RE_EXPORTS (to the declaration)        17        17        17         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+file: indexed                                84        84        84         0         0         0         0
+import: named binding                       782       782       782         0         0         0         0
+import: the file it resolves to             315       315       315         0         0         0         0
+symbol flag: is_exported                    820       820       820         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: class                                26        26        26         0         0         0         0
+symbol: export                               21        21        21         0         0         0         0
+symbol: function                            478       478       478         0         0         0         0
+                                             -1        -1        -1         .         .         .         .
+symbol: interface                           204       204       204         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+symbol: method                               51        51        51         0         0         0         0
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                 61        61        61         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (9)
+    src/ast/extractors/typescript.ts:constructionIn > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:ownParamNames
+    src/ast/extractors/typescript.ts:localDeclarations > src/ast/extractors/typescript.ts:constructionIn
+    src/ast/extractors/typescript.ts:localDeclarations > src/ast/extractors/typescript.ts:destructuredFromDynamicImport
+    src/ast/extractors/typescript.ts:ownParamNames > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:ownParamNames > src/ast/extractors/typescript.ts:paramsIn
+    src/ast/extractors/typescript.ts:resolveCallSite > src/ast/extractors/typescript.ts:resolveName
+    src/ast/extractors/typescript.ts:resolveName > src/ast/extractors/typescript.ts:visibleDeclaration
+    src/ast/extractors/typescript.ts:resolveName > src/graph/local-type-env.ts:LocalTypeEnvironment.resolveCall
+  edge: POTENTIAL_CALL: agree -> absent (14)
+    src/ast/extractors/typescript.ts:collectCallSites > src/ast/extractors/typescript.ts:declaredLocals
+    src/ast/extractors/typescript.ts:collectCallSites > src/ast/extractors/typescript.ts:paramsIn
+    src/ast/extractors/typescript.ts:constructedClass > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:declaredLocals > src/ast/extractors/typescript.ts:namesBoundBy
+    src/ast/extractors/typescript.ts:declaredLocals > src/ast/extractors/typescript.ts:nodeNamedChildren
+    src/ast/extractors/typescript.ts:declaredLocals > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:dynamicImportBindings > src/ast/extractors/typescript.ts:destructuredFromDynamicImport
+    src/ast/extractors/typescript.ts:dynamicImportBindings > src/ast/extractors/typescript.ts:namesBoundBy
+    src/ast/extractors/typescript.ts:dynamicImportBindings > src/ast/extractors/typescript.ts:nodeNamedChildren
+    src/ast/extractors/typescript.ts:dynamicImportBindings > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:dynamicImportBindings
+    src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:placedByDynamicImport
+    src/ast/extractors/typescript.ts:emitCallEdges > src/graph/local-type-env.ts:LocalTypeEnvironment.recordImport
+    src/ast/extractors/typescript.ts:localDeclarations > src/ast/extractors/typescript.ts:constructedClass
+  edge: POTENTIAL_CALL: lacks -> agree (2)
+    src/cli/hook.ts:runHookFromProcess > src/cli/prime-cmd.ts:renderPrime
+    src/cli/hook.ts:runHookFromProcess > src/cli/status.ts:buildStatus
+  symbol flag: is_exported: absent -> agree (6)
+    src/ast/extractors/typescript.ts:Construction exported=false
+    src/ast/extractors/typescript.ts:ResolvedCall exported=false
+    src/ast/extractors/typescript.ts:ScopeNames exported=false
+    src/ast/extractors/typescript.ts:constructionIn exported=false
+    src/ast/extractors/typescript.ts:ownParamNames exported=false
+    src/ast/extractors/typescript.ts:resolveName exported=false
+  symbol flag: is_exported: agree -> absent (4)
+    src/ast/extractors/typescript.ts:constructedClass exported=false
+    src/ast/extractors/typescript.ts:declaredLocals exported=false
+    src/ast/extractors/typescript.ts:dynamicImportBindings exported=false
+    src/ast/extractors/typescript.ts:placedByDynamicImport exported=false
+  symbol: function: absent -> agree (3)
+    src/ast/extractors/typescript.ts:constructionIn
+    src/ast/extractors/typescript.ts:ownParamNames
+    src/ast/extractors/typescript.ts:resolveName
+  symbol: function: agree -> absent (4)
+    src/ast/extractors/typescript.ts:constructedClass
+    src/ast/extractors/typescript.ts:declaredLocals
+    src/ast/extractors/typescript.ts:dynamicImportBindings
+    src/ast/extractors/typescript.ts:placedByDynamicImport
+  symbol: interface: absent -> agree (3)
+    src/ast/extractors/typescript.ts:Construction
+    src/ast/extractors/typescript.ts:ResolvedCall
+    src/ast/extractors/typescript.ts:ScopeNames
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            24        24        24         0         0         0         0
+call edge, stored as import                 320       320       320         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call edge, stored as new_expression           6         6         6         0         0         0         0
+                                             -1        -1        -1         .         .         .         .
+call edge, stored as parameter_type          15        15        15         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call edge, stored as same_file              503       503       503         0         0         0         0
+                                             -5        -5        -5         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              8         8         8         0         0         0         0
+call written as f(), other file             324       320       320         0         4         0         0
+                                              .        +2        +2         .        -2         .         .
+call written as f(), same file              504       503       503         0         1         0         0
+                                             -5        -5        -5         .         .         .         .
+call written as ident.m(), other file         6         6         6         0         0         0         0
+call written as ident.m(), same file         38        15        15         0        23         0         0
+call written as new X(), other file          13        13        13         0         0         0         0
+call written as new X(), same file           11        11        11         0         0         0         0
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           8         8         8         0         0         0         0

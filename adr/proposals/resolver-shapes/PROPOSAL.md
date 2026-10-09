@@ -101,7 +101,7 @@ binding places a wrong edge. Nothing found decides against reading by block.
 |---|---|---|
 | B1 | Keep a `new` binding only when the name is declared once in the function, as `dynamicImportBindings` does | **Reject.** Removes the wrong edges and the right ones with them; still wrong for a call written after the declaring block |
 | B2 | Per call, find the declaration of the receiver in the smallest block, loop, `catch` or nested function around it. A `new` gives its class; anything else gives no edge | **Built** |
-| B3 | The same lookup for bare names (`CallSite.locals`), so a call outside the declaring block keeps its import | **Reserve.** That is D117's question, and it changes which edges are dropped on purpose (D104) |
+| B3 | The same lookup for bare names (`CallSite.locals`), so a call outside the declaring block keeps its import | **Reserve** at D116; **built** with D117, below |
 
 **Measured** (`spikes/d116/`, against the D115 build):
 
@@ -131,3 +131,73 @@ index taking 81.9 s on one run against 86.4 s for D115's.
 
 **Tests.** `src/ast/extractors/__tests__/call-edges.test.ts`, "a local bound to `new X()`,
 by block (D116)": ten cases, seven of which failed before the change.
+
+## D117 and D123 — a name is read by the declaration in sight of it
+
+**The defects.** D117: a name destructured from `await import()` was recorded for the whole
+function, so a call of that name after the block went to the dynamic module, where the
+compiler has the static import. D123: the class of `const r = new Repo()` was taken from
+the text `Repo`, with no check that a local or a parameter has that name.
+
+**Prior decisions.** Checked `adr/`, `FINDINGS.md` and `.history/` by grep for "dynamic
+import" and "await import"; the hits are about import rows, and none decides scope. The
+rule in force was the one `e66e9ca` (D110) built and the spec recorded: a dynamic import's
+names are read for the outer function only, not from a nested function, and not when the
+function declares the name twice. D104 decided that a local hides the import of its name,
+per function, at the cost of a lost edge. D101 decided that `new` of a local stores
+nothing. None of the three is reversed in what it protects; the first two are narrowed
+from the function to the block.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| N1 | Keep the per-function table and drop a dynamic binding when a call of the name sits outside its block | **Reject.** Removes the wrong edge and leaves the call after the block with no edge, where the compiler has one |
+| N2 | One lookup for every name: the declaration in the smallest block, loop, `catch` or nested function around the place the name is written (D116's `visibleDeclaration`). A declaration destructured from `await import()` carries its module; any other hides the file's imports; none in sight leaves the name to the function's own parameters, then the file | **Built.** `CallSite.locals`, `declaredLocals` and `dynamicImportBindings` are removed |
+| N3 | For D123 only, ask the per-function locals whether the class name is one | **Reject.** A second table that disagrees with N2 in a function where another block declares the name |
+
+**Measured** (`spikes/d117/`, against the D116 build):
+
+- Shapes corpus: `main -> remote.ts:run` (wrong) is gone and `main -> local.ts:run` is
+  stored (`lacks -> agree`); both `Repo.find` keys of `local-shadow` go from `unjudged` to
+  absent. `compare` exits 0.
+- n8n: 71,092 edges before, 71,112 after. None gone, 20 added: 11 `import`, 5
+  `construction`, 3 `new_expression`, 1 `static_method`. All 20 are in
+  `n8n-edges-vs-d116.json`.
+- 17 of the 20 are in `packages/cli`, and the compiler has all 17 (`lacks -> agree` 16,
+  `absent -> agree` 1). The other three are in `@n8n/agents` and `@n8n/mcp-browser`, which
+  are not scored; read by me, each is a call of a name destructured from `await import()`
+  one or two lines above it (`model-token-counter.ts:9-10`, `connection.ts:209-210`,
+  `tabs.ts:98-99`).
+- Where the 20 come from, by reading the sites: a dynamic import inside a nested function
+  or callback, and a name two blocks of one function each take from a dynamic import
+  (`connection.ts:209` and `:220`). Both were left out on purpose by the earlier rule.
+  I did not class all 20 one by one.
+- `n8n-core`: no key changed. This repository: the keys that changed are calls in the
+  changed code.
+
+**A defect in the instrument, found here (D143).** The first run had `compare` exit 1 for
+`n8n-cli` with one edge newly `wrong`: `setupTestServer -> public-api/index.ts:
+loadPublicApiVersions`. The source has the edge right. The scorecard's reference had no
+key for a `const` arrow reached through a destructured name. Fixed in
+`eval-suite/graph-scorecard.mjs` and reproduced in the shapes corpus (`held.ts`, `arrow.ts`)
+before the fix. The first run's output is kept as
+`scorecard-n8n-cli.before-d143.compare.txt`.
+
+**Judgment calls.**
+
+- A name the file neither imports nor declares is still kept as the class of
+  `const r = new X()`, as before; whether `X.m` is a symbol is settled when the edge is
+  stored. Only a local or a parameter of that name removes the class.
+- Reading a dynamic import from a nested function reverses the earlier "not entered". It
+  is what N2 does with no special case, and the 17 scored edges agree.
+
+**Not checked:** statement order inside a block (a call above the `const { run } = await
+import()` of its own block is read by it); a named function expression's own name; an
+incremental run after an edit to a module that only a nested function imports dynamically
+(inferred to work, since import rows are written for every such declarator in the file and
+the existing incremental test covers the outer-function case); cost, beyond n8n's full
+index taking 73.5 s and 72.9 s on two runs.
+
+**Tests.** `call-edges.test.ts`, "a name declared in a block, read by block (D117, D123)":
+nine cases, six of which failed before the change. `dynamic-import-edges.test.ts`: the case
+that stored nothing for a name declared twice now expects the edge from the block that
+imports it.

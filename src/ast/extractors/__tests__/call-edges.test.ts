@@ -584,3 +584,82 @@ describe('extractEdges — EXTENDS', () => {
     expect(edge!.toName).toBe('Base');
   });
 });
+
+// D117, D123. A bare name, a class constructed and a name taken from a
+// dynamic import are each read by the declaration the call's block sees.
+describe('extractEdges — a name declared in a block, read by block (D117, D123)', () => {
+  const calls = (body: string): string[] =>
+    potentialCalls(edgesOf(`
+      import { run, Repo, pick } from './local';
+      ${body}
+    `)).map((e) => `${e.fromName} -> ${e.importModule ?? '.'}:${e.toName}`);
+
+  it('leaves a call after the block to the static import, when the block takes the name from a dynamic import', () => {
+    expect(calls(`
+      export async function main(flag: boolean): Promise<void> {
+        if (flag) { const { run } = await import('./remote'); void run; return; }
+        run();
+      }
+    `)).toEqual(['main -> ./local:run']);
+  });
+
+  it('places a call inside the block by the dynamic import, beside another block that declares the name', () => {
+    expect(calls(`
+      export async function main(flag: boolean): Promise<void> {
+        if (flag) { const { run } = await import('./remote'); run(); } else { const run = pick; run(); }
+      }
+    `)).toEqual(['main -> ./remote:run']);
+  });
+
+  it('leaves a call before a callback to the static import, when the callback declares the name', () => {
+    expect(calls(`
+      export function main(items: unknown[]): void {
+        run();
+        items.forEach(() => { const run = pick; run(); });
+      }
+    `)).toEqual(['main -> ./local:run']);
+  });
+
+  it('stores nothing through a static member of a name another block takes from a dynamic import', () => {
+    expect(calls(`
+      export async function main(flag: boolean): Promise<void> {
+        if (flag) { const { Other } = await import('./remote'); void Other; }
+        else { const Other = pick; Other.make(); }
+      }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing for a method on `new` of a local that has an imported class\'s name', () => {
+    expect(calls(`
+      export function f(): void { const Repo = pick(); const r = new Repo(); r.find(); }
+    `)).toEqual(['f -> ./local:pick']);
+  });
+
+  it('stores nothing for a method on `new` of a parameter that has an imported class\'s name', () => {
+    expect(calls(`
+      export function g(Repo: any): void { const r = new Repo(); r.find(); }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing for a method on `new` of a callback parameter that has an imported class\'s name', () => {
+    expect(calls(`
+      export function h(items: any[]): void { items.forEach((Repo) => { const r = new Repo(); r.find(); }); }
+    `)).toEqual([]);
+  });
+
+  it('reads `new` of the imported class in a block beside one where the name is a local', () => {
+    expect(calls(`
+      export function f(flag: boolean): void {
+        if (flag) { const Repo = pick; void Repo; } else { const r = new Repo(); r.find(); }
+      }
+    `)).toEqual(['f -> ./local:Repo', 'f -> ./local:Repo.find']);
+  });
+
+  it('places a method on `new` of a class taken from a dynamic import in that module', () => {
+    expect(calls(`
+      export async function f(): Promise<void> {
+        const { Agent } = await import('./remote'); const a = new Agent(); a.go();
+      }
+    `)).toEqual(['f -> ./remote:Agent', 'f -> ./remote:Agent.go']);
+  });
+});

@@ -1,25 +1,27 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T05:47:48.113Z",
+  "ran_at": "2026-10-09T06:29:53.856Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, d116",
+  "label": "resolver shapes, d117",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
   "config_errors": [],
   "workspace_packages_mapped_to_source": 3,
-  "scored_typescript_files": 31,
-  "tsconfig_files": 31,
-  "corpus_hash": "595f87372a5bbc1c869660be6dcc4a2959e5732e4275a3314d57929c24159d57",
-  "program_source_files": 208,
+  "scored_typescript_files": 33,
+  "tsconfig_files": 33,
+  "corpus_hash": "b0c7c32087a01be0ccc2077833ab0dd21543cd81c13aacfc188e89955cd0213d",
+  "program_source_files": 210,
   "repeated_symbol_rows": 3,
-  "wall_ms": 371,
-  "peak_rss_mb": 318
+  "wall_ms": 363,
+  "peak_rss_mb": 298
  },
  "notes": {
-  "call whose callee is not a name or a property": 2,
-  "named import with an alias": 3
+  "call through a variable, judged by its signature": 1,
+  "call whose callee is not a name or a property": 3,
+  "named import with an alias": 3,
+  "top-level variable holding a function expression": 1
  },
  "items": {
   "edge: EXTENDS": {
@@ -93,6 +95,8 @@
     "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
     "packages/constructor-callers/src/mk.ts:makeNo > packages/constructor-callers/src/cls.ts:NoCtor",
     "packages/constructor-callers/src/mk.ts:makeWith > packages/constructor-callers/src/cls.ts:WithCtor.constructor",
+    "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
     "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
@@ -115,7 +119,6 @@
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
-    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/remote.ts:run",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:K.save",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:K.make",
@@ -129,7 +132,6 @@
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:internalFmt",
     "packages/barrel-private/src/user.ts:use3 > packages/barrel-private/src/x.ts:main",
-    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
@@ -137,8 +139,6 @@
    ],
    "extra": [],
    "unjudged": [
-    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:Repo.find",
-    "packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find",
     "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
     "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make",
     "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
@@ -184,6 +184,8 @@
     "packages/core/src/client/index.ts",
     "packages/core/src/index.ts",
     "packages/core/testing/index.ts",
+    "packages/dynamic-import-block/src/arrow.ts",
+    "packages/dynamic-import-block/src/held.ts",
     "packages/dynamic-import-block/src/local.ts",
     "packages/dynamic-import-block/src/remote.ts",
     "packages/dynamic-import-block/src/user.ts",
@@ -226,6 +228,8 @@
     "packages/constructor-callers/src/cls.ts { target } from './lib'",
     "packages/constructor-callers/src/mk.ts { NoCtor } from './cls'",
     "packages/constructor-callers/src/mk.ts { WithCtor } from './cls'",
+    "packages/dynamic-import-block/src/held.ts { go } from './arrow'",
+    "packages/dynamic-import-block/src/held.ts { named } from './arrow'",
     "packages/dynamic-import-block/src/user.ts { run } from './local'",
     "packages/dynamic-import-block/src/user.ts { run } from './remote'",
     "packages/local-shadow/src/use.ts { Repo } from './repo'",
@@ -256,6 +260,7 @@
     "packages/barrel-private/src/user.ts './barrel3' => packages/barrel-private/src/barrel3.ts",
     "packages/constructor-callers/src/cls.ts './lib' => packages/constructor-callers/src/lib.ts",
     "packages/constructor-callers/src/mk.ts './cls' => packages/constructor-callers/src/cls.ts",
+    "packages/dynamic-import-block/src/held.ts './arrow' => packages/dynamic-import-block/src/arrow.ts",
     "packages/dynamic-import-block/src/user.ts './local' => packages/dynamic-import-block/src/local.ts",
     "packages/dynamic-import-block/src/user.ts './remote' => packages/dynamic-import-block/src/remote.ts",
     "packages/local-shadow/src/use.ts './repo' => packages/local-shadow/src/repo.ts",
@@ -310,6 +315,8 @@
     "packages/core/src/index.ts:helper exported=true",
     "packages/core/src/index.ts:setup exported=true",
     "packages/core/testing/index.ts:setup exported=true",
+    "packages/dynamic-import-block/src/arrow.ts:go exported=true",
+    "packages/dynamic-import-block/src/held.ts:viaArrow exported=true",
     "packages/dynamic-import-block/src/local.ts:run exported=true",
     "packages/dynamic-import-block/src/remote.ts:run exported=true",
     "packages/dynamic-import-block/src/user.ts:main exported=true",
@@ -435,6 +442,8 @@
     "packages/core/src/index.ts:helper",
     "packages/core/src/index.ts:setup",
     "packages/core/testing/index.ts:setup",
+    "packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/held.ts:viaArrow",
     "packages/dynamic-import-block/src/local.ts:run",
     "packages/dynamic-import-block/src/remote.ts:run",
     "packages/dynamic-import-block/src/user.ts:main",
@@ -564,6 +573,8 @@
     "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
     "packages/constructor-callers/src/cls.ts:NoCtor > packages/constructor-callers/src/lib.ts:target",
     "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick"
    ],
    "wrong": [
@@ -571,7 +582,6 @@
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format",
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
-    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/remote.ts:run",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:b"
    ],
    "lacks": [],
@@ -588,10 +598,7 @@
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:Repo.find",
-    "packages/local-shadow/src/use.ts:g > packages/local-shadow/src/repo.ts:Repo.find"
-   ]
+   "unjudged": []
   },
   "call edge, stored as parameter_type": {
    "agree": [
@@ -655,6 +662,8 @@
     "packages/app/src/main.ts:main > packages/ui/src/index.ts:Button",
     "packages/constructor-callers/src/cls.ts:NoCtor > packages/constructor-callers/src/lib.ts:target",
     "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
+    "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick"
    ],
    "wrong": [],
@@ -664,7 +673,6 @@
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:helper",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:internalFmt",
     "packages/barrel-private/src/user.ts:use3 > packages/barrel-private/src/x.ts:main",
-    "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a"
    ],
    "extra": [],

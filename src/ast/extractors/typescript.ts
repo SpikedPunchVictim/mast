@@ -1603,22 +1603,14 @@ function emitCallEdges(
   onCallSite?: (outcome: CallSiteOutcome) => void,
 ): void {
   const env = new LocalTypeEnvironment();
-  // Before the file's scope, so that it wins over a static import or a
-  // declaration of the same name: the first record of a name is kept.
-  const dynamicImports = dynamicImportBindings(bodyNode);
-  for (const local of dynamicImports.keys()) env.recordImport(local);
   seedFileScope(env);
   for (const b of classScopeBindings) env.recordReceiverType(b.receiver, b.type, b.resolution);
   if (paramsNode !== null) {
     for (const b of collectParamBindings(paramsNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
   }
-  const declarations = localDeclarations(bodyNode);
+  const names: ScopeNames = { declarations: localDeclarations(bodyNode), ownParams: ownParamNames(paramsNode) };
 
-  for (const found of collectCallSites(bodyNode, paramsNode)) {
-    // A local taken from a dynamic import is bound to a module, and is not hidden.
-    const site = dynamicImports.size === 0
-      ? found
-      : { ...found, locals: new Set([...found.locals].filter((name) => !dynamicImports.has(name))) };
+  for (const site of collectCallSites(bodyNode, paramsNode)) {
     const { call } = site;
     const isConstruction = nodeType(call) === 'new_expression';
     const parsed = isConstruction ? parseConstructed(call) : parseCallee(call);
@@ -1626,13 +1618,11 @@ function emitCallEdges(
       onCallSite?.('unparseable_callee');
       continue;
     }
-    const linked = resolveCallSite(env, site, parsed, declarations, dynamicImports);
+    const linked = resolveCallSite(env, site, parsed, names);
     // `new X()` is placed like a bare call of `X` (an import or a same-file
     // declaration) and stored as a construction, so the graph writer can
     // choose between the class and its constructor.
-    const resolved = linked !== null && isConstruction
-      ? { callee: linked.callee, resolution: 'construction' as const }
-      : linked;
+    const resolved = linked !== null && isConstruction ? { ...linked, resolution: 'construction' as const } : linked;
     if (resolved === null) {
       onCallSite?.(parsed.receiver === null ? 'bare_call_unresolved' : 'unresolved_receiver');
       continue;
@@ -1641,33 +1631,14 @@ function emitCallEdges(
     const line = calleeLine(call);
     edges.push({
       fromName,
-      ...placedByDynamicImport(resolved, dynamicImports),
+      toName: resolved.callee,
+      ...(resolved.importModule === undefined ? {} : { importModule: resolved.importModule }),
       edgeType: 'POTENTIAL_CALL',
       resolution: resolved.resolution,
       callLine: line,
       context: (lines[line - 1] ?? '').trim(),
     });
   }
-}
-
-/** Resolutions whose first name is a value in scope, which a local can be. A type annotation is not. */
-const VALUE_ROOTED: ReadonlySet<CallerResolution> = new Set(['import', 'construction', 'static_method', 'new_expression']);
-
-/**
- * The target of a call whose first name is a local taken from a dynamic
- * import: the name the module exports, and the module. Any other call keeps
- * its name and is placed by the file's imports afterwards (`placedByImport`).
- */
-function placedByDynamicImport(
-  resolved: { readonly callee: string; readonly resolution: CallerResolution },
-  dynamicImports: ReadonlyMap<string, ImportBinding>,
-): { toName: string; importModule?: string } {
-  const dot = resolved.callee.indexOf('.');
-  const binding = VALUE_ROOTED.has(resolved.resolution)
-    ? dynamicImports.get(dot === -1 ? resolved.callee : resolved.callee.slice(0, dot))
-    : undefined;
-  if (binding === undefined) return { toName: resolved.callee };
-  return { toName: `${binding.exported}${dot === -1 ? '' : resolved.callee.slice(dot)}`, importModule: binding.module };
 }
 
 /** `import('./x')` with a literal specifier, awaited or not; the specifier, or null. */
@@ -1702,44 +1673,6 @@ function destructuredFromDynamicImport(declarator: SyntaxNode): { local: string;
     }
   }
   return found;
-}
-
-/**
- * The locals of a function body that are taken from a dynamic import. Nested
- * functions are not entered, as `declaredLocals` does not enter them. A name
- * declared more than once in the body, nested functions included, is left
- * out: which declaration a call sees is not decided here, and no edge is
- * better than one through the wrong binding.
- */
-function dynamicImportBindings(bodyNode: SyntaxNode): Map<string, ImportBinding> {
-  const bindings = new Map<string, ImportBinding>();
-  const collect = (node: SyntaxNode): void => {
-    if (NESTED_FUNCTION_TYPES.has(nodeType(node)) || NESTED_CLASS_TYPES.has(nodeType(node))) return;
-    if (nodeType(node) === 'variable_declarator') {
-      for (const { local, binding } of destructuredFromDynamicImport(node)) bindings.set(local, binding);
-    }
-    for (const child of nodeNamedChildren(node)) collect(child);
-  };
-  collect(bodyNode);
-  if (bindings.size === 0) return bindings;
-
-  const timesDeclared = new Map<string, number>();
-  const count = (node: SyntaxNode): void => {
-    const t = nodeType(node);
-    const names: string[] = [];
-    if (NAMED_LOCAL_DECLARATION_TYPES.has(t)) {
-      const name = node.childForFieldName('name')?.text;
-      if (name !== undefined) names.push(name);
-    }
-    const bindingField = LOCAL_BINDING_FIELDS.get(t);
-    const pattern = bindingField === undefined ? null : node.childForFieldName(bindingField);
-    if (pattern !== null) names.push(...namesBoundBy(pattern));
-    for (const name of names) timesDeclared.set(name, (timesDeclared.get(name) ?? 0) + 1);
-    for (const child of nodeNamedChildren(node)) count(child);
-  };
-  count(bodyNode);
-  for (const local of [...bindings.keys()]) if (timesDeclared.get(local) !== 1) bindings.delete(local);
-  return bindings;
 }
 
 interface ReceiverBinding {
@@ -1794,8 +1727,31 @@ interface LocalDeclaration {
   readonly scope: SyntaxNode;
   /** A parameter of a function nested in the scope. `CallSite.nestedParams` holds its type. */
   readonly isNestedParam: boolean;
-  /** The class in `= new X()` when that is the whole initializer, and null for anything else. */
-  readonly constructed: string | null;
+  /** `= new X()` when that is the whole initializer, and null for anything else. */
+  readonly constructed: Construction | null;
+  /** What the name is in its module, when it is destructured from `await import()`. */
+  readonly imported: ImportBinding | null;
+}
+
+/** `new X()`: the name written, and the expression, which is where the name is read. */
+interface Construction {
+  readonly className: string;
+  readonly at: SyntaxNode;
+}
+
+/** The names a declaration's own code can declare over the file's. */
+interface ScopeNames {
+  /** Every declaration in the body, nested functions included. */
+  readonly declarations: readonly LocalDeclaration[];
+  /** The declaration's own parameters, visible in all of it. */
+  readonly ownParams: ReadonlySet<string>;
+}
+
+/** The names of a parameter list; `x => ...` hands in its one bare identifier in place of a list. */
+function ownParamNames(paramsNode: SyntaxNode | null): Set<string> {
+  if (paramsNode === null) return new Set();
+  if (nodeType(paramsNode) === 'identifier') return new Set([paramsNode.text]);
+  return new Set(paramsIn(paramsNode).keys());
 }
 
 /** The nodes that bound a `let`, a `const`, a function or a class declared directly in them. */
@@ -1809,19 +1765,30 @@ const BLOCK_SCOPE_TYPES = new Set(['statement_block', 'switch_body', 'for_statem
  */
 function localDeclarations(bodyNode: SyntaxNode): LocalDeclaration[] {
   const found: LocalDeclaration[] = [];
-  const declare = (pattern: SyntaxNode | null, scope: SyntaxNode, constructed: string | null = null): void => {
+  const declare = (
+    pattern: SyntaxNode | null,
+    scope: SyntaxNode,
+    constructed: Construction | null = null,
+    imported: ReadonlyMap<string, ImportBinding> = new Map(),
+  ): void => {
     if (pattern === null) return;
-    for (const name of namesBoundBy(pattern)) found.push({ name, scope, isNestedParam: false, constructed });
+    for (const name of namesBoundBy(pattern)) {
+      found.push({ name, scope, isNestedParam: false, constructed, imported: imported.get(name) ?? null });
+    }
   };
   const visit = (node: SyntaxNode, block: SyntaxNode, fn: SyntaxNode): void => {
     const t = nodeType(node);
-    if (NAMED_LOCAL_DECLARATION_TYPES.has(t)) declare(node.childForFieldName('name'), block);
+    if (NAMED_LOCAL_DECLARATION_TYPES.has(t)) {
+      // A class's name is a type identifier, which no binding pattern holds.
+      const name = node.childForFieldName('name')?.text;
+      if (name !== undefined) found.push({ name, scope: block, isNestedParam: false, constructed: null, imported: null });
+    }
     if (NESTED_CLASS_TYPES.has(t)) return;
 
     let innerBlock = block;
     let innerFn = fn;
     if (NESTED_FUNCTION_TYPES.has(t)) {
-      for (const name of declaredParams(node).keys()) found.push({ name, scope: node, isNestedParam: true, constructed: null });
+      for (const name of declaredParams(node).keys()) found.push({ name, scope: node, isNestedParam: true, constructed: null, imported: null });
       innerBlock = node;
       innerFn = node;
     } else if (BLOCK_SCOPE_TYPES.has(t)) {
@@ -1836,7 +1803,8 @@ function localDeclarations(bodyNode: SyntaxNode): LocalDeclaration[] {
         if (nodeType(declarator) !== 'variable_declarator') continue;
         const pattern = declarator.childForFieldName('name');
         const isOneName = pattern !== null && nodeType(pattern) === 'identifier';
-        declare(pattern, scope, isOneName ? constructedClass(declarator.childForFieldName('value')) : null);
+        const imported = new Map(destructuredFromDynamicImport(declarator).map(({ local, binding }) => [local, binding]));
+        declare(pattern, scope, isOneName ? constructionIn(declarator.childForFieldName('value')) : null, imported);
       }
     }
     for (const child of nodeNamedChildren(node)) visit(child, innerBlock, innerFn);
@@ -1845,18 +1813,18 @@ function localDeclarations(bodyNode: SyntaxNode): LocalDeclaration[] {
   return found;
 }
 
-/** `X` in `new X()`, or null for any other expression and for `new a.B()`. */
-function constructedClass(value: SyntaxNode | null): string | null {
+/** `new X()` as a construction, or null for any other expression and for `new a.B()`. */
+function constructionIn(value: SyntaxNode | null): Construction | null {
   if (value === null || nodeType(value) !== 'new_expression') return null;
   const ctor = value.childForFieldName('constructor') ?? value.namedChildren[0] ?? null;
-  return ctor !== null && nodeType(ctor) === 'identifier' ? ctor.text : null;
+  return ctor !== null && nodeType(ctor) === 'identifier' ? { className: ctor.text, at: value } : null;
 }
 
 /**
  * The declaration of `name` that code at `at` sees: the one whose scope is
  * the smallest around `at`. Null when none of them is around it. Two in one
  * scope that disagree (`var` written twice) are read as a name of no known
- * class.
+ * class and no module.
  */
 function visibleDeclaration(declarations: readonly LocalDeclaration[], name: string, at: SyntaxNode): LocalDeclaration | null {
   const around = declarations.filter(
@@ -1867,7 +1835,13 @@ function visibleDeclaration(declarations: readonly LocalDeclaration[], name: str
   const nearest = around.filter((declaration) => sizeOf(declaration) === smallest);
   const first = nearest[0];
   if (first === undefined) return null;
-  return nearest.every((declaration) => declaration.constructed === first.constructed) ? first : { ...first, constructed: null };
+  const agree = nearest.every(
+    (declaration) =>
+      declaration.constructed?.className === first.constructed?.className &&
+      declaration.imported?.module === first.imported?.module &&
+      declaration.imported?.exported === first.imported?.exported,
+  );
+  return agree ? first : { ...first, constructed: null, imported: null };
 }
 
 /** A call found in a scope, with what the functions nested around it change. */
@@ -1886,17 +1860,6 @@ interface CallSite {
    * any import or top-level symbol of the same name.
    */
   readonly nestedParams: ReadonlyMap<string, string | null>;
-  /**
-   * Names declared in the scope and in the nested functions around the call,
-   * other than those parameters: the scope's own parameters, variables,
-   * functions and classes declared inside. A name here is not the import or
-   * top-level symbol of the same name (D104).
-   *
-   * Held per function, not per block: a name declared anywhere in a function
-   * counts throughout it. That can drop the edge of a call written outside the
-   * block that declares the name, and cannot place one.
-   */
-  readonly locals: ReadonlySet<string>;
 }
 
 const NESTED_FUNCTION_TYPES = new Set([
@@ -1918,37 +1881,23 @@ const NESTED_CLASS_TYPES = new Set(['class_declaration', 'abstract_class_declara
  */
 function collectCallSites(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = null): CallSite[] {
   const sites: CallSite[] = [];
-  const consider = (
-    node: SyntaxNode,
-    ownThis: boolean,
-    nestedParams: ReadonlyMap<string, string | null>,
-    locals: ReadonlySet<string>,
-  ): void => {
+  const consider = (node: SyntaxNode, ownThis: boolean, nestedParams: ReadonlyMap<string, string | null>): void => {
     const t = nodeType(node);
     if (NESTED_CLASS_TYPES.has(t) || t === 'decorator') return;
 
     let innerOwnThis = ownThis;
     let innerParams = nestedParams;
-    let innerLocals = locals;
     if (NESTED_FUNCTION_TYPES.has(t)) {
       innerOwnThis = ownThis || t !== 'arrow_function';
       innerParams = new Map([...nestedParams, ...declaredParams(node)]);
-      const body = node.childForFieldName('body');
-      if (body !== null) innerLocals = new Set([...locals, ...declaredLocals(body)]);
     } else if (t === 'call_expression' || t === 'new_expression') {
-      sites.push({ call: node, ownThis, nestedParams, locals });
+      sites.push({ call: node, ownThis, nestedParams });
     }
-    for (const child of nodeNamedChildren(node)) consider(child, innerOwnThis, innerParams, innerLocals);
+    for (const child of nodeNamedChildren(node)) consider(child, innerOwnThis, innerParams);
   };
 
   const outermost: ReadonlyMap<string, string | null> = new Map();
-  const locals = new Set(declaredLocals(bodyNode));
-  if (paramsNode !== null) {
-    // `x => ...` hands in its one bare identifier in place of a list.
-    if (nodeType(paramsNode) === 'identifier') locals.add(paramsNode.text);
-    for (const name of paramsIn(paramsNode).keys()) locals.add(name);
-    consider(paramsNode, false, outermost, locals);
-  }
+  if (paramsNode !== null) consider(paramsNode, false, outermost);
   // The body is the scope itself, not something nested in it. An arrow whose
   // body is a single call hands that call in, and a field initializer can be
   // a function with parameters of its own; both are considered whole. Anything
@@ -1956,9 +1905,9 @@ function collectCallSites(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = 
   // is the whole body of an arrow is read.
   const bodyType = nodeType(bodyNode);
   if (bodyType === 'call_expression' || bodyType === 'new_expression' || NESTED_FUNCTION_TYPES.has(bodyType)) {
-    consider(bodyNode, false, outermost, locals);
+    consider(bodyNode, false, outermost);
   } else {
-    for (const child of nodeNamedChildren(bodyNode)) consider(child, false, outermost, locals);
+    for (const child of nodeNamedChildren(bodyNode)) consider(child, false, outermost);
   }
   return sites;
 }
@@ -2030,65 +1979,47 @@ function namesBoundBy(pattern: SyntaxNode): string[] {
 const NAMED_LOCAL_DECLARATION_TYPES = new Set([
   'function_declaration', 'generator_function_declaration', 'class_declaration', 'abstract_class_declaration',
 ]);
-/** Node type to the field holding the pattern it binds. */
-const LOCAL_BINDING_FIELDS: ReadonlyMap<string, string> = new Map([
-  ['variable_declarator', 'name'],
-  ['for_in_statement', 'left'],
-  ['catch_clause', 'parameter'],
-]);
-
-/**
- * The names declared in a function body: variables, loop variables, caught
- * values, and functions and classes declared inside. Stops at nested functions
- * and classes, whose own names belong to them.
- */
-function declaredLocals(body: SyntaxNode): string[] {
-  const declared: string[] = [];
-  const visit = (node: SyntaxNode): void => {
-    const t = nodeType(node);
-    if (NAMED_LOCAL_DECLARATION_TYPES.has(t)) {
-      const name = node.childForFieldName('name')?.text;
-      if (name !== undefined) declared.push(name);
-    }
-    if (NESTED_FUNCTION_TYPES.has(t) || NESTED_CLASS_TYPES.has(t)) return;
-    const bindingField = LOCAL_BINDING_FIELDS.get(t);
-    const pattern = bindingField === undefined ? null : node.childForFieldName(bindingField);
-    if (pattern !== null) declared.push(...namesBoundBy(pattern));
-    for (const child of nodeNamedChildren(node)) visit(child);
-  };
-  visit(body);
-  return declared;
+/** Where a call goes: the name, how it was read, and the module when a dynamic import names it. */
+interface ResolvedCall {
+  readonly callee: string;
+  readonly resolution: CallerResolution;
+  readonly importModule?: string;
 }
 
 /**
- * Resolve one call site, letting the functions nested around it override the
- * scope's own bindings first.
+ * Resolve one call site. A name is read by the nearest declaration around the
+ * call: one in a block or a nested function, then the scope's own parameters,
+ * then the file's imports and declarations (D104, D116, D117).
  */
 function resolveCallSite(
   env: LocalTypeEnvironment,
   site: CallSite,
   parsed: { receiver: string | null; method: string },
-  declarations: readonly LocalDeclaration[],
-  dynamicImports: ReadonlyMap<string, ImportBinding>,
-): { callee: string; resolution: CallerResolution } | null {
+  names: ScopeNames,
+): ResolvedCall | null {
   const { receiver, method } = parsed;
-  if (receiver === null) {
-    // Calling a nested parameter (`cb()`) or a local, whatever import shares
-    // its name.
-    return site.nestedParams.has(method) || site.locals.has(method) ? null : env.resolveCall(null, method);
-  }
+  if (receiver === null) return resolveName(env, method, site.call, names);
 
   const root = receiver.split('.')[0] ?? receiver;
   if (site.ownThis && (root === 'this' || root === 'super')) return null;
-  // A local is what the declaration the call sees made it: an instance of the
-  // class it was constructed from, or nothing this resolver can name. Asked
-  // per call, because two blocks of one function can each declare the name
-  // (D116). A local taken from a dynamic import is placed by its module below.
-  const declared = visibleDeclaration(declarations, root, site.call);
-  if (declared !== null && !declared.isNestedParam && !dynamicImports.has(root)) {
-    return declared.constructed !== null && receiver === root
-      ? { callee: `${declared.constructed}.${method}`, resolution: 'new_expression' }
-      : null;
+  const declared = visibleDeclaration(names.declarations, root, site.call);
+  if (declared !== null && !declared.isNestedParam) {
+    if (receiver !== root) return null;
+    // A local is what its declaration made it: a name of a module, an instance
+    // of the class it was constructed from, or nothing this resolver can name.
+    if (declared.imported !== null) {
+      return { callee: `${declared.imported.exported}.${method}`, resolution: 'static_method', importModule: declared.imported.module };
+    }
+    if (declared.constructed === null) return null;
+    // The class is the name as the `new` reads it, which a local or a
+    // parameter can be (D123). A name the file does not know is kept: whether
+    // it is a class is settled when the edge is stored.
+    const { className, at } = declared.constructed;
+    const classDeclared = visibleDeclaration(names.declarations, className, at);
+    if (classDeclared !== null && classDeclared.imported !== null) {
+      return { callee: `${classDeclared.imported.exported}.${method}`, resolution: 'new_expression', importModule: classDeclared.imported.module };
+    }
+    return classDeclared !== null || names.ownParams.has(className) ? null : { callee: `${className}.${method}`, resolution: 'new_expression' };
   }
   if (site.nestedParams.has(root)) {
     const type = site.nestedParams.get(root) ?? null;
@@ -2099,8 +2030,24 @@ function resolveCallSite(
   const resolved = env.resolveCall(receiver, method);
   // The scope's own parameter has the type it is annotated with. With none,
   // it is not the class of the same name.
-  if (resolved?.resolution === 'static_method' && site.locals.has(root)) return null;
+  if (resolved?.resolution === 'static_method' && names.ownParams.has(root)) return null;
   return resolved;
+}
+
+/**
+ * What a bare name is where it is written at `at`: a name of the module a
+ * dynamic import in sight took it from, or an import or declaration of the
+ * file. Null for any other local and for a parameter, whatever import shares
+ * the name.
+ */
+function resolveName(env: LocalTypeEnvironment, name: string, at: SyntaxNode, names: ScopeNames): ResolvedCall | null {
+  const declared = visibleDeclaration(names.declarations, name, at);
+  if (declared !== null) {
+    return declared.imported === null
+      ? null
+      : { callee: declared.imported.exported, resolution: 'import', importModule: declared.imported.module };
+  }
+  return names.ownParams.has(name) ? null : env.resolveCall(null, name);
 }
 
 /** The class a `new` expression names, as a bare callee, or null for `new a.B()` and the like. */

@@ -1,0 +1,234 @@
+{
+ "old_edges": 71092,
+ "new_edges": 71112,
+ "gone": [],
+ "added": [
+  [
+   "packages/@n8n/agents/src/runtime/model/model-token-counter.ts",
+   "createTokenCounter",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/@n8n/ai-utilities/src/utils/tokenizer/tiktoken.ts",
+   "getEncoding",
+   "function",
+   10,
+   "const encoder = await getEncoding(encoding);"
+  ],
+  [
+   "packages/@n8n/mcp-browser/src/connection.ts",
+   "BrowserConnection.createAdapter",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/mcp-browser/src/adapters/playwright.ts",
+   "PlaywrightAdapter.constructor",
+   "method",
+   210,
+   "return new PlaywrightAdapter(this.config, {"
+  ],
+  [
+   "packages/@n8n/mcp-browser/src/tools/tabs.ts",
+   "tabFocus",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/mcp-browser/src/errors.ts",
+   "PageNotFoundError.constructor",
+   "method",
+   99,
+   "throw new PageNotFoundError(input.pageId);"
+  ],
+  [
+   "packages/cli/src/modules/agents/agent-runtime-reconstruction.service.ts",
+   "AgentRuntimeReconstructionService.makeToolResolver",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/cli/src/modules/agents/tools/node-tool-factory.ts",
+   "resolveNodeTool",
+   "function",
+   533,
+   "return await resolveNodeTool(ref, {"
+  ],
+  [
+   "packages/cli/src/modules/agents/agent-runtime-reconstruction.service.ts",
+   "AgentRuntimeReconstructionService.makeToolResolver",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/cli/src/modules/agents/tools/workflow-tool-factory.ts",
+   "resolveWorkflowTool",
+   "function",
+   521,
+   "return await resolveWorkflowTool(ref, {"
+  ],
+  [
+   "packages/cli/src/modules/agents/json-config/from-json-config.ts",
+   "buildFallbackWebSearchTool",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/@n8n/ai-utilities/src/web-search/brave-search.ts",
+   "braveSearch",
+   "function",
+   342,
+   "return await braveSearch(credential.apiKey, args.query, {"
+  ],
+  [
+   "packages/cli/src/modules/agents/json-config/from-json-config.ts",
+   "buildFallbackWebSearchTool",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/@n8n/ai-utilities/src/web-search/searxng-search.ts",
+   "searxngSearch",
+   "function",
+   352,
+   "return await searxngSearch("
+  ],
+  [
+   "packages/cli/src/modules/instance-ai/instance-ai.adapter.service.ts",
+   "InstanceAiAdapterService.createCredentialAdapter",
+   "POTENTIAL_CALL",
+   "static_method",
+   "packages/cli/src/oauth/oauth.service.ts",
+   "OauthService.extractAccountIdentifier",
+   "method",
+   1875,
+   "const identifier = OauthService.extractAccountIdentifier("
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/create-workflow-from-code.tool.ts",
+   "createCreateWorkflowFromCodeTool",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/handlers/parse-validate-handler.ts",
+   "ParseValidateHandler.constructor",
+   "method",
+   267,
+   "const handler = new ParseValidateHandler({"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/create-workflow-from-code.tool.ts",
+   "createCreateWorkflowFromCodeTool",
+   "POTENTIAL_CALL",
+   "new_expression",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/handlers/parse-validate-handler.ts",
+   "ParseValidateHandler.parseAndValidate",
+   "method",
+   272,
+   "const result = await handler.parseAndValidate(strippedCode);"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/create-workflow-from-code.tool.ts",
+   "createCreateWorkflowFromCodeTool",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/utils/extract-code.ts",
+   "stripImportStatements",
+   "function",
+   271,
+   "const strippedCode = stripImportStatements(code);"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/update-workflow.tool.ts",
+   "createUpdateWorkflowTool",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/handlers/parse-validate-handler.ts",
+   "ParseValidateHandler.constructor",
+   "method",
+   928,
+   "const validator = new ParseValidateHandler({"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/update-workflow.tool.ts",
+   "createUpdateWorkflowTool",
+   "POTENTIAL_CALL",
+   "new_expression",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/handlers/parse-validate-handler.ts",
+   "ParseValidateHandler.validateJSON",
+   "method",
+   932,
+   "const postUpdateWarnings = validator.validateJSON({"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/update-workflow.tool.ts",
+   "createUpdateWorkflowTool",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/state/warning-tracker.ts",
+   "getWarningKey",
+   "function",
+   961,
+   "preUpdateKeys.has(getWarningKey(warning))"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/validate-node.tool.ts",
+   "createValidateNodeTool",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/@n8n/workflow-sdk/src/validation/node-parameter-schema/schema-validator.ts",
+   "validateNodeConfig",
+   "function",
+   109,
+   "const result = validateNodeConfig("
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/validate-workflow-code.tool.ts",
+   "createValidateWorkflowCodeTool",
+   "POTENTIAL_CALL",
+   "construction",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/handlers/parse-validate-handler.ts",
+   "ParseValidateHandler.constructor",
+   "method",
+   134,
+   "const handler = new ParseValidateHandler({"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/validate-workflow-code.tool.ts",
+   "createValidateWorkflowCodeTool",
+   "POTENTIAL_CALL",
+   "new_expression",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/handlers/parse-validate-handler.ts",
+   "ParseValidateHandler.parseAndValidate",
+   "method",
+   139,
+   "const result = await handler.parseAndValidate(strippedCode);"
+  ],
+  [
+   "packages/cli/src/modules/mcp/tools/workflow-builder/validate-workflow-code.tool.ts",
+   "createValidateWorkflowCodeTool",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/utils/extract-code.ts",
+   "stripImportStatements",
+   "function",
+   138,
+   "const strippedCode = stripImportStatements(code);"
+  ],
+  [
+   "packages/cli/test/integration/shared/utils/test-server.ts",
+   "setupTestServer",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/cli/src/modules/sso-saml/saml-helpers.ts",
+   "setSamlLoginEnabled",
+   "function",
+   254,
+   "await setSamlLoginEnabled(true);"
+  ],
+  [
+   "packages/cli/test/integration/shared/utils/test-server.ts",
+   "setupTestServer",
+   "POTENTIAL_CALL",
+   "import",
+   "packages/cli/src/public-api/index.ts",
+   "loadPublicApiVersions",
+   "function",
+   164,
+   "const { apiRouters } = await loadPublicApiVersions(PUBLIC_API_REST_PATH_SEGMENT);"
+  ]
+ ],
+ "gone_by_resolution": {},
+ "added_by_resolution": {
+  "import": 11,
+  "construction": 5,
+  "static_method": 1,
+  "new_expression": 3
+ }
+}
