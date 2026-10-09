@@ -222,7 +222,7 @@ row.
 | S1 | A second name form for statics (`Class.static.name` or the like) | **Reject.** The name is what `mast_search`, `mast_signature` and `mast_callers` are asked with |
 | S2 | List a class's static method names on the class row, beside its fields | **Reject.** A class that declares a static and an instance method of one name has two rows of that name, and a list on the class cannot say which row is which (4 such names in n8n) |
 | S3 | `symbols.is_static` on the method's row. Each lookup of `Class.member` for a call is kept to one side: statics for `X.m()` and for `this`/`super` in a static method, instance methods for everything else. The extractor marks a `this`/`super` call written in a static method (`EdgeRecord.inStaticMethod`) | **Built** |
-| S4 | Add the flag to what incremental edge repair compares, as D115 did for fields | **Reserve.** The scenario written for it passes without it: a method that changes side has a changed declaration hash, its file's rows are rewritten, and the classes at or below it are resolved again. Why that suffices was read from the probe's result, not traced |
+| S4 | Add the flag to what incremental edge repair compares, as D115 did for fields | **Built, after first being held in reserve wrongly (D145).** The first scenario written for it passed without it, and I took that as showing repair needed nothing. It passed because its caller is typed as a subclass declared in another file: rewriting the class's file removes the subclass's `EXTENDS` edge, the subclass counts as one whose parents changed, and its importers are resolved again (with `classesWithChangedParents` made to return nothing the scenario fails). A caller on the class itself has no such path: three scenarios without a class between fail on `1260a97` and pass with the flag in the surface |
 
 **Measured** (`spikes/d118/`, against the D117 build):
 
@@ -248,6 +248,10 @@ out. To be run again on a quiet machine.
 - A row written before the column existed has `NULL` and is read as an instance method, so
   an index built by an earlier commit of this branch keeps its answers for static calls
   wrong (no edge to a static) until it is rebuilt. Same position as `symbols.fields`.
+  Measured on a one-file project with the column set to `NULL` and the call edges
+  deleted: `mast index --incremental` skips the file and leaves both as they were;
+  `mast index` rewrites the file and restores the flag and the edge. `mast_reindex`
+  and the server's watcher run the incremental pass unless asked for a full one.
 - `this.x.m()` in a static method is still read through the class's field types, static
   or not.
 - An accessor (`static get x()`) is a method row with the flag like any other.
@@ -259,5 +263,5 @@ the callers of both rows, which is D121's subject).
 **Tests.** `src/indexer/__tests__/inherited-method-edges.test.ts`, "a static and an
 instance member of one name": four cases, all failing before the change. One scenario in
 `equivalence-scenarios.ts` (a static method between the receiver and the inherited one
-becomes an instance method and back), which passed before S4 was tried and is kept as a
-pin.
+becomes an instance method and back), which passes with or without S4, and three more
+with no class between the changed one and the caller, which fail without it (D145).

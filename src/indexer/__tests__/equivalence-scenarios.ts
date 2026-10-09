@@ -396,6 +396,7 @@ export const SCENARIOS: readonly Scenario[] = [
   },
   {
     // D118: the row keeps its name and kind, and the callers hold no edge into its file.
+    // They are reached through the class below, whose `EXTENDS` edge the write removes.
     name: 'a static method between the receiver and the inherited one becomes an instance method, and static again',
     files: {
       ...HIERARCHY,
@@ -404,6 +405,42 @@ export const SCENARIOS: readonly Scenario[] = [
     rounds: [
       { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  find(): void {}\n}\n` },
       { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  static find(): void {}\n}\n` },
+    ],
+  },
+  // D145: nothing extends the class, so only the changed side of the member says the callers are out of date.
+  {
+    name: 'a static method of the class a parameter is typed as becomes an instance method, and static again',
+    files: {
+      'src/h-base.ts': H_BASE,
+      'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  static find(): void {}\n}\n`,
+      'src/z-direct.ts': `import { Mid } from './h-mid.js';\nexport function use(mid: Mid): void { mid.find(); }\n`,
+    },
+    rounds: [
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  find(): void {}\n}\n` },
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  static find(): void {}\n}\n` },
+    ],
+  },
+  {
+    name: 'an instance method of the class a static call names becomes static, and instance again',
+    files: {
+      'src/h-base.ts': `export class Base {\n  static find(): void {}\n}\n`,
+      'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  find(): void {}\n}\n`,
+      'src/z-direct.ts': `import { Mid } from './h-mid.js';\nexport function use(): void { Mid.find(); }\n`,
+    },
+    rounds: [
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  static find(): void {}\n}\n` },
+      { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  find(): void {}\n}\n` },
+    ],
+  },
+  {
+    name: 'the only method of the name, on a class that extends nothing, becomes an instance method, and static again',
+    files: {
+      'src/h-mid.ts': `export class Mid {\n  static find(): void {}\n}\nexport function find(): void {}\n`,
+      'src/z-direct.ts': `import { Mid } from './h-mid.js';\nexport function use(mid: Mid): void { mid.find(); }\n`,
+    },
+    rounds: [
+      { 'src/h-mid.ts': `export class Mid {\n  find(): void {}\n}\nexport function find(): void {}\n` },
+      { 'src/h-mid.ts': `export class Mid {\n  static find(): void {}\n}\nexport function find(): void {}\n` },
     ],
   },
   {
