@@ -777,6 +777,14 @@ export async function insertEdges(db: Db, filePath: string, edges: readonly Edge
   await insertEdgesReportingUnresolved(db, filePath, edges);
 }
 
+/** A row of the file the records come from, that an edge can start at. */
+interface FromRow {
+  readonly id: number;
+  readonly name: string;
+  readonly line: number;
+  readonly kind: string;
+}
+
 /**
  * `insertEdges`, returning the records that produced no edge. The staged pass
  * (`insertGraphEdges`) needs them: a `RE_EXPORTS` record whose target is itself
@@ -799,18 +807,44 @@ async function insertEdgesReportingUnresolved(
   // what the single unbatched query would have produced. A whale file's
   // unique symbol-name list can sit close to the 32,766 parameter ceiling
   // (§ Stage 4.5 S1's class survey site 8), so this stays correct at any size.
-  const fromRows: { id: number; name: string }[] = [];
+  const fromRows: FromRow[] = [];
   for (const nameBatch of chunkValuesForSqlite(fromNames)) {
     const rows = await db
       .selectFrom('symbols as s')
       .innerJoin('files as f', 'f.id', 's.file_id')
-      .select(['s.id', 's.name'])
+      .select(['s.id', 's.name', 's.line', 's.kind'])
       .where('s.name', 'in', nameBatch)
       .where('f.path', '=', filePath)
       .execute();
     fromRows.push(...rows);
   }
-  const fromMap = new Map(fromRows.map((r) => [r.name, r.id]));
+  // A record that says which line its declaration is on is on that row and no
+  // other: two declarations in a file can have one name, and by name alone the
+  // last row read took the edges of both (D121). A `RE_EXPORTS` record has no
+  // line and is on the marker of its name, not on a private declaration of the
+  // name beside it.
+  const fromByName = new Map(fromRows.map((r) => [r.name, r]));
+  const markerByName = new Map(fromRows.filter((r) => r.kind === 'export').map((r) => [r.name, r]));
+  const fromByLine = new Map(fromRows.map((r) => [`${r.name}@${String(r.line)}`, r]));
+  //
+  // The line tells the rows of one name apart and does nothing else. A file
+  // resolved again without being written is parsed as it is on disk while its
+  // rows are as it was last written, so a line can match no row; the record is
+  // then on the row of its name when there is one, and on none when there are
+  // two.
+  const declarationsByName = new Map<string, FromRow[]>();
+  for (const r of fromRows) {
+    if (r.kind !== 'export') declarationsByName.set(r.name, [...(declarationsByName.get(r.name) ?? []), r]);
+  }
+  const fromRowOf = (e: EdgeRecord): FromRow | undefined => {
+    if (e.fromLine === undefined) {
+      return (e.edgeType === 'RE_EXPORTS' ? markerByName.get(e.fromName) : undefined) ?? fromByName.get(e.fromName);
+    }
+    const onLine = fromByLine.get(`${e.fromName}@${String(e.fromLine)}`);
+    if (onLine !== undefined) return onLine;
+    const declarations = declarationsByName.get(e.fromName) ?? [];
+    return declarations.length === 1 ? declarations[0] : undefined;
+  };
 
   // No `files` row for this file is an invariant violation (pass 1 always
   // inserts it before pass 2 runs edges). `fromMap` is empty too in that case,
@@ -834,7 +868,15 @@ async function insertEdgesReportingUnresolved(
   // (adr/proposals/incremental-graph-correctness/spikes/s6-structural-fallback).
   // Keyed by edge type as well as name: the two rules differ.
   // The module is part of the key: two imports can bind one exported name.
-  const structuralKey = (e: EdgeRecord): string => `${e.edgeType === 'PARENT_OF' ? 'member' : 'type'}::${e.toName}::${String(e.importModule)}`;
+  //
+  // A class extends a value, so the class of the name before an interface of
+  // it. `implements`, and an interface's `extends`, name a type.
+  const heritageMeaning = (e: EdgeRecord): Meaning =>
+    e.edgeType === 'EXTENDS' && fromRowOf(e)?.kind === 'class' ? 'value' : 'type';
+  const structuralKey = (e: EdgeRecord): string =>
+    e.edgeType === 'PARENT_OF'
+      ? `member::${e.toName}::${String(e.toLine)}`
+      : `${heritageMeaning(e)}::${e.toName}::${String(e.importModule)}`;
   const structuralToMap = new Map<string, number>();
   const structuralSeen = new Set<string>();
   for (const e of edges) {
@@ -843,8 +885,8 @@ async function insertEdgesReportingUnresolved(
     if (structuralSeen.has(key)) continue;
     structuralSeen.add(key);
     const targetId = e.edgeType === 'PARENT_OF'
-      ? await resolveSameFileScoped(db, fromFile.id, e.toName)
-      : await resolveQualifiedNameScoped(db, fromFile.id, importPlacerFor(imports, e.importModule), e.toName);
+      ? await resolveMemberRow(db, fromFile.id, e.toName, e.toLine)
+      : await resolveQualifiedNameScoped(db, fromFile.id, importPlacerFor(imports, e.importModule), e.toName, null, heritageMeaning(e));
     if (targetId !== null) structuralToMap.set(key, targetId);
   }
 
@@ -902,7 +944,7 @@ async function insertEdgesReportingUnresolved(
 
   const unresolved: EdgeRecord[] = [];
   const edgeValues = edges.flatMap((edge) => {
-    const from_id = fromMap.get(edge.fromName);
+    const from_id = fromRowOf(edge)?.id;
     const to_id = edge.edgeType === 'POTENTIAL_CALL'
       ? callToMap.get(callKey(edge))
       : edge.edgeType === 'RE_EXPORTS'
@@ -1207,9 +1249,10 @@ function memberSideOf(edge: EdgeRecord): MemberSide | null {
  *
  * Null, and so no edge, when a class on the way has no stored parent (a class
  * outside the index, a default import, a mixin), when the chain comes back to a
- * class it has passed, and when a class has two stored parents: a class and an
- * interface of one name are one symbol, and which parent declares the member
- * is not decided here.
+ * class it has passed, and when the row has two stored parents (an interface
+ * that extends two): which of them declares the member is not decided here. A
+ * class merged with an interface is two rows, and the class's is the one
+ * followed (D121).
  *
  * Null also when a class on the way, the receiver's included, has a field of
  * the name. A field has no symbol row and is still the nearest declaration:
@@ -1277,6 +1320,7 @@ async function resolveSameFileScoped(
   fromFileId: number,
   toName: string,
   side: MemberSide | null = null,
+  meaning: Meaning = 'value',
 ): Promise<number | null> {
   const row = await db
     .selectFrom('symbols')
@@ -1285,8 +1329,75 @@ async function resolveSameFileScoped(
     .where('file_id', '=', fromFileId)
     .where('kind', '!=', 'export')
     .$if(side !== null, (q) => q.where(IS_STATIC, '=', side === 'static' ? 1 : 0))
+    .orderBy(IS_A_TYPE, orderOf(meaning))
+    .orderBy('line', 'asc')
+    .orderBy('id', 'asc')
     .executeTakeFirst();
   return row?.id ?? null;
+}
+
+/**
+ * The row of the member `toName` of a class in `fileId`: the one on `line`
+ * when the record has a line and a row is on it, and otherwise the row of the
+ * name when there is one only (see `fromRowOf`).
+ */
+async function resolveMemberRow(db: Db, fileId: number, toName: string, line: number | undefined): Promise<number | null> {
+  const rows = await db
+    .selectFrom('symbols')
+    .select(['id', 'line'])
+    .where('name', '=', toName)
+    .where('file_id', '=', fileId)
+    .where('kind', '!=', 'export')
+    .orderBy('line', 'asc')
+    .orderBy('id', 'asc')
+    .execute();
+  const onLine = line === undefined ? undefined : rows.find((r) => r.line === line);
+  if (onLine !== undefined) return onLine.id;
+  return rows.length === 1 || line === undefined ? (rows[0]?.id ?? null) : null;
+}
+
+/**
+ * What a use of a name means. A file can declare a name twice, once as a type
+ * (an interface, a type alias) and once as a value (a class, a function): a
+ * call, `new` and a class's `extends` mean the value, `implements` and a
+ * parameter's type the type.
+ *
+ * The other row is taken when the one meant is not there. A value that is not
+ * a function or a class has no row (`export const X = lazy(...)` beside
+ * `export type X`), and the row of the name is then the type's: 27 call edges
+ * on n8n are of this kind. The compiler's target for each is the constant, of
+ * the same file and name (adr/proposals/resolver-shapes, D121).
+ */
+export type Meaning = 'value' | 'type';
+
+/** 1 on a row that is a type and not a value, 0 on any other. */
+const IS_A_TYPE = sql<number>`CASE WHEN kind IN ('interface', 'type') THEN 1 ELSE 0 END`;
+
+/** The order of `IS_A_TYPE` that puts the rows of `meaning` first. */
+function orderOf(meaning: Meaning): 'asc' | 'desc' {
+  return meaning === 'type' ? 'desc' : 'asc';
+}
+
+/**
+ * The row of `meaning` among those that share a file and a name with `id`, or
+ * `id` when it is one already or there is no other. A marker's edge is placed
+ * once, by the value, and an `implements` that comes through it means the type.
+ */
+async function rowOfMeaning(db: Db, id: number, meaning: Meaning): Promise<number> {
+  const row = await db.selectFrom('symbols').select(['file_id', 'name']).where('id', '=', id).executeTakeFirst();
+  if (row === undefined) return id;
+  const meant = await db
+    .selectFrom('symbols')
+    .select('id')
+    .where('file_id', '=', row.file_id)
+    .where('name', '=', row.name)
+    .where('kind', '!=', 'export')
+    .orderBy(IS_A_TYPE, orderOf(meaning))
+    .orderBy(sql<number>`CASE WHEN id = ${id} THEN 0 ELSE 1 END`, 'asc')
+    .orderBy('line', 'asc')
+    .orderBy('id', 'asc')
+    .executeTakeFirst();
+  return meant?.id ?? id;
 }
 
 /**
@@ -1301,6 +1412,7 @@ async function resolveQualifiedNameScoped(
   placeImport: ImportPlacer,
   toName: string,
   side: MemberSide | null = null,
+  meaning: Meaning = 'value',
 ): Promise<number | null> {
   const dot = toName.indexOf('.');
   const typeName = dot === -1 ? toName : toName.slice(0, dot);
@@ -1308,7 +1420,7 @@ async function resolveQualifiedNameScoped(
   const lookup = await placeImport(typeName);
   if (lookup !== null) {
     if (lookup.resolvedPath === null) return null; // imported but unresolved — no edge
-    return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName, side);
+    return resolveInFileOrReExportChain(db, lookup.resolvedPath, toName, side, meaning);
   }
 
   const sameFileType = await db
@@ -1319,7 +1431,7 @@ async function resolveQualifiedNameScoped(
     .where('kind', '!=', 'export')
     .executeTakeFirst();
   if (sameFileType !== undefined) {
-    return resolveSameFileScoped(db, fromFileId, toName, side);
+    return resolveSameFileScoped(db, fromFileId, toName, side, meaning);
   }
 
   // Neither an import nor a same-file declaration names `typeName` — e.g. a
@@ -1443,6 +1555,7 @@ export async function resolveInFileOrReExportChain(
   resolvedPath: string,
   toName: string,
   side: 'static' | 'instance' | null = null,
+  meaning: Meaning = 'value',
 ): Promise<number | null> {
   // The import resolver (`src/indexer/import-resolver.ts`) always returns an
   // extension-inclusive path, but prefix matching mirrors the existing
@@ -1495,6 +1608,9 @@ export async function resolveInFileOrReExportChain(
     .where('file_id', '=', targetFile.id)
     .where('kind', '!=', 'export')
     .where('is_exported', '=', 1)
+    .orderBy(IS_A_TYPE, orderOf(meaning))
+    .orderBy('line', 'asc')
+    .orderBy('id', 'asc')
     .executeTakeFirst();
   if (direct !== undefined) return direct.id;
 
@@ -1512,12 +1628,15 @@ export async function resolveInFileOrReExportChain(
   // marker ends the search here. Falling through to the star rows would, while
   // the marker's own edge is still to be written, pick up a same-named
   // declaration behind the star and record an edge to the wrong file.
-  if (marker !== undefined) return followReExportEdgeChain(db, marker.id);
+  if (marker !== undefined) {
+    const target = await followReExportEdgeChain(db, marker.id);
+    return target === null ? null : rowOfMeaning(db, target, meaning);
+  }
 
   // Star re-export: no per-symbol marker exists, only a file-level
   // `re_export_files` row (§10.3). Walk the chain forward to the file that
   // actually declares `toName` — the recursive CTE from MAST_SPEC §6.3.
-  return resolveThroughStarChain(db, targetFile.id, toName);
+  return resolveThroughStarChain(db, targetFile.id, toName, meaning);
 }
 
 /** Bounded hop count for chained named re-exports (barrel re-exporting a barrel). */
@@ -1558,7 +1677,12 @@ async function followReExportEdgeChain(db: Db, markerId: number): Promise<number
  * stars `errors/index.ts`, which re-exports each class by name — and looking
  * only for declarations found none of those names (D086).
  */
-async function resolveThroughStarChain(db: Db, startFileId: number, toName: string): Promise<number | null> {
+async function resolveThroughStarChain(
+  db: Db,
+  startFileId: number,
+  toName: string,
+  meaning: Meaning,
+): Promise<number | null> {
   const candidates = await db
     .withRecursive('re_export_chain', (qb) =>
       qb
@@ -1584,6 +1708,8 @@ async function resolveThroughStarChain(db: Db, startFileId: number, toName: stri
     // file gets a new id, so id order made an edit to one of them move every
     // importer's edge to the other (D094).
     .orderBy('f.path', 'asc')
+    .orderBy(sql<number>`CASE WHEN s.kind IN ('interface', 'type') THEN 1 ELSE 0 END`, orderOf(meaning))
+    .orderBy('s.line', 'asc')
     .orderBy('s.id', 'asc')
     .execute();
 
@@ -1592,7 +1718,7 @@ async function resolveThroughStarChain(db: Db, startFileId: number, toName: stri
 
   for (const marker of candidates) {
     const target = await followReExportEdgeChain(db, marker.id);
-    if (target !== null) return target;
+    if (target !== null) return rowOfMeaning(db, target, meaning);
   }
   return null;
 }

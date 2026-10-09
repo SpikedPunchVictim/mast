@@ -389,3 +389,124 @@ the name of an import": three cases, all failing before the change. One scenario
 `equivalence-scenarios.ts` ("a private function in a barrel, of a name its `export *`
 supplies, is exported, and made private again"), which passes before P1, fails with P1
 alone and passes with P3.
+
+
+## D121 — two declarations of one name in a file
+
+**The defect.** A symbol row was addressed by file and name everywhere, and a file can
+declare one name more than once. A record's source row was the last row of its name the
+query returned; a target was the first. So the calls in a static `make` were stored on
+the instance `make` below it, a getter's on its setter, an interface's `extends` on the
+class it merges with, and a call of `Handler` went to `type Handler` and not to
+`const Handler`. `PARENT_OF` reached the first row of a member's name only.
+`mast_callers` and `mast_rename_impact` answered for the first row of the name.
+
+**Prior decisions.** None fixes one row per name. `adr/proposals/graph-reference/PROPOSAL.md`
+lists declaration merging as an open judgment about the reference; its spike script
+treated same-named rows as one symbol at the lowest line. The inherited-call work held
+"a class and an interface of one name are one symbol with two parents" and gave no edge
+(`inherited-method-edges.test.ts`); that test's premise is changed here and said so
+below. D118 already told a static member from an instance one as a target.
+
+**How common** (`spikes/d121/census-before.*.txt`, measured on the D120 indexes):
+
+| Corpus | Declaration rows | Groups sharing a file and a name | What they are |
+|---|---|---|---|
+| this repository | 823 | 0 | |
+| shapes corpus | 100 | 5 | 2 static + instance, 1 getter + setter, 1 class + interface, 1 function + type |
+| n8n `9d9e9bf9` | 49,788 | 15 | 10 getter + setter, 4 static + instance, 1 interface + interface |
+
+No function overload has a row of its own (no `function + function` group in any).
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| R1 | Every record carries the line of the declaration it comes from, and `PARENT_OF` the line of the member; the row is the one of that name on that line | **Built.** The extractor has the node, and the symbol's line is the same node's |
+| R2 | When the line has no row of the name, the record is on the row of the name if there is one only, and on none if there are two | **Built, after first being rejected.** I had no fallback at all, on the measurement below that the lines never disagree on a full index. The review reproduced where they do: see "A file parsed again without being written" |
+| R3 | A name lookup is told what the use means, a value (call, `new`, a class's `extends`) or a type (`implements`, an interface's `extends`, a parameter's type), and takes a row of that meaning first | **Built** |
+| R4 | A call takes a value row or nothing | **Reject, measured.** 27 call edges on n8n end on a `type` row because the value beside it is `export const X = lazyClass(...)`, which has no row. The compiler's target for each is that constant, and the scorecard counts the edge as agreeing because the constant and the type share a file and a name; it compares no row there. R4 removes all 27 |
+| R5 | A `RE_EXPORTS` record is on the marker of its name | **Built** (D146, found while testing R1) |
+| R6 | A tool asked about a name answers for every row of it in the file of the first | **Built**, for verified callers and the re-exports `mast_rename_impact` lists |
+| R7 | The scorecard names an end of an edge by row where the key has more than one | **Built** (D147). It had these edges `unjudged`, and a getter and setter pair as one key |
+
+**Measured** (`spikes/d121/`, against the D120 build):
+
+- Shapes corpus, every edge by row (`edge-rows-vs-d120.shapes.txt`): 80 edge rows
+  before, 83 after. Five moved to the row they belong to (the interface's `extends`, two
+  constructions and one call out of a static `make`, `top2 -> Handler` from the type to
+  the function) and three `PARENT_OF` edges are new, to second rows that had none.
+- n8n (`edge-rows-vs-d120.n8n.txt`): 71,112 edge rows before, 71,126 after. No edge is
+  gone. Six call edges moved from a setter's row to the getter's, and I read all six
+  call lines in the source: each is inside the getter. Fourteen `PARENT_OF` edges are
+  new, one for the second row of each of the 14 method pairs.
+- So over 71,112 edges of a full index the record's line and the symbol's line never
+  disagreed.
+- Scorecard, row-aware, on the shapes index from before the fix
+  (`shapes-before-fix.row-aware-card.json`): it now reports the interface's `extends`
+  `wrong`, three `PARENT_OF` and four call edges `lacks`, `top2 > Handler@6` `wrong`,
+  and three call edges on the wrong row of `K.make` `unjudged`. On the fixed index none
+  of those remain; what is left outside `agree` is D124's two wrong edges and the two it
+  lacks, and two more `lacks` in `barrel-private` that predate this row.
+- `compare` against the baselines of the D120 commit exits 1 for `shapes` and `n8n-cli`
+  and 0 for `mast` and `n8n-core`. The failures are keys that gained a line:
+  `renamed-keys.mjs` finds 2 and 11 keys that left `agree`, each agreeing under the same
+  key with a line, and none without. The baselines are replaced in this commit.
+
+`edge-rows-vs-d120.mast.txt` is not a clean comparison: this repository's own source
+changed between the two indexes. It has no group of this kind.
+
+**Judgment calls.**
+
+- R4's rejection keeps an edge whose target row is a type when the value has no row.
+  The row is the wrong one of the two declarations and the name is right.
+- A class merged with an interface is two rows with their own parents. A call on a
+  value of the name follows the class's parent only. `inherited-method-edges.test.ts`
+  had a case expecting no edge there; it now expects the edge the class's parent gives,
+  and the no-edge case is an interface that extends two.
+- On the reference side the scorecard keeps the declarations of the meaning the use has
+  (`declsOfMeaning`) and, for a called accessor, the getter. That mirrors mast's rule
+  with the compiler's own distinction between the value and the type of a name.
+
+**Not fixed here:** `mast index --checker` picks the first row of a name for the caller
+of a call site (`src/graph/checker-resolver.ts`, `querySymbolByName(...)` destructured to
+its first element), and potential matches and checker verdicts are still asked for one
+row. Two declarations of a name on one line share a line, and the edge is on whichever
+the map kept, as before.
+
+**A file parsed again without being written.** Edge repair parses a holder for its
+records and leaves its rows as they are. I had this down as inferred and harmless. The
+review pass reproduced it as a regression, and I reproduced it again as a test: `z.ts`
+calls `leaf` and `other`; a comment line is added at the top of `z.ts` on disk; `a.ts`
+is edited and refreshed for a read (`jitRefreshFile`). With no fallback, `z.ts` lost
+both edges, the one into `o.ts` included, until its own refresh. With R2 as built the
+edges stay. A name with two rows in such a file gets no edge when the line matches
+neither, and the wrong row when the shift puts one declaration on the line the other
+had; the second is not fixed and lasts until the file's own write.
+
+**From the review pass** (a subagent briefed to break the change; each item below I
+either reproduced or mark as its reading):
+
+- The regression above. Reproduced, fixed, two cases in `same-name-rows.test.ts`.
+- Its reading, not run by either of us: `--checker` and the checker verdicts of a tool
+  answer still take one row (listed under "Not fixed here").
+- The scorecard's `lineOfDecl` differs from mast's line for `@D()` on the line above an
+  unexported class, `export` on a line of its own above `@D() class`, and `export` on a
+  line of its own above `const`. It reproduced these with a copy of the function. They
+  matter only for a key with more than one row, and show as `lacks` beside `extra`, not
+  as a false `agree`. Not fixed.
+- It found no declaration form where the record's line and the row's differ on a full
+  index (decorated classes and methods, default exports, abstract classes, overloads, a
+  400-line function, `.js` and `.tsx`), no case where preferring a meaning gives a wrong
+  edge the old code got right, and no incremental run that differs from a full one.
+  `.mjs` and `.jsx` gave it no rows and are unchecked.
+- A call on an accessor (`k.v()`) goes to the first of the getter and setter by line;
+  the reference says the getter. Not changed.
+
+**Tests.** `src/indexer/__tests__/same-name-rows.test.ts`: eleven cases on stored
+edges, each end named by line (`expectEdgeRows`), ten failing before the change; four
+on what a tool answers, three failing before; two on a file whose lines moved on disk,
+both failing with R1 alone. Three cases in
+`src/graph/__tests__/resolve-types.test.ts` for a parameter's type, all failing before.
+Two scenarios in `equivalence-scenarios.ts`; both pass before and after, because a full
+index was wrong in the same way, and they hold only that the two stay equal. The
+comparison they use now names each end of an edge by line.
+

@@ -43,7 +43,7 @@ describe('verified_callers — end to end', () => {
     const [target] = await querySymbolByName(db, 'handleLogin', 'handler.ts');
     expect(target).toBeDefined();
 
-    const callers = await queryVerifiedCallers(db, target!.id, false);
+    const callers = await queryVerifiedCallers(db, [target!.id], false);
 
     expect(callers.length).toBeGreaterThan(0);
     const caller = callers.find((c) => c.caller_symbol === 'registerRoutes');
@@ -130,8 +130,8 @@ export function registerRoutes(): void {
     expect(targetA).toBeDefined();
     expect(targetB).toBeDefined();
 
-    const callersOfA = await queryVerifiedCallers(db, targetA!.id, false);
-    const callersOfB = await queryVerifiedCallers(db, targetB!.id, false);
+    const callersOfA = await queryVerifiedCallers(db, [targetA!.id], false);
+    const callersOfB = await queryVerifiedCallers(db, [targetB!.id], false);
 
     // The import's own `resolved_path` (and, independently, the TypeScript
     // checker per the Q4b spike) both say moduleB — the edge must land there.
@@ -178,8 +178,8 @@ export function foo(): void {
     expect(decoyBar).toBeDefined();
     expect(callerBar).toBeDefined();
 
-    const callersOfCallerBar = await queryVerifiedCallers(db, callerBar!.id, false);
-    const callersOfDecoyBar = await queryVerifiedCallers(db, decoyBar!.id, false);
+    const callersOfCallerBar = await queryVerifiedCallers(db, [callerBar!.id], false);
+    const callersOfDecoyBar = await queryVerifiedCallers(db, [decoyBar!.id], false);
 
     expect(callersOfCallerBar.some((c) => c.caller_symbol === 'foo')).toBe(true);
     expect(callersOfDecoyBar.some((c) => c.caller_symbol === 'foo')).toBe(false);
@@ -236,8 +236,8 @@ export function registerRoutes(): void {
     expect(decoyTarget).toBeDefined();
     expect(realTarget).toBeDefined();
 
-    const callersOfReal = await queryVerifiedCallers(db, realTarget!.id, false);
-    const callersOfDecoy = await queryVerifiedCallers(db, decoyTarget!.id, false);
+    const callersOfReal = await queryVerifiedCallers(db, [realTarget!.id], false);
+    const callersOfDecoy = await queryVerifiedCallers(db, [decoyTarget!.id], false);
 
     expect(callersOfReal.some((c) => c.caller_symbol === 'registerRoutes')).toBe(true);
     expect(callersOfDecoy.some((c) => c.caller_symbol === 'registerRoutes')).toBe(false);
@@ -292,8 +292,8 @@ describe('verified_callers — named re-export sibling (Task 0 false-green regre
     expect(targetA).toBeDefined();
     expect(targetB).toBeDefined();
 
-    const barrelsOfA = await queryBarrelExports(db, targetA!.id, 'thing', targetA!.file_id);
-    const barrelsOfB = await queryBarrelExports(db, targetB!.id, 'thing', targetB!.file_id);
+    const barrelsOfA = await queryBarrelExports(db, [targetA!.id], 'thing', targetA!.file_id);
+    const barrelsOfB = await queryBarrelExports(db, [targetB!.id], 'thing', targetB!.file_id);
 
     // The re-export's own module specifier ('./moduleB/thing') says moduleB —
     // the edge must land there, not on the earlier-inserted decoy.
@@ -336,7 +336,7 @@ export function useExternal(): void {
     const [unrelatedTarget] = await querySymbolByName(db, 'externalHelper', 'unrelated.ts');
     expect(unrelatedTarget).toBeDefined();
 
-    const callers = await queryVerifiedCallers(db, unrelatedTarget!.id, false);
+    const callers = await queryVerifiedCallers(db, [unrelatedTarget!.id], false);
     expect(callers.some((c) => c.caller_symbol === 'useExternal')).toBe(false);
   });
 });
@@ -382,7 +382,7 @@ export function byConstruction(): void {
     const [run] = await querySymbolByName(db, 'Widget.run', 'widget.ts');
     expect(run).toBeDefined();
 
-    const callers = await queryVerifiedCallers(db, run!.id, false);
+    const callers = await queryVerifiedCallers(db, [run!.id], false);
     expect(callers.map((c) => c.caller_symbol)).toEqual([]);
   });
 });
@@ -446,7 +446,7 @@ describe('verified_callers — heuristic and checker edges coexist and dedupe', 
       .onConflict((oc) => oc.doNothing())
       .execute();
 
-    const callers = await queryVerifiedCallers(db, target!.id, false);
+    const callers = await queryVerifiedCallers(db, [target!.id], false);
     const heuristic = callers.find((c) => c.caller_symbol === 'viaImport');
     const checker = callers.find((c) => c.caller_symbol === 'viaChecker');
 
@@ -533,7 +533,7 @@ describe('verified_callers — this_method resolution scopes to the calling file
     const [target] = await querySymbolByName(db, 'Service.helper', 'service.ts');
     expect(target).toBeDefined();
 
-    const callers = await queryVerifiedCallers(db, target!.id, false);
+    const callers = await queryVerifiedCallers(db, [target!.id], false);
     const caller = callers.find((c) => c.caller_symbol === 'Service.caller');
     expect(caller).toBeDefined();
     expect(caller!.resolution).toBe('this_method');

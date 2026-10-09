@@ -134,8 +134,8 @@ describe('path-prefix matching is literal and case-sensitive', () => {
     expect(wrong).toBeDefined();
     expect(right).toBeDefined();
 
-    const callersOfWrong = await queryVerifiedCallers(db, wrong!.id, false);
-    const callersOfRight = await queryVerifiedCallers(db, right!.id, false);
+    const callersOfWrong = await queryVerifiedCallers(db, [wrong!.id], false);
+    const callersOfRight = await queryVerifiedCallers(db, [right!.id], false);
 
     expect(callersOfRight.some((c) => c.caller_symbol === 'run')).toBe(true);
     expect(callersOfWrong.some((c) => c.caller_symbol === 'run')).toBe(false);

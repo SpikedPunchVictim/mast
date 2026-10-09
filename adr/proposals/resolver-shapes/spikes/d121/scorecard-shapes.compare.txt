@@ -1,0 +1,99 @@
+before: eval-suite/baselines/shapes.json
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/sc-d121/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 3         3         3         0         0         0         0
+                                             +1         .        +1         .         .         .        -1
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              33        33        33         0         0         0         0
+                                             +7        +3        +7         .         .         .        -4
+edge: POTENTIAL_CALL                         49        46        44         2         3         0         0
+                                             +9        +1        +9         .         .         .        -8
+edge: RE_EXPORTS (to the declaration)         2         1         1         0         1         0         0
+export * (file to file)                       1         1         1         0         0         0         0
+file: indexed                                33        33        33         0         0         0         0
+import: named binding                        30        30        30         0         0         0         0
+import: the file it resolves to              20        20        20         0         0         0         0
+symbol flag: is_exported                     95        95        95         0         0         0         0
+symbol: class                                19        19        19         0         0         0         0
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             45        45        45         0         0         0         0
+symbol: interface                             2         2         2         0         0         0         0
+symbol: method                               30        30        30         0         0         0         0
+symbol: one key, more than one row            0         4         0         0         0         0         4
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: EXTENDS: absent -> agree (1)
+    packages/merged-class/src/emitter.ts:Emitter@2 > packages/merged-class/src/emitter.ts:Events
+  edge: EXTENDS: unjudged -> absent (1)
+    packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Events
+  edge: PARENT_OF: absent -> agree (8)
+    packages/merged-class/src/emitter.ts:Emitter@3 > packages/merged-class/src/emitter.ts:Emitter.constructor
+    packages/merged-class/src/emitter.ts:Emitter@3 > packages/merged-class/src/emitter.ts:Emitter.emit
+    packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.make@16
+    packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.make@17
+    packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.acc@26
+    packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.acc@27
+    packages/same-name-rows/src/a.ts:K > packages/same-name-rows/src/a.ts:K.make@3
+    packages/same-name-rows/src/a.ts:K > packages/same-name-rows/src/a.ts:K.make@4
+  edge: PARENT_OF: agree -> absent (1)
+    packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.acc
+  edge: PARENT_OF: unjudged -> absent (4)
+    packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Emitter.constructor
+    packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Emitter.emit
+    packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.make
+    packages/same-name-rows/src/a.ts:K > packages/same-name-rows/src/a.ts:K.make
+  edge: POTENTIAL_CALL: absent -> agree (10)
+    packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make@16
+    packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@16
+    packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@17
+    packages/property-override/src/child.ts:K.make@16 > packages/property-override/src/child.ts:K
+    packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc@26
+    packages/same-name-rows/src/a.ts:Handler@7 > packages/same-name-rows/src/a.ts:leaf
+    packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K
+    packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:leaf
+    packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make@3
+    packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler@7
+  edge: POTENTIAL_CALL: agree -> absent (1)
+    packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc
+  edge: POTENTIAL_CALL: unjudged -> absent (8)
+    packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make
+    packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make
+    packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K
+    packages/same-name-rows/src/a.ts:Handler > packages/same-name-rows/src/a.ts:leaf
+    packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:K
+    packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:leaf
+    packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make
+    packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler
+
+FAIL: 2 that agreed no longer do, 0 newly wrong, 0 newly unjudged or extra.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            12        12        12         0         0         0         0
+                                             +2         .        +2         .         .         .        -2
+call edge, stored as import                  15        15        13         2         0         0         0
+                                             +1         .        +1         .         .         .        -1
+call edge, stored as new_expression           2         2         2         0         0         0         0
+call edge, stored as parameter_type           4         4         4         0         0         0         0
+call edge, stored as same_file                4         4         4         0         0         0         0
+                                             +2         .        +2         .         .         .        -2
+call edge, stored as static_method            4         4         4         0         0         0         0
+                                             +2        +1        +2         .         .         .        -1
+call edge, stored as this_method              5         5         5         0         0         0         0
+                                             +2         .        +2         .         .         .        -2
+call written as f(), other file              16        13        13         0         3         0         0
+                                             +1         .        +1         .         .         .        -1
+call written as f(), same file                4         4         4         0         0         0         0
+                                             +2         .        +2         .         .         .        -2
+call written as ident.m(), other file         5         5         5         0         0         0         0
+                                             +1         .        +1         .         .         .        -1
+call written as ident.m(), same file          5         5         5         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as new X(), other file           9         9         9         0         0         0         0
+call written as new X(), same file            3         3         3         0         0         0         0
+                                             +2         .        +2         .         .         .        -2
+call written as this.m(), same file           5         5         5         0         0         0         0
+                                             +2         .        +2         .         .         .        -2

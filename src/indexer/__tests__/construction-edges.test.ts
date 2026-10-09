@@ -89,7 +89,7 @@ export function build(): Plain { return new Plain(); }
       try {
         const [target] = await querySymbolByName(db, name);
         if (target === undefined) throw new Error(`no symbol ${name}`);
-        const rows = await queryVerifiedCallers(db, target.id, transitive);
+        const rows = await queryVerifiedCallers(db, [target.id], transitive);
         return rows.map((r) => `${r.caller_symbol} [${r.resolution}]`).sort();
       } finally {
         await db.destroy();

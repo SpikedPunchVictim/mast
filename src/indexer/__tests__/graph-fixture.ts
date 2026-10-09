@@ -182,6 +182,35 @@ export async function expectStoredEdges(
   expect(dump.edges).toEqual([...expected].sort());
 }
 
+/**
+ * The stored edges of the given types with each end as `file:name@line`, after
+ * a full index. `expectEdges` names an end by file and name, which two
+ * declarations of one name in a file share (D121); the line says which row.
+ */
+export async function expectEdgeRows(
+  projectDir: string,
+  expected: readonly string[],
+  edgeTypes: readonly string[] = RESOLVED_EDGE_TYPES,
+): Promise<void> {
+  await indexFull(projectDir);
+  const db = openDatabase(configFor(projectDir).resolved_state_dir);
+  try {
+    const rows = (
+      await sql<{ t: string; line: string }>`
+        SELECT e.edge_type AS t,
+               e.edge_type || ' ' || ff.path || ':' || fs.name || '@' || fs.line ||
+               ' -> ' || tf.path || ':' || ts.name || '@' || ts.line AS line
+        FROM edges e
+        JOIN symbols fs ON fs.id = e.from_id JOIN files ff ON ff.id = fs.file_id
+        JOIN symbols ts ON ts.id = e.to_id   JOIN files tf ON tf.id = ts.file_id`.execute(db)
+    ).rows;
+    const wanted = new Set(edgeTypes);
+    expect([...new Set(rows.filter((r) => wanted.has(r.t)).map((r) => r.line))].sort()).toEqual([...expected].sort());
+  } finally {
+    await db.destroy();
+  }
+}
+
 /** Everything `dumpGraph` leaves out, for index-against-index comparison only. */
 export interface StoredRowsDump {
   /** One line per symbol row: kind, place, line, export flag, both hashes, a class's field names. */
@@ -192,7 +221,11 @@ export interface StoredRowsDump {
   readonly unresolvedStars: readonly string[];
   /** One line per chunk: place, type, names, export flag, a hash of its text. */
   readonly chunks: readonly string[];
-  /** One line per edge row, with its call line and context. Not a set: two calls are two lines. */
+  /**
+   * One line per edge row, with its call line and context, and the line of the row at each
+   * end: two declarations of one name in a file are two rows (D121). Not a set: two calls are
+   * two lines.
+   */
   readonly edgeRows: readonly string[];
   /** One line per file row: the schema version that wrote it (D142). */
   readonly fileMarks: readonly string[];
@@ -237,7 +270,8 @@ export async function dumpStoredRows(config: ResolvedConfig): Promise<StoredRows
         .map((c) => `${c.place} ${createHash('sha256').update(c.content).digest('hex').slice(0, 12)}`)
         .sort(),
       edgeRows: await lines(sql<{ line: string }>`
-        SELECT e.edge_type || ' ' || ff.path || ':' || fs.name || ' -> ' || tf.path || ':' || ts.name ||
+        SELECT e.edge_type || ' ' || ff.path || ':' || fs.name || '@' || fs.line ||
+               ' -> ' || tf.path || ':' || ts.name || '@' || ts.line ||
                ' line ' || COALESCE(e.call_line, '') || ' ' || COALESCE(e.context, '') AS line
         FROM edges e
         JOIN symbols fs ON fs.id = e.from_id JOIN files ff ON ff.id = fs.file_id

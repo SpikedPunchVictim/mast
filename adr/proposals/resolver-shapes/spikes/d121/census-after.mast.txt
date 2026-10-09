@@ -1,0 +1,6 @@
+declaration rows: 829
+groups of rows sharing a file and a name: 0
+
+each group: kind@line  calls-out calls-in parent-edges-in
+
+call edges whose target row is an interface or a type: 0

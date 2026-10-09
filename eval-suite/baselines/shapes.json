@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T08:30:31.570Z",
+  "ran_at": "2026-10-09T09:03:19.587Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, d120",
+  "label": "resolver shapes, d121",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -14,8 +14,8 @@
   "corpus_hash": "b0c7c32087a01be0ccc2077833ab0dd21543cd81c13aacfc188e89955cd0213d",
   "program_source_files": 210,
   "repeated_symbol_rows": 3,
-  "wall_ms": 1056,
-  "peak_rss_mb": 307
+  "wall_ms": 647,
+  "peak_rss_mb": 278
  },
  "notes": {
   "call through a variable, judged by its signature": 1,
@@ -26,15 +26,14 @@
  "items": {
   "edge: EXTENDS": {
    "agree": [
+    "packages/merged-class/src/emitter.ts:Emitter@2 > packages/merged-class/src/emitter.ts:Events",
     "packages/property-override/src/child.ts:Child > packages/property-override/src/base.ts:Base",
     "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:P"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Events"
-   ]
+   "unjudged": []
   },
   "edge: IMPLEMENTS": {
    "agree": [],
@@ -52,6 +51,8 @@
     "packages/constructor-callers/src/lib.ts:Gadget > packages/constructor-callers/src/lib.ts:Gadget.paint",
     "packages/constructor-callers/src/lib.ts:Widget > packages/constructor-callers/src/lib.ts:Widget.paint",
     "packages/local-shadow/src/repo.ts:Repo > packages/local-shadow/src/repo.ts:Repo.find",
+    "packages/merged-class/src/emitter.ts:Emitter@3 > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/merged-class/src/emitter.ts:Emitter@3 > packages/merged-class/src/emitter.ts:Emitter.emit",
     "packages/new-binding/src/lib.ts:A > packages/new-binding/src/lib.ts:A.run",
     "packages/new-binding/src/lib.ts:B > packages/new-binding/src/lib.ts:B.run",
     "packages/new-binding/src/lib.ts:Repo > packages/new-binding/src/lib.ts:Repo.save",
@@ -63,9 +64,14 @@
     "packages/property-override/src/child.ts:Child > packages/property-override/src/child.ts:Child.go",
     "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.create",
     "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.inst",
-    "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.make@16",
+    "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.make@17",
+    "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.acc@26",
+    "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.acc@27",
     "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.m",
     "packages/property-override/src/child.ts:Over > packages/property-override/src/child.ts:Over.use",
+    "packages/same-name-rows/src/a.ts:K > packages/same-name-rows/src/a.ts:K.make@3",
+    "packages/same-name-rows/src/a.ts:K > packages/same-name-rows/src/a.ts:K.make@4",
     "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.inst",
     "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.make",
     "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.save",
@@ -75,12 +81,7 @@
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Emitter.constructor",
-    "packages/merged-class/src/emitter.ts:Emitter > packages/merged-class/src/emitter.ts:Emitter.emit",
-    "packages/property-override/src/child.ts:K > packages/property-override/src/child.ts:K.make",
-    "packages/same-name-rows/src/a.ts:K > packages/same-name-rows/src/a.ts:K.make"
-   ]
+   "unjudged": []
   },
   "edge: POTENTIAL_CALL": {
    "agree": [
@@ -111,9 +112,18 @@
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run",
     "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo",
-    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make@16",
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@16",
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@17",
+    "packages/property-override/src/child.ts:K.make@16 > packages/property-override/src/child.ts:K",
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc@26",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
     "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
+    "packages/same-name-rows/src/a.ts:Handler@7 > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K",
+    "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make@3",
+    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler@7",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
     "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
@@ -130,16 +140,7 @@
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a"
    ],
    "extra": [],
-   "unjudged": [
-    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
-    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make",
-    "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
-    "packages/same-name-rows/src/a.ts:Handler > packages/same-name-rows/src/a.ts:leaf",
-    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:K",
-    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:leaf",
-    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make",
-    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler"
-   ]
+   "unjudged": []
   },
   "edge: RE_EXPORTS (to the declaration)": {
    "agree": [
@@ -543,15 +544,14 @@
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B",
     "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo",
+    "packages/property-override/src/child.ts:K.make@16 > packages/property-override/src/child.ts:K",
+    "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K",
     "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
-    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:K"
-   ]
+   "unjudged": []
   },
   "call edge, stored as import": {
    "agree": [
@@ -566,7 +566,8 @@
     "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
     "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
-    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick"
+    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
+    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler@7"
    ],
    "wrong": [
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/barrel2.ts:fmt2",
@@ -574,9 +575,7 @@
    ],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler"
-   ]
+   "unjudged": []
   },
   "call edge, stored as new_expression": {
    "agree": [
@@ -603,41 +602,39 @@
   "call edge, stored as same_file": {
    "agree": [
     "packages/barrel-private/src/barrel.ts:Client.send > packages/barrel-private/src/barrel.ts:format",
-    "packages/barrel-private/src/barrel.ts:format > packages/barrel-private/src/barrel.ts:helper"
+    "packages/barrel-private/src/barrel.ts:format > packages/barrel-private/src/barrel.ts:helper",
+    "packages/same-name-rows/src/a.ts:Handler@7 > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:leaf"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/same-name-rows/src/a.ts:Handler > packages/same-name-rows/src/a.ts:leaf",
-    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:leaf"
-   ]
+   "unjudged": []
   },
   "call edge, stored as static_method": {
    "agree": [
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@16",
+    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make@3",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
     "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make"
-   ]
+   "unjudged": []
   },
   "call edge, stored as this_method": {
    "agree": [
-    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make@16",
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@17",
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc@26",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
-    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make"
-   ]
+   "unjudged": []
   },
   "call written as f(), other file": {
    "agree": [
@@ -652,7 +649,8 @@
     "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
     "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
-    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick"
+    "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
+    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler@7"
    ],
    "wrong": [],
    "lacks": [
@@ -661,39 +659,36 @@
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a"
    ],
    "extra": [],
-   "unjudged": [
-    "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler"
-   ]
+   "unjudged": []
   },
   "call written as f(), same file": {
    "agree": [
     "packages/barrel-private/src/barrel.ts:Client.send > packages/barrel-private/src/barrel.ts:format",
-    "packages/barrel-private/src/barrel.ts:format > packages/barrel-private/src/barrel.ts:helper"
+    "packages/barrel-private/src/barrel.ts:format > packages/barrel-private/src/barrel.ts:helper",
+    "packages/same-name-rows/src/a.ts:Handler@7 > packages/same-name-rows/src/a.ts:leaf",
+    "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:leaf"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/same-name-rows/src/a.ts:Handler > packages/same-name-rows/src/a.ts:leaf",
-    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:leaf"
-   ]
+   "unjudged": []
   },
   "call written as ident.m(), other file": {
    "agree": [
     "packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client.send",
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
-    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run"
+    "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run",
+    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make@3"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make"
-   ]
+   "unjudged": []
   },
   "call written as ident.m(), same file": {
    "agree": [
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@16",
     "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.make",
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save",
@@ -723,29 +718,27 @@
   },
   "call written as new X(), same file": {
    "agree": [
+    "packages/property-override/src/child.ts:K.make@16 > packages/property-override/src/child.ts:K",
+    "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K",
     "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/property-override/src/child.ts:K.make > packages/property-override/src/child.ts:K",
-    "packages/same-name-rows/src/a.ts:K.make > packages/same-name-rows/src/a.ts:K"
-   ]
+   "unjudged": []
   },
   "call written as this.m(), same file": {
    "agree": [
-    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc",
+    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make@16",
+    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@17",
+    "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc@26",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
     "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save"
    ],
    "wrong": [],
    "lacks": [],
    "extra": [],
-   "unjudged": [
-    "packages/property-override/src/child.ts:K.create > packages/property-override/src/child.ts:K.make",
-    "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make"
-   ]
+   "unjudged": []
   }
  }
 }

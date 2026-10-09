@@ -10,7 +10,7 @@ import type {
 } from '../../ast/types.js';
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
-import { querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
+import { declarationsOf, querySymbolByName, queryVerifiedCallers } from '../../graph/queries.js';
 import { jitRefreshFile, collectPotentialMatches, isIndexEmpty, unindexedFilesField, pendingEdgeRepairsField } from './_helpers.js';
 
 export function registerCallersTool(server: McpServer, ctx: AppContext): void {
@@ -73,7 +73,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       // Use the first symbol (querySymbolByName orders by exported-first, then path).
       const target = symbols[0]!;
 
-      const verifiedRows = await queryVerifiedCallers(ctx.db, target.id, args.transitive ?? false);
+      const verifiedRows = await queryVerifiedCallers(ctx.db, declarationsOf(symbols).map((s) => s.id), args.transitive ?? false);
       const verified_callers: VerifiedCaller[] = verifiedRows.map((r) => ({
         file_path: r.file_path,
         line: r.line,

@@ -1,0 +1,25 @@
+declaration rows: 100
+groups of rows sharing a file and a name: 5
+     2  method+method(static)
+     1  class+interface
+     1  method+method
+     1  function+type
+
+each group: kind@line  calls-out calls-in parent-edges-in
+packages/merged-class/src/emitter.ts:Emitter
+    interface@2  out=0 in=0 parent=0
+    class@3  out=0 in=0 parent=0
+packages/property-override/src/child.ts:K.make
+    method(static)@16  out=1 in=2 parent=1
+    method@17  out=0 in=1 parent=1
+packages/property-override/src/child.ts:Over.acc
+    method@26  out=0 in=1 parent=1
+    method@27  out=0 in=0 parent=1
+packages/same-name-rows/src/a.ts:Handler
+    type@6  out=0 in=0 parent=0
+    function@7  out=1 in=1 parent=0
+packages/same-name-rows/src/a.ts:K.make
+    method(static)@3  out=2 in=1 parent=1
+    method@4  out=0 in=0 parent=1
+
+call edges whose target row is an interface or a type: 0

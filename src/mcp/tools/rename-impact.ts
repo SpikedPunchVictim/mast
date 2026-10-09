@@ -12,7 +12,7 @@ import type {
 } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
-import { querySymbolByName, queryVerifiedCallers, queryBarrelExports } from '../../graph/queries.js';
+import { declarationsOf, querySymbolByName, queryVerifiedCallers, queryBarrelExports } from '../../graph/queries.js';
 import { jitRefreshFile, collectPotentialMatches, isIndexEmpty, unindexedFilesField, pendingEdgeRepairsField } from './_helpers.js';
 
 /**
@@ -76,7 +76,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       if (target !== undefined) {
         // Direct callers only — a rename edits call sites, and every call site
         // is a direct caller; transitive callers need no edit (deliberate v1 scope).
-        const verifiedRows = await queryVerifiedCallers(ctx.db, target.id, false);
+        const verifiedRows = await queryVerifiedCallers(ctx.db, declarationsOf(symbols).map((s) => s.id), false);
         verified_callers = verifiedRows.map((r) => ({
           file_path: r.file_path,
           line: r.line,
@@ -91,7 +91,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
         checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;
         potentialTruncated = potentialResult.truncatedMatchCount;
 
-        const barrelRows = await queryBarrelExports(ctx.db, target.id, args.symbol, target.file_id);
+        const barrelRows = await queryBarrelExports(ctx.db, declarationsOf(symbols).map((s) => s.id), args.symbol, target.file_id);
         barrel_exports = barrelRows.map((b) => ({
           file_path: b.file_path,
           line: b.line,

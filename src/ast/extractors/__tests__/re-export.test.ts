@@ -122,7 +122,7 @@ describe('queryBarrelExports', () => {
 
   it('returns named and aliased barrels re-exporting the symbol', async () => {
     const [target] = await querySymbolByName(db, 'Circle');
-    const rows = await queryBarrelExports(db, target!.id, 'Circle', target!.file_id);
+    const rows = await queryBarrelExports(db, [target!.id], 'Circle', target!.file_id);
 
     const named = rows.find((r) => r.file_path === 'named-barrel.ts');
     expect(named).toMatchObject({ exported_as: 'Circle', via: 'named' });
@@ -133,7 +133,7 @@ describe('queryBarrelExports', () => {
 
   it('returns star barrels, following the re-export chain transitively', async () => {
     const [target] = await querySymbolByName(db, 'Circle');
-    const rows = await queryBarrelExports(db, target!.id, 'Circle', target!.file_id);
+    const rows = await queryBarrelExports(db, [target!.id], 'Circle', target!.file_id);
 
     const paths = rows.filter((r) => r.via === 'star').map((r) => r.file_path);
     expect(paths).toContain('star-barrel.ts');
@@ -143,7 +143,7 @@ describe('queryBarrelExports', () => {
 
   it('returns [] for a symbol nothing re-exports', async () => {
     const [target] = await querySymbolByName(db, 'Shape');
-    const rows = await queryBarrelExports(db, target!.id, 'Shape', target!.file_id);
+    const rows = await queryBarrelExports(db, [target!.id], 'Shape', target!.file_id);
     // Named barrels don't touch Shape; star barrels DO cover it (export * covers
     // every exported symbol of the target file), so only named rows are absent.
     expect(rows.every((r) => r.via === 'star')).toBe(true);

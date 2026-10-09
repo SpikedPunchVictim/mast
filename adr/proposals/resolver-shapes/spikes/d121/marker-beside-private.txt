@@ -1,0 +1,20 @@
+A re-export marker beside a private declaration of the same name (D146).
+Run 2026-10-09 with the build of commit 5484117 (D120), before any D121 change, on a
+scratch project of three files:
+
+  src/a.ts   export function fn(): number { return 1; }
+  src/x.ts   export { fn } from './a.js';
+             function fn(): number { return 2; }
+             void fn;
+  src/z.ts   import { fn } from './x.js';
+             export function use(): number { return fn(); }
+
+Every stored edge (edge_type | from file:name(kind) | to file:name):
+
+  RE_EXPORTS|src/x.ts:fn(function)|src/a.ts:fn
+
+The re-export is on the private function's row, not the marker's, and `use -> a.ts:fn`
+is not stored: the marker has no edge to follow. With the private function written
+before the `export { fn } from`, the marker is the last row of the name, takes the edge,
+and `use -> a.ts:fn` is stored. Both orders are cases of
+src/indexer/__tests__/same-name-rows.test.ts.

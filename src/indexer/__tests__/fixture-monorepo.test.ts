@@ -79,7 +79,7 @@ describe('fixture monorepo, full index', () => {
     const [target] = await querySymbolByName(db, 'createLogger', 'packages/core/src/logger.ts');
     expect(target).toBeDefined();
 
-    const callers = await queryVerifiedCallers(db, target!.id, false);
+    const callers = await queryVerifiedCallers(db, [target!.id], false);
 
     expect(callers.map((c) => `${c.file_path}:${c.caller_symbol}`)).toEqual([
       'packages/app/src/main.ts:Main.run',

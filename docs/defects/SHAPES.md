@@ -45,7 +45,7 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112, D115, D116, D117, D118, D119, D120, D121, D122, D123, D124, D127, D128, D130, D131, D132, D133, D137, D139, D142, D143, D144. **Rung**: brief — declined for promotion 2026-09-01, reason below.
+**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112, D115, D116, D117, D118, D119, D120, D121, D122, D123, D124, D127, D128, D130, D131, D132, D133, D137, D139, D142, D143, D144, D146. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever
@@ -310,7 +310,7 @@ published is precisely D014's hazard.
 
 ## S-06 — An instrument calibrated for a different decision than the one registered
 
-**Instances**: D011, D014, D015, D134, D135. **Rung**: brief.
+**Instances**: D011, D014, D015, D134, D135, D147. **Rung**: brief.
 
 Distinct from S-05: here there is only one implementation and it is internally correct — it is
 answering a different question than the one asked. D015 sized a sample for a *mean* when the
@@ -331,7 +331,7 @@ sits in the join between the instrument and the registration — a place neither
 
 ## S-07 — Absence read as evidence
 
-**Instances**: D001, D002, D010, D017, D045, D048, D049, D071, D079, D082, D084, D087, D090, D091, D092, D093, D095, D100, D102, D108, D112, D115, D119, D134, D135, D137, D145. **Rung**: brief.
+**Instances**: D001, D002, D010, D017, D045, D048, D049, D071, D079, D082, D084, D087, D090, D091, D092, D093, D095, D100, D102, D108, D112, D115, D119, D134, D135, D137, D145, D147. **Rung**: brief.
 
 The package's severity zero, generalised past code. D010 registered an experiment whose answer was
 already committed and unread for four days — "we have no result" was actually "we did not look".
@@ -396,7 +396,7 @@ itself have to admit the key) — the same rung, the same file.
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103, D105, D109, D120, D121, D124, D139, D140, D144, D145. **Rung**: brief.
+**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103, D105, D109, D120, D121, D124, D139, D140, D144, D145, D146. **Rung**: brief.
 
 The first three S0s in this ledger share it, and D047 — filed 2026-09-01, and the first slash-terminated import specifier any fixture in this package has ever contained — is the fourth. (The ledger now holds ten S0s; the six from the 2026-08-20 bug hunt have not been assessed against this shape.) D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,

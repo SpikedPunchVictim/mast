@@ -74,7 +74,7 @@ describe('mis-cased import — end to end', () => {
     const [target] = await querySymbolByName(db, 'handleLogin', 'src/Handler.ts');
     expect(target).toBeDefined();
 
-    const callers = await queryVerifiedCallers(db, target!.id, false);
+    const callers = await queryVerifiedCallers(db, [target!.id], false);
 
     if (caseInsensitive) {
       const caller = callers.find((c) => c.caller_symbol === 'registerRoutes');

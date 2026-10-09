@@ -22,7 +22,7 @@ export interface VerifiedCallerRow {
 }
 
 /**
- * Returns direct or transitive verified callers of `symbolId` using a
+ * Returns direct or transitive verified callers of `symbolIds` using a
  * recursive CTE over `POTENTIAL_CALL` edges. Only the verified set; the
  * `potential_matches` (identifier_fts) set is computed in `search/fts.ts`.
  *
@@ -32,7 +32,7 @@ export interface VerifiedCallerRow {
  */
 export async function queryVerifiedCallers(
   db: Db,
-  symbolId: number,
+  symbolIds: readonly number[],
   transitive: boolean,
 ): Promise<VerifiedCallerRow[]> {
   // `line` is the call-site line where available, falling back to the caller
@@ -42,7 +42,8 @@ export async function queryVerifiedCallers(
   const contextExpr = sql<string>`COALESCE(e.context, '')`.as('context');
   const resolutionExpr = sql<string>`COALESCE(e.resolution, 'same_file')`.as('resolution');
 
-  const targetIds = [symbolId, ...(await constructorIdsOf(db, symbolId))];
+  const targetIds = [...symbolIds];
+  for (const id of symbolIds) targetIds.push(...(await constructorIdsOf(db, id)));
 
   // Direct callers: no CTE needed — simple edge join.
   if (!transitive) {
@@ -162,6 +163,20 @@ export interface SymbolRow {
   file_path: string;
 }
 
+/**
+ * The rows a tool answers about when asked for a name: the first of `symbols`
+ * (`querySymbolByName`'s order) and every other row of the name in its file.
+ *
+ * A file can declare a name more than once (a class merged with an interface,
+ * a static and an instance method, a getter and a setter), and the question
+ * "who calls X" is about the name. Taking one row answered for whichever was
+ * declared first: nothing, for a class that follows its interface (D121).
+ */
+export function declarationsOf(symbols: readonly SymbolRow[]): readonly SymbolRow[] {
+  const first = symbols[0];
+  return first === undefined ? [] : symbols.filter((s) => s.file_id === first.file_id);
+}
+
 /** Find all symbols with the given name, optionally restricted to one file. */
 export async function querySymbolByName(
   db: Db,
@@ -209,8 +224,10 @@ export interface BarrelExportRow {
 }
 
 /**
- * Files that re-export `symbolId` and therefore need attention when it is
- * renamed (§9 mast_rename_impact):
+ * Files that re-export the name `symbolIds` are the rows of, and therefore
+ * need attention when it is renamed (§9 mast_rename_impact). More than one
+ * row when the file declares the name twice: a marker's edge is on one of them,
+ * the value's (D121).
  *
  * - **named** — RE_EXPORTS edges into the symbol; the barrel's export
  *   statement names the symbol and must be edited.
@@ -220,7 +237,7 @@ export interface BarrelExportRow {
  */
 export async function queryBarrelExports(
   db: Db,
-  symbolId: number,
+  symbolIds: readonly number[],
   symbolName: string,
   declaringFileId: number,
 ): Promise<BarrelExportRow[]> {
@@ -229,7 +246,7 @@ export async function queryBarrelExports(
     .innerJoin('symbols as s', 's.id', 'e.from_id')
     .innerJoin('files as f', 'f.id', 's.file_id')
     .select(['f.path as file_path', 's.line', 's.name'])
-    .where('e.to_id', '=', symbolId)
+    .where('e.to_id', 'in', symbolIds.length === 0 ? [-1] : [...symbolIds])
     .where('e.edge_type', '=', EdgeType.RE_EXPORTS)
     .execute();
 
@@ -472,6 +489,9 @@ async function resolveOneType(
     .where('f.path', '=', containingFilePath)
     // A marker is a name the file re-exports, not a declaration in it.
     .where('s.kind', '!=', 'export')
+    // A name can be a value as well; a parameter's type means the type (D121).
+    .orderBy(sql<number>`CASE WHEN s.kind IN ('interface', 'type') THEN 0 ELSE 1 END`, 'asc')
+    .orderBy('s.line', 'asc')
     .executeTakeFirst();
 
   if (sameFile !== undefined) {
@@ -498,7 +518,7 @@ async function resolveOneType(
     // The file the import resolves to is often a barrel, so the declaration is
     // found the way the call resolver finds it: through named re-exports and
     // `export *` rows.
-    const declarationId = await resolveInFileOrReExportChain(db, imp.resolved_path, exportedName);
+    const declarationId = await resolveInFileOrReExportChain(db, imp.resolved_path, exportedName, null, 'type');
     if (declarationId === null) return null;
     const declaration = await db
       .selectFrom('symbols as s')

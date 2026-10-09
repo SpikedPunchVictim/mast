@@ -420,6 +420,29 @@ export const SCENARIOS: readonly Scenario[] = [
       { 'src/x.ts': `function fn(): number { return 2; }\nvoid fn;\nexport * from './a-real.js';\n` },
     ],
   },
+  // D121: two rows of one name. The comparison names each end of an edge by its line as well.
+  {
+    name: 'a function of the name of a type stops being a function, and is one again',
+    files: {
+      'src/a-both.ts': `export type Handler = (x: number) => void;\nexport const Handler = (x: number): void => { void x; };\n`,
+      'src/zc.ts': `import { Handler } from './a-both.js';\nexport function top(): void { Handler(1); }\n`,
+    },
+    rounds: [
+      { 'src/a-both.ts': `export type Handler = (x: number) => void;\nexport const Handler: Handler = Object.assign((x: number): void => { void x; }, {});\n` },
+      { 'src/a-both.ts': `export type Handler = (x: number) => void;\nexport const Handler = (x: number): void => { void x; };\n` },
+    ],
+  },
+  {
+    name: 'the instance method of a static and instance pair moves above the static one, and back',
+    files: {
+      'src/a-pair.ts': `export function one(): void {}\nexport class K {\n  static make(): K { one(); return new K(); }\n  make(): void {}\n}\n`,
+      'src/zc.ts': `import { K } from './a-pair.js';\nexport function onClass(): void { K.make(); }\nexport function onValue(k: K): void { k.make(); }\n`,
+    },
+    rounds: [
+      { 'src/a-pair.ts': `export function one(): void {}\nexport class K {\n  make(): void {}\n  static make(): K { one(); return new K(); }\n}\n` },
+      { 'src/a-pair.ts': `export function one(): void {}\nexport class K {\n  static make(): K { one(); return new K(); }\n  make(): void {}\n}\n` },
+    ],
+  },
   // D145: nothing extends the class, so only the changed side of the member says the callers are out of date.
   {
     name: 'a static method of the class a parameter is typed as becomes an instance method, and static again',

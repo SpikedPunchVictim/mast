@@ -488,7 +488,7 @@ export async function runCheckerPass(
     };
 
     for (const sym of allSymbols) {
-      const verifiedRows = await queryVerifiedCallers(db, sym.id, false);
+      const verifiedRows = await queryVerifiedCallers(db, [sym.id], false);
       const verified: VerifiedCaller[] = verifiedRows.map((r) => ({
         file_path: r.file_path,
         line: r.line,

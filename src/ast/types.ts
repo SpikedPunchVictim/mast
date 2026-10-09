@@ -122,7 +122,17 @@ export interface ImportRecord {
 
 export interface EdgeRecord {
   readonly fromName: string;
+  /**
+   * The line of the declaration the record comes from, as its symbol has it.
+   * Two declarations in a file can have one name (a static and an instance
+   * member, a getter and a setter, an interface merged with a class), and the
+   * line says which of them holds the edge (D121). Absent on a `RE_EXPORTS`
+   * record, whose source is the marker of the name.
+   */
+  readonly fromLine?: number;
   readonly toName: string;
+  /** `PARENT_OF` only: the line of the member, which says which row of the name it is (D121). */
+  readonly toLine?: number;
   readonly edgeType: string;
   /** How a POTENTIAL_CALL receiver was statically linked (§10.3.1). */
   readonly resolution?: CallerResolution;

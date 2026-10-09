@@ -1,0 +1,17 @@
+old: 80 edge rows, new: 83 edge rows
+only in old: 5, only in new: 8
+only in old, by type: {'EXTENDS': 1, 'POTENTIAL_CALL': 4}
+only in new, by type: {'EXTENDS': 1, 'PARENT_OF': 3, 'POTENTIAL_CALL': 4}
+- EXTENDS   packages/merged-class/src/emitter.ts:Emitter(class@3) -> packages/merged-class/src/emitter.ts:Events(interface@1)
+- POTENTIAL_CALL [construction] line 3 packages/same-name-rows/src/a.ts:K.make(method@4) -> packages/same-name-rows/src/a.ts:K(class@2)
+- POTENTIAL_CALL [construction] line 16 packages/property-override/src/child.ts:K.make(method@17) -> packages/property-override/src/child.ts:K(class@15)
+- POTENTIAL_CALL [import] line 3 packages/same-name-rows/src/user.ts:top2(function@3) -> packages/same-name-rows/src/a.ts:Handler(type@6)
+- POTENTIAL_CALL [same_file] line 3 packages/same-name-rows/src/a.ts:K.make(method@4) -> packages/same-name-rows/src/a.ts:leaf(function@1)
++ EXTENDS   packages/merged-class/src/emitter.ts:Emitter(interface@2) -> packages/merged-class/src/emitter.ts:Events(interface@1)
++ PARENT_OF   packages/property-override/src/child.ts:K(class@15) -> packages/property-override/src/child.ts:K.make(method@17)
++ PARENT_OF   packages/property-override/src/child.ts:Over(class@22) -> packages/property-override/src/child.ts:Over.acc(method@27)
++ PARENT_OF   packages/same-name-rows/src/a.ts:K(class@2) -> packages/same-name-rows/src/a.ts:K.make(method@4)
++ POTENTIAL_CALL [construction] line 3 packages/same-name-rows/src/a.ts:K.make(method@3) -> packages/same-name-rows/src/a.ts:K(class@2)
++ POTENTIAL_CALL [construction] line 16 packages/property-override/src/child.ts:K.make(method@16) -> packages/property-override/src/child.ts:K(class@15)
++ POTENTIAL_CALL [import] line 3 packages/same-name-rows/src/user.ts:top2(function@3) -> packages/same-name-rows/src/a.ts:Handler(function@7)
++ POTENTIAL_CALL [same_file] line 3 packages/same-name-rows/src/a.ts:K.make(method@3) -> packages/same-name-rows/src/a.ts:leaf(function@1)

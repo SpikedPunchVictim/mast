@@ -68,3 +68,20 @@ The timings quoted in `PROPOSAL.md` were read off the terminal and are not kept 
 
 The agreement of `is_exported` with the compiler is read from `eval-suite/baselines/*.json`
 (`symbol flag: is_exported`).
+
+## D121 (`spikes/d121/`)
+
+| File | What it is |
+|---|---|
+| `same-name-census.py` | Counts the rows that share a file and a name, by kind, with each row's edges, and lists call edges whose target is a type row |
+| `census-before.*.txt`, `census-after.*.txt` | Its output on the D120 and D121 indexes of this repository, the shapes corpus and n8n |
+| `edge-rows-diff.py` | Every edge of two indexes with each end named by file, name, kind and line |
+| `edge-rows-vs-d120.*.txt` | Its output, D120 index against D121. The one for this repository is confounded by its own source changing |
+| `shapes-before-fix.row-aware-card.json` | The row-aware scorecard run on the shapes index from before the fix |
+| `renamed-keys.mjs`, `renamed-keys.*.txt` | For each baseline: the keys that left `agree` and whether each agrees under the same key with a line |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D120 commit) with the D121 build |
+| `marker-beside-private.txt` | D146 reproduced on the D120 build |
+
+`eval-suite/graph-scorecard.mjs` changed in this row (D147): an end of an edge on a key
+with more than one row is `key@line`. It has no test of its own; the four baselines are
+what hold it.

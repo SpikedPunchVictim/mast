@@ -1398,7 +1398,7 @@ export function extractEdges(
       const name = declNode.childForFieldName('name')?.text ?? null;
       const body = declNode.childForFieldName('body');
       if (name !== null && body !== null) {
-        emitCallEdges(name, declNode.childForFieldName('parameters'), body, edges, seedFileScope, lines, [], onCallSite);
+        emitCallEdges(name, nodeStartLine(declNode), declNode.childForFieldName('parameters'), body, edges, seedFileScope, lines, [], onCallSite);
       }
     } else if (t === 'lexical_declaration' || t === 'variable_declaration') {
       const declarator = findChildByType(declNode, 'variable_declarator');
@@ -1408,7 +1408,7 @@ export function extractEdges(
         const body = value.childForFieldName('body');
         if (body !== null) {
           const params = value.childForFieldName('parameters') ?? value.childForFieldName('parameter');
-          emitCallEdges(name, params, body, edges, seedFileScope, lines, [], onCallSite);
+          emitCallEdges(name, nodeStartLine(declNode), params, body, edges, seedFileScope, lines, [], onCallSite);
         }
       }
     }
@@ -1445,6 +1445,7 @@ function emitClassEdges(
 ): void {
   const className = classNode.childForFieldName('name')?.text ?? null;
   if (className === null) return;
+  const classLine = nodeStartLine(classNode);
 
   // tree-sitter-typescript wraps extends/implements in a `class_heritage` node.
   const heritage = findChildByType(classNode, 'class_heritage');
@@ -1454,7 +1455,7 @@ function emitClassEdges(
   if (implClause !== null) {
     for (const typeRef of nodeNamedChildren(implClause)) {
       const ifaceName = typeRefName(typeRef);
-      if (ifaceName !== null) edges.push({ fromName: className, toName: ifaceName, edgeType: 'IMPLEMENTS' });
+      if (ifaceName !== null) edges.push({ fromName: className, fromLine: classLine, toName: ifaceName, edgeType: 'IMPLEMENTS' });
     }
   }
 
@@ -1470,7 +1471,7 @@ function emitClassEdges(
       const name = typeRefName(typeRef);
       if (name !== null) {
         baseClassName = name;
-        edges.push({ fromName: className, toName: name, edgeType: 'EXTENDS' });
+        edges.push({ fromName: className, fromLine: classLine, toName: name, edgeType: 'EXTENDS' });
         break; // a class extends at most one base
       }
     }
@@ -1500,7 +1501,7 @@ function emitClassEdges(
       // class's (D098).
       const value = member.childForFieldName('value');
       if (value !== null) {
-        emitCallEdges(className, null, value, edges, seedFileScope, lines, classScopeBindings, onCallSite);
+        emitCallEdges(className, classLine, null, value, edges, seedFileScope, lines, classScopeBindings, onCallSite);
       }
       continue;
     }
@@ -1508,12 +1509,20 @@ function emitClassEdges(
     const methodName = member.childForFieldName('name')?.text ?? null;
     if (methodName === null) continue;
 
-    edges.push({ fromName: className, toName: `${className}.${methodName}`, edgeType: 'PARENT_OF' });
+    const memberLine = nodeStartLine(member);
+    edges.push({
+      fromName: className,
+      fromLine: classLine,
+      toName: `${className}.${methodName}`,
+      toLine: memberLine,
+      edgeType: 'PARENT_OF',
+    });
 
     const body = member.childForFieldName('body');
     if (body === null) continue; // abstract / no body
     emitCallEdges(
       `${className}.${methodName}`,
+      memberLine,
       member.childForFieldName('parameters'),
       body,
       edges,
@@ -1535,7 +1544,7 @@ function emitInterfaceExtends(ifaceNode: SyntaxNode, edges: EdgeRecord[]): void 
   if (extendsClause === null) return;
   for (const typeRef of nodeNamedChildren(extendsClause)) {
     const baseName = typeRefName(typeRef);
-    if (baseName !== null) edges.push({ fromName: name, toName: baseName, edgeType: 'EXTENDS' });
+    if (baseName !== null) edges.push({ fromName: name, fromLine: nodeStartLine(ifaceNode), toName: baseName, edgeType: 'EXTENDS' });
   }
 }
 
@@ -1598,6 +1607,8 @@ export type CallSiteOutcome =
  */
 function emitCallEdges(
   fromName: string,
+  // The line of the declaration the scope is the body of, as its symbol has it.
+  fromLine: number,
   paramsNode: SyntaxNode | null,
   bodyNode: SyntaxNode,
   edges: EdgeRecord[],
@@ -1640,6 +1651,7 @@ function emitCallEdges(
     const line = calleeLine(call);
     edges.push({
       fromName,
+      fromLine,
       toName: resolved.callee,
       ...(resolved.importModule === undefined ? {} : { importModule: resolved.importModule }),
       ...(isStaticScope && OWN_CLASS_RESOLUTIONS.has(resolved.resolution) ? { inStaticMethod: true as const } : {}),

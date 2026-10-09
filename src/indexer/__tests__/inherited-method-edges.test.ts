@@ -121,12 +121,24 @@ export function byStatic(): void { Leaf.create(); }
     await expectEdges(dir, [], ['POTENTIAL_CALL']);
   });
 
-  // A class and an interface of one name are one symbol with two parents.
-  // Which of them declares the method is not decided here.
-  it('links nothing when the receiver has two stored parents', async () => {
+  // A class merged with an interface is two rows, and each has its own parent
+  // (D121). A call on a value of the name follows the class's: what the
+  // interface's parent declares, the class does not get by `extends`.
+  it('follows the class of a name that is also an interface, and not the interface', async () => {
     writeFiles(dir, {
       'src/parents.ts': `export class A { a(): void {} }\nexport class B { b(): void {} }\n`,
       'src/x.ts': `import { A, B } from './parents.js';\nexport interface X extends B {}\nexport class X extends A {}\n`,
+      'src/use.ts': `import { X } from './x.js';\nexport function byParam(x: X): void { x.a(); x.b(); }\n`,
+    });
+
+    await expectEdges(dir, ['POTENTIAL_CALL src/use.ts:byParam -> src/parents.ts:A.a'], ['POTENTIAL_CALL']);
+  });
+
+  // Which of two parents declares the method is not decided here.
+  it('links nothing when the receiver has two stored parents', async () => {
+    writeFiles(dir, {
+      'src/parents.ts': `export class A { a(): void {} }\nexport class B { b(): void {} }\n`,
+      'src/x.ts': `import { A, B } from './parents.js';\nexport interface X extends A, B {}\n`,
       'src/use.ts': `import { X } from './x.js';\nexport function byParam(x: X): void { x.a(); }\n`,
     });
 

@@ -1,0 +1,81 @@
+declaration rows: 49788
+groups of rows sharing a file and a name: 15
+    10  method+method
+     4  method+method(static)
+     1  interface+interface
+
+each group: kind@line  calls-out calls-in parent-edges-in
+packages/@n8n/instance-ai/src/workspace/scoped-workspace.ts:ScopedFilesystem.status
+    method@56  out=0 in=0 parent=1
+    method@60  out=0 in=0 parent=0
+packages/@n8n/instance-ai/src/workspace/scoped-workspace.ts:ScopedSandbox.status
+    method@166  out=0 in=0 parent=1
+    method@170  out=0 in=0 parent=0
+packages/@n8n/typeorm/src/query-builder/Alias.ts:Alias.metadata
+    method@37  out=0 in=0 parent=1
+    method@41  out=1 in=0 parent=0
+packages/@n8n/typeorm/src/repository/BaseEntity.ts:BaseEntity.hasId
+    method@40  out=0 in=0 parent=1
+    method(static)@127  out=1 in=0 parent=0
+packages/@n8n/typeorm/src/repository/BaseEntity.ts:BaseEntity.remove
+    method@57  out=0 in=0 parent=1
+    method(static)@262  out=1 in=0 parent=0
+packages/@n8n/typeorm/src/repository/BaseEntity.ts:BaseEntity.save
+    method@49  out=0 in=0 parent=1
+    method(static)@233  out=1 in=0 parent=0
+packages/@n8n/typeorm/src/repository/BaseEntity.ts:BaseEntity.softRemove
+    method@65  out=0 in=0 parent=1
+    method(static)@291  out=1 in=0 parent=0
+packages/@n8n/typeorm/test/functional/columns/getters-setters/entity/Post.ts:Post.title
+    method@12  out=0 in=0 parent=1
+    method@22  out=0 in=0 parent=0
+packages/@n8n/typeorm/test/github-issues/1720/entity/Post.ts:Post.categories
+    method@14  out=0 in=0 parent=1
+    method@18  out=0 in=0 parent=0
+packages/@n8n/typeorm/test/other-issues/column-getters/entity/Post.ts:Post.title
+    method@16  out=0 in=0 parent=1
+    method@20  out=0 in=0 parent=0
+packages/cli/src/modules/insights/database/entities/insights-by-period.ts:InsightsByPeriod.periodUnit
+    method@64  out=0 in=0 parent=1
+    method@75  out=2 in=0 parent=0
+packages/cli/src/modules/insights/database/entities/insights-by-period.ts:InsightsByPeriod.type
+    method@38  out=0 in=0 parent=1
+    method@49  out=2 in=0 parent=0
+packages/cli/src/modules/insights/database/entities/insights-raw.ts:InsightsRaw.type
+    method@27  out=0 in=0 parent=1
+    method@38  out=2 in=0 parent=0
+packages/cli/src/modules/source-control.ee/source-control-preferences.service.ee.ts:SourceControlPreferencesService.sourceControlPreferences
+    method@45  out=0 in=0 parent=1
+    method@53  out=1 in=0 parent=0
+packages/nodes-base/nodes/Telegram/GenericFunctions.ts:IMarkupKeyboardRow
+    interface@23  out=0 in=0 parent=0
+    interface@27  out=0 in=0 parent=0
+
+call edges whose target row is an interface or a type: 27
+  packages/cli/src/modules/instance-ai/eval/llm-completion-mock.ts:createLlmCompletionMockHandler line 272 [construction] -> packages/@n8n/instance-ai/src/index.ts:Tool(type@386)
+  packages/cli/src/modules/instance-ai/eval/mock-handler.ts:createQuirksLookupTool line 758 [construction] -> packages/@n8n/instance-ai/src/index.ts:Tool(type@386)
+  packages/cli/src/modules/instance-ai/eval/mock-handler.ts:createSubmitResponseTool line 664 [construction] -> packages/@n8n/instance-ai/src/index.ts:Tool(type@386)
+  packages/cli/src/modules/instance-ai/instance-ai-terminal-outcome.service.ts:InstanceAiTerminalOutcomeService.createTerminalOutcomeStorage line 322 [construction] -> packages/@n8n/instance-ai/src/index.ts:TerminalOutcomeStorage(type@337)
+  packages/cli/src/modules/instance-ai/instance-ai-terminal-outcome.service.ts:InstanceAiTerminalOutcomeService.evaluateTerminalResponse line 230 [construction] -> packages/@n8n/instance-ai/src/index.ts:InstanceAiTerminalResponseGuard(type@509)
+  packages/cli/src/modules/instance-ai/instance-ai-terminal-outcome.service.ts:InstanceAiTerminalOutcomeService.evaluateWaitingResponse line 256 [construction] -> packages/@n8n/instance-ai/src/index.ts:InstanceAiTerminalResponseGuard(type@509)
+  packages/cli/src/modules/instance-ai/instance-ai.adapter.service.ts:InstanceAiAdapterService.getTemplatesService line 501 [construction] -> packages/@n8n/instance-ai/src/index.ts:BuilderTemplatesService(type@453)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService line 538 [construction] -> packages/@n8n/instance-ai/src/index.ts:RunStateRegistry(type@489)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService line 540 [construction] -> packages/@n8n/instance-ai/src/index.ts:BackgroundTaskManager(type@476)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.claimWorkItemSetupRouting line 2912 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage(type@344)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.constructor line 686 [construction] -> packages/@n8n/instance-ai/src/index.ts:InstanceAiLivenessPolicy(type@543)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment line 2255 [construction] -> packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage(type@328)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment line 2258 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage(type@344)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment line 2262 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowTaskCoordinator(type@558)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment line 2264 [construction] -> packages/@n8n/instance-ai/src/index.ts:PlannedTaskStorage(type@332)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createExecutionEnvironment line 2265 [construction] -> packages/@n8n/instance-ai/src/index.ts:PlannedTaskCoordinator(type@594)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createPlannedTaskState line 2057 [construction] -> packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage(type@328)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createPlannedTaskState line 2058 [construction] -> packages/@n8n/instance-ai/src/index.ts:PlannedTaskStorage(type@332)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.createPlannedTaskState line 2059 [construction] -> packages/@n8n/instance-ai/src/index.ts:PlannedTaskCoordinator(type@594)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.listWorkflowLoopRecords line 2894 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage(type@344)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.markWorkItemSetupRouted line 2925 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage(type@344)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.mcpClientManager line 522 [construction] -> packages/@n8n/instance-ai/src/index.ts:McpClientManager(type@364)
+  packages/cli/src/modules/instance-ai/instance-ai.service.ts:InstanceAiService.releaseWorkItemSetupRoutingClaim line 2938 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage(type@344)
+  packages/cli/src/modules/instance-ai/workflow-verification-obligation-service.ts:WorkflowVerificationObligationService.storage line 30 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage(type@344)
+  packages/cli/src/modules/instance-ai/workflow-verification-task-projector.ts:WorkflowVerificationTaskProjector.syncFromWorkflowLoop line 338 [construction] -> packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage(type@328)
+  packages/cli/src/modules/instance-ai/workflow-verification-task-projector.ts:WorkflowVerificationTaskProjector.syncFromWorkflowLoop line 342 [construction] -> packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage(type@344)
+  packages/cli/src/modules/instance-ai/workflow-verification-task-projector.ts:WorkflowVerificationTaskProjector.upsertItems line 384 [construction] -> packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage(type@328)

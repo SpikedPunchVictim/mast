@@ -480,7 +480,7 @@ describe('runCheckerPass — orchestration (fake resolver)', () => {
     // the new 'checker' resolution value.
     const [multiplySym] = await querySymbolByName(db, 'multiply', 'math.ts');
     expect(multiplySym).toBeDefined();
-    const callers = await queryVerifiedCallers(db, multiplySym!.id, false);
+    const callers = await queryVerifiedCallers(db, [multiplySym!.id], false);
     const checkerCaller = callers.find((c) => c.resolution === 'checker');
     expect(checkerCaller).toBeDefined();
     expect(checkerCaller!.caller_symbol).toBe('run');

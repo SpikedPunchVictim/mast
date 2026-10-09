@@ -49,6 +49,21 @@ export function draw(o: Outline, c: Color): void {}
 const DECOY_SRC = `export interface Outline { decoy: true }
 `;
 
+// both.ts: a name that is a function and, after it, a type (D121). user.ts
+// imports it; through.ts re-exports it by name.
+const BOTH_SRC = `export const Codec = (x: number): number => x;
+export interface Codec { decode(): number }
+
+export function local(c: Codec): void { void c; }
+`;
+const BOTH_USER_SRC = `import { Codec } from './both';
+import { Codec as Through } from './through';
+
+export function use(c: Codec, t: Through): void { void c; void t; }
+`;
+const THROUGH_SRC = `export { Codec } from './both';
+`;
+
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
@@ -64,6 +79,9 @@ beforeAll(async () => {
   writeFileSync(join(tmpDir, 'consumers.ts'), CONSUMERS_SRC);
   writeFileSync(join(tmpDir, 'aliased.ts'), ALIASED_SRC);
   writeFileSync(join(tmpDir, 'decoy.ts'), DECOY_SRC);
+  writeFileSync(join(tmpDir, 'both.ts'), BOTH_SRC);
+  writeFileSync(join(tmpDir, 'both-user.ts'), BOTH_USER_SRC);
+  writeFileSync(join(tmpDir, 'through.ts'), THROUGH_SRC);
 
   const config = resolveConfig({ projectRoot: tmpDir });
   await runIndex(config, { incremental: false });
@@ -115,6 +133,16 @@ describe('resolveTypeContext', () => {
     expect(result[0]?.name).toBe('Outline');
     expect(result[0]?.file_path).toBe('types.ts');
     expect(result[0]?.signature).toContain('interface Shape');
+  });
+
+  it.each([
+    ['declared in the same file', 'Codec', 'both.ts'],
+    ['imported', 'Codec', 'both-user.ts'],
+    ['imported through a named re-export', 'Through', 'both-user.ts'],
+  ])('resolves a name that is a function and a type to the type, %s', async (_case, name, file) => {
+    const result = await resolveTypeContext(db, [name], file);
+
+    expect(result.map((entry) => `${entry.file_path}:${String(entry.line)}`)).toEqual(['both.ts:2']);
   });
 
   it('falls back to global lookup for types not in same file or imports', async () => {

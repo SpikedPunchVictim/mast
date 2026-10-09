@@ -2470,6 +2470,18 @@ row, so the class's row lists its field names (`symbols.fields`), static and
 instance apart: `X.m()` is stopped by a static field, every other call by an
 instance one.
 
+A file can declare one name more than once: a static and an instance method,
+a getter and a setter, an interface merged with a class or with another
+interface, a type beside a function. Each is a row of its own, and a row is
+told from another of its name by its line (D121). An edge starts at the row of
+the declaration its source line is in, and `PARENT_OF` reaches each member's
+own row. A lookup by name takes the row the use means first: a value (a class,
+a function, a method) for a call, `new` and a class's `extends`; a type (an
+interface, a type alias) for `implements`, an interface's `extends` and a
+parameter's type. It takes the other when the one meant has no row, as for a
+type beside a constant that is not a function. `mast_callers` and
+`mast_rename_impact` answer for every row of the name in the file of the first.
+
 A static and an instance member of one name are two members (D118). A call
 written on the class (`X.m()`), and `this.m()` or `super.m()` written in a
 static method, reach static methods only; every other call reaches instance

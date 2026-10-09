@@ -140,7 +140,7 @@ function runScore({ flags }) {
   const allIndexedPaths = new Set(allFiles.map((f) => f.path));
   const scored = allFiles.filter((f) => f.language === 'typescript' && f.path.startsWith(prefix));
   const scoredPaths = new Set(scored.map((f) => f.path));
-  const symbolRows = db.prepare('SELECT id, name, kind, file_id, is_exported FROM symbols').all();
+  const symbolRows = db.prepare('SELECT id, name, kind, file_id, line, is_exported FROM symbols').all();
   const edgeRows = db.prepare("SELECT from_id, to_id, edge_type, COALESCE(resolution, '') AS resolution FROM edges").all();
   const importRows = db.prepare('SELECT file_id, module, symbols, resolved_path FROM imports').all();
   const starRows = db.prepare('SELECT from_file_id, to_file_id FROM re_export_files').all();
@@ -156,8 +156,10 @@ function runScore({ flags }) {
   let repeatedRows = 0;
   /**
    * Keys that name more than one declaration row: a static and an instance member of one
-   * name, a class merged with an interface, a type and a value of one name. A key cannot
-   * say which row an edge is on, so nothing that touches one is counted as agreeing.
+   * name, a getter and a setter, a class merged with an interface, a type and a value of
+   * one name. A key cannot say which row an edge is on, so an end of an edge on one of
+   * these is written `key@line` on both sides (`rowKeyOf`, `keyOfDecl`), the line being
+   * the declaration's (D121).
    */
   const sharedKeys = new Set();
   for (const s of symbolById.values()) {
@@ -172,6 +174,13 @@ function runScore({ flags }) {
     kindKeys.add(key);
     if (s.kind !== 'export') mastExported.set(key, mastExported.get(key) === true || s.is_exported === 1);
   }
+  /** The rows of each shared key, as `key@line`: what an end of an edge on one is called. */
+  const sharedRowKey = (key, line) => `${key}@${line}`;
+  for (const s of symbolById.values()) {
+    if (s.kind !== 'export' && sharedKeys.has(keyOfSymbol(s))) declared.add(sharedRowKey(keyOfSymbol(s), s.line));
+  }
+  /** A stored row as an end of an edge. A marker is the one row of its kind and keeps its key. */
+  const rowKeyOf = (s) => (s.kind !== 'export' && sharedKeys.has(keyOfSymbol(s)) ? sharedRowKey(keyOfSymbol(s), s.line) : keyOfSymbol(s));
   const edgesOfType = (type) =>
     edgeRows
       .filter((e) => e.edge_type === type)
@@ -237,6 +246,21 @@ function runScore({ flags }) {
    * interface member, a parameter. Whether mast has it is a separate question.
    */
   function keyOfDecl(decl) {
+    const key = baseKeyOfDecl(decl);
+    return key !== null && sharedKeys.has(key) ? sharedRowKey(key, lineOfDecl(decl)) : key;
+  }
+  /**
+   * The line mast gives a declaration: where it starts, after any decorators, and for a
+   * variable where its statement does.
+   */
+  function lineOfDecl(decl) {
+    const node = ts.isVariableDeclaration(decl) ? decl.parent.parent : decl;
+    const sf = node.getSourceFile();
+    const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) ?? [] : [];
+    const start = decorators.length === 0 ? node.getStart(sf) : ts.skipTrivia(sf.text, decorators[decorators.length - 1].end);
+    return sf.getLineAndCharacterOfPosition(start).line + 1;
+  }
+  function baseKeyOfDecl(decl) {
     const path = rel(decl.getSourceFile().fileName);
     if (isMember(decl) && ts.isClassDeclaration(decl.parent) && isTopLevel(decl.parent) && decl.parent.name) {
       const name = memberName(decl);
@@ -251,7 +275,19 @@ function runScore({ flags }) {
     return null;
   }
   /** The keys of a symbol's declarations that mast has a symbol for. */
-  const declaredKeysOf = (symbol) => [...new Set((symbol?.declarations ?? []).map(keyOfDecl).filter((k) => k !== null && declared.has(k)))];
+  const isTypeDecl = (d) => ts.isInterfaceDeclaration(d) || ts.isTypeAliasDeclaration(d);
+  /**
+   * The declarations of a symbol that a use of `meaning` names. A symbol can be a type and
+   * a value at once (an interface merged with a class, a type alias beside a constant); a
+   * call or a class's `extends` is of the value, `implements` of the type. All of them when
+   * none is of the meaning.
+   */
+  const declsOfMeaning = (decls, meaning) => {
+    const meant = decls.filter((d) => isTypeDecl(d) === (meaning === 'type'));
+    return meant.length > 0 ? meant : decls;
+  };
+  const declaredKeysOf = (symbol, meaning = 'value') =>
+    [...new Set(declsOfMeaning(symbol?.declarations ?? [], meaning).map(keyOfDecl).filter((k) => k !== null && declared.has(k)))];
 
   const ref = {
     symbols: { function: [], class: [], method: [], interface: [], type: [], export: [] },
@@ -356,7 +392,7 @@ function runScore({ flags }) {
           const isPrivate = (ts.getCombinedModifierFlags(m) & ts.ModifierFlags.Private) !== 0 || (m.name && ts.isPrivateIdentifier(m.name));
           add('method', `${className}.${name}`, hasExport(stmt) && !isPrivate);
           if (!isPrivate) publicMembers.push({ className, key: `${path}:${className}.${name}` });
-          ref.parentOf.push(pairKey(`${path}:${className}`, `${path}:${className}.${name}`));
+          ref.parentOf.push(pairKey(keyOfDecl(stmt), keyOfDecl(m)));
           // A getter and a setter of one property are two rows and one thing.
           const isAccessor = ts.isGetAccessorDeclaration(m) || ts.isSetAccessorDeclaration(m);
           const isStatic = (ts.getCombinedModifierFlags(m) & ts.ModifierFlags.Static) !== 0;
@@ -380,7 +416,8 @@ function runScore({ flags }) {
           const type = clause.token === ts.SyntaxKind.ImplementsKeyword ? 'IMPLEMENTS' : 'EXTENDS';
           for (const t of clause.types) {
             const symbol = resolveAlias(checker.getSymbolAtLocation(t.expression));
-            ref.heritage[type].push({ from: `${path}:${stmt.name.text}`, resolved: (symbol?.declarations ?? []).length > 0, targets: declaredKeysOf(symbol) });
+            const meaning = type === 'EXTENDS' && ts.isClassDeclaration(stmt) ? 'value' : 'type';
+            ref.heritage[type].push({ from: keyOfDecl(stmt), resolved: (symbol?.declarations ?? []).length > 0, targets: declaredKeysOf(symbol, meaning) });
           }
         }
       }
@@ -462,7 +499,9 @@ function runScore({ flags }) {
         else if (caller === null) note('call outside any declaration mast has a symbol for');
         else {
           const symbol = resolveAlias(checker.getSymbolAtLocation(nameNode));
-          let decls = symbol?.declarations ?? [];
+          let decls = declsOfMeaning(symbol?.declarations ?? [], 'value');
+          // `this.acc()` reads the property and calls what it holds: the getter runs, not the setter.
+          if (decls.some(ts.isGetAccessorDeclaration)) decls = decls.filter((d) => !ts.isSetAccessorDeclaration(d));
           const names = [nameNode.text];
           // `new X()` reaches X's constructor when the class declares one, and the class
           // otherwise (decided 2026-10-07). An implementation is preferred to an overload.
@@ -490,8 +529,11 @@ function runScore({ flags }) {
   }
 
   // ---- scoring -------------------------------------------------------------------------
+  // Listed as one key with more than one row, except a getter and setter of one property,
+  // which are two rows and one thing. Their edges are told apart by row all the same.
+  const listedSharedKeys = new Set(sharedKeys);
   for (const [key, shapes] of accessorShapes) {
-    if (shapes.size === 1 && [...shapes][0].startsWith('accessor:')) sharedKeys.delete(key);
+    if (shapes.size === 1 && [...shapes][0].startsWith('accessor:')) listedSharedKeys.delete(key);
   }
 
   const items = {};
@@ -502,7 +544,7 @@ function runScore({ flags }) {
   items['file: indexed'] = { ...scoreSets(configFiles, scored.map((f) => f.path)), extra: [] };
   {
     const shared = emptyBuckets();
-    for (const key of sharedKeys) if (scoredPaths.has(key.slice(0, key.lastIndexOf(':')))) shared.unjudged.push(key);
+    for (const key of listedSharedKeys) if (scoredPaths.has(key.slice(0, key.lastIndexOf(':')))) shared.unjudged.push(key);
     items['symbol: one key, more than one row'] = shared;
   }
 
@@ -538,7 +580,7 @@ function runScore({ flags }) {
     for (const key of referencePairs) if (!mast.has(key)) buckets.lacks.push(key);
     return buckets;
   }
-  const storedPairs = (type) => edgesOfType(type).map((e) => ({ source: keyOfSymbol(e.from), key: pairKey(keyOfSymbol(e.from), keyOfSymbol(e.to)), resolution: e.resolution }));
+  const storedPairs = (type) => edgesOfType(type).map((e) => ({ source: rowKeyOf(e.from), key: pairKey(rowKeyOf(e.from), rowKeyOf(e.to)), resolution: e.resolution }));
 
   items['edge: PARENT_OF'] = scoreSets(ref.parentOf, storedPairs('PARENT_OF').map((p) => p.key));
   items['edge: EXTENDS'] = scoreEdges(storedPairs('EXTENDS'), ref.heritage.EXTENDS, (e) => e.from);
@@ -554,7 +596,7 @@ function runScore({ flags }) {
     for (let hop = 0; hop < 8 && end !== undefined && end.kind === 'export' && reExportNext.has(end.id); hop++) end = symbolById.get(reExportNext.get(end.id));
     if (end === undefined) continue;
     if (end.kind === 'export') note('RE_EXPORTS chain that ends on a marker');
-    reExportPairs.push({ source: keyOfSymbol(from), key: pairKey(keyOfSymbol(from), keyOfSymbol(end)) });
+    reExportPairs.push({ source: rowKeyOf(from), key: pairKey(rowKeyOf(from), rowKeyOf(end)) });
   }
   items['edge: RE_EXPORTS (to the declaration)'] = scoreEdges(reExportPairs, ref.reExports, (e) => e.marker);
 
@@ -618,11 +660,11 @@ function runScore({ flags }) {
     const stored = edgesOfType('POTENTIAL_CALL');
     const storedKeys = new Set();
     for (const e of stored) {
-      const key = pairKey(keyOfSymbol(e.from), keyOfSymbol(e.to));
+      const key = pairKey(rowKeyOf(e.from), rowKeyOf(e.to));
       if (storedKeys.has(key)) continue; // repeated symbol rows
       storedKeys.add(key);
       const bare = e.to.name.slice(e.to.name.lastIndexOf('.') + 1);
-      const everyCallResolved = callsByName.get(`${keyOfSymbol(e.from)}|${bare}`);
+      const everyCallResolved = callsByName.get(`${rowKeyOf(e.from)}|${bare}`);
       const bucket = referencePairs.has(key) ? 'agree' : everyCallResolved === true ? 'wrong' : 'unjudged';
       all[bucket].push(key);
       const label = `call edge, stored as ${e.resolution || '(no label)'}`;
@@ -637,17 +679,6 @@ function runScore({ flags }) {
       (breakdowns[`call written as ${shape}, ${sameFile(key) ? 'same file' : 'other file'}`] ??= emptyBuckets()).lacks.push(key);
     }
     items['edge: POTENTIAL_CALL'] = all;
-  }
-
-  // An edge is keyed by its two ends. One on a shared key may be on either row.
-  const touchesSharedKey = (key) => key.includes(' > ') && key.split(' > ').some((end) => sharedKeys.has(end));
-  for (const group of [items, breakdowns]) {
-    for (const buckets of Object.values(group)) {
-      const moved = buckets.agree.filter(touchesSharedKey);
-      if (moved.length === 0) continue;
-      buckets.agree = buckets.agree.filter((k) => !touchesSharedKey(k));
-      buckets.unjudged = [...buckets.unjudged, ...moved];
-    }
   }
 
   const card = {
