@@ -132,3 +132,30 @@ run, not repeated. It is quoted only for the reserve item in the proposal.
 - What a server answers while another process is part way through the rebuild.
 - Whether an old server's edge repair writes rows for a file whose `files` row it leaves alone.
 - The clear with `foreign_keys` on.
+
+## After the build: the shipped stamp table and mark (2026-10-08)
+
+Not part of the spike. These two runs use the production code, not `clear.mjs`.
+
+**`s2-stamps/`** (commit `4051231`): each row of the stamp table through the built CLI.
+An older stamp and an unreadable one are rebuilt with one line on stderr; a newer one stops
+`mast index`, `mast index --incremental` and `mast serve` with exit 1 and leaves 2 of 2 file
+rows; a database with file rows, no edges and no stamp gets its edge back.
+
+**`s3-mark/`**: the Q7 case with a `v0.4.1` server and the shipped `written_by` column, on
+the 32-file fixture.
+
+| Step | On disk |
+|---|---|
+| this mast rebuilds the old server's index | stamp `1.4.0`, alias kept, 0 rows unmarked |
+| the old server answers `mast_signature` for the edited `al.ts` | stamp `1.4.0`, alias `NULL`, 1 row unmarked; this mast's `mast status`: `stale_files: 1` |
+| `mast index --incremental` by this mast | 1 indexed, 31 skipped; alias back, 0 rows unmarked; `stale_files: 0` |
+| the old server's `mast_reindex` | stamp `1.3.0` |
+| `mast index --incremental` by this mast | rebuild announced, 32 indexed; alias kept, 0 rows unmarked |
+
+What this run does not show: the edited file was also behind in the manifest, and the
+stability skip compares import aliases, so step 3 would have rewritten it without the mark
+(the unit test for that case passed before the mark was read anywhere). The mark is what
+catches a row that is not behind in the manifest, or whose difference the skip does not
+compare; both are unit tests in `src/indexer/__tests__/file-mark.test.ts`, not runs against
+an old server.

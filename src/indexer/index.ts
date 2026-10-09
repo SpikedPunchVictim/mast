@@ -426,13 +426,16 @@ export async function runIndex(
   let toIndex: FileEntry[];
   if (options.incremental) {
     const queued = new Set([...stale, ...added].map((e) => e.relativePath));
-    const rowMtimes = new Map(
-      (await db.selectFrom('files').select(['path', 'mtime']).execute()).map((r) => [r.path, r.mtime]),
+    const rows = new Map(
+      (await db.selectFrom('files').select(['path', 'mtime', 'written_by']).execute()).map((r) => [r.path, r]),
     );
     const behindOrMissing = currentFiles.filter((e) => {
       if (queued.has(e.relativePath)) return false;
-      const rowMtime = rowMtimes.get(e.relativePath);
-      return rowMtime === undefined || e.mtime > rowMtime;
+      const row = rows.get(e.relativePath);
+      // A row another schema version wrote is behind whatever its mtime says:
+      // a running server of that version refreshes a file in its own shape
+      // and leaves `index.json` alone (D142).
+      return row === undefined || e.mtime > row.mtime || row.written_by !== CURRENT_SCHEMA_VERSION;
     });
     toIndex = [...stale, ...added, ...behindOrMissing];
   } else {
@@ -812,10 +815,15 @@ async function isFileUnchanged(
   // write it (D079).
   const fileRow = await db
     .selectFrom('files')
-    .select('id')
+    .select(['id', 'written_by'])
     .where('path', '=', filePath)
     .executeTakeFirst();
   if (fileRow === undefined) return false;
+
+  // Rows another schema version wrote are not compared at all: the checks
+  // below cover what this version knows can differ, and another version may
+  // store differently something they do not read (D142).
+  if (fileRow.written_by !== CURRENT_SCHEMA_VERSION) return false;
 
   // Star re-exports are written by the run (`insertReExportFiles`) and appear
   // in no chunk, symbol or import, so nothing below can see one change. They

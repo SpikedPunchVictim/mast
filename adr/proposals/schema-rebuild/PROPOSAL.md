@@ -158,8 +158,10 @@ recommendation.
 |---|---|---|---|
 | 1. Wider comparison | `f3c8f8e` | D134 | The two FTS tables and `files.language` are still not compared |
 | 2. Clear in place, under the lock | `c77faf0` | D125, D126, D127 | After the clear `index.json` keeps the old version's name with empty counts, not the old stamp unchanged: the name makes the next run rebuild, the empty counts stop `--no-startup-reindex` serving it |
-| 3. The stamp table | this commit | D128, D129, D137 | An absent stamp makes the run a full one whether or not the database has rows; the two rows of the table differ only in the line printed. An unreadable stamp is left as it is by the clear. `mast serve` refuses a newer stamp at startup with the same message as `mast index` |
+| 3. The stamp table | `4051231` | D128, D129, D137 | An absent stamp makes the run a full one whether or not the database has rows; the two rows of the table differ only in the line printed. An unreadable stamp is left as it is by the clear. `mast serve` refuses a newer stamp at startup with the same message as `mast index` |
+| 4. The per-file mark | this commit | D142 | The freshness measure counts an unmarked row under `changed`, so `mast status` shows it in `stale_files`; there is no separate count. The refresh on a read does not look at the mark |
 
+Step 4 with a released `v0.4.1` server: [`spikes/s3-mark/`](spikes/s3-mark/).
 Step 3 through the built CLI, row by row: [`spikes/s2-stamps/`](spikes/s2-stamps/).
 
 ## Which instrument covers each claim

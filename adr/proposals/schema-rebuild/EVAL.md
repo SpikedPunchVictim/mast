@@ -33,6 +33,14 @@ the built CLI: `mast index`, `mast index --incremental`, `mast serve` and `mast 
 `OUTPUT.txt` is its output on the commit that added the table, with the work directory and
 the durations replaced.
 
+## End-to-end run of the per-file mark (`spikes/s3-mark/`)
+
+`healed.mjs <built checkout> <built older checkout> <project copy> <empty state dir>` runs a
+server of an older mast while this one rebuilds, lets the old server refresh an edited file,
+and prints the alias, the unmarked rows and `mast status` before and after this mast's next
+incremental run. `OUTPUT.txt` is its output with the older checkout at `v0.4.1`. The older
+checkout is built as in "Running the mixed-version case again" below.
+
 ## Checks that cover the change
 
 | Claim | Check |
@@ -41,9 +49,10 @@ the durations replaced.
 | A handle open before the rebuild reads the rebuilt index; metrics kept; nothing removed without the lock | `src/indexer/__tests__/schema-guard.test.ts` |
 | Each row of the stamp table, the refusal of a newer stamp, the line printed, a killed first index | `src/indexer/__tests__/schema-guard.test.ts`, "what an incremental run does with each stamp" |
 | Server startup: older and unreadable stamps emptied, newer refused | `src/mcp/__tests__/startup.test.ts` |
+| Every row carries the version that wrote it; an unmarked row is rewritten and counted; an older `files` table gains the column | `src/indexer/__tests__/file-mark.test.ts`; the mark is in `dumpStoredRows` (`graph-fixture.test.ts`) |
 | The graph of a full index is unchanged | the four scorecard baselines in `eval-suite/baselines/`, compared at each step |
 
-Not yet built: the per-file mark, and readers refusing an index of another version.
+Not yet built: readers refusing an index of another version. `eval-suite/replay-check.mjs` does not compare the mark: every row of a replay is written by one version.
 
 ## Running the mixed-version case again
 

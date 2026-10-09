@@ -4,6 +4,7 @@ import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 import { pathPrefixUpperBound } from './path-range.js';
 import { markEdgeRepairsPending } from './importer-repair.js';
+import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -519,6 +520,7 @@ async function writePopulatedFileRows(
         chunk_fts_hi: chunkBlock.hi,
         ident_fts_lo: identBlock.lo,
         ident_fts_hi: identBlock.hi,
+        written_by: CURRENT_SCHEMA_VERSION,
       })
       .returning('id')
       .execute();

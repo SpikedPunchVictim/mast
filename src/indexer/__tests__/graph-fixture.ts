@@ -194,6 +194,8 @@ export interface StoredRowsDump {
   readonly chunks: readonly string[];
   /** One line per edge row, with its call line and context. Not a set: two calls are two lines. */
   readonly edgeRows: readonly string[];
+  /** One line per file row: the schema version that wrote it (D142). */
+  readonly fileMarks: readonly string[];
 }
 
 /**
@@ -240,6 +242,8 @@ export async function dumpStoredRows(config: ResolvedConfig): Promise<StoredRows
         JOIN symbols fs ON fs.id = e.from_id JOIN files ff ON ff.id = fs.file_id
         JOIN symbols ts ON ts.id = e.to_id   JOIN files tf ON tf.id = ts.file_id
         WHERE COALESCE(e.resolution, '') != 'checker'`),
+      fileMarks: await lines(sql<{ line: string }>`
+        SELECT path || ' written by ' || COALESCE(written_by, 'another version') AS line FROM files`),
     };
   } finally {
     await db.destroy();

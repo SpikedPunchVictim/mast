@@ -36,6 +36,7 @@ const PLANTED: readonly (readonly [string, string])[] = [
   ['a chunk', "DELETE FROM chunks WHERE symbol_name = 'other'"],
   ['a chunk export flag', "UPDATE chunks SET is_exported = 0 WHERE symbol_name = 'target'"],
   ['the line of a call', 'UPDATE edges SET call_line = call_line + 5 WHERE call_line IS NOT NULL'],
+  ['the version a file row was written by', "UPDATE files SET written_by = NULL WHERE path = 'src/use.ts'"],
 ];
 
 describe('the comparison with a full index sees every stored thing (D134)', () => {

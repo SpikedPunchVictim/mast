@@ -29,13 +29,16 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Db } from '../graph/db.js';
-import type { ResolvedConfig } from '../store/config.js';
+import { CURRENT_SCHEMA_VERSION, type ResolvedConfig } from '../store/config.js';
 import type { StalePaths } from '../ast/types.js';
 import { countPendingEdgeRepairs } from '../graph/importer-repair.js';
 import { walkProject } from './walker.js';
 
 export interface IndexFreshness {
-  /** On disk and known to the index, but its content has changed since. */
+  /**
+   * On disk and known to the index, but its content has changed since, or its
+   * row was written by another schema version.
+   */
   readonly stale: number;
   /** On disk and not indexed — never seen, or lost to a failed run. */
   readonly unindexed: number;
@@ -99,8 +102,14 @@ export async function measureFreshness(config: ResolvedConfig, db: Db): Promise<
   const currentFiles = await walkProject(config);
   const onDisk = new Map(currentFiles.map((e) => [e.relativePath, e.mtime]));
 
-  const rows = await db.selectFrom('files').select(['path', 'mtime']).execute();
+  const rows = await db.selectFrom('files').select(['path', 'mtime', 'written_by']).execute();
   const indexed = new Map(rows.map((r) => [r.path, r.mtime]));
+  // A row another schema version wrote counts as changed: its content may be
+  // current and its shape is not this version's (D142). An index run queues
+  // the same rows, so what is counted here is what a run acts on.
+  const writtenByAnotherVersion = new Set(
+    rows.filter((r) => r.written_by !== CURRENT_SCHEMA_VERSION).map((r) => r.path),
+  );
 
   const changedPaths: string[] = [];
   const unindexedPaths: string[] = [];
@@ -113,7 +122,7 @@ export async function measureFreshness(config: ResolvedConfig, db: Db): Promise<
       unindexedPaths.push(path);
       continue;
     }
-    if (diskMtime > manifestMtime || diskMtime > storedMtime) changedPaths.push(path);
+    if (diskMtime > manifestMtime || diskMtime > storedMtime || writtenByAnotherVersion.has(path)) changedPaths.push(path);
   }
 
   // A path recorded by either side but no longer on disk. Deduplicated: the

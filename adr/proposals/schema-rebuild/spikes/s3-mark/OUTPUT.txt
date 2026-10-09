@@ -1,0 +1,14 @@
+1. index by the old mast: files: 32 indexed, 0 skipped  chunks: +102 -0  duration: Nms (exit 0)
+2. the old server is running and has answered a search
+3. index --incremental by the new mast: [mast] the index was built by schema 1.3.0 and this mast writes 1.4.0: emptying it and reading every file / files: 32 indexed, 0 skipped  chunks: +102 -0  duration: Nms (exit 0)
+   on disk: stamp 1.4.0, files 32, alias of al.ts [{"Kay":"K"}], rows not marked 1.4.0 []
+4. al.ts edited; the old server answered mast_signature for a symbol in it
+   on disk: stamp 1.4.0, files 32, alias of al.ts [NULL], rows not marked 1.4.0 [packages/static-instance/src/al.ts]
+   new mast status: stale_files: 1 (changed 1, unindexed 0, deleted 0), index_fresh: false
+5. index --incremental by the new mast: files: 1 indexed, 31 skipped  chunks: +2 -2  duration: Nms (exit 0)
+   on disk: stamp 1.4.0, files 32, alias of al.ts [{"Kay":"K"}], rows not marked 1.4.0 []
+   new mast status: stale_files: 0, index_fresh: true
+6. old server: mast_reindex -> {"files_indexed":0,"files_skipped":32,"chunks_added":0,"chunks_removed":0,"parse_errors":0,"write_errors":0,"stale_write
+   stamp: 1.3.0
+7. index --incremental by the new mast: [mast] the index was built by schema 1.3.0 and this mast writes 1.4.0: emptying it and reading every file / files: 32 indexed, 0 skipped  chunks: +103 -0  duration: Nms (exit 0)
+   on disk: stamp 1.4.0, files 32, alias of al.ts [{"Kay":"K"}], rows not marked 1.4.0 []

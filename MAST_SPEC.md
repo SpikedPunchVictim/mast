@@ -698,6 +698,15 @@ An index a newer mast built is never emptied by an older one: that mast would
 find its index gone and rebuild it, and the two would undo each other's work on
 every run.
 
+**The version on each file row.** `index.json` is one value for the whole index. A
+running `mast serve` of another version writes one file at a time: it refreshes an
+edited file on a read, in the shape it knows, and leaves the stamp alone (D142).
+So every `files` row carries the schema version that wrote it, in `written_by`,
+a nullable column added by `ALTER TABLE` that an older mast does not fill. A row
+whose mark is not this version's is treated as changed: an incremental run
+queues it and does not skip it as unchanged, and `measureFreshness` counts it
+under `changed`. The refresh on a read does not look at the mark.
+
 `CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.4.0"`). A
 version bump is required any time the SQLite schema or `index.json` fields change
 in a way that makes old on-disk state unreadable by the new code. Incrementing
@@ -1947,7 +1956,7 @@ including counts containing no changed file at all (`docs/defects/LEDGER.md`
 D049); it is now decided from counted categories rather than from the total.
 
 `stale_files` counts three things, not one: files whose content changed since they
-were indexed, files on disk that are **not in the index at all**, and files the index
+were indexed (or whose row another schema version wrote, §7.4), files on disk that are **not in the index at all**, and files the index
 still lists that are gone from disk. `stale_breakdown` reports that split as
 `{changed, unindexed, deleted}` — the total alone was documented as a union here
 and published as a scalar by both surfaces, so a caller who had read this

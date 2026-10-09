@@ -54,6 +54,14 @@ interface FilesTable {
   readonly ident_fts_lo: FtsRowidCol;
   /** Upper bound of the `identifier_fts` block — see {@link FilesTable.ident_fts_lo}. */
   readonly ident_fts_hi: FtsRowidCol;
+  /**
+   * The schema version of the mast that wrote this row, NULL when that mast
+   * did not know the column. `index.json` is one value for the whole index; a
+   * running server of another version rewrites one file at a time and leaves
+   * the stamp alone (D142). A row whose mark is not this version's is treated
+   * as changed by the index run and by the freshness measure.
+   */
+  readonly written_by: string | null;
 }
 
 interface SymbolsTable {
@@ -323,7 +331,8 @@ CREATE TABLE IF NOT EXISTS files (
   chunk_fts_lo INTEGER,
   chunk_fts_hi INTEGER,
   ident_fts_lo INTEGER,
-  ident_fts_hi INTEGER
+  ident_fts_hi INTEGER,
+  written_by   TEXT
 );
 
 CREATE TABLE IF NOT EXISTS symbols (
@@ -609,6 +618,9 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
     ['chunk_fts_hi', 'ALTER TABLE files ADD COLUMN chunk_fts_hi INTEGER'],
     ['ident_fts_lo', 'ALTER TABLE files ADD COLUMN ident_fts_lo INTEGER'],
     ['ident_fts_hi', 'ALTER TABLE files ADD COLUMN ident_fts_hi INTEGER'],
+    // The schema version that wrote the row (D142). No default: a row from
+    // before the column, or from a mast that does not know it, stays NULL.
+    ['written_by', 'ALTER TABLE files ADD COLUMN written_by TEXT'],
   ] as const) {
     if (!fileColumns.has(name)) sqlite.exec(ddl);
   }
