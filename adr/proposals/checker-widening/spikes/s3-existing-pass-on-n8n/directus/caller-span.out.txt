@@ -1,0 +1,6 @@
+checker edges|779
+call line inside a chunk of the caller|432
+call line outside every chunk of the caller|347
+caller has no chunk of its name|0
+from and to are one symbol|128
+from and to are one symbol, call line outside|118

@@ -1,0 +1,7 @@
+files: 0 indexed, 13985 skipped  chunks: +0 -0  duration: 3585ms
+exit=134
+checker edges: 5591
+verdict rows: 417089
+verdicts non_call_site: 349269
+verdicts resolves_to_different: 26940
+verdicts resolves_to_queried: 40880

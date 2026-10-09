@@ -1,0 +1,34 @@
+{
+ "lacking_pairs": 28,
+ "by_kind": {
+  "same_file": 24,
+  "imported_by_name_from_that_file": 4
+ },
+ "by_kind_and_callee": {
+  "imported_by_name_from_that_file, top-level": 4,
+  "same_file, member": 23,
+  "same_file, top-level": 1
+ },
+ "modules_of_unresolved_named_imports_top_25": [],
+ "samples": {
+  "same_file, top-level": [
+   "src/cli/query.ts:registerQueryCommand > src/cli/query.ts:runQuery"
+  ],
+  "imported_by_name_from_that_file, top-level": [
+   "src/cli/search-cmd.ts:registerSearchCommand > src/cli/query.ts:runQuery",
+   "src/indexer/index.ts:runIndex > src/ast/extract.ts:extractFile",
+   "src/mcp/server.ts:reindexAndRemeasure > src/indexer/index.ts:runIndex",
+   "src/mcp/staleness.ts:checkAndRefreshIfStale > src/graph/populate.ts:populateFile"
+  ],
+  "same_file, member": [
+   "src/indexer/__tests__/generated-edits.ts:addAFile > src/indexer/__tests__/generated-edits.ts:Dice.pick",
+   "src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass > src/indexer/__tests__/generated-edits.ts:Dice.chance",
+   "src/indexer/__tests__/generated-edits.ts:addOrRemoveADeepClass > src/indexer/__tests__/generated-edits.ts:Dice.pick",
+   "src/indexer/__tests__/generated-edits.ts:addOrRemoveAFunction > src/indexer/__tests__/generated-edits.ts:Dice.below",
+   "src/indexer/__tests__/generated-edits.ts:addOrRemoveAFunction > src/indexer/__tests__/generated-edits.ts:Dice.pick",
+   "src/indexer/__tests__/generated-edits.ts:addOrRemoveAMethodUpTheChain > src/indexer/__tests__/generated-edits.ts:Dice.pick",
+   "src/indexer/__tests__/generated-edits.ts:changeABody > src/indexer/__tests__/generated-edits.ts:Dice.pick",
+   "src/indexer/__tests__/generated-edits.ts:changeAClass > src/indexer/__tests__/generated-edits.ts:Dice.below"
+  ]
+ }
+}

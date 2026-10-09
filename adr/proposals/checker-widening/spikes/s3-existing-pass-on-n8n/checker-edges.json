@@ -1,0 +1,97 @@
+{
+ "checker_edges_scored": 5591,
+ "counts": {
+  "agree": 756,
+  "unjudged: the compiler has calls from this caller, none to this name (class)": 105,
+  "unjudged: the compiler has calls from this caller, none to this name (function)": 429,
+  "unjudged: the compiler has calls from this caller, none to this name (method)": 458,
+  "unjudged: the compiler has calls from this caller, none to this name (unknown)": 482,
+  "unjudged: the compiler has no call from this caller (class)": 226,
+  "unjudged: the compiler has no call from this caller (function)": 412,
+  "unjudged: the compiler has no call from this caller (method)": 240,
+  "unjudged: the compiler has no call from this caller (unknown)": 669,
+  "wrong: the class, and the compiler has its constructor from this caller": 1814
+ },
+ "samples": {
+  "unjudged: the compiler has calls from this caller, none to this name (unknown)": [
+   "packages/@n8n/agents/src/__tests__/fixtures/generate-bulk-vector-fixture.ts:main > packages/@n8n/agents/src/__tests__/fixtures/generate-bulk-vector-fixture.ts:main",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithFlakyTool > packages/@n8n/agents/src/sdk/message.ts:filterLlmMessages",
+   "packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:InMemoryFilesystem.copyFile > packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:InMemoryFilesystem.copyFile",
+   "packages/@n8n/agents/src/runtime/loop/agent-runtime.ts:AgentRuntime > packages/@n8n/agents/src/runtime/loop/runtime-context.ts:RuntimeContextBuilder",
+   "packages/@n8n/agents/src/runtime/loop/agent-runtime.ts:AgentRuntime > packages/@n8n/agents/src/runtime/memory/memory-orchestrator.ts:MemoryOrchestrator",
+   "packages/@n8n/agents/src/runtime/loop/agent-runtime.ts:AgentRuntime > packages/@n8n/agents/src/runtime/model/message-list.ts:AgentMessageList"
+  ],
+  "wrong: the class, and the compiler has its constructor from this caller": [
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/agent.ts:Agent",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAlwaysErrorTool > packages/@n8n/agents/src/sdk/agent.ts:Agent",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAlwaysErrorTool > packages/@n8n/agents/src/sdk/tool.ts:Tool",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithBatchedInterruptibleCalls > packages/@n8n/agents/src/sdk/agent.ts:Agent",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithBatchedInterruptibleCalls > packages/@n8n/agents/src/sdk/tool.ts:Tool"
+  ],
+  "agree": [
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAlwaysErrorTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithConcurrentInterruptibleCalls > packages/@n8n/agents/src/sdk/agent.ts:Agent.model",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithConcurrentMixedTools > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithParallelInterruptibleCalls > packages/@n8n/agents/src/sdk/agent.ts:Agent.model",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithToContentTool > packages/@n8n/agents/src/sdk/agent.ts:Agent.model"
+  ],
+  "unjudged: the compiler has no call from this caller (unknown)": [
+   "packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:FakeProcessManager > packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:FakeProcessHandle",
+   "packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:FakeProcessManager.constructor > packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:FakeProcessHandle",
+   "packages/@n8n/agents/src/evals/string-similarity.ts:diceSimilarity > packages/@n8n/agents/src/sdk/eval.ts:Eval",
+   "packages/@n8n/agents/src/runtime/__tests__/support/otel-test-provider.ts:OtelTestProvider > packages/@n8n/agents/src/runtime/__tests__/support/otel-test-provider.ts:OtelTestProvider",
+   "packages/@n8n/agents/src/runtime/__tests__/support/otel-test-provider.ts:OtelTestProvider.getFinishedSpans > packages/@n8n/agents/src/runtime/__tests__/support/otel-test-provider.ts:OtelTestProvider",
+   "packages/@n8n/agents/src/runtime/loop/execution-counter.ts:incrementTokenCountFromUsage > packages/@n8n/agents/src/runtime/loop/execution-counter.ts:recordExecutionCounter"
+  ],
+  "unjudged: the compiler has calls from this caller, none to this name (method)": [
+   "packages/cli/src/activation-errors.service.ts:ActivationErrorsService.deregister > packages/cli/src/services/cache/cache.service.ts:CacheService.setHash",
+   "packages/cli/src/activation-errors.service.ts:ActivationErrorsService.get > packages/cli/src/services/cache/cache.service.ts:CacheService.deleteFromHash",
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.addNonWebhookTriggers > packages/cli/src/activation-errors.service.ts:ActivationErrorsService.deregister",
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.getAllWorkflowActivationErrors > packages/cli/src/external-hooks.ts:ExternalHooks.run",
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.init > packages/cli/src/activation-errors.service.ts:ActivationErrorsService.getAll",
+   "packages/cli/src/auth/auth.service.ts:AuthService.checkMfaGate > packages/cli/src/auth/auth.service.ts:AuthService.checkMfaGate"
+  ],
+  "unjudged: the compiler has calls from this caller, none to this name (class)": [
+   "packages/cli/src/auth/auth.service.ts:AuthService > packages/cli/src/errors/response-errors/auth.error.ts:AuthError",
+   "packages/cli/src/collaboration/collaboration.service.ts:CollaborationService > packages/cli/src/errors/response-errors/conflict.error.ts:ConflictError",
+   "packages/cli/src/collaboration/collaboration.service.ts:CollaborationService > packages/cli/src/errors/response-errors/locked.error.ts:LockedError",
+   "packages/cli/src/concurrency/concurrency-control.service.ts:ConcurrencyControlService > packages/cli/src/concurrency/concurrency-queue.ts:ConcurrencyQueue",
+   "packages/cli/src/concurrency/concurrency-control.service.ts:ConcurrencyControlService.constructor > packages/cli/src/errors/invalid-concurrency-limit.error.ts:InvalidConcurrencyLimitError",
+   "packages/cli/src/controllers/binary-data.controller.ts:BinaryDataController.getSigned > packages/cli/src/errors/response-errors/bad-request.error.ts:BadRequestError"
+  ],
+  "unjudged: the compiler has no call from this caller (class)": [
+   "packages/cli/src/auth/auth.service.ts:AuthService.endpointSkipsBrowserIdCheck > packages/cli/src/errors/response-errors/auth.error.ts:AuthError",
+   "packages/cli/src/deduplication/deduplication-helper.ts:DeduplicationHelper > packages/cli/src/errors/deduplication.error.ts:DeduplicationError",
+   "packages/cli/src/errors/response-errors/bad-request.error.ts:BadRequestError > packages/cli/src/errors/response-errors/bad-request.error.ts:BadRequestError",
+   "packages/cli/src/errors/response-errors/bad-request.error.ts:BadRequestError.constructor > packages/cli/src/errors/response-errors/bad-request.error.ts:BadRequestError",
+   "packages/cli/src/errors/response-errors/not-found.error.ts:NotFoundError > packages/cli/src/errors/response-errors/not-found.error.ts:NotFoundError",
+   "packages/cli/src/errors/response-errors/not-found.error.ts:NotFoundError.constructor > packages/cli/src/errors/response-errors/not-found.error.ts:NotFoundError"
+  ],
+  "unjudged: the compiler has no call from this caller (method)": [
+   "packages/cli/src/auth/auth.service.ts:AuthService.hash > packages/cli/src/auth/auth.service.ts:AuthService.hash",
+   "packages/cli/src/collaboration/collaboration.state.ts:CollaborationState.formWriteLockCacheKey > packages/cli/src/collaboration/collaboration.state.ts:CollaborationState.formWriteLockCacheKey",
+   "packages/cli/src/commands/export/nodes.ts:ExportNodes.writeNodesJSON > packages/cli/src/commands/export/nodes.ts:ExportNodes.writeNodesJSON",
+   "packages/cli/src/commands/license/info.ts:LicenseInfoCommand.catch > packages/cli/src/license.ts:License.getInfo",
+   "packages/cli/src/credential-types.ts:CredentialTypes.getSupportedNodes > packages/cli/src/load-nodes-and-credentials.ts:LoadNodesAndCredentials.getCredential",
+   "packages/cli/src/evaluation.ee/test-runner/test-runner.service.ee.ts:TestRunnerService.findEvaluationTriggerNode > packages/cli/src/evaluation.ee/test-runner/test-runner.service.ee.ts:TestRunnerService.findEvaluationTriggerNode"
+  ],
+  "unjudged: the compiler has calls from this caller, none to this name (function)": [
+   "packages/cli/src/chat/chat-service.ts:ChatService.processSuccessExecution > packages/cli/src/chat/utils.ts:getLastNodeExecuted",
+   "packages/cli/src/chat/chat-service.ts:ChatService.processWaitingExecution > packages/cli/src/chat/chat-service.ts:closeConnection",
+   "packages/cli/src/commands/base-command.ts:BaseCommand.initAzureStoreIfConfigured > packages/cli/src/deduplication/index.ts:getDataDeduplicationService",
+   "packages/cli/src/controllers/auth.controller.ts:AuthController > packages/cli/src/sso.ee/sso-helpers.ts:getCurrentAuthenticationMethod",
+   "packages/cli/src/controllers/security-settings.controller.ts:SecuritySettingsController.getWorkflowReviewsIfAvailable > packages/cli/src/constants/workflow-reviews.ts:isWorkflowReviewsFeatureAvailable",
+   "packages/cli/src/controllers/security-settings.controller.ts:SecuritySettingsController.updateSecuritySettings > packages/cli/src/constants/workflow-reviews.ts:isWorkflowReviewsFeatureAvailable"
+  ],
+  "unjudged: the compiler has no call from this caller (function)": [
+   "packages/cli/src/collaboration/collaboration.service.ts:CollaborationService.isTransientError > packages/cli/src/collaboration/collaboration.message.ts:parseWorkflowMessage",
+   "packages/cli/src/commands/export/workflow.ts:getTargetVersionId > packages/cli/src/commands/export/workflow.ts:mergeHistoriesIntoWorkflows",
+   "packages/cli/src/constants/workflow-reviews.ts:isWorkflowReviewsEnvFeatureFlagEnabled > packages/cli/src/constants/workflow-reviews.ts:isWorkflowReviewsEnvFeatureFlagEnabled",
+   "packages/cli/src/controllers/me.controller.ts:MeController.isUserManagedByEnv > packages/cli/src/sso.ee/sso-helpers.ts:getCurrentAuthenticationMethod",
+   "packages/cli/src/crash-journal.ts:cleanup > packages/cli/src/crash-journal.ts:touchFile",
+   "packages/cli/src/credentials/external-secrets.utils.ts:containsExternalSecretExpression > packages/cli/src/utils.ts:getAllKeyPaths"
+  ]
+ }
+}

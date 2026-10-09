@@ -1,0 +1,10 @@
+files: 6 indexed, 211 skipped  chunks: +130 -128  duration: 313ms  re_resolved: 2
+checker: 1 project(s) checked, 12 skipped  symbols_checked: 836  outside_ts_scope: 471
+  edges_upgraded: 56  non_call_site: 2837  different_declaration: 58  unresolved: 0
+  duration: 6288ms  peak_rss_mb: 495
+exit=0
+checker edges: 56
+verdict rows: 3845
+verdicts non_call_site: 2837
+verdicts resolves_to_different: 58
+verdicts resolves_to_queried: 950

@@ -1,0 +1,18 @@
+{
+ "lacking_pairs": 28,
+ "with_a_top_level_callee": 5,
+ "counts": {
+  "not written as a decorator there": 5
+ },
+ "by_caller_kind": {
+  "no decorator, caller is a function": 5
+ },
+ "decorator_names_top_20": [],
+ "first_40_without_a_decorator": [
+  "src/cli/query.ts:registerQueryCommand > src/cli/query.ts:runQuery",
+  "src/cli/search-cmd.ts:registerSearchCommand > src/cli/query.ts:runQuery",
+  "src/indexer/index.ts:runIndex > src/ast/extract.ts:extractFile",
+  "src/mcp/server.ts:reindexAndRemeasure > src/indexer/index.ts:runIndex",
+  "src/mcp/staleness.ts:checkAndRefreshIfStale > src/graph/populate.ts:populateFile"
+ ]
+}

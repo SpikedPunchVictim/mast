@@ -1,0 +1,141 @@
+{
+ "lacking_pairs": 14509,
+ "with_a_top_level_callee": 7548,
+ "counts": {
+  "not written as a decorator there": 501,
+  "name written as a decorator in the calling file": 7047
+ },
+ "by_caller_kind": {
+  "decorator, caller is a class": 6289,
+  "decorator, caller is a function": 6,
+  "decorator, caller is a method": 752,
+  "no decorator, caller is a class": 75,
+  "no decorator, caller is a function": 214,
+  "no decorator, caller is a method": 192,
+  "no decorator, caller is a type": 20
+ },
+ "decorator_names_top_20": [
+  [
+   "Entity",
+   1229
+  ],
+  [
+   "Column",
+   1199
+  ],
+  [
+   "PrimaryGeneratedColumn",
+   827
+  ],
+  [
+   "Service",
+   702
+  ],
+  [
+   "PrimaryColumn",
+   375
+  ],
+  [
+   "ManyToOne",
+   273
+  ],
+  [
+   "JoinColumn",
+   193
+  ],
+  [
+   "GlobalScope",
+   181
+  ],
+  [
+   "OneToMany",
+   176
+  ],
+  [
+   "ManyToMany",
+   168
+  ],
+  [
+   "Param",
+   150
+  ],
+  [
+   "OneToOne",
+   134
+  ],
+  [
+   "ProjectScope",
+   132
+  ],
+  [
+   "JoinTable",
+   113
+  ],
+  [
+   "Env",
+   112
+  ],
+  [
+   "RestController",
+   106
+  ],
+  [
+   "Index",
+   104
+  ],
+  [
+   "ChildEntity",
+   56
+  ],
+  [
+   "Licensed",
+   55
+  ],
+  [
+   "Redactable",
+   46
+  ]
+ ],
+ "first_40_without_a_decorator": [
+  "packages/@n8n/ai-workflow-builder.ee/evaluations/support/workflow-executor.ts:DistNodeTypes.getByNameAndVersion > packages/workflow/src/node-helpers.ts:getVersionedNodeType",
+  "packages/@n8n/ai-workflow-builder.ee/src/tools/utils/connection.utils.ts:validateConnection > packages/workflow/src/node-helpers.ts:nodeHasOutputType",
+  "packages/@n8n/api-types/src/dto/insights/list-workflow-query.dto.ts:ListInsightsWorkflowQueryDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+  "packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:ImportPackageRequestDto > packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:optionalEnum",
+  "packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:ImportPackageRequestDto > packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:optionalEnumNoDefault",
+  "packages/@n8n/api-types/src/dto/roles/list-role-mapping-rule-query.dto.ts:ListRoleMappingRuleQueryDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+  "packages/@n8n/api-types/src/dto/user/user-update-request.dto.ts:UserUpdateRequestDto > packages/@n8n/api-types/src/dto/user/user-update-request.dto.ts:nameSchema",
+  "packages/@n8n/api-types/src/dto/user/users-list-filter.dto.ts:UsersListFilterDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+  "packages/@n8n/api-types/src/schemas/agent-evals.schema.ts:AgentEvalRunDetailQueryDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+  "packages/@n8n/backend-common/src/logging/logger.ts:Logger.constructor > packages/workflow/src/logger-proxy.ts:init",
+  "packages/@n8n/instance-ai/evaluations/run/build-orchestrator.ts:createBuildOrchestrator > packages/@n8n/utils/src/sleep.ts:sleep",
+  "packages/@n8n/instance-ai/src/index.ts:BackgroundTaskManager > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:BuilderTemplatesService > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:IdRemapper > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:InstanceAiLivenessPolicy > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:InstanceAiTerminalResponseGuard > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:McpClientManager > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:PlannedTaskCoordinator > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:PlannedTaskStorage > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:RunStateRegistry > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:SnapshotManager > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:TerminalOutcomeStorage > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:ThreadIterationLogStorage > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:ThreadTaskStorage > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:Tool > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:TraceIndex > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:TraceWriter > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:UnsupportedAttachmentError > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopRuntime > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:WorkflowLoopStorage > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/index.ts:WorkflowTaskCoordinator > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/attachments/parse-file.tool.ts:createParseFileTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/credentials.tool.ts:createCredentialsTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/data-tables.tool.ts:createDataTablesTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/evals/eval-config.tool.ts:createEvalConfigTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/evals/evals.tool.ts:createEvalsTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/executions.tool.ts:createExecutionsTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/n8n-docs.tool.ts:createN8nDocsTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/nodes.tool.ts:createNodesTool",
+  "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/research.tool.ts:createResearchTool"
+ ]
+}

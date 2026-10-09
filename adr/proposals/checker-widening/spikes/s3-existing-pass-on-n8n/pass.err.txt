@@ -1,0 +1,28 @@
+
+<--- Last few GCs --->
+
+[2523:0xb3dc00000]   314374 ms: Mark-Compact 4082.6 (4102.2) -> 4077.4 (4112.5) MB, pooled: 0 MB, 5395.92 / 0.00 ms  (average mu = 0.268, current mu = 0.019) allocation failure; scavenge might not succeed
+[2523:0xb3dc00000]   319169 ms: Mark-Compact 4085.5 (4112.5) -> 4081.9 (4114.2) MB, pooled: 8 MB, 4716.46 / 0.00 ms  (average mu = 0.154, current mu = 0.016) allocation failure; scavenge might not succeed
+
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+time: command terminated abnormally
+      319.52 real       220.91 user       143.91 sys
+          2495299584  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            11358708  page reclaims
+                 412  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+              335672  voluntary context switches
+             3876719  involuntary context switches
+       2593653538999  instructions retired
+       1176561431129  cycles elapsed
+          4857222768  peak memory footprint

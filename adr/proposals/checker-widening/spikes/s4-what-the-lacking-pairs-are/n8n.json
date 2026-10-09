@@ -1,0 +1,125 @@
+{
+ "lacking_pairs": 14509,
+ "by_kind": {
+  "imported_by_name_from_another": 5377,
+  "imported_by_name_from_that_file": 5155,
+  "file_not_imported": 2881,
+  "namespace_or_default_import_of_that_file": 914,
+  "same_file": 182
+ },
+ "by_kind_and_callee": {
+  "file_not_imported, member": 2667,
+  "file_not_imported, top-level": 214,
+  "imported_by_name_from_another, member": 1648,
+  "imported_by_name_from_another, top-level": 3729,
+  "imported_by_name_from_that_file, member": 1707,
+  "imported_by_name_from_that_file, top-level": 3448,
+  "namespace_or_default_import_of_that_file, member": 818,
+  "namespace_or_default_import_of_that_file, top-level": 96,
+  "same_file, member": 121,
+  "same_file, top-level": 61
+ },
+ "modules_of_unresolved_named_imports_top_25": [],
+ "samples": {
+  "imported_by_name_from_another, member": [
+   "packages/@n8n/agents/examples/basic-agent.ts:main > packages/@n8n/agents/src/sdk/agent.ts:Agent.generate",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/agent.ts:Agent.instructions",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/agent.ts:Agent.model",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/agent.ts:Agent.tool",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.handler",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.input",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.output"
+  ],
+  "imported_by_name_from_that_file, member": [
+   "packages/@n8n/agents/src/__tests__/integration/vector-store-helpers.ts:registerBulkVectorStoreTests > packages/@n8n/agents/src/storage/base-vector-store.ts:BaseVectorStore.delete",
+   "packages/@n8n/agents/src/__tests__/integration/vector-store-helpers.ts:registerBulkVectorStoreTests > packages/@n8n/agents/src/storage/base-vector-store.ts:BaseVectorStore.query",
+   "packages/@n8n/agents/src/evals/categorization.ts:categorization > packages/@n8n/agents/src/sdk/eval.ts:Eval.check",
+   "packages/@n8n/agents/src/evals/categorization.ts:categorization > packages/@n8n/agents/src/sdk/eval.ts:Eval.description",
+   "packages/@n8n/agents/src/evals/contains-keywords.ts:containsKeywords > packages/@n8n/agents/src/sdk/eval.ts:Eval.check",
+   "packages/@n8n/agents/src/evals/contains-keywords.ts:containsKeywords > packages/@n8n/agents/src/sdk/eval.ts:Eval.description",
+   "packages/@n8n/agents/src/evals/correctness.ts:correctness > packages/@n8n/agents/src/sdk/eval.ts:Eval.description",
+   "packages/@n8n/agents/src/evals/correctness.ts:correctness > packages/@n8n/agents/src/sdk/eval.ts:Eval.judge"
+  ],
+  "same_file, member": [
+   "packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:FakeProcessManager.kill > packages/@n8n/agents/src/__tests__/workspace/test-utils.ts:FakeProcessHandle.kill",
+   "packages/@n8n/agents/src/runtime/state/event-bus.ts:AgentEventBus.abort > packages/@n8n/agents/src/runtime/state/event-bus.ts:EventBusAbortScope.abort",
+   "packages/@n8n/agents/src/runtime/state/event-bus.ts:AgentEventBus.dispose > packages/@n8n/agents/src/runtime/state/event-bus.ts:EventBusAbortScope.dispose",
+   "packages/@n8n/crdt/src/providers/yjs.ts:YjsArray.insert > packages/@n8n/crdt/src/providers/yjs.ts:YjsArray.getYArray",
+   "packages/@n8n/crdt/src/providers/yjs.ts:YjsArray.insert > packages/@n8n/crdt/src/providers/yjs.ts:YjsMap.getYMap",
+   "packages/@n8n/crdt/src/providers/yjs.ts:YjsArray.push > packages/@n8n/crdt/src/providers/yjs.ts:YjsArray.getYArray",
+   "packages/@n8n/crdt/src/providers/yjs.ts:YjsArray.push > packages/@n8n/crdt/src/providers/yjs.ts:YjsMap.getYMap",
+   "packages/@n8n/crdt/src/providers/yjs.ts:YjsMap.set > packages/@n8n/crdt/src/providers/yjs.ts:YjsArray.getYArray"
+  ],
+  "file_not_imported, member": [
+   "packages/@n8n/agents/src/runtime/loop/agent-runtime.ts:AgentRuntime.startStream > packages/@n8n/agents/src/runtime/streaming/stream-writer-guard.ts:StreamWriterGuard.write",
+   "packages/@n8n/agents/src/runtime/loop/generate-sink.ts:GenerateSink.finishComplete > packages/@n8n/agents/src/runtime/model/message-list.ts:AgentMessageList.responseDelta",
+   "packages/@n8n/agents/src/runtime/loop/generate-sink.ts:GenerateSink.finishSuspended > packages/@n8n/agents/src/runtime/model/message-list.ts:AgentMessageList.responseDelta",
+   "packages/@n8n/agents/src/runtime/loop/stream-sink.ts:StreamSink.finishComplete > packages/@n8n/agents/src/runtime/model/message-list.ts:AgentMessageList.responseDelta",
+   "packages/@n8n/agents/src/runtime/loop/stream-sink.ts:StreamSink.finishComplete > packages/@n8n/agents/src/runtime/model/message-list.ts:AgentMessageList.serialize",
+   "packages/@n8n/agents/src/workspace/sandbox/base-sandbox.ts:BaseSandbox.executeCommand > packages/@n8n/agents/src/workspace/process.ts:ProcessHandle.wait",
+   "packages/@n8n/ai-workflow-builder.ee/evaluations/evaluators/pairwise/judge-chain.ts:evaluateWorkflowPairwise > packages/@n8n/ai-workflow-builder.ee/src/prompts/builder/prompt-builder.ts:PromptBuilder.build",
+   "packages/@n8n/ai-workflow-builder.ee/evaluations/evaluators/pairwise/judge-chain.ts:evaluateWorkflowPairwise > packages/@n8n/ai-workflow-builder.ee/src/prompts/builder/prompt-builder.ts:PromptBuilder.section"
+  ],
+  "namespace_or_default_import_of_that_file, member": [
+   "packages/@n8n/ai-workflow-builder.ee/evaluations/cli/index.ts:createWorkflowGenerator > packages/@n8n/ai-workflow-builder.ee/src/workflow-builder-agent.ts:WorkflowBuilderAgent.chat",
+   "packages/@n8n/ai-workflow-builder.ee/evaluations/cli/index.ts:createWorkflowGenerator > packages/@n8n/ai-workflow-builder.ee/src/workflow-builder-agent.ts:WorkflowBuilderAgent.getState",
+   "packages/@n8n/backend-common/src/modules/module-registry.ts:ModuleRegistry.initModules > packages/@n8n/di/src/di.ts:ContainerClass.get",
+   "packages/@n8n/backend-common/src/modules/module-registry.ts:ModuleRegistry.loadModules > packages/@n8n/di/src/di.ts:ContainerClass.get",
+   "packages/@n8n/backend-common/src/modules/module-registry.ts:ModuleRegistry.refreshModuleSettings > packages/@n8n/di/src/di.ts:ContainerClass.get",
+   "packages/@n8n/backend-common/src/modules/module-registry.ts:ModuleRegistry.shutdownModule > packages/@n8n/di/src/di.ts:ContainerClass.get",
+   "packages/@n8n/backend-network/src/http/axios/config.ts:applyVendorHeaders > packages/@n8n/di/src/di.ts:ContainerClass.get",
+   "packages/@n8n/backend-network/src/http/axios/user-agent.ts:getDefaultN8nOutboundUserAgent > packages/@n8n/di/src/di.ts:ContainerClass.get"
+  ],
+  "file_not_imported, top-level": [
+   "packages/@n8n/ai-workflow-builder.ee/evaluations/support/workflow-executor.ts:DistNodeTypes.getByNameAndVersion > packages/workflow/src/node-helpers.ts:getVersionedNodeType",
+   "packages/@n8n/ai-workflow-builder.ee/src/tools/utils/connection.utils.ts:validateConnection > packages/workflow/src/node-helpers.ts:nodeHasOutputType",
+   "packages/@n8n/backend-common/src/logging/logger.ts:Logger.constructor > packages/workflow/src/logger-proxy.ts:init",
+   "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/attachments/parse-file.tool.ts:createParseFileTool",
+   "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/credentials.tool.ts:createCredentialsTool",
+   "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/data-tables.tool.ts:createDataTablesTool",
+   "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/evals/eval-config.tool.ts:createEvalConfigTool",
+   "packages/@n8n/instance-ai/src/tools/index.ts:createAllTools > packages/@n8n/instance-ai/src/tools/evals/evals.tool.ts:createEvalsTool"
+  ],
+  "imported_by_name_from_that_file, top-level": [
+   "packages/@n8n/ai-workflow-builder.ee/src/ai-workflow-builder-agent.service.ts:AiWorkflowBuilderService > packages/@n8n/di/src/di.ts:Service",
+   "packages/@n8n/ai-workflow-builder.ee/src/session-manager.service.ts:SessionManagerService > packages/@n8n/di/src/di.ts:Service",
+   "packages/@n8n/api-types/src/dto/insights/list-workflow-query.dto.ts:ListInsightsWorkflowQueryDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+   "packages/@n8n/api-types/src/dto/roles/list-role-mapping-rule-query.dto.ts:ListRoleMappingRuleQueryDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+   "packages/@n8n/api-types/src/dto/user/users-list-filter.dto.ts:UsersListFilterDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+   "packages/@n8n/api-types/src/schemas/agent-evals.schema.ts:AgentEvalRunDetailQueryDto > packages/@n8n/api-types/src/dto/pagination/pagination.dto.ts:createTakeValidator",
+   "packages/@n8n/backend-common/src/cli-parser.ts:CliParser > packages/@n8n/di/src/di.ts:Service",
+   "packages/@n8n/backend-common/src/license-state.ts:LicenseState > packages/@n8n/di/src/di.ts:Service"
+  ],
+  "same_file, top-level": [
+   "packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:ImportPackageRequestDto > packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:optionalEnum",
+   "packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:ImportPackageRequestDto > packages/@n8n/api-types/src/dto/packages/import-package-request.dto.ts:optionalEnumNoDefault",
+   "packages/@n8n/api-types/src/dto/user/user-update-request.dto.ts:UserUpdateRequestDto > packages/@n8n/api-types/src/dto/user/user-update-request.dto.ts:nameSchema",
+   "packages/@n8n/instance-ai/src/index.ts:BackgroundTaskManager > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+   "packages/@n8n/instance-ai/src/index.ts:BuilderTemplatesService > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+   "packages/@n8n/instance-ai/src/index.ts:IdRemapper > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+   "packages/@n8n/instance-ai/src/index.ts:InstanceAiLivenessPolicy > packages/@n8n/instance-ai/src/index.ts:lazyClass",
+   "packages/@n8n/instance-ai/src/index.ts:InstanceAiTerminalResponseGuard > packages/@n8n/instance-ai/src/index.ts:lazyClass"
+  ],
+  "imported_by_name_from_another, top-level": [
+   "packages/@n8n/backend-common/src/modules/modules.config.ts:ModulesConfig > packages/@n8n/config/src/decorators.ts:Env",
+   "packages/@n8n/blob-storage/src/azure-blob/azure-blob.config.ts:AzureBlobConfig > packages/@n8n/config/src/decorators.ts:Env",
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:ObjectStoreBucketConfig > packages/@n8n/config/src/decorators.ts:Env",
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:ObjectStoreConfig > packages/@n8n/config/src/decorators.ts:Env",
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:ObjectStoreCredentialsConfig > packages/@n8n/config/src/decorators.ts:Env",
+   "packages/@n8n/db/src/entities/abstract-entity.ts:mixinCreatedAt > packages/@n8n/typeorm/src/decorator/columns/CreateDateColumn.ts:CreateDateColumn",
+   "packages/@n8n/db/src/entities/abstract-entity.ts:mixinStringId > packages/@n8n/typeorm/src/decorator/columns/PrimaryColumn.ts:PrimaryColumn",
+   "packages/@n8n/db/src/entities/abstract-entity.ts:mixinStringId > packages/@n8n/typeorm/src/decorator/listeners/BeforeInsert.ts:BeforeInsert"
+  ],
+  "namespace_or_default_import_of_that_file, top-level": [
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.add > packages/cli/src/workflow-execute-additional-data.ts:getBase",
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.addWebhooks > packages/cli/src/webhooks/webhook-helpers.ts:getWorkflowWebhooks",
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.clearWebhooks > packages/cli/src/workflow-execute-additional-data.ts:getBase",
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.countTriggers > packages/cli/src/webhooks/webhook-helpers.ts:getWorkflowWebhooks",
+   "packages/cli/src/active-workflow-manager.ts:ActiveWorkflowManager.deregisterWebhooks > packages/cli/src/webhooks/webhook-helpers.ts:getWorkflowWebhooks",
+   "packages/cli/src/chat/chat-execution-manager.ts:ChatExecutionManager.runNode > packages/cli/src/workflow-execute-additional-data.ts:getBase",
+   "packages/cli/src/commands/base-command.ts:BaseCommand.exitSuccessFully > packages/cli/src/crash-journal.ts:cleanup",
+   "packages/cli/src/commands/base-command.ts:BaseCommand.initCrashJournal > packages/cli/src/crash-journal.ts:init"
+  ]
+ }
+}
