@@ -1,7 +1,10 @@
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import Sqlite from 'better-sqlite3';
+import { openDatabase } from '../../graph/db.js';
 import { CURRENT_SCHEMA_VERSION } from '../../store/config.js';
+import { withLock } from '../../store/lock.js';
 import { loadIndexMeta, runIndex } from '../index.js';
 import { configFor, expectStoredEdges, indexFull, makeProject, writeFiles } from './graph-fixture.js';
 
@@ -59,4 +62,52 @@ describe('an index run over an index of another schema version', () => {
     expect(() => readFileSync(join(configFor(dir).resolved_state_dir, 'embed_cache'))).toThrow();
     await expectStoredEdges(dir, EDGES);
   });
+  it('keeps the metrics rows of the index it rebuilds (D126)', async () => {
+    // A handle of its own before and after: one held across the run would go on
+    // reading a deleted file and count the row either way.
+    const graphPath = join(configFor(dir).resolved_state_dir, 'graph.db');
+    const before = new Sqlite(graphPath);
+    before.exec(
+      "INSERT INTO metrics (tool_name, call_timestamp, tokens_returned, tokens_full_file_upper_bound, duration_ms, session_id, status) VALUES ('mast_search', 1, 1, 1, 1, 's', 'ok')",
+    );
+    before.close();
+    stampWith('0.0.1');
+
+    await runIndex(configFor(dir), { incremental: true });
+
+    const after = new Sqlite(graphPath);
+    const rows = after.prepare('SELECT count(*) AS c FROM metrics').get();
+    after.close();
+    expect(rows).toEqual({ c: 1 });
+  });
+
+  it('is read by a database handle that was open before it ran (D125)', async () => {
+    const heldOpen = openDatabase(configFor(dir).resolved_state_dir);
+    stampWith('0.0.1');
+    writeFiles(dir, { 'src/c.ts': `export function added(): number { return 3; }\n` });
+
+    await runIndex(configFor(dir), { incremental: true });
+
+    const paths = (await heldOpen.selectFrom('files').select('path').execute()).map((f) => f.path).sort();
+    await heldOpen.destroy();
+    expect(paths).toEqual(['src/a.ts', 'src/b.ts', 'src/c.ts']);
+  });
+
+  it('removes nothing when it cannot take the structure lock (D127)', async () => {
+    const stateDir = configFor(dir).resolved_state_dir;
+    stampWith('0.0.1');
+    let release: () => void = () => undefined;
+    const held = withLock(stateDir, 'structure', { maxRetries: 0, retryIntervalMs: 10, caller: 'test' }, () =>
+      new Promise<void>((resolve) => { release = resolve; }),
+    );
+
+    await expect(runIndex(configFor(dir), { incremental: true })).rejects.toThrow();
+
+    release();
+    await held;
+    const db = openDatabase(stateDir);
+    const files = await db.selectFrom('files').select('path').execute();
+    await db.destroy();
+    expect(files).toHaveLength(2);
+  }, 20_000);
 });

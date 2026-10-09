@@ -194,9 +194,9 @@ export async function serve(options: ServeOptions): Promise<void> {
   const { config } = options;
 
   // ── Steps 1–2: bootstrap state dir + schema-version guard ─────────────────
-  // On a schema-version change this wipes all derived state (graph.db,
-  // file_manifest.json, plus any orphaned lance/embed_cache/ left behind by a
-  // pre-Stage-7 state dir) before any of it is opened. See §7.4.
+  // On a schema-version change this empties the index inside graph.db and
+  // removes file_manifest.json, plus any orphaned lance/embed_cache/ left
+  // behind by a pre-Stage-7 state dir, before any of it is read. See §7.4.
 
   const { needsFullReindex } = await bootstrapState(config);
 

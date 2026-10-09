@@ -615,10 +615,12 @@ startup
   │
   ├─ STEP 2 (sync, < 2s): schema version + open database
   │    ├─ if index.json.schema_version != CURRENT_SCHEMA_VERSION:
-  │    │    wipe all derived state (graph.db, file_manifest.json, and any
-  │    │    remaining orphaned state)
+  │    │    under structure.lock: empty the index inside graph.db (the
+  │    │    metrics tables are kept), remove file_manifest.json and any
+  │    │    remaining orphaned state
   │    │    set needs_full_reindex = true
-  │    │    write new index.json with updated schema_version
+  │    │    rewrite index.json: the old schema_version, nothing indexed
+  │    │    (the rebuild writes the new one when it finishes)
   │    ├─ open graph.db (better-sqlite3, WAL mode)
   │    └─ verify chunk_fts and identifier_fts tables exist (created on first init)
   │
@@ -671,9 +673,12 @@ enabled (the default), this check is a no-op and Step 3 opens the transport
 exactly as described above.
 
 The same check is made by every index run, not only at server startup: `runIndex`
-reads `index.json` first, and when it names another version removes the derived
-state and runs as a full index, whether or not `--incremental` was asked for
-(D113). Without it the first `mast index --incremental` from a git hook after an
+reads `index.json` first, and when it names another version empties the index
+under the structure lock and runs as a full index, whether or not `--incremental`
+was asked for (D113). The index is emptied inside `graph.db`, not by deleting the
+file: a process that has the file open then reads the rebuilt index (D125), and
+the metrics tables in it are kept (D126). A run that cannot take the lock fails
+with the old index untouched (D127). Without it the first `mast index --incremental` from a git hook after an
 upgrade kept the old graph and wrote the new version over it.
 
 `CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.4.0"`). A

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { sql } from 'kysely';
 import type { ResolvedConfig } from '../store/config.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
-import { wipeDerivedState } from '../store/derived-state.js';
+import { clearDerivedState } from '../store/derived-state.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
 import type { LockMetricsSink } from '../store/lockMetrics.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
@@ -316,7 +316,6 @@ export async function runIndex(
   // until the run ends, so a run that dies here is rebuilt by the next.
   const stamped = loadIndexMeta(config.resolved_state_dir);
   const isFromAnotherSchema = stamped !== null && stamped.schema_version !== CURRENT_SCHEMA_VERSION;
-  if (isFromAnotherSchema) wipeDerivedState(config.resolved_state_dir);
   const options: IndexOptions = isFromAnotherSchema ? { ...requested, incremental: false } : requested;
 
   const lockOptions = {
@@ -325,6 +324,15 @@ export async function runIndex(
     caller: 'index-run',
     sink: options.lockMetricsSink,
   };
+  // Under the lock, and before the manifest is read below: a run that cannot
+  // take the lock fails here with the old index untouched (D127).
+  if (isFromAnotherSchema) {
+    await withLock(config.resolved_state_dir, 'structure', lockOptions, () => {
+      clearDerivedState(config.resolved_state_dir);
+      markIndexCleared(config.resolved_state_dir, stamped);
+      return Promise.resolve();
+    });
+  }
   const doExtract = options.extractFileFn ?? extractFile;
 
   // Opening the db handle is connection setup, not a graph/chunk-store
@@ -988,6 +996,21 @@ export function loadIndexMeta(stateDir: string): IndexMeta | null {
   const metaPath = join(stateDir, 'index.json');
   if (!existsSync(metaPath)) return null;
   return JSON.parse(readFileSync(metaPath, 'utf-8')) as IndexMeta;
+}
+
+/**
+ * Rewrite `index.json` after the index was emptied for a rebuild. It keeps the
+ * name of the version that built the old index, so a rebuild that dies is
+ * started again by the next run, and it says nothing is indexed, which is
+ * true and is what `assertServableIndex` refuses to serve without a reindex.
+ */
+export function markIndexCleared(stateDir: string, stamped: IndexMeta): void {
+  writeIndexMeta(stateDir, {
+    schema_version: stamped.schema_version,
+    last_indexed: null,
+    file_count: 0,
+    chunk_count: 0,
+  });
 }
 
 /** Write `index.json` to the state directory. */

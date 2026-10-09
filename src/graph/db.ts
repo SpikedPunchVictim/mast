@@ -633,6 +633,64 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
   });
 }
 
+/** The two tables an index run does not write and a rebuild must not lose (D126). */
+const TABLES_KEPT_BY_A_REBUILD: ReadonlySet<string> = new Set(['metrics', 'metrics_daily']);
+
+/**
+ * Empty the index inside `graph.db`: drop every table an index run writes and
+ * create it again from the current schema, in one transaction. The metrics
+ * tables are left as they are.
+ *
+ * The file is not deleted, because a process that has it open goes on reading
+ * the deleted file and never sees the rebuild (D125). A handle opened before
+ * this call sees the empty tables after it, and a table an older version made
+ * with other columns comes back in the current shape.
+ *
+ * The caller holds the structure lock. That lock is advisory and a read-time
+ * refresh does not take it, so another connection may still be writing: this
+ * waits `busyTimeoutMs` for it and then throws, having removed nothing.
+ *
+ * @throws SqliteError `SQLITE_BUSY` when another connection is still writing
+ *   after `busyTimeoutMs`.
+ */
+export function clearDerivedTables(
+  stateDir: string,
+  options: { readonly busyTimeoutMs: number } = { busyTimeoutMs: 5000 },
+): void {
+  const sqlite = new Sqlite(join(stateDir, 'graph.db'));
+  try {
+    sqlite.pragma(`busy_timeout = ${options.busyTimeoutMs}`);
+    // With foreign keys on, DROP TABLE deletes row by row and checks every
+    // reference. Every referencing table is dropped here too, so there is
+    // nothing to check. The pragma cannot change inside a transaction.
+    sqlite.pragma('foreign_keys = OFF');
+    const tables = sqlite
+      .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+      .all()
+      .map((row) => row as { name: string; sql: string | null });
+    const virtualTables = tables.filter((t) => /^CREATE VIRTUAL TABLE/i.test(t.sql ?? '')).map((t) => t.name);
+    // An FTS5 table keeps its data in tables named after it; dropping the
+    // virtual table drops those.
+    const isShadowTable = (name: string): boolean =>
+      virtualTables.some((virtual) => name !== virtual && name.startsWith(`${virtual}_`));
+
+    sqlite.exec('BEGIN IMMEDIATE');
+    try {
+      for (const { name } of tables) {
+        if (TABLES_KEPT_BY_A_REBUILD.has(name) || isShadowTable(name)) continue;
+        sqlite.exec(`DROP TABLE IF EXISTS "${name.replaceAll('"', '""')}"`);
+      }
+      sqlite.exec(SCHEMA_DDL);
+      sqlite.exec('COMMIT');
+    } catch (err) {
+      if (sqlite.inTransaction) sqlite.exec('ROLLBACK');
+      throw err;
+    }
+  } finally {
+    sqlite.close();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Domain constants
 // ---------------------------------------------------------------------------

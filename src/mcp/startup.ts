@@ -3,11 +3,14 @@ import { cp } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ResolvedConfig } from '../store/config.js';
 import { CURRENT_SCHEMA_VERSION, writeStateConfig } from '../store/config.js';
-import { initLockMarkers } from '../store/lock.js';
-import { loadIndexMeta, writeIndexMeta } from '../indexer/index.js';
-import { wipeDerivedState } from '../store/derived-state.js';
+import { initLockMarkers, withLock } from '../store/lock.js';
+import { loadIndexMeta, markIndexCleared } from '../indexer/index.js';
+import { clearDerivedState } from '../store/derived-state.js';
 
-export { wipeDerivedState };
+export { clearDerivedState };
+
+/** Startup must not hang on a busy index: one attempt, then leave it to the reindex. */
+const STARTUP_CLEAR_LOCK = { maxRetries: 0, retryIntervalMs: 100, caller: 'startup-clear' } as const;
 
 /** Default location of the Docker-baked seed index (§13.8). */
 const DEFAULT_SEED_PATH = '/opt/mast-seed';
@@ -32,7 +35,7 @@ const ORPHANED_VECTOR_STATE_ENTRIES = ['lance', 'embed_cache', 'vectors.lock'] a
  * Stage 7 (decision 3) deliberately did NOT bump `CURRENT_SCHEMA_VERSION` —
  * nothing the new code READS changed shape, so `bootstrapState`'s schema
  * guard never fires for a pre-Stage-7 state dir and never runs
- * {@link wipeDerivedState} on its behalf. Without this, `lance/`/`embed_cache/`/
+ * {@link clearDerivedState} on its behalf. Without this, `lance/`/`embed_cache/`/
  * `vectors.lock` would sit on disk forever after an upgrade. Runs
  * unconditionally on every startup (not gated on the schema check), and never
  * throws: a permission error or a race with another process must not block
@@ -69,7 +72,9 @@ export interface BootstrapResult {
  *   (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion", decision 3).
  * Step 2 — enforce the schema-version guard: if the on-disk `index.json` was
  *   written by a different `schema_version` (including a seed baked against an
- *   old schema, §13.8.2), wipe ALL derived state and request a full rebuild.
+ *   old schema, §13.8.2), empty the index inside `graph.db` and request a
+ *   full rebuild. The stamp keeps the old version's name until that rebuild
+ *   writes its own.
  *
  * `seedPath` is injectable so tests can point at a fixture or a path that does
  * not exist (the common test case).
@@ -93,13 +98,18 @@ export async function bootstrapState(
   // Step 2.
   const meta = loadIndexMeta(config.resolved_state_dir);
   if (meta !== null && meta.schema_version !== CURRENT_SCHEMA_VERSION) {
-    wipeDerivedState(config.resolved_state_dir);
-    writeIndexMeta(config.resolved_state_dir, {
-      schema_version: CURRENT_SCHEMA_VERSION,
-      last_indexed: null,
-      file_count: 0,
-      chunk_count: 0,
-    });
+    try {
+      await withLock(config.resolved_state_dir, 'structure', STARTUP_CLEAR_LOCK, () => {
+        clearDerivedState(config.resolved_state_dir);
+        markIndexCleared(config.resolved_state_dir, meta);
+        return Promise.resolve();
+      });
+    } catch (err) {
+      // Another process holds the lock or is writing. The index stays as the
+      // old version left it, and so does its stamp, so the reindex this
+      // return value asks for clears it under the lock itself.
+      process.stderr.write(`[mast] startup: could not clear the index of schema ${meta.schema_version}: ${String(err)}\n`);
+    }
     return { needsFullReindex: true };
   }
 

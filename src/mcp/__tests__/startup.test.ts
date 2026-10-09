@@ -4,9 +4,10 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 import { runIndex, loadIndexMeta, writeIndexMeta } from '../../indexer/index.js';
-import { bootstrapState, wipeDerivedState, cleanupOrphanedVectorState } from '../startup.js';
+import { bootstrapState, clearDerivedState, cleanupOrphanedVectorState } from '../startup.js';
 import { assertServableIndex, NeverIndexedError } from '../server.js';
 import { initLockMarkers } from '../../store/lock.js';
+import { openDatabase } from '../../graph/db.js';
 
 // ---------------------------------------------------------------------------
 // Fixture
@@ -112,34 +113,27 @@ describe('loadIndexMeta — tolerates removed index.json fields', () => {
 
 const NO_SEED = join(tmpdir(), 'mast-no-such-seed-dir');
 
-describe('wipeDerivedState', () => {
-  it('removes index-derived state but keeps config.json and lock markers', () => {
+describe('clearDerivedState', () => {
+  it('empties the index and removes the files beside it, and keeps config.json and lock markers', async () => {
     const stateDir = mkdtempSync(join(tmpdir(), 'mast-wipe-'));
     try {
-      // Derived state.
+      const db = openDatabase(stateDir);
+      await db.insertInto('files').values({ path: 'a.ts', language: 'typescript', mtime: 1 }).execute();
       mkdirSync(join(stateDir, 'lance'));
       mkdirSync(join(stateDir, 'embed_cache'));
-      writeFileSync(join(stateDir, 'graph.db'), 'x');
-      writeFileSync(join(stateDir, 'graph.db-wal'), 'x');
-      writeFileSync(join(stateDir, 'graph.db-shm'), 'x');
       writeFileSync(join(stateDir, 'file_manifest.json'), '{}');
-      // Preserved state. Only 'structure' is a real lock marker post-Stage-7.1
-      // (the 'vectors' lock type was removed with runEmbed, its only
-      // acquirer; IMPLEMENTATION_PLAN.md "Stage 7") — 'lance'/'embed_cache'
-      // stay in DERIVED_STATE_ENTRIES as orphan-cleanup targets per Stage 7
-      // design decision 3, asserted above.
       writeFileSync(join(stateDir, 'config.json'), '{}');
       writeFileSync(join(stateDir, 'structure'), '');
 
-      wipeDerivedState(stateDir);
+      clearDerivedState(stateDir);
 
+      const files = await db.selectFrom('files').select('path').execute();
+      await db.destroy();
+      expect(files).toEqual([]);
       expect(existsSync(join(stateDir, 'lance'))).toBe(false);
       expect(existsSync(join(stateDir, 'embed_cache'))).toBe(false);
-      expect(existsSync(join(stateDir, 'graph.db'))).toBe(false);
-      expect(existsSync(join(stateDir, 'graph.db-wal'))).toBe(false);
-      expect(existsSync(join(stateDir, 'graph.db-shm'))).toBe(false);
       expect(existsSync(join(stateDir, 'file_manifest.json'))).toBe(false);
-
+      expect(existsSync(join(stateDir, 'graph.db'))).toBe(true);
       expect(existsSync(join(stateDir, 'config.json'))).toBe(true);
       expect(existsSync(join(stateDir, 'structure'))).toBe(true);
     } finally {
@@ -160,25 +154,39 @@ describe('bootstrapState — schema-version guard', () => {
     rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('wipes derived state and flags a full reindex on schema mismatch', async () => {
+  it('empties the index and flags a full reindex on schema mismatch', async () => {
     const config = resolveConfig({ projectRoot: tmpDir });
     await runIndex(config, { incremental: false });
     const stateDir = config.resolved_state_dir;
-    expect(existsSync(join(stateDir, 'graph.db'))).toBe(true);
-
-    // Stamp the index with a stale schema version.
     writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '0.0.0-stale' });
 
     const { needsFullReindex } = await bootstrapState(config, NO_SEED);
 
     expect(needsFullReindex).toBe(true);
-    expect(existsSync(join(stateDir, 'graph.db'))).toBe(false);
-    expect(existsSync(join(stateDir, 'lance'))).toBe(false);
+    const db = openDatabase(stateDir);
+    const files = await db.selectFrom('files').select('path').execute();
+    await db.destroy();
+    expect(files).toEqual([]);
     expect(existsSync(join(stateDir, 'file_manifest.json'))).toBe(false);
+  });
 
-    const meta = loadIndexMeta(stateDir)!;
-    expect(meta.schema_version).toBe(CURRENT_SCHEMA_VERSION);
-    expect(meta.last_indexed).toBeNull();
+  it('leaves a stamp that names the old version and says nothing is indexed', async () => {
+    // The stamp of this version is written by the run that builds the index.
+    // Until then the old name makes the next run rebuild, and the empty counts
+    // are what `assertServableIndex` refuses under `--no-startup-reindex`.
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    const stateDir = config.resolved_state_dir;
+    writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '0.0.0-stale' });
+
+    await bootstrapState(config, NO_SEED);
+
+    expect(loadIndexMeta(stateDir)).toEqual({
+      schema_version: '0.0.0-stale',
+      last_indexed: null,
+      file_count: 0,
+      chunk_count: 0,
+    });
   });
 
   it('is a no-op (no wipe, no reindex) when the schema matches', async () => {
