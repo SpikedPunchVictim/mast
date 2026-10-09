@@ -705,6 +705,219 @@ describe('runCheckerPass — the caller is the innermost declaration around the 
 });
 
 // ---------------------------------------------------------------------------
+// A decorator on a method is the method's call (§10.3.1), and it is written
+// above the method: on the class's lines and outside the method's chunk.
+// ---------------------------------------------------------------------------
+
+describe('a decorator on a member is that member\'s call', () => {
+  let tmpDir: string;
+  let db: Db;
+  let chunkStore: SqliteChunkStore;
+  let config: ReturnType<typeof resolveConfig>;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-checker-decorator-'));
+    writeFileSync(join(tmpDir, 'lib.ts'), [
+      `export function Before(): MethodDecorator & ClassDecorator & PropertyDecorator & ParameterDecorator {`,
+      `  return () => undefined;`,
+      `}`,
+    ].join('\n') + '\n');
+    writeFileSync(join(tmpDir, 'entity.ts'), [
+      // The method has the decorator's name in another case, which is how the
+      // class comes to be a potential match for it: the identifier index does
+      // not tell `before` from `Before`, and holds a class's member names. On
+      // n8n it is `@BeforeInsert() beforeInsert()`.
+      `import { Before } from './lib';`,
+      `export class Entity {`,
+      `  @Before()`,
+      `  before(): void {}`,
+      `}`,
+    ].join('\n') + '\n');
+    writeFileSync(join(tmpDir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', strict: true, experimentalDecorators: true },
+      include: ['*.ts'],
+    }));
+    writeFileSync(join(tmpDir, 'others.ts'), [
+      `import * as lib from './lib';`,
+      `@lib.Before()`,
+      `export class OnClass {}`,
+      `export class OnField {`,
+      `  @lib.Before()`,
+      `  name = '';`,
+      `}`,
+      `export class OnParameter {`,
+      `  constructor(@lib.Before() readonly a: string) {}`,
+      `}`,
+    ].join('\n') + '\n');
+    config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    db = openDatabase(config.resolved_state_dir);
+    chunkStore = new SqliteChunkStore(db);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const decorators: ts.CompilerOptions = { ...MINIMAL_OPTIONS, experimentalDecorators: true };
+  function classify(relFilePath: string, startLine: number, endLine: number): CallSiteClassification {
+    const handle = new RealTsProjectResolver(tmpDir).loadProgram({
+      ...project(tmpDir, ['lib.ts', 'entity.ts', 'others.ts']),
+      compilerOptions: decorators,
+    });
+    try {
+      return handle.classify({ relFilePath, bareName: 'Before', startLine, endLine, queriedFilePath: 'lib.ts', queriedLine: 1 });
+    } finally {
+      handle.dispose();
+    }
+  }
+
+  it('classify gives the line of the method a decorator is on', () => {
+    expect(classify('entity.ts', 2, 5)).toEqual({ kind: 'resolves_to_queried', callLine: 3, context: '@Before()', decoratedMemberLine: 4 });
+  });
+
+  it('classify gives the constructor\'s line for a decorator on its parameter', () => {
+    expect(classify('others.ts', 8, 10)).toMatchObject({ kind: 'resolves_to_queried', callLine: 9, decoratedMemberLine: 9 });
+  });
+
+  it('classify gives no member line for a decorator on a class or on a field', () => {
+    expect([classify('others.ts', 2, 3), classify('others.ts', 4, 7)]).toEqual([
+      { kind: 'resolves_to_queried', callLine: 2, context: '@lib.Before()' },
+      { kind: 'resolves_to_queried', callLine: 5, context: '@lib.Before()' },
+    ]);
+  });
+
+  it('the pass, with the compiler, leaves the method as the only caller', async () => {
+    await runCheckerPass(db, chunkStore, config);
+
+    const [before] = await querySymbolByName(db, 'Before', 'lib.ts');
+    const callers = await queryVerifiedCallers(db, [before!.id], false);
+    // `OnClass` is not found: its decorator is on the line above the class's
+    // own lines, and the name comes through a namespace import.
+    expect(callers.map((c) => `${c.file_path} ${c.caller_symbol}`).sort()).toEqual([
+      'entity.ts Entity.before',
+      'others.ts OnField',
+      'others.ts OnParameter.constructor',
+    ]);
+  });
+
+  it('the pass stores no edge when the class has no member on the line given', async () => {
+    const fakeResolver = new FakeTsProjectResolver(
+      { projects: [project(tmpDir, ['lib.ts', 'entity.ts'])], skipped: [] },
+      new Map<string, CallSiteClassification>([
+        ['entity.ts::Before', { kind: 'resolves_to_queried', callLine: 3, context: '@Before()', decoratedMemberLine: 99 }],
+      ]),
+    );
+
+    await runCheckerPass(db, chunkStore, config, { resolver: fakeResolver });
+
+    const [before] = await querySymbolByName(db, 'Before', 'lib.ts');
+    const callers = await queryVerifiedCallers(db, [before!.id], false);
+    expect(callers.filter((c) => c.resolution === 'checker')).toEqual([]);
+  });
+});
+
+describe('a decorator on a member — the member is found by its line, not its name', () => {
+  let tmpDir: string;
+  let db: Db;
+  let config: ReturnType<typeof resolveConfig>;
+
+  // Every file takes the decorator through a namespace import, which the
+  // resolver does not read, so each edge here is the pass's own. Each class has
+  // a member named `before`, which is what makes the class a potential match.
+  const FILES: Record<string, string[]> = {
+    'method.ts': [`export class OnMethod {`, `  @lib.Before()`, `  before(): void {}`, `}`],
+    'comment.ts': [`export class Commented {`, `  @lib.Before()`, `  // a comment between the two`, `  before(): void {}`, `}`],
+    'accessors.ts': [`export class GetSet {`, `  get before(): number { return 1; }`, `  @lib.Before()`, `  set before(x: number) { void x; }`, `}`],
+    'static.ts': [`export class Dup {`, `  static before(): void {}`, `  @lib.Before()`, `  before(): void {}`, `}`],
+    'private.ts': [`export class Priv {`, `  before = 1;`, `  @lib.Before()`, `  #secret(): void {}`, `  go(): void { this.#secret(); }`, `}`],
+    // No decorator: an ordinary call in the second of two members of one name (D159).
+    'plain-setter.ts': [`export class PlainSet {`, `  get value(): number { return 1; }`, `  set value(x: number) { lib.Before(); void x; }`, `}`],
+    'plain-static.ts': [`export class PlainDup {`, `  static run(): void {}`, `  run(): void { lib.Before(); }`, `}`],
+    'nested.ts': [
+      `export class Outer {`,
+      `  before(): void {}`,
+      `  static Inner = class {`,
+      `    @lib.Before()`,
+      `    before(): void {}`,
+      `  };`,
+      `}`,
+    ],
+  };
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-checker-decorator-line-'));
+    writeFileSync(join(tmpDir, 'lib.ts'), [
+      `export function Before(): (...args: unknown[]) => void {`,
+      `  return () => undefined;`,
+      `}`,
+    ].join('\n') + '\n');
+    for (const [name, lines] of Object.entries(FILES)) {
+      writeFileSync(join(tmpDir, name), [`import * as lib from './lib';`, ...lines].join('\n') + '\n');
+    }
+    writeFileSync(join(tmpDir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', strict: true, experimentalDecorators: true },
+      include: ['*.ts'],
+    }));
+    config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    db = openDatabase(config.resolved_state_dir);
+    await runCheckerPass(db, new SqliteChunkStore(db), config);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  /** `caller symbol @ the line of its row` for every checker edge from `file`. */
+  async function checkerCallersIn(file: string): Promise<string[]> {
+    const rows = await db
+      .selectFrom('edges as e')
+      .innerJoin('symbols as s', 's.id', 'e.from_id')
+      .innerJoin('files as f', 'f.id', 's.file_id')
+      .select(['s.name', 's.line'])
+      .where('e.resolution', '=', 'checker')
+      .where('f.path', '=', file)
+      .execute();
+    return rows.map((r) => `${r.name} @ ${String(r.line)}`).sort();
+  }
+
+  it('writes the edge from the method below the decorator', async () => {
+    expect(await checkerCallersIn('method.ts')).toEqual(['OnMethod.before @ 4']);
+  });
+
+  it('writes it from the method when a comment is between the two', async () => {
+    expect(await checkerCallersIn('comment.ts')).toEqual(['Commented.before @ 5']);
+  });
+
+  it('writes it from the setter when the getter of the same name is not decorated', async () => {
+    expect(await checkerCallersIn('accessors.ts')).toEqual(['GetSet.before @ 5']);
+  });
+
+  it('writes it from the instance method when a static one has the name', async () => {
+    expect(await checkerCallersIn('static.ts')).toEqual(['Dup.before @ 5']);
+  });
+
+  it('writes it from a method with a private name', async () => {
+    expect(await checkerCallersIn('private.ts')).toEqual(['Priv.#secret @ 5']);
+  });
+
+  it('writes an ordinary call in a setter from the setter, not the getter of its name', async () => {
+    expect(await checkerCallersIn('plain-setter.ts')).toEqual(['PlainSet.value @ 4']);
+  });
+
+  it('writes an ordinary call in an instance method from it, not the static one of its name', async () => {
+    expect(await checkerCallersIn('plain-static.ts')).toEqual(['PlainDup.run @ 4']);
+  });
+
+  it('writes none for a method of a class nested in the candidate', async () => {
+    expect(await checkerCallersIn('nested.ts')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // D155: the resolver's rule for `new X()` stores the caller on `X.constructor`
 // when the class declares one (§10.3.1 rule 9). The pass has to agree with it.
 // ---------------------------------------------------------------------------

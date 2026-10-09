@@ -1,0 +1,315 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref",
+ "call_pairs": {
+  "agree": 46523,
+  "lacks": 13775
+ },
+ "calling_files_with_an_at_sign_parsed": 5065,
+ "lacking_pairs_that_are": {
+  "the decorator itself": 6806,
+  "a call inside its arguments": 54,
+  "either": 6860
+ },
+ "lacking_pairs_by_where_the_decorator_is": {
+  "a call inside its arguments | on a class | from the class": 30,
+  "a call inside its arguments | on a method | from the member": 17,
+  "a call inside its arguments | on a property | from the class": 7,
+  "the decorator itself | on a accessor | from the member": 3,
+  "the decorator itself | on a class | from the class": 2396,
+  "the decorator itself | on a method | from the member": 599,
+  "the decorator itself | on a parameter | from the member": 150,
+  "the decorator itself | on a property | from the class": 3658
+ },
+ "decorator_sites": {
+  "a call inside its arguments | call | on a class | lacking, from the class": 38,
+  "a call inside its arguments | call | on a method | lacking, from the member": 17,
+  "a call inside its arguments | call | on a property | lacking, from the class": 10,
+  "a call inside its arguments | call | on a property | no pair": 52,
+  "a call inside its arguments | call | on a property | stored, from the class": 1,
+  "a call inside its arguments | new | on a property | no pair": 3,
+  "a call inside its arguments | new | on a property | stored, from the class": 4,
+  "the decorator itself | @a.name(...) | on a class | lacking, from the class": 7,
+  "the decorator itself | @a.name(...) | on a property | lacking, from the class": 12,
+  "the decorator itself | @name | on a accessor | no pair": 15,
+  "the decorator itself | @name | on a class | no pair": 113,
+  "the decorator itself | @name | on a parameter | no pair": 217,
+  "the decorator itself | @name | on a property | no pair": 87,
+  "the decorator itself | @name(...) | on a accessor | lacking, from the member": 3,
+  "the decorator itself | @name(...) | on a class | lacking, from the class": 2426,
+  "the decorator itself | @name(...) | on a class | no pair": 2,
+  "the decorator itself | @name(...) | on a method | lacking, from the member": 601,
+  "the decorator itself | @name(...) | on a method | no pair": 538,
+  "the decorator itself | @name(...) | on a parameter | lacking, from the member": 190,
+  "the decorator itself | @name(...) | on a property | lacking, from the class": 5958,
+  "the decorator itself | @name(...) | on a property | no pair": 149,
+  "the decorator itself | @name(...) | on a property | stored, from the class": 376
+ },
+ "called_names_top_25": [
+  [
+   "Column",
+   2559
+  ],
+  [
+   "Entity",
+   1233
+  ],
+  [
+   "PrimaryGeneratedColumn",
+   829
+  ],
+  [
+   "Service",
+   702
+  ],
+  [
+   "Env",
+   586
+  ],
+  [
+   "PrimaryColumn",
+   469
+  ],
+  [
+   "ManyToOne",
+   363
+  ],
+  [
+   "JoinColumn",
+   271
+  ],
+  [
+   "Get",
+   221
+  ],
+  [
+   "ManyToMany",
+   215
+  ],
+  [
+   "OneToMany",
+   206
+  ],
+  [
+   "Post",
+   200
+  ],
+  [
+   "OneToOne",
+   191
+  ],
+  [
+   "Param",
+   190
+  ],
+  [
+   "GlobalScope",
+   181
+  ],
+  [
+   "Index",
+   176
+  ],
+  [
+   "JoinTable",
+   137
+  ],
+  [
+   "ProjectScope",
+   132
+  ],
+  [
+   "RestController",
+   106
+  ],
+  [
+   "JsonColumn",
+   64
+  ],
+  [
+   "ChildEntity",
+   58
+  ],
+  [
+   "Licensed",
+   55
+  ],
+  [
+   "UpdateDateColumn",
+   51
+  ],
+  [
+   "CreateDateColumn",
+   48
+  ],
+  [
+   "Redactable",
+   47
+  ]
+ ],
+ "bare_names_top_25": [
+  [
+   "Body",
+   155
+  ],
+  [
+   "Config",
+   113
+  ],
+  [
+   "Nested",
+   87
+  ],
+  [
+   "Query",
+   62
+  ],
+  [
+   "Memoized",
+   15
+  ]
+ ],
+ "samples": {
+  "a call inside its arguments | call | on a class | lacking, from the class": [
+   "packages/@n8n/typeorm/test/functional/view-entity/general/entity/PhotoAlbum.ts:21 where",
+   "packages/@n8n/typeorm/test/functional/view-entity/general/entity/PhotoAlbum.ts:21 leftJoin",
+   "packages/@n8n/typeorm/test/functional/view-entity/general/entity/PhotoAlbum.ts:21 from",
+   "packages/@n8n/typeorm/test/functional/view-entity/general/entity/PhotoAlbum.ts:21 addSelect",
+   "packages/@n8n/typeorm/test/functional/view-entity/general/entity/PhotoAlbum.ts:21 addSelect"
+  ],
+  "a call inside its arguments | call | on a method | lacking, from the member": [
+   "packages/cli/src/controllers/auth.controller.ts:53 createBodyKeyedRateLimiter",
+   "packages/cli/src/controllers/me.controller.ts:190 createUserKeyedRateLimiter",
+   "packages/cli/src/controllers/mfa.controller.ts:115 createUserKeyedRateLimiter",
+   "packages/cli/src/controllers/mfa.controller.ts:156 createUserKeyedRateLimiter",
+   "packages/cli/src/controllers/mfa.controller.ts:200 createUserKeyedRateLimiter"
+  ],
+  "a call inside its arguments | call | on a property | lacking, from the class": [
+   "packages/@n8n/typeorm/test/functional/decorators/relation-count/relation-count-many-to-many/entity/Category.ts:37 andWhere",
+   "packages/@n8n/typeorm/test/functional/decorators/relation-count/relation-count-many-to-many/entity/Category.ts:50 andWhere",
+   "packages/@n8n/typeorm/test/functional/decorators/relation-count/relation-count-many-to-many/entity/Post.ts:30 andWhere",
+   "packages/@n8n/typeorm/test/functional/decorators/relation-count/relation-count-one-to-many/entity/Category.ts:36 andWhere",
+   "packages/@n8n/typeorm/test/functional/decorators/relation-count/relation-count-one-to-many/entity/Post.ts:25 andWhere"
+  ],
+  "a call inside its arguments | call | on a property | no pair": [
+   "packages/@n8n/config/src/configs/database.config.ts:92 gte",
+   "packages/@n8n/config/src/configs/database.config.ts:92 int",
+   "packages/@n8n/config/src/configs/database.config.ts:92 number",
+   "packages/@n8n/config/src/configs/database.config.ts:202 gte",
+   "packages/@n8n/config/src/configs/database.config.ts:202 int"
+  ],
+  "a call inside its arguments | call | on a property | stored, from the class": [
+   "packages/@n8n/typeorm/test/github-issues/2871/entity/Bar.ts:12 getEnumValues"
+  ],
+  "a call inside its arguments | new | on a property | no pair": [
+   "packages/@n8n/typeorm/test/functional/repository/basic-methods/entity/Post.ts:25 Date",
+   "packages/@n8n/typeorm/test/github-issues/5762/entity/User.ts:10 URL",
+   "packages/@n8n/typeorm/test/github-issues/9895/entity/ExampleEntity.ts:18 ExampleBigNumber"
+  ],
+  "a call inside its arguments | new | on a property | stored, from the class": [
+   "packages/@n8n/typeorm/test/functional/columns/value-transformer/entity/PhoneBook.ts:24 PhonesTransformer",
+   "packages/@n8n/typeorm/test/functional/columns/value-transformer/entity/Post.ts:59 TagTransformer",
+   "packages/@n8n/typeorm/test/functional/columns/value-transformer/entity/Post.ts:62 ComplexTransformer",
+   "packages/@n8n/typeorm/test/github-issues/1748/entity/Post.ts:34 UuidTransformer"
+  ],
+  "the decorator itself | @a.name(...) | on a class | lacking, from the class": [
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Author.ts:4 Entity",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Employee.ts:4 Entity",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Note.ts:4 Entity",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Note.ts:5 TableInheritance",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Person.ts:4 Entity"
+  ],
+  "the decorator itself | @a.name(...) | on a property | lacking, from the class": [
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Author.ts:6 Column",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Employee.ts:6 Column",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Note.ts:7 PrimaryGeneratedColumn",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Note.ts:10 Column",
+   "packages/@n8n/typeorm/test/functional/table-inheritance/single-table/no-type-column/entity/Note.ts:13 ManyToOne"
+  ],
+  "the decorator itself | @name | on a accessor | no pair": [
+   "packages/@n8n/db/src/connection/db-connection.ts:54 Memoized",
+   "packages/core/nodes-testing/node-test-harness.ts:93 Memoized",
+   "packages/core/nodes-testing/node-test-harness.ts:138 Memoized",
+   "packages/core/nodes-testing/node-test-harness.ts:151 Memoized",
+   "packages/core/nodes-testing/node-test-harness.ts:156 Memoized"
+  ],
+  "the decorator itself | @name | on a class | no pair": [
+   "packages/@n8n/backend-common/src/modules/modules.config.ts:52 Config",
+   "packages/@n8n/blob-storage/src/azure-blob/azure-blob.config.ts:3 Config",
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:8 Config",
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:19 Config",
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:38 Config"
+  ],
+  "the decorator itself | @name | on a parameter | no pair": [
+   "packages/cli/src/controllers/ai.controller.ts:68 Body",
+   "packages/cli/src/controllers/ai.controller.ts:148 Body",
+   "packages/cli/src/controllers/ai.controller.ts:190 Body",
+   "packages/cli/src/controllers/ai.controller.ts:204 Body",
+   "packages/cli/src/controllers/ai.controller.ts:219 Body"
+  ],
+  "the decorator itself | @name | on a property | no pair": [
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:58 Nested",
+   "packages/@n8n/blob-storage/src/object-store/object-store.config.ts:61 Nested",
+   "packages/@n8n/config/src/configs/auth.config.ts:22 Nested",
+   "packages/@n8n/config/src/configs/cache.config.ts:37 Nested",
+   "packages/@n8n/config/src/configs/cache.config.ts:40 Nested"
+  ],
+  "the decorator itself | @name(...) | on a accessor | lacking, from the member": [
+   "packages/@n8n/typeorm/test/functional/columns/getters-setters/entity/Post.ts:21 Column",
+   "packages/@n8n/typeorm/test/github-issues/1720/entity/Post.ts:12 ManyToMany",
+   "packages/@n8n/typeorm/test/github-issues/1720/entity/Post.ts:13 JoinTable"
+  ],
+  "the decorator itself | @name(...) | on a class | lacking, from the class": [
+   "packages/@n8n/ai-workflow-builder.ee/src/ai-workflow-builder-agent.service.ts:33 Service",
+   "packages/@n8n/ai-workflow-builder.ee/src/session-manager.service.ts:16 Service",
+   "packages/@n8n/backend-common/src/cli-parser.ts:19 Service",
+   "packages/@n8n/backend-common/src/license-state.ts:14 Service",
+   "packages/@n8n/backend-common/src/locking/in-process-lock.service.ts:23 Service"
+  ],
+  "the decorator itself | @name(...) | on a class | no pair": [
+   "packages/cli/src/modules/breaking-changes/rules/v3/removed-nodes-with-replacements.rule.ts:26 BreakingChangeRule",
+   "packages/cli/src/services/password.utility.ts:6 Utility"
+  ],
+  "the decorator itself | @name(...) | on a method | lacking, from the member": [
+   "packages/@n8n/db/src/entities/user.ts:82 BeforeInsert",
+   "packages/@n8n/db/src/entities/user.ts:83 BeforeUpdate",
+   "packages/@n8n/db/src/entities/user.ts:113 AfterLoad",
+   "packages/@n8n/db/src/entities/user.ts:114 AfterUpdate",
+   "packages/@n8n/engine/src/database/entities/workflow-execution.entity.ts:47 BeforeInsert"
+  ],
+  "the decorator itself | @name(...) | on a method | no pair": [
+   "packages/@n8n/db/src/entities/abstract-entity.ts:63 BeforeInsert",
+   "packages/@n8n/db/src/entities/abstract-entity.ts:79 BeforeUpdate",
+   "packages/@n8n/db/src/repositories/workflow.repository.ts:828 TimedQuery",
+   "packages/cli/src/controllers/active-workflows.controller.ts:10 Get",
+   "packages/cli/src/controllers/active-workflows.controller.ts:15 Get"
+  ],
+  "the decorator itself | @name(...) | on a parameter | lacking, from the member": [
+   "packages/cli/src/controllers/api-keys.controller.ts:82 Param",
+   "packages/cli/src/controllers/api-keys.controller.ts:100 Param",
+   "packages/cli/src/controllers/api-keys.controller.ts:115 Param",
+   "packages/cli/src/controllers/folder.controller.ts:210 Param",
+   "packages/cli/src/controllers/folder.controller.ts:211 Param"
+  ],
+  "the decorator itself | @name(...) | on a property | lacking, from the class": [
+   "packages/@n8n/backend-common/src/modules/modules.config.ts:55 Env",
+   "packages/@n8n/backend-common/src/modules/modules.config.ts:59 Env",
+   "packages/@n8n/blob-storage/src/azure-blob/azure-blob.config.ts:9 Env",
+   "packages/@n8n/blob-storage/src/azure-blob/azure-blob.config.ts:13 Env",
+   "packages/@n8n/blob-storage/src/azure-blob/azure-blob.config.ts:17 Env"
+  ],
+  "the decorator itself | @name(...) | on a property | no pair": [
+   "packages/@n8n/db/src/entities/abstract-entity.ts:60 PrimaryColumn",
+   "packages/@n8n/db/src/entities/abstract-entity.ts:76 UpdateDateColumn",
+   "packages/@n8n/db/src/entities/abstract-entity.ts:90 CreateDateColumn",
+   "packages/@n8n/db/src/entities/annotation-tag-entity.ee.ts:12 IsString",
+   "packages/@n8n/db/src/entities/annotation-tag-entity.ee.ts:13 Length"
+  ],
+  "the decorator itself | @name(...) | on a property | stored, from the class": [
+   "packages/@n8n/db/src/entities/agent-eval-dataset.ee.ts:41 JsonColumn",
+   "packages/@n8n/db/src/entities/agent-eval-dataset.ee.ts:44 JsonColumn",
+   "packages/@n8n/db/src/entities/agent-eval-rating.ee.ts:33 JsonColumn",
+   "packages/@n8n/db/src/entities/agent-eval-result.ee.ts:44 JsonColumn",
+   "packages/@n8n/db/src/entities/agent-eval-result.ee.ts:47 JsonColumn"
+  ]
+ }
+}

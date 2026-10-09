@@ -162,7 +162,21 @@ export interface ClassifyInput {
 }
 
 export type CallSiteClassification =
-  | { readonly kind: 'resolves_to_queried'; readonly callLine: number; readonly context: string }
+  | {
+      readonly kind: 'resolves_to_queried';
+      readonly callLine: number;
+      readonly context: string;
+      /**
+       * Set when the call is a decorator on a method, an accessor or a
+       * constructor, or on one of its parameters: the line that member starts
+       * on, after its decorators. The call is the member's (§10.3.1), and a
+       * decorator above a method is on the class's lines, outside the
+       * method's own. A line and not a name: two members can have one name
+       * (a getter and a setter, a static and an instance method), and a
+       * class nested in the candidate can have a member of the same name.
+       */
+      readonly decoratedMemberLine?: number;
+    }
   | { readonly kind: 'resolves_to_different' }
   | { readonly kind: 'non_call_site' }
   | { readonly kind: 'unresolved' };
@@ -217,6 +231,33 @@ function isCallShaped(node: ts.Identifier): boolean {
     if (grandparent !== undefined && ts.isNewExpression(grandparent) && grandparent.expression === parent) return true;
   }
   return false;
+}
+
+/**
+ * The line of the member a decorator around `node` is on, when the member can
+ * have a symbol of its own: a method, an accessor, a constructor, or one of
+ * their parameters. Undefined for a decorator on a class or a field, whose
+ * call is the class's, and outside a decorator.
+ */
+function decoratedMemberLine(node: ts.Node, sourceFile: ts.SourceFile): number | undefined {
+  // A source file's `parent` is undefined, whatever its type says.
+  let decorator: ts.Node | undefined = node;
+  while (decorator !== undefined && !ts.isDecorator(decorator)) decorator = decorator.parent;
+  if (decorator === undefined) return undefined;
+  const on: ts.Node = ts.isParameter(decorator.parent) ? decorator.parent.parent : decorator.parent;
+  if (!ts.isMethodDeclaration(on) && !ts.isGetAccessorDeclaration(on) && !ts.isSetAccessorDeclaration(on) && !ts.isConstructorDeclaration(on)) {
+    return undefined;
+  }
+  // Where the member starts for mast: after its own decorators and any
+  // comment between. A constructor can have none.
+  const own = ts.isConstructorDeclaration(on) ? [] : ts.getDecorators(on) ?? [];
+  const last = own[own.length - 1];
+  if (last === undefined) return sourceFile.getLineAndCharacterOfPosition(on.getStart(sourceFile)).line + 1;
+  const text = sourceFile.text;
+  const comments = ts.getLeadingCommentRanges(text, last.end) ?? [];
+  let start = comments[comments.length - 1]?.end ?? last.end;
+  while (start < text.length && /\s/.test(text.charAt(start))) start++;
+  return sourceFile.getLineAndCharacterOfPosition(start).line + 1;
 }
 
 /**
@@ -299,7 +340,13 @@ class RealTsProjectHandle implements TsProjectHandle {
     if (!(sameFile && lineClose)) return { kind: 'resolves_to_different' };
 
     const lineText = sourceFile.getFullText().split('\n')[callSite.line - 1] ?? '';
-    return { kind: 'resolves_to_queried', callLine: callSite.line, context: lineText.trim() };
+    const memberLine = decoratedMemberLine(callSite.node, sourceFile);
+    return {
+      kind: 'resolves_to_queried',
+      callLine: callSite.line,
+      context: lineText.trim(),
+      ...(memberLine === undefined ? {} : { decoratedMemberLine: memberLine }),
+    };
   }
 
   dispose(): void {
@@ -425,6 +472,41 @@ function isInnermostDeclaration(
         // A class written on one line has the same lines as its method.
         (candidate.chunkSymbolName !== null && other.symbol_name?.startsWith(`${candidate.chunkSymbolName}.`) === true)),
   );
+}
+
+/**
+ * The symbol row an edge from candidate `c` is written from.
+ *
+ * It is the candidate's own (of the rows of its name, the one that starts
+ * where it does), except for a decorator on a member. Written above
+ * a method, that is on the class's lines, so the candidate is the class, and
+ * the edge is the member's: the row of the candidate's member that starts on
+ * `memberLine`. When the candidate has no such member (a class nested in it
+ * has, or the member has no symbol) there is no row and no edge. Written on
+ * the member's own lines (a parameter's decorator, or one line with the
+ * method), the candidate is already the member.
+ */
+async function callerRow(
+  db: Db,
+  c: Pick<Candidate, 'chunkSymbolName' | 'candidateFilePath' | 'startLine'>,
+  memberLine: number | undefined,
+  declarationsInFile: readonly CandidateChunkRecord[],
+): Promise<{ readonly id: number } | undefined> {
+  if (c.chunkSymbolName === null) return undefined;
+  if (memberLine === undefined) {
+    // Two members of one class can share a name (a getter and a setter, a
+    // static and an instance method), so the name alone gives the first of
+    // them (D159). The row on the candidate's first line is the candidate.
+    const rows = await querySymbolByName(db, c.chunkSymbolName, c.candidateFilePath);
+    return rows.find((row) => row.line === c.startLine) ?? rows[0];
+  }
+  const member = declarationsInFile.find(
+    (other) => other.start_line === memberLine && other.symbol_name?.startsWith(`${c.chunkSymbolName ?? ''}.`) === true,
+  );
+  const name = member?.symbol_name ?? (c.startLine === memberLine ? c.chunkSymbolName : null);
+  if (name === null) return undefined;
+  const rows = await querySymbolByName(db, name, c.candidateFilePath);
+  return rows.find((row) => row.line === memberLine);
 }
 
 type PendingWrite =
@@ -665,7 +747,7 @@ export async function runCheckerPass(
           // because there is no valid `from_id` to write one against.
           if (c.chunkSymbolName === null) continue;
           if (!isInnermostDeclaration(c, result.callLine, declarationsByFile.get(c.candidateFilePath) ?? [])) continue;
-          const [fromSymbol] = await querySymbolByName(db, c.chunkSymbolName, c.candidateFilePath);
+          const fromSymbol = await callerRow(db, c, result.decoratedMemberLine, declarationsByFile.get(c.candidateFilePath) ?? []);
           if (fromSymbol === undefined) continue;
 
           // A call that resolves to a class is `new X()`, and the resolver's

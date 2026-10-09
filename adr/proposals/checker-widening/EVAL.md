@@ -57,6 +57,22 @@ dir. They are not kept (n8n's are 80 files); `run.mjs` writes them again.
 | `s2-checker-edge-lifetime/repro.after-the-fix.out.txt` | `repro.sh` on the fixed build |
 | `s5-root-project/owners.mjs <corpus>`, `n8n.json` | Which project each file is given to, by discovery order and by the nearest tsconfig. Builds no program |
 
+## s6 — decorators, and P2 (`spikes/s6-decorators/`)
+
+Second corpus: nest `c3bc75c97` (a copy, no `node_modules`). Its root `tsconfig.json` maps
+`@nestjs/*` to `packages/*` with `paths` and extends nothing, so the scorecard builds a
+reference for it: `--root <nest> --tsconfig tsconfig.json`, one project.
+
+| File | What it is |
+|---|---|
+| `decorators-by-parse.mjs <cards> <corpus> <out.json>` | Every decorator in every calling file, by a parse, matched to the call pair it is by file, caller name and callee name. Builds no program |
+| `n8n.json`, `nest.json` | Before P2: n8n over the cards of the index the fixed pass left (`s1/n8n-after-the-fixed-pass.json`), nest over a plain index of `0cfcfcd` |
+| `n8n-still-lacking.json`, `nest-still-lacking.json` | The same script over the cards of the P2 index, without the pass: the decorator pairs still lacking |
+| `nest-compare.out.txt` | `graph-scorecard.mjs compare` of nest before and after P2 |
+| `n8n-after.json` | `s1/run.mjs` over a plain n8n index of the P2 build, root project skipped |
+| `n8n-after-with-the-pass.json` | The same after `mast index --incremental --checker` on that index, by the build with D159 fixed (`run.mjs ... --workspace-src --skip .`) |
+| `pass-after-p2/` | `s3/run.sh` on the P2 index: `pass.out.txt`, `time.txt`, `caller-span.out.txt`, `checker-edges.json`, all of the build with D159 fixed |
+
 ## D152 (`spikes/d152/`)
 
 | File | What it is |

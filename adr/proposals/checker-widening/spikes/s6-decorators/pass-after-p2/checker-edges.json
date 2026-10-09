@@ -1,0 +1,16 @@
+{
+ "checker_edges_scored": 474,
+ "counts": {
+  "agree": 474
+ },
+ "samples": {
+  "agree": [
+   "packages/@n8n/agents/examples/basic-agent.ts:main > packages/@n8n/agents/src/sdk/agent.ts:Agent.generate",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAddTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithAlwaysErrorTool > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithConcurrentInterruptibleCalls > packages/@n8n/agents/src/sdk/agent.ts:Agent.model",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithConcurrentMixedTools > packages/@n8n/agents/src/sdk/tool.ts:Tool.description",
+   "packages/@n8n/agents/src/__tests__/integration/helpers.ts:createAgentWithParallelInterruptibleCalls > packages/@n8n/agents/src/sdk/agent.ts:Agent.model"
+  ]
+ }
+}

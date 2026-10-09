@@ -1603,6 +1603,11 @@ function emitClassEdges(
     }
   }
 
+  // A decorator written before `export` is a child of the export statement.
+  const exportNode = classNode.parent !== null && nodeType(classNode.parent) === 'export_statement' ? classNode.parent : null;
+  const classDecorators = [...(exportNode === null ? [] : decoratorsOf(exportNode)), ...decoratorsOf(classNode)];
+  emitDecoratorEdges(className, classLine, classDecorators, edges, seedFileScope, lines, onCallSite);
+
   const bodyNode = classNode.childForFieldName('body') ?? findChildByType(classNode, 'class_body');
   if (bodyNode === null) return;
 
@@ -1620,11 +1625,22 @@ function emitClassEdges(
     classScopeBindings.push({ receiver: 'super', type: baseClassName, resolution: 'super_method' });
   }
 
+  // A method's decorators are not its children: they come before it in the body.
+  let decoratorsBefore: SyntaxNode[] = [];
   for (const member of nodeNamedChildren(bodyNode)) {
     const mt = nodeType(member);
+    if (mt === 'decorator') {
+      decoratorsBefore.push(member);
+      continue;
+    }
+    // A comment between a decorator and its method does not part them.
+    if (mt === 'comment') continue;
+    const memberDecorators = decoratorsBefore;
+    decoratorsBefore = [];
     if (mt === 'public_field_definition') {
       // A field has no symbol of its own, so a call in its initializer is the
-      // class's (D098).
+      // class's (D098), and so are its decorators.
+      emitDecoratorEdges(className, classLine, decoratorsOf(member), edges, seedFileScope, lines, onCallSite);
       const value = member.childForFieldName('value');
       if (value !== null) {
         emitCallEdges(className, classLine, null, value, edges, seedFileScope, lines, classScopeBindings, onCallSite);
@@ -1644,12 +1660,16 @@ function emitClassEdges(
       edgeType: 'PARENT_OF',
     });
 
+    const parameters = member.childForFieldName('parameters');
+    const parameterDecorators = parameters === null ? [] : nodeNamedChildren(parameters).flatMap(decoratorsOf);
+    emitDecoratorEdges(`${className}.${methodName}`, memberLine, [...memberDecorators, ...parameterDecorators], edges, seedFileScope, lines, onCallSite);
+
     const body = member.childForFieldName('body');
     if (body === null) continue; // abstract / no body
     emitCallEdges(
       `${className}.${methodName}`,
       memberLine,
-      member.childForFieldName('parameters'),
+      parameters,
       body,
       edges,
       seedFileScope,
@@ -1658,6 +1678,35 @@ function emitClassEdges(
       onCallSite,
       isStaticMember(member),
     );
+  }
+}
+
+function decoratorsOf(node: SyntaxNode): SyntaxNode[] {
+  return nodeNamedChildren(node).filter((child) => nodeType(child) === 'decorator');
+}
+
+/**
+ * A decorator written as a call (`@name(...)`) is a call from the declaration
+ * it is on, and so is every call in its arguments. `@name` with no parentheses
+ * is not read: it is not a call expression, and the scorecard's reference has
+ * no pair for one (checker-widening, spike s6).
+ *
+ * The scope is given no class bindings. `this` in a decorator's arguments is
+ * not the instance, so `this.m()` there is not the class's `m`.
+ */
+function emitDecoratorEdges(
+  fromName: string,
+  fromLine: number,
+  decorators: readonly SyntaxNode[],
+  edges: EdgeRecord[],
+  seedFileScope: (env: LocalTypeEnvironment) => void,
+  lines: readonly string[],
+  onCallSite?: (outcome: CallSiteOutcome) => void,
+): void {
+  for (const decorator of decorators) {
+    const call = decorator.namedChildren[0] ?? null;
+    if (call === null || nodeType(call) !== 'call_expression') continue;
+    emitCallEdges(fromName, fromLine, null, call, edges, seedFileScope, lines, [], onCallSite);
   }
 }
 
@@ -1716,10 +1765,11 @@ function calleeLine(call: SyntaxNode): number {
  * - `bare_call_unresolved`: the callee parsed as a receiver-less call
  *   (`foo()`) but the name matched neither an import nor a same-file symbol.
  *
- * **Boundary**: `collectCallSites` does not descend into a nested class or a
- * decorator — those call sites are never handed to `parseCallee` at all and
- * are outside this invariant. Nested functions of every kind are inside it
- * (D098).
+ * **Boundary**: `collectCallSites` does not descend into a nested class —
+ * those call sites are never handed to `parseCallee` at all and are outside
+ * this invariant. Nested functions of every kind are inside it (D098), and so
+ * is a decorator written as a call on a top-level class, its members or their
+ * parameters, with the calls in its arguments (`emitDecoratorEdges`).
  */
 export type CallSiteOutcome =
   | 'edge_emitted'
@@ -2028,7 +2078,8 @@ const NESTED_CLASS_TYPES = new Set(['class_declaration', 'abstract_class_declara
  * methods) have none, so this descends into them and the calls there are the
  * enclosing declaration's (D098). It records what each one changes on the way
  * down, see {@link CallSite}. It does not descend into a nested class, whose
- * calls are left unlinked, nor into decorators.
+ * calls are left unlinked, nor into a parameter's decorators, which
+ * `emitDecoratorEdges` reads as a scope of their own.
  */
 function collectCallSites(bodyNode: SyntaxNode, paramsNode: SyntaxNode | null = null): CallSite[] {
   const sites: CallSite[] = [];

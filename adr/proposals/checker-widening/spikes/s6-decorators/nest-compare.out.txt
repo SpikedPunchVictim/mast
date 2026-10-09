@@ -1,0 +1,81 @@
+before: nest-cards-before/root.json
+after:  final/nest-cards/root.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               149       149       149         0         0         0         0
+edge: IMPLEMENTS                            120       120       120         0         0         0         0
+edge: PARENT_OF                            2598      2572      2572         0        26         0         0
+edge: POTENTIAL_CALL                       4022      3675      3664         0       358         0        11
+                                              .     +1001     +1001         .     -1001         .         .
+edge: RE_EXPORTS (to the declaration)        61        61        61         0         0         0         0
+export * (file to file)                     375       375       375         0         0         0         0
+file: indexed                               971       971       971         0         0         0         0
+import: named binding                      5642      5642      5642         0         0         0         0
+import: the file it resolves to            3103      3103      3103         0         0         0         0
+symbol flag: is_exported                   4299      4299      4299         0         0         0         0
+symbol: class                               884       884       884         0         0         0         0
+symbol: export                               76        76        76         0         0         0         0
+symbol: function                            294       294       294         0         0         0         0
+symbol: interface                           306       306       306         0         0         0         0
+symbol: method                             2550      2550      2550         0         0         0         0
+symbol: one key, more than one row            0         8         0         0         0         0         8
+symbol: type                                265       265       265         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: lacks -> agree (1001)
+    integration/auto-mock/src/bar.service.ts:BarService > packages/common/decorators/core/injectable.decorator.ts:Injectable
+    integration/auto-mock/src/foo.service.ts:FooService > packages/common/decorators/core/injectable.decorator.ts:Injectable
+    integration/cors/src/app.controller.ts:AppController > packages/common/decorators/core/controller.decorator.ts:Controller
+    integration/cors/src/app.module.ts:AppModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/discovery/src/app.module.ts:AppModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/discovery/src/my-webhook/my-webhook.module.ts:MyWebhookModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/discovery/src/webhooks.explorer.ts:WebhooksExplorer > packages/common/decorators/core/injectable.decorator.ts:Injectable
+    integration/graphql-code-first/src/app.module.ts:AppModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/graphql-code-first/src/common/filters/unauthorized.filter.ts:UnauthorizedFilter > packages/common/decorators/core/catch.decorator.ts:Catch
+    integration/graphql-code-first/src/common/guards/auth.guard.ts:AuthGuard > packages/common/decorators/core/injectable.decorator.ts:Injectable
+    integration/graphql-code-first/src/common/interceptors/data.interceptor.ts:DataInterceptor > packages/common/decorators/core/injectable.decorator.ts:Injectable
+    integration/graphql-code-first/src/recipes/recipes.module.ts:RecipesModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/graphql-code-first/src/recipes/recipes.resolver.ts:RecipesResolver > packages/common/decorators/core/use-interceptors.decorator.ts:UseInterceptors
+    integration/graphql-code-first/src/recipes/recipes.resolver.ts:RecipesResolver.recipe > packages/common/decorators/core/use-guards.decorator.ts:UseGuards
+    integration/graphql-code-first/src/recipes/recipes.service.ts:RecipesService > packages/common/decorators/core/injectable.decorator.ts:Injectable
+    integration/graphql-schema-first/src/app.module.ts:AppModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/graphql-schema-first/src/async-options-class.module.ts:AsyncClassApplicationModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/graphql-schema-first/src/async-options-existing.module.ts:AsyncExistingApplicationModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/graphql-schema-first/src/async-options.module.ts:AsyncApplicationModule > packages/common/decorators/modules/module.decorator.ts:Module
+    integration/graphql-schema-first/src/cats/cats-request-scoped.service.ts:CatsRequestScopedService > packages/common/decorators/core/injectable.decorator.ts:Injectable
+    ... 981 more, in the JSON
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction                391       391       391         0         0         0         0
+                                                  +7        +7        +7         .         .         .         .
+call edge, stored as field_type                  483       483       483         0         0         0         0
+call edge, stored as import                     1419      1427      1419         0         0         0         8
+                                                +983      +983      +983         .         .         .         .
+call edge, stored as new_expression               31        31        31         0         0         0         0
+call edge, stored as parameter_type               79        79        79         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .
+call edge, stored as same_file                   101       104       101         0         0         0         3
+call edge, stored as static_method               110       110       110         0         0         0         0
+                                                  +9        +9        +9         .         .         .         .
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                1034      1034      1034         0         0         0         0
+call written as expr.m(), other file              33         0         0         0        33         0         0
+call written as f(), other file                 1439      1419      1419         0        20         0         0
+                                                   .      +983      +983         .      -983         .         .
+call written as f(), same file                   102       101       101         0         1         0         0
+call written as ident.m(), other file            355       211       211         0       144         0         0
+                                                   .        +9        +9         .        -9         .         .
+call written as ident.m(), same file              12        10        10         0         2         0         0
+                                                   .        +2        +2         .        -2         .         .
+call written as new X(), other file              380       379       379         0         1         0         0
+                                                   .        +7        +7         .        -7         .         .
+call written as new X(), same file                12        12        12         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file       632       481       481         0       151         0         0
+call written as this.field.m(), same file          5         2         2         0         3         0         0
+call written as this.m(), other file             146       143       143         0         3         0         0
+call written as this.m(), same file              890       890       890         0         0         0         0

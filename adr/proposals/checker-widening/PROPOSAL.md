@@ -294,3 +294,138 @@ Left open:
 - Not measured: the pass on a second repository after the fix, what L1's delete costs a full
   index, and timing on a quiet machine.
 
+
+## P2, done (2026-10-09)
+
+The resolver reads a decorator written as a call. Spike first (`spikes/s6-decorators/`),
+then the change.
+
+### The spike: three questions, two repositories
+
+Prior decisions checked: `FINDINGS.md`, the ADRs and the other proposals do not mention
+decorators. The only earlier statement is the boundary D098 left in the extractor ("does
+not descend into ... decorators"), which records that they were not read and gives no
+reason.
+
+`decorators-by-parse.mjs` parses every file that is the caller of some call pair and matches
+each decorator to its pair by file, caller name and callee name. It replaces section 3's
+text match. The second repository is nest `c3bc75c97`, which declares its decorators in the
+repository and maps its packages with `paths`, so the scorecard builds a reference for it
+without `node_modules`.
+
+| Measured, before the change | n8n `9d9e9bf9` | nest `c3bc75c97` |
+|---|---|---|
+| Lacking call pairs | 13,775 (after the fixed pass) | 1,359 |
+| Of them, a decorator written as a call | 6,806 | 961 |
+| Of them, a call inside a decorator's arguments | 54 | 44 |
+| Decorators with no parentheses, in the calling files | 432 | 12 |
+| Of those, with a call pair in the reference | 0 | 0 |
+
+The text match had 7,047 on n8n; the parse has 6,806.
+
+1. **How many.** 6,806 of 13,775 on n8n (49%), 961 of 1,359 on nest (71%).
+2. **Whose call.** The nearest declaration with a symbol, as for every other call. On a
+   class or a field (a field has no symbol) it is the class: 2,396 and 3,658 pairs on n8n,
+   515 and 20 on nest. On a method, an accessor or a parameter it is the member: 599, 3 and
+   150 on n8n, 201, 0 and 225 on nest. No lacking pair has a member decorator's call from
+   the class.
+3. **`@Injectable` with no parentheses.** Not a call for the reference: none of the 444
+   sites has a pair. The compiler does treat a decorator as call-like, but the scorecard
+   counts call and `new` expressions only, so an edge for a bare decorator would be one
+   nothing judges. Not stored. It is in reserve until the reference counts them.
+
+The script matches by name, so `@X()` would claim a lacking pair to any `*.X` from the same
+caller; no key held more than one pair on either corpus. An aliased import
+(`import { Body as B }`) is never matched, which weakens the zero in the last row.
+
+### The change
+
+`emitDecoratorEdges` in `src/ast/extractors/typescript.ts`: a decorator whose expression is
+a call is read as a scope of its own, with the calls in its arguments, from the class (class
+and field decorators) or the member (method, accessor, constructor and parameter
+decorators). It is given no class bindings, so `this` in the arguments is not the instance.
+No schema change, no new resolution label: the edge is placed by the rules a bare call is.
+
+| Measured, final build | Before | After |
+|---|---|---|
+| n8n: call pairs that agree, of the compiler's 60,298 | 45,789 | 52,857 |
+| n8n: wrong, extra | 0, 0 | 0, 0 |
+| n8n: unjudged | 4 | 4 |
+| n8n: stored call edges | 45,834 | 52,902 |
+| nest: call pairs that agree, of 4,022 | 2,663 | 3,664 |
+| nest: wrong, extra | 0, 0 | 0, 0 |
+| nest: unjudged | 11 | 11 |
+
+n8n is 80 tsconfig projects scored one at a time with the root project skipped, as in `s1`.
+The four committed baselines pass `compare`; `mast`, `n8n-core` and `n8n-cli` are replaced
+(`n8n-cli`: 1,862 pairs from lacking to agreeing; `shapes` is unchanged).
+
+Decorator pairs still lacking on n8n: 19, all through a namespace import
+(`@TypeOrm.Entity()`), which the resolver does not read. On nest: none. A full index of n8n
+took 92.6 s and 494 MB with the change, on a loaded machine; there is no number for the
+build before it under the same load, so what the change costs an index is not measured.
+
+### The pass and decorators (D157)
+
+The 19 unjudged `checker` edges P1 left were a method decorator's call stored from the
+class: `@BeforeInsert()` above `beforeInsert()`. The method's chunk starts at its name, so
+the decorator is on the class's lines only, and the class is a potential match because the
+identifier index holds its member name and does not tell `beforeInsert` from
+`BeforeInsert`. `classify` now reports the line of the member a decorator is on, and the
+pass writes the edge from the candidate's member on that line, or none.
+
+A review before commit found the first form of that fix, which looked the member up by
+name, wrong in four shapes, each reproduced with the real compiler and now a test: a getter
+and a setter of one name, a static and an instance method of one name, a private or
+computed name, and a class nested in the candidate. It also found a comment between a
+decorator and its method losing the decorators above the comment in the resolver (two pairs
+on n8n), fixed the same way.
+
+
+The pass on the final build (`spikes/s6-decorators/pass-after-p2/`,
+`n8n-after-with-the-pass.json`), measured:
+
+| n8n, with the pass | |
+|---|---|
+| Call pairs that agree, of 60,298 | 53,331 |
+| Wrong, extra | 0, 0 |
+| Unjudged | 4 |
+| `checker` edges | 474 |
+| Of them agreeing, wrong, unjudged | 474, 0, 0 |
+| Each with its call line inside a chunk of its caller | 474 |
+| The pass | 216 s, 1,992 MB maximum resident size, on a loaded machine |
+
+The pass adds 474 pairs to the 52,857 the resolver has. The first scored run of the pass
+after P2 had 475 `checker` edges and one unjudged. That one was not a decorator: an ordinary
+call in a setter, stored from the getter of its name (D159). With that fixed the setter's
+call is the edge the resolver already stores, so the pass writes 474.
+
+### Left open after P2
+
+Found and not fixed:
+
+- **D156**, open: `mast_callers` and `mast_rename_impact` list a verified caller a second
+  time as a potential match. More decorator edges make more verified callers, so P2 makes
+  it more visible; it did not cause it.
+- **D158**, fixed in part in its own commit (`adr/proposals/watcher-descriptors/`): a `mast serve` holds one open file per watched file. Found because it
+  stopped this work's tests; it is not part of the resolver.
+- A decorator with no parentheses has no edge (reserve, above).
+- A decorator factory held in a constant (`const Get = RouteFactory('get')`) has no symbol,
+  so `@Get()` has no edge to it, and a type of the same name declared beside it takes the
+  lookup (`MAST_SPEC.md` §10.3.1).
+- `@(expr)()` and a decorator through a namespace import (`@TypeOrm.Entity()`, the 19 pairs
+  above) are not read.
+- The pass reads one call per candidate, and reaches a member's decorator only when the
+  class is a potential match for the queried name, which happens when a member is named
+  like the decorator without regard to case. A decorator on a member of a class nested in
+  the candidate gives no edge.
+
+Not measured:
+
+- What the change costs an index (no number for the build before it under the same load).
+- Any corpus with `node_modules` installed. Neither copy has it, so every pair counted here
+  is a decorator declared in the repository. What the reference and the resolver do with a
+  decorator imported from an installed package was not run.
+- A third repository. The directus and vscode copies were not scored for P2.
+- JavaScript. Both corpora are TypeScript; a decorator in a `.js` file goes through the same
+  code and is covered by no test or measurement.

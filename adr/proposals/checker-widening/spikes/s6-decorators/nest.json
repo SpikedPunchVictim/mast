@@ -1,0 +1,265 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/nest-ref",
+ "call_pairs": {
+  "agree": 2663,
+  "lacks": 1359
+ },
+ "calling_files_with_an_at_sign_parsed": 757,
+ "lacking_pairs_that_are": {
+  "the decorator itself": 961,
+  "a call inside its arguments": 44,
+  "either": 1005
+ },
+ "lacking_pairs_by_where_the_decorator_is": {
+  "a call inside its arguments | on a class | from the class": 22,
+  "a call inside its arguments | on a method | from the member": 3,
+  "a call inside its arguments | on a parameter | from the member": 17,
+  "a call inside its arguments | on a property | from the class": 2,
+  "the decorator itself | on a class | from the class": 515,
+  "the decorator itself | on a method | from the member": 201,
+  "the decorator itself | on a parameter | from the member": 225,
+  "the decorator itself | on a property | from the class": 20
+ },
+ "decorator_sites": {
+  "a call inside its arguments | call | on a class | lacking, from the class": 21,
+  "a call inside its arguments | call | on a class | no pair": 49,
+  "a call inside its arguments | call | on a method | lacking, from the member": 3,
+  "a call inside its arguments | call | on a parameter | lacking, from the member": 11,
+  "a call inside its arguments | call | on a property | lacking, from the class": 2,
+  "a call inside its arguments | call | on a property | no pair": 7,
+  "a call inside its arguments | new | on a class | lacking, from the class": 1,
+  "a call inside its arguments | new | on a class | no pair": 3,
+  "a call inside its arguments | new | on a parameter | lacking, from the member": 6,
+  "the decorator itself | @a.name or other | on a method | no pair": 12,
+  "the decorator itself | @name(...) | on a class | lacking, from the class": 515,
+  "the decorator itself | @name(...) | on a class | no pair": 16,
+  "the decorator itself | @name(...) | on a method | lacking, from the member": 201,
+  "the decorator itself | @name(...) | on a method | no pair": 279,
+  "the decorator itself | @name(...) | on a parameter | lacking, from the member": 233,
+  "the decorator itself | @name(...) | on a parameter | no pair": 69,
+  "the decorator itself | @name(...) | on a property | lacking, from the class": 25,
+  "the decorator itself | @name(...) | on a property | no pair": 2
+ },
+ "called_names_top_25": [
+  [
+   "Injectable",
+   204
+  ],
+  [
+   "Module",
+   186
+  ],
+  [
+   "Get",
+   127
+  ],
+  [
+   "Controller",
+   98
+  ],
+  [
+   "Post",
+   89
+  ],
+  [
+   "Inject",
+   76
+  ],
+  [
+   "Body",
+   75
+  ],
+  [
+   "MessagePattern",
+   57
+  ],
+  [
+   "HttpCode",
+   46
+  ],
+  [
+   "Param",
+   35
+  ],
+  [
+   "Query",
+   34
+  ],
+  [
+   "Args",
+   24
+  ],
+  [
+   "Optional",
+   21
+  ],
+  [
+   "SubscribeMessage",
+   21
+  ],
+  [
+   "UseInterceptors",
+   20
+  ],
+  [
+   "UseGuards",
+   15
+  ],
+  [
+   "Resolver",
+   13
+  ],
+  [
+   "Client",
+   12
+  ],
+  [
+   "EventPattern",
+   12
+  ],
+  [
+   "Req",
+   12
+  ],
+  [
+   "WebSocketGateway",
+   12
+  ],
+  [
+   "Mutation",
+   11
+  ],
+  [
+   "Payload",
+   10
+  ],
+  [
+   "MessageBody",
+   9
+  ],
+  [
+   "Sse",
+   9
+  ]
+ ],
+ "bare_names_top_25": [
+  [
+   "WrapBuffer",
+   12
+  ]
+ ],
+ "samples": {
+  "a call inside its arguments | call | on a class | lacking, from the class": [
+   "integration/injector/src/circular-modules/circular.module.ts:5 forwardRef",
+   "integration/injector/src/circular-modules/input.module.ts:5 forwardRef",
+   "integration/injector/src/circular-properties/circular-properties.module.ts:5 forwardRef",
+   "integration/injector/src/circular-properties/input-properties.module.ts:5 forwardRef",
+   "integration/inspector/src/app.module.ts:25 forRoot"
+  ],
+  "a call inside its arguments | call | on a class | no pair": [
+   "integration/graphql-code-first/src/app.module.ts:7 forRoot",
+   "integration/graphql-code-first/src/app.module.ts:7 join",
+   "integration/graphql-code-first/src/app.module.ts:7 cwd",
+   "integration/graphql-schema-first/src/app.module.ts:7 forRoot",
+   "integration/graphql-schema-first/src/app.module.ts:7 join"
+  ],
+  "a call inside its arguments | call | on a method | lacking, from the member": [
+   "sample/29-file-upload/src/app.controller.ts:24 FileInterceptor",
+   "sample/29-file-upload/src/app.controller.ts:36 FileInterceptor",
+   "sample/29-file-upload/src/app.controller.ts:57 FileInterceptor"
+  ],
+  "a call inside its arguments | call | on a parameter | lacking, from the member": [
+   "integration/injector/src/circular-modules/circular.service.ts:7 forwardRef",
+   "integration/injector/src/circular-modules/input.service.ts:7 forwardRef",
+   "integration/injector/src/circular/circular.service.ts:7 forwardRef",
+   "integration/injector/src/circular/input.service.ts:7 forwardRef",
+   "integration/injector/src/self-injection/self-injection-provider.module.ts:11 forwardRef"
+  ],
+  "a call inside its arguments | call | on a property | lacking, from the class": [
+   "integration/injector/src/circular-properties/circular.service.ts:6 forwardRef",
+   "integration/injector/src/circular-properties/input.service.ts:6 forwardRef"
+  ],
+  "a call inside its arguments | call | on a property | no pair": [
+   "integration/microservices/src/grpc-advanced/advanced.grpc.controller.ts:19 join",
+   "integration/microservices/src/grpc/grpc.controller.ts:31 join",
+   "integration/microservices/src/grpc/grpc.controller.ts:40 join",
+   "integration/microservices/src/grpc/grpc.controller.ts:40 join",
+   "integration/microservices/src/tcp-tls/app.controller.ts:31 toString"
+  ],
+  "a call inside its arguments | new | on a class | lacking, from the class": [
+   "integration/repl/src/users/users.module.ts:6 UsersRepository"
+  ],
+  "a call inside its arguments | new | on a class | no pair": [
+   "sample/23-graphql-code-first/src/app.module.ts:8 GraphQLDirective",
+   "sample/31-graphql-federation-code-first/gateway/src/app.module.ts:6 IntrospectAndCompose",
+   "sample/32-graphql-federation-schema-first/gateway/src/app.module.ts:6 IntrospectAndCompose"
+  ],
+  "a call inside its arguments | new | on a parameter | lacking, from the member": [
+   "integration/inspector/src/cats/cats.controller.ts:25 ParseIntPipe",
+   "sample/01-cats-app/src/cats/cats.controller.ts:27 ParseIntPipe",
+   "sample/10-fastify/src/cats/cats.controller.ts:27 ParseIntPipe",
+   "sample/29-file-upload/src/app.controller.ts:40 ParseFilePipeBuilder",
+   "sample/29-file-upload/src/app.controller.ts:61 ParseFilePipeBuilder"
+  ],
+  "the decorator itself | @a.name or other | on a method | no pair": [
+   "packages/common/services/logger.service.ts:139 WrapBuffer",
+   "packages/common/services/logger.service.ts:155 WrapBuffer",
+   "packages/common/services/logger.service.ts:168 WrapBuffer",
+   "packages/common/services/logger.service.ts:181 WrapBuffer",
+   "packages/common/services/logger.service.ts:194 WrapBuffer"
+  ],
+  "the decorator itself | @name(...) | on a class | lacking, from the class": [
+   "integration/auto-mock/src/bar.service.ts:4 Injectable",
+   "integration/auto-mock/src/foo.service.ts:3 Injectable",
+   "integration/cors/src/app.controller.ts:3 Controller",
+   "integration/cors/src/app.module.ts:4 Module",
+   "integration/discovery/src/app.module.ts:6 Module"
+  ],
+  "the decorator itself | @name(...) | on a class | no pair": [
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:14 Resolver",
+   "integration/graphql-schema-first/src/cats/cats.resolvers.ts:10 Resolver",
+   "sample/11-swagger/src/cats/cats.controller.ts:12 ApiBearerAuth",
+   "sample/11-swagger/src/cats/cats.controller.ts:13 ApiTags",
+   "sample/12-graphql-schema-first/src/cats/cat-owner.resolver.ts:5 Resolver"
+  ],
+  "the decorator itself | @name(...) | on a method | lacking, from the member": [
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:18 UseGuards",
+   "integration/graphql-schema-first/src/cats/cats.resolvers.ts:15 UseGuards",
+   "integration/hello-world/src/errors/errors.controller.ts:16 Header",
+   "integration/hello-world/src/hello/hello.controller.ts:11 Header",
+   "integration/hello-world/src/host-array/host-array.controller.ts:14 Header"
+  ],
+  "the decorator itself | @name(...) | on a method | no pair": [
+   "integration/cors/src/app.controller.ts:5 Get",
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:19 Query",
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:28 Query",
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:33 Mutation",
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:42 Mutation"
+  ],
+  "the decorator itself | @name(...) | on a parameter | lacking, from the member": [
+   "integration/hello-world/src/hello/hello.controller.ts:28 Param",
+   "integration/hello-world/src/host-array/host-array.controller.ts:15 HostParam",
+   "integration/hello-world/src/host-array/host-array.controller.ts:20 HostParam",
+   "integration/hello-world/src/host-array/host-array.controller.ts:25 HostParam",
+   "integration/hello-world/src/host-array/host-array.controller.ts:31 Param"
+  ],
+  "the decorator itself | @name(...) | on a parameter | no pair": [
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:20 Args",
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:29 Args",
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:35 Args",
+   "integration/graphql-code-first/src/recipes/recipes.resolver.ts:43 Args",
+   "integration/graphql-schema-first/src/cats/cats.resolvers.ts:22 Args"
+  ],
+  "the decorator itself | @name(...) | on a property | lacking, from the class": [
+   "integration/injector/src/circular-properties/circular.service.ts:6 Inject",
+   "integration/injector/src/circular-properties/input.service.ts:6 Inject",
+   "integration/injector/src/properties/properties.service.ts:8 Inject",
+   "integration/injector/src/properties/properties.service.ts:9 Inject",
+   "integration/injector/src/properties/properties.service.ts:10 Inject"
+  ],
+  "the decorator itself | @name(...) | on a property | no pair": [
+   "integration/nest-application/sse/src/app.controller.ts:23 Type",
+   "integration/nest-application/sse/src/app.controller.ts:24 IsInt"
+  ]
+ }
+}

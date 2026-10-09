@@ -19,6 +19,133 @@ function potentialCalls(edges: readonly EdgeRecord[]): EdgeRecord[] {
 // ---------------------------------------------------------------------------
 
 describe('extractEdges — POTENTIAL_CALL', () => {
+  describe('a decorator written as a call', () => {
+    const pairs = (src: string): string[] =>
+      potentialCalls(edgesOf(src)).map((e) => `${e.fromName} -> ${e.toName}`);
+
+    it('is a call from the class it is on', () => {
+      const edges = potentialCalls(edgesOf(`
+        import { Service } from './di';
+        @Service()
+        class Mailer {}
+      `));
+
+      expect(edges.map((e) => `${e.fromName} -> ${e.toName} (${e.resolution ?? ''}) line ${String(e.callLine)}`)).toEqual([
+        'Mailer -> Service (import) line 3',
+      ]);
+    });
+
+    it('is the class\'s when it is written before export', () => {
+      expect(pairs(`
+        import { Service } from './di';
+        @Service()
+        export class Mailer {}
+      `)).toEqual(['Mailer -> Service']);
+    });
+
+    it('is the class\'s when it is on a field, which has no symbol', () => {
+      expect(pairs(`
+        import { Column } from './orm';
+        export class User {
+          @Column()
+          name = '';
+          @Column()
+          email: string;
+        }
+      `)).toEqual(['User -> Column', 'User -> Column']);
+    });
+
+    it('is the method\'s when it is on a method', () => {
+      expect(pairs(`
+        import { Get } from './http';
+        export class Users {
+          @Get('/users')
+          list(): void {}
+        }
+      `)).toEqual(['Users.list -> Get']);
+    });
+
+    it('is the accessor\'s when it is on an accessor', () => {
+      expect(pairs(`
+        import { Memo } from './memo';
+        export class Users {
+          @Memo()
+          get count(): number { return 1; }
+        }
+      `)).toEqual(['Users.count -> Memo']);
+    });
+
+    it('is the method\'s or the constructor\'s when it is on a parameter', () => {
+      expect(pairs(`
+        import { Inject, Param } from './http';
+        export class Users {
+          constructor(@Inject('db') private readonly db: unknown) {}
+          one(@Param('id') id: string): void { void id; }
+        }
+      `)).toEqual(['Users.constructor -> Inject', 'Users.one -> Param']);
+    });
+
+    it('gives a call inside its arguments to the same caller', () => {
+      expect(pairs(`
+        import { Column, Get } from './lib';
+        function now(): number { return 1; }
+        function limiter(): number { return 1; }
+        export class User {
+          @Column({ default: () => now() })
+          created = 0;
+          @Get('/x', limiter())
+          list(): void {}
+        }
+      `)).toEqual(['User -> Column', 'User -> now', 'User.list -> Get', 'User.list -> limiter']);
+    });
+
+    it('is the method\'s when a comment is written between the two', () => {
+      expect(pairs(`
+        import { Post, Scope, Licensed } from './http';
+        export class Projects {
+          @Post('/')
+          @Scope('project:create')
+          // every plan with projects allows admins
+          @Licensed('admin')
+          /* and a block comment */
+          create(): void {}
+        }
+      `)).toEqual(['Projects.create -> Post', 'Projects.create -> Scope', 'Projects.create -> Licensed']);
+    });
+
+    it('is not a call when it has no parentheses', () => {
+      expect(pairs(`
+        import { Injectable, Body } from './lib';
+        @Injectable
+        export class Users {
+          @Injectable
+          list(@Body body: string): void { void body; }
+        }
+      `)).toEqual([]);
+    });
+
+    it('is not read when it is parenthesised or reached through a namespace import', () => {
+      expect(pairs(`
+        import * as orm from './orm';
+        import { Make } from './lib';
+        @(Make())
+        @orm.Entity()
+        export class User {}
+      `)).toEqual([]);
+    });
+
+    it('does not read this in its arguments as the instance', () => {
+      expect(pairs(`
+        import { Check } from './lib';
+        export class Users {
+          helper(): number { return 1; }
+          @Check(() => this.helper())
+          list(): void {}
+        }
+      `)).toEqual(['Users.list -> Check']);
+    });
+  });
+
   it('does not give a function the calls made inside a class it declares', () => {
     const edges = potentialCalls(edgesOf(`
       function helper(): number { return 1; }

@@ -2378,6 +2378,15 @@ import, followed through re-exporting index files to the declaration, or a decla
 in the same file. A call is read wherever it sits in the declaration: nested functions,
 object-literal methods, parameter defaults and class field initializers included.
 
+A decorator written as a call is a call. `@Service()` on a class is a call from the class
+to `Service`, placed by the rules above like any bare call, and so is `@Column()` on a
+field, which has no symbol of its own. On a method or an accessor, or on one of its
+parameters, it is a call from that member: `@Get('/users') list()` is `Users.list >
+Get`, and `constructor(@Inject(TOKEN) db)` is `Users.constructor > Inject`. A call in the
+decorator's arguments has the same caller. `this` there is not the instance, so
+`@Check(() => this.m())` gives no edge to the class's `m`. Only top-level classes are
+read, as for every other call.
+
 A name declared inside the declaration is that declaration and not the import or
 top-level symbol of the same name: a parameter, a `const`, `let` or `var` (destructured or
 not), a loop variable, a caught value, a function or class declared inside (D101, D104).
@@ -2399,6 +2408,13 @@ that `new` reads it: when a local or a parameter in sight has the name, `r` has 
 the identifier match still lands in `identifier_fts` and surfaces as
 `potential_matches`):**
 
+- **A decorator with no parentheses.** `@Injectable` is applied but is not written as a
+  call, and no edge is stored for it. Nor is one stored for a decorator that is a constant
+  holding a function (`export const Get = RouteFactory('get')`): a top-level constant
+  that is not a function has no symbol. When a type of the same name is declared beside
+  the constant, the edge goes to the type's row, as for any call of such a name (see
+  "A lookup by name" below). `@(expr)` and a decorator reached through a namespace import
+  (`@orm.Entity()`) are not read either.
 - **Factory return types without annotation.** `const repo = makeRepository(); repo.findById(id)`
   — `repo`'s type is inferred and the resolver does not run inference.
 - **DI container lookups.** `container.get(UserRepository).findById(id)` — the
@@ -2755,7 +2771,20 @@ the `--checker` flag.
   `context_lines` past its declaration. A call is looked for on the
   declaration's own lines only, and the edge is written from the innermost
   declaration around the call: a call in a method is the method's, and the
-  class, whose chunk spans the method, writes none (D154).
+  class, whose chunk spans the method, writes none (D154). A decorator on a
+  method, an accessor, a constructor or one of their parameters is that
+  member's call, as in §10.3.1. Written above a method it is on the class's
+  lines and outside the method's, so the class is the candidate that finds it,
+  and the edge is written from the class's member that starts on the line
+  below the decorator: found by its line, since a getter and a setter, or a
+  static and an instance method, share a name. When the class has no member
+  there (the decorator is in a class nested in it) no edge is written (D157).
+  The pass finds such a decorator only when the class is a potential match
+  for the name for another reason, as when a member has the decorator's name
+  in another case (`@BeforeInsert() beforeInsert()`); it reads one call per
+  candidate, the first. A decorator written before `export` is above the
+  class's own lines and is not found. The resolver (§10.3.1) is what reads
+  decorators; the pass only has to not misplace the ones it meets.
 - **`new X()` is stored as rule 9 of §10.3.1 stores it:** on `X.constructor`
   when the class declares one, on the class otherwise (D155).
 

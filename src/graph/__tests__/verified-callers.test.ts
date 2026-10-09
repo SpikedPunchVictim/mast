@@ -54,6 +54,55 @@ describe('verified_callers — end to end', () => {
   });
 });
 
+describe('verified_callers — a decorator written as a call', () => {
+  let tmpDir: string;
+  let db: Db;
+
+  beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'mast-decorators-'));
+    writeFileSync(join(tmpDir, 'lib.ts'), [
+      'export function Service(): ClassDecorator { return () => undefined; }',
+      'export function Get(path: string): MethodDecorator { void path; return () => undefined; }',
+      '',
+    ].join('\n'));
+    writeFileSync(join(tmpDir, 'index.ts'), "export * from './lib';\n");
+    writeFileSync(join(tmpDir, 'users.ts'), [
+      "import { Service, Get } from './index';",
+      '@Service()',
+      'export class Users {',
+      "  @Get('/users')",
+      '  list(): void {}',
+      '}',
+      '@Service()',
+      'class Hidden {}',
+      'void Hidden;',
+      '',
+    ].join('\n'));
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    db = openDatabase(config.resolved_state_dir);
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const callersOf = async (name: string): Promise<string[]> => {
+    const [target] = await querySymbolByName(db, name, 'lib.ts');
+    const callers = await queryVerifiedCallers(db, [target!.id], false);
+    return callers.map((c) => `${c.caller_symbol} line ${String(c.line)}`).sort();
+  };
+
+  it('stores a class decorator as a call from the class, through a re-exporting index', async () => {
+    expect(await callersOf('Service')).toEqual(['Hidden line 7', 'Users line 2']);
+  });
+
+  it('stores a method decorator as a call from the method', async () => {
+    expect(await callersOf('Get')).toEqual(['Users.list line 4']);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Q4b regression — insertEdges must not resolve POTENTIAL_CALL targets by
 // bare name across the whole graph (IMPLEMENTATION_PLAN_VEXP.md §P,

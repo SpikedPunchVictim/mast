@@ -45,7 +45,7 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112, D115, D116, D117, D118, D119, D120, D121, D122, D123, D124, D127, D128, D130, D131, D132, D133, D137, D139, D142, D143, D144, D146, D148, D149. **Rung**: brief — declined for promotion 2026-09-01, reason below.
+**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112, D115, D116, D117, D118, D119, D120, D121, D122, D123, D124, D127, D128, D130, D131, D132, D133, D137, D139, D142, D143, D144, D146, D148, D149, D150, D151, D152, D154, D156, D157, D159. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever
@@ -240,7 +240,7 @@ the code and confirm — stays first.
 
 ## S-05 — Two producers of one value, drifting apart
 
-**Instances**: D014, D016, D023, D024, D043, D066, D072, D074, D076, D077, D079, D080, D089, D113, D122, D125, D126, D130, D133, D138. **Rung**: **promoted in part — see below.**
+**Instances**: D014, D016, D023, D024, D043, D066, D072, D074, D076, D077, D079, D080, D089, D113, D122, D125, D126, D130, D133, D138, D155. **Rung**: **promoted in part — see below.**
 
 The same quantity computed in two places, by two authors, drifting apart. Renamed from "two
 implementations of one statistic" when D023 arrived: the value that disagreed there was a **file
@@ -396,7 +396,7 @@ itself have to admit the key) — the same rung, the same file.
 
 ## S-09 — Tests that use inputs no user would produce
 
-**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103, D105, D109, D120, D121, D124, D139, D140, D144, D145, D146, D149. **Rung**: brief.
+**Instances**: D002, D004, D023, D047, D070, D097, D098, D100, D101, D102, D103, D105, D109, D120, D121, D124, D139, D140, D144, D145, D146, D149, D153, D158. **Rung**: brief.
 
 The first three S0s in this ledger share it, and D047 — filed 2026-09-01, and the first slash-terminated import specifier any fixture in this package has ever contained — is the fourth. (The ledger now holds ten S0s; the six from the 2026-08-20 bug hunt have not been assessed against this shape.) D004's four sites had tests, and not one used a path containing
 an underscore or two paths differing only by case — in a package that indexes real repositories,
