@@ -793,8 +793,10 @@ interface FromRow {
 async function insertEdgesReportingUnresolved(
   db: Db,
   filePath: string,
-  edges: readonly EdgeRecord[],
+  records: readonly EdgeRecord[],
 ): Promise<EdgeRecord[]> {
+  // A local alias makes no edge; it is a row of `reexport_aliases` (D124).
+  const edges = records.filter((e) => e.localAlias !== true);
   if (edges.length === 0) return [];
 
   const fromNames = [...new Set(edges.map((e) => e.fromName))];
@@ -1612,7 +1614,7 @@ export async function resolveInFileOrReExportChain(
     .orderBy('line', 'asc')
     .orderBy('id', 'asc')
     .executeTakeFirst();
-  if (direct !== undefined) return direct.id;
+  if (direct !== undefined) return declarationBehindLocalAlias(db, direct.id);
 
   // Named re-export: a marker symbol (kind 'export') anchors a RE_EXPORTS
   // edge to the real declaration (§10.1).
@@ -1630,7 +1632,7 @@ export async function resolveInFileOrReExportChain(
   // declaration behind the star and record an edge to the wrong file.
   if (marker !== undefined) {
     const target = await followReExportEdgeChain(db, marker.id);
-    return target === null ? null : rowOfMeaning(db, target, meaning);
+    return target === null ? null : rowOfMeaning(db, await declarationBehindLocalAlias(db, target), meaning);
   }
 
   // Star re-export: no per-symbol marker exists, only a file-level
@@ -1714,13 +1716,45 @@ async function resolveThroughStarChain(
     .execute();
 
   const declared = candidates.find((c) => c.kind !== 'export');
-  if (declared !== undefined) return declared.id;
+  if (declared !== undefined) return declarationBehindLocalAlias(db, declared.id);
 
   for (const marker of candidates) {
     const target = await followReExportEdgeChain(db, marker.id);
-    if (target !== null) return rowOfMeaning(db, target, meaning);
+    if (target !== null) return rowOfMeaning(db, await declarationBehindLocalAlias(db, target), meaning);
   }
   return null;
+}
+
+/**
+ * The declaration that the row `symbolId` is another name for, or `symbolId`
+ * when it is a declaration itself.
+ *
+ * `export { a as b }` gives the file a row `b` beside `a`, of `a`'s kind and on
+ * `a`'s line (§10.1), so that the exported name can be found. An import of `b`
+ * means `a`: placed on `b`, the edge was on a row nothing else points at, and
+ * `a` had no callers (D124). The `reexport_aliases` row says which name `b`
+ * stands for; the line says which row of that name, when there are two (D121).
+ * A re-export from another file has a marker and is not read here.
+ */
+export async function declarationBehindLocalAlias(db: Db, symbolId: number): Promise<number> {
+  const declaration = await db
+    .selectFrom('symbols as alias')
+    .innerJoin('reexport_aliases as ra', (join) =>
+      join.onRef('ra.file_id', '=', 'alias.file_id').onRef('ra.exported_name', '=', 'alias.name'),
+    )
+    .innerJoin('symbols as d', (join) =>
+      join
+        .onRef('d.file_id', '=', 'alias.file_id')
+        .onRef('d.name', '=', 'ra.source_name')
+        .onRef('d.line', '=', 'alias.line')
+        .onRef('d.kind', '=', 'alias.kind'),
+    )
+    .select('d.id')
+    .where('alias.id', '=', symbolId)
+    .where('alias.kind', '!=', 'export')
+    .orderBy('d.id', 'asc')
+    .executeTakeFirst();
+  return declaration?.id ?? symbolId;
 }
 
 /**

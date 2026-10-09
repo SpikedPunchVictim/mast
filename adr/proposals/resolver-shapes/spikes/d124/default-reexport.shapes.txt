@@ -1,0 +1,13 @@
+tool|export|1|1
+main|function|1|1
+tool|function|2|1
+use|POTENTIAL_CALL|helper|import
+use|POTENTIAL_CALL|format|import
+use|POTENTIAL_CALL|Client.send|parameter_type
+use|POTENTIAL_CALL|Client|construction
+use2|POTENTIAL_CALL|Client.send|parameter_type
+use2|POTENTIAL_CALL|internalFmt|import
+3|Legacy2|Client
+3|fmt2|internalFmt
+4|tool|default
+19|b|a

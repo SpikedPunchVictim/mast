@@ -1,0 +1,8 @@
+old: 83 edge rows, new: 83 edge rows
+only in old: 2, only in new: 2
+only in old, by type: {'POTENTIAL_CALL': 2}
+only in new, by type: {'POTENTIAL_CALL': 2}
+- POTENTIAL_CALL [import] line 2 packages/local-shadow/src/useloc.ts:h(function@2) -> packages/local-shadow/src/loc.ts:b(function@1)
+- POTENTIAL_CALL [import] line 5 packages/barrel-private/src/user.ts:use2(function@5) -> packages/barrel-private/src/barrel2.ts:fmt2(function@6)
++ POTENTIAL_CALL [import] line 2 packages/local-shadow/src/useloc.ts:h(function@2) -> packages/local-shadow/src/loc.ts:a(function@1)
++ POTENTIAL_CALL [import] line 5 packages/barrel-private/src/user.ts:use2(function@5) -> packages/barrel-private/src/barrel2.ts:internalFmt(function@6)

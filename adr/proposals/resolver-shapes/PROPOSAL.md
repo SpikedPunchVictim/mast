@@ -572,3 +572,80 @@ constructor in the middle of a walk": two cases, the first failing before the ch
 with `makeWith` and `outer` missing. The second (the constructor is not reported)
 passed before and holds R1's pass-through.
 
+## D124 — `export { a as b }` with no `from`
+
+**The defect.** `function a() {}` and `export { a as b };` give the file two rows: `a`,
+not exported, and `b`, exported, of `a`'s kind and on `a`'s line. An import of `b` was
+placed on the row `b`. The reference has it on `a`, and `mast_callers a` answered with
+no callers. The ledger row called `b` a marker; it is not one (corrected there).
+
+**Prior decisions.**
+
+- `MAST_SPEC.md` §10.1, "Implementation note — local aliases": the alias gets a chunk and
+  a row of its own so that the exported name can be searched for, and the local name is
+  not marked exported. Kept. The scorecard's reference is built to the same rule.
+- `MAST_SPEC.md`, edge repair: "A name re-exported under another (`export { a as b }`,
+  with or without `from`) is recorded in `reexport_aliases`" (D112). The code wrote the
+  row for the `from` form only. This change makes the sentence true.
+- D120: an import means a declaration only where it is exported. The row `b` is the
+  exported one, so D120's filter finds it and not a private `b` beside it.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| R1 | Record the alias in `reexport_aliases`; in the lookup of an imported name, go from the alias row to the row of the recorded name on the same line | **Built.** The alias row carries the declaration's line, which says which row when the name has two (D121) |
+| R2 | Make `b` a marker with a `RE_EXPORTS` edge to `a`, as for the `from` form | **Reject.** Undoes §10.1: the row `b` would lose its kind, and `querySymbolByName` leaves markers out, so `mast_signature b` and `mast_callers b` would find no symbol |
+| R3 | Keep the row `b` and store a `RE_EXPORTS` edge from it to `a` | **Reject for now.** It would give `mast_rename_impact a` the export line as a verified site. But the edge type means "marker to declaration" to the scorecard's reference and to repair, and each would need the exception |
+| R4 | Recognise the alias row by its sharing a line and kind with another row, with no table | **Reject.** A class and its constructor, or two declarations on one line, share a line too |
+
+**How common** (`spikes/d124/local-alias-census.sh`: an exported row sharing file, line
+and kind with an unexported row of another name; measured on the D122 indexes):
+
+| Corpus | Alias rows | Edges on them before | After |
+|---|---|---|---|
+| this repository | 0 | 0 | 0 |
+| shapes corpus | 2 | 2 | 0 |
+| n8n `9d9e9bf9` | 0 | 0 | 0 |
+
+n8n has 35 one-line `export { … as … }` statements with no `from` (grep over
+`packages/**/*.ts`; multi-line ones not counted). The four I read alias an imported name
+or a name with no row; none produced an alias row, so the census is 0 and the fix
+changes nothing there. The second corpus therefore says only that the change does no
+harm: the shape itself is measured on the shapes corpus and the unit tests alone.
+
+**Measured** (`spikes/d124/`):
+
+- Shapes corpus: 83 edge rows before and after, two moved, `h -> loc.ts:b` to
+  `loc.ts:a` and `use2 -> barrel2.ts:fmt2` to `barrel2.ts:internalFmt`. Scorecard call
+  edges: `wrong` 2 to 0, `lacks` 3 to 1, `agree` 44 to 46.
+- n8n: 71,126 edge rows before and after, none different. `reexport_aliases` 391 rows
+  before and after.
+- `compare` against the D121 baselines exits 0 on all four.
+- Index time on n8n, one run each on a machine doing other work: 188 s for the D121
+  build, 141 s for this one. The lookup makes one more query per resolved import; these
+  two runs do not show a cost and are not a timing of it.
+- The built tool on the shapes corpus: `mast_callers a` and `mast_callers b` both answer
+  `useloc.ts:h`; `mast_callers internalFmt` answers `user.ts:use2`.
+
+**Not fixed, not checked.**
+
+- `mast_rename_impact a` lists `h` as a verified caller, whose text is `b()` and needs
+  no edit, and lists the `export { a as b }` statement only as an unverified match at
+  the declaration's line. Seen on the shapes corpus, not changed.
+- The last `lacks` on the shapes corpus is another defect, filed as D148:
+  `export { default as tool } from './x'`.
+- An alias of a name with two rows takes the first row of the name the extractor finds
+  (`symbolsFromChunks`). Read in the code, no test.
+- A file with a `from` re-export of `b`, and unrelated local rows named `b` and the
+  re-export's source name on one line, would be redirected wrongly. Not constructed.
+
+**Tests.** `src/indexer/__tests__/local-export-alias.test.ts`: eight cases, seven
+failing before (the eighth, callers asked under the exported name, passed before and
+would have failed with the redirect alone). Two scenarios in
+`equivalence-scenarios.ts`, run by both equivalence suites; I did not run them against
+the code before the change.
+
+**Review.** No separate adversarial pass was run for D122 or D124. I attacked three
+claims myself: that no n8n edge moved (the row diff), that the redirect cannot fire for
+a `from` alias (it needs a non-marker row and a second row on its line), and that an
+incremental run matches a full one (the two scenarios).
+

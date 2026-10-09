@@ -443,6 +443,30 @@ export const SCENARIOS: readonly Scenario[] = [
       { 'src/a-pair.ts': `export function one(): void {}\nexport class K {\n  static make(): K { one(); return new K(); }\n  make(): void {}\n}\n` },
     ],
   },
+  // D124: `export { a as b }` of a declaration of the file. An importer of `b` holds an edge to `a`.
+  {
+    name: 'a declaration exported under another name changes, loses the other name, and gets it back',
+    files: {
+      'src/a-loc.ts': `function a(): void {}\nexport { a as b };\n`,
+      'src/zc.ts': `import { b } from './a-loc.js';\nexport function top(): void { b(); }\n`,
+    },
+    rounds: [
+      { 'src/a-loc.ts': `function a(): void { void 0; }\nexport { a as b };\n` },
+      { 'src/a-loc.ts': `function a(): void { void 0; }\nexport { a };\n` },
+      { 'src/a-loc.ts': `function a(): void { void 0; }\nexport { a as b };\n` },
+    ],
+  },
+  {
+    name: 'the other name of a declaration moves to a second declaration of the file',
+    files: {
+      'src/a-loc.ts': `function a(): void {}\nfunction c(): void {}\nvoid c;\nexport { a as b };\n`,
+      'src/zc.ts': `import { b } from './a-loc.js';\nexport function top(): void { b(); }\n`,
+    },
+    rounds: [
+      { 'src/a-loc.ts': `function a(): void {}\nfunction c(): void {}\nvoid a;\nexport { c as b };\n` },
+      { 'src/a-loc.ts': `function a(): void {}\nfunction c(): void {}\nvoid c;\nexport { a as b };\n` },
+    ],
+  },
   // D145: nothing extends the class, so only the changed side of the member says the callers are out of date.
   {
     name: 'a static method of the class a parameter is typed as becomes an instance method, and static again',

@@ -165,6 +165,13 @@ export interface EdgeRecord {
    * every other edge type.
    */
   readonly toResolvedPath?: string | null;
+  /**
+   * Set on a `RE_EXPORTS` record for `export { a as b }` with no `from`, where
+   * `a` is a declaration of this file. The record makes no edge: `b` has a row
+   * of its own, of `a`'s kind (§10.1). It is written to `reexport_aliases`, by
+   * which an import of `b` is placed on `a` (D124).
+   */
+  readonly localAlias?: true;
 }
 
 // ---------------------------------------------------------------------------

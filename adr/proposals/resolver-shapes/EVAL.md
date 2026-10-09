@@ -96,3 +96,15 @@ what hold it.
 
 No stored edge changes in this row, so the scorecard and its baselines are as they were.
 
+## D124 (`spikes/d124/`)
+
+| File | What it is |
+|---|---|
+| `local-alias-census.sh` | Counts the alias rows of an index (an exported row sharing file, line and kind with an unexported row of another name) and the edges on them |
+| `census.*.before.txt`, `census.*.after.txt` | Its output on the D122 and D124 indexes of this repository, the shapes corpus and n8n |
+| `edge-rows-vs-d122.*.txt` | `spikes/d121/edge-rows-diff.py`, D122 index against D124, for the shapes corpus and n8n |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D121 commit) with the D124 build |
+| `default-reexport.shapes.txt` | D148 as stored: the rows of `barrel3.ts` and `x.ts`, the edges out of `user.ts`, and `reexport_aliases` |
+
+The four baselines are regenerated from the D124 build.
+

@@ -1,0 +1,5 @@
+alias rows (exported row sharing file, line and kind with an unexported row of another name): 2
+edges into those alias rows: 2
+rows in reexport_aliases: 2
+  packages/barrel-private/src/barrel2.ts: internalFmt as fmt2
+  packages/local-shadow/src/loc.ts: a as b

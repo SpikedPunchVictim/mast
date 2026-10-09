@@ -2189,6 +2189,14 @@ discoverable (`mast_exports`/`mast_search`) and resolvable (`mast_signature`)
 without a chain walk — same observable result, simpler mechanism. The aliased
 local name (`foo`) is NOT itself marked exported, since the export name is `bar`.
 
+The row `bar` is a name and not a second declaration (2026-10-09, D124). The
+alias is recorded in `reexport_aliases`, and an import of `bar` is placed on
+`foo`: the lookup of an imported name goes from the row `bar` to the row of the
+recorded name on the same line (`declarationBehindLocalAlias`), whether `bar`
+was found in the file itself, behind a marker or behind an `export *`. No edge
+is stored to or from the row `bar`. `mast_callers bar` answers with `foo`'s
+callers.
+
 **Two-pass walk for `is_exported`:**
 
 TypeScript allows declarations to be exported separately from their definition:

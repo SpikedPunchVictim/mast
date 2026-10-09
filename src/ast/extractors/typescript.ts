@@ -69,7 +69,12 @@ export class TypeScriptExtractor implements LanguageExtractor {
     }));
 
     const symbols = [...symbolsFromChunks(chunks), ...markerSymbols];
-    const edges = [...extractEdges(tree, filePath, src), ...reExportEdges];
+    // `export { a as b }` of a declaration of this file. Only where `a` has a
+    // row: that is when `b` was given one beside it.
+    const localAliasRecords: EdgeRecord[] = localExportAliases(nodeChildren(tree.rootNode))
+      .filter(({ local }) => symbols.some((s) => s.name === local && s.kind !== 'export'))
+      .map(({ local, alias }) => ({ fromName: alias, toName: local, edgeType: 'RE_EXPORTS', localAlias: true }));
+    const edges = [...extractEdges(tree, filePath, src), ...reExportEdges, ...localAliasRecords];
 
     // F5 (Stage 3): qualified compounds ("Class.method") for identifier_fts.
     // `searchIdentifiers` phrase-quotes its query term, and identifier_fts'

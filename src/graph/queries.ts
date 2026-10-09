@@ -2,7 +2,7 @@ import { sql } from 'kysely';
 import type { Db } from './db.js';
 import { EdgeType } from './db.js';
 import { pathPrefixUpperBound } from './path-range.js';
-import { resolveInFileOrReExportChain } from './populate.js';
+import { declarationBehindLocalAlias, resolveInFileOrReExportChain } from './populate.js';
 import type {
   DependencyEntry,
   ImplementorResult,
@@ -42,8 +42,10 @@ export async function queryVerifiedCallers(
   const contextExpr = sql<string>`COALESCE(e.context, '')`.as('context');
   const resolutionExpr = sql<string>`COALESCE(e.resolution, 'same_file')`.as('resolution');
 
-  const targetIds = [...symbolIds];
-  for (const id of symbolIds) targetIds.push(...(await constructorIdsOf(db, id)));
+  // Asked under the name a declaration is exported as (`export { a as b }`),
+  // the callers are the declaration's: that is the row they are stored on (D124).
+  const targetIds = await Promise.all(symbolIds.map((id) => declarationBehindLocalAlias(db, id)));
+  for (const id of [...targetIds]) targetIds.push(...(await constructorIdsOf(db, id)));
 
   // Direct callers: no CTE needed — simple edge join.
   if (!transitive) {
