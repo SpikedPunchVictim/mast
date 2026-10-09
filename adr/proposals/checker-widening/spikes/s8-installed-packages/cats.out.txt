@@ -1,0 +1,21 @@
+files: 19 indexed, 0 skipped  chunks: +38 -0  duration: 275ms
+with node_modules: program_source_files 828 {'agree': 4, 'wrong': 0, 'lacks': 0, 'extra': 0, 'unjudged': 0}
+without node_modules: program_source_files 189 {'agree': 4, 'wrong': 0, 'lacks': 0, 'extra': 0, 'unjudged': 0}
+stored call edges:
+  CatsController.create > CatsService.create (field_type)
+  CatsController.findAll > CatsService.findAll (field_type)
+  CatsController.findOne > ParseIntPipe (construction)
+  ValidationPipe.transform > ValidationPipe.toValidate (this_method)
+decorators in the app's source, by name:
+     9 @Injectable(
+     3 @Module(
+     2 @IsString(
+     2 @Get(
+     1 @UseGuards(
+     1 @Roles(
+     1 @Post(
+     1 @Param(
+     1 @IsInt(
+     1 @Controller(
+     1 @Catch(
+     1 @Body(

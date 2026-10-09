@@ -477,8 +477,9 @@ function isInnermostDeclaration(
 /**
  * The symbol row an edge from candidate `c` is written from.
  *
- * It is the candidate's own (of the rows of its name, the one that starts
- * where it does), except for a decorator on a member. Written above
+ * It is the candidate's own (of the rows of its name, the last that starts
+ * at or before it, and none when that does not single one out), except for a
+ * decorator on a member. Written above
  * a method, that is on the class's lines, so the candidate is the class, and
  * the edge is the member's: the row of the candidate's member that starts on
  * `memberLine`. When the candidate has no such member (a class nested in it
@@ -494,19 +495,31 @@ async function callerRow(
 ): Promise<{ readonly id: number } | undefined> {
   if (c.chunkSymbolName === null) return undefined;
   if (memberLine === undefined) {
-    // Two members of one class can share a name (a getter and a setter, a
-    // static and an instance method), so the name alone gives the first of
-    // them (D159). The row on the candidate's first line is the candidate.
+    // Two declarations in a file can share a name (a getter and a setter, a
+    // static and an instance method, an interface and a function), so the
+    // name alone gives the first of them (D159). The candidate is a chunk of
+    // the one that starts last at or before it: on its own first line, or
+    // further up when a long declaration was split and this is a later piece.
     const rows = await querySymbolByName(db, c.chunkSymbolName, c.candidateFilePath);
-    return rows.find((row) => row.line === c.startLine) ?? rows[0];
+    const startLine = Math.max(...rows.filter((row) => row.line <= c.startLine).map((row) => row.line));
+    return rowOnLine(rows, startLine) ?? (rows.length === 1 ? rows[0] : undefined);
   }
   const member = declarationsInFile.find(
     (other) => other.start_line === memberLine && other.symbol_name?.startsWith(`${c.chunkSymbolName ?? ''}.`) === true,
   );
   const name = member?.symbol_name ?? (c.startLine === memberLine ? c.chunkSymbolName : null);
   if (name === null) return undefined;
-  const rows = await querySymbolByName(db, name, c.candidateFilePath);
-  return rows.find((row) => row.line === memberLine);
+  return rowOnLine(await querySymbolByName(db, name, c.candidateFilePath), memberLine);
+}
+
+/**
+ * The one row that starts on `line`. Two rows of a name on one line (a getter
+ * and a setter written on a single line) cannot be told apart by anything
+ * stored, and a wrong caller is worse than a missing edge, so that is none.
+ */
+function rowOnLine<Row extends { readonly line: number }>(rows: readonly Row[], line: number): Row | undefined {
+  const onLine = rows.filter((row) => row.line === line);
+  return onLine.length === 1 ? onLine[0] : undefined;
 }
 
 type PendingWrite =

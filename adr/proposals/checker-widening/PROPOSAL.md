@@ -393,7 +393,7 @@ The pass on the final build (`spikes/s6-decorators/pass-after-p2/`,
 | `checker` edges | 474 |
 | Of them agreeing, wrong, unjudged | 474, 0, 0 |
 | Each with its call line inside a chunk of its caller | 474 |
-| The pass | 216 s, 1,992 MB maximum resident size, on a loaded machine |
+| The pass | 286 s, 1,909 MB maximum resident size, on a loaded machine (216 s in the run before) |
 
 The pass adds 474 pairs to the 52,857 the resolver has. The first scored run of the pass
 after P2 had 475 `checker` edges and one unjudged. That one was not a decorator: an ordinary
@@ -422,10 +422,89 @@ Found and not fixed:
 
 Not measured:
 
-- What the change costs an index (no number for the build before it under the same load).
-- Any corpus with `node_modules` installed. Neither copy has it, so every pair counted here
-  is a decorator declared in the repository. What the reference and the resolver do with a
-  decorator imported from an installed package was not run.
+- What the change costs an index, on a quiet machine. A direction was measured later
+  ("What P2 costs an index", below).
+- A monorepo with `node_modules` installed. One small app was run later ("A corpus with its
+  packages installed", below).
 - A third repository. The directus and vscode copies were not scored for P2.
 - JavaScript. Both corpora are TypeScript; a decorator in a `.js` file goes through the same
   code and is covered by no test or measurement.
+
+
+## The forms P2 does not read, measured (2026-10-09)
+
+Three forms were left as "not read" with no number beside them. `spikes/s9-decorators-not-read/`
+resolves every decorator and call with the compiler and records what the callee's declaration
+is. It counts **sites**, not call pairs, and it is not the scorecard: nothing here says an
+edge would agree. nest is its one root project (971 files). n8n is six of its 80 projects
+(`cli`, `db`, `core`, `decorators`, `api-types`, `config`; 5,936 files, 127,469 calls and
+`new`s that resolve into the corpus), with a cruder package mapping than the scorecard's.
+
+| Sites, by what the callee is | n8n, six projects | nest |
+|---|---|---|
+| `@name(...)` and `@a.name(...)`, all | 4,446 | 1,042 |
+| of them, to a constant that holds the result of a call | 587 | 189 (and 12 to a constant that holds another name) |
+| `@name` with no parentheses, all | 455 | 12 (each `@a.name`, a property) |
+| of them, to a function | 14 | 0 |
+| of them, to a constant holding a function | 199 | 0 |
+| of them, to a constant that holds the result of a call | 240 | 0 |
+| A call or `new` of a top-level constant that holds the result of a call | 365 | 2 |
+| A call or `new` through a namespace import, of something declared in the corpus | 309 | 0 |
+| A decorator through a namespace import | 0 | 0 |
+
+What it says about each:
+
+1. **A decorator factory held in a constant** (`export const Get = createMappingDecorator(...)`)
+   is the largest of the three: 587 called decorators and 240 bare ones on n8n, 201 on nest.
+   A top-level constant that is not a function has a chunk and no symbol row, so no edge can
+   end on it, and the scorecard's reference has no pair for it either: the gap is invisible
+   to the instrument. Reading these needs a symbol for such a constant, which changes what
+   `mast_search`, `mast_signature` and `mast_exports` return. That is a decision about the
+   symbol set and is not taken here.
+2. **A decorator with no parentheses** names something that has a symbol at 213 sites on
+   n8n and none on nest. An edge for one needs the scorecard's reference to count a
+   decorator as a call first. 240 more are blocked on item 1. It stays in reserve: one
+   corpus, and it changes what the instrument counts.
+3. **A namespace import** carries no decorator in these projects (the 19 pairs found earlier
+   are in projects not read here), and 309 ordinary calls on n8n. It is not a decorator
+   question; it is the namespace-import work already next in the order.
+
+## A corpus with its packages installed (2026-10-09)
+
+`spikes/s8-installed-packages/`: nest's `sample/01-cats-app` (19 files indexed), copied, with
+`npm install --ignore-scripts` (793 packages). Scored with `node_modules` in place and again
+with it moved aside:
+
+| | Program source files | Call pairs: agree, wrong, lacks, extra, unjudged |
+|---|---|---|
+| With `node_modules` | 828 | 4, 0, 0, 0, 0 |
+| Without | 189 | 4, 0, 0, 0, 0 |
+
+The app's 24 decorators are all imported from `@nestjs/common` or `class-validator`, except
+`@Roles(...)`, which the app declares as a constant holding the result of a call. None has
+an edge and none has a pair in the reference, with the packages or without: the index holds
+no symbol under `node_modules`, and the reference counts a pair only when both ends have
+one. Installing the packages changes what the compiler resolves and nothing that is scored.
+One small app; a monorepo with its packages installed was not run.
+
+## What P2 costs an index (2026-10-09)
+
+`spikes/s7-index-cost/`: n8n indexed from nothing by the build of `0cfcfcd` and by the build
+after P2, in turn, three rounds, so both meet the same load. The machine was not quiet: the
+load average was between 16 and 94 when the runs began.
+
+| Round | Before: wall, max resident | After: wall, max resident | Load at start, before / after |
+|---|---|---|---|
+| 1 | 169.5 s, 519 MB | 223.7 s, 388 MB | 16.1 / 24.9 |
+| 2 | 112.7 s, 583 MB | 135.5 s, 483 MB | 22.3 / 22.3 |
+| 3 | 138.3 s, 485 MB | 181.7 s, 455 MB | 17.8 / 93.7 |
+
+The build after P2 was slower in each round, by 32%, 20% and 31%. Round 2 is the only one
+where both runs began under the same load, and it has 20%. Memory did not rise in any
+round. Both builds index 13,985 files into 73,385 chunks; the call edges are 45,834 and
+52,902.
+
+This is a direction and not a figure. Three rounds on a loaded machine do not separate a
+20% cost from a 30% one, and where the time goes was not profiled: 7,068 more edges is 15%
+more edges, and every decorator is one more scope walked. A run on a quiet machine, and a
+profile, are owed before the number is quoted anywhere.

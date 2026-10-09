@@ -1,0 +1,6 @@
+before round=1 wall_s=169.54 max_rss_bytes=544358400 load_at_start=16.06 call_edges=45834 | files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 168873ms
+after round=1 wall_s=223.68 max_rss_bytes=406470656 load_at_start=24.94 call_edges=52902 | files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 222736ms
+before round=2 wall_s=112.70 max_rss_bytes=611336192 load_at_start=22.32 call_edges=45834 | files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 111488ms
+after round=2 wall_s=135.45 max_rss_bytes=506085376 load_at_start=22.30 call_edges=52902 | files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 134765ms
+before round=3 wall_s=138.26 max_rss_bytes=508624896 load_at_start=17.81 call_edges=45834 | files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 137598ms
+after round=3 wall_s=181.66 max_rss_bytes=477085696 load_at_start=93.66 call_edges=52902 | files: 13985 indexed, 0 skipped  chunks: +73385 -0  duration: 180916ms

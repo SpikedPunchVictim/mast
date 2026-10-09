@@ -1,0 +1,300 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref",
+ "workspace_src": true,
+ "programs": [
+  {
+   "tsconfig": "packages/cli/tsconfig.json",
+   "corpus_files_first_seen_here": 5304
+  },
+  {
+   "tsconfig": "packages/@n8n/db/tsconfig.json",
+   "corpus_files_first_seen_here": 363
+  },
+  {
+   "tsconfig": "packages/core/tsconfig.json",
+   "corpus_files_first_seen_here": 109
+  },
+  {
+   "tsconfig": "packages/@n8n/decorators/tsconfig.json",
+   "corpus_files_first_seen_here": 29
+  },
+  {
+   "tsconfig": "packages/@n8n/api-types/tsconfig.json",
+   "corpus_files_first_seen_here": 118
+  },
+  {
+   "tsconfig": "packages/@n8n/config/tsconfig.json",
+   "corpus_files_first_seen_here": 13
+  }
+ ],
+ "corpus_files_read": 5936,
+ "counts": {
+  "@name | in the corpus | a function": 14,
+  "@name | in the corpus | a variable holding a function": 199,
+  "@name | in the corpus | a variable holding the result of a call": 240,
+  "@name | in the corpus | BindingElement": 2,
+  "@name(...) | in the corpus | a function": 1931,
+  "@name(...) | in the corpus | a variable holding a function": 1754,
+  "@name(...) | in the corpus | a variable holding a function (not top level)": 3,
+  "@name(...) | in the corpus | a variable holding the result of a call": 587,
+  "@name(...) | in the corpus | BindingElement": 5,
+  "@name(...) | outside it | a function": 166,
+  "all calls and news | in the corpus": 127469,
+  "all calls and news | outside it": 255577,
+  "all calls and news | unresolved": 1374,
+  "call | in the corpus | a variable holding a function": 10455,
+  "call | in the corpus | a variable holding a function (not top level)": 6831,
+  "call | in the corpus | a variable holding AsExpression": 6,
+  "call | in the corpus | a variable holding AsExpression (not top level)": 85,
+  "call | in the corpus | a variable holding AwaitExpression (not top level)": 27,
+  "call | in the corpus | a variable holding BinaryExpression (not top level)": 11,
+  "call | in the corpus | a variable holding ConditionalExpression": 2,
+  "call | in the corpus | a variable holding ConditionalExpression (not top level)": 8,
+  "call | in the corpus | a variable holding ElementAccessExpression (not top level)": 39,
+  "call | in the corpus | a variable holding Identifier": 28,
+  "call | in the corpus | a variable holding Identifier (not top level)": 2,
+  "call | in the corpus | a variable holding NonNullExpression (not top level)": 15,
+  "call | in the corpus | a variable holding PropertyAccessExpression (not top level)": 36,
+  "call | in the corpus | a variable holding the result of a call": 337,
+  "call | in the corpus | a variable holding the result of a call (not top level)": 345,
+  "call | in the corpus | a variable, no initializer": 205,
+  "call | in the corpus | a variable, no initializer (not top level)": 131,
+  "call | through a namespace import | in the corpus | a function": 203,
+  "call | through a namespace import | in the corpus | a variable holding a function": 100,
+  "call | through a namespace import | in the corpus | a variable holding Identifier": 5,
+  "new | in the corpus | a variable holding a class (not top level)": 1,
+  "new | in the corpus | a variable holding AsExpression (not top level)": 3,
+  "new | in the corpus | a variable holding Identifier": 1,
+  "new | in the corpus | a variable holding PropertyAccessExpression (not top level)": 2,
+  "new | in the corpus | a variable holding the result of a call": 28,
+  "new | in the corpus | a variable holding the result of a call (not top level)": 12,
+  "new | in the corpus | a variable, no initializer": 1,
+  "new | through a namespace import | in the corpus | a class": 1
+ },
+ "samples": {
+  "@name | in the corpus | a function": [
+   "packages/core/src/execution-engine/node-execution-context/credentials-test-context.ts:30 @Memoized",
+   "packages/core/src/execution-engine/node-execution-context/node-execution-context.ts:63 @Memoized",
+   "packages/core/src/execution-engine/node-execution-context/node-execution-context.ts:68 @Memoized",
+   "packages/core/src/execution-engine/node-execution-context/node-execution-context.ts:176 @Memoized"
+  ],
+  "@name | in the corpus | a variable holding a function": [
+   "packages/@n8n/config/src/configs/agents.config.ts:35 @Config",
+   "packages/@n8n/config/src/configs/ai-assistant.config.ts:3 @Config",
+   "packages/@n8n/config/src/configs/ai-builder.config.ts:3 @Config",
+   "packages/@n8n/config/src/configs/ai-gateway.config.ts:3 @Config"
+  ],
+  "@name | in the corpus | a variable holding the result of a call": [
+   "packages/cli/src/public-api/v1/controllers/roles.public.controller.ts:40 @Body",
+   "packages/cli/src/public-api/v1/controllers/tags.public.controller.ts:32 @Query",
+   "packages/cli/src/public-api/v1/controllers/workflows.public.controller.ts:42 @Query",
+   "packages/cli/src/controllers/auth.controller.ts:70 @Body"
+  ],
+  "@name | in the corpus | BindingElement": [
+   "packages/@n8n/decorators/src/controller/__tests__/args.test.ts:23 @decorator",
+   "packages/@n8n/decorators/src/controller/__tests__/args.test.ts:37 @decorator"
+  ],
+  "@name(...) | in the corpus | a function": [
+   "packages/@n8n/backend-common/src/license-state.ts:14 @Service()",
+   "packages/@n8n/backend-common/src/logging/logger.ts:22 @Service()",
+   "packages/@n8n/decorators/src/breaking-change-rule/breaking-change-rule-metadata.ts:8 @Service()",
+   "packages/@n8n/decorators/src/controller/controller-registry-metadata.ts:5 @Service()"
+  ],
+  "@name(...) | in the corpus | a variable holding a function": [
+   "packages/@n8n/config/src/configs/agents.config.ts:38 @Env('N8N_AGENTS_CHECKPOINT_TTL')",
+   "packages/@n8n/config/src/configs/agents.config.ts:49 @Env('N8N_AGENTS_TRACING_ENABLED')",
+   "packages/@n8n/config/src/configs/agents.config.ts:56 @Env('N8N_AGENTS_TRACING_RECORD_INPUTS')",
+   "packages/@n8n/config/src/configs/agents.config.ts:63 @Env('N8N_AGENTS_TRACING_RECORD_OUTPUTS')"
+  ],
+  "@name(...) | in the corpus | a variable holding a function (not top level)": [
+   "packages/@n8n/decorators/src/controller/__tests__/license.test.ts:79 @Get('/test')",
+   "packages/@n8n/decorators/src/controller/__tests__/scoped.test.ts:161 @Get('/users')",
+   "packages/@n8n/decorators/src/controller/__tests__/scoped.test.ts:165 @Get('/workflows')"
+  ],
+  "@name(...) | in the corpus | a variable holding the result of a call": [
+   "packages/@n8n/db/src/repositories/workflow.repository.ts:828 @TimedQuery()",
+   "packages/cli/src/public-api/v1/controllers/roles.public.controller.ts:28 @Post('/')",
+   "packages/cli/src/public-api/v1/controllers/tags.public.controller.ts:23 @Get('/')",
+   "packages/cli/src/public-api/v1/controllers/workflows.public.controller.ts:28 @Get('/:workflowId/history')"
+  ],
+  "@name(...) | in the corpus | BindingElement": [
+   "packages/@n8n/decorators/src/controller/__tests__/route.test.ts:27 @decorator('/test')",
+   "packages/@n8n/decorators/src/controller/__tests__/route.test.ts:49 @decorator('/test', {",
+   "packages/@n8n/decorators/src/controller/__tests__/route.test.ts:82 @decorator('/test', { ipRateLimit: true })",
+   "packages/@n8n/decorators/src/controller/__tests__/route.test.ts:96 @decorator('/first')"
+  ],
+  "@name(...) | outside it | a function": [
+   "packages/cli/src/modules/source-control.ee/types/source-control-preferences.ts:10 @IsBoolean()",
+   "packages/cli/src/modules/source-control.ee/types/source-control-preferences.ts:13 @IsString()",
+   "packages/cli/src/modules/source-control.ee/types/source-control-preferences.ts:16 @IsString()",
+   "packages/cli/src/modules/source-control.ee/types/source-control-preferences.ts:17 @Matches(/^[a-zA-Z0-9]/, {"
+  ],
+  "all calls and news | in the corpus": [
+   "packages/@n8n/config/src/decorators.ts:49 Container.get(type as Constructable)",
+   "packages/@n8n/config/src/decorators.ts:51 readEnv(envName)",
+   "packages/@n8n/config/src/decorators.ts:98 Service({ factory })",
+   "packages/@n8n/config/src/configs/database.config.ts:181 readLegacyPingTimeoutMs()"
+  ],
+  "all calls and news | outside it": [
+   "packages/@n8n/constants/src/scheduler.ts:27 Object.values(ScheduledJobKind)",
+   "packages/@n8n/constants/src/scheduler.ts:49 Object.values(RecurringCronUnit)",
+   "packages/@n8n/constants/src/scheduler.ts:93 Object.values(ScheduledTaskStatus)",
+   "packages/@n8n/config/src/custom-types.ts:4 str.split(delimiter)"
+  ],
+  "all calls and news | unresolved": [
+   "packages/@n8n/config/src/decorators.ts:93 config.sanitize()",
+   "packages/workflow/src/utils.ts:100 expression.properties",
+   "packages/workflow/src/utils.ts:100 expression.properties",
+   "packages/workflow/src/utils.ts:109 expression.elements.map((exp) => syntaxNodeToValue(exp))"
+  ],
+  "call | in the corpus | a variable holding a function": [
+   "packages/@n8n/config/src/decorators.ts:51 readEnv(envName)",
+   "packages/workflow/src/utils.ts:80 deepCopy(source[i], hash, path + `[${i}]`)",
+   "packages/workflow/src/utils.ts:89 deepCopy((source as any)[i], hash, path + `.${i}`)",
+   "packages/workflow/src/utils.ts:224 replaceCircularReferences(value[key], knownObjects)"
+  ],
+  "call | in the corpus | a variable holding a function (not top level)": [
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:145 replace(path.node.value.cooked)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:146 replace(path.node.value.raw)",
+   "packages/@n8n/expression-runtime/src/extensions/array-extensions.ts:78 mapForEqualityCheck(a)",
+   "packages/@n8n/expression-runtime/src/extensions/array-extensions.ts:78 mapForEqualityCheck(b)"
+  ],
+  "call | in the corpus | a variable holding AsExpression": [
+   "packages/cli/src/modules/agents/integrations/esm-loader.ts:24 esmImport<typeof import('chat')>('chat')",
+   "packages/cli/src/modules/agents/integrations/esm-loader.ts:28 esmImport<typeof import('@chat-adapter/slack')>('@chat-adapt",
+   "packages/cli/src/modules/agents/integrations/esm-loader.ts:32 esmImport<typeof import('@chat-adapter/telegram')>('@chat-ad",
+   "packages/cli/src/modules/agents/integrations/esm-loader.ts:36 esmImport<typeof import('@chat-adapter/linear')>('@chat-adap"
+  ],
+  "call | in the corpus | a variable holding AsExpression (not top level)": [
+   "packages/@n8n/instance-ai/src/index.ts:56 fn(...args)",
+   "packages/cli/src/modules/mcp/tools/workflow-builder/workflow-operations.ts:1172 handler(op, ctx, i)",
+   "packages/cli/src/modules/mcp/mcp.service.ts:318 invoke(...handlerArgs)",
+   "packages/cli/src/__tests__/active-workflow-manager.test.ts:844 executeScheduledPoll()"
+  ],
+  "call | in the corpus | a variable holding AwaitExpression (not top level)": [
+   "packages/@n8n/backend-common/src/locking/in-process-lock.service.ts:113 release()",
+   "packages/cli/src/user-management/email/user-management-mailer.ts:87 template({ ...this.basePayload, ...inviteEmailData })",
+   "packages/cli/src/user-management/email/user-management-mailer.ts:98 template({ ...this.basePayload, ...passwordResetData })",
+   "packages/cli/src/user-management/email/user-management-mailer.ts:117 template({"
+  ],
+  "call | in the corpus | a variable holding BinaryExpression (not top level)": [
+   "packages/@n8n/backend-network/src/http/axios/redirect.ts:239 baseValidateStatus(status)",
+   "packages/cli/src/services/cache/redis.cache-manager.ts:65 isCacheable(value)",
+   "packages/cli/src/services/cache/redis.cache-manager.ts:75 isCacheable(value)",
+   "packages/cli/src/services/cache/redis.cache-manager.ts:84 isCacheable(value)"
+  ],
+  "call | in the corpus | a variable holding ConditionalExpression": [
+   "packages/cli/src/databases/repositories/__tests__/workflow-statistics.integration.test.ts:60 describeSqlite('upsertWorkflowStatistics', () => {",
+   "packages/cli/test/migration/1784000000043-create-workflow-statistics-delta-table.test.ts:19 describePg('CreateWorkflowStatisticsDeltaTable migration (Po"
+  ],
+  "call | in the corpus | a variable holding ConditionalExpression (not top level)": [
+   "packages/@n8n/typeorm/src/entity-manager/EntityManager.ts:144 runInTransaction(queryRunner.manager)",
+   "packages/@n8n/agents/src/sdk/abort.ts:41 run()",
+   "packages/@n8n/agents/src/sdk/abort.ts:54 run()",
+   "packages/@n8n/instance-ai/src/tracing/langsmith-tracing.ts:1143 originalSuspend(suspendPayload)"
+  ],
+  "call | in the corpus | a variable holding ElementAccessExpression (not top level)": [
+   "packages/@n8n/typeorm/src/driver/postgres/PostgresDriver.ts:776 value()",
+   "packages/@n8n/typeorm/src/query-builder/UpdateQueryBuilder.ts:507 value()",
+   "packages/@n8n/typeorm/src/query-builder/InsertQueryBuilder.ts:682 value()",
+   "packages/@n8n/typeorm/src/driver/sqlite-abstract/AbstractSqliteDriver.ts:442 value()"
+  ],
+  "call | in the corpus | a variable holding Identifier": [
+   "packages/@n8n/backend-common/src/utils/flatted-async.ts:26 Primitive(value as string)",
+   "packages/@n8n/backend-network/src/http/http-proxy.ts:11 LoggerProxy.debug('Installing global HTTP proxy agents', {",
+   "packages/core/src/execution-engine/node-execution-context/utils/execution-metadata.ts:38 Logger.error('Custom data key over 50 characters long. Trunc",
+   "packages/core/src/execution-engine/node-execution-context/utils/execution-metadata.ts:41 Logger.error('Custom data value over 512 characters long. Tr"
+  ],
+  "call | in the corpus | a variable holding Identifier (not top level)": [
+   "packages/cli/src/modules/agents/integrations/agent-chat-stream-consumer.ts:105 resolve({ value: text, done: false })",
+   "packages/cli/src/modules/agents/integrations/agent-chat-stream-consumer.ts:116 resolve({ value: '', done: true })"
+  ],
+  "call | in the corpus | a variable holding NonNullExpression (not top level)": [
+   "packages/@n8n/agents/src/sdk/tool.ts:121 originalHandler(input, interruptCtx)",
+   "packages/@n8n/agents/src/sdk/tool.ts:146 originalHandler(input, interruptCtx as ToolContext)",
+   "packages/@n8n/agents/src/sdk/tool.ts:154 originalHandler(input, interruptCtx as ToolContext)",
+   "packages/@n8n/agents/src/sdk/tool.ts:169 originalHandler(input, initialInnerContext)"
+  ],
+  "call | in the corpus | a variable holding PropertyAccessExpression (not top level)": [
+   "packages/@n8n/typeorm/src/driver/postgres/PostgresDriver.ts:936 defaultValue()",
+   "packages/@n8n/typeorm/src/driver/sqlite-abstract/AbstractSqliteDriver.ts:595 defaultValue()",
+   "packages/@n8n/agents/src/sdk/tool.ts:99 originalOnCancellation(input, ctx)",
+   "packages/@n8n/agents/src/sdk/eval.ts:133 checkFn(input)"
+  ],
+  "call | in the corpus | a variable holding the result of a call": [
+   "packages/workflow/src/expression-evaluator-proxy.ts:20 evaluator(expr, data)",
+   "packages/@n8n/agents/src/runtime/memory/memory-store.ts:261 estimateObservationTokens(row.text)",
+   "packages/@n8n/instance-ai/src/tracing/langsmith-tracing.ts:1583 hostRequire(`${packageName}/package.json`)",
+   "packages/@n8n/instance-ai/src/tools/index.ts:101 loadWorkflowsTool()"
+  ],
+  "call | in the corpus | a variable holding the result of a call (not top level)": [
+   "packages/workflow/src/utils.ts:88 hasOwnProp(i)",
+   "packages/workflow/src/safe-regex.ts:77 getBuiltinModule('node:vm')",
+   "packages/@n8n/backend-common/src/locking/in-process-lock.service.ts:44 next(nextToken)",
+   "packages/@n8n/typeorm/src/query-builder/UpdateQueryBuilder.ts:464 value()"
+  ],
+  "call | in the corpus | a variable, no initializer": [
+   "packages/cli/src/modules/instance-ai/__tests__/agent-tree-builder.test.ts:52 buildAgentTreeFromEvents(events)",
+   "packages/cli/src/modules/instance-ai/__tests__/agent-tree-builder.test.ts:102 buildAgentTreeFromEvents(events)",
+   "packages/cli/src/modules/instance-ai/__tests__/agent-tree-builder.test.ts:147 buildAgentTreeFromEvents(events)",
+   "packages/cli/src/modules/instance-ai/__tests__/agent-tree-builder.test.ts:204 buildAgentTreeFromEvents(events)"
+  ],
+  "call | in the corpus | a variable, no initializer (not top level)": [
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:219 hook(fixed, dataNode)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:227 hook(parsed, dataNode)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:275 hook(fixed, dataNode)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:283 hook(parsed, dataNode)"
+  ],
+  "call | through a namespace import | in the corpus | a function": [
+   "packages/workflow/src/workflow-data-proxy.ts:167 NodeHelpers.getContext(that.runExecutionData!, 'node', node)",
+   "packages/workflow/src/workflow-data-proxy.ts:182 NodeHelpers.getContext(that.runExecutionData!, 'node', node)",
+   "packages/workflow/src/workflow-data-proxy.ts:247 NodeHelpers.getNodeParameters(",
+   "packages/workflow/src/workflow.ts:109 NodeHelpers.getNodeParameters("
+  ],
+  "call | through a namespace import | in the corpus | a variable holding a function": [
+   "packages/cli/src/workflows/workflows.controller.ts:150 utils.toError(maybeError)",
+   "packages/cli/src/workflows/workflows.controller.ts:726 utils.toError(maybeError)",
+   "packages/cli/src/commands/base-command.ts:258 CrashJournal.init()",
+   "packages/cli/src/commands/base-command.ts:264 CrashJournal.cleanup()"
+  ],
+  "call | through a namespace import | in the corpus | a variable holding Identifier": [
+   "packages/workflow/src/utils.ts:230 LoggerProxy.error('Error while replacing circular references",
+   "packages/workflow/src/safe-regex.ts:94 LoggerProxy.warn('Using native regular expression engine wit",
+   "packages/workflow/src/expression.ts:301 LoggerProxy.error('Failed to release expression isolate', { ",
+   "packages/workflow/src/node-parameters/filter-parameter.ts:446 LoggerProxy.warn(`Unknown filter parameter operator \"${opera"
+  ],
+  "new | in the corpus | a variable holding a class (not top level)": [
+   "packages/@n8n/typeorm/src/repository/Repository.ts:609 new ChildClass(target, manager, queryRunner)"
+  ],
+  "new | in the corpus | a variable holding AsExpression (not top level)": [
+   "packages/@n8n/typeorm/src/entity-manager/EntityManager.ts:1276 new repositoryConstructor(repository.target, this)",
+   "packages/@n8n/instance-ai/src/index.ts:65 new Real(...args)",
+   "packages/cli/src/modules/instance-registry/__tests__/instance-registry.service.test.ts:131 new MockCtor()"
+  ],
+  "new | in the corpus | a variable holding Identifier": [
+   "packages/@n8n/backend-common/src/utils/flatted-async.ts:86 new Primitive(value)"
+  ],
+  "new | in the corpus | a variable holding PropertyAccessExpression (not top level)": [
+   "packages/@n8n/instance-ai/src/parsers/html-parser.ts:61 new TurndownService({ headingStyle: 'atx', codeBlockStyle: '",
+   "packages/@n8n/mcp-browser/src/tools/inspection.ts:142 new TurndownService({"
+  ],
+  "new | in the corpus | a variable holding the result of a call": [
+   "packages/cli/src/modules/instance-ai/eval/mock-handler.ts:664 new Tool('submit_response')",
+   "packages/cli/src/modules/instance-ai/eval/mock-handler.ts:758 new Tool('get_endpoint_quirks')",
+   "packages/cli/src/modules/instance-ai/instance-ai.adapter.service.ts:501 new BuilderTemplatesService({",
+   "packages/cli/src/modules/instance-ai/instance-ai-terminal-outcome.service.ts:230 new InstanceAiTerminalResponseGuard({"
+  ],
+  "new | in the corpus | a variable holding the result of a call (not top level)": [
+   "packages/@n8n/typeorm/src/driver/postgres/PostgresQueryRunner.ts:314 new QueryStream(query, parameters)",
+   "packages/cli/src/modules/external-secrets.ee/provider-lifecycle.service.ts:46 new providerClass()",
+   "packages/cli/src/modules/external-secrets.ee/external-secrets-manager.ee.ts:101 new ProviderClass()",
+   "packages/cli/src/modules/external-secrets.ee/external-secrets-manager.ee.ts:133 new ProviderClass()"
+  ],
+  "new | in the corpus | a variable, no initializer": [
+   "packages/cli/src/modules/oauth-server/__tests__/oauth.controller.test.ts:55 new OAuthController(urlService, registry)"
+  ],
+  "new | through a namespace import | in the corpus | a class": [
+   "packages/cli/src/__tests__/workflow-runner.test.ts:106 new core.ExecutionLifecycleHooks('webhook', execution.id, wo"
+  ]
+ }
+}

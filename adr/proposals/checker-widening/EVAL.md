@@ -79,3 +79,26 @@ reference for it: `--root <nest> --tsconfig tsconfig.json`, one project.
 |---|---|
 | `n8n-before-the-fix.json` | `s1` on n8n with the scorecard before the fix: 70 wrong, 427 unjudged |
 | `scorecard-*.compare.txt` | `compare` of each baseline with the same index scored after the fix |
+
+## s7 — what P2 costs an index (`spikes/s7-index-cost/`)
+
+| File | What it is |
+|---|---|
+| `run.sh` | Indexes a corpus from nothing with two builds in turn, several rounds, so both meet the same load |
+| `n8n.out.txt` | n8n `9d9e9bf9`, the build of `0cfcfcd` (before P2) against the build after it, three rounds |
+
+## s8 — a corpus with its packages installed (`spikes/s8-installed-packages/`)
+
+| File | What it is |
+|---|---|
+| `run.sh` | Indexes a copy of nest's `sample/01-cats-app` and scores it with `node_modules` in place and moved aside |
+| `cats.out.txt` | Its output |
+| `card-with-node_modules.json`, `card-without-node_modules.json` | The two scorecards |
+
+## s9 — the forms P2 does not read (`spikes/s9-decorators-not-read/`)
+
+| File | What it is |
+|---|---|
+| `what-they-resolve-to.mjs` | Every decorator and call of a corpus, by what the compiler says the callee is: sites, not pairs |
+| `nest.json` | nest `c3bc75c97`, its root project |
+| `n8n.json` | n8n `9d9e9bf9`, six projects, `--workspace-src` |

@@ -835,6 +835,17 @@ describe('a decorator on a member — the member is found by its line, not its n
     // No decorator: an ordinary call in the second of two members of one name (D159).
     'plain-setter.ts': [`export class PlainSet {`, `  get value(): number { return 1; }`, `  set value(x: number) { lib.Before(); void x; }`, `}`],
     'plain-static.ts': [`export class PlainDup {`, `  static run(): void {}`, `  run(): void { lib.Before(); }`, `}`],
+    // Two members of one name on one line: nothing stored tells their rows apart.
+    'one-line.ts': [`export class OneLine { get value(): number { return 1; } set value(x: number) { lib.Before(); void x; } }`],
+    // A function long enough to be split into chunks: the later chunks start on
+    // no row's line. An interface of its name is the first row of that name.
+    'long.ts': [
+      `export interface Long { readonly size: number }`,
+      `export function Long(): void {`,
+      ...Array.from({ length: 130 }, () => `  void 0;`),
+      `  lib.Before();`,
+      `}`,
+    ],
     'nested.ts': [
       `export class Outer {`,
       `  before(): void {}`,
@@ -910,6 +921,14 @@ describe('a decorator on a member — the member is found by its line, not its n
 
   it('writes an ordinary call in an instance method from it, not the static one of its name', async () => {
     expect(await checkerCallersIn('plain-static.ts')).toEqual(['PlainDup.run @ 4']);
+  });
+
+  it('writes none when two members of the name start on the candidate\'s line', async () => {
+    expect(await checkerCallersIn('one-line.ts')).toEqual([]);
+  });
+
+  it('writes a call far down a long function from the function, not from a type of its name above it', async () => {
+    expect(await checkerCallersIn('long.ts')).toEqual(['Long @ 3']);
   });
 
   it('writes none for a method of a class nested in the candidate', async () => {

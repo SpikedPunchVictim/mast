@@ -1,0 +1,138 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/nest-ref",
+ "workspace_src": false,
+ "programs": [
+  {
+   "tsconfig": "tsconfig.json",
+   "corpus_files_first_seen_here": 971
+  }
+ ],
+ "corpus_files_read": 971,
+ "counts": {
+  "@a.name | in the corpus | a property": 12,
+  "@name(...) | in the corpus | a function": 675,
+  "@name(...) | in the corpus | a variable holding a function": 87,
+  "@name(...) | in the corpus | a variable holding Identifier": 12,
+  "@name(...) | in the corpus | a variable holding the result of a call": 189,
+  "@name(...) | unresolved | unresolved": 79,
+  "all calls and news | in the corpus": 3983,
+  "all calls and news | outside it": 1615,
+  "all calls and news | unresolved": 1454,
+  "call | in the corpus | a variable holding a function": 481,
+  "call | in the corpus | a variable holding a function (not top level)": 67,
+  "call | in the corpus | a variable holding AsExpression (not top level)": 1,
+  "call | in the corpus | a variable holding AwaitExpression (not top level)": 2,
+  "call | in the corpus | a variable holding ConditionalExpression (not top level)": 5,
+  "call | in the corpus | a variable holding PropertyAccessExpression (not top level)": 1,
+  "call | in the corpus | a variable holding the result of a call": 2,
+  "call | in the corpus | a variable holding the result of a call (not top level)": 34,
+  "call | in the corpus | a variable, no initializer (not top level)": 2,
+  "new | in the corpus | a variable holding AsExpression": 2,
+  "new | in the corpus | a variable holding the result of a call (not top level)": 1
+ },
+ "samples": {
+  "@a.name | in the corpus | a property": [
+   "packages/common/services/logger.service.ts:139 @Logger.WrapBuffer",
+   "packages/common/services/logger.service.ts:155 @Logger.WrapBuffer",
+   "packages/common/services/logger.service.ts:168 @Logger.WrapBuffer",
+   "packages/common/services/logger.service.ts:181 @Logger.WrapBuffer"
+  ],
+  "@name(...) | in the corpus | a function": [
+   "packages/common/services/console-logger.service.ts:121 @Injectable()",
+   "packages/common/services/console-logger.service.ts:149 @Optional()",
+   "packages/common/services/console-logger.service.ts:151 @Optional()",
+   "packages/common/services/logger.service.ts:87 @Injectable()"
+  ],
+  "@name(...) | in the corpus | a variable holding a function": [
+   "integration/inspector/src/chat/chat.gateway.ts:14 @SubscribeMessage('createChat')",
+   "integration/inspector/src/chat/chat.gateway.ts:19 @SubscribeMessage('findAllChat')",
+   "integration/inspector/src/chat/chat.gateway.ts:24 @SubscribeMessage('findOneChat')",
+   "integration/inspector/src/chat/chat.gateway.ts:29 @SubscribeMessage('updateChat')"
+  ],
+  "@name(...) | in the corpus | a variable holding Identifier": [
+   "integration/nest-application/app-locals/src/app.controller.ts:7 @Req()",
+   "integration/nest-application/global-prefix/src/app.controller.ts:6 @Req()",
+   "integration/nest-application/global-prefix/src/app.controller.ts:11 @Req()",
+   "integration/nest-application/global-prefix/src/app.controller.ts:31 @Req()"
+  ],
+  "@name(...) | in the corpus | a variable holding the result of a call": [
+   "integration/cors/src/app.controller.ts:5 @Get()",
+   "integration/discovery/src/my-webhook/cleanup.webhook.ts:3 @Webhook({ name: 'cleanup' })",
+   "integration/discovery/src/my-webhook/cleanup.webhook.ts:5 @WebhookHandler({ event: 'start' })",
+   "integration/discovery/src/my-webhook/flush.webhook.ts:3 @Webhook({ name: 'flush' })"
+  ],
+  "@name(...) | unresolved | unresolved": [
+   "integration/graphql-code-first/src/common/scalars/date.scalar.ts:4 @Scalar('Date', type => Date)",
+   "integration/graphql-code-first/src/recipes/dto/new-recipe.input.ts:5 @InputType()",
+   "integration/graphql-code-first/src/recipes/dto/new-recipe.input.ts:7 @Field()",
+   "integration/graphql-code-first/src/recipes/dto/new-recipe.input.ts:8 @MaxLength(30)"
+  ],
+  "all calls and news | in the corpus": [
+   "packages/common/decorators/core/bind.decorator.ts:17 fn(target, key, index)",
+   "packages/common/utils/shared.utils.ts:5 isNil(fn)",
+   "packages/common/utils/shared.utils.ts:8 isObject(fn)",
+   "packages/common/utils/shared.utils.ts:49 isUndefined(val)"
+  ],
+  "all calls and news | outside it": [
+   "packages/common/decorators/core/bind.decorator.ts:17 decorators.forEach((fn, index) => fn(target, key, index))",
+   "packages/common/interfaces/version-options.interface.ts:8 Symbol('VERSION_NEUTRAL')",
+   "packages/common/utils/shared.utils.ts:11 Object.getPrototypeOf(fn)",
+   "packages/common/utils/shared.utils.ts:16 Object.prototype.hasOwnProperty.call(proto, 'constructor')"
+  ],
+  "all calls and news | unresolved": [
+   "packages/common/services/console-logger.service.ts:350 process[writeStreamType ?? 'stdout'].write(formattedMessage)",
+   "packages/common/services/console-logger.service.ts:368 inspect(logObject, this.inspectOptions)",
+   "packages/common/services/console-logger.service.ts:376 process[options.writeStreamType ?? 'stdout'].write(",
+   "packages/common/services/console-logger.service.ts:447 messageAsStr.startsWith('class ')"
+  ],
+  "call | in the corpus | a variable holding a function": [
+   "packages/common/utils/shared.utils.ts:5 isNil(fn)",
+   "packages/common/utils/shared.utils.ts:8 isObject(fn)",
+   "packages/common/utils/shared.utils.ts:49 isUndefined(val)",
+   "packages/common/utils/cli-colors.util.ts:5 isColorAllowed()"
+  ],
+  "call | in the corpus | a variable holding a function (not top level)": [
+   "packages/common/decorators/http/create-route-param-metadata.decorator.ts:42 isPipe(data)",
+   "packages/common/pipes/parse-array.pipe.ts:132 toClassInstance(targetArray[i])",
+   "packages/core/interceptors/interceptors-consumer.ts:34 nextFn(i + 1)",
+   "packages/core/interceptors/interceptors-consumer.ts:38 nextFn()"
+  ],
+  "call | in the corpus | a variable holding AsExpression (not top level)": [
+   "packages/platform-fastify/adapters/fastify-adapter.ts:781 defaultJsonParser(req, body, done)"
+  ],
+  "call | in the corpus | a variable holding AwaitExpression (not top level)": [
+   "packages/core/middleware/middleware-module.ts:285 proxy(req, res, next)",
+   "packages/core/middleware/middleware-module.ts:352 router(path, middlewareFunction)"
+  ],
+  "call | in the corpus | a variable holding ConditionalExpression (not top level)": [
+   "packages/core/helpers/external-context-creator.ts:166 fnCanActivate(args)",
+   "packages/core/router/legacy-route-converter.ts:38 printWarning(route, convertedRoute)",
+   "packages/core/router/legacy-route-converter.ts:47 printWarning(route, convertedRoute)",
+   "packages/core/router/legacy-route-converter.ts:54 printWarning(route, convertedRoute)"
+  ],
+  "call | in the corpus | a variable holding PropertyAccessExpression (not top level)": [
+   "packages/core/injector/module.ts:396 instanceDecorator(value)"
+  ],
+  "call | in the corpus | a variable holding the result of a call": [
+   "packages/common/services/console-logger.service.ts:427 yellow(context)",
+   "packages/common/services/console-logger.service.ts:501 yellow(formattedDiff)"
+  ],
+  "call | in the corpus | a variable holding the result of a call (not top level)": [
+   "packages/common/services/console-logger.service.ts:475 color(message)",
+   "packages/core/helpers/external-context-creator.ts:158 fnApplyPipes(initialArgs, ...args)",
+   "packages/core/router/router-execution-context.ts:150 fnApplyPipes(args, req, res, next)",
+   "packages/core/router/router-execution-context.ts:160 fnCanActivate([req, res, next])"
+  ],
+  "call | in the corpus | a variable, no initializer (not top level)": [
+   "packages/microservices/client/client-redis.ts:190 callback({ err })",
+   "packages/microservices/client/client-tcp.ts:163 callback({ err })"
+  ],
+  "new | in the corpus | a variable holding AsExpression": [
+   "packages/microservices/client/client-redis.ts:101 new redisPackage({",
+   "packages/microservices/server/server-redis.ts:117 new redisPackage({"
+  ],
+  "new | in the corpus | a variable holding the result of a call (not top level)": [
+   "packages/core/injector/module.ts:176 new moduleRef()"
+  ]
+ }
+}
