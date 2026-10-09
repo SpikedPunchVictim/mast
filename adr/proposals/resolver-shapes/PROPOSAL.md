@@ -1,6 +1,6 @@
 # resolver-shapes — the wrong edges of D115 to D124
 
-**Status:** in progress. D115 and D116 are built (2026-10-08). The other rows are open.
+**Status:** all ten rows are built (2026-10-09) and decided in [ADR 020](../../020-2026-10-09-resolver-shapes.md). What each row leaves unfixed is listed under it.
 
 Ten ledger rows (D115 to D124) came out of one review pass over the call resolver. Each is a
 shape of code where a stored edge names the wrong declaration, or a tool answers wrongly over

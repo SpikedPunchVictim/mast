@@ -39,6 +39,7 @@ hypotheses, and unread measurements — and the only one of these files edited i
 | [017](017-2026-10-04-agent-priming.md) | 2026-10-04 | Agent priming: telling the model to use mast through hooks, not prose |
 | [018](018-2026-10-06-dot-directories.md) | 2026-10-06 | Dot directories are walked only when named |
 | [019](019-2026-10-08-schema-rebuild.md) | 2026-10-08 | An index another version built is rebuilt in place, or refused |
+| [020](020-2026-10-09-resolver-shapes.md) | 2026-10-09 | What a name, a member and an import mean to the call resolver (D115 to D124) |
 
 ## Reading order — which is not the numbering
 
