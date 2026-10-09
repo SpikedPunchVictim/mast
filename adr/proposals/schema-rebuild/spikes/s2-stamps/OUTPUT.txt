@@ -1,0 +1,33 @@
+--- 1. no index.json, empty database: mast index
+files: 2 indexed, 0 skipped  chunks: +2 -0  duration: Nms
+exit 0
+--- 2. this version: mast index --incremental
+files: 0 indexed, 2 skipped  chunks: +0 -0  duration: Nms
+exit 0
+--- 3. older (1.3.0): mast index --incremental
+[mast] the index was built by schema 1.3.0 and this mast writes 1.4.0: emptying it and reading every file
+files: 2 indexed, 0 skipped  chunks: +2 -0  duration: Nms
+exit 0
+  "schema_version": "1.4.0",
+--- 4. newer (9.9.0): mast index --incremental
+mast: the index in <work>/.mast was built by a newer mast (schema 9.9.0; this mast writes schema 1.4.0). Upgrade mast, or delete <work>/.mast to index again with this version.
+exit 1
+  "schema_version": "9.9.0",
+--- 5. newer (9.9.0): mast index
+mast: the index in <work>/.mast was built by a newer mast (schema 9.9.0; this mast writes schema 1.4.0). Upgrade mast, or delete <work>/.mast to index again with this version.
+exit 1
+--- 6. newer (9.9.0): mast serve
+mast: the index in <work>/.mast was built by a newer mast (schema 9.9.0; this mast writes schema 1.4.0). Upgrade mast, or delete <work>/.mast to index again with this version.
+exit 1
+file rows after the three refusals: 2
+--- 7. empty index.json: mast status, then mast index --incremental
+status exit 1
+[mast] index.json could not be read: emptying the index and reading every file
+files: 2 indexed, 0 skipped  chunks: +2 -0  duration: Nms
+exit 0
+  "schema_version": "1.4.0",
+--- 8. no index.json, database has file rows and no edges: mast index --incremental
+[mast] the last index run did not finish: reading every file
+files: 2 indexed, 0 skipped  chunks: +2 -2  duration: Nms
+exit 0
+edge rows: 1

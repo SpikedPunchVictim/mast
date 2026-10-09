@@ -7,6 +7,7 @@ import { runIndex, loadIndexMeta, writeIndexMeta } from '../../indexer/index.js'
 import { bootstrapState, clearDerivedState, cleanupOrphanedVectorState } from '../startup.js';
 import { assertServableIndex, NeverIndexedError } from '../server.js';
 import { initLockMarkers } from '../../store/lock.js';
+import { NewerIndexError } from '../../store/index-stamp.js';
 import { openDatabase } from '../../graph/db.js';
 
 // ---------------------------------------------------------------------------
@@ -59,7 +60,7 @@ describe('startup ladder — state initialisation', () => {
     const oldMeta = loadIndexMeta(config.resolved_state_dir)!;
     writeIndexMeta(config.resolved_state_dir, {
       ...oldMeta,
-      schema_version: '0.0.0-stale',
+      schema_version: '0.0.1',
     });
 
     const stale = loadIndexMeta(config.resolved_state_dir);
@@ -158,7 +159,7 @@ describe('bootstrapState — schema-version guard', () => {
     const config = resolveConfig({ projectRoot: tmpDir });
     await runIndex(config, { incremental: false });
     const stateDir = config.resolved_state_dir;
-    writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '0.0.0-stale' });
+    writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '0.0.1' });
 
     const { needsFullReindex } = await bootstrapState(config, NO_SEED);
 
@@ -177,16 +178,31 @@ describe('bootstrapState — schema-version guard', () => {
     const config = resolveConfig({ projectRoot: tmpDir });
     await runIndex(config, { incremental: false });
     const stateDir = config.resolved_state_dir;
-    writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '0.0.0-stale' });
+    writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '0.0.1' });
 
     await bootstrapState(config, NO_SEED);
 
     expect(loadIndexMeta(stateDir)).toEqual({
-      schema_version: '0.0.0-stale',
+      schema_version: '0.0.1',
       last_indexed: null,
       file_count: 0,
       chunk_count: 0,
     });
+  });
+
+  it('empties the index when index.json cannot be read (D128)', async () => {
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    const stateDir = config.resolved_state_dir;
+    writeFileSync(join(stateDir, 'index.json'), '');
+
+    const { needsFullReindex } = await bootstrapState(config, NO_SEED);
+
+    expect(needsFullReindex).toBe(true);
+    const db = openDatabase(stateDir);
+    const files = await db.selectFrom('files').select('path').execute();
+    await db.destroy();
+    expect(files).toEqual([]);
   });
 
   it('is a no-op (no wipe, no reindex) when the schema matches', async () => {
@@ -198,6 +214,22 @@ describe('bootstrapState — schema-version guard', () => {
 
     expect(needsFullReindex).toBe(false);
     expect(existsSync(join(stateDir, 'graph.db'))).toBe(true);
+  });
+
+  // Last: it leaves the shared directory stamped by a version this one refuses.
+  it('refuses an index a newer mast built and leaves it as it was (D129)', async () => {
+    const config = resolveConfig({ projectRoot: tmpDir });
+    await runIndex(config, { incremental: false });
+    const stateDir = config.resolved_state_dir;
+    writeIndexMeta(stateDir, { ...loadIndexMeta(stateDir)!, schema_version: '9.9.0' });
+
+    await expect(bootstrapState(config, NO_SEED)).rejects.toThrow(NewerIndexError);
+
+    const db = openDatabase(stateDir);
+    const files = await db.selectFrom('files').select('path').execute();
+    await db.destroy();
+    expect(files).toEqual([{ path: 'math.ts' }]);
+    expect(loadIndexMeta(stateDir)?.schema_version).toBe('9.9.0');
   });
 });
 

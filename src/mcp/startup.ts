@@ -2,9 +2,10 @@ import { existsSync, rmSync } from 'node:fs';
 import { cp } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ResolvedConfig } from '../store/config.js';
-import { CURRENT_SCHEMA_VERSION, writeStateConfig } from '../store/config.js';
+import { writeStateConfig } from '../store/config.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
-import { loadIndexMeta, markIndexCleared } from '../indexer/index.js';
+import { markIndexCleared } from '../indexer/index.js';
+import { NewerIndexError, readIndexStamp } from '../store/index-stamp.js';
 import { clearDerivedState } from '../store/derived-state.js';
 
 export { clearDerivedState };
@@ -71,10 +72,13 @@ export interface BootstrapResult {
  *   config, and best-effort remove orphaned pre-Stage-7 vector-store state
  *   (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion", decision 3).
  * Step 2 — enforce the schema-version guard: if the on-disk `index.json` was
- *   written by a different `schema_version` (including a seed baked against an
- *   old schema, §13.8.2), empty the index inside `graph.db` and request a
- *   full rebuild. The stamp keeps the old version's name until that rebuild
- *   writes its own.
+ *   written by an older `schema_version` (including a seed baked against an
+ *   old schema, §13.8.2) or cannot be read, empty the index inside `graph.db`
+ *   and request a full rebuild. The stamp keeps the old version's name until
+ *   that rebuild writes its own.
+ *
+ * @throws NewerIndexError when `index.json` names a newer schema version; the
+ * index is left as it is.
  *
  * `seedPath` is injectable so tests can point at a fixture or a path that does
  * not exist (the common test case).
@@ -96,19 +100,20 @@ export async function bootstrapState(
   cleanupOrphanedVectorState(config.resolved_state_dir);
 
   // Step 2.
-  const meta = loadIndexMeta(config.resolved_state_dir);
-  if (meta !== null && meta.schema_version !== CURRENT_SCHEMA_VERSION) {
+  const stamp = readIndexStamp(config.resolved_state_dir);
+  if (stamp.kind === 'newer') throw new NewerIndexError(config.resolved_state_dir, stamp.meta.schema_version);
+  if (stamp.kind === 'older' || stamp.kind === 'unreadable') {
     try {
       await withLock(config.resolved_state_dir, 'structure', STARTUP_CLEAR_LOCK, () => {
         clearDerivedState(config.resolved_state_dir);
-        markIndexCleared(config.resolved_state_dir, meta);
+        if (stamp.kind === 'older') markIndexCleared(config.resolved_state_dir, stamp.meta);
         return Promise.resolve();
       });
     } catch (err) {
       // Another process holds the lock or is writing. The index stays as the
       // old version left it, and so does its stamp, so the reindex this
       // return value asks for clears it under the lock itself.
-      process.stderr.write(`[mast] startup: could not clear the index of schema ${meta.schema_version}: ${String(err)}\n`);
+      process.stderr.write(`[mast] startup: could not empty the index another version built: ${String(err)}\n`);
     }
     return { needsFullReindex: true };
   }

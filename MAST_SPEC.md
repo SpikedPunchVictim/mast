@@ -614,13 +614,16 @@ startup
   │       install — logged, never fatal, runs on every startup
   │
   ├─ STEP 2 (sync, < 2s): schema version + open database
-  │    ├─ if index.json.schema_version != CURRENT_SCHEMA_VERSION:
+  │    ├─ if index.json names a NEWER schema_version: refuse to start,
+  │    │    naming both versions; the index is left as it is
+  │    ├─ if index.json names an OLDER schema_version, or cannot be read:
   │    │    under structure.lock: empty the index inside graph.db (the
   │    │    metrics tables are kept), remove file_manifest.json and any
   │    │    remaining orphaned state
   │    │    set needs_full_reindex = true
   │    │    rewrite index.json: the old schema_version, nothing indexed
-  │    │    (the rebuild writes the new one when it finishes)
+  │    │    (the rebuild writes the new one when it finishes; an
+  │    │    unreadable index.json is left as it is until then)
   │    ├─ open graph.db (better-sqlite3, WAL mode)
   │    └─ verify chunk_fts and identifier_fts tables exist (created on first init)
   │
@@ -680,6 +683,20 @@ file: a process that has the file open then reads the rebuilt index (D125), and
 the metrics tables in it are kept (D126). A run that cannot take the lock fails
 with the old index untouched (D127). Without it the first `mast index --incremental` from a git hook after an
 upgrade kept the old graph and wrote the new version over it.
+
+What a run does with each stamp:
+
+| `index.json` | The run |
+|---|---|
+| this version | as asked |
+| an older version | prints one line on stderr naming both versions, empties the index, reads every file |
+| a newer version | stops with exit 1, naming both versions and the two ways out: upgrade mast, or delete the state directory (D129) |
+| unreadable (empty, cut short, or a version that is not three numbers) | as for an older version; the line says the stamp could not be read (D128) |
+| absent | reads every file. The stamp is the last thing a run writes, so its absence means no run finished here, and the files a killed run did write would otherwise be skipped as unchanged before their edges were written (D137). When the database already has file rows the run prints one line saying so |
+
+An index a newer mast built is never emptied by an older one: that mast would
+find its index gone and rebuild it, and the two would undo each other's work on
+every run.
 
 `CURRENT_SCHEMA_VERSION` is a constant in the mast binary (currently `"1.4.0"`). A
 version bump is required any time the SQLite schema or `index.json` fields change
@@ -1875,7 +1892,7 @@ Index health snapshot.
 
 `schema_version` is `CURRENT_SCHEMA_VERSION` **as compiled into the running
 binary**, not the value stored in `index.json`. After a normal startup the two are
-identical, because §7.4 Step 2's guard wipes derived state on a mismatch; they
+identical, because §7.4 Step 2's guard empties and rebuilds the index on a mismatch; they
 diverge in exactly the situation this field exists to expose — a long-lived process
 still executing an older build while the state directory it holds open has since
 been migrated by a newer one. That case is invisible to every other field (the index
@@ -3103,8 +3120,9 @@ This makes "why does the index look stale?" debuggable without opening
 
 **Schema-bump invalidation.** On startup (§7.4 Step 2), if
 `index.json.schema_version != CURRENT_SCHEMA_VERSION`, both the runtime state
-AND the seed are considered invalid. The state is wiped and a full reindex runs
-in the background (Step 4). The seed in `/opt/mast-seed` is not re-built —
+AND the seed are considered invalid. The index is emptied and a full reindex runs
+in the background (Step 4). A seed of a newer version than the binary is refused
+like any other newer index. The seed in `/opt/mast-seed` is not re-built —
 that's the next image build's job — but it is ignored on this run.
 
 ### 13.10 What to Keep from mcp-vector-search (as reference only)

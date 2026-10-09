@@ -1,7 +1,9 @@
 # Proposal — rebuilding an index another mast version built
 
-**Status:** proposed 2026-10-08, for review. No production code is written. The spike is in
-[`spikes/s1-inplace/`](spikes/s1-inplace/), its numbers in [`spikes/RESULTS.md`](spikes/RESULTS.md).
+**Status:** proposed 2026-10-08; the design and the three decisions below were accepted by the
+user the same day ("I agree with all three recommendations"). Being built in the order at the
+end; progress is in "Built so far". The spike is in [`spikes/s1-inplace/`](spikes/s1-inplace/),
+its numbers in [`spikes/RESULTS.md`](spikes/RESULTS.md).
 
 This is design work with a throwaway spike, not a registered experiment under ADR 010. Nothing
 here is a pre-registration. `FINDINGS.md` was searched for `schema`, `wipe` and `index.json`
@@ -147,6 +149,18 @@ recommendation.
    on a wrong answer is still a wrong answer.
 3. **An unreadable stamp is rebuilt, not refused.** Recommended: the index is derived, and
    nothing in an unreadable stamp says a newer mast wrote it.
+
+**Decided 2026-10-08:** the user accepted all three as recommended.
+
+## Built so far
+
+| Step | Commit | Rows closed | Differs from the design above |
+|---|---|---|---|
+| 1. Wider comparison | `f3c8f8e` | D134 | The two FTS tables and `files.language` are still not compared |
+| 2. Clear in place, under the lock | `c77faf0` | D125, D126, D127 | After the clear `index.json` keeps the old version's name with empty counts, not the old stamp unchanged: the name makes the next run rebuild, the empty counts stop `--no-startup-reindex` serving it |
+| 3. The stamp table | this commit | D128, D129, D137 | An absent stamp makes the run a full one whether or not the database has rows; the two rows of the table differ only in the line printed. An unreadable stamp is left as it is by the clear. `mast serve` refuses a newer stamp at startup with the same message as `mast index` |
+
+Step 3 through the built CLI, row by row: [`spikes/s2-stamps/`](spikes/s2-stamps/).
 
 ## Which instrument covers each claim
 

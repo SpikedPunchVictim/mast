@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { sql } from 'kysely';
 import type { ResolvedConfig } from '../store/config.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
+import { NewerIndexError, readIndexStamp, rebuildNotice } from '../store/index-stamp.js';
 import { clearDerivedState } from '../store/derived-state.js';
 import { initLockMarkers, withLock } from '../store/lock.js';
 import type { LockMetricsSink } from '../store/lockMetrics.js';
@@ -309,14 +310,16 @@ export async function runIndex(
   // `mast index` works even without a prior `mast init`.
   initLockMarkers(config.resolved_state_dir);
 
-  // An index stamped with another schema version was not built by this binary,
-  // and this run writes the stamp. `mast serve` checks at startup; a git hook's
-  // incremental run is often first after an upgrade, and without this it kept
-  // the old graph under the new version (D113). `index.json` is left as it is
-  // until the run ends, so a run that dies here is rebuilt by the next.
-  const stamped = loadIndexMeta(config.resolved_state_dir);
-  const isFromAnotherSchema = stamped !== null && stamped.schema_version !== CURRENT_SCHEMA_VERSION;
-  const options: IndexOptions = isFromAnotherSchema ? { ...requested, incremental: false } : requested;
+  // What the run does with each stamp is the table in
+  // adr/proposals/schema-rebuild/PROPOSAL.md, design 3. `mast serve` checks at
+  // startup; a git hook's incremental run is often first after an upgrade, and
+  // without this it kept the old graph under the new version (D113).
+  const stamp = readIndexStamp(config.resolved_state_dir);
+  if (stamp.kind === 'newer') throw new NewerIndexError(config.resolved_state_dir, stamp.meta.schema_version);
+  const mustEmpty = stamp.kind === 'older' || stamp.kind === 'unreadable';
+  // No stamp means no run ever finished here. The files such a run did write
+  // would be skipped as unchanged and never reach the edge pass (D137).
+  const options: IndexOptions = stamp.kind === 'current' ? requested : { ...requested, incremental: false };
 
   const lockOptions = {
     maxRetries: 5,
@@ -326,10 +329,12 @@ export async function runIndex(
   };
   // Under the lock, and before the manifest is read below: a run that cannot
   // take the lock fails here with the old index untouched (D127).
-  if (isFromAnotherSchema) {
+  if (mustEmpty) {
     await withLock(config.resolved_state_dir, 'structure', lockOptions, () => {
       clearDerivedState(config.resolved_state_dir);
-      markIndexCleared(config.resolved_state_dir, stamped);
+      // An unreadable stamp is left as it is: the next run finds it unreadable
+      // again if this one dies.
+      if (stamp.kind === 'older') markIndexCleared(config.resolved_state_dir, stamp.meta);
       return Promise.resolve();
     });
   }
@@ -338,6 +343,11 @@ export async function runIndex(
   // Opening the db handle is connection setup, not a graph/chunk-store
   // mutation — no lock needed.
   const db = openDatabase(config.resolved_state_dir, options.dbOptions ?? {});
+
+  const hasFileRows =
+    mustEmpty || (await db.selectFrom('files').select('path').limit(1).executeTakeFirst()) !== undefined;
+  const notice = rebuildNotice(stamp, hasFileRows);
+  if (notice !== null) process.stderr.write(`[mast] ${notice}\n`);
 
   // M1 (eval/GITNEXUS_COMPARISON.md §15.1): chunks live in graph.db's
   // `chunks` table by default — `SqliteChunkStore` wraps the same `db`
@@ -985,17 +995,13 @@ export function freshnessCause(freshness: IndexFreshness): FreshnessCause {
 }
 
 /**
- * Load `index.json` from the state directory, or return null if absent.
- *
- * Unvalidated cast, not a zod parse — an `index.json` written before Stage
- * 7.2 (IMPLEMENTATION_PLAN.md "Stage 7: Vector-store deletion") may still
- * carry the removed `model` field; it rides along as an untyped extra key
- * and is simply never read, so old files load without error.
+ * The contents of `index.json`, or null when there is none or it cannot be
+ * read. A caller that has to tell those two apart, or to compare the version
+ * with this binary's, uses `readIndexStamp`.
  */
 export function loadIndexMeta(stateDir: string): IndexMeta | null {
-  const metaPath = join(stateDir, 'index.json');
-  if (!existsSync(metaPath)) return null;
-  return JSON.parse(readFileSync(metaPath, 'utf-8')) as IndexMeta;
+  const stamp = readIndexStamp(stateDir);
+  return stamp.kind === 'absent' || stamp.kind === 'unreadable' ? null : stamp.meta;
 }
 
 /**
