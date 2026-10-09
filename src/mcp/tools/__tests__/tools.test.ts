@@ -876,14 +876,13 @@ describe('mast_status', () => {
   });
 
   // D8 (IMPLEMENTATION_PLAN.md "D8 result"): the running server had no way to
-  // report which code is serving, so a process executing a stale build against
-  // a since-migrated state dir was undetectable from any tool response. The
-  // value MUST come from the binary's own CURRENT_SCHEMA_VERSION constant, not
-  // from index.json — the two are equal after a normal startup (the §7.4 Step 2
-  // guard wipes on mismatch), and they diverge in exactly the case worth
-  // detecting: a long-lived process holding an old image open while the state
-  // dir has moved on. Reading it off disk would report the migrated value and
-  // hide the divergence.
+  // report which code is serving. The value MUST come from the binary's own
+  // CURRENT_SCHEMA_VERSION constant, not from index.json: the two differ when
+  // a long-lived process holds an old image open while the state dir has
+  // moved on, and reading it off disk would report the other mast's value.
+  // With this value alone that difference could not be seen (D138); the
+  // stamp's version travels beside it as `index_schema_version`, pinned for
+  // the case where they differ in `index-version.test.ts`.
   it('reports the running binary\'s schema_version', async () => {
     const res = await call('mast_status') as { schema_version: string };
     expect(res.schema_version).toBe(CURRENT_SCHEMA_VERSION);

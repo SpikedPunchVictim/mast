@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
+import { assertIndexOfThisVersion } from '../../store/index-stamp.js';
 import type {
   CallersResponse,
   VerifiedCaller,
@@ -23,6 +24,7 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       include_potential: z.boolean().optional().describe('Include identifier-FTS matches as potential_matches (default: true)'),
     },
     async (args) => {
+      assertIndexOfThisVersion(ctx.config.resolved_state_dir);
       const start = Date.now();
       const filePath = args.file_path ?? null;
 

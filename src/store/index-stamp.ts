@@ -38,6 +38,21 @@ export class NewerIndexError extends UserError {
   }
 }
 
+/**
+ * Thrown by a read (`mast query`, `mast search`, a read tool of a server) over
+ * an index an older mast built. Its rows may lack what this version reads, and
+ * an answer drawn from them would look like any other answer (D138).
+ */
+export class OlderIndexError extends UserError {
+  constructor(stateDir: string, indexVersion: string) {
+    super(
+      `the index in ${stateDir} was built by schema ${indexVersion} and this mast reads ` +
+        `schema ${CURRENT_SCHEMA_VERSION}. Run \`mast index\`, or call mast_reindex from a server, to rebuild it.`,
+    );
+    this.name = 'OlderIndexError';
+  }
+}
+
 const VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
 
 // Loose: a stamp written before Stage 7.2 still carries a `model` key, and a
@@ -123,4 +138,45 @@ export function rebuildNotice(stamp: IndexStamp, hasFileRows: boolean): string |
     case 'newer':
       return null;
   }
+}
+
+/**
+ * True for the stamp `markIndexCleared` leaves: another version's name over an
+ * index with nothing in it. No row of that version is left to answer from.
+ */
+function isEmptiedForRebuild(meta: IndexMeta): boolean {
+  return meta.last_indexed === null && meta.file_count === 0 && meta.chunk_count === 0;
+}
+
+/**
+ * The guard every read runs before it answers from stored rows.
+ *
+ * An absent or unreadable stamp passes: neither names another version, and an
+ * unreadable one may be a stamp caught between truncation and write by a
+ * reader beside a running index. An emptied index passes too, so a server
+ * that is rebuilding at startup answers with `index_empty`.
+ *
+ * @throws OlderIndexError over rows an older schema version wrote.
+ * @throws NewerIndexError over rows a newer one wrote.
+ */
+export function assertIndexOfThisVersion(stateDir: string): void {
+  const stamp = readIndexStamp(stateDir);
+  if (stamp.kind === 'newer') throw new NewerIndexError(stateDir, stamp.meta.schema_version);
+  if (stamp.kind === 'older' && !isEmptiedForRebuild(stamp.meta)) {
+    throw new OlderIndexError(stateDir, stamp.meta.schema_version);
+  }
+}
+
+/** The schema version that built the index, or null when the stamp does not say. */
+export function stampedVersion(stamp: IndexStamp): string | null {
+  return stamp.kind === 'absent' || stamp.kind === 'unreadable' ? null : stamp.meta.schema_version;
+}
+
+/**
+ * Why an index is not fresh whatever its files look like, or null when the
+ * stamp gives no such reason.
+ */
+export function stampFreshnessCause(stamp: IndexStamp): 'index_version' | 'stamp_unreadable' | null {
+  if (stamp.kind === 'older' || stamp.kind === 'newer') return 'index_version';
+  return stamp.kind === 'unreadable' ? 'stamp_unreadable' : null;
 }

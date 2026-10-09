@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
+import { assertIndexOfThisVersion } from '../../store/index-stamp.js';
 import type { ImplementorsResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
@@ -17,6 +18,7 @@ export function registerImplementorsTool(server: McpServer, ctx: AppContext): vo
       limit: z.number().int().min(1).max(500).optional().describe('Max implementors to return (default: 50). The response reports the real total in `results_truncated` when it caps.'),
     },
     async (args) => {
+      assertIndexOfThisVersion(ctx.config.resolved_state_dir);
       const start = Date.now();
 
       const allResults = await queryImplementors(ctx.db, args.interface_name);

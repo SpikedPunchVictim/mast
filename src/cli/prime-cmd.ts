@@ -34,6 +34,24 @@ export function renderPrime(status: StatusReport, rules: string, now: Date): str
     ].join('\n') + '\n';
   }
 
+  // The read tools refuse an index of another schema version (D138), so the
+  // rules are followed by how to get one they will answer from.
+  if (status.freshness_cause === 'index_version') {
+    return rules.trimEnd() + '\n\n' + [
+      `The mast index at ${status.state_dir} was built by schema ${String(status.index_schema_version)}, ` +
+        `and this mast reads schema ${status.schema_version}.`,
+      'Every mast read tool returns an error until the two match. Call mast_reindex: it rebuilds an index an older mast built.',
+      'If it refuses, a newer mast built the index; use ordinary search tools here.',
+    ].join('\n') + '\n';
+  }
+
+  if (status.freshness_cause === 'stamp_unreadable') {
+    return rules.trimEnd() + '\n\n' + [
+      `index.json could not be read at ${status.state_dir}, so the version that built this index is not known.`,
+      'Call mast_reindex to rebuild it before relying on mast results.',
+    ].join('\n') + '\n';
+  }
+
   const health = [
     `mast index: ${String(status.indexed_files ?? 0)} files, last indexed ${describeAge(status.last_indexed, now)}.`,
   ];

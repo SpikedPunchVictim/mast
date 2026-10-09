@@ -854,6 +854,12 @@ export interface ReindexResult {
  *   by JIT re-parse on read (§9.0) or by reindexing.
  * - `unindexed_files`— files on disk this index has never seen.
  * - `deleted_files`  — files the index still lists that are gone from disk.
+ * - `index_version`  — `index.json` names another schema version than this
+ *   binary's. Decided before the counts and whatever they say: the rows may be
+ *   wrong for this code. `mast index` rebuilds an older index; a newer one
+ *   needs a newer mast.
+ * - `stamp_unreadable` — `index.json` is there and is not a stamp, so the
+ *   version that built the index is not known. `mast index` rebuilds it.
  */
 export type FreshnessCause =
   | 'root_mismatch'
@@ -861,6 +867,8 @@ export type FreshnessCause =
   | 'unindexed_files'
   | 'deleted_files'
   | 'edge_repair_pending'
+  | 'index_version'
+  | 'stamp_unreadable'
   | null;
 
 /**
@@ -900,14 +908,20 @@ export interface StatusResult {
    * `CURRENT_SCHEMA_VERSION` as compiled into the **running binary** — not the
    * value stored in `index.json`.
    *
-   * After a normal startup the two are equal, because §7.4 Step 2's guard wipes
-   * derived state on a mismatch. They diverge in exactly the case worth
-   * detecting (D8): a long-lived process still executing an older build while
-   * the state directory it holds open has since been migrated by a newer one.
-   * Sourcing this from disk would report the migrated value and hide that
-   * divergence, so it is deliberately read from the binary's own constant.
+   * After a normal startup the two are equal, because §7.4 Step 2 rebuilds an
+   * index of an older version. They differ when a long-lived process still
+   * executes one build while another mast has restamped the state directory
+   * it holds open (D8). Sourcing this from disk would report the other mast's
+   * value, so it is read from the binary's own constant, and the stamp's
+   * value is `index_schema_version` below.
    */
   readonly schema_version: string;
+  /**
+   * The schema version `index.json` says built the index, or null when there
+   * is no stamp or it cannot be read. Printed beside `schema_version` because
+   * a divergence can only be seen with both in the response (D138).
+   */
+  readonly index_schema_version: string | null;
   readonly last_indexed: string | null;
   readonly indexed_files: number;
   readonly chunk_count: number;

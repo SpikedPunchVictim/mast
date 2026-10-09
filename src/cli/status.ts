@@ -1,7 +1,10 @@
 import type { Command } from 'commander';
 import type { StaleBreakdown, StalePaths } from '../ast/types.js';
 import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../store/config.js';
-import { loadIndexMeta, freshnessCause } from '../indexer/index.js';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { freshnessCause } from '../indexer/index.js';
+import { readIndexStamp, stampedVersion, stampFreshnessCause } from '../store/index-stamp.js';
 import { measureFreshness, stalePathsSample, type IndexFreshness } from '../indexer/freshness.js';
 import { openDatabase } from '../graph/db.js';
 
@@ -19,6 +22,8 @@ export interface StatusReport {
   /** False when nothing has ever been indexed at `state_dir`. */
   readonly initialised: boolean;
   readonly schema_version: string;
+  /** See `StatusResult.index_schema_version`. */
+  readonly index_schema_version: string | null;
   readonly last_indexed: string | null;
   readonly indexed_files: number | null;
   readonly chunk_count: number | null;
@@ -56,14 +61,21 @@ export async function buildStatus(
   options: { path?: string; stateDir?: string } = {},
 ): Promise<StatusReport> {
   const config = resolveConfig({ projectRoot: options.path, stateDirOverride: options.stateDir });
-  const meta = loadIndexMeta(config.resolved_state_dir);
+  const stamp = readIndexStamp(config.resolved_state_dir);
+  const meta = stamp.kind === 'absent' || stamp.kind === 'unreadable' ? null : stamp.meta;
+  // A stamp that cannot be read over a database is an index, and saying
+  // nothing was indexed there would be false. Without a database there is
+  // nothing to measure, and opening one would create it.
+  const hasUnreadableStamp =
+    stamp.kind === 'unreadable' && existsSync(join(config.resolved_state_dir, 'graph.db'));
 
-  if (meta === null) {
+  if (meta === null && !hasUnreadableStamp) {
     return {
       state_dir: config.resolved_state_dir,
       project_root: config.resolved_project_root,
       initialised: false,
       schema_version: CURRENT_SCHEMA_VERSION,
+      index_schema_version: null,
       last_indexed: null,
       indexed_files: null,
       chunk_count: null,
@@ -80,8 +92,8 @@ export async function buildStatus(
 
   // Freshness needs the `files` stamps as well as the manifest (see
   // `measureFreshness`), so this opens the graph db — safe here and nowhere
-  // above, because the `meta === null` branch has already returned for a state
-  // dir that was never indexed.
+  // above, because the branch above has already returned for a state dir that
+  // was never indexed.
   const db = openDatabase(config.resolved_state_dir);
   let freshness: IndexFreshness;
   try {
@@ -90,15 +102,17 @@ export async function buildStatus(
     await db.destroy();
   }
 
+  const stampCause = stampFreshnessCause(stamp);
   return {
     state_dir: config.resolved_state_dir,
     project_root: config.resolved_project_root,
     initialised: true,
     // From the binary, never from index.json — see StatusResult.schema_version.
     schema_version: CURRENT_SCHEMA_VERSION,
-    last_indexed: meta.last_indexed ?? null,
-    indexed_files: meta.file_count ?? 0,
-    chunk_count: meta.chunk_count ?? 0,
+    index_schema_version: stampedVersion(stamp),
+    last_indexed: meta?.last_indexed ?? null,
+    indexed_files: meta?.file_count ?? null,
+    chunk_count: meta?.chunk_count ?? null,
     stale_files: freshness.total,
     stale_breakdown: {
       changed: freshness.stale,
@@ -106,12 +120,13 @@ export async function buildStatus(
       deleted: freshness.deleted,
     },
     stale_paths: stalePathsSample(freshness),
-    parse_errors: meta.parse_errors ?? 0,
-    write_errors: meta.write_errors ?? 0,
+    parse_errors: meta?.parse_errors ?? null,
+    write_errors: meta?.write_errors ?? null,
     pending_edge_repairs: freshness.pendingEdgeRepairs,
-    index_fresh: freshness.total === 0 && freshness.pendingEdgeRepairs === 0,
-    freshness_cause: freshnessCause(freshness),
-    seed_commit: meta.seed_commit,
+    index_fresh: stampCause === null && freshness.total === 0 && freshness.pendingEdgeRepairs === 0,
+    // The stamp first — see the same line in `mcp/tools/status.ts`.
+    freshness_cause: stampCause ?? freshnessCause(freshness),
+    seed_commit: meta?.seed_commit,
   };
 }
 
@@ -164,6 +179,7 @@ export function registerStatusCommand(program: Command): void {
         `state_dir:      ${status.state_dir}`,
         `project_root:   ${status.project_root}`,
         `schema_version: ${status.schema_version}`,
+        `index_schema_version: ${status.index_schema_version ?? 'unknown (index.json could not be read)'}`,
         `last_indexed:   ${status.last_indexed ?? 'never'}${ago}`,
         `indexed_files:  ${String(status.indexed_files)}`,
         `chunk_count:    ${String(status.chunk_count)}`,
@@ -175,6 +191,7 @@ export function registerStatusCommand(program: Command): void {
         `index_fresh:    ${String(status.index_fresh)}`,
         `freshness_cause: ${status.freshness_cause ?? 'none'}`,
         ...(status.seed_commit != null ? [`seed_commit:    ${status.seed_commit}`] : []),
+        ...stampAdvice(status),
         ...(status.freshness_cause === 'root_mismatch' ? [
           '',
           `! This index does not describe the tree at ${status.project_root}.`,
@@ -186,6 +203,24 @@ export function registerStatusCommand(program: Command): void {
         ] : []),
       ].join('\n') + '\n');
     });
+}
+
+/** What to do about a stamp that is not this version's, or nothing. */
+export function stampAdvice(
+  status: Pick<StatusReport, 'freshness_cause' | 'schema_version' | 'index_schema_version'>,
+): string[] {
+  if (status.freshness_cause === 'stamp_unreadable') {
+    return ['', '! index.json could not be read, so the version that built this index is not known.',
+      '  Run `mast index` to rebuild it.'];
+  }
+  if (status.freshness_cause !== 'index_version') return [];
+  return [
+    '',
+    `! This index was built by schema ${String(status.index_schema_version)} and this mast reads ` +
+      `schema ${status.schema_version}.`,
+    '  `mast query` and `mast search` will not answer from it. Run `mast index` to rebuild',
+    '  an older index; an index a newer mast built needs that mast.',
+  ];
 }
 
 /**

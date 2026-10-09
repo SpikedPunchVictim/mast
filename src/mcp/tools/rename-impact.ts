@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
+import { assertIndexOfThisVersion } from '../../store/index-stamp.js';
 import type {
   RenameImpactResponse,
   DeclarationSite,
@@ -36,6 +37,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
       file_path: z.string().nullable().optional().describe('File that declares the symbol (disambiguates duplicate names)'),
     },
     async (args) => {
+      assertIndexOfThisVersion(ctx.config.resolved_state_dir);
       const start = Date.now();
       const filePath = args.file_path ?? null;
 

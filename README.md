@@ -513,7 +513,7 @@ Options:
   --json               Output as JSON
 ```
 
-Reports `last_indexed`, `indexed_files`, `chunk_count`, `stale_files`, `parse_errors`, `write_errors`, `index_fresh`, and `freshness_cause`. When `stale_files` is non-zero it also names the stale files, up to 20 per category (changed, unindexed, deleted). Use this to diagnose why search results look outdated.
+Reports `last_indexed`, `indexed_files`, `chunk_count`, `stale_files`, `parse_errors`, `write_errors`, `index_fresh`, and `freshness_cause`. When `stale_files` is non-zero it also names the stale files, up to 20 per category (changed, unindexed, deleted). Use this to diagnose why search results look outdated. It also prints `schema_version` (this binary's) and `index_schema_version` (the version that built the index); when they differ, `mast search` and `mast query` stop with an error until `mast index` has rebuilt it.
 
 ---
 
@@ -981,9 +981,9 @@ Health snapshot of the index.
 // no inputs
 ```
 
-**Returns:** `{ state_dir, last_indexed, indexed_files, chunk_count, stale_files, stale_breakdown, stale_paths, parse_errors, write_errors, index_fresh, freshness_cause, seed_commit? }`. `stale_breakdown` splits `stale_files` into `{ changed, unindexed, deleted }`, and `stale_paths` names the files behind each count, up to 20 per category.
+**Returns:** `{ state_dir, schema_version, index_schema_version, last_indexed, indexed_files, chunk_count, stale_files, stale_breakdown, stale_paths, parse_errors, write_errors, index_fresh, freshness_cause, seed_commit? }`. `stale_breakdown` splits `stale_files` into `{ changed, unindexed, deleted }`, and `stale_paths` names the files behind each count, up to 20 per category.
 
-`index_fresh` is `true` only when `stale_files = 0` and the index has been run at least once. `freshness_cause` is `"phase1_stale"` when stale files remain, `null` when fresh. `stale_files` counts changed files, files on disk that are not in the index at all, and indexed files that are gone from disk — the same number `mast status` reports, from the same producer.
+`index_fresh` is `true` only when `stale_files = 0`, the index has been run at least once, and `index_schema_version` (the version that built the index) equals `schema_version` (this binary's). `freshness_cause` is `"phase1_stale"` when stale files remain, `"index_version"` when another mast version built the index, `null` when fresh. The read tools return an error over an index of another version; `mast_reindex` rebuilds an older one. `stale_files` counts changed files, files on disk that are not in the index at all, and indexed files that are gone from disk — the same number `mast status` reports, from the same producer.
 
 **Why:** Before a long agentic workflow that depends on accurate code navigation, an assistant can call `mast_status` to confirm the index is fresh, or surface the number of stale files to the user if not.
 

@@ -15,6 +15,7 @@ const fresh: StatusReport = {
   project_root: '/work/proj',
   initialised: true,
   schema_version: '3',
+  index_schema_version: '3',
   last_indexed: '2026-10-04T11:55:00.000Z',
   indexed_files: 412,
   chunk_count: 9000,
@@ -53,6 +54,7 @@ const uninitialised: StatusReport = {
   project_root: '/work/proj',
   initialised: false,
   schema_version: '3',
+  index_schema_version: null,
   last_indexed: null,
   indexed_files: null,
   chunk_count: null,
@@ -128,6 +130,32 @@ describe('renderPrime', () => {
     expect(out).toContain('mast_callers, mast_implementors and mast_rename_impact');
     expect(out).toContain('Call mast_reindex');
     expect(out).not.toContain('behind on');
+  });
+
+  // D138: the read tools refuse such an index, so "keep using mast" over it
+  // would send the agent into a row of errors.
+  it('says the read tools will not answer over an index another schema version built, and how to rebuild it', () => {
+    const otherVersion: StatusReport = {
+      ...fresh, schema_version: '1.4.0', index_schema_version: '1.3.0', index_fresh: false, freshness_cause: 'index_version',
+    };
+
+    const out = renderPrime(otherVersion, RULES, NOW);
+
+    expect(out).toContain('schema 1.3.0');
+    expect(out).toContain('schema 1.4.0');
+    expect(out).toContain('Call mast_reindex');
+    expect(out).not.toContain('412 files, last indexed');
+  });
+
+  it('asks for a reindex when index.json cannot be read', () => {
+    const unreadable: StatusReport = {
+      ...fresh, index_schema_version: null, indexed_files: null, index_fresh: false, freshness_cause: 'stamp_unreadable',
+    };
+
+    const out = renderPrime(unreadable, RULES, NOW);
+
+    expect(out).toContain('index.json could not be read');
+    expect(out).toContain('Call mast_reindex');
   });
 
   it('reports waiting edges beside stale files when both are present', () => {

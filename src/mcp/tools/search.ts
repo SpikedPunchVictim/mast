@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
+import { assertIndexOfThisVersion } from '../../store/index-stamp.js';
 import type { SearchResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson, buildDeclexJson } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
@@ -21,6 +22,7 @@ export function registerSearchTool(server: McpServer, ctx: AppContext): void {
       only_exported: z.boolean().optional().describe('Restrict to exported symbols only'),
     },
     async (args) => {
+      assertIndexOfThisVersion(ctx.config.resolved_state_dir);
       const start = Date.now();
       const { results, suggestions, declex } = await fusedSearch(
         ctx.db,

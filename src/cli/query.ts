@@ -129,7 +129,9 @@ export interface RunQueryOptions {
  * JSON argument string fails to parse, `toolName` does not match a
  * registered tool, or the parsed args fail that tool's own zod schema. Any
  * other error (a tool-internal failure) propagates unchanged, same as it
- * would over the MCP transport.
+ * would over the MCP transport. That includes a read tool's refusal of an index
+ * another schema version built (`assertIndexOfThisVersion`), which each read
+ * handler raises itself so that `mast_status` and `mast_reindex` still run here.
  */
 export async function runQuery(toolName: string, jsonArgs: string, options: RunQueryOptions = {}): Promise<string> {
   const config = resolveConfig({ projectRoot: options.path, stateDirOverride: options.stateDir });

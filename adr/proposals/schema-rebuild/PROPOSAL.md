@@ -159,8 +159,10 @@ recommendation.
 | 1. Wider comparison | `f3c8f8e` | D134 | The two FTS tables and `files.language` are still not compared |
 | 2. Clear in place, under the lock | `c77faf0` | D125, D126, D127 | After the clear `index.json` keeps the old version's name with empty counts, not the old stamp unchanged: the name makes the next run rebuild, the empty counts stop `--no-startup-reindex` serving it |
 | 3. The stamp table | `4051231` | D128, D129, D137 | An absent stamp makes the run a full one whether or not the database has rows; the two rows of the table differ only in the line printed. An unreadable stamp is left as it is by the clear. `mast serve` refuses a newer stamp at startup with the same message as `mast index` |
-| 4. The per-file mark | this commit | D142 | The freshness measure counts an unmarked row under `changed`, so `mast status` shows it in `stale_files`; there is no separate count. The refresh on a read does not look at the mark |
+| 4. The per-file mark | `d6c82a8` | D142 | The freshness measure counts an unmarked row under `changed`, so `mast status` shows it in `stale_files`; there is no separate count. The refresh on a read does not look at the mark |
+| 5. Readers | this commit | D138 | The check is in each of the eight read handlers, not in `mast query`: `mast_status`, `mast_reindex` and `mast_efficiency` have to run through that command too. Over a newer index the error says to upgrade, not to run `mast index`, which would refuse. Three states are not refused: no stamp, an unreadable stamp (a reader beside a running index can catch the stamp between truncation and write, because it is not written through a rename), and the emptied index a rebuild leaves while it runs. The older-index message also names `mast_reindex`, added after the run against a live server showed an agent has no `mast index` to run. `mast prime` got the same two states |
 
+Step 5 with a released `v0.4.1` restamping the index under a running server: [`spikes/s4-readers/`](spikes/s4-readers/).
 Step 4 with a released `v0.4.1` server: [`spikes/s3-mark/`](spikes/s3-mark/).
 Step 3 through the built CLI, row by row: [`spikes/s2-stamps/`](spikes/s2-stamps/).
 

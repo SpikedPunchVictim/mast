@@ -159,3 +159,22 @@ stability skip compares import aliases, so step 3 would have rewritten it withou
 catches a row that is not behind in the manifest, or whose difference the skip does not
 compare; both are unit tests in `src/indexer/__tests__/file-mark.test.ts`, not runs against
 an old server.
+
+**`s4-readers/`**: a server of this mast is running on the 31-file fixture when a released
+`v0.4.1` runs `mast index` on the same state directory.
+
+| Step | This server | This CLI |
+|---|---|---|
+| before | `mast_search` answers; `mast_status`: both versions `1.4.0`, fresh | |
+| `v0.4.1` has indexed (stamp `1.3.0`) | `mast_status`: `1.4.0` beside `1.3.0`, not fresh, cause `index_version`; `mast_search`, `mast_signature`, `mast_callers`, `mast_exports` return an error naming both versions | `mast status` prints both and two lines of advice, exit 0; `mast search` and `mast query` print the error, exit 1 |
+| the server's `mast_reindex` | 31 files indexed, stamp `1.4.0`, fresh, `mast_search` answers | |
+| stamp set to `9.9.0` by hand | `mast_search` returns the newer-mast error | `mast search` and `mast search --reindex` exit 1 with it |
+| stamp set to `1.3.0` by hand | | `mast search --reindex` says it is emptying the index, reads 31 files and answers |
+| `index.json` emptied | `mast_status`: version `null`, cause `stamp_unreadable`; `mast_search` answers | `mast status` says the stamp could not be read, exit 0 |
+
+Four of the eight read tools were called against the live server; all eight are covered by
+the handler test. The check a read runs (`guard-cost.mjs`): 26.1 to 47.2 µs per call over a
+valid stamp, five runs of 10,000 on one machine; 19.1 to 20.7 µs over an empty one.
+
+Not run: a server with the watcher on, a real newer mast (none exists), and a read arriving
+while another process is part way through writing the stamp.

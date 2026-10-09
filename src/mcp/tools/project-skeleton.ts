@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
+import { assertIndexOfThisVersion } from '../../store/index-stamp.js';
 import type { ProjectSkeletonResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
@@ -17,6 +18,7 @@ export function registerProjectSkeletonTool(server: McpServer, ctx: AppContext):
       file_pattern: z.string().nullable().optional().describe('Glob to further restrict files returned'),
     },
     async (args) => {
+      assertIndexOfThisVersion(ctx.config.resolved_state_dir);
       const start = Date.now();
 
       const directory = args.directory ?? undefined;

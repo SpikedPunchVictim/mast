@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
+import { assertIndexOfThisVersion } from '../../store/index-stamp.js';
 import type { ExportEntry, ExportsResponse } from '../../ast/types.js';
 import { join } from 'node:path';
 import { buildToolStats, recordToolCall, buildArgsJson, buildResultsJson } from '../../telemetry/metrics.js';
@@ -17,6 +18,7 @@ export function registerExportsTool(server: McpServer, ctx: AppContext): void {
       limit: z.number().int().min(1).max(500).optional().describe('Max exports to return (default: 50). The response reports the real total in `exports_truncated` when it caps.'),
     },
     async (args) => {
+      assertIndexOfThisVersion(ctx.config.resolved_state_dir);
       const start = Date.now();
 
       const { busy } = await jitRefreshFile(ctx.db, ctx.config, args.file_path);

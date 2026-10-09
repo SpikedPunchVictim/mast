@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
+import { assertIndexOfThisVersion } from '../../store/index-stamp.js';
 import type { DependenciesResponse } from '../../ast/types.js';
 import { buildToolStats, recordToolCall } from '../../telemetry/metrics.js';
 import { countTokens, estimateFullFileBound } from '../../telemetry/tokenizer.js';
@@ -15,6 +16,7 @@ export function registerDependenciesTool(server: McpServer, ctx: AppContext): vo
       file_path: z.string().describe('Path to the file, relative to the project root'),
     },
     async (args) => {
+      assertIndexOfThisVersion(ctx.config.resolved_state_dir);
       const start = Date.now();
 
       const { busy } = await jitRefreshFile(ctx.db, ctx.config, args.file_path);

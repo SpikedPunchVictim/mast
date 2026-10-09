@@ -196,6 +196,7 @@ This is the only configuration change needed in the SDD pipeline after `mast ini
 ```json
 {
   "schema_version": "1.4.0",
+  "index_schema_version": "1.4.0",
   "last_indexed": "2026-05-13T14:22:00Z",
   "file_count": 142,
   "chunk_count": 1840
@@ -949,6 +950,7 @@ Output:
 state_dir:      /workspace/.kluster/.mast
 project_root:   /workspace/.kluster
 schema_version: 1.4.0
+index_schema_version: 1.4.0
 last_indexed:   2026-05-13T14:22:00Z (3 minutes ago)
 indexed_files:  142
 chunk_count:    1840
@@ -979,6 +981,14 @@ it prints `none` in human output when the JSON value would be `null`. When it is
 that was measured and saying that reindexing will not move the numbers. On a
 never-indexed project the state directory is not created as a side effect of
 running `status`.
+
+`index_schema_version` is the version `index.json` says built the index, printed
+under the binary's own `schema_version`. When the two differ, `index_fresh` is
+`false`, `freshness_cause` is `index_version`, and the table is followed by two
+lines naming both versions and the command that rebuilds. When `index.json` is
+there and cannot be read, the line reads `unknown (index.json could not be read)`
+and the cause is `stamp_unreadable`; that state is an index, and is not reported
+as "not initialised" (D138).
 
 ---
 
@@ -1066,6 +1076,22 @@ All tools are exposed on the `mast` MCP server. Tool names follow the convention
 ---
 
 ### 9.0 Staleness Handling (All Read Tools)
+
+**An index of another schema version is refused.** Before it answers, each of the
+eight tools that read stored rows (`mast_search`, `mast_project_skeleton`,
+`mast_exports`, `mast_signature`, `mast_callers`, `mast_dependencies`,
+`mast_implementors`, `mast_rename_impact`) reads `index.json`. When it names
+another schema version than the binary's, the tool returns an error naming both
+versions: over an older index it says to run `mast index` or call `mast_reindex`,
+over a newer one to upgrade mast. The rows may be wrong for this code, and a
+warning beside a wrong answer is still a wrong answer (D138, decided 2026-10-08).
+Three states pass: no stamp, a stamp that cannot be read, and the stamp a rebuild
+leaves while it runs (the old version's name over an emptied index), so a server
+rebuilding at startup answers with `index_empty`. `mast_status`, `mast_reindex` and
+`mast_efficiency` do not refuse. `mast query` and `mast search` run the same
+handlers and so the same check; `mast search --reindex` rebuilds an older index
+first and then answers. The check is one small file read per call: 26 to 47 µs
+measured over five runs of 10,000 on one machine.
 
 Every read tool that returns line coordinates (`mast_search`, `mast_signature`,
 `mast_exports`, `mast_callers`, `mast_dependencies`, `mast_implementors`,
@@ -1900,17 +1926,16 @@ Index health snapshot.
 ```
 
 `schema_version` is `CURRENT_SCHEMA_VERSION` **as compiled into the running
-binary**, not the value stored in `index.json`. After a normal startup the two are
-identical, because §7.4 Step 2's guard empties and rebuilds the index on a mismatch; they
-diverge in exactly the situation this field exists to expose — a long-lived process
-still executing an older build while the state directory it holds open has since
-been migrated by a newer one. That case is invisible to every other field (the index
-looks healthy, because it *is* healthy — it is the server that is stale), and the
-startup guard cannot catch it because the guard only runs at startup. Reading the
-value off disk would report the migrated version and hide the divergence, so it is
-deliberately sourced from the binary's own constant. See
-`adr/proposals/measurement-harness/PLAN-EXCERPT.md` § "D8 result" for the incident that
-motivated it, and `adr/009-2026-08-10-measurement-harness.md` for the decision it produced.
+binary**, not the value stored in `index.json`. `index_schema_version` is the value
+stored in `index.json`, or `null` when there is no stamp or it cannot be read.
+After a normal startup the two are identical, because §7.4 Step 2 rebuilds an index
+of an older version and refuses a newer one. They differ when another mast has
+restamped the state directory a running server holds open: an older mast's
+`mast index` or `mast_reindex`, or a newer one's. The startup step cannot catch
+that, because it only runs at startup. Until 2026-10-08 only the binary's value was
+reported, so the difference could not be seen from the response (D138). See
+`adr/proposals/measurement-harness/PLAN-EXCERPT.md` § "D8 result" for the incident
+that motivated the first field.
 
 `parse_errors` is the count of files skipped during the last index run due to tree-sitter
 parse failures; `write_errors` is the count skipped due to a chunk/graph/FTS write
@@ -1922,7 +1947,8 @@ Docker-baked seed (§13.8) and reports the git revision the seed was built from.
 **Freshness diagnostics.** `freshness_cause` names which of `stale_files`'
 categories the count is actually made of, and `null` when the index is fully
 fresh. `index_fresh` is `true` only when `stale_files === 0`,
-`pending_edge_repairs === 0` and the index has been run at least once.
+`pending_edge_repairs === 0`, the index has been run at least once, and
+`index.json` names this binary's schema version.
 
 `pending_edge_repairs` counts indexed files whose edges are waiting to be
 resolved again after another file changed (§10.3.1, "An incremental run
@@ -1936,6 +1962,8 @@ content is indexed and current, and only answers drawn from edges are affected.
 | `"unindexed_files"` | Files on disk this index has never seen. |
 | `"deleted_files"` | Files the index still lists that are gone from disk. |
 | `"edge_repair_pending"` | `stale_files` is 0 and `pending_edge_repairs` is not: a background run stopped at its time budget. `mast_reindex` or `mast index --incremental` finishes the work. |
+| `"index_version"` | `index_schema_version` is not `schema_version`. Decided before the counts and whatever they say. The read tools refuse such an index (§9.0). `mast_reindex` or `mast index` rebuilds an older one; a newer one needs a newer mast. |
+| `"stamp_unreadable"` | `index.json` is there and is not a stamp, so the version that built the index is not known. The read tools still answer. `mast_reindex` or `mast index` rebuilds it. |
 
 The `"unindexed_files"` **cause** here and `mast_search`'s `unindexed_files`
 **count** (§9.0) name the same population — files on disk this index has never
@@ -1945,7 +1973,8 @@ during that call, while `mast_search` reports an integer from the serve
 process's TTL-cached probe, which may be up to one TTL old. When the two
 disagree, `mast_status` is the newer measurement.
 
-`root_mismatch` is tested first and is the only compound condition; the other
+`index_version` and `stamp_unreadable` are decided from the stamp, before any
+count. Of the rest, `root_mismatch` is tested first and is the only compound condition; the other
 three are ordered by what the caller should do about them, `phase1_stale` first
 because it is the one JIT re-parse corrects silently on read. The exact split
 always travels beside the cause in `stale_breakdown`, so a caller never has to

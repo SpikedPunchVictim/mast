@@ -41,6 +41,15 @@ and prints the alias, the unmarked rows and `mast status` before and after this 
 incremental run. `OUTPUT.txt` is its output with the older checkout at `v0.4.1`. The older
 checkout is built as in "Running the mixed-version case again" below.
 
+## End-to-end run of the readers (`spikes/s4-readers/`)
+
+`run.mjs <built checkout> <built older checkout> <project copy> <empty state dir>` starts a
+server of this mast, lets the older mast run `mast index` on the same state directory, and
+prints what the server's tools and this CLI then say; then the same over a stamp set to
+`9.9.0`, to `1.3.0` with `mast search --reindex`, and over an emptied `index.json`.
+`OUTPUT.txt` is its output with the older checkout at `v0.4.1`. `guard-cost.mjs <built
+checkout> <state dir>` times the check a read runs.
+
 ## Checks that cover the change
 
 | Claim | Check |
@@ -50,9 +59,11 @@ checkout is built as in "Running the mixed-version case again" below.
 | Each row of the stamp table, the refusal of a newer stamp, the line printed, a killed first index | `src/indexer/__tests__/schema-guard.test.ts`, "what an incremental run does with each stamp" |
 | Server startup: older and unreadable stamps emptied, newer refused | `src/mcp/__tests__/startup.test.ts` |
 | Every row carries the version that wrote it; an unmarked row is rewritten and counted; an older `files` table gains the column | `src/indexer/__tests__/file-mark.test.ts`; the mark is in `dumpStoredRows` (`graph-fixture.test.ts`) |
+| Every read tool refuses an older and a newer index and answers over this version's; a tool cannot be registered without being listed as a read or not | `src/mcp/tools/__tests__/index-version.test.ts` |
+| `mast query`, `mast search --reindex`, `mast status` and `mast prime` over such an index | `src/cli/__tests__/index-version.test.ts`, `src/cli/__tests__/prime-cmd.test.ts` |
 | The graph of a full index is unchanged | the four scorecard baselines in `eval-suite/baselines/`, compared at each step |
 
-Not yet built: readers refusing an index of another version. `eval-suite/replay-check.mjs` does not compare the mark: every row of a replay is written by one version.
+`eval-suite/replay-check.mjs` does not compare the mark: every row of a replay is written by one version.
 
 ## Running the mixed-version case again
 

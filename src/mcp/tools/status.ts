@@ -1,7 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../context.js';
 import type { StatusResult } from '../../ast/types.js';
-import { loadIndexMeta, freshnessCause } from '../../indexer/index.js';
+import { freshnessCause } from '../../indexer/index.js';
+import { readIndexStamp, stampedVersion, stampFreshnessCause } from '../../store/index-stamp.js';
 import { measureFreshness, stalePathsSample } from '../../indexer/freshness.js';
 import { CURRENT_SCHEMA_VERSION } from '../../store/config.js';
 
@@ -12,7 +13,9 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
     // No input parameters.
     {},
     async (_args) => {
-      const meta = loadIndexMeta(ctx.config.resolved_state_dir);
+      const stamp = readIndexStamp(ctx.config.resolved_state_dir);
+      const meta = stamp.kind === 'absent' || stamp.kind === 'unreadable' ? null : stamp.meta;
+      const stampCause = stampFreshnessCause(stamp);
       // The same producer `mast status` uses — the two surfaces answer one
       // question and must not compute it twice
       // (`mcp/tools/__tests__/status-surface-parity.test.ts`).
@@ -22,6 +25,7 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
         state_dir:      ctx.config.resolved_state_dir,
         // From the binary, never from index.json — see StatusResult.schema_version.
         schema_version: CURRENT_SCHEMA_VERSION,
+        index_schema_version: stampedVersion(stamp),
         last_indexed:   meta?.last_indexed ?? null,
         indexed_files:  meta?.file_count ?? 0,
         chunk_count:    meta?.chunk_count ?? 0,
@@ -35,8 +39,11 @@ export function registerStatusTool(server: McpServer, ctx: AppContext): void {
         parse_errors:   meta?.parse_errors ?? 0,
         write_errors:   meta?.write_errors ?? 0,
         pending_edge_repairs: freshness.pendingEdgeRepairs,
-        index_fresh:    meta !== null && stale_files === 0 && freshness.pendingEdgeRepairs === 0,
-        freshness_cause: freshnessCause(freshness),
+        index_fresh:
+          meta !== null && stampCause === null && stale_files === 0 && freshness.pendingEdgeRepairs === 0,
+        // The stamp first: counts taken over another version's rows describe
+        // files, and say nothing about whether the rows are right for this code.
+        freshness_cause: stampCause ?? freshnessCause(freshness),
         seed_commit:    meta?.seed_commit,
       };
       return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
