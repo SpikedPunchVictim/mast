@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T15:31:09.704Z",
+  "ran_at": "2026-10-09T15:39:15.669Z",
   "typescript": "5.9.3",
-  "label": "mast, d144",
+  "label": "mast, d131",
   "root": "mast",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -11,11 +11,11 @@
   "workspace_packages_mapped_to_source": 0,
   "scored_typescript_files": 101,
   "tsconfig_files": 84,
-  "corpus_hash": "7067526d3bef6c8c4444d9ac91b6317842ce78cfb6eaa38d38c0df11a3e89f6c",
+  "corpus_hash": "33d7b8fe8ade7187447988f3b485d3f62cb900288ec098257e8782b1d53bba0e",
   "program_source_files": 750,
   "repeated_symbol_rows": 0,
-  "wall_ms": 1550,
-  "peak_rss_mb": 468
+  "wall_ms": 1493,
+  "peak_rss_mb": 478
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 102,
@@ -24,7 +24,7 @@
   "export default <expression>": 1,
   "named import with an alias": 2,
   "top-level destructuring declaration": 1,
-  "top-level variable that is not a function": 135
+  "top-level variable that is not a function": 137
  },
  "items": {
   "edge: EXTENDS": {

@@ -1,0 +1,80 @@
+backstage: 7320 files, 12509 relative specifiers, 1 the compiler resolves to a declaration file
+      1  before: nothing (written without extension); now: the declaration file; test file
+           plugins/auth-backend-module-vmware-cloud-provider/src/module.test.ts -> ../config = plugins/auth-backend-module-vmware-cloud-provider/config.d.ts
+cdk8s: 3 files, 0 relative specifiers, 0 the compiler resolves to a declaration file
+directus: 2985 files, 5893 relative specifiers, 28 the compiler resolves to a declaration file
+     17  before: the declaration file (written with .d.ts); now: the declaration file; test file
+           api/src/middleware/authenticate.test.ts -> ../types/express.d.ts = api/src/types/express.d.ts
+           api/src/middleware/extract-token.test.ts -> ../types/express.d.ts = api/src/types/express.d.ts
+           api/src/middleware/mcp-oauth-guard.test.ts -> ../types/express.d.ts = api/src/types/express.d.ts
+     10  before: nothing (written with a js extension); now: the declaration file; test file
+           tests/e2e/tests/endpoints/query/version/item.test.ts -> ./schema.js = tests/e2e/tests/endpoints/query/version/schema.d.ts
+           tests/e2e/tests/fields/change/change.test.ts -> ./schema.js = tests/e2e/tests/fields/change/schema.d.ts
+           tests/e2e/tests/fields/primitive/boolean.test.ts -> ./schema.js = tests/e2e/tests/fields/primitive/schema.d.ts
+      1  before: another file, .js (written with a js extension); now: another file, .js; indexed file
+           directus/cli.js -> ./version.js = directus/version.d.ts
+langchainjs: 2159 files, 3610 relative specifiers, 5 the compiler resolves to a declaration file
+      5  before: another file, .js (written with a js extension); now: another file, .js; indexed file
+           libs/langchain-classic/src/util/hub.ts -> ./p-retry/index.js = libs/langchain-classic/src/util/p-retry/index.d.ts
+           libs/langchain-classic/src/util/p-retry/index.js -> ../is-network-error/index.js = libs/langchain-classic/src/util/is-network-error/index.d.ts
+           libs/langchain-core/src/runnables/base.ts -> ../utils/p-retry/index.js = libs/langchain-core/src/utils/p-retry/index.d.ts
+n8n: 19316 files, 38644 relative specifiers, 0 the compiler resolves to a declaration file
+nest: 1728 files, 3327 relative specifiers, 0 the compiler resolves to a declaration file
+opentelemetry-js: 1076 files, 2267 relative specifiers, 1 the compiler resolves to a declaration file
+      1  before: another file, .js (written without extension); now: another file, .js; indexed file
+           experimental/packages/configuration/src/FileConfigFactory.ts -> ./generated/validator = experimental/packages/configuration/src/generated/validator.d.ts
+pulumi: 2992 files, 5511 relative specifiers, 118 the compiler resolves to a declaration file
+     73  before: another file, .js (written without extension); now: another file, .js; indexed file
+           sdk/nodejs/automation/server.ts -> ../proto/language_pb = sdk/nodejs/proto/language_pb.d.ts
+           sdk/nodejs/automation/server.ts -> ../proto/plugin_pb = sdk/nodejs/proto/plugin_pb.d.ts
+           sdk/nodejs/automation/stack.ts -> ../proto/events_grpc_pb = sdk/nodejs/proto/events_grpc_pb.d.ts
+     37  before: another file, .js (written with a js extension); now: another file, .js; indexed file
+           sdk/nodejs/proto/analyzer_grpc_pb.js -> ./analyzer_pb.js = sdk/nodejs/proto/analyzer_pb.d.ts
+           sdk/nodejs/proto/analyzer_grpc_pb.js -> ./plugin_pb.js = sdk/nodejs/proto/plugin_pb.d.ts
+           sdk/nodejs/proto/analyzer_pb.js -> ./plugin_pb.js = sdk/nodejs/proto/plugin_pb.d.ts
+      6  before: another file, .js (written with a js extension); now: another file, .js; test file
+           sdk/nodejs/tests/runtime/langhost/run.spec.ts -> ../../../proto/engine_grpc_pb.js = sdk/nodejs/proto/engine_grpc_pb.d.ts
+           sdk/nodejs/tests/runtime/langhost/run.spec.ts -> ../../../proto/engine_pb.js = sdk/nodejs/proto/engine_pb.d.ts
+           sdk/nodejs/tests/runtime/langhost/run.spec.ts -> ../../../proto/language_grpc_pb.js = sdk/nodejs/proto/language_grpc_pb.d.ts
+      2  before: another file, .js (written without extension); now: another file, .js; test file
+           sdk/nodejs/tests/runtime/featureSupport.spec.ts -> ../../proto/resource_pb = sdk/nodejs/proto/resource_pb.d.ts
+           sdk/nodejs/tests/runtime/registerPackage.spec.ts -> ../../proto/resource_pb = sdk/nodejs/proto/resource_pb.d.ts
+strapi: 5030 files, 9275 relative specifiers, 35 the compiler resolves to a declaration file
+     33  before: another file, .js (written without extension); now: another file, .js; indexed file
+           packages/core/admin/server/src/bootstrap.ts -> ./utils = packages/core/admin/server/src/utils/index.d.ts
+           packages/core/admin/server/src/controllers/admin-token.ts -> ../utils = packages/core/admin/server/src/utils/index.d.ts
+           packages/core/admin/server/src/controllers/admin.ts -> ../utils = packages/core/admin/server/src/utils/index.d.ts
+      2  before: the declaration file (written with .d.ts); now: the declaration file; indexed file
+           tests/api/core/strapi/document-service/resources/index.ts -> ./types/components.d.ts = tests/api/core/strapi/document-service/resources/types/components.d.ts
+           tests/api/core/strapi/document-service/resources/index.ts -> ./types/contentTypes.d.ts = tests/api/core/strapi/document-service/resources/types/contentTypes.d.ts
+vscode: 12126 files, 110720 relative specifiers, 205 the compiler resolves to a declaration file
+    124  before: nothing (written without extension); now: the declaration file; indexed file
+           extensions/copilot/src/extension/api/vscode/extensionApi.ts -> ./api = extensions/copilot/src/extension/api/vscode/api.d.ts
+           extensions/copilot/src/extension/chatSessions/vscode/chatSessionsUriHandler.ts -> ../../../platform/git/vscode/git = extensions/copilot/src/platform/git/vscode/git.d.ts
+           extensions/copilot/src/extension/chatSessions/vscode-node/chatSessionWorkspaceFolderServiceImpl.ts -> ../../../platform/git/vscode/git = extensions/copilot/src/platform/git/vscode/git.d.ts
+     33  before: another file, .js (written with a js extension); now: another file, .js; indexed file
+           extensions/github/src/test/index.ts -> ../../../../test/integration/electron/testrunner.js = test/integration/electron/testrunner.d.ts
+           src/vs/base/browser/domSanitize.ts -> ./dompurify/dompurify.js = src/vs/base/browser/dompurify/dompurify.d.ts
+           src/vs/base/browser/markdownRenderer.ts -> ../common/marked/marked.js = src/vs/base/common/marked/marked.d.ts
+     14  before: another file, .js (written without extension); now: another file, .js; indexed file
+           extensions/configuration-editing/src/test/index.ts -> ../../../../test/integration/electron/testrunner = test/integration/electron/testrunner.d.ts
+           extensions/emmet/src/test/index.ts -> ../../../../test/integration/electron/testrunner = test/integration/electron/testrunner.d.ts
+           extensions/git/src/test/index.ts -> ../../../../test/integration/electron/testrunner = test/integration/electron/testrunner.d.ts
+     13  before: the declaration file (written with .d.ts); now: the declaration file; indexed file
+           extensions/github/src/branchProtection.ts -> ./typings/git.d.ts = extensions/github/src/typings/git.d.ts
+           extensions/github/src/canonicalUriProvider.ts -> ./typings/git.d.ts = extensions/github/src/typings/git.d.ts
+           extensions/github/src/commands.ts -> ./typings/git.d.ts = extensions/github/src/typings/git.d.ts
+     11  before: nothing (written with a js extension); now: the declaration file; indexed file
+           extensions/github/src/extension.ts -> ./typings/git-base.js = extensions/github/src/typings/git-base.d.ts
+           extensions/github/src/remoteSourceProvider.ts -> ./typings/git-base.js = extensions/github/src/typings/git-base.d.ts
+           src/vs/base/common/observableInternal/logging/debugger/devToolsLogger.ts -> ./debuggerApi.js = src/vs/base/common/observableInternal/logging/debugger/debuggerApi.d.ts
+      5  before: nothing (written without extension); now: the declaration file; test file
+           extensions/copilot/src/extension/prompt/vscode-node/test/gitDiffService.spec.ts -> ../../../../platform/git/vscode/git = extensions/copilot/src/platform/git/vscode/git.d.ts
+           extensions/git/src/test/smoke.test.ts -> ../api/git = extensions/git/src/api/git.d.ts
+           extensions/typescript-language-features/src/test/unit/cachedResponse.test.ts -> ../../tsServer/protocol/protocol = extensions/typescript-language-features/src/tsServer/protocol/protocol.d.ts
+      4  before: another file, .js (written with a js extension); now: another file, .js; test file
+           src/vs/base/test/browser/markdownRenderer.test.ts -> ../../common/marked/marked.js = src/vs/base/common/marked/marked.d.ts
+           src/vs/base/test/common/filters.perf.test.ts -> ./filters.perf.data.js = src/vs/base/test/common/filters.perf.data.d.ts
+           src/vs/base/test/common/filters.perf.test.ts -> ./filters.perf.data.js = src/vs/base/test/common/filters.perf.data.d.ts
+      1  before: nothing (written with a js extension); now: the declaration file; test file
+           src/vs/workbench/contrib/terminalContrib/links/test/browser/terminalLinkManager.test.ts -> ../../../../terminal/browser/xterm-private.js = src/vs/workbench/contrib/terminal/browser/xterm-private.d.ts

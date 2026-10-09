@@ -144,3 +144,13 @@ The four baselines are regenerated from the D130 build.
 `eval-suite/graph-scorecard.mjs` changed in this row: a variable holding a function
 expression is a function in the reference. The four baselines are regenerated.
 
+## D131 (`spikes/d131/`)
+
+| File | What it is |
+|---|---|
+| `declaration-imports.mjs`, `declaration-imports.ten.txt` | Relative specifiers the compiler resolves to a declaration file in ten checkouts, what the probe did before, and (with `MAST_DIST`) what the built resolver answers. Reads the checkouts, writes nothing |
+| `unresolved-relative.mjs`, `unresolved-relative.n8n.before.txt` | The n8n import rows with no resolved path at D144, by what the compiler makes of each |
+| `import-diff.sh`, `import-diff.{n8n,directus}.txt` | Import rows whose resolved path differs between two indexes (D144 against D131 for n8n; the same checkout before and after for directus, commit 9dca3724a6) |
+| `edge-rows.directus.txt` | `spikes/d121/edge-rows-diff.py` on the two directus indexes |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D144 commit) with the D131 build |
+

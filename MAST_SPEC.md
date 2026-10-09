@@ -3083,15 +3083,20 @@ TypeScript source first and only falls back to the literal file, matching tsc's
 
 | Specifier ext | Lookup order                        |
 | ------------- | ----------------------------------- |
-| `.js`         | `.ts`, then `.tsx`, then `.js`      |
-| `.jsx`        | `.tsx`, then `.jsx`                 |
-| `.mjs`        | `.mts`, then `.mjs`                 |
-| `.cjs`        | `.cts`, then `.cjs`                 |
+| `.js`         | `.ts`, then `.tsx`, then `.js`, then `.d.ts`   |
+| `.jsx`        | `.tsx`, then `.jsx`, then `.d.ts`              |
+| `.mjs`        | `.mts`, then `.mjs`, then `.d.mts`             |
+| `.cjs`        | `.cts`, then `.cjs`, then `.d.cts`             |
 
 The source-first precedence means that when both `x.ts` and a real `x.js` exist,
 `./x.js` resolves to `x.ts` (the `.js` names the *output*). A genuine `.js` file with
-no TypeScript source still resolves to itself. Declaration files (`.d.ts`) are out of
-scope — MAST indexes implementation files. Without this rule, ESM `.js` specifiers left
+no TypeScript source still resolves to itself. A declaration file is the last
+candidate (D131): `./x` and `./x.js` name `x.d.ts` when no `x.ts`, `x.tsx`, `x.js` or
+`x.jsx` exists, ahead of a directory `x/`, and a directory names its `index.d.ts` when it
+has no other index. The same holds behind a tsconfig alias. The compiler reads `x.d.ts`
+ahead of `x.js`; mast does not, so that a JavaScript file a declaration file describes
+keeps its importers and its edges, and a type declared only in that `x.d.ts` gets no type
+context through the import. Without the substitution rule, ESM `.js` specifiers left
 `resolved_path` NULL and star re-export barrels written with `.js` produced no
 `re_export_files` rows. See the TypeScript Modules Reference, "File extension
 substitution".

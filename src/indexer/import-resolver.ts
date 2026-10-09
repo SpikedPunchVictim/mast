@@ -22,8 +22,7 @@ const CANDIDATE_EXTS = ['.ts', '.tsx', '.js', '.jsx'] as const;
 // (`import { x } from './x.js'`) while the on-disk source is `./x.ts`. tsc resolves
 // such a specifier against the TypeScript source first, and only falls back to the
 // literal file — e.g. `./mod.js` looks up `mod.ts`, then `mod.tsx`, then `mod.js`.
-// We mirror that source-first precedence here (declaration files are out of scope
-// since MAST indexes implementation files, not `.d.ts`). See the TypeScript Modules
+// We mirror that source-first precedence here. See the TypeScript Modules
 // Reference, "File extension substitution":
 // https://www.typescriptlang.org/docs/handbook/modules/reference.html
 const JS_TO_TS_EXTS: ReadonlyArray<readonly [string, readonly string[]]> = [
@@ -31,6 +30,21 @@ const JS_TO_TS_EXTS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['.jsx', ['.tsx']],
   ['.mjs', ['.mts']],
   ['.cjs', ['.cts']],
+];
+
+// D131: the declaration file a specifier names when nothing else answers to it.
+// The walker indexes `.d.ts` like any other `.ts` file, and a type declared
+// only there has no other row. The compiler reads `x.d.ts` ahead of `x.js`;
+// here it comes after every file that holds code, so an `x.js` that an
+// `x.d.ts` describes keeps its importers and its call edges. In ten
+// repositories 152 relative specifiers had no file without this and 209 are
+// such a pair (adr/proposals/resolver-shapes/spikes/d131/).
+const DECLARATION_EXT = '.d.ts';
+const JS_TO_DECLARATION_EXT: ReadonlyArray<readonly [string, string]> = [
+  ['.js', '.d.ts'],
+  ['.jsx', '.d.ts'],
+  ['.mjs', '.d.mts'],
+  ['.cjs', '.d.cts'],
 ];
 
 /**
@@ -182,9 +196,19 @@ function buildResolver(projectRoot: string): ImportResolver {
       for (const ext of CANDIDATE_EXTS) {
         if (isFile(base + ext)) return toRel(base + ext, ctx);
       }
+      // A file before a directory, as the compiler has it: `./lib` is
+      // `lib.d.ts` when both that and `lib/index.ts` exist.
+      for (const [jsExt, declarationExt] of JS_TO_DECLARATION_EXT) {
+        if (base.endsWith(jsExt)) {
+          const declaration = base.slice(0, -jsExt.length) + declarationExt;
+          if (isFile(declaration)) return toRel(declaration, ctx);
+          break; // a base ends in at most one of these extensions
+        }
+      }
+      if (isFile(base + DECLARATION_EXT)) return toRel(base + DECLARATION_EXT, ctx);
     }
 
-    for (const ext of CANDIDATE_EXTS) {
+    for (const ext of [...CANDIDATE_EXTS, DECLARATION_EXT]) {
       const idx = join(base, `index${ext}`);
       if (isFile(idx)) return toRel(idx, ctx);
     }
@@ -224,6 +248,18 @@ function buildResolver(projectRoot: string): ImportResolver {
             if (rel !== null) return { resolvedPath: rel, isExternal: false };
           }
           break; // a specifier ends in at most one of these extensions
+        }
+        // D131: an alias of a declaration file. The matcher returns what it
+        // found with everything after the last dot removed (tsconfig-paths
+        // 4.2.0, `removeExtension` in lib/filesystem.js), so a hit on
+        // `types.d.ts` comes back as `types.d`; the `.d` is taken off and
+        // `probe` finds the file again. A directory holding `index.d.ts`
+        // comes back as the directory.
+        const declarationBase = matchPath(spec, undefined, undefined, [DECLARATION_EXT]);
+        if (declarationBase !== undefined) {
+          const base = declarationBase.endsWith('.d') ? declarationBase.slice(0, -'.d'.length) : declarationBase;
+          const rel = probe(base, ctx);
+          if (rel !== null) return { resolvedPath: rel, isExternal: false };
         }
       }
 

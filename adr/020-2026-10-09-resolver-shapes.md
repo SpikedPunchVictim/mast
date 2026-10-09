@@ -86,6 +86,11 @@ agree / wrong / lacks / extra / unjudged:
   written (proposal, "D148"); the shapes corpus then has no `lacks`. `import x from` was
   D130, fixed the same way (proposal, "D130").
 - D146 and D147 were found and fixed inside D121; D145 inside D118.
+- D144 and D131 were fixed after this record (proposal, "D144" and "D131"). D131 carries
+  one decision of its own: an import names a declaration file only when no file that
+  holds code answers to the specifier, so `x.js` beside `x.d.ts` stays on `x.js`. The
+  compiler has the other order. In ten repositories 152 relative specifiers gain a file
+  this way and 209 are such a pair and do not move.
 - Each row's "Not fixed" list in the proposal: among them a shifted line landing a record
   on its sibling row (D121), a subclass that inherits its constructor in a transitive
   walk (D122), and `mast_rename_impact` listing an alias's export line only as an

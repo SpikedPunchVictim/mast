@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T15:31:10.288Z",
+  "ran_at": "2026-10-09T15:39:16.245Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, d144",
+  "label": "resolver shapes, d131",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -14,8 +14,8 @@
   "corpus_hash": "a233bfbd56a6020b3fb1c9d1d6a707a06389350d287239d5d8f91c9b0f46c8c5",
   "program_source_files": 214,
   "repeated_symbol_rows": 3,
-  "wall_ms": 381,
-  "peak_rss_mb": 297
+  "wall_ms": 382,
+  "peak_rss_mb": 300
  },
  "notes": {
   "call through a variable, judged by its signature": 2,

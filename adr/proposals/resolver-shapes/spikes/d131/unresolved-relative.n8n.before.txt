@@ -1,0 +1,25 @@
+relative import rows with no resolved path: 35
+    10  compiler finds nothing (no extension)
+          packages/@n8n/db/src/connection/db-connection-options.ts -> ../migrations/postgresdb
+          packages/@n8n/db/src/connection/db-connection-options.ts -> ../migrations/sqlite
+          packages/core/nodes-testing/credentials-helper.ts -> ../dist/credentials
+          packages/core/nodes-testing/load-nodes-and-credentials.ts -> ../dist/errors
+    10  compiler finds nothing (.svg?component)
+          packages/frontend/editor-ui/src/features/ai/mcpAccess/clients.utils.ts -> ./assets/client-icons/claude.svg?component
+          packages/frontend/editor-ui/src/features/ai/mcpAccess/clients.utils.ts -> ./assets/client-icons/cursor.svg?component
+          packages/frontend/editor-ui/src/features/ai/mcpAccess/clients.utils.ts -> ./assets/client-icons/openai.svg?component
+          packages/frontend/editor-ui/src/features/ai/mcpAccess/clients.utils.ts -> ./assets/client-icons/vscode.svg?component
+     6  compiler finds nothing (.node)
+          packages/core/test/helpers/constants.ts -> ../../../nodes-base/dist/nodes/If/If.node
+          packages/core/test/helpers/constants.ts -> ../../../nodes-base/dist/nodes/ManualTrigger/ManualTrigger.node
+          packages/core/test/helpers/constants.ts -> ../../../nodes-base/dist/nodes/Merge/Merge.node
+          packages/core/test/helpers/constants.ts -> ../../../nodes-base/dist/nodes/NoOp/NoOp.node
+     6  compiler finds nothing (.ts?raw)
+          packages/frontend/editor-ui/src/features/shared/editors/plugins/codemirror/typescript/worker/env.ts -> ./type-declarations/globals.d.ts?raw
+          packages/frontend/editor-ui/src/features/shared/editors/plugins/codemirror/typescript/worker/env.ts -> ./type-declarations/n8n.d.ts?raw
+          packages/frontend/editor-ui/src/features/shared/editors/plugins/codemirror/typescript/worker/typescript.worker.ts -> ./type-declarations/n8n-once-for-all-items.d.ts?raw
+          packages/frontend/editor-ui/src/features/shared/editors/plugins/codemirror/typescript/worker/typescript.worker.ts -> ./type-declarations/n8n-once-for-each-item.d.ts?raw
+     3  compiler finds nothing (.js)
+          packages/@n8n/codemirror-lang-html/src/grammar/test/test-html.js -> ../dist/index.es.js
+          packages/@n8n/codemirror-lang-html/src/grammar/test/test-incremental.js -> ../dist/index.es.js
+          packages/@n8n/codemirror-lang-html/test/test-complete.ts -> ../dist/index.js

@@ -308,6 +308,75 @@ describe('import resolver (§13.7)', () => {
     expect(r.resolvedPath).toBe('src/dual.ts');
   });
 
+  // D131. A declaration file is what the compiler reads when no source sits
+  // beside it, and the walker indexes it like any other `.ts` file.
+  describe('a declaration file', () => {
+    it.each([
+      ['./types', 'src/types.d.ts'],
+      ['./types.js', 'src/types.d.ts'],
+      ['./types.mjs', 'src/types.d.mts'],
+      ['./types.cjs', 'src/types.d.cts'],
+    ])('resolves %s to the declaration file when no source exists', (specifier, declaration) => {
+      write(root, declaration, 'export interface Decl { a: number }');
+
+      const r = getImportResolver(root).resolve(specifier, 'src/a.ts');
+
+      expect(r).toEqual({ resolvedPath: declaration, isExternal: false });
+    });
+
+    it('resolves a directory to its index.d.ts', () => {
+      write(root, 'src/lib/index.d.ts', 'export interface Decl { a: number }');
+
+      const r = getImportResolver(root).resolve('./lib', 'src/a.ts');
+
+      expect(r.resolvedPath).toBe('src/lib/index.d.ts');
+    });
+
+    it.each([
+      ['src/types.d.ts'],
+      ['src/types/index.d.ts'],
+    ])('resolves an alias to %s', (declaration) => {
+      write(root, 'tsconfig.json', JSON.stringify({
+        compilerOptions: { baseUrl: '.', paths: { '@app/*': ['src/*'] } },
+      }));
+      write(root, declaration, 'export interface Decl { a: number }');
+
+      const r = getImportResolver(root).resolve('@app/types', 'src/a.ts');
+
+      expect(r).toEqual({ resolvedPath: declaration, isExternal: false });
+    });
+
+    it('prefers the source over the declaration file beside it', () => {
+      write(root, 'src/types.ts', 'export interface Decl { a: number }');
+      write(root, 'src/types.d.ts', 'export interface Decl { a: number }');
+
+      const r = getImportResolver(root).resolve('./types.js', 'src/a.ts');
+
+      expect(r.resolvedPath).toBe('src/types.ts');
+    });
+
+    // The compiler reads `x.d.ts` here. The graph is of code, and the code is
+    // in `x.js`: 209 of 393 such specifiers in ten repositories are this pair
+    // (adr/proposals/resolver-shapes/spikes/d131/).
+    it.each(['./lib', './lib.js'])('leaves %s on the JavaScript file a declaration file describes', (specifier) => {
+      write(root, 'src/lib.js', 'export function run() {}');
+      write(root, 'src/lib.d.ts', 'export function run(): void;');
+
+      const r = getImportResolver(root).resolve(specifier, 'src/a.ts');
+
+      expect(r.resolvedPath).toBe('src/lib.js');
+    });
+
+    it('prefers a declaration file over a directory of the same name', () => {
+      write(root, 'src/lib.d.ts', 'export interface Decl { a: number }');
+      write(root, 'src/lib/index.ts', 'export const x = 1;');
+
+      const r = getImportResolver(root).resolve('./lib', 'src/a.ts');
+
+      expect(r.resolvedPath).toBe('src/lib.d.ts');
+    });
+  });
+
   it('returns null (not external) for an intra-repo import with no file on disk', () => {
     write(root, 'src/a.ts', '');
     const r = getImportResolver(root).resolve('./missing', 'src/a.ts');

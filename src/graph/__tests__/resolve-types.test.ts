@@ -262,6 +262,10 @@ describe('resolveTypeContext through a re-export', () => {
     writeFileSync(join(dir, 'via-default-as.ts'), `import { default as Sh } from './default-shape';\n${'\n'.repeat(12)}export function draw(): void {}\n`);
     writeFileSync(join(dir, 'via-default-class.ts'), `import Circle, { type Color } from './default-circle';\n${'\n'.repeat(12)}export function draw(c: Color): void { void c; }\n`);
     writeFileSync(join(dir, 'via-default-value.ts'), `import Shape from './default-value';\n${'\n'.repeat(12)}export function draw(): void {}\n`);
+    // D131: the type is declared in a declaration file with no source beside it.
+    writeFileSync(join(dir, 'a-decoy3.ts'), `export interface Decl { decoy: true }\n`);
+    writeFileSync(join(dir, 'ambient.d.ts'), `export interface Decl { real: true }\n`);
+    writeFileSync(join(dir, 'via-declaration.ts'), USER('Decl', './ambient.js'));
     const config = resolveConfig({ projectRoot: dir });
     await runIndex(config, { incremental: false });
     barrelDb = openDatabase(config.resolved_state_dir);
@@ -291,6 +295,12 @@ describe('resolveTypeContext through a re-export', () => {
 
     expect(result.map((entry) => [entry.name, entry.file_path])).toEqual([[name, declaredIn]]);
     expect(result[0]?.signature).toContain(signature);
+  });
+
+  it('reaches a declaration file that has no source beside it', async () => {
+    const result = await resolveTypeContext(barrelDb, ['Decl'], 'via-declaration.ts');
+
+    expect(result.map((entry) => [entry.name, entry.file_path])).toEqual([['Decl', 'ambient.d.ts']]);
   });
 
   it('gives nothing for a default import of a file whose default export is no declaration', async () => {

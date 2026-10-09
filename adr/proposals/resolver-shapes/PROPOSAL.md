@@ -1,6 +1,6 @@
 # resolver-shapes — the wrong edges of D115 to D124
 
-**Status:** all ten rows are built (2026-10-09) and decided in [ADR 020](../../020-2026-10-09-resolver-shapes.md). What each row leaves unfixed is listed under it.
+**Status:** all ten rows are built (2026-10-09) and decided in [ADR 020](../../020-2026-10-09-resolver-shapes.md). D144 and D131 were built after it and are the last two sections here. What each row leaves unfixed is listed under it.
 
 Ten ledger rows (D115 to D124) came out of one review pass over the call resolver. Each is a
 shape of code where a stored edge names the wrong declaration, or a tool answers wrongly over
@@ -798,4 +798,56 @@ function held by a class field or an object property has no row, as before.
 
 **Tests.** `src/indexer/__tests__/function-expression-const.test.ts`: four cases, all
 failing before.
+
+## D131 — an import of a declaration file
+
+**The defect.** `src/types.d.ts` declares `interface Decl`. `import type { Decl } from
+'./types.js'` and `from './types'` stored no resolved path, so `mast_signature` had no
+type context for a parameter of that type.
+
+**Prior decisions.** One sentence, in the resolver and in `MAST_SPEC.md` §13.7:
+declaration files are out of scope "since MAST indexes implementation files". The walker
+indexes them (37 in the n8n index, 28 in directus), so the reason given was not true.
+`.history/005` repeats the sentence and gives no measurement. `FINDINGS.md` and `adr/`
+say nothing on it.
+
+**Measured before the change** (`spikes/d131/declaration-imports.mjs`, ten checkouts,
+read only; the compiler's own resolution with fixed options, no tsconfig read). Of
+191,756 relative specifiers, the compiler resolves 393 to a declaration file:
+
+| What mast did with it | Specifiers |
+|---|---|
+| nothing | 152 |
+| another file: an `x.js` beside the `x.d.ts` | 209 |
+| the declaration file (the specifier is written `.d.ts`) | 32 |
+
+n8n has none; its 35 unresolved relative imports are all ones the compiler does not
+resolve either (`unresolved-relative.n8n.before.txt`).
+
+**Decision.** The declaration file is the last file candidate: after `x.ts`, `x.tsx`,
+`x.js`, `x.jsx`, before the directory `x/`, and `index.d.ts` is the last index. This
+resolves the 152 and changes none of the other 241.
+
+**The alternative, not taken.** The compiler's order puts `x.d.ts` ahead of `x.js`.
+That would move the 209 from the file that holds the code to the file that describes
+it: the importer's call edges and `mast_callers` answers would land on bodiless
+declarations. The cost of not taking it is that a type declared only in such an
+`x.d.ts` still has no type context through the import. Not measured: how many of the
+209 import a type and how many a value.
+
+**Measured after** (the built resolver asked for each of the 393, same script with
+`MAST_DIST`): all 152 now give the file the compiler names; 135 of them are in files
+mast indexes, all in vscode (124 written without extension, 11 with `.js`), and 17 are
+in `*.test.ts` files, which the default configuration skips. The 209 and the 32 answer
+as before. The n8n index has no import row changed and the directus index none either
+(its ten are in test files), and no edge row in directus changes. All four scorecard
+compares exit 0.
+
+**Not run.** An index of vscode, where the whole effect is: what the 135 imports add to
+edges and type context there is not measured. A tsconfig alias to a declaration file is
+tested and was not counted in any checkout.
+
+**Tests.** `import-resolver.test.ts` › `a declaration file`: 11 cases, 8 failing
+before; the three that passed pin the order (source first, `x.js` over its `x.d.ts`).
+`resolve-types.test.ts` › `reaches a declaration file that has no source beside it`.
 
