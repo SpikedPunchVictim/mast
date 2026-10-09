@@ -66,12 +66,17 @@ export async function queryVerifiedCallers(
   // Transitive callers: recursive CTE walking POTENTIAL_CALL edges. Each hop
   // carries its own call-site metadata so intermediate callers report the line
   // and context of the call they make.
+  //
+  // A row with `is_caller` 0 is a constructor the walk passes through and not a
+  // caller: when a class is reached, what constructs it is stored as a caller
+  // of its constructor (D122). It is a row of the walk rather than a second
+  // condition on the step so that each step stays one indexed join on `to_id`.
   return db
     .withRecursive('callers', (qb) =>
-      // Anchor: direct callers of `symbolId`.
+      // Anchor: direct callers of `symbolIds` and of their constructors.
       qb
         .selectFrom('edges')
-        .select(['from_id as id', 'call_line', 'context', 'resolution'])
+        .select(['from_id as id', 'call_line', 'context', 'resolution', sql<number>`1`.as('is_caller')])
         .where('to_id', 'in', targetIds)
         .where('edge_type', '=', EdgeType.POTENTIAL_CALL)
         .union(
@@ -79,8 +84,31 @@ export async function queryVerifiedCallers(
           qb
             .selectFrom('edges as e')
             .innerJoin('callers', 'callers.id', 'e.to_id')
-            .select(['e.from_id as id', 'e.call_line', 'e.context', 'e.resolution'])
+            .select([
+              'e.from_id as id',
+              'e.call_line',
+              'e.context',
+              'e.resolution',
+              sql<number>`1`.as('is_caller'),
+            ])
             .where('e.edge_type', '=', EdgeType.POTENTIAL_CALL),
+        )
+        .union(
+          // Recursive step: the constructor of a class in the walk.
+          qb
+            .selectFrom('edges as p')
+            .innerJoin('callers', 'callers.id', 'p.from_id')
+            .innerJoin('symbols as owner', 'owner.id', 'p.from_id')
+            .innerJoin('symbols as member', 'member.id', 'p.to_id')
+            .select([
+              'member.id as id',
+              sql<number | null>`NULL`.as('call_line'),
+              sql<string | null>`NULL`.as('context'),
+              sql<string | null>`NULL`.as('resolution'),
+              sql<number>`0`.as('is_caller'),
+            ])
+            .where('p.edge_type', '=', EdgeType.PARENT_OF)
+            .where(IS_CONSTRUCTOR_OF_OWNER),
         ),
     )
     .selectFrom('symbols as s')
@@ -93,8 +121,12 @@ export async function queryVerifiedCallers(
       sql<string>`COALESCE(c.context, '')`.as('context'),
       sql<string>`COALESCE(c.resolution, 'same_file')`.as('resolution'),
     ])
+    .where('c.is_caller', '=', 1)
     .execute();
 }
+
+/** `member` is the constructor of the class `owner`: the two are named `X.constructor` and `X`. */
+const IS_CONSTRUCTOR_OF_OWNER = sql<boolean>`member.name = owner.name || '.constructor'`;
 
 /**
  * The `constructor` symbol of the class `classId`, by its PARENT_OF edge.
@@ -108,7 +140,7 @@ async function constructorIdsOf(db: Db, classId: number): Promise<readonly numbe
     .select('member.id')
     .where('e.from_id', '=', classId)
     .where('e.edge_type', '=', EdgeType.PARENT_OF)
-    .where(sql<boolean>`member.name = owner.name || '.constructor'`)
+    .where(IS_CONSTRUCTOR_OF_OWNER)
     .execute();
   return rows.map((r) => r.id);
 }

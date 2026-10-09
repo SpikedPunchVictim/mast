@@ -127,4 +127,56 @@ export function use(w: WithCtor): number { return w.double(); }
       expect(await callersOf('WithCtor.constructor', false)).toEqual(['build [construction]']);
     });
   });
+
+  // D122. A field initializer's call is stored from the class, and `new X()` on
+  // X's constructor, so the walk reaches the class and has to go on from the
+  // constructor's callers too: constructing X is what runs the initializer.
+  describe('a class with a constructor in the middle of a walk', () => {
+    async function transitiveCallersOf(name: string): Promise<readonly string[]> {
+      await indexFull(projectDir);
+      const db = openDatabase(configFor(projectDir).resolved_state_dir);
+      try {
+        const [target] = await querySymbolByName(db, name);
+        if (target === undefined) throw new Error(`no symbol ${name}`);
+        const rows = await queryVerifiedCallers(db, [target.id], true);
+        return rows.map((r) => `${r.caller_symbol} [${r.resolution}]`).sort();
+      } finally {
+        await db.destroy();
+      }
+    }
+
+    beforeEach(() => {
+      writeFiles(projectDir, {
+        'src/lib.ts': `export function target(): void {}\n`,
+        'src/cls.ts': `import { target } from './lib.js';
+export class WithCtor {
+  private v = target();
+  constructor() { void this.v; }
+}
+export class NoCtor {
+  private v = target();
+}
+`,
+        'src/mk.ts': `import { WithCtor, NoCtor } from './cls.js';
+export function makeWith(): WithCtor { return new WithCtor(); }
+export function makeNo(): NoCtor { return new NoCtor(); }
+export function outer(): WithCtor { return makeWith(); }
+`,
+      });
+    });
+
+    it('goes on to what constructs it, and to their callers', async () => {
+      expect(await transitiveCallersOf('target')).toEqual([
+        'NoCtor [import]',
+        'WithCtor [import]',
+        'makeNo [construction]',
+        'makeWith [construction]',
+        'outer [same_file]',
+      ]);
+    });
+
+    it('does not list the constructor as a caller when it calls nothing in the walk', async () => {
+      expect(await transitiveCallersOf('target')).not.toContain('WithCtor.constructor [same_file]');
+    });
+  });
 });

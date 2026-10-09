@@ -1,0 +1,11 @@
+classes that declare a constructor: 1966
+of those, with a call stored from the class row: 60 classes, 121 edges
+symbols such a class calls (starts measured): 103
+starts whose transitive answer changes: 57
+callers added over those starts: 719  callers removed: 0
+walk time over all starts: old 40 ms, new 72 ms
+  +81  packages/cli/src/modules/agents/integrations/n8n-memory.ts:N8nMemoryImpl.acquireEpisodicMemoryTaskLock
+  +81  packages/cli/src/modules/agents/integrations/n8n-memory.ts:N8nMemoryImpl.releaseEpisodicMemoryTaskLock
+  +81  packages/cli/src/modules/agents/integrations/n8n-memory.ts:N8nMemoryImpl.saveEpisodicMemoryEntryWithSources
+  +81  packages/cli/src/modules/agents/integrations/n8n-memory.ts:N8nMemoryImpl.searchEpisodicMemoryEntries
+  +81  packages/cli/src/modules/agents/integrations/n8n-memory.ts:N8nMemoryImpl.getEpisodicMemoryEntrySources

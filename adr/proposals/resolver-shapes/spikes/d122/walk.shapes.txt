@@ -1,0 +1,7 @@
+classes that declare a constructor: 3
+of those, with a call stored from the class row: 1 classes, 1 edges
+symbols such a class calls (starts measured): 1
+starts whose transitive answer changes: 1
+callers added over those starts: 1  callers removed: 0
+walk time over all starts: old 0 ms, new 0 ms
+  +1  packages/constructor-callers/src/lib.ts:target

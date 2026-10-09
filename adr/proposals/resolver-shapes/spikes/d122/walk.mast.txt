@@ -1,0 +1,6 @@
+classes that declare a constructor: 11
+of those, with a call stored from the class row: 0 classes, 0 edges
+symbols such a class calls (starts measured): 0
+starts whose transitive answer changes: 0
+callers added over those starts: 0  callers removed: 0
+walk time over all starts: old 0 ms, new 0 ms

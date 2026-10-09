@@ -510,3 +510,65 @@ Two scenarios in `equivalence-scenarios.ts`; both pass before and after, because
 index was wrong in the same way, and they hold only that the two stay equal. The
 comparison they use now names each end of an edge by line.
 
+## D122 — transitive callers stop at a class that declares a constructor
+
+**The defect.** `new X()` is stored on `X.constructor` when X declares one (decided
+2026-10-07), and a call in a field initializer is stored from the class row. Asked
+directly about a class, `queryVerifiedCallers` adds the constructor's callers. The
+recursive step did not: it followed callers of the class row only, so a walk that
+reached a class through its initializer ended there. On the shapes corpus
+`mast_callers target` with `transitive: true` answered `WithCtor`, `NoCtor`, `makeNo`,
+and not `makeWith`. Every stored edge is right; the answer was wrong.
+
+**Prior decisions.** The construction decision above, which this keeps. I found nothing
+in `adr/`, `FINDINGS.md` or `MAST_SPEC.md` that decides what a transitive walk does at a
+class; the spec's example is the two-term walk.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| R1 | A class in the walk adds its constructor to the walk as a row that is passed through and not reported; the existing step then finds the constructor's callers | **Built.** Each step stays one join on an indexed column |
+| R2 | One step with `e.to_id = callers.id OR e.to_id = (the constructor of callers.id)` | **Reject.** Same answer; the `OR` across two tables takes the step off the `to_id` index. Not measured, chosen on the query's form |
+| R3 | Store field-initializer calls from the constructor | **Reject.** A class with no constructor has no such row, and the stored edges agree with the reference as they are |
+| R4 | Store `new X()` on the class as well as on the constructor | **Reject.** Undoes the 2026-10-07 decision and doubles every construction edge |
+
+**Measured** (`spikes/d122/walk-through-constructor.py`, the two walks as SQL run
+against the D121 indexes; it reads the database only):
+
+| Corpus | Classes declaring a constructor | Of those, with a call stored from the class row | Symbols such a class calls | Transitive answers that change | Callers added | Callers removed |
+|---|---|---|---|---|---|---|
+| this repository | 11 | 0 | 0 | 0 | 0 | 0 |
+| shapes corpus | 3 | 1 (1 edge) | 1 | 1 | 1 | 0 |
+| n8n `9d9e9bf9` | 1,966 | 60 (121 edges) | 103 | 57 | 719 | 0 |
+
+The count of answers that change is a lower bound: the script starts only at the
+symbols such a class calls directly, and any symbol further down those call chains
+changes too. Walk time over the 103 n8n starts: 40 ms before, 72 ms after, one run, on
+a machine doing other work.
+
+`spikes/d122/tool-answer.shapes.txt` is `mast query mast_callers` on the shapes corpus
+with the built change: `["WithCtor","NoCtor","makeNo","makeWith"]`.
+
+**What the added callers are.** I read one n8n case in source. `N8nMemoryImpl`
+(`packages/cli/src/modules/agents/integrations/n8n-memory.ts:104`) declares a
+constructor and has a field holding arrow functions, one of which calls
+`this.acquireEpisodicMemoryTaskLock`. That call is stored from the class, and
+`N8nMemory.getImplementation` constructs the class, so it and its callers are now
+transitive callers of the method (81 added for that start). Constructing the class does
+not run that arrow. This is the looseness a call inside any nested function already has
+(it is stored from the enclosing declaration), and a class without a constructor gave
+the same answer before this change. The other 56 changed answers I did not read.
+
+**Not fixed, not checked.**
+
+- A subclass that inherits its constructor: `new Sub()` is stored on `Sub`, and a walk
+  that reaches the parent class through the parent's initializer does not go on to what
+  constructs `Sub`. Inferred from the stored edges; no test.
+- A static field's initializer is also stored from the class, and constructing the class
+  does not run it. Same answer as a class without a constructor.
+- `mast_rename_impact` has no transitive walk.
+
+**Tests.** `src/indexer/__tests__/construction-edges.test.ts`, "a class with a
+constructor in the middle of a walk": two cases, the first failing before the change
+with `makeWith` and `outer` missing. The second (the constructor is not reported)
+passed before and holds R1's pass-through.
+

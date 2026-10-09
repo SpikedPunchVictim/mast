@@ -85,3 +85,14 @@ The agreement of `is_exported` with the compiler is read from `eval-suite/baseli
 `eval-suite/graph-scorecard.mjs` changed in this row (D147): an end of an edge on a key
 with more than one row is `key@line`. It has no test of its own; the four baselines are
 what hold it.
+
+## D122 (`spikes/d122/`)
+
+| File | What it is |
+|---|---|
+| `walk-through-constructor.py` | Runs the transitive walk with and without the step through a constructor, for every symbol called from the row of a class that declares one, and counts the answers that differ and the time of each |
+| `walk.*.txt` | Its output on the D121 indexes of this repository, the shapes corpus and n8n |
+| `tool-answer.shapes.txt` | `mast_callers target`, transitive, on the shapes corpus with the change built |
+
+No stored edge changes in this row, so the scorecard and its baselines are as they were.
+

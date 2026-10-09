@@ -427,6 +427,13 @@ the **verified** set. `mast_callers` MUST also run an `identifier_fts` query for
 the symbol name and present those hits as a separate **potential** set — see §9
 `mast_callers`.
 
+The walk as built has one more step (2026-10-09, D122). A call in a field
+initializer is stored from the class, and `new X()` on `X.constructor` when X
+declares one, so a class reached by the walk is followed to its constructor and
+the walk goes on from the constructor's callers. The constructor is passed
+through and is not itself reported unless it makes a call in the walk. The same
+rule already held for the symbol asked about (`queryVerifiedCallers`).
+
 **Recursive CTE example — barrel file / transitive re-export resolution:**
 
 Used by `mast_signature` when the direct symbol lookup returns no result, indicating
