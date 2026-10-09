@@ -1,0 +1,6 @@
+old: 71126 edge rows, new: 71128 edge rows
+only in old: 0, only in new: 2
+only in old, by type: {}
+only in new, by type: {'POTENTIAL_CALL': 2}
++ POTENTIAL_CALL [construction] line 210 packages/nodes-base/nodes/HighLevel/v2/GenericFunctions.ts:addNotePostReceiveAction(function@195) -> packages/workflow/src/errors/node-operation.error.ts:NodeOperationError.constructor(method@12)
++ POTENTIAL_CALL [import] line 6 packages/frontend/@n8n/design-system/src/composables/useI18n.ts:useI18n(function@4) -> packages/frontend/@n8n/design-system/src/locale/index.ts:t(function@15)

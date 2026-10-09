@@ -2108,6 +2108,7 @@ declaration. Line-based splitting is a fallback, not the primary strategy.
 |---|---|---|---|---|
 | `function_declaration` | `function` | function name | `null` | has `export` modifier |
 | `arrow_function` → `const` | `function` | variable name | `null` | has `export` modifier |
+| `function_expression`, `generator_function` → `const` (D144) | `function` | variable name | `null` | has `export` modifier |
 | `class_declaration` | `class_shell` (synthesized) | class name | `null` | has `export` modifier |
 | `method_definition` (inside class) | `method` | `ClassName.methodName` | class name | inherits from class **and** non-`private` |
 | `abstract_method_signature`, `method_signature` (inside class) | `method` | `ClassName.methodName` | class name | as above. A method with no body: `abstract m(): T;` or `m?(): T;`. An overload beside its implementation is not a symbol of its own (D107) |

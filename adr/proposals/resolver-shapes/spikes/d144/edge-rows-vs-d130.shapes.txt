@@ -1,0 +1,5 @@
+old: 92 edge rows, new: 93 edge rows
+only in old: 0, only in new: 1
+only in old, by type: {}
+only in new, by type: {'POTENTIAL_CALL': 1}
++ POTENTIAL_CALL [import] line 4 packages/dynamic-import-block/src/held.ts:viaArrow(function@1) -> packages/dynamic-import-block/src/arrow.ts:named(function@2)

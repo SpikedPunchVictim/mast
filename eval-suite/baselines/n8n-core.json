@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T15:24:54.290Z",
+  "ran_at": "2026-10-09T15:31:13.759Z",
   "typescript": "5.9.3",
-  "label": "n8n-core, d130",
+  "label": "n8n-core, d144",
   "root": "n8n-ref",
   "tsconfig": "packages/core/tsconfig.json",
   "prefix": "packages/core/",
@@ -14,8 +14,8 @@
   "corpus_hash": "198b715210b0497e0055446c9b802e30e539d7ece7fe5f2653f11ee9d10f0273",
   "program_source_files": 3119,
   "repeated_symbol_rows": 0,
-  "wall_ms": 3308,
-  "peak_rss_mb": 781
+  "wall_ms": 3271,
+  "peak_rss_mb": 717
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 62,
@@ -27,7 +27,7 @@
   "named import with an alias": 16,
   "namespace import": 11,
   "namespace or module declaration": 4,
-  "top-level variable that is not an arrow function": 107
+  "top-level variable that is not a function": 107
  },
  "items": {
   "edge: EXTENDS": {

@@ -761,3 +761,41 @@ with the decoy as the answer. `default-export.test.ts`, "imported with `import n
 from`": five cases, three failing before. `inherited-method-edges.test.ts`: the T2 case
 is turned round, and a case added for a default export that is an expression.
 
+## D144 — a variable that holds a function expression
+
+**The defect.** `export const named = function () {}` had no symbol, no signature and no
+call edge to it or from it. `export const go = () => {}` had all three.
+
+**Prior decisions.** `MAST_SPEC.md` §10.1's table gives an arrow function held by a
+`const` a `function` chunk. The chunker's own test also named a node type `function`
+beside the arrow, so a function expression was meant to count and the type name was
+wrong. Nothing decides against it.
+
+**Mechanism.** One predicate, `isFunctionValue`, for the three readers that each had
+their own test (chunk type, signature, call edges). No alternative was weighed: the
+three disagreeing was the defect.
+
+**Measured** (`spikes/d144/`):
+
+- n8n source, single-line forms (`forms.n8n.txt`, grep): 6 variables initialized with
+  `function`, 2,242 with an arrow. The form is rare there.
+- n8n index: function rows 16,584 to 16,588; the four new rows are listed in
+  `new-function-rows.n8n.txt` and none is gone. Two of the six the grep finds are not
+  among them; I did not look at why (not at top level, or not in an indexed file, are
+  the likely reasons). Edge rows 71,126 to 71,128, both new edges are calls, none gone.
+  I read `locale/index.ts:15` and `HighLevel/v2/GenericFunctions.ts:195` in source: both
+  are `export const … = function (`.
+- Shapes corpus: `named` in `dynamic-import-block/src/arrow.ts` is a row, and the call
+  of it an edge that agrees with the compiler.
+- `compare` against the D130 baselines exits 0 on all four.
+
+**The scorecard.** Its reference listed only arrow-valued variables as functions, so a
+missing row for a function expression could not show as `lacks`. It now lists both.
+
+**Not fixed, not checked.** Only the first declarator of a statement is read
+(`const a = () => {}, b = () => {}` gives `a` alone); read in the code, not run. A
+function held by a class field or an object property has no row, as before.
+
+**Tests.** `src/indexer/__tests__/function-expression-const.test.ts`: four cases, all
+failing before.
+

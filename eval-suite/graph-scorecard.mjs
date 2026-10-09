@@ -402,8 +402,9 @@ function runScore({ flags }) {
       } else if (ts.isVariableStatement(stmt)) {
         for (const d of stmt.declarationList.declarations) {
           if (!ts.isIdentifier(d.name)) { note('top-level destructuring declaration'); continue; }
-          if (d.initializer && ts.isArrowFunction(d.initializer)) add('function', d.name.text, hasExport(stmt));
-          else note(d.initializer && ts.isFunctionExpression(d.initializer) ? 'top-level variable holding a function expression' : 'top-level variable that is not an arrow function');
+          // A function expression counts as the arrow does (D144); `function*` is one too.
+          if (d.initializer && (ts.isArrowFunction(d.initializer) || ts.isFunctionExpression(d.initializer))) add('function', d.name.text, hasExport(stmt));
+          else note('top-level variable that is not a function');
         }
       } else if (ts.isEnumDeclaration(stmt)) note('enum');
       else if (ts.isModuleDeclaration(stmt)) note('namespace or module declaration');

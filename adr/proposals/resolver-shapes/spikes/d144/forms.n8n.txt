@@ -1,0 +1,2 @@
+6  ^(export )?(const|let|var) [A-Za-z_$][A-Za-z0-9_$]*( *:[^=]+)? = (async )?function
+2242  ^(export )?(const|let|var) [A-Za-z_$][A-Za-z0-9_$]*( *:[^=]+)? = (async )?(\([^)]*\)|[A-Za-z_$][A-Za-z0-9_$]*)( *:[^=]+)? =>

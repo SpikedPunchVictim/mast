@@ -318,11 +318,7 @@ function emitChunksForNode(
       const declarator = findChildByType(node, 'variable_declarator');
       if (declarator === null) break;
       const valNode = declarator.childForFieldName('value');
-      const isFunc =
-        valNode !== null &&
-        (nodeType(valNode) === 'arrow_function' ||
-          nodeType(valNode) === 'function' ||
-          nodeType(valNode) === 'generator_function');
+      const isFunc = isFunctionValue(valNode);
       const name = declarator.childForFieldName('name')?.text ?? null;
       pushChunks(chunks, {
         chunkType: isFunc ? 'function' : 'block',
@@ -662,7 +658,7 @@ export function extractSignatures(tree: Tree, src: string): ExtractedSignature[]
         const declarator = findChildByType(decl, 'variable_declarator');
         const value = declarator?.childForFieldName('value') ?? null;
         const name = declarator?.childForFieldName('name')?.text ?? null;
-        if (name !== null && value !== null && nodeType(value) === 'arrow_function') {
+        if (name !== null && value !== null && isFunctionValue(value)) {
           out.push(arrowSignatureFor(name, decl, value, docHost, root, src));
         }
         break;
@@ -732,6 +728,18 @@ function signatureFor(name: string, node: SyntaxNode, docHost: SyntaxNode, docPa
 }
 
 /** Signature info for an arrow-function const (`export const f = (...) => ...`). */
+/**
+ * A variable's value that makes the variable a function: an arrow function, a
+ * function expression or a generator function expression. One predicate for
+ * the chunk, the signature and the call edges, which each had their own and
+ * agreed only on the arrow (D144).
+ */
+function isFunctionValue(value: SyntaxNode | null): boolean {
+  if (value === null) return false;
+  const type = nodeType(value);
+  return type === 'arrow_function' || type === 'function_expression' || type === 'generator_function';
+}
+
 function arrowSignatureFor(name: string, declNode: SyntaxNode, arrow: SyntaxNode, docHost: SyntaxNode, docParent: SyntaxNode, src: string): ExtractedSignature {
   const body = arrow.childForFieldName('body');
   // Declaration text up to the arrow body, with a trailing `=>` trimmed.
@@ -1456,7 +1464,7 @@ export function extractEdges(
       const declarator = findChildByType(declNode, 'variable_declarator');
       const value = declarator?.childForFieldName('value') ?? null;
       const name = declarator?.childForFieldName('name')?.text ?? null;
-      if (name !== null && value !== null && nodeType(value) === 'arrow_function') {
+      if (name !== null && value !== null && isFunctionValue(value)) {
         const body = value.childForFieldName('body');
         if (body !== null) {
           const params = value.childForFieldName('parameters') ?? value.childForFieldName('parameter');

@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T15:25:31.919Z",
+  "ran_at": "2026-10-09T15:31:10.288Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, d130",
+  "label": "resolver shapes, d144",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -14,15 +14,14 @@
   "corpus_hash": "a233bfbd56a6020b3fb1c9d1d6a707a06389350d287239d5d8f91c9b0f46c8c5",
   "program_source_files": 214,
   "repeated_symbol_rows": 3,
-  "wall_ms": 421,
-  "peak_rss_mb": 317
+  "wall_ms": 381,
+  "peak_rss_mb": 297
  },
  "notes": {
-  "call through a variable, judged by its signature": 1,
+  "call through a variable, judged by its signature": 2,
   "call whose callee is not a name or a property": 3,
   "export default <expression>": 2,
-  "named import with an alias": 5,
-  "top-level variable holding a function expression": 1
+  "named import with an alias": 5
  },
  "items": {
   "edge: EXTENDS": {
@@ -112,6 +111,7 @@
     "packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:RealShape.area",
     "packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:Shape.area",
     "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:named",
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
@@ -329,6 +329,7 @@
     "packages/default-import/src/use.ts:use exported=true",
     "packages/default-import/src/value.ts:tool exported=true",
     "packages/dynamic-import-block/src/arrow.ts:go exported=true",
+    "packages/dynamic-import-block/src/arrow.ts:named exported=true",
     "packages/dynamic-import-block/src/held.ts:viaArrow exported=true",
     "packages/dynamic-import-block/src/local.ts:run exported=true",
     "packages/dynamic-import-block/src/remote.ts:run exported=true",
@@ -463,6 +464,7 @@
     "packages/default-import/src/use.ts:use",
     "packages/default-import/src/value.ts:tool",
     "packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/arrow.ts:named",
     "packages/dynamic-import-block/src/held.ts:viaArrow",
     "packages/dynamic-import-block/src/local.ts:run",
     "packages/dynamic-import-block/src/remote.ts:run",
@@ -601,6 +603,7 @@
     "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
     "packages/default-import/src/use.ts:use > packages/default-import/src/run.ts:main",
     "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:named",
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
@@ -687,6 +690,7 @@
     "packages/constructor-callers/src/cls.ts:WithCtor > packages/constructor-callers/src/lib.ts:target",
     "packages/default-import/src/use.ts:use > packages/default-import/src/run.ts:main",
     "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:go",
+    "packages/dynamic-import-block/src/held.ts:viaArrow > packages/dynamic-import-block/src/arrow.ts:named",
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",

@@ -132,3 +132,15 @@ The four baselines are regenerated from the D148 build.
 import as a binding of `default`. The shapes corpus gained `packages/default-import/`.
 The four baselines are regenerated from the D130 build.
 
+## D144 (`spikes/d144/`)
+
+| File | What it is |
+|---|---|
+| `forms.n8n.txt` | Count of single-line top-level variables in n8n initialized with `function` and with an arrow (grep; the pattern is on each line) |
+| `function-rows.txt`, `new-function-rows.n8n.txt` | Function rows in the D130 and D144 indexes, and the rows only the second has |
+| `edge-rows-vs-d130.*.txt` | `spikes/d121/edge-rows-diff.py`, D130 index against D144 |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D130 commit) with the D144 build |
+
+`eval-suite/graph-scorecard.mjs` changed in this row: a variable holding a function
+expression is a function in the reference. The four baselines are regenerated.
+
