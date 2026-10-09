@@ -254,7 +254,7 @@ with the index of `14a67bf` and the pass of this commit
 | | Shipped pass | After P1 |
 |---|---|---|
 | Finishes | No: heap out of memory at 319.5 s, exit 134 | Yes: exit 0, 375.7 s |
-| Maximum resident memory | 2,495 MB at the crash | 1,498 MB |
+| Maximum resident memory (`time -l`, bytes / 10^6) | 2,495 MB at the crash | 1,571 MB |
 | `checker` edges | 5,591 | 754 |
 | Call written outside the caller's own lines | 2,637 | 0 |
 | Agree with the compiler | 756 | 734 |
