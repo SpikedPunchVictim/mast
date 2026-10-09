@@ -38,6 +38,7 @@ hypotheses, and unread measurements — and the only one of these files edited i
 | [016](016-2026-09-03-discovery-freshness.md) | 2026-09-03 | Discovery freshness: the gap JIT was never able to close |
 | [017](017-2026-10-04-agent-priming.md) | 2026-10-04 | Agent priming: telling the model to use mast through hooks, not prose |
 | [018](018-2026-10-06-dot-directories.md) | 2026-10-06 | Dot directories are walked only when named |
+| [019](019-2026-10-08-schema-rebuild.md) | 2026-10-08 | An index another version built is rebuilt in place, or refused |
 
 ## Reading order — which is not the numbering
 

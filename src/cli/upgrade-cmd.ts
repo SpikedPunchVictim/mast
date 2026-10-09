@@ -17,8 +17,9 @@ import { resolveConfig, CURRENT_SCHEMA_VERSION } from '../store/config.js';
  * containers.
  *
  * What the package manager *cannot* do is the reason this command exists at all:
- * upgrading across a schema-version change makes `bootstrapState` discard the index and
- * reindex from scratch (`mcp/startup.ts`). On a 150k-chunk monorepo that is minutes of
+ * upgrading across a schema-version change makes `bootstrapState` and `runIndex` empty the
+ * index and reindex from scratch (`mcp/startup.ts`, `indexer/index.ts`), and until one of
+ * them has run every read refuses the old index (ADR 019). On a 150k-chunk monorepo that is minutes of
  * silence on the next `serve`, and `pnpm up` will never mention it. Telling the user
  * before they upgrade is this command's whole job.
  */
@@ -100,8 +101,9 @@ export function buildUpgradeReport(f: UpgradeFacts): string {
     const size = f.chunkCount === null ? 'your whole project' : `${f.chunkCount.toLocaleString('en-US')} chunks`;
     out.push(
       `Your index was built under schema ${f.indexedSchema}; this build expects ${f.currentSchema}.`,
-      `The next \`mast serve\` or \`mast index\` will discard it and reindex ${size} from scratch.`,
-      'Nothing is lost that cannot be rebuilt — the index is derived state — but budget the time.', '');
+      `The next \`mast serve\` or \`mast index\` will empty it and reindex ${size} from scratch.`,
+      'Until one of them has run, `mast search` and `mast query` stop with an error naming both versions.',
+      'Nothing is lost that cannot be rebuilt (the index is derived state, and usage metrics are kept), but budget the time.', '');
   }
   out.push(...afterUpgradingLines(f.installed));
   return out.join('\n').trimEnd();

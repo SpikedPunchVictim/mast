@@ -329,10 +329,13 @@ it does not upgrade in place, because a CLI cannot reliably tell a global instal
 dev dependency, and guessing wrong runs the wrong command in your repository.
 
 More importantly, it tells you the one thing your package manager cannot: whether the
-upgrade changes the **index schema**. When it does, MAST discards the index and rebuilds
-it on the next `serve` or `index`. Nothing is lost that cannot be rebuilt — the index is
-derived state — but on a large monorepo it is minutes, and it is better known in advance
-than discovered as an unexplained stall.
+upgrade changes the **index schema**. When it does, MAST empties the index and rebuilds
+it on the next `serve` or `index`, and says so in one line. Until then `mast search` and
+`mast query` stop with an error naming both versions, so an answer is never drawn from rows
+another version wrote. Usage metrics are kept. An index built by a *newer* MAST is never
+emptied: the older one stops and says to upgrade. Nothing is lost that cannot be rebuilt,
+but on a large monorepo the rebuild is minutes, and it is better known in advance than
+discovered as an unexplained stall.
 
 If mast's hooks, rules files or skill blocks are installed in the project (or hook files
 under your home directory), the report ends with an "After upgrading" block listing the

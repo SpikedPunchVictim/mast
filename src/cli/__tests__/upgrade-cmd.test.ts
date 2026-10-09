@@ -80,6 +80,15 @@ describe('buildUpgradeReport', () => {
     expect(out).toContain('152,969');
   });
 
+  // Since D138 a read stops over such an index, so the wait is not the only
+  // thing to know about in advance; and since D125 the metrics are not lost.
+  it('says searches stop until the rebuild, and that usage metrics are kept', () => {
+    const out = buildUpgradeReport(FACTS({ indexedSchema: '1.2.0' }));
+
+    expect(out).toMatch(/`mast search` and `mast query` stop with an error/);
+    expect(out).toMatch(/metrics are kept/);
+  });
+
   it('does not threaten a reindex when the schema is unchanged', () => {
     expect(buildUpgradeReport(FACTS())).not.toMatch(/reindex/i);
   });

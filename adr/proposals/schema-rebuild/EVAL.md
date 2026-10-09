@@ -1,6 +1,6 @@
 # schema-rebuild — eval manifest
 
-**Decision:** accepted 2026-10-08, no ADR yet; the record is [`PROPOSAL.md`](PROPOSAL.md). **Spike numbers:**
+**Decision:** [ADR 019](../../019-2026-10-08-schema-rebuild.md), accepted 2026-10-08; the design is in [`PROPOSAL.md`](PROPOSAL.md). **Spike numbers:**
 [`spikes/RESULTS.md`](spikes/RESULTS.md).
 
 Experiment scripts stay in `eval/` (ADR 001). Checks meant to be run again and again live in
