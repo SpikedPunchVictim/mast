@@ -843,9 +843,18 @@ as before. The n8n index has no import row changed and the directus index none e
 (its ten are in test files), and no edge row in directus changes. All four scorecard
 compares exit 0.
 
-**Not run.** An index of vscode, where the whole effect is: what the 135 imports add to
-edges and type context there is not measured. A tsconfig alias to a declaration file is
-tested and was not counted in any checkout.
+**vscode, indexed afterwards** (a copy at b285c0292b5, 10,180 files; the same build
+with the resolver file as of 569f0f9 and as of now; `import-diff.vscode.txt`,
+`edge-rows.vscode.txt`, `names-reached.vscode.txt`). 135 import rows gain a resolved
+path and none loses or changes one: the number the specifier count gave, by a second
+route. Each resolves to a file in the index. 44 of the rows import no name; the other
+91 import 269 names, and 263 of those have a symbol row in the file the import now
+reaches. 32 edge rows are new (28 `IMPLEMENTS`, 4 `EXTENDS`) and none is gone: a class
+that implements an interface declared in a `.d.ts` had no edge to it before.
+
+**Not run.** `mast_signature` itself on vscode: the 263 names are what a lookup can now
+reach, not answers counted. A tsconfig alias to a declaration file is tested and was
+not counted in any checkout.
 
 **Tests.** `import-resolver.test.ts` › `a declaration file`: 11 cases, 8 failing
 before; the three that passed pin the order (source first, `x.js` over its `x.d.ts`).

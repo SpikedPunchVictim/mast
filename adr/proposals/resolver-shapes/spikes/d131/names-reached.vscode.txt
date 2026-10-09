@@ -1,0 +1,5 @@
+import rows that gained a resolved path|135
+rows that import no name (namespace or side effect)|44
+imported names|269
+names with a symbol row in the resolved file|263
+the resolved file is in the index|135

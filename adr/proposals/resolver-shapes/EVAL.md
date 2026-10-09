@@ -152,6 +152,8 @@ expression is a function in the reference. The four baselines are regenerated.
 | `unresolved-relative.mjs`, `unresolved-relative.n8n.before.txt` | The n8n import rows with no resolved path at D144, by what the compiler makes of each |
 | `import-diff.sh`, `import-diff.{n8n,directus}.txt` | Import rows whose resolved path differs between two indexes (D144 against D131 for n8n; the same checkout before and after for directus, commit 9dca3724a6) |
 | `edge-rows.directus.txt` | `spikes/d121/edge-rows-diff.py` on the two directus indexes |
+| `import-diff.vscode.txt`, `edge-rows.vscode.txt` | The same two diffs on a copy of vscode (b285c0292b5), indexed by one build with the resolver file as of 569f0f9 and as of D131 |
+| `names-reached.sh`, `names-reached.vscode.txt` | For the import rows that gained a resolved path, the names imported and how many have a symbol row in the file now reached |
 | `scorecard-*.compare.txt` | `compare` of each baseline (as of the D144 commit) with the D131 build |
 
 ## D139 (`spikes/d139/`)
