@@ -19,20 +19,6 @@ const BUILTIN_TYPES = new Set([
   'InstanceType', 'Parameters', 'ConstructorParameters', 'Error',
 ]);
 
-/**
- * Extract user-defined PascalCase type names from a TypeScript signature.
- * Used to populate `type_context` in `mast_signature` responses.
- */
-function extractTypeNames(signature: string): string[] {
-  const re = /\b([A-Z][A-Za-z0-9]*)\b/g;
-  const names = new Set<string>();
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(signature)) !== null) {
-    const name = m[1]!;
-    if (!BUILTIN_TYPES.has(name)) names.add(name);
-  }
-  return [...names];
-}
 
 export function registerSignatureTool(server: McpServer, ctx: AppContext): void {
   server.tool(
@@ -102,9 +88,10 @@ export function registerSignatureTool(server: McpServer, ctx: AppContext): void 
         const returnType = sig?.returnType ?? null;
         // type_context is resolved from the parameter/return TYPES only — not
         // the body — so it no longer pulls in unrelated identifiers (§9).
-        const typeNames = extractTypeNames(
-          [...params.map((p) => p.type), returnType ?? ''].join(' '),
-        );
+        // The names come off the syntax tree. They were once every capitalised
+        // word of the type text, which missed `userId` and `My_Shape` and took
+        // a property key for a type (D149).
+        const typeNames = (sig?.typeNames ?? []).filter((name) => !BUILTIN_TYPES.has(name));
         const typeContext = await resolveTypeContext(ctx.db, typeNames, sym.file_path);
 
         results.push({

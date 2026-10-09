@@ -1552,7 +1552,10 @@ internal modules three levels deep. The recursive CTE for this lookup mirrors th
 callers pattern already in §6.3.
 
 **`type_context` resolution rules:**
-1. Extract all named types from `params` and `return_type`.
+1. Extract all named types from `params` and `return_type`, off the syntax tree: every
+   type reference, the first name of a dotted type (`Color` of `Color.Red`) and the
+   first name after `typeof`. Built-in names are dropped. A word in a comment, a string
+   or a property key is not a name, and a name need not begin with a capital (D149).
 2. For each type name, resolve the declaration using this priority order:
    a. **Same file first:** a `symbols` row of the containing file with that name that
       is not a re-export marker. This handles types defined alongside the function.

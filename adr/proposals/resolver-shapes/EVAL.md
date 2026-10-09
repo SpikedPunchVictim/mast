@@ -163,3 +163,11 @@ expression is a function in the reference. The four baselines are regenerated.
 | `edge-rows-vs-d131.n8n.txt` | `spikes/d121/edge-rows-diff.py`, D131 index against D139 |
 | `scorecard-*.compare.txt` | `compare` of each baseline (as of the D131 commit) with the D139 build |
 
+## D149 (`spikes/d149/`)
+
+| File | What it is |
+|---|---|
+| `type-names.mjs`, `type-names.n8n.txt` | For every signature of the indexed TypeScript files, the names the old pattern took against `typeNames` of the built extractor, with the dropped ones sorted by where they are written. Needs `MAST_DIST`; reads the checkout and the index, writes nothing |
+| `d139-repro.after.txt` | `spikes/d139/repro.sh` on the D149 build |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D139 commit) with the D149 build |
+

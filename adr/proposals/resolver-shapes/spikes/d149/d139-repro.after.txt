@@ -1,0 +1,16 @@
+commit f5459f3 + uncommitted src  node v24.18.0
+src/u1.ts  symbols=["Shape"]  aliases={"__proto__":"Shape"}
+src/u2.ts  symbols=["string name"]  aliases={"sn":"string name"}
+src/u3.ts  symbols=["Shape"]  aliases={"Q":"Shape"}
+src/u4.ts  symbols=["run"]  aliases={"constructor":"run"}
+src/u5.ts  symbols=["default"]  aliases={"__proto__":"default"}
+src/u7.ts  symbols=["run"]  aliases={"go":"run"}
+-- symbols that are not plain names
+src/u6.ts  export other name
+-- reexport_aliases
+7|other name|run
+-- call edges
+src/u4.ts:c -> src/lib.ts:run
+src/u5.ts:e -> src/lib.ts:dflt
+src/u7.ts:f -> src/lib.ts:run
+function p(a: __proto__): void  =>  __proto__ -> src/lib.ts

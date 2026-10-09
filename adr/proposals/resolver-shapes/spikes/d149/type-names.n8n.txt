@@ -1,0 +1,66 @@
+13422 files, 49765 signatures; 49098 with the same names under both rules
+names under the old rule: 45082; names off the tree: 45236
+only off the tree (gained): 552 (name, signature) pairs; 22 name an interface, type or class the index declares somewhere
+    declared  n8nPage  in packages/testing/playwright/composables/BuilderWizardComposer.ts:BuilderWizardComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/CanvasComposer.ts:CanvasComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/CredentialsComposer.ts:CredentialsComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/DataTablesComposer.ts:DataTableComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/ExecutionsComposer.ts:ExecutionsComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/MfaComposer.ts:MfaComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/NodeDetailsViewComposer.ts:NodeDetailsViewComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/OidcComposer.ts:OidcComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/PartialExecutionComposer.ts:PartialExecutionComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/ProjectComposer.ts:ProjectComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/TemplatesComposer.ts:TemplatesComposer.constructor
+    declared  n8nPage  in packages/testing/playwright/composables/TestEntryComposer.ts:TestEntryComposer.constructor
+    not declared  fakeSpan  in packages/@n8n/agents/src/runtime/__tests__/support/fake-tracer.ts:fakeTracer
+    not declared  toAiSdkProviderTools  in packages/@n8n/agents/src/runtime/loop/runtime-context.ts:RuntimeContextBuilder.buildToolLoopContext
+    not declared  loadAi  in packages/@n8n/agents/src/runtime/loop/stream-sink.ts:StreamSink.buildSmoothStreamTransformOptions
+    not declared  z  in packages/@n8n/agents/src/sdk/agent.ts:Agent.structuredOutput
+    not declared  z  in packages/@n8n/agents/src/sdk/tool.ts:combineInterruptSchemas
+    not declared  RUNTIME_SKILL_LINKED_FILE_GROUPS  in packages/@n8n/agents/src/skills/registry.ts:isLinkedFileGroup
+    not declared  nock  in packages/@n8n/agents/vitest.integration.setup.ts:sanitizeCassette
+    not declared  nock  in packages/@n8n/agents/vitest.integration.setup.ts:decodeCompressedJsonResponse
+only under the old rule (lost): 398 (name, signature) pairs; 71 name an interface, type or class the index declares somewhere
+    declared  AgentRuntimeConfig  in packages/@n8n/agents/src/runtime/memory/title-generation.ts:generateThreadTitle
+    declared  Filter  in packages/@n8n/agents/src/vector-stores/qdrant.ts:buildQdrantFilter
+    declared  ContentBlock  in packages/@n8n/ai-utilities/src/converters/message.ts:isCitationBlock
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.callAgent
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.plannerNode
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.shouldPlan
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.shouldLoopPlanner
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.formatOutput
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.shouldContinue
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.repromptForToolCall
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.transformInput
+    declared  State  in packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.transformOutput
+    not declared  BatchSpanProcessor  in packages/@n8n/agents/src/integrations/langsmith.ts:createLangSmithSpanProcessor
+    not declared  RunTree  in packages/@n8n/agents/src/integrations/langsmith.ts:createLangSmithSpanProcessor
+    not declared  The  in packages/@n8n/agents/src/runtime/memory/title-generation.ts:generateThreadTitle
+    not declared  Proxy  in packages/@n8n/agents/src/runtime/memory/title-generation.ts:generateThreadTitle
+    not declared  SSRF  in packages/@n8n/agents/src/runtime/memory/title-generation.ts:generateThreadTitle
+    not declared  Messages  in packages/@n8n/agents/src/runtime/memory/title-generation.ts:generateThreadTitle
+    not declared  ScoredPoint  in packages/@n8n/agents/src/vector-stores/qdrant.ts:toQueryResult
+    not declared  Condition  in packages/@n8n/agents/src/vector-stores/qdrant.ts:buildCondition
+    38  lost, written a part of a dotted name, or a longer name with _ or $, declared
+    73  lost, written a part of a dotted name, or a longer name with _ or $, not declared
+     9  lost, written elsewhere, not declared
+    12  lost, written in a comment, declared
+    99  lost, written in a comment, not declared
+    21  lost, written in a string, declared
+   146  lost, written in a string, not declared
+    elsewhere  BatchSpanProcessor  in packages/@n8n/agents/src/integrations/langsmith.ts:createLangSmithSpanProcessor
+    elsewhere  RunTree  in packages/@n8n/agents/src/integrations/langsmith.ts:createLangSmithSpanProcessor
+    elsewhere  Authorization  in packages/@n8n/ai-workflow-builder.ee/src/ai-workflow-builder-agent.service.ts:AiWorkflowBuilderService.setupModels
+    elsewhere  Authorization  in packages/@n8n/ai-workflow-builder.ee/src/ai-workflow-builder-agent.service.ts:AiWorkflowBuilderService.onGenerationSuccess
+    elsewhere  TopicArn  in packages/nodes-base/nodes/Aws/AwsSnsTriggerHelpers.ts:hasSignatureFields
+    elsewhere  Signature  in packages/nodes-base/nodes/Aws/AwsSnsTriggerHelpers.ts:hasSignatureFields
+    elsewhere  SignatureVersion  in packages/nodes-base/nodes/Aws/AwsSnsTriggerHelpers.ts:hasSignatureFields
+    elsewhere  SigningCertURL  in packages/nodes-base/nodes/Aws/AwsSnsTriggerHelpers.ts:hasSignatureFields
+    elsewhere  KafkaJS  in packages/nodes-base/nodes/Kafka/test/mocks/confluent-kafka.ts:confluentKafkaModuleMock
+lost, a part of a dotted name, declared: the distinct names and how many signatures each
+    ContentBlock  1  e.g. packages/@n8n/ai-utilities/src/converters/message.ts:isCitationBlock
+    State  21  e.g. packages/@n8n/ai-workflow-builder.ee/src/subgraphs/discovery.subgraph.ts:DiscoverySubgraph.callAgent
+    Workflow  10  e.g. packages/@n8n/db/src/repositories/workflow.repository.ts:WorkflowRepository.enrichDataWithExtras
+    Chat  4  e.g. packages/@n8n/nodes-langchain/nodes/agents/OpenAiAssistant/utils.ts:formatToOpenAIFunction
+    Credentials  2  e.g. packages/cli/src/services/ownership.service.ts:OwnershipService.addOwnedByAndSharedWith

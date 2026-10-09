@@ -120,6 +120,21 @@ beforeAll(async () => {
   writeFileSync(join(tmpDir, 'barrel.ts'), `export { Circle as Round } from './models';\n`);
   writeFileSync(join(tmpDir, 'star.ts'), `export * from './models';\n`);
   writeFileSync(join(tmpDir, 'large.ts'), LARGE_SRC);
+  // D149: type names that are not capital-first letters and digits, and words
+  // in a type that are no type name at all.
+  writeFileSync(join(tmpDir, 'names.ts'), [
+    'export type userId = string;',
+    'export interface My_Shape { a: number }',
+    'export interface $Box { a: number }',
+    'export interface Plain { a: number }',
+    'export interface Key { a: number }',
+    'export function spelled(a: userId, b: My_Shape, c: $Box): Plain | undefined { void a; void b; void c; return undefined; }',
+    "export function worded(a: { Key: Plain }, b: 'Key'): void { void a; void b; }",
+    'export enum Color { Red, Green }',
+    'export class Tool { static depth = 1; }',
+    'export function dotted(a: Color.Red, b: typeof Tool.depth): void { void a; void b; }',
+    '',
+  ].join('\n'));
 
   const config = resolveConfig({ projectRoot: tmpDir });
   await runIndex(config, { incremental: false });
@@ -438,7 +453,25 @@ describe('mast_signature', () => {
     expect(res.results.every((r) => r.file_path === 'math.ts')).toBe(true);
   });
 
-  it('returns empty results for unknown symbol', async () => {
+  it('resolves the type names of a signature however they are spelled', async () => {
+const res = await call('mast_signature', { symbol: 'spelled' }) as { results: Array<{ type_context: Array<{ name: string }> }> };
+
+expect(res.results[0]?.type_context.map((entry) => entry.name)).toEqual(['userId', 'My_Shape', '$Box', 'Plain']);
+});
+
+it('resolves the first name of a dotted type and of a `typeof`', async () => {
+const res = await call('mast_signature', { symbol: 'dotted' }) as { results: Array<{ type_context: Array<{ name: string }> }> };
+
+expect(res.results[0]?.type_context.map((entry) => entry.name)).toEqual(['Color', 'Tool']);
+});
+
+it('does not take a property key or a string in a type for a type name', async () => {
+const res = await call('mast_signature', { symbol: 'worded' }) as { results: Array<{ type_context: Array<{ name: string }> }> };
+
+expect(res.results[0]?.type_context.map((entry) => entry.name)).toEqual(['Plain']);
+});
+
+it('returns empty results for unknown symbol', async () => {
     const res = await call('mast_signature', { symbol: 'doesNotExist' }) as { results: Array<{ symbol: string }> };
     expect(res.results).toHaveLength(0);
   });
@@ -858,12 +891,12 @@ describe('mast_status', () => {
       stale_files: number;
       index_fresh: boolean;
     };
-    // Fixed fixture (6 files: math.ts, models.ts, calc.ts, barrel.ts, star.ts,
-    // large.ts) — both counts are deterministic outputs of the chunker, not
+    // Fixed fixture (7 files: math.ts, models.ts, calc.ts, barrel.ts, star.ts,
+    // large.ts, names.ts) — both counts are deterministic outputs of the chunker, not
     // wall-clock or environment-dependent, so they are pinned exactly rather
     // than merely bounded.
-    expect(res.indexed_files).toBe(6);
-    expect(res.chunk_count).toBe(70);
+    expect(res.indexed_files).toBe(7);
+    expect(res.chunk_count).toBe(80);
     expect(res.stale_files).toBe(0);
     expect(res.index_fresh).toBe(true);
   });

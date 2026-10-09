@@ -1,6 +1,6 @@
 # resolver-shapes — the wrong edges of D115 to D124
 
-**Status:** all ten rows are built (2026-10-09) and decided in [ADR 020](../../020-2026-10-09-resolver-shapes.md). D144, D131 and D139 were built after it and are the last three sections here. What each row leaves unfixed is listed under it.
+**Status:** all ten rows are built (2026-10-09) and decided in [ADR 020](../../020-2026-10-09-resolver-shapes.md). D144, D131, D139 and D149 were built after it and are the last four sections here. What each row leaves unfixed is listed under it.
 
 Ten ledger rows (D115 to D124) came out of one review pass over the call resolver. Each is a
 shape of code where a stored edge names the wrong declaration, or a tool answers wrongly over
@@ -901,4 +901,60 @@ an identifier from source; spot-checked, not exhaustive.
 **Tests.** `src/indexer/__tests__/unusual-import-names.test.ts`: 7 cases, all failing
 before (the string-name edge case only once the import was quoted the other way than
 the export).
+
+## D149 — type context only for names that begin with a capital
+
+**The defect.** `mast_signature` took its type names from the text of the parameter
+types and the return type with `/\b([A-Z][A-Za-z0-9]*)\b/`. `userId` and `My_Shape`
+were never asked about, and the answer for them was the empty one a type with no
+declaration gets.
+
+**Prior decisions.** `.history/001` records the pattern as how the tool was built, with
+no measurement and no alternative. `MAST_SPEC.md` §9 says "extract all named types" and
+does not say how. Nothing decides for the pattern.
+
+**How common** (n8n index): 10 of 15,514 interface, type and class rows have a name
+the pattern does not take. Rare there; one repository.
+
+**Mechanism.** The signature extractor already holds the tree. `typeNames` on each
+signature is every `type_identifier` in the parameter annotations and the return type,
+plus the first name of a dotted type and the first name after `typeof`. The tool drops
+the built-in names as before.
+
+**The first cut was wrong, and the measurement showed it.** Without the dotted first
+name, 924 (name, signature) pairs were dropped against the old rule, among them the
+`Color` of `a: Color.Red`, which the old rule found through the file's import. With it,
+398.
+
+**Measured** (`spikes/d149/type-names.mjs`, every signature of n8n's indexed
+TypeScript files, old rule against new; `type-names.n8n.txt`):
+
+| | (name, signature) pairs |
+|---|---|
+| signatures | 49,765 |
+| same names under both rules | 49,098 |
+| gained | 552, of which 22 name a declared type (all `n8nPage`); the rest are values after `typeof` |
+| dropped | 398 |
+| dropped, a word in a comment | 111 |
+| dropped, a word in a string | 167 |
+| dropped, a middle or last part of a dotted name | 111 |
+| dropped, elsewhere | 9, all listed; the ones I read are property keys |
+
+71 of the dropped pairs name something the index declares. Each is a coincidence of
+names by its position (comment, string, or the `Workflow` of
+`ListQueryDb.Workflow.WithSharing` matching an unrelated class); I read four in source
+and the five distinct dotted ones are listed in the output. The classification is by
+text patterns in the spike, not by the tree.
+
+**Not measured.** The `type_context` answers before and after (the lookup, not the
+names); a second repository. Both reproductions now answer:
+`p(a: __proto__)` gives `__proto__ -> src/lib.ts` (`spikes/d149/d139-repro.after.txt`)
+and `f(a: userId, b: My_Shape, c: Plain)` gives all three.
+
+**Not fixed.** A declaration's own type parameter (`T`) is still asked about, as
+before. A JavaScript file has no annotations and so no names.
+
+**Tests.** `src/mcp/tools/__tests__/tools.test.ts` › `mast_signature`: three cases.
+These are the first tests that assert a `type_context` through the tool; before them
+only `resolveTypeContext` was tested.
 

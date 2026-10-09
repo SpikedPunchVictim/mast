@@ -624,6 +624,12 @@ export interface ExtractedSignature {
   readonly signature: string;       // declaration text, body stripped
   readonly params: readonly ParamEntry[];
   readonly returnType: string | null;
+  /**
+   * The names the parameter types and the return type refer to, in the order
+   * written, each once. Read off the tree, so a name is one whatever its
+   * spelling, and a property key or a string in a type is not one (D149).
+   */
+  readonly typeNames: readonly string[];
   readonly doc: string | null;      // leading TSDoc/line comment, if any
 }
 
@@ -673,6 +679,7 @@ export function extractSignatures(tree: Tree, src: string): ExtractedSignature[]
             signature: extractSignatureText(decl, src),
             params: [],
             returnType: null,
+            typeNames: [],
             doc: getLeadingComment(docHost, root, src),
           });
         }
@@ -688,6 +695,7 @@ export function extractSignatures(tree: Tree, src: string): ExtractedSignature[]
           signature: extractSignatureText(decl, src),
           params: [],
           returnType: null,
+          typeNames: [],
           doc: getLeadingComment(docHost, root, src),
         });
         const body = decl.childForFieldName('body') ?? findChildByType(decl, 'class_body');
@@ -723,6 +731,7 @@ function signatureFor(name: string, node: SyntaxNode, docHost: SyntaxNode, docPa
     signature: extractSignatureText(node, src),
     params: paramsOf(node, src),
     returnType: returnTypeOf(node, src),
+    typeNames: typeNamesOf(node),
     doc: getLeadingComment(docHost, docParent, src),
   };
 }
@@ -752,6 +761,7 @@ function arrowSignatureFor(name: string, declNode: SyntaxNode, arrow: SyntaxNode
     signature: raw.replace(/=>\s*$/, '').trimEnd(),
     params: paramsOf(arrow, src),
     returnType: returnTypeOf(arrow, src),
+    typeNames: typeNamesOf(arrow),
     doc: getLeadingComment(docHost, docParent, src),
   };
 }
@@ -769,6 +779,41 @@ function paramsOf(node: SyntaxNode, src: string): ParamEntry[] {
     params.push({ name, type: typeAnnotationText(p, src) ?? '' });
   }
   return params;
+}
+
+/**
+ * The type names in a function's parameter annotations and return type. A
+ * `type_identifier` is a reference to a type; the name after `typeof` is a
+ * value, kept because a class is both; the first name of `a.b.C` is kept
+ * because an enum or a namespace is found by it.
+ */
+function typeNamesOf(node: SyntaxNode): string[] {
+  const names = new Set<string>();
+  const collect = (within: SyntaxNode): void => {
+    const type = nodeType(within);
+    if (type === 'type_identifier') names.add(within.text);
+    else if (type === 'nested_type_identifier') {
+      // `Color.Red`: the first name is the enum or namespace the file imports
+      // or declares, and the last is collected as a `type_identifier` below.
+      let first = within.childForFieldName('module');
+      while (first !== null && nodeType(first) === 'nested_identifier') first = first.childForFieldName('object');
+      if (first !== null && nodeType(first) === 'identifier') names.add(first.text);
+    } else if (type === 'type_query') {
+      // `typeof a.b.c` is asked about `a`.
+      let queried = within.namedChildren[0] ?? null;
+      while (queried !== null && nodeType(queried) === 'member_expression') queried = queried.childForFieldName('object');
+      if (queried !== null && nodeType(queried) === 'identifier') names.add(queried.text);
+    }
+    for (const child of nodeNamedChildren(within)) collect(child);
+  };
+  const parameters = node.childForFieldName('parameters') ?? findChildByType(node, 'formal_parameters');
+  for (const parameter of parameters === null ? [] : nodeNamedChildren(parameters)) {
+    const annotation = findChildByType(parameter, 'type_annotation');
+    if (annotation !== null) collect(annotation);
+  }
+  const returnType = node.childForFieldName('return_type');
+  if (returnType !== null) collect(returnType);
+  return [...names];
 }
 
 /** Return-type text from a node's `return_type` annotation, or null. */
