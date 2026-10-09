@@ -2356,8 +2356,10 @@ the indexer.
 6. **Same-file function calls.** A function calling another function in the same file
    resolves directly via the local `symbols` table.
 7. **`this.m()`.** To `m` on the enclosing class, and, when the class does not declare
-   `m`, to `m` on the class named in its `extends` clause. One step up, no further.
-8. **`super.m()`.** To `m` on the class named in the `extends` clause. One step up.
+   `m`, to `m` on the nearest class above it that does, however many `extends` steps up
+   (see "A member the receiver's class does not declare" below for where the walk stops).
+8. **`super.m()`.** To `m` on the class named in the `extends` clause, or the nearest
+   class above that one that declares it.
 9. **Construction.** `new UserRepository()` → the class's `constructor` when it declares
    one, the class otherwise.
 10. **Static calls.** `UserRepository.create()` where `UserRepository` is a name the file
@@ -2608,8 +2610,8 @@ the file's scope, not `Repo`. `R.create()`, `new R()`, `r.find()` with `r: R`, a
 the file does not import it, and the resolver places it by that import alone; so two
 imports that bind one exported name from two modules each reach their own. The `imports`
 row still holds the exported name, which is what repair and `mast_rename_impact` look
-importers up by. Not covered: `mast_signature` does not resolve a parameter typed with an
-alias, since it reads the `imports` row by the written name.
+importers up by. `mast_signature` reads a parameter typed with an alias through the same
+row's `aliases` column, and answers with the declaration the import names (D114).
 
 **A name is found through any mix of star and named re-exports.** A lookup in
 a file tries a declaration there, then a named re-export there, then the files
