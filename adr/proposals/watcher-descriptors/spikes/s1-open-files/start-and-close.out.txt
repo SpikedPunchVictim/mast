@@ -1,0 +1,24 @@
+# node start-and-close.mjs <nest-ref> ask ; node start-and-close.mjs <nest-ref> noask   (the shipped build, 2026-10-09)
+ask 1 ready 759 ms closed 32069 ms
+ask 2 ready 568 ms closed 29012 ms
+ask 3 ready 533 ms closed 40260 ms
+ask 4 ready 1566 ms closed 31432 ms
+ask 5 ready 782 ms closed 27399 ms
+ask 6 ready 255 ms closed 24738 ms
+ask 7 ready 390 ms closed 32065 ms
+ask 8 ready 290 ms closed 24325 ms
+noask 1 ready 499 ms closed 26935 ms
+noask 2 ready 220 ms closed 23790 ms
+noask 3 ready 249 ms closed 23071 ms
+noask 4 ready 224 ms closed 23330 ms
+noask 5 ready 244 ms closed 23204 ms
+noask 6 ready 281 ms closed 23036 ms
+noask 7 ready 260 ms closed 22999 ms
+noask 8 ready 231 ms closed 60433 ms
+
+[exited with code 0]
+# the build of 0cfcfcd, before any watcher change, on nest; then the shipped build on this repository (two rounds each)
+before 1 ready 262 ms closed 58641 ms
+before 2 ready 239 ms closed 23011 ms
+after 1 ready 86 ms closed 120 ms
+after 2 ready 65 ms closed 117 ms

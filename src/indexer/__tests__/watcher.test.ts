@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { resolveConfig } from '../../store/config.js';
@@ -609,6 +609,41 @@ describe('startWatchMode — which directories it asks chokidar to ignore', () =
     const ignored = ignoredPredicate([]);
 
     expect(ignored(join(dir, 'icons.png'))).toBe(false);
+  });
+
+  // D160: the walk follows no symbolic link, so nothing reached through one
+  // is ever indexed. chokidar follows them unless each is ignored.
+  it('ignores a symbolic link to a directory', () => {
+    const outside = mkdtempSync(join(tmpdir(), 'mast-watch-outside-'));
+    symlinkSync(outside, join(dir, 'linked'));
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, 'linked'), aDirectory)).toBe(true);
+    rmSync(outside, { recursive: true, force: true });
+  });
+
+  it('ignores a symbolic link to a file with an indexed extension', () => {
+    writeFileSync(join(dir, 'real.ts'), 'export const a = 1;\n');
+    symlinkSync(join(dir, 'real.ts'), join(dir, 'link.ts'));
+    const ignored = ignoredPredicate([]);
+
+    expect(ignored(join(dir, 'link.ts'), aFile)).toBe(true);
+  });
+
+  it('watches a project whose root is itself a symbolic link', () => {
+    const real = join(dir, 'real-root');
+    mkdirSync(join(real, 'src'), { recursive: true });
+    const link = join(dir, 'link-root');
+    symlinkSync(real, link);
+    let ignored: FsWatcherOptions['ignored'] | undefined;
+    handle = startWatchMode({
+      config: resolveConfig({ projectRoot: link }),
+      runBatch: async () => {},
+      onWarn: () => {},
+      watcherFactory: (_root, opts) => { ignored = opts.ignored; return new FakeWatcher(); },
+    });
+
+    expect([ignored?.(link, aDirectory), ignored?.(join(link, 'src'), aDirectory)]).toEqual([false, false]);
   });
 
   it('still descends into ordinary directories', () => {

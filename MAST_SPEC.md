@@ -2954,7 +2954,10 @@ Behaviour:
   `include_dot_dirs` does not name is not watched, matching the walk. A file
   of any other extension is not watched at all: chokidar holds one open file
   for every file it watches, for as long as the server runs, so the server's
-  cost in open files is the number of files it indexes. Until D158 only the
+  cost in open files is the number of files it indexes and not the number
+  under the root. A symbolic link below the root is not watched either,
+  whatever it points at, because the walk follows none (D160); the root
+  itself may be a link. Until D158 only the
   events were filtered, and every file under a watched directory was held
   open (1,026 for this repository's 219 indexed files).
 - Events are debounced (~500ms) and coalesced: rapid saves of one file collapse

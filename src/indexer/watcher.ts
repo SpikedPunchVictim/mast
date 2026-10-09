@@ -1,3 +1,4 @@
+import { lstatSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { extname, join, relative, resolve } from 'node:path';
 import { watch as chokidarWatch } from 'chokidar';
@@ -348,6 +349,21 @@ export interface StartWatchModeOptions {
   readonly settleMs?: number;
   /** Test seam; production uses chokidar. */
   readonly watcherFactory?: FsWatcherFactory;
+  /** Whether a path is itself a symbolic link. Production asks the disk. */
+  readonly isSymbolicLink?: (absPath: string) => boolean;
+}
+
+/**
+ * True when `absPath` is itself a symbolic link. A path that cannot be read is
+ * not one: chokidar asks about paths that have just been deleted, and the
+ * rules that follow this one still apply to them.
+ */
+function isSymbolicLinkOnDisk(absPath: string): boolean {
+  try {
+    return lstatSync(absPath).isSymbolicLink();
+  } catch {
+    return false;
+  }
 }
 
 const defaultWatcherFactory: FsWatcherFactory = (root, opts) => {
@@ -393,12 +409,21 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
   // a watch of this repository held 1,026 of them for 219 indexed files. Only
   // a path known to be a file is judged by its extension, because a directory
   // can be named `icons.png`.
+  const isSymbolicLink = options.isSymbolicLink ?? isSymbolicLinkOnDisk;
   const isIgnored = (path: string, isFile: boolean): boolean => {
     const abs = resolve(path);
+    const rel = relative(filter.projectRoot, abs);
+    const isBelowRoot = rel !== '' && !leavesRoot(rel);
+    // The walk follows no symbolic link, so nothing reached through one is
+    // indexed, and chokidar follows them all: the files of a linked directory
+    // were watched and held open for nothing (D160). The root itself may be a
+    // link and is still the project. chokidar's own `followSymlinks: false`
+    // is not the fix: a root that is a link is then watched as a link, and no
+    // change under it is seen.
+    if (isBelowRoot && isSymbolicLink(abs)) return true;
     if (isFile) return !shouldWatchPath(filter, abs);
     if (isInStateDir(filter, abs)) return true;
-    const rel = relative(filter.projectRoot, abs);
-    if (rel === '' || leavesRoot(rel)) return false;
+    if (!isBelowRoot) return false;
     // A dot directory nobody named is pruned like an excluded one. Before
     // ADR 018 chokidar descended into all of them (`.git` included) and every
     // event there started an index run that walked none of those files.

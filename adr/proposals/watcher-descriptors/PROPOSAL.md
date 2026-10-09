@@ -36,6 +36,38 @@ change to an existing `.ts`, a new `.ts`, a change to it, a rename of `notes.txt
 `notes.md`, a change to that, and a `.ts` in a new directory each start a batch; a change to
 a `.png` does not. Output in `drive-watch.out.txt`.
 
+## Reviewed after the commit
+
+A separate review drove the built watcher through 40 steps against the same watcher with
+the file rule switched off (renames across the extension boundary, new directories two
+deep, symbolic links, a named dot directory, deletes, saves by rename) and found no event
+lost. Its scripts are not in the repository. It found two things the first version of this
+record did not say (the second is its finding, read against the code and not run again here):
+
+- A symbolic link is followed by chokidar and not by the walk, so the files of a linked
+  directory are watched, held open and never indexed. That is older than this change. Run
+  again here on `symlink-fixture.sh` (one file, and a link to a directory of eight): 9 open
+  files for one indexed file. Filed as D160. Telling chokidar not to follow links brings the
+  fixture to 1 (`symlink-links-not-followed.json`), and stops a project whose root is itself
+  a link from being watched at all: 2 batches for the real path, 0 for the link
+  (`drive-linked-root.out.txt`). That change was not kept. What was: the ignore rule asks
+  the disk whether a path below the root is itself a link, and ignores it. The fixture
+  holds 1 open file, a linked root gets its batches, and a change reached through a link
+  starts none (`drive-links.out.txt`). What the extra question per path costs a start on nest is not
+  separated from the load: alternated, 231 to 466 ms asking and 234 to 652 ms not
+  (`drive-links.out.txt`, three rounds); in
+  two runs one after the other, a median near 550 ms of eight asking and near 250 ms of six
+  not (`start-and-close.out.txt`).
+- Closing the watcher blocks the process for 23 to 59 s on nest, in the build before any
+  of this as well. Filed as D161, open. It is one more reason for the single recursive
+  watch below.
+- At each start, reconciliation hands the watcher every link to a file that is not indexed,
+  because chokidar ignores it by the file it points at and the directory listing reports a
+  link. The watcher ignores it again. Nothing is indexed or lost; neither corpus has one.
+
+The 219 above was this repository when measured; it has 221 indexed files now and the watch
+holds 221.
+
 ## Not measured
 
 - The grizzly projects the six servers were watching. The 0.4.0 they run is not this build,

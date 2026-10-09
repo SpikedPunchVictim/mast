@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T23:26:18.788Z",
+  "ran_at": "2026-10-09T23:27:19.888Z",
   "typescript": "5.9.3",
-  "label": "D159 caller rule, mast",
+  "label": "D160 linked paths, mast",
   "root": "mast",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -11,11 +11,11 @@
   "workspace_packages_mapped_to_source": 0,
   "scored_typescript_files": 101,
   "tsconfig_files": 84,
-  "corpus_hash": "2de989f4e92088329e6ab65a5b11c73ce7f14a5294829b1641be61911d5f9bf9",
+  "corpus_hash": "4ae3b0047c4351ee4ab1673b701c98ac28b0ad3378c795da7dd3c1645910b186",
   "program_source_files": 750,
   "repeated_symbol_rows": 0,
-  "wall_ms": 2724,
-  "peak_rss_mb": 499
+  "wall_ms": 1757,
+  "peak_rss_mb": 455
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 102,
@@ -1691,6 +1691,7 @@
     "src/indexer/watcher.ts { isDirectoryInDotScope } from './scope.js'",
     "src/indexer/watcher.ts { isFileInDotScope } from './scope.js'",
     "src/indexer/watcher.ts { join } from 'node:path'",
+    "src/indexer/watcher.ts { lstatSync } from 'node:fs'",
     "src/indexer/watcher.ts { readdir } from 'node:fs/promises'",
     "src/indexer/watcher.ts { relative } from 'node:path'",
     "src/indexer/watcher.ts { resolve } from 'node:path'",
@@ -3036,6 +3037,7 @@
     "src/indexer/watcher.ts:findUnwatchedEntries exported=true",
     "src/indexer/watcher.ts:isInStateDir exported=false",
     "src/indexer/watcher.ts:isInsideRoot exported=false",
+    "src/indexer/watcher.ts:isSymbolicLinkOnDisk exported=false",
     "src/indexer/watcher.ts:leavesRoot exported=false",
     "src/indexer/watcher.ts:listDirectoryOnDisk exported=false",
     "src/indexer/watcher.ts:shouldWatchPath exported=true",
@@ -3669,6 +3671,7 @@
     "src/indexer/watcher.ts:findUnwatchedEntries",
     "src/indexer/watcher.ts:isInStateDir",
     "src/indexer/watcher.ts:isInsideRoot",
+    "src/indexer/watcher.ts:isSymbolicLinkOnDisk",
     "src/indexer/watcher.ts:leavesRoot",
     "src/indexer/watcher.ts:listDirectoryOnDisk",
     "src/indexer/watcher.ts:shouldWatchPath",

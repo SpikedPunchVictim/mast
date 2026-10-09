@@ -1,0 +1,13 @@
+{
+ "label": "symlinked directory, links not followed",
+ "root": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/sym/proj",
+ "held_by_type": {
+  "CHR": 0,
+  "DIR": 0,
+  "KQUEUE": 0,
+  "PIPE": 0,
+  "REG": 1,
+  "unix": 0
+ },
+ "warnings": 0
+}

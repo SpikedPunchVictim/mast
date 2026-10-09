@@ -1,0 +1,3 @@
+With `followSymlinks: false` passed to chokidar (tried for D160, not kept):
+root is a real path | batches 2
+root is a symbolic link | batches 0

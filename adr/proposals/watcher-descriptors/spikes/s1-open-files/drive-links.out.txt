@@ -1,0 +1,11 @@
+change the real file -> batch
+change a file in the linked directory, through the link -> no batch
+change the target of the linked file -> no batch
+create a file in the linked directory -> no batch
+create a real file beside the links -> batch
+start to ready, round 1, asking the disk: 277 ms
+start to ready, round 1, not asking: 234 ms
+start to ready, round 2, asking the disk: 231 ms
+start to ready, round 2, not asking: 280 ms
+start to ready, round 3, asking the disk: 466 ms
+start to ready, round 3, not asking: 652 ms
