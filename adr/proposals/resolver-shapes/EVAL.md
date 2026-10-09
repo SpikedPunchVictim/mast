@@ -58,3 +58,13 @@ The timings quoted in `PROPOSAL.md` were read off the terminal and are not kept 
 | `n8n-import-diff.txt` | n8n import rows of the D119 build against those of the D118 build |
 | `n8n-edges-vs-d118.json` | The same for edges |
 | `scorecard-*.compare.txt` | `compare` of each baseline (as of the D118 commit) with the D119 build |
+
+## D120 (`spikes/d120/`)
+
+| File | What it is |
+|---|---|
+| `n8n-edges-vs-d119.json` | n8n edges of the D120 build against those of the D119 build |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D119 commit) with the D120 build |
+
+The agreement of `is_exported` with the compiler is read from `eval-suite/baselines/*.json`
+(`symbol flag: is_exported`).

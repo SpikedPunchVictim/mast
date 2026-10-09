@@ -407,6 +407,19 @@ export const SCENARIOS: readonly Scenario[] = [
       { 'src/h-mid.ts': `import { Base } from './h-base.js';\nexport class Mid extends Base {\n  static find(): void {}\n}\n` },
     ],
   },
+  // D120: the row keeps its name and kind, and only `export` says whether an import can mean it.
+  {
+    name: 'a private function in a barrel, of a name its `export *` supplies, is exported, and made private again',
+    files: {
+      'src/a-real.ts': `export function fn(): number { return 1; }\n`,
+      'src/x.ts': `function fn(): number { return 2; }\nvoid fn;\nexport * from './a-real.js';\n`,
+      'src/zc.ts': CALLER,
+    },
+    rounds: [
+      { 'src/x.ts': `export function fn(): number { return 2; }\nexport * from './a-real.js';\n` },
+      { 'src/x.ts': `function fn(): number { return 2; }\nvoid fn;\nexport * from './a-real.js';\n` },
+    ],
+  },
   // D145: nothing extends the class, so only the changed side of the member says the callers are out of date.
   {
     name: 'a static method of the class a parameter is typed as becomes an instance method, and static again',

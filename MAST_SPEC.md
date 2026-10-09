@@ -2566,7 +2566,9 @@ alias, since it reads the `imports` row by the written name.
 a file tries a declaration there, then a named re-export there, then the files
 its `export *` rows reach, where it accepts a declaration or a named re-export
 (ledger D086). A name the file re-exports by name is not also looked for
-behind a star in the same file.
+behind a star in the same file. A declaration counts only when its file exports
+it: a private one of the name, in the imported file or behind a star, is passed
+over, and a name nothing exports gets no edge (ledger D120).
 
 **Pass 2 is staged, so the graph does not depend on walk order.**
 `insertGraphEdges` writes every file's star rows, then `RE_EXPORTS` edges
@@ -2582,7 +2584,8 @@ incremental run also resolves again, without re-writing them:
 - every file that held an edge or a star row into a file it re-wrote or deleted
   (ledger D081);
 - every file that imports, or re-exports by name, a name that a re-written,
-  added or deleted file gained, lost, changed the kind of, or re-exports. The
+  added or deleted file gained, lost, changed the kind of, began or stopped
+  exporting, or re-exports. The
   importer is found through its `imports` row: it names the changed file, a file
   that reaches it through `export *` rows, or a file holding a named re-export
   of that name. An importer of a module that resolved to no file is included

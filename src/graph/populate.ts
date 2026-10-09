@@ -1485,12 +1485,16 @@ export async function resolveInFileOrReExportChain(
     return member?.id ?? null;
   }
 
+  // Only a declaration the file exports is what an import of the name means.
+  // A private one of the same name, in a file that gets the name from an
+  // `export *`, took every caller of the public one (D120).
   const direct = await db
     .selectFrom('symbols')
     .select('id')
     .where('name', '=', toName)
     .where('file_id', '=', targetFile.id)
     .where('kind', '!=', 'export')
+    .where('is_exported', '=', 1)
     .executeTakeFirst();
   if (direct !== undefined) return direct.id;
 
@@ -1573,6 +1577,8 @@ async function resolveThroughStarChain(db: Db, startFileId: number, toName: stri
     .innerJoin('files as f', 'f.id', 's.file_id')
     .select(['s.id', 's.kind'])
     .where('s.name', '=', toName)
+    // An `export *` passes on what the file exports and nothing else (D120).
+    .where('s.is_exported', '=', 1)
     // By path, not by file id: when two files behind the stars have the name,
     // the one chosen must not depend on which was written last. A re-written
     // file gets a new id, so id order made an edit to one of them move every

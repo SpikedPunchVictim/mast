@@ -1,0 +1,60 @@
+before: eval-suite/baselines/shapes.json
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/sc-d120/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 2         3         2         0         0         0         1
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              26        30        26         0         0         0         4
+edge: POTENTIAL_CALL                         40        45        35         2         3         0         8
+                                             -4         .        +4        -4        -4         .         .
+edge: RE_EXPORTS (to the declaration)         2         1         1         0         1         0         0
+export * (file to file)                       1         1         1         0         0         0         0
+file: indexed                                33        33        33         0         0         0         0
+import: named binding                        30        30        30         0         0         0         0
+import: the file it resolves to              20        20        20         0         0         0         0
+symbol flag: is_exported                     95        95        95         0         0         0         0
+symbol: class                                19        19        19         0         0         0         0
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             45        45        45         0         0         0         0
+symbol: interface                             2         2         2         0         0         0         0
+symbol: method                               30        30        30         0         0         0         0
+symbol: one key, more than one row            0         4         0         0         0         0         4
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: lacks -> agree (4)
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:Client.send
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:format
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/real.ts:helper
+  edge: POTENTIAL_CALL: wrong -> absent (4)
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:Client.send
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:format
+    packages/barrel-private/src/user.ts:use > packages/barrel-private/src/barrel.ts:helper
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            10        12        10         0         0         0         2
+                                              .         .        +1        -1         .         .         .
+call edge, stored as import                  14        15        12         2         0         0         1
+                                              .         .        +2        -2         .         .         .
+call edge, stored as new_expression           2         2         2         0         0         0         0
+call edge, stored as parameter_type           4         4         4         0         0         0         0
+                                              .         .        +1        -1         .         .         .
+call edge, stored as same_file                2         4         2         0         0         0         2
+call edge, stored as static_method            2         3         2         0         0         0         1
+call edge, stored as this_method              3         5         3         0         0         0         2
+call written as f(), other file              15        13        12         0         3         0         1
+                                              .        +2        +2         .        -2         .         .
+call written as f(), same file                2         4         2         0         0         0         2
+call written as ident.m(), other file         4         5         4         0         0         0         1
+                                              .        +1        +1         .        -1         .         .
+call written as ident.m(), same file          4         4         4         0         0         0         0
+call written as new X(), other file           9         9         9         0         0         0         0
+                                              .        +1        +1         .        -1         .         .
+call written as new X(), same file            1         3         1         0         0         0         2
+call written as this.m(), same file           3         5         3         0         0         0         2

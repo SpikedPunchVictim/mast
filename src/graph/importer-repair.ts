@@ -25,7 +25,9 @@ export interface ExportSurface {
    * or `|static field`): a field appearing changes what a call of that name
    * on the class reaches as a method does (D115). A static member is
    * `|static <kind>`: one that changes side keeps its name and kind and
-   * changes which calls reach it (D118).
+   * changes which calls reach it (D118). A declaration the file does not
+   * export is `|private <kind>`: an import means it only once it is exported
+   * (D120).
    */
   readonly declared: ReadonlySet<string>;
   /** Names the file re-exports by name (`export { x } from`). */
@@ -39,7 +41,7 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
   const file = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();
   if (file === undefined) return null;
 
-  const symbols = await db.selectFrom('symbols').select(['name', 'kind', 'fields', 'is_static']).where('file_id', '=', file.id).execute();
+  const symbols = await db.selectFrom('symbols').select(['name', 'kind', 'fields', 'is_static', 'is_exported']).where('file_id', '=', file.id).execute();
   const fields = symbols.flatMap((s) => {
     const names = fieldNamesOf(s.fields);
     return [
@@ -55,7 +57,7 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
     .execute();
 
   return {
-    declared: new Set([...symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.is_static === 1 ? 'static ' : ''}${s.kind}`), ...fields]),
+    declared: new Set([...symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.is_exported === 1 ? '' : 'private '}${s.is_static === 1 ? 'static ' : ''}${s.kind}`), ...fields]),
     markers: new Set(symbols.filter((s) => s.kind === 'export').map((s) => s.name)),
     starTargets: new Set(stars.map((s) => s.path)),
   };

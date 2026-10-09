@@ -336,3 +336,56 @@ has one; npm and yarn workspaces.
 package whose entry points are build output": two failing before the change (both
 resolved to `src/index.ts`), one pinning a subpath built into the root entry's format
 directory.
+
+## D120 — a private declaration taken for the name an import means
+
+**The defect.** `barrel.ts` declares private `helper`, `format` and `Client` and has
+`export * from './real'`. An import of those names from `./barrel` was placed on the
+barrel's own declarations: the lookup in the imported file took any row of the name that
+is not a re-export marker and did not read `is_exported`. The same held behind a star:
+of two files a barrel stars, a private declaration in the first took the name from the
+exported one in the second.
+
+**Prior decisions.** The order of the lookup (a declaration in the file, then a named
+re-export there, then the files its stars reach) is D086's and stays. D094 fixed which of
+two files behind stars is chosen (lowest path) and stays. Nothing recorded says a private
+declaration should be accepted; "the file the import resolves to declares the name" was
+the whole rule before barrels were followed.
+
+**Is `is_exported` fit to decide on?** Measured, from the committed baselines: the
+scorecard's `symbol flag: is_exported` line agrees with the compiler on every symbol it
+scores and is wrong on none: 823 in this repository, 95 in the shapes corpus, 888 in
+n8n `packages/core`, 12,824 in n8n `packages/cli`.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| P1 | The lookup of an imported name accepts a declaration only when its row is exported, in the imported file and in every file reached through `export *` | **Built** |
+| P2 | Prefer an exported declaration and fall back to a private one when nothing exports the name | **Reject.** The fallback is an edge to something the import cannot mean; better no edge than a wrong one |
+| P3 | The exported flag in what incremental edge repair compares | **Built.** A declaration that gains or loses `export` keeps its name and kind. The scenario for it fails without this, after P1 |
+
+All four callers of the lookup go through the one function
+(`resolveInFileOrReExportChain`): call edges placed by an import, `RE_EXPORTS` edges,
+structural edges, and `mast_signature`'s type context.
+
+**Measured** (`spikes/d120/`, against the D119 build):
+
+- Shapes corpus: the four wrong edges into `barrel.ts` are gone and the four the
+  reference has in `real.ts` are stored (4 `wrong -> absent`, 4 `lacks -> agree`).
+  `compare` exits 0.
+- n8n: 71,112 edges before and after, none gone, none added. So nothing in n8n relied on
+  a private declaration, and nothing there has this defect either.
+- `mast`, `n8n-core`, `n8n-cli`: `compare` exits 0.
+
+**Not fixed here:** the fifth wrong key the ledger row counts,
+`use2 > barrel2.ts:fmt2`, is `export { internalFmt as fmt2 }` with no `from`, which is
+D124.
+
+**Not checked:** a CommonJS file (`module.exports = { f }`), whose declarations are
+whatever the extractor marks them; n8n losing no edge says its indexed files do not
+depend on it, and no other corpus was indexed. `export =`. A `declare` in a `.d.ts`.
+
+**Tests.** `src/indexer/__tests__/reexport-shapes.test.ts`, "a private declaration with
+the name of an import": three cases, all failing before the change. One scenario in
+`equivalence-scenarios.ts` ("a private function in a barrel, of a name its `export *`
+supplies, is exported, and made private again"), which passes before P1, fails with P1
+alone and passes with P3.

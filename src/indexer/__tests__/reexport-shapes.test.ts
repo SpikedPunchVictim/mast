@@ -374,3 +374,64 @@ describe('an import that is then exported, after an edit', () => {
     await expectGraphEqualsFullIndex(dir);
   });
 });
+
+// ---------------------------------------------------------------------------
+// D120 — a declaration the imported file does not export is not what the
+// import names, whatever it is called.
+// ---------------------------------------------------------------------------
+
+const REAL_SRC = `export function helper(): number { return 1; }
+export class Client { send(): void {} }
+`;
+const USER_SRC = `import { helper, Client } from './m-barrel.js';
+export function use(c: Client): void { helper(); c.send(); }
+`;
+
+describe('a private declaration with the name of an import', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = makeProject('private-name');
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('in a barrel is passed over for the declaration its `export *` supplies', async () => {
+    writeFiles(dir, {
+      'src/a-real.ts': REAL_SRC,
+      'src/m-barrel.ts': `function helper(): number { return 2; }\nclass Client { send(): void { helper(); } }\nvoid Client;\nexport * from './a-real.js';\n`,
+      'src/z-user.ts': USER_SRC,
+    });
+
+    await expectEdges(dir, [
+      'POTENTIAL_CALL src/m-barrel.ts:Client.send -> src/m-barrel.ts:helper',
+      'POTENTIAL_CALL src/z-user.ts:use -> src/a-real.ts:Client.send',
+      'POTENTIAL_CALL src/z-user.ts:use -> src/a-real.ts:helper',
+    ]);
+  });
+
+  it('behind an `export *` is passed over for an exported one behind another', async () => {
+    writeFiles(dir, {
+      'src/a-private.ts': `function helper(): number { return 2; }\nexport function other(): number { return helper(); }\n`,
+      'src/b-real.ts': REAL_SRC,
+      'src/m-barrel.ts': `export * from './a-private.js';\nexport * from './b-real.js';\n`,
+      'src/z-user.ts': USER_SRC,
+    });
+
+    await expectEdges(dir, [
+      'POTENTIAL_CALL src/a-private.ts:other -> src/a-private.ts:helper',
+      'POTENTIAL_CALL src/z-user.ts:use -> src/b-real.ts:Client.send',
+      'POTENTIAL_CALL src/z-user.ts:use -> src/b-real.ts:helper',
+    ]);
+  });
+
+  it('gets no edge when nothing exports the name', async () => {
+    writeFiles(dir, {
+      'src/m-barrel.ts': `function helper(): number { return 2; }\nclass Client { send(): void { helper(); } }\nvoid Client;\n`,
+      'src/z-user.ts': USER_SRC,
+    });
+
+    await expectEdges(dir, ['POTENTIAL_CALL src/m-barrel.ts:Client.send -> src/m-barrel.ts:helper']);
+  });
+});
