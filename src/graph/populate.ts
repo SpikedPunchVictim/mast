@@ -562,6 +562,7 @@ async function writePopulatedFileRows(
       body_hash: string | null;
       fields: string | null;
       is_static: 0 | 1;
+      is_default_export: 0 | 1;
     }[] = data.symbols.map((s) => ({
       name: s.name,
       kind: s.kind,
@@ -572,6 +573,7 @@ async function writePopulatedFileRows(
       body_hash: s.bodyHash,
       fields: s.fields === undefined ? null : JSON.stringify(s.fields),
       is_static: s.isStatic === true ? 1 : 0,
+      is_default_export: s.isDefaultExport === true ? 1 : 0,
     }));
     await timed(spans, 'rest', async () => {
       for (const batch of chunkRowsForSqlite(symbolRows)) {
@@ -1598,6 +1600,22 @@ export async function resolveInFileOrReExportChain(
       .$if(side !== null, (q) => q.where(IS_STATIC, '=', side === 'static' ? 1 : 0))
       .executeTakeFirst();
     return member?.id ?? null;
+  }
+
+  // `default` is the name of an export and of no declaration: the row is the
+  // one flagged as the file's default export, whatever it is called (D148).
+  if (toName === 'default') {
+    const defaultExport = await db
+      .selectFrom('symbols')
+      .select('id')
+      .where('file_id', '=', targetFile.id)
+      .where('is_default_export', '=', 1)
+      .where('kind', '!=', 'export')
+      .orderBy(IS_A_TYPE, orderOf(meaning))
+      .orderBy('line', 'asc')
+      .orderBy('id', 'asc')
+      .executeTakeFirst();
+    if (defaultExport !== undefined) return defaultExport.id;
   }
 
   // Only a declaration the file exports is what an import of the name means.

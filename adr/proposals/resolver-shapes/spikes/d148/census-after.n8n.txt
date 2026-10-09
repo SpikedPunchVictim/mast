@@ -1,0 +1,15 @@
+source lines, by form:
+  export default function|class|interface <Name>:  77
+  export default function|class with no name:      1
+  export default <identifier>;:                    141
+  export default <anything else>:                  283
+  export { x as default } (no from):               0
+  export { default [as x] } from:                  254
+  import X from '.…' (relative default import):    1205
+  import { default as X } from '.…':               0
+index:
+  markers whose source name is default (reexport_aliases + markers named default): 258
+  of the aliased ones, with a RE_EXPORTS edge: 0
+  symbols named default (any kind): export 21
+  rows flagged as a default export, by kind: class 78, function 3
+  of those, rows with an edge into them: 0

@@ -456,6 +456,32 @@ export const SCENARIOS: readonly Scenario[] = [
       { 'src/a-loc.ts': `function a(): void { void 0; }\nexport { a as b };\n` },
     ],
   },
+  // D148: a default export reached as `default`. The barrel and its importer name no declaration of the file.
+  {
+    name: 'a default export changes, stops being the default, and is the default again',
+    files: {
+      'src/a-def.ts': `export default function main(): void {}\nexport function other(): void {}\n`,
+      'src/b-barrel.ts': `export { default as tool } from './a-def.js';\n`,
+      'src/zc.ts': `import { tool } from './b-barrel.js';\nimport { default as d } from './a-def.js';\nexport function top(): void { tool(); d(); }\n`,
+    },
+    rounds: [
+      { 'src/a-def.ts': `export default function main(): void { void 0; }\nexport function other(): void {}\n` },
+      { 'src/a-def.ts': `export function main(): void { void 0; }\nexport function other(): void {}\n` },
+      { 'src/a-def.ts': `export default function main(): void { void 0; }\nexport function other(): void {}\n` },
+    ],
+  },
+  {
+    name: 'the default export of a file becomes another of its declarations, and the first again',
+    files: {
+      'src/a-def.ts': `export default function main(): void {}\nexport function other(): void {}\n`,
+      'src/b-barrel.ts': `export { default as tool } from './a-def.js';\n`,
+      'src/zc.ts': `import { tool } from './b-barrel.js';\nexport function top(): void { tool(); }\n`,
+    },
+    rounds: [
+      { 'src/a-def.ts': `export function main(): void {}\nexport default function other(): void {}\n` },
+      { 'src/a-def.ts': `function main(): void {}\nexport function other(): void {}\nexport default main;\n` },
+    ],
+  },
   {
     name: 'the other name of a declaration moves to a second declaration of the file',
     files: {

@@ -266,7 +266,8 @@ CREATE TABLE IF NOT EXISTS symbols (
   body_hash        TEXT,            -- sha256 of body text only (excludes signature)
   fields           TEXT,            -- on a class: the names of its fields, which have no row,
                                     -- as {"instance":[...],"static":[...]}; NULL otherwise
-  is_static        INTEGER          -- 1 on a method declared `static`, 0 otherwise
+  is_static        INTEGER,         -- 1 on a method declared `static`, 0 otherwise
+  is_default_export INTEGER         -- 1 on a declaration that is its file's default export
   -- If both declaration_hash and body_hash are unchanged on incremental reindex:
   -- skip the KG rebuild for this symbol (§7.1's file-level stability-hash skip).
 );
@@ -2160,6 +2161,15 @@ already (no bodies to split), so the interface or type alias remains a single ch
 `handler.ts`). This is a heuristic and `mast_search` will surface these via FTS
 on the filename. A future v2 may resolve the alias from importers, but v1 keeps it
 simple.
+
+**Named default exports** (2026-10-09, D148). `export default function main`,
+`export default class K` and `export default name;` flag the row of the
+declaration (`symbols.is_default_export`); `is_exported` is unchanged by the
+last form. The name `default`, in `export { default as x } from` and
+`import { default as x }`, is looked up by that flag and not by name. An
+`export *` does not pass a default export on. A default export that is an
+expression has no flagged row and gets no edge. `import x from` is not yet
+placed by this (D130).
 
 **Re-export aliases** (`export { foo as bar } from './x'`): the extractor
 records `bar` as an exported **marker symbol** (kind `export`, no hashes) in

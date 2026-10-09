@@ -649,3 +649,63 @@ claims myself: that no n8n edge moved (the row diff), that the redirect cannot f
 a `from` alias (it needs a non-marker row and a second row on its line), and that an
 incremental run matches a full one (the two scenarios).
 
+## D148 — a default export reached by the name `default`
+
+Filed while scoring D124, after ADR 020. Same directory because it is the same corpus
+and the same resolver.
+
+**The defect.** `export { default as tool } from './x'` stores a marker `tool` whose
+record names `default` in `x.ts`. No row is called `default`: the declaration behind a
+default export has its own name (`main`). The marker got no edge and a call through it
+none.
+
+**Prior decisions.** `MAST_SPEC.md` §10.1 gives an unnamed default export a row named
+for the file; unchanged. `inherited-call-edges` T2 tests that a parent which is a
+default import gets no edge; unchanged, since `import x from` is not touched here.
+Nothing found decides how `default` is looked up.
+
+| # | Mechanism | Verdict |
+|---|---|---|
+| F1 | A flag on the row of the declaration that is the default export; the name `default` is looked up by the flag | **Built.** Exact when the name has two rows, and written and deleted with the row |
+| F2 | A `reexport_aliases` row `default` for the declaration's name | **Reject.** It holds a name and not a row, and repair reads the table by name across files |
+| F3 | A second row named `default`, as §10.1 gives a local alias | **Reject.** 81 more rows on n8n that every search for `default` would return |
+| F4 | Edge repair: the flag in what it compares, and `default` among the names it looks importers up by | **Built.** The scenario failed without it: the barrel and its importer name no declaration of the file |
+| F5 | Place `import x from './x'` by the same flag | **Held for D130**, which is that defect for a parameter's type |
+
+`export { name as default }` needed nothing: D124's alias already answers it.
+
+**Measured** (`spikes/d148/`):
+
+- n8n source, by form (`default-census.sh`, a grep of lines; a statement over several
+  lines is not counted): 77 `export default function|class|interface Name`, 141
+  `export default name;`, 283 default exports of an expression, 254
+  `export { default … } from`, 1,205 default imports of a relative module.
+- n8n index: 258 markers whose source is `default`, none with an edge before or after.
+  81 rows flagged (78 classes, 3 functions). 71,126 edge rows before and after, none
+  different.
+- Why none: of the 254 re-exports, 79 name a `.vue` file, 70 a package or an alias, and
+  105 a relative module (`default-reexport-targets.n8n.txt`). The one of the 105 I
+  opened is an `index.ts` holding `import X from './X.vue'; export default X;`, where
+  `X` is an import and has no row. I did not open the others.
+- Shapes corpus: 83 edge rows to 85, the call and the `RE_EXPORTS` of `barrel3.ts`.
+  The scorecard has no `wrong` and no `lacks` on any edge type there now.
+- `compare` against the D124 baselines exits 0 on all four.
+
+So on the one large corpus this fix places nothing. What it leaves in place is the flag:
+none of n8n's 81 flagged rows has an edge into it of any type, and the 1,205 default
+imports are how they are reached.
+
+**Not fixed, not checked.**
+
+- `import x from './x'`: no edge and no type context (D130).
+- A default export of an expression, or of a name that is itself an import.
+- `.mjs`, `.jsx` and CommonJS `module.exports`.
+- The flag is put on every top-level row of the name. A file with `export default K`
+  and two rows `K` of one meaning would have two flagged rows; the first by line is
+  taken. Not constructed.
+
+**Tests.** `src/indexer/__tests__/default-export.test.ts`: eight cases, five failing
+before. Of the three that passed before, two expect no edge and one is the
+`export { name as default }` form. Two scenarios in `equivalence-scenarios.ts`; the
+first failed in both equivalence suites until F4.
+

@@ -1,0 +1,6 @@
+old: 83 edge rows, new: 85 edge rows
+only in old: 0, only in new: 2
+only in old, by type: {}
+only in new, by type: {'RE_EXPORTS': 1, 'POTENTIAL_CALL': 1}
++ POTENTIAL_CALL [import] line 6 packages/barrel-private/src/user.ts:use3(function@6) -> packages/barrel-private/src/x.ts:main(function@1)
++ RE_EXPORTS   packages/barrel-private/src/barrel3.ts:tool(export@1) -> packages/barrel-private/src/x.ts:main(function@1)

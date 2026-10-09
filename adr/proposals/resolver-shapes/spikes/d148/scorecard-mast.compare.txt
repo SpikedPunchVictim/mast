@@ -1,0 +1,58 @@
+before: eval-suite/baselines/mast.json
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/sc-d148/mast.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 7         7         7         0         0         0         0
+edge: IMPLEMENTS                              7         7         7         0         0         0         0
+edge: PARENT_OF                              51        51        51         0         0         0         0
+edge: POTENTIAL_CALL                        934       906       906         0        28         0         0
+                                             +4        +4        +4         .         .         .         .
+edge: RE_EXPORTS (to the declaration)        17        17        17         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+file: indexed                                84        84        84         0         0         0         0
+import: named binding                       785       785       785         0         0         0         0
+import: the file it resolves to             315       315       315         0         0         0         0
+symbol flag: is_exported                    832       832       832         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: class                                26        26        26         0         0         0         0
+symbol: export                               21        21        21         0         0         0         0
+symbol: function                            487       487       487         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: interface                           205       205       205         0         0         0         0
+symbol: method                               51        51        51         0         0         0         0
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                 63        63        63         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (4)
+    src/ast/extractors/typescript.ts:TypeScriptExtractor.extract > src/ast/extractors/typescript.ts:defaultExportName
+    src/ast/extractors/typescript.ts:defaultExportName > src/ast/extractors/typescript.ts:getWrappedDeclaration
+    src/ast/extractors/typescript.ts:defaultExportName > src/ast/extractors/typescript.ts:nodeChildren
+    src/ast/extractors/typescript.ts:defaultExportName > src/ast/extractors/typescript.ts:nodeType
+  symbol flag: is_exported: absent -> agree (1)
+    src/ast/extractors/typescript.ts:defaultExportName exported=false
+  symbol: function: absent -> agree (1)
+    src/ast/extractors/typescript.ts:defaultExportName
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            24        24        24         0         0         0         0
+call edge, stored as import                 324       324       324         0         0         0         0
+call edge, stored as new_expression           6         6         6         0         0         0         0
+call edge, stored as parameter_type          15        15        15         0         0         0         0
+call edge, stored as same_file              528       528       528         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              8         8         8         0         0         0         0
+call written as f(), other file             328       324       324         0         4         0         0
+call written as f(), same file              529       528       528         0         1         0         0
+                                             +4        +4        +4         .         .         .         .
+call written as ident.m(), other file         6         6         6         0         0         0         0
+call written as ident.m(), same file         38        15        15         0        23         0         0
+call written as new X(), other file          13        13        13         0         0         0         0
+call written as new X(), same file           11        11        11         0         0         0         0
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           8         8         8         0         0         0         0

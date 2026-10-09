@@ -68,7 +68,14 @@ export class TypeScriptExtractor implements LanguageExtractor {
       line: s.line,
     }));
 
-    const symbols = [...symbolsFromChunks(chunks), ...markerSymbols];
+    // The default export has a name of its own, and `default` finds it by this
+    // flag. Every top-level row of the name: a class merged with an interface
+    // is exported as both (D148).
+    const defaultName = defaultExportName(nodeChildren(tree.rootNode));
+    const symbols = [
+      ...symbolsFromChunks(chunks).map((s) => (s.name === defaultName ? { ...s, isDefaultExport: true as const } : s)),
+      ...markerSymbols,
+    ];
     // `export { a as b }` of a declaration of this file. Only where `a` has a
     // row: that is when `b` was given one beside it.
     const localAliasRecords: EdgeRecord[] = localExportAliases(nodeChildren(tree.rootNode))
@@ -982,6 +989,25 @@ function unwrapAmbient(node: SyntaxNode): SyntaxNode {
   if (nodeType(node) !== 'ambient_declaration') return node;
   const inner = nodeNamedChildren(node)[0];
   return inner !== undefined && AMBIENT_DECLARATION_TYPES.has(nodeType(inner)) ? inner : node;
+}
+
+/**
+ * The name of the declaration a file exports as its default: the one written
+ * after `export default`, or the identifier in `export default name;`. Null
+ * when the file has no default export, or exports an expression or an unnamed
+ * function or class. `export { name as default }` is a local alias and is not
+ * read here.
+ */
+function defaultExportName(topLevel: readonly SyntaxNode[]): string | null {
+  for (const node of topLevel) {
+    if (nodeType(node) !== 'export_statement') continue;
+    if (!nodeChildren(node).some((child) => nodeType(child) === 'default')) continue;
+    const declared = getWrappedDeclaration(node)?.childForFieldName('name')?.text;
+    if (declared !== undefined) return declared;
+    const value = node.childForFieldName('value');
+    return value !== null && nodeType(value) === 'identifier' ? value.text : null;
+  }
+  return null;
 }
 
 /** The declaration a top-level node holds, under `export`, `declare`, both or neither. */

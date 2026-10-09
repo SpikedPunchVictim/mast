@@ -108,3 +108,15 @@ No stored edge changes in this row, so the scorecard and its baselines are as th
 
 The four baselines are regenerated from the D124 build.
 
+## D148 (`spikes/d148/`)
+
+| File | What it is |
+|---|---|
+| `default-census.sh` | Counts default exports, default re-exports and default imports in a source tree by form, and in an index the markers whose source is `default` and the rows flagged as a default export |
+| `census-before.n8n.txt`, `census-after.*.txt` | Its output on the D124 and D148 indexes |
+| `default-reexport-targets.n8n.txt` | What n8n's 254 default re-exports name: a `.vue` file, a package or alias, or a relative module |
+| `edge-rows-vs-d124.*.txt` | `spikes/d121/edge-rows-diff.py`, D124 index against D148 |
+| `scorecard-*.compare.txt` | `compare` of each baseline (as of the D124 commit) with the D148 build |
+
+The four baselines are regenerated from the D148 build.
+

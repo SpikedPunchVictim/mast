@@ -87,6 +87,11 @@ interface SymbolsTable {
    * earlier build of this schema wrote, which is read as 0 (D118).
    */
   readonly is_static: ColumnType<number | null, 0 | 1 | undefined, 0 | 1>;
+  /**
+   * 1 on a declaration that is its file's default export, 0 on any other row.
+   * NULL on a row an earlier build of this schema wrote, read as 0 (D148).
+   */
+  readonly is_default_export: ColumnType<number | null, 0 | 1 | undefined, 0 | 1>;
 }
 
 /**
@@ -356,7 +361,8 @@ CREATE TABLE IF NOT EXISTS symbols (
   declaration_hash TEXT,
   body_hash        TEXT,
   fields           TEXT,
-  is_static        INTEGER
+  is_static        INTEGER,
+  is_default_export INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS edges (
@@ -626,6 +632,8 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
   if (!symbolColumns.has('fields')) sqlite.exec('ALTER TABLE symbols ADD COLUMN fields TEXT');
   // `symbols.is_static` (schema 1.4.0, D118).
   if (!symbolColumns.has('is_static')) sqlite.exec('ALTER TABLE symbols ADD COLUMN is_static INTEGER');
+  // `symbols.is_default_export` (schema 1.4.0, D148).
+  if (!symbolColumns.has('is_default_export')) sqlite.exec('ALTER TABLE symbols ADD COLUMN is_default_export INTEGER');
 
   // Same additive-migration precedent for the files table's FTS rowid blocks
   // (Stage 4.6). Databases indexed before these columns existed keep working:

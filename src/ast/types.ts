@@ -101,6 +101,8 @@ export interface SymbolRecord {
   readonly bodyHash: string | null;
   /** On a method: declared `static`. */
   readonly isStatic?: true;
+  /** On a declaration that is the file's default export (D148). */
+  readonly isDefaultExport?: true;
   /** On a class: its fields, which have no row of their own. Absent when it has none. */
   readonly fields?: ClassFieldNames;
 }

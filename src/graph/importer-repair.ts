@@ -41,7 +41,7 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
   const file = await db.selectFrom('files').select('id').where('path', '=', filePath).executeTakeFirst();
   if (file === undefined) return null;
 
-  const symbols = await db.selectFrom('symbols').select(['name', 'kind', 'fields', 'is_static', 'is_exported']).where('file_id', '=', file.id).execute();
+  const symbols = await db.selectFrom('symbols').select(['name', 'kind', 'fields', 'is_static', 'is_exported', 'is_default_export']).where('file_id', '=', file.id).execute();
   const fields = symbols.flatMap((s) => {
     const names = fieldNamesOf(s.fields);
     return [
@@ -57,7 +57,7 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
     .execute();
 
   return {
-    declared: new Set([...symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.is_exported === 1 ? '' : 'private '}${s.is_static === 1 ? 'static ' : ''}${s.kind}`), ...fields]),
+    declared: new Set([...symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.is_exported === 1 ? '' : 'private '}${s.is_default_export === 1 ? 'default ' : ''}${s.is_static === 1 ? 'static ' : ''}${s.kind}`), ...fields]),
     markers: new Set(symbols.filter((s) => s.kind === 'export').map((s) => s.name)),
     starTargets: new Set(stars.map((s) => s.path)),
   };
@@ -66,6 +66,9 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
 function symmetricDifference(a: ReadonlySet<string>, b: ReadonlySet<string>): string[] {
   return [...[...a].filter((v) => !b.has(v)), ...[...b].filter((v) => !a.has(v))];
 }
+
+/** A `declared` entry of a row flagged as its file's default export. */
+const IS_DEFAULT_ENTRY = /\|(?:private )?default /;
 
 const EMPTY_SURFACE: ExportSurface = { declared: new Set(), markers: new Set(), starTargets: new Set() };
 
@@ -85,9 +88,14 @@ export function changedExports(
 ): { readonly names: string[]; readonly starTargets: string[] } {
   const from = before ?? EMPTY_SURFACE;
   const to = after ?? EMPTY_SURFACE;
-  const declared = symmetricDifference(from.declared, to.declared).map((entry) => entry.slice(0, entry.lastIndexOf('|')));
+  const changed = symmetricDifference(from.declared, to.declared);
+  const declared = changed.map((entry) => entry.slice(0, entry.lastIndexOf('|')));
+  // A default export is imported and re-exported as `default`, never by the
+  // name of its declaration, so that is the name its importers are found by
+  // when it appears, goes or moves to another declaration (D148).
+  const defaults = changed.some((entry) => IS_DEFAULT_ENTRY.test(entry)) ? ['default'] : [];
   return {
-    names: [...new Set([...declared, ...from.markers, ...to.markers])],
+    names: [...new Set([...declared, ...defaults, ...from.markers, ...to.markers])],
     starTargets: symmetricDifference(from.starTargets, to.starTargets),
   };
 }
