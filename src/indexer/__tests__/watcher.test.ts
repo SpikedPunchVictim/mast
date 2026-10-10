@@ -15,6 +15,13 @@ import {
 
 const DEBOUNCE = 500;
 
+/** A promise and the function that resolves it. */
+function deferred(): { readonly promise: Promise<void>; readonly resolve: () => void } {
+  let resolve = (): void => {};
+  const promise = new Promise<void>((r) => { resolve = r; });
+  return { promise, resolve };
+}
+
 interface Harness {
   /**
    * Assigned immediately after the literal, never reassigned afterwards — so it is
@@ -177,6 +184,38 @@ describe('WatchScheduler', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE * 2);
 
     expect(h.batches).toHaveLength(0);
+  });
+
+  it('whenIdle() resolves only once the batch in flight has settled', async () => {
+    const h = makeHarness({ autoResolve: false });
+    h.scheduler.notify('a.ts');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE);
+    let idle = false;
+    const waiting = h.scheduler.whenIdle().then(() => { idle = true; });
+
+    await vi.advanceTimersByTimeAsync(DEBOUNCE);
+    const idleWhileRunning = idle;
+    h.resolvers[0]!.resolve();
+    await waiting;
+
+    expect({ idleWhileRunning, idle }).toEqual({ idleWhileRunning: false, idle: true });
+  });
+
+  it('whenIdle() resolves once a batch in flight has failed', async () => {
+    const h = makeHarness({ autoResolve: false });
+    h.scheduler.notify('a.ts');
+    await vi.advanceTimersByTimeAsync(DEBOUNCE);
+    const waiting = h.scheduler.whenIdle();
+
+    h.resolvers[0]!.reject(new Error('boom'));
+
+    await expect(waiting).resolves.toBeUndefined();
+  });
+
+  it('whenIdle() resolves at once when nothing is running', async () => {
+    const h = makeHarness();
+
+    await expect(h.scheduler.whenIdle()).resolves.toBeUndefined();
   });
 });
 
@@ -681,6 +720,63 @@ describe('startWatchMode with a watcher that loses events', () => {
     handles.push(handle);
     return handle;
   }
+
+  // D161: closing a directory watch blocks for about 45 ms on macOS, so a server
+  // that is leaving stops the work and leaves the watches to the exit.
+  it('stop() waits for the batch in flight and closes no OS watch', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'] };
+    const batch = deferred();
+    const started = deferred();
+    const handle = startWithFake(fake, {
+      settleMs: 0,
+      runBatch: async () => { started.resolve(); await batch.promise; },
+    });
+    fake.emitReady();
+    writeFileSync(join(dir, 'created-in-gap.ts'), 'export const gap = 1;\n');
+    await started.promise;
+    let stopped = false;
+    const stopping = handle.stop().then(() => { stopped = true; });
+
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const stoppedWhileRunning = stopped;
+    batch.resolve();
+    await stopping;
+
+    expect({ stoppedWhileRunning, stopped, closed: fake.closeCount }).toEqual({
+      stoppedWhileRunning: false, stopped: true, closed: 0,
+    });
+  });
+
+  it('stop() starts no batch for a change that was waiting', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'] };
+    let batches = 0;
+    const handle = startWithFake(fake, { settleMs: 0, debounceMs: 40, runBatch: async () => { batches++; } });
+    const ready = deferred();
+    fake.onReady(() => { setTimeout(ready.resolve, 20); });
+    writeFileSync(join(dir, 'created-in-gap.ts'), 'export const gap = 1;\n');
+    fake.emitReady();
+    await ready.promise;
+
+    await handle.stop();
+    await new Promise((resolve) => setTimeout(resolve, 120));
+
+    expect(batches).toBe(0);
+  });
+
+  it('stop() cancels the readiness announcement', async () => {
+    const fake = new FakeWatcher();
+    fake.watched = { [dir]: ['seed.ts'] };
+    let announced = false;
+    const handle = startWithFake(fake, { settleMs: 30, onReady: () => { announced = true; } });
+    fake.emitReady();
+
+    await handle.stop();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    expect(announced).toBe(false);
+  });
 
   it('queues a file created in the gap before announcing readiness', async () => {
     const fake = new FakeWatcher();

@@ -1,0 +1,5 @@
+# build of 26ee330, nest c3bc75c97, v24.18.0, load { 5.65 5.05 4.56 }
+{"how":"stdin","round":1,"ready_ms":1824,"exit_ms":23125,"code":0,"signal":null}
+{"how":"stdin","round":2,"ready_ms":1769,"exit_ms":25524,"code":0,"signal":null}
+{"how":"SIGTERM","round":1,"ready_ms":1923,"exit_ms":22947,"code":1,"signal":null}
+{"how":"SIGTERM","round":2,"ready_ms":1804,"exit_ms":22248,"code":1,"signal":null}

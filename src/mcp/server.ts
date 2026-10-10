@@ -6,8 +6,9 @@ import { join } from 'node:path';
 import type { ResolvedConfig } from '../store/config.js';
 import { openDatabase } from '../graph/db.js';
 import { SqliteChunkStore, type ChunkStore } from '../store/sqliteChunkStore.js';
-import { runIndex, loadIndexMeta, BACKGROUND_EDGE_REPAIR_BUDGET_MS } from '../indexer/index.js';
+import { runIndex, isIndexRunInFlight, loadIndexMeta, BACKGROUND_EDGE_REPAIR_BUDGET_MS } from '../indexer/index.js';
 import { startWatchMode, type WatchHandle } from '../indexer/watcher.js';
+import { leaveWhenWorkIsDone } from './shutdown.js';
 import { bootstrapState } from './startup.js';
 import type { AppContext } from './context.js';
 import { createFreshnessProbe, type FreshnessProbe } from './freshness-probe.js';
@@ -271,17 +272,26 @@ export async function serve(options: ServeOptions): Promise<void> {
       return;
     }
 
-    // Clean shutdown: chokidar's persistent watcher would otherwise keep the
-    // process alive after the MCP client disconnects (stdin close) or on
-    // SIGTERM/SIGINT.
-    const closeWatcher = (): void => {
-      const handle = watchHandle;
-      watchHandle = null;
-      if (handle !== null) void handle.close().catch(() => {});
+    // Once the client is gone (stdin close) or a signal arrives, the watcher
+    // would keep the process alive, so the process is ended. It is ended by
+    // `process.exit` and not by closing the watcher: see `leaveWhenWorkIsDone`.
+    const handle = watchHandle;
+    let leaving = false;
+    const leave = (): void => {
+      if (leaving) return;
+      leaving = true;
+      void leaveWhenWorkIsDone({
+        stopWatching: () => handle.stop(),
+        isIndexing: isIndexRunInFlight,
+        wait: () => new Promise((resolve) => { setTimeout(resolve, 50); }),
+        closeIndex: () => db.destroy(),
+        warn: (message) => process.stderr.write(`${message}\n`),
+        exit: (code) => process.exit(code),
+      });
     };
-    process.stdin.on('close', closeWatcher);
-    process.once('SIGTERM', closeWatcher);
-    process.once('SIGINT', closeWatcher);
+    process.stdin.on('close', leave);
+    process.once('SIGTERM', leave);
+    process.once('SIGINT', leave);
   };
 
   // ── Step 4: background reindex ────────────────────────────────────────────

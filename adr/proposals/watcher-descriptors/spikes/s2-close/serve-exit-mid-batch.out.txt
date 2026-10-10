@@ -1,0 +1,1 @@
+{"exit_ms":1910,"code":0,"signal":null,"state_dir":["config.json","file_manifest.json","graph.db","index.json","lock-metrics.jsonl","structure"],"new_file_indexed":true}

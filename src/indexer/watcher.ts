@@ -44,6 +44,7 @@ export class WatchScheduler {
   private readonly pending = new Set<string>();
   private timer: NodeJS.Timeout | null = null;
   private running = false;
+  private idleWaiters: Array<() => void> = [];
   private closed = false;
   private consecutiveFailures = 0;
   private readonly maxConsecutiveFailures: number;
@@ -66,6 +67,12 @@ export class WatchScheduler {
       clearTimeout(this.timer);
       this.timer = null;
     }
+  }
+
+  /** Resolves when no `onBatch` is running; at once if none is. */
+  whenIdle(): Promise<void> {
+    if (!this.running) return Promise.resolve();
+    return new Promise((resolve) => { this.idleWaiters.push(resolve); });
   }
 
   private armTimer(): void {
@@ -101,6 +108,7 @@ export class WatchScheduler {
       }
     } finally {
       this.running = false;
+      for (const resolve of this.idleWaiters.splice(0)) resolve();
       if (this.pending.size > 0 && !this.closed) this.armTimer();
     }
   }
@@ -301,7 +309,20 @@ export interface FsWatcherOptions {
 export type FsWatcherFactory = (root: string, options: FsWatcherOptions) => FsWatcher;
 
 export interface WatchHandle {
+  /** Stops the work and closes every OS watch. Slow on a large tree: see `stop`. */
   close(): Promise<void>;
+  /**
+   * Stops the work and leaves the OS watches open: no batch starts after it,
+   * readiness is not announced after it, and it resolves once the batch in
+   * flight, if any, has settled. Never rejects.
+   *
+   * For a process that is about to exit. Closing an `fs.watch` on a directory
+   * blocks for about 45 ms on macOS (Node v24.18.0). `close()` held a server
+   * watching nest for 22 to 25 s after its client had gone, and a process that
+   * exits with the watches open is gone in 0.1 s (D161). The
+   * process stays alive after `stop()` until something ends it.
+   */
+  stop(): Promise<void>;
 }
 
 export interface StartWatchModeOptions {
@@ -437,7 +458,7 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
     ignored: (path, stats) => isIgnored(path, stats?.isFile() === true),
   });
 
-  // Aborted by `close()`; cancels the settle wait and the reconciliation walk.
+  // Aborted by `close()` and `stop()`; cancels the settle wait and the reconciliation walk.
   const closing = new AbortController();
 
   const reconcile = async (): Promise<void> => {
@@ -500,11 +521,18 @@ export function startWatchMode(options: StartWatchModeOptions): WatchHandle {
     options.onWarn(`[mast] watch: watcher error (continuing without event): ${String(err)}`);
   });
 
+  const stop = async (): Promise<void> => {
+    closing.abort();
+    scheduler.close();
+    await scheduler.whenIdle();
+  };
+
   return {
     close: async () => {
       closing.abort();
       scheduler.close();
       await watcher.close();
     },
+    stop,
   };
 }

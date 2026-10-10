@@ -1,0 +1,10 @@
+# build with the fix as committed (on 26ee330), nest c3bc75c97, v24.18.0, load { 10.24 10.72 11.23 }
+{"how":"stdin","round":1,"ready_ms":1872,"exit_ms":12,"code":0,"signal":null}
+{"how":"stdin","round":2,"ready_ms":1705,"exit_ms":9,"code":0,"signal":null}
+{"how":"stdin","round":3,"ready_ms":1676,"exit_ms":9,"code":0,"signal":null}
+# state dir after: config.json file_manifest.json graph.db index.json lock-metrics.jsonl structure 
+{"how":"SIGTERM","round":1,"ready_ms":1703,"exit_ms":9,"code":1,"signal":null}
+{"how":"SIGTERM","round":2,"ready_ms":1689,"exit_ms":9,"code":1,"signal":null}
+{"how":"SIGTERM","round":3,"ready_ms":1705,"exit_ms":11,"code":1,"signal":null}
+{"how":"SIGINT","round":1,"ready_ms":1720,"exit_ms":16,"code":1,"signal":null}
+{"how":"SIGINT","round":2,"ready_ms":1722,"exit_ms":11,"code":1,"signal":null}

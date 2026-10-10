@@ -309,7 +309,27 @@ function statMtimeSecondsOrFallback(absPath: string, fallbackSeconds: number): n
  * cross-file edge targets are always resolvable regardless of how finely
  * pass 1's own lock acquisitions are chunked.
  */
-export async function runIndex(
+let indexRunsInFlight = 0;
+
+/**
+ * True from the call of a `runIndex` in this process until it has returned or
+ * thrown. Not "a lock is held": a run walks the project before it takes the
+ * structure lock, and takes and releases it several times.
+ */
+export function isIndexRunInFlight(): boolean {
+  return indexRunsInFlight > 0;
+}
+
+export async function runIndex(config: ResolvedConfig, requested: IndexOptions): Promise<IndexResult> {
+  indexRunsInFlight++;
+  try {
+    return await runIndexCounted(config, requested);
+  } finally {
+    indexRunsInFlight--;
+  }
+}
+
+async function runIndexCounted(
   config: ResolvedConfig,
   requested: IndexOptions,
 ): Promise<IndexResult> {
