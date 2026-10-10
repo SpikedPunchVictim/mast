@@ -1,0 +1,209 @@
+{
+ "corpus": "/Users/spikedpunchvictim/projects/mast",
+ "workspace_src": false,
+ "programs": [
+  {
+   "tsconfig": "tsconfig.json",
+   "corpus_files_first_seen_here": 86,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  },
+  {
+   "tsconfig": "tsconfig.test.json",
+   "corpus_files_first_seen_here": 124,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  }
+ ],
+ "corpus_files_read": 210,
+ "totals": {
+  "call expressions": 19897,
+  "callee outside the corpus": 14357,
+  "callee in the corpus": 5540
+ },
+ "sites_by_callee_kind": {
+  "a function, at the top of its file": 3967,
+  "a method of an interface": 349,
+  "a constant holding a function, inside a function or class body": 301,
+  "a function, inside a function or class body": 256,
+  "a constant holding a function, at the top of its file": 192,
+  "a method": 173,
+  "a variable with a function type": 124,
+  "a property of an interface with a function type": 50,
+  "a function type, elsewhere": 32,
+  "a property of a type literal with a function type": 30,
+  "a parameter with a function type": 28,
+  "a type alias for a function type": 23,
+  "a method of a type literal": 8,
+  "a constructor, by super()": 3,
+  "a property of an object literal holding a function": 2,
+  "a function expression, not held": 1,
+  "a method of an object literal": 1
+ },
+ "distinct_callees_by_kind": {
+  "a function, at the top of its file": 573,
+  "a constant holding a function, inside a function or class body": 98,
+  "a function, inside a function or class body": 57,
+  "a method of an interface": 47,
+  "a constant holding a function, at the top of its file": 29,
+  "a method": 28,
+  "a type alias for a function type": 20,
+  "a property of an interface with a function type": 20,
+  "a parameter with a function type": 19,
+  "a variable with a function type": 12,
+  "a function type, elsewhere": 10,
+  "a property of a type literal with a function type": 9,
+  "a method of a type literal": 2,
+  "a property of an object literal holding a function": 2,
+  "a constructor, by super()": 1,
+  "a function expression, not held": 1,
+  "a method of an object literal": 1
+ },
+ "sites_by_callee_kind_and_form": {
+  "a constant holding a function, at the top of its file | written f()": 192,
+  "a constant holding a function, inside a function or class body | written f()": 301,
+  "a constructor, by super() | written not a name or a property access": 3,
+  "a function expression, not held | written not a name or a property access": 1,
+  "a function type, elsewhere | written f()": 28,
+  "a function type, elsewhere | written not a name or a property access": 4,
+  "a function, at the top of its file | written f()": 3967,
+  "a function, inside a function or class body | written a.f()": 3,
+  "a function, inside a function or class body | written f()": 253,
+  "a method | written a.b.f()": 19,
+  "a method | written a.f()": 141,
+  "a method | written on the result of an expression": 4,
+  "a method | written this.f()": 9,
+  "a method of a type literal | written a.f()": 8,
+  "a method of an interface | written a.b.f()": 4,
+  "a method of an interface | written a.f()": 307,
+  "a method of an interface | written on the result of an expression": 38,
+  "a method of an object literal | written a.f()": 1,
+  "a parameter with a function type | written f()": 25,
+  "a parameter with a function type | written this.f()": 3,
+  "a property of a type literal with a function type | written a.f()": 9,
+  "a property of a type literal with a function type | written f()": 1,
+  "a property of a type literal with a function type | written on the result of an expression": 20,
+  "a property of an interface with a function type | written a.f()": 19,
+  "a property of an interface with a function type | written f()": 28,
+  "a property of an interface with a function type | written this.a.f()": 3,
+  "a property of an object literal holding a function | written f()": 2,
+  "a type alias for a function type | written a.f()": 1,
+  "a type alias for a function type | written f()": 14,
+  "a type alias for a function type | written not a name or a property access": 8,
+  "a variable with a function type | written f()": 124
+ },
+ "interface_sites_by_implementors": {
+  "a method of an interface | no class names the interface in an implements clause": 313,
+  "a property of an interface with a function type | no class names the interface in an implements clause": 50,
+  "a method of an interface | one class names the interface in an implements clause": 35,
+  "a method of an interface | two or more classes names the interface in an implements clause": 1
+ },
+ "samples": {
+  "a constant holding a function, at the top of its file": [
+   "src/cli/setup-rules.ts:67 hasBlock(existing)",
+   "src/cli/setup-rules.ts:97 windsurfRulesPaths(root)",
+   "src/cli/installed-artifacts.ts:52 hasMastHook(readFile(hookFilePath(h, scope, projectRoot, home)), h)",
+   "src/cli/installed-artifacts.ts:57 cursorRulesPath(projectRoot)",
+   "src/cli/installed-artifacts.ts:58 windsurfRulesPaths(projectRoot)"
+  ],
+  "a constant holding a function, inside a function or class body": [
+   "src/indexer/import-resolver.ts:151 norm(relative(realRoot, safeRealpath(abs)))",
+   "src/indexer/import-resolver.ts:155 norm(relative(projectRoot, abs))",
+   "src/indexer/import-resolver.ts:190 toRel(stem + tsExt, ctx)",
+   "src/indexer/import-resolver.ts:195 toRel(base, ctx)",
+   "src/indexer/import-resolver.ts:197 toRel(base + ext, ctx)"
+  ],
+  "a constructor, by super()": [
+   "src/indexer/scope.ts:16 super(",
+   "src/store/index-stamp.ts:33 super(",
+   "src/store/index-stamp.ts:48 super("
+  ],
+  "a function expression, not held": [
+   "src/mcp/server.ts:306 (async () => {"
+  ],
+  "a function type, elsewhere": [
+   "src/indexer/import-resolver.ts:232 matcherFor(dirname(join(projectRoot, fromFileRel)))",
+   "src/store/lock.ts:234 release()",
+   "src/indexer/watcher.ts:111 resolve()",
+   "src/cli/__tests__/cli.test.ts:372 release()",
+   "src/cli/__tests__/cli.test.ts:382 release()"
+  ],
+  "a function, at the top of its file": [
+   "src/indexer/import-resolver.ts:109 buildResolver(key)",
+   "src/indexer/import-resolver.ts:127 buildTsconfigMatchers(projectRoot)",
+   "src/indexer/import-resolver.ts:128 buildWorkspaceMap(projectRoot)",
+   "src/indexer/import-resolver.ts:133 safeRealpath(projectRoot)",
+   "src/indexer/import-resolver.ts:151 safeRealpath(abs)"
+  ],
+  "a function, inside a function or class body": [
+   "src/mcp/freshness-probe.ts:148 refresh()",
+   "src/mcp/staleness.ts:273 repairEdgesOrLeaveThemWaiting(result)",
+   "src/__tests__/assertion-rule.test.ts:109 report(node, 'unknown[]')",
+   "src/__tests__/assertion-rule.test.ts:116 report(node, 'bare `unknown` field')",
+   "src/__tests__/assertion-rule.test.ts:121 visit(sourceFile)"
+  ],
+  "a method": [
+   "src/ast/extractors/typescript.ts:29 this.extractChunks(tree, src, filePath, fileMtime, options.contextLine",
+   "src/ast/extractors/typescript.ts:1597 env.recordImport(n)",
+   "src/ast/extractors/typescript.ts:1598 env.recordNamespaceImport(local, module)",
+   "src/ast/extractors/typescript.ts:1599 env.recordSameFileSymbol(n)",
+   "src/ast/extractors/typescript.ts:1891 env.recordReceiverType(b.receiver, b.type, b.resolution)"
+  ],
+  "a method of a type literal": [
+   "src/indexer/watcher.ts:458 stats?.isFile()",
+   "src/cli/__tests__/upgrade-cmd.test.ts:168 sb.put(join(sb.root, '.claude', 'settings.json'), hookJson('claude'))",
+   "src/cli/__tests__/upgrade-cmd.test.ts:169 sb.put(join(sb.home, '.cursor', 'hooks.json'), hookJson('cursor'))",
+   "src/cli/__tests__/upgrade-cmd.test.ts:170 sb.put(join(sb.root, '.cursor', 'rules', 'mast.mdc'), 'x')",
+   "src/cli/__tests__/upgrade-cmd.test.ts:171 sb.put(join(sb.root, '.devin', 'rules', 'mast.md'), 'x')"
+  ],
+  "a method of an interface": [
+   "src/ast/extractors/typescript.ts:41 resolver.resolve(imp.module, filePath)",
+   "src/ast/extractors/typescript.ts:64 resolver.resolve(r.module, filePath)",
+   "src/ast/extractors/typescript.ts:68 resolver.resolve(s.module, filePath)",
+   "src/ast/extract.ts:65 extractor.extract(src, relativePath, mtime, {",
+   "src/store/lock.ts:147 sink.record({ kind: 'acquired', type, caller, waitMs: Date.now() - att"
+  ],
+  "a method of an object literal": [
+   "src/mcp/tools/__tests__/status-write-errors.test.ts:77 mock.call()"
+  ],
+  "a parameter with a function type": [
+   "src/indexer/import-resolver.ts:314 probe(c)",
+   "src/indexer/import-resolver.ts:325 probe(join(dir, sub))",
+   "src/indexer/import-resolver.ts:325 probe(join(dir, 'src', sub))",
+   "src/indexer/import-resolver.ts:363 probe(join(packageDir, relativeEntry))",
+   "src/indexer/import-resolver.ts:370 probe(join(packageDir, 'src', ...segments.slice(drop)))"
+  ],
+  "a property of a type literal with a function type": [
+   "src/cli/__tests__/metrics-cmd.test.ts:61 capture.restore()",
+   "src/cli/__tests__/metrics-cmd.test.ts:64 capture.output()",
+   "src/cli/__tests__/metrics-cmd.test.ts:88 capture.restore()",
+   "src/cli/__tests__/metrics-cmd.test.ts:91 capture.output()",
+   "src/cli/__tests__/metrics-cmd.test.ts:110 capture.restore()"
+  ],
+  "a property of an interface with a function type": [
+   "src/indexer/edge-repair.ts:135 input.canReResolve(path)",
+   "src/indexer/edge-repair.ts:136 input.readRecords(path)",
+   "src/indexer/edge-repair.ts:145 inLock(async () => {",
+   "src/indexer/edge-repair.ts:192 inLock(async () => {",
+   "src/indexer/edge-repair.ts:219 input.canReResolve(path)"
+  ],
+  "a property of an object literal holding a function": [
+   "src/indexer/__tests__/schema-guard.test.ts:137 write()",
+   "src/indexer/__tests__/schema-guard.test.ts:183 write()"
+  ],
+  "a type alias for a function type": [
+   "src/graph/populate.ts:571 chunkWriter(data.filePath, data.chunks)",
+   "src/graph/populate.ts:1125 runBatch(async () => {",
+   "src/graph/populate.ts:1199 imports(toName)",
+   "src/graph/populate.ts:1457 placeImport(typeName)",
+   "src/graph/populate.ts:1513 imports()"
+  ],
+  "a variable with a function type": [
+   "src/indexer/__tests__/schema-guard.test.ts:105 taken()",
+   "src/indexer/__tests__/schema-guard.test.ts:112 release()",
+   "src/mcp/__tests__/query-time-repair-contended.test.ts:64 release?.()",
+   "src/mcp/tools/__tests__/answers-after-edit.test.ts:91 call(tool, args)",
+   "src/mcp/tools/__tests__/answers-after-edit.test.ts:97 call(tool, args)"
+  ]
+ }
+}

@@ -1,0 +1,368 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref",
+ "workspace_src": true,
+ "programs": [
+  {
+   "tsconfig": "packages/cli/tsconfig.json",
+   "corpus_files_first_seen_here": 5304,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  },
+  {
+   "tsconfig": "packages/@n8n/db/tsconfig.json",
+   "corpus_files_first_seen_here": 363,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  },
+  {
+   "tsconfig": "packages/core/tsconfig.json",
+   "corpus_files_first_seen_here": 109,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  },
+  {
+   "tsconfig": "packages/@n8n/decorators/tsconfig.json",
+   "corpus_files_first_seen_here": 29,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  },
+  {
+   "tsconfig": "packages/@n8n/api-types/tsconfig.json",
+   "corpus_files_first_seen_here": 118,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  },
+  {
+   "tsconfig": "packages/@n8n/config/tsconfig.json",
+   "corpus_files_first_seen_here": 13,
+   "config_errors": 0,
+   "module_resolution": "NodeNext"
+  }
+ ],
+ "corpus_files_read": 5936,
+ "totals": {
+  "call expressions": 374434,
+  "callee outside the corpus": 248662,
+  "callee in the corpus": 119331,
+  "callee in a .d.ts of the corpus": 5008,
+  "no declaration: the callee has no type here, or the type has no signature": 1433
+ },
+ "sites_by_callee_kind": {
+  "a method": 48192,
+  "a function, at the top of its file": 33708,
+  "a constant holding a function, at the top of its file": 12327,
+  "a constant holding a function, inside a function or class body": 6927,
+  "a method of an interface": 4539,
+  "a function, inside a function or class body": 3098,
+  "a property of an interface with a function type": 2192,
+  "a property of an object literal holding a function": 2095,
+  "a method of a type literal": 1542,
+  "a static method": 862,
+  "a function expression, not held": 809,
+  "a type alias for a function type": 710,
+  "a function type, elsewhere": 508,
+  "a property of a type literal with a function type": 483,
+  "a constructor, by super()": 450,
+  "a parameter with a function type": 423,
+  "a variable with a function type": 184,
+  "an abstract method": 124,
+  "a class property with a function type, no function in it": 62,
+  "a method of an object literal": 49,
+  "a call signature of an interface": 28,
+  "a class property holding a function": 16,
+  "ConstructSignature": 3
+ },
+ "distinct_callees_by_kind": {
+  "a method": 8820,
+  "a function, at the top of its file": 6242,
+  "a constant holding a function, inside a function or class body": 1172,
+  "a constant holding a function, at the top of its file": 952,
+  "a method of an interface": 838,
+  "a function, inside a function or class body": 568,
+  "a parameter with a function type": 312,
+  "a property of an interface with a function type": 256,
+  "a property of a type literal with a function type": 232,
+  "a static method": 185,
+  "a function type, elsewhere": 157,
+  "a type alias for a function type": 123,
+  "a variable with a function type": 117,
+  "a function expression, not held": 99,
+  "a method of a type literal": 85,
+  "a constructor, by super()": 55,
+  "an abstract method": 48,
+  "a class property with a function type, no function in it": 46,
+  "a property of an object literal holding a function": 41,
+  "a method of an object literal": 14,
+  "a class property holding a function": 6,
+  "a call signature of an interface": 2,
+  "ConstructSignature": 1
+ },
+ "sites_by_callee_kind_and_form": {
+  "a call signature of an interface | written f()": 28,
+  "a class property holding a function | written a.f()": 6,
+  "a class property holding a function | written this.a.f()": 1,
+  "a class property holding a function | written this.f()": 9,
+  "a class property with a function type, no function in it | written a.f()": 15,
+  "a class property with a function type, no function in it | written f()": 4,
+  "a class property with a function type, no function in it | written not a name or a property access": 3,
+  "a class property with a function type, no function in it | written this.f()": 40,
+  "a constant holding a function, at the top of its file | written a.f()": 106,
+  "a constant holding a function, at the top of its file | written f()": 12221,
+  "a constant holding a function, inside a function or class body | written a.f()": 92,
+  "a constant holding a function, inside a function or class body | written f()": 6834,
+  "a constant holding a function, inside a function or class body | written not a name or a property access": 1,
+  "a constructor, by super() | written not a name or a property access": 450,
+  "a function expression, not held | written f()": 740,
+  "a function expression, not held | written not a name or a property access": 69,
+  "a function type, elsewhere | written a.b.f()": 13,
+  "a function type, elsewhere | written a.f()": 46,
+  "a function type, elsewhere | written f()": 340,
+  "a function type, elsewhere | written not a name or a property access": 86,
+  "a function type, elsewhere | written this.a.b.f() or longer": 9,
+  "a function type, elsewhere | written this.a.f()": 14,
+  "a function, at the top of its file | written a.f()": 922,
+  "a function, at the top of its file | written f()": 32747,
+  "a function, at the top of its file | written on the result of an expression": 39,
+  "a function, inside a function or class body | written f()": 3098,
+  "a method | written a.b.c.f() or longer": 14,
+  "a method | written a.b.f()": 580,
+  "a method | written a.f()": 23201,
+  "a method | written f()": 12,
+  "a method | written not a name or a property access": 74,
+  "a method | written on the result of an expression": 5759,
+  "a method | written super.f()": 30,
+  "a method | written this.a.b.f() or longer": 148,
+  "a method | written this.a.f()": 9182,
+  "a method | written this.f()": 9192,
+  "a method of a type literal | written a.b.c.f() or longer": 1,
+  "a method of a type literal | written a.b.f()": 596,
+  "a method of a type literal | written a.f()": 834,
+  "a method of a type literal | written not a name or a property access": 1,
+  "a method of a type literal | written on the result of an expression": 8,
+  "a method of a type literal | written this.a.b.f() or longer": 18,
+  "a method of a type literal | written this.a.f()": 21,
+  "a method of a type literal | written this.f()": 63,
+  "a method of an interface | written a.b.c.f() or longer": 28,
+  "a method of an interface | written a.b.f()": 833,
+  "a method of an interface | written a.f()": 2522,
+  "a method of an interface | written f()": 364,
+  "a method of an interface | written not a name or a property access": 23,
+  "a method of an interface | written on the result of an expression": 141,
+  "a method of an interface | written this.a.b.f() or longer": 273,
+  "a method of an interface | written this.a.f()": 320,
+  "a method of an interface | written this.f()": 35,
+  "a method of an object literal | written a.f()": 49,
+  "a parameter with a function type | written f()": 401,
+  "a parameter with a function type | written this.f()": 22,
+  "a property of a type literal with a function type | written a.b.c.f() or longer": 4,
+  "a property of a type literal with a function type | written a.b.f()": 11,
+  "a property of a type literal with a function type | written a.f()": 297,
+  "a property of a type literal with a function type | written f()": 54,
+  "a property of a type literal with a function type | written not a name or a property access": 47,
+  "a property of a type literal with a function type | written on the result of an expression": 38,
+  "a property of a type literal with a function type | written this.a.b.f() or longer": 19,
+  "a property of a type literal with a function type | written this.a.f()": 7,
+  "a property of a type literal with a function type | written this.f()": 6,
+  "a property of an interface with a function type | written a.b.f()": 28,
+  "a property of an interface with a function type | written a.f()": 1826,
+  "a property of an interface with a function type | written f()": 35,
+  "a property of an interface with a function type | written not a name or a property access": 218,
+  "a property of an interface with a function type | written on the result of an expression": 13,
+  "a property of an interface with a function type | written this.a.b.f() or longer": 2,
+  "a property of an interface with a function type | written this.a.f()": 64,
+  "a property of an interface with a function type | written this.f()": 6,
+  "a property of an object literal holding a function | written a.b.f()": 7,
+  "a property of an object literal holding a function | written a.f()": 570,
+  "a property of an object literal holding a function | written f()": 1517,
+  "a property of an object literal holding a function | written not a name or a property access": 1,
+  "a static method | written a.b.f()": 1,
+  "a static method | written a.f()": 748,
+  "a static method | written this.f()": 113,
+  "a type alias for a function type | written a.b.f()": 7,
+  "a type alias for a function type | written a.f()": 209,
+  "a type alias for a function type | written f()": 387,
+  "a type alias for a function type | written not a name or a property access": 60,
+  "a type alias for a function type | written on the result of an expression": 16,
+  "a type alias for a function type | written this.a.f()": 11,
+  "a type alias for a function type | written this.f()": 20,
+  "a variable with a function type | written a.f()": 24,
+  "a variable with a function type | written f()": 133,
+  "a variable with a function type | written not a name or a property access": 27,
+  "an abstract method | written a.b.f()": 20,
+  "an abstract method | written a.f()": 19,
+  "an abstract method | written on the result of an expression": 2,
+  "an abstract method | written this.a.b.f() or longer": 2,
+  "an abstract method | written this.a.f()": 16,
+  "an abstract method | written this.f()": 65,
+  "ConstructSignature | written not a name or a property access": 3
+ },
+ "interface_sites_by_implementors": {
+  "a property of an interface with a function type | no class names the interface in an implements clause": 2185,
+  "a method of an interface | no class names the interface in an implements clause": 2042,
+  "a method of an interface | two or more classes names the interface in an implements clause": 1884,
+  "a method of an interface | one class names the interface in an implements clause": 613,
+  "a property of an interface with a function type | one class names the interface in an implements clause": 5,
+  "a property of an interface with a function type | two or more classes names the interface in an implements clause": 2
+ },
+ "samples": {
+  "a call signature of an interface": [
+   "packages/cli/src/workflows/triggers/trigger-execution-context.factory.ts:348 getPollFunctions(workflow, node, additionalData, 'trigger', 'update')",
+   "packages/core/src/execution-engine/triggers-and-pollers.ts:34 getTriggerFunctions(workflow, node, additionalData, mode, activation)",
+   "packages/core/src/execution-engine/active-workflow-triggers.ts:371 getPollFunctions(workflow, node, additionalData, mode, activation)",
+   "packages/cli/src/__tests__/active-workflow-manager.test.ts:484 getTriggerFunctions(workflow, node, additionalData, mode, activation)",
+   "packages/cli/src/__tests__/active-workflow-manager.test.ts:528 getTriggerFunctions(workflow, node, additionalData, mode, activation)"
+  ],
+  "a class property holding a function": [
+   "packages/cli/src/load-nodes-and-credentials.ts:636 this.augmentNodeTypeDescription(loadedNode.type.description)",
+   "packages/@n8n/task-runner/src/task-runner.ts:172 this.stopTaskOffers()",
+   "packages/@n8n/task-runner/src/task-runner.ts:556 this.stopTaskOffers()",
+   "packages/@n8n/task-runner/src/task-runner.ts:608 this.stopTaskOffers()",
+   "packages/cli/src/services/public-api-key.service.ts:292 this.getApiKeyExpiration(apiKey.apiKey)"
+  ],
+  "a class property with a function type, no function in it": [
+   "packages/@n8n/expression-runtime/src/evaluator/expression-evaluator.ts:100 this.createBridge()",
+   "packages/@n8n/decorators/src/multi-main/multi-main-metadata.ts:21 this.onRegister?.(handler)",
+   "packages/@n8n/typeorm/src/metadata/UniqueMetadata.ts:110 this.givenColumnNames(this.entityMetadata.propertiesMap)",
+   "packages/@n8n/typeorm/src/driver/postgres/PostgresDriver.ts:936 defaultValue()",
+   "packages/@n8n/typeorm/src/driver/postgres/PostgresQueryRunner.ts:132 this.releaseCallback(err)"
+  ],
+  "a constant holding a function, at the top of its file": [
+   "packages/@n8n/config/src/decorators.ts:51 readEnv(envName)",
+   "packages/@n8n/config/src/configs/agents.config.ts:38 Env('N8N_AGENTS_CHECKPOINT_TTL')",
+   "packages/@n8n/config/src/configs/agents.config.ts:49 Env('N8N_AGENTS_TRACING_ENABLED')",
+   "packages/@n8n/config/src/configs/agents.config.ts:56 Env('N8N_AGENTS_TRACING_RECORD_INPUTS')",
+   "packages/@n8n/config/src/configs/agents.config.ts:63 Env('N8N_AGENTS_TRACING_RECORD_OUTPUTS')"
+  ],
+  "a constant holding a function, inside a function or class body": [
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:145 replace(path.node.value.cooked)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:146 replace(path.node.value.raw)",
+   "packages/@n8n/expression-runtime/src/extensions/array-extensions.ts:78 mapForEqualityCheck(a)",
+   "packages/@n8n/expression-runtime/src/extensions/array-extensions.ts:78 mapForEqualityCheck(b)",
+   "packages/workflow/src/extensions/array-extensions.ts:78 mapForEqualityCheck(a)"
+  ],
+  "a constructor, by super()": [
+   "packages/@n8n/config/src/custom-types.ts:11 super(str, ',')",
+   "packages/@n8n/config/src/custom-types.ts:17 super(str, ':')",
+   "packages/@n8n/config/src/configs/agents.config.ts:17 super(str)",
+   "packages/workflow/src/errors/base/operational.error.ts:19 super(message, opts)",
+   "packages/workflow/src/errors/base/unexpected.error.ts:19 super(message, opts)"
+  ],
+  "a function expression, not held": [
+   "packages/workflow/src/workflow-diff.ts:267 time(prev, next)",
+   "packages/@n8n/typeorm/src/util/DepGraph.ts:31 DFS(node)",
+   "packages/@n8n/typeorm/src/util/DepGraph.ts:165 DFS(node)",
+   "packages/@n8n/typeorm/src/util/DepGraph.ts:187 DFS(node)",
+   "packages/@n8n/typeorm/src/util/DepGraph.ts:216 CycleDFS(n)"
+  ],
+  "a function type, elsewhere": [
+   "packages/workflow/src/utils.ts:230 LoggerProxy.error('Error while replacing circular references: ' + erro",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:306 (itemFn as (i: number) => unknown)(itemIndex)",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:312 (dollarFn as (name: string) => unknown)(path[1])",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:382 (itemFn as (i: number) => unknown)(itemIndex)",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:388 (dollarFn as (name: string) => unknown)(path[1])"
+  ],
+  "a function, at the top of its file": [
+   "packages/@n8n/config/src/configs/database.config.ts:181 readLegacyPingTimeoutMs()",
+   "packages/@n8n/config/src/configs/nodes.config.ts:21 isStringArray(parsed)",
+   "packages/@n8n/config/src/configs/instance-settings-config.ts:31 getN8nFolder()",
+   "packages/@n8n/utils/src/sleep.ts:29 sleepWithAbort(ms, abortSignal)",
+   "packages/workflow/src/utils.ts:102 syntaxNodeToValue(key)"
+  ],
+  "a function, inside a function or class body": [
+   "packages/@n8n/expression-runtime/src/runtime/lazy-proxy.ts:183 resolveObjectKeys()",
+   "packages/@n8n/expression-runtime/src/runtime/lazy-proxy.ts:198 isInArrayBounds(prop)",
+   "packages/@n8n/expression-runtime/src/runtime/lazy-proxy.ts:214 resolveObjectKeys()",
+   "packages/@n8n/expression-runtime/src/runtime/lazy-proxy.ts:253 isInArrayBounds(prop)",
+   "packages/@n8n/expression-runtime/src/runtime/lazy-proxy.ts:264 materializeChild(basePath, String(idx), element)"
+  ],
+  "a method": [
+   "packages/workflow/src/errors/abstract/node.error.ts:106 this.findProperty(jsonError, potentialKeys, [], seen)",
+   "packages/workflow/src/errors/abstract/node.error.ts:118 this.findProperty(value, potentialKeys, [], seen)",
+   "packages/workflow/src/errors/abstract/node.error.ts:129 this.findProperty(value, potentialKeys, traversalKeys, seen)",
+   "packages/workflow/src/errors/node-api.error.ts:145 this.addToMessages(errorResponse.message as string)",
+   "packages/workflow/src/errors/node-api.error.ts:201 this.findProperty("
+  ],
+  "a method of a type literal": [
+   "packages/workflow/src/safe-regex.ts:128 script.runInContext(vmContext, { timeout: REGEX_TIMEOUT_MS })",
+   "packages/workflow/src/metadata-utils.ts:31 context.getExecuteData()",
+   "packages/workflow/src/metadata-utils.ts:32 context.setMetadata({",
+   "packages/cli/src/services/jwt.service.ts:45 repo.findActiveByType('signing.jwt')",
+   "packages/cli/src/services/jwt.service.ts:50 repo.insertOrIgnore({"
+  ],
+  "a method of an interface": [
+   "packages/@n8n/tournament/src/index.ts:39 this.evaluator.evaluate(expr, data)",
+   "packages/@n8n/expression-runtime/src/pool/isolate-pool.ts:52 this.logger?.error('[IsolatePool] Failed to create bridge during init'",
+   "packages/@n8n/expression-runtime/src/pool/isolate-pool.ts:76 bridge.isDisposed()",
+   "packages/@n8n/expression-runtime/src/pool/isolate-pool.ts:76 bridge.dispose()",
+   "packages/@n8n/expression-runtime/src/pool/isolate-pool.ts:83 b.dispose()"
+  ],
+  "a method of an object literal": [
+   "packages/@n8n/agents/src/runtime/memory/memory-orchestrator.ts:242 logger.warn('Failed to eagerly persist input messages', {",
+   "packages/@n8n/agents/src/runtime/memory/memory-orchestrator.ts:288 logger.warn('Failed to persist turn delta', {",
+   "packages/@n8n/agents/src/runtime/memory/memory-orchestrator.ts:473 logger.warn(message, { error, resourceId })",
+   "packages/@n8n/agents/src/runtime/memory/memory-orchestrator.ts:490 logger.warn('Episodic memory indexing lock release failed', { error, r",
+   "packages/@n8n/agents/src/runtime/memory/memory-orchestrator.ts:516 logger.warn(message, {"
+  ],
+  "a parameter with a function type": [
+   "packages/@n8n/utils/src/result.ts:25 fn()",
+   "packages/@n8n/expression-runtime/src/pool/isolate-pool.ts:45 this.createBridge()",
+   "packages/@n8n/expression-runtime/src/pool/isolate-pool.ts:102 this.createBridge()",
+   "packages/@n8n/expression-runtime/src/pool/isolate-pool.ts:115 this.onReplenishFailed?.(error)",
+   "packages/@n8n/expression-runtime/src/evaluator/lru-cache.ts:27 this.onEvict?.(oldestKey, oldestValue)"
+  ],
+  "a property of a type literal with a function type": [
+   "packages/workflow/src/utils.ts:70 source.toJSON()",
+   "packages/workflow/src/node-reference-parser-utils.ts:147 pattern.replacePattern(preparedOldName)",
+   "packages/workflow/src/node-reference-parser-utils.ts:152 pattern.customCallback(expression, newName, preparedNewName)",
+   "packages/workflow/src/node-reference-parser-utils.ts:556 pattern.replacePattern(namesRegexp)",
+   "packages/workflow/src/webhook-description-fields.ts:115 entry.resolve(node.parameters)"
+  ],
+  "a property of an interface with a function type": [
+   "packages/@n8n/expression-runtime/src/evaluator/expression-evaluator.ts:59 config.createBridge()",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:535 data.$?.(msg.nodeName)?.first?.(msg.branchIndex, msg.runIndex)",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:535 data.$?.(msg.nodeName)",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:542 data.$?.(msg.nodeName)?.last?.(msg.branchIndex, msg.runIndex)",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:542 data.$?.(msg.nodeName)"
+  ],
+  "a property of an object literal holding a function": [
+   "packages/@n8n/api-types/src/zod-class.ts:53 Z.class({ ...shape, ...additionalShape })",
+   "packages/@n8n/api-types/src/dto/node-types/get-node-types-by-identifier.dto.ts:16 Z.class({",
+   "packages/@n8n/api-types/src/dto/ai/ai-ask-request.dto.ts:36 Z.class({",
+   "packages/@n8n/api-types/src/dto/ai/ai-chat-request.dto.ts:7 Z.class({",
+   "packages/@n8n/api-types/src/dto/ai/ai-build-request.dto.ts:32 Z.class({"
+  ],
+  "a static method": [
+   "packages/workflow/src/expression.ts:323 this.shouldUseVm()",
+   "packages/workflow/src/expression.ts:577 Expression.initializeGlobalContext(data)",
+   "packages/workflow/src/expression.ts:579 Expression.shouldUseVm()",
+   "packages/@n8n/typeorm/src/find-options/FindOperator.ts:78 InstanceChecker.isFindOperator(this._value)",
+   "packages/@n8n/typeorm/src/find-options/FindOperator.ts:88 InstanceChecker.isFindOperator(this._value)"
+  ],
+  "a type alias for a function type": [
+   "packages/@n8n/tournament/src/VariablePolyfill.ts:149 customPatches[parent.type]?.(path, parent, dataNode)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:219 hook(fixed, dataNode)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:227 hook(parsed, dataNode)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:275 hook(fixed, dataNode)",
+   "packages/@n8n/tournament/src/ExpressionBuilder.ts:283 hook(parsed, dataNode)"
+  ],
+  "a variable with a function type": [
+   "packages/@n8n/agents/src/runtime/memory/scoped-memory-task-runner.ts:173 stopLockRenewal?.()",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/triage.agent.ts:295 resolveNext?.()",
+   "packages/@n8n/ai-workflow-builder.ee/src/code-builder/triage.agent.ts:300 resolveNext?.()",
+   "packages/cli/src/modules/agents/integrations/agent-chat-stream-consumer.ts:105 resolve({ value: text, done: false })",
+   "packages/cli/src/modules/agents/integrations/agent-chat-stream-consumer.ts:116 resolve({ value: '', done: true })"
+  ],
+  "an abstract method": [
+   "packages/@n8n/typeorm/src/query-runner/BaseQueryRunner.ts:139 this.loadTables([tablePath])",
+   "packages/@n8n/typeorm/src/query-runner/BaseQueryRunner.ts:150 this.loadTables(tableNames)",
+   "packages/@n8n/typeorm/src/query-runner/BaseQueryRunner.ts:153 this.loadTables(tableNames)",
+   "packages/@n8n/typeorm/src/query-runner/BaseQueryRunner.ts:161 this.loadViews([viewPath])",
+   "packages/@n8n/typeorm/src/query-runner/BaseQueryRunner.ts:169 this.loadViews(viewPaths)"
+  ],
+  "ConstructSignature": [
+   "packages/@n8n/api-types/src/agents/dto.ts:127 super(agentSkillSchema.parse(data))",
+   "packages/@n8n/api-types/src/agents/dto.ts:143 super(updateAgentSkillSchema.parse(data))",
+   "packages/@n8n/api-types/src/agents/dto.ts:196 super(agentChatMessageSchema.parse(data))"
+  ]
+ }
+}

@@ -879,3 +879,90 @@ method of an interface, by any route.
 s10's table gives 1,087 for "`ns.a.f()` and deeper"; its own counts sum to 1,255 `ns.a.f()`
 sites, 1,021 of them in the corpus, and 65 deeper. The 1,087 was not re-derived.
 
+
+## Calls whose callee has no symbol row, counted by any route (2026-10-10): spike only
+
+s14 ended on a gap it did not size. This sizes it
+(`spikes/s15-callee-kinds/callee-kinds.mjs`): every call expression of a corpus, by the
+declaration of the signature the compiler resolved for it. Sites, not pairs; no `new`, no
+tagged template, no decorator. A call through an interface resolves to the member of the
+interface, which is why it is counted as one.
+
+**What mast stores** (`fixture/`, `fixture.out.txt`, the build of `336cc6a`, measured).
+No symbol row for: a function or a constant inside a TypeScript `namespace`, nor the
+namespace itself; a method of an interface; a property of an interface with a function
+type; a method of a type literal; a class property holding an arrow function; a constant
+holding an object literal, nor its members. A row for: a class method, an abstract method,
+a function and a constant holding a function at the top of a file. A call on a receiver
+typed as the interface stores no edge; the same call on a receiver typed as the class
+stores one.
+
+Share is of the calls whose callee is in the corpus (`summary.txt`).
+
+| Callee | vscode `65f2c060` | n8n `9d9e9bf9`, six projects | nest `c3bc75c97` | this repository `336cc6a` | directus `bac54f5`, `api` |
+|---|---|---|---|---|---|
+| Call expressions | 739,870 | 374,434 | 7,623 | 19,897 | 59,447 |
+| Callee in the corpus | 512,492 | 119,331 | 4,489 | 5,540 | 15,683 |
+| No declaration at all | 107,357 | 1,433 | 1,631 | 0 | 38,814 |
+| A method of an interface | 90,539 (17.7%) | 4,539 (3.8%) | 275 (6.1%) | 349 (6.3%) | 128 (0.8%) |
+| distinct methods | 8,644 | 838 | 91 | 47 | 32 |
+| A property of an interface with a function type | 1,016 (0.2%) | 2,192 (1.8%) | 23 (0.5%) | 50 (0.9%) | 4 (0.0%) |
+| A member of a type literal | 1,072 (0.2%) | 2,025 (1.7%) | 51 (1.1%) | 38 (0.7%) | 199 (1.3%) |
+| A function or constant in a TypeScript namespace | 7,028 (1.4%) | 0 | 0 | 0 | 0 |
+| distinct functions | 745 | 0 | 0 | 0 | 0 |
+| A member of an object literal | 1,540 (0.3%) | 2,144 (1.8%) | 4 (0.1%) | 3 (0.1%) | 93 (0.6%) |
+| A class property holding a function | 32 | 16 | 0 | 0 | 0 |
+| For scale: a class method | 223,230 (43.6%) | 49,178 (41.2%) | 2,140 (47.7%) | 173 (3.1%) | 5,852 (37.3%) |
+| For scale: a function or constant at the top of a file | 131,074 (25.6%) | 46,035 (38.6%) | 1,363 (30.4%) | 4,159 (75.1%) | 7,804 (49.8%) |
+
+**A method of an interface is the gap, on every corpus but directus.** It is between 3.8%
+and 17.7% of the calls with a callee in the corpus on the four corpora whose types the
+compiler could read. On vscode it is 90,539 sites, against the 390 of s14.
+
+**A TypeScript namespace is vscode's alone**: 7,028 sites to 745 functions there, none on
+the other four. 5,988 of them are written `N.f()` and 372 `a.N.f()`; s14 counted 359 of the second form
+through a namespace import, with another script, and the two were not matched site by site.
+
+**What an edge from an interface call could point at** was counted one way only: the
+classes that name the interface in their own `implements` clause.
+
+| Sites calling a method of an interface | vscode | n8n | nest | this repository | directus |
+|---|---|---|---|---|---|
+| no such class | 13,469 | 2,042 | 76 | 313 | 28 |
+| one class | 38,136 | 613 | 100 | 35 | 4 |
+| two or more | 38,934 | 1,884 | 99 | 1 | 96 |
+
+So a row for the interface method gives every one of these sites a target, and "the one
+implementing class" gives 42% of vscode's (38,136 of 90,539), 14% of n8n's and 10% of
+this repository's. The count misses a class that implements through an interface that
+extends this one, and an object literal annotated with the interface (vscode's
+`win32: IPath` in `src/vs/base/common/path.ts` is one), so "no such class" is an upper
+bound on the sites with no implementation.
+
+**Limits.**
+
+- Directus is a floor and not a measurement: its `tsconfig.json` extends a package that
+  is not installed, and 38,814 of its 59,447 calls (65%) have no declaration. A fallback
+  to NodeNext and `strict` (`--node-next`) moved the figure from 40,799 to 38,814, so the
+  cause is the missing packages and not the options. `directus-config-not-read.json` is
+  the run without the fallback.
+- vscode and nest have no packages installed either: 107,357 (14.5%) and 1,631 (21.4%) of
+  their calls have no declaration, and some of those have a callee in the corpus that the
+  compiler could not reach.
+- "Has a row" is not "has an edge". The two "for scale" rows are calls whose callee mast
+  has a row for; what share of them has a stored edge is the scorecard's question. The
+  scorecard's reference counts a call target only when mast has a symbol at that
+  `path:name` (`eval-suite/GRAPH-SCORECARD.md`, Limits), so no figure in this section is
+  inside any scorecard figure.
+- The fixture has no case for a function nested in a function, a constant holding a
+  function inside a function, a class expression, or a static class property. Those and
+  the callees that are a type and not a declaration (a callback parameter, a call
+  signature) are the "other kinds", 10% to 14% of each corpus; the per-kind counts are in
+  each JSON.
+- Interface members and classes are counted per program for the `implements` map, so on
+  n8n a class in one project that implements an interface of another is counted only if
+  the first project's program reads both.
+
+**Not decided.** Nothing is built. What a caller of `store.get()` on `store: Store` should
+be given is a design question with at least three answers (a row for the interface
+method; an edge to the single implementing class; an edge to each), and none has a spike.

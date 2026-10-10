@@ -1,0 +1,276 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/directus-ref",
+ "workspace_src": true,
+ "node_next_fallback": true,
+ "programs": [
+  {
+   "tsconfig": "api/tsconfig.json",
+   "corpus_files_first_seen_here": 1481,
+   "config_errors": 1,
+   "module_resolution": "NodeNext"
+  }
+ ],
+ "corpus_files_read": 1481,
+ "totals": {
+  "call expressions": 59447,
+  "no declaration: the callee has no type here, or the type has no signature": 38814,
+  "callee in the corpus": 15683,
+  "callee outside the corpus": 4948,
+  "callee in a .d.ts of the corpus": 2
+ },
+ "sites_by_callee_kind": {
+  "a method": 5830,
+  "a function, at the top of its file": 5827,
+  "a constant holding a function, at the top of its file": 1977,
+  "a function, inside a function or class body": 637,
+  "a constant holding a function, inside a function or class body": 411,
+  "a type alias for a function type": 131,
+  "a method of an interface": 128,
+  "a property of a type literal with a function type": 119,
+  "a function type, elsewhere": 103,
+  "a call signature of a type literal": 96,
+  "a method of a type literal": 80,
+  "a method of an object literal": 66,
+  "a function expression, not held": 61,
+  "a parameter with a function type": 52,
+  "a variable with a function type": 52,
+  "a constructor, by super()": 33,
+  "a property of an object literal holding a function": 27,
+  "a class property with a function type, no function in it": 27,
+  "an abstract method": 17,
+  "a static method": 5,
+  "a property of an interface with a function type": 4
+ },
+ "distinct_callees_by_kind": {
+  "a function, at the top of its file": 784,
+  "a method": 709,
+  "a constant holding a function, at the top of its file": 156,
+  "a function, inside a function or class body": 112,
+  "a constant holding a function, inside a function or class body": 74,
+  "a parameter with a function type": 39,
+  "a method of an interface": 32,
+  "a property of a type literal with a function type": 18,
+  "a variable with a function type": 17,
+  "a type alias for a function type": 13,
+  "a function type, elsewhere": 11,
+  "an abstract method": 11,
+  "a function expression, not held": 8,
+  "a property of an object literal holding a function": 8,
+  "a constructor, by super()": 5,
+  "a method of a type literal": 5,
+  "a property of an interface with a function type": 4,
+  "a class property with a function type, no function in it": 4,
+  "a static method": 2,
+  "a call signature of a type literal": 2,
+  "a method of an object literal": 2
+ },
+ "sites_by_callee_kind_and_form": {
+  "a call signature of a type literal | written a.f()": 96,
+  "a class property with a function type, no function in it | written a.f()": 27,
+  "a constant holding a function, at the top of its file | written f()": 1977,
+  "a constant holding a function, inside a function or class body | written a.f()": 42,
+  "a constant holding a function, inside a function or class body | written f()": 368,
+  "a constant holding a function, inside a function or class body | written on the result of an expression": 1,
+  "a constructor, by super() | written not a name or a property access": 33,
+  "a function expression, not held | written a.f()": 1,
+  "a function expression, not held | written f()": 19,
+  "a function expression, not held | written not a name or a property access": 13,
+  "a function expression, not held | written this.f()": 28,
+  "a function type, elsewhere | written a.f()": 12,
+  "a function type, elsewhere | written f()": 78,
+  "a function type, elsewhere | written not a name or a property access": 13,
+  "a function, at the top of its file | written a.f()": 2,
+  "a function, at the top of its file | written f()": 5825,
+  "a function, inside a function or class body | written a.f()": 39,
+  "a function, inside a function or class body | written f()": 598,
+  "a method | written a.b.f()": 54,
+  "a method | written a.f()": 3550,
+  "a method | written not a name or a property access": 37,
+  "a method | written on the result of an expression": 1321,
+  "a method | written super.f()": 64,
+  "a method | written this.a.b.f() or longer": 29,
+  "a method | written this.a.f()": 102,
+  "a method | written this.f()": 673,
+  "a method of a type literal | written a.f()": 80,
+  "a method of an interface | written a.b.f()": 1,
+  "a method of an interface | written a.f()": 71,
+  "a method of an interface | written on the result of an expression": 6,
+  "a method of an interface | written this.a.b.f() or longer": 2,
+  "a method of an interface | written this.a.f()": 48,
+  "a method of an object literal | written a.f()": 66,
+  "a parameter with a function type | written f()": 52,
+  "a property of a type literal with a function type | written a.b.f()": 4,
+  "a property of a type literal with a function type | written a.f()": 86,
+  "a property of a type literal with a function type | written f()": 11,
+  "a property of a type literal with a function type | written on the result of an expression": 8,
+  "a property of a type literal with a function type | written this.a.f()": 10,
+  "a property of an interface with a function type | written a.f()": 3,
+  "a property of an interface with a function type | written f()": 1,
+  "a property of an object literal holding a function | written a.f()": 20,
+  "a property of an object literal holding a function | written f()": 1,
+  "a property of an object literal holding a function | written on the result of an expression": 6,
+  "a static method | written a.f()": 5,
+  "a type alias for a function type | written a.f()": 95,
+  "a type alias for a function type | written f()": 35,
+  "a type alias for a function type | written not a name or a property access": 1,
+  "a variable with a function type | written a.f()": 2,
+  "a variable with a function type | written f()": 46,
+  "a variable with a function type | written not a name or a property access": 4,
+  "an abstract method | written a.f()": 17
+ },
+ "interface_sites_by_implementors": {
+  "a method of an interface | two or more classes names the interface in an implements clause": 96,
+  "a method of an interface | no class names the interface in an implements clause": 28,
+  "a method of an interface | one class names the interface in an implements clause": 4,
+  "a property of an interface with a function type | no class names the interface in an implements clause": 3,
+  "a property of an interface with a function type | two or more classes names the interface in an implements clause": 1
+ },
+ "samples": {
+  "a call signature of a type literal": [
+   "api/src/ai/tools/registry.ts:217 tool.handler({",
+   "api/src/ai/tools/registry.ts:373 tool.endpoint({ input, data })",
+   "api/src/ai/tools/assets/index.test.ts:66 assets.handler({",
+   "api/src/ai/tools/assets/index.test.ts:111 assets.handler({",
+   "api/src/ai/tools/assets/index.test.ts:154 assets.handler({"
+  ],
+  "a class property with a function type, no function in it": [
+   "api/src/websocket/collab/collab.ts:181 room.onDeleteHandler(singleKeyedEvent)",
+   "api/src/websocket/collab/collab.ts:183 room.onUpdateHandler(singleKeyedEvent)",
+   "api/src/ai/mcp/server.ts:293 transport.onmessage?.(parsedMessage)",
+   "api/src/ai/mcp/server.ts:295 transport.onerror?.(error as Error)",
+   "api/src/ai/mcp/server.test.ts:1392 transport.onmessage?.(message)"
+  ],
+  "a constant holding a function, at the top of its file": [
+   "packages/env/src/lib/cast.ts:9 getCastFlag(value)",
+   "packages/env/src/lib/cast.ts:11 getDefaultType(key)",
+   "packages/env/src/lib/cast.ts:11 guessType(value)",
+   "packages/env/src/lib/cast.ts:28 cast(v)",
+   "packages/env/src/lib/cast.ts:31 tryJson(value)"
+  ],
+  "a constant holding a function, inside a function or class body": [
+   "packages/schema/src/dialects/cockroachdb.ts:554 fetchForOneTable(schema, table)",
+   "packages/schema/src/dialects/cockroachdb.ts:565 fetchForOneTable(t.schema!, t.name)",
+   "packages/schema/src/dialects/sqlite.ts:230 getColumnsForTable(table)",
+   "packages/schema/src/dialects/sqlite.ts:235 getColumnsForTable(table)",
+   "packages/schema/src/dialects/sqlite.ts:238 getColumnsForTable(table)"
+  ],
+  "a constructor, by super()": [
+   "api/src/database/helpers/fn/types.ts:29 super(knex)",
+   "api/src/services/activity.ts:9 super('directus_activity', options)",
+   "api/src/services/revisions.ts:10 super('directus_revisions', options)",
+   "api/src/services/flows.ts:9 super('directus_flows', options)",
+   "api/src/services/versions.ts:34 super('directus_versions', options)"
+  ],
+  "a function expression, not held": [
+   "api/src/services/payload.ts:384 process(payload[name])",
+   "api/src/database/run-ast/lib/get-db-query.ts:82 preProcess(node)",
+   "api/src/database/run-ast/lib/get-db-query.ts:135 preProcess(node)",
+   "api/src/database/run-ast/lib/get-db-query.ts:323 preProcess(node)",
+   "api/src/database/run-ast/lib/get-db-query.ts:332 preProcess(node)"
+  ],
+  "a function type, elsewhere": [
+   "api/src/permissions/cache.ts:30 useCache()",
+   "api/src/permissions/utils/with-cache.ts:20 useCache()",
+   "api/src/permissions/utils/with-cache.ts:31 handler(...args)",
+   "api/src/permissions/modules/fetch-allowed-fields/fetch-allowed-fields.ts:24 fetchPolicies(accountability, { knex, schema })",
+   "api/src/database/get-ast-from-query/lib/parse-fields.ts:57 fetchPolicies(options.accountability, context)"
+  ],
+  "a function, at the top of its file": [
+   "packages/schema/src/dialects/cockroachdb.ts:21 stripQuotes(value)",
+   "packages/schema/src/dialects/cockroachdb.ts:181 parseDefaultValue(column.default_value)",
+   "packages/schema/src/dialects/cockroachdb.ts:515 parseDefaultValue(r.column_default)",
+   "packages/schema/src/dialects/mssql.ts:39 parseDefaultValue(rawColumn.default_value)",
+   "packages/schema/src/dialects/mssql.ts:93 stripQuotes(value)"
+  ],
+  "a function, inside a function or class body": [
+   "packages/schema/src/dialects/mssql.ts:41 parseMaxLength(rawColumn)",
+   "api/src/utils/get-config-from-env.ts:40 transform(transform(key.slice(prefix.length)))",
+   "api/src/utils/get-config-from-env.ts:40 transform(key.slice(prefix.length))",
+   "api/src/utils/get-config-from-env.ts:40 transform(key)",
+   "api/src/utils/get-config-from-env.ts:44 transform(key.slice(prefix.length))"
+  ],
+  "a method": [
+   "packages/schema/src/dialects/cockroachdb.ts:230 this.getDatabaseName()",
+   "packages/schema/src/dialects/cockroachdb.ts:235 this.sanitizeIdentifier(dbName, schema)",
+   "packages/schema/src/dialects/cockroachdb.ts:259 this.getDatabaseName()",
+   "packages/schema/src/dialects/cockroachdb.ts:265 this.sanitizeIdentifier(dbName, schema)",
+   "packages/schema/src/dialects/cockroachdb.ts:522 this.extractColumnTypeMetadata(r.crdb_sql_type)"
+  ],
+  "a method of a type literal": [
+   "api/src/database/helpers/schema/utils/prep-query-params.ts:49 options.format(bindingIndex)",
+   "api/src/websocket/collab/messenger.ts:50 store.get('instances')",
+   "api/src/websocket/collab/messenger.ts:52 store.set('instances', instances)",
+   "api/src/websocket/collab/messenger.ts:101 store.get('instances')",
+   "api/src/websocket/collab/messenger.ts:106 store.set('instances', instances)"
+  ],
+  "a method of an interface": [
+   "packages/memory/src/kv/lib/redis.ts:132 this.redis.setMax(withNamespace(key, this.namespace), value)",
+   "packages/memory/src/cache/lib/local.ts:14 this.store.get<T>(key)",
+   "packages/memory/src/cache/lib/local.ts:18 this.store.set(key, value)",
+   "packages/memory/src/cache/lib/local.ts:22 this.store.delete(key)",
+   "packages/memory/src/cache/lib/local.ts:26 this.store.has(key)"
+  ],
+  "a method of an object literal": [
+   "api/src/middleware/cache.ts:62 counter.increment('cached')",
+   "api/src/middleware/request-counter.ts:21 counter.increment(req.method.toLowerCase())",
+   "api/src/ai/telemetry/langfuse.test.ts:76 processor.onEnd(span)",
+   "api/src/ai/telemetry/langfuse.test.ts:86 processor.onEnd(span)",
+   "api/src/ai/telemetry/langfuse.test.ts:97 processor.onEnd(span)"
+  ],
+  "a parameter with a function type": [
+   "packages/errors/src/create-error.ts:20 message(extensions as Extensions)",
+   "packages/memory/src/kv/lib/local.ts:94 callback()",
+   "api/src/logger/logs-stream.ts:24 callback()",
+   "api/src/logger/logs-stream.ts:42 callback()",
+   "api/src/logger/logs-stream.ts:57 callback()"
+  ],
+  "a property of a type literal with a function type": [
+   "api/src/ai/telemetry/index.ts:103 telemetryState.tracerProvider.getTracer('directus-ai')",
+   "api/src/ai/telemetry/index.ts:123 tracerProvider.shutdown()",
+   "api/src/services/payload.ts:629 opts.bypassEmitAction(params)",
+   "api/src/services/payload.ts:644 opts.bypassEmitAction(params)",
+   "api/src/services/payload.ts:729 opts.bypassEmitAction(params)"
+  ],
+  "a property of an interface with a function type": [
+   "api/src/ai/chat/lib/create-ui-stream.ts:101 onUsage(formatUsageWithCacheTokens(result))",
+   "api/src/utils/get-schema.ts:126 schemaInspector.overview()",
+   "api/src/deployment/drivers/netlify.ts:371 connection.resolveCompleted()",
+   "api/src/ai/tools/registry.ts:281 tool.readOnly(args)"
+  ],
+  "a property of an object literal holding a function": [
+   "api/src/services/graphql/subscription.ts:17 messages.publish(`${message['collection']}_mutated`, message)",
+   "api/src/services/graphql/subscription.ts:26 messages.subscribe(event)",
+   "api/src/services/import/import.ts:257 errorTracker.shouldStop()",
+   "api/src/services/import/import.ts:273 errorTracker.shouldStop()",
+   "api/src/services/import/import.ts:278 errorTracker.shouldStop()"
+  ],
+  "a static method": [
+   "api/src/websocket/errors.ts:55 WebSocketError.fromError(error, type)",
+   "api/src/websocket/errors.ts:65 WebSocketError.fromZodError(error, type)",
+   "api/src/websocket/errors.test.ts:78 WebSocketError.fromError(error, type)",
+   "api/src/websocket/errors.test.ts:87 WebSocketError.fromError(error, type)",
+   "api/src/websocket/errors.test.ts:109 WebSocketError.fromZodError(error, type)"
+  ],
+  "a type alias for a function type": [
+   "packages/memory/src/bus/lib/local.ts:14 callback(payload)",
+   "packages/memory/src/bus/lib/redis.ts:102 callback(deserialized)",
+   "api/src/emitter.ts:51 listener(updatedPayload, { event, ...meta }, context ?? this.getDefaul",
+   "api/src/utils/get-history-filter-query.ts:25 buildFilter(sinceDate)",
+   "api/src/utils/redact-object.ts:41 replacement()"
+  ],
+  "a variable with a function type": [
+   "api/src/extensions/manager.ts:390 resolve()",
+   "api/src/extensions/manager.ts:393 reject(new Error('Extensions have to be loaded before they can be relo",
+   "api/src/ai/telemetry/index.test.ts:230 resolveInit?.({ recordIO: false, tracerProvider: mockTracer })",
+   "api/src/controllers/files.test.ts:109 importHandler(req, { locals: {} }, next)",
+   "api/src/controllers/files.test.ts:132 importHandler(req, { locals: {} }, next)"
+  ],
+  "an abstract method": [
+   "api/src/services/authentication.ts:99 provider.getUserID(cloneDeep(payload))",
+   "api/src/services/authentication.ts:614 provider.verify(clone(user), password)",
+   "api/src/services/deployment-projects.ts:97 driver.listProjects()",
+   "api/src/services/deployment-projects.ts:126 driver.getProject(p.external_id)",
+   "api/src/services/deployment.ts:68 driver.testConnection()"
+  ]
+ }
+}

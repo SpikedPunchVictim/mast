@@ -1,0 +1,75 @@
+
+mast.json: 210 files, 19897 call expressions, 5540 with the callee in the corpus,
+  14357 outside it, 0 with no declaration
+      349 sites   6.3%      47 callees  a method of an interface (no row)
+       50 sites   0.9%      20 callees  a property of an interface with a function type (no row)
+       38 sites   0.7%      11 callees  a member of a type literal (no row for the method)
+        0 sites   0.0%       0 callees  a function or constant in a TypeScript namespace (no row)
+        3 sites   0.1%       3 callees  a member of an object literal (no row)
+        0 sites   0.0%       0 callees  a class property holding a function (no row)
+      173 sites   3.1%      28 callees  a class method, static or abstract included (row)
+     4159 sites  75.1%     602 callees  a function or constant at the top of its file (row)
+      768 sites  13.9%                  other kinds
+              313  a method of an interface | no class names the interface in an implements clause
+               35  a method of an interface | one class names the interface in an implements clause
+                1  a method of an interface | two or more classes names the interface in an implements clause
+
+n8n.json: 5936 files, 374434 call expressions, 119331 with the callee in the corpus,
+  248662 outside it, 1433 with no declaration
+     4539 sites   3.8%     838 callees  a method of an interface (no row)
+     2192 sites   1.8%     256 callees  a property of an interface with a function type (no row)
+     2025 sites   1.7%     317 callees  a member of a type literal (no row for the method)
+        0 sites   0.0%       0 callees  a function or constant in a TypeScript namespace (no row)
+     2144 sites   1.8%      55 callees  a member of an object literal (no row)
+       16 sites   0.0%       6 callees  a class property holding a function (no row)
+    49178 sites  41.2%    9053 callees  a class method, static or abstract included (row)
+    46035 sites  38.6%    7194 callees  a function or constant at the top of its file (row)
+    13202 sites  11.1%                  other kinds
+             2042  a method of an interface | no class names the interface in an implements clause
+             1884  a method of an interface | two or more classes names the interface in an implements clause
+              613  a method of an interface | one class names the interface in an implements clause
+
+nest.json: 971 files, 7623 call expressions, 4489 with the callee in the corpus,
+  1503 outside it, 1631 with no declaration
+      275 sites   6.1%      91 callees  a method of an interface (no row)
+       23 sites   0.5%      18 callees  a property of an interface with a function type (no row)
+       51 sites   1.1%      31 callees  a member of a type literal (no row for the method)
+        0 sites   0.0%       0 callees  a function or constant in a TypeScript namespace (no row)
+        4 sites   0.1%       4 callees  a member of an object literal (no row)
+        0 sites   0.0%       0 callees  a class property holding a function (no row)
+     2140 sites  47.7%    1117 callees  a class method, static or abstract included (row)
+     1363 sites  30.4%     165 callees  a function or constant at the top of its file (row)
+      633 sites  14.1%                  other kinds
+              100  a method of an interface | one class names the interface in an implements clause
+               99  a method of an interface | two or more classes names the interface in an implements clause
+               76  a method of an interface | no class names the interface in an implements clause
+
+directus.json: 1481 files, 59447 call expressions, 15683 with the callee in the corpus,
+  4948 outside it, 38814 with no declaration
+      128 sites   0.8%      32 callees  a method of an interface (no row)
+        4 sites   0.0%       4 callees  a property of an interface with a function type (no row)
+      199 sites   1.3%      23 callees  a member of a type literal (no row for the method)
+        0 sites   0.0%       0 callees  a function or constant in a TypeScript namespace (no row)
+       93 sites   0.6%      10 callees  a member of an object literal (no row)
+        0 sites   0.0%       0 callees  a class property holding a function (no row)
+     5852 sites  37.3%     722 callees  a class method, static or abstract included (row)
+     7804 sites  49.8%     940 callees  a function or constant at the top of its file (row)
+     1603 sites  10.2%                  other kinds
+               96  a method of an interface | two or more classes names the interface in an implements clause
+               28  a method of an interface | no class names the interface in an implements clause
+                4  a method of an interface | one class names the interface in an implements clause
+
+vscode.json: 8063 files, 739870 call expressions, 512492 with the callee in the corpus,
+  117871 outside it, 107357 with no declaration
+    90539 sites  17.7%    8644 callees  a method of an interface (no row)
+     1016 sites   0.2%     427 callees  a property of an interface with a function type (no row)
+     1072 sites   0.2%     472 callees  a member of a type literal (no row for the method)
+     7028 sites   1.4%     745 callees  a function or constant in a TypeScript namespace (no row)
+     1540 sites   0.3%     133 callees  a member of an object literal (no row)
+       32 sites   0.0%      17 callees  a class property holding a function (no row)
+   223230 sites  43.6%   34972 callees  a class method, static or abstract included (row)
+   131074 sites  25.6%   10983 callees  a function or constant at the top of its file (row)
+    56961 sites  11.1%                  other kinds
+            38934  a method of an interface | two or more classes names the interface in an implements clause
+            38136  a method of an interface | one class names the interface in an implements clause
+            13469  a method of an interface | no class names the interface in an implements clause

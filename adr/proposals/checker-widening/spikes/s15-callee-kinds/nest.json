@@ -1,0 +1,295 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/nest-ref",
+ "workspace_src": false,
+ "programs": [
+  {
+   "tsconfig": "tsconfig.json",
+   "corpus_files_first_seen_here": 971,
+   "config_errors": 0,
+   "module_resolution": "not set"
+  }
+ ],
+ "corpus_files_read": 971,
+ "totals": {
+  "call expressions": 7623,
+  "callee in the corpus": 4489,
+  "no declaration: the callee has no type here, or the type has no signature": 1631,
+  "callee outside the corpus": 1503
+ },
+ "sites_by_callee_kind": {
+  "a method": 1973,
+  "a function, at the top of its file": 866,
+  "a constant holding a function, at the top of its file": 497,
+  "a method of an interface": 275,
+  "a function expression, not held": 226,
+  "a static method": 137,
+  "a parameter with a function type": 79,
+  "a call signature of a type literal": 71,
+  "a constant holding a function, inside a function or class body": 68,
+  "a constructor, by super()": 67,
+  "a class property with a function type, no function in it": 54,
+  "a method of a type literal": 35,
+  "an abstract method": 30,
+  "a property of an interface with a function type": 23,
+  "a type alias for a function type": 20,
+  "a variable with a function type": 19,
+  "a property of a type literal with a function type": 16,
+  "a function type, elsewhere": 11,
+  "a call signature of an interface": 8,
+  "a function, inside a function or class body": 5,
+  "a property of an object literal holding a function": 4,
+  "a method of a class expression": 3,
+  "ConstructorType": 1,
+  "ConstructSignature": 1
+ },
+ "distinct_callees_by_kind": {
+  "a method": 1041,
+  "a function, at the top of its file": 110,
+  "a method of an interface": 91,
+  "a parameter with a function type": 60,
+  "a static method": 57,
+  "a constant holding a function, at the top of its file": 55,
+  "a constant holding a function, inside a function or class body": 41,
+  "a class property with a function type, no function in it": 19,
+  "an abstract method": 19,
+  "a method of a type literal": 19,
+  "a property of an interface with a function type": 18,
+  "a property of a type literal with a function type": 12,
+  "a function expression, not held": 11,
+  "a constructor, by super()": 11,
+  "a function type, elsewhere": 10,
+  "a type alias for a function type": 9,
+  "a property of an object literal holding a function": 4,
+  "a function, inside a function or class body": 3,
+  "a call signature of a type literal": 3,
+  "a variable with a function type": 3,
+  "a method of a class expression": 2,
+  "ConstructorType": 1,
+  "a call signature of an interface": 1,
+  "ConstructSignature": 1
+ },
+ "sites_by_callee_kind_and_form": {
+  "a call signature of a type literal | written f()": 71,
+  "a call signature of an interface | written f()": 8,
+  "a class property with a function type, no function in it | written a.f()": 3,
+  "a class property with a function type, no function in it | written f()": 1,
+  "a class property with a function type, no function in it | written this.f()": 50,
+  "a constant holding a function, at the top of its file | written f()": 497,
+  "a constant holding a function, inside a function or class body | written f()": 68,
+  "a constructor, by super() | written not a name or a property access": 67,
+  "a function expression, not held | written a.f()": 29,
+  "a function expression, not held | written f()": 183,
+  "a function expression, not held | written not a name or a property access": 14,
+  "a function type, elsewhere | written a.f()": 1,
+  "a function type, elsewhere | written f()": 9,
+  "a function type, elsewhere | written not a name or a property access": 1,
+  "a function, at the top of its file | written f()": 866,
+  "a function, inside a function or class body | written f()": 5,
+  "a method | written a.b.c.f() or longer": 1,
+  "a method | written a.b.f()": 5,
+  "a method | written a.f()": 201,
+  "a method | written on the result of an expression": 29,
+  "a method | written super.f()": 16,
+  "a method | written this.a.b.f() or longer": 4,
+  "a method | written this.a.f()": 588,
+  "a method | written this.f()": 1129,
+  "a method of a class expression | written this.f()": 3,
+  "a method of a type literal | written a.f()": 3,
+  "a method of a type literal | written on the result of an expression": 4,
+  "a method of a type literal | written this.a.b.f() or longer": 1,
+  "a method of a type literal | written this.a.f()": 27,
+  "a method of an interface | written a.b.f()": 2,
+  "a method of an interface | written a.f()": 123,
+  "a method of an interface | written not a name or a property access": 3,
+  "a method of an interface | written on the result of an expression": 29,
+  "a method of an interface | written this.a.b.f() or longer": 4,
+  "a method of an interface | written this.a.f()": 114,
+  "a parameter with a function type | written f()": 79,
+  "a property of a type literal with a function type | written a.f()": 7,
+  "a property of a type literal with a function type | written f()": 4,
+  "a property of a type literal with a function type | written on the result of an expression": 2,
+  "a property of a type literal with a function type | written this.a.b.f() or longer": 2,
+  "a property of a type literal with a function type | written this.a.f()": 1,
+  "a property of an interface with a function type | written a.f()": 9,
+  "a property of an interface with a function type | written f()": 8,
+  "a property of an interface with a function type | written not a name or a property access": 4,
+  "a property of an interface with a function type | written this.a.f()": 2,
+  "a property of an object literal holding a function | written f()": 4,
+  "a static method | written a.f()": 113,
+  "a static method | written this.f()": 24,
+  "a type alias for a function type | written f()": 17,
+  "a type alias for a function type | written not a name or a property access": 1,
+  "a type alias for a function type | written this.f()": 2,
+  "a variable with a function type | written f()": 19,
+  "an abstract method | written a.f()": 10,
+  "an abstract method | written this.a.f()": 11,
+  "an abstract method | written this.f()": 9,
+  "ConstructorType | written not a name or a property access": 1,
+  "ConstructSignature | written not a name or a property access": 1
+ },
+ "interface_sites_by_implementors": {
+  "a method of an interface | one class names the interface in an implements clause": 100,
+  "a method of an interface | two or more classes names the interface in an implements clause": 99,
+  "a method of an interface | no class names the interface in an implements clause": 76,
+  "a property of an interface with a function type | no class names the interface in an implements clause": 23
+ },
+ "samples": {
+  "a call signature of a type literal": [
+   "packages/microservices/decorators/message-pattern.decorator.ts:114 MessagePattern(metadata, Transport.GRPC)",
+   "packages/microservices/decorators/message-pattern.decorator.ts:149 MessagePattern(metadata, Transport.GRPC)",
+   "packages/microservices/decorators/message-pattern.decorator.ts:212 MessagePattern(metadata, Transport.GRPC)",
+   "integration/inspector/src/external-svc/external-svc.controller.ts:11 MessagePattern('createExternalSvc')",
+   "integration/inspector/src/external-svc/external-svc.controller.ts:16 MessagePattern('findAllExternalSvc')"
+  ],
+  "a call signature of an interface": [
+   "packages/microservices/server/server.ts:218 handler(packet.data, context)",
+   "packages/microservices/server/server-kafka.ts:249 handler(packet.data, kafkaContext)",
+   "packages/microservices/server/server-kafka.ts:383 handler(packet.data, context)",
+   "packages/microservices/server/server-mqtt.ts:162 handler(packet.data, mqttContext)",
+   "packages/microservices/server/server-nats.ts:173 handler(message.data, natsCtx)"
+  ],
+  "a class property with a function type, no function in it": [
+   "packages/common/module-utils/configurable-module.builder.ts:227 self.transformModuleDefinition(",
+   "packages/common/module-utils/configurable-module.builder.ts:250 self.transformModuleDefinition(",
+   "packages/common/pipes/file/parse-file.pipe.ts:45 this.exceptionFactory('File is required')",
+   "packages/common/pipes/file/parse-file.pipe.ts:80 this.exceptionFactory(errorMessage)",
+   "packages/common/pipes/validation.pipe.ts:152 this.exceptionFactory(errors)"
+  ],
+  "a constant holding a function, at the top of its file": [
+   "packages/common/utils/shared.utils.ts:5 isNil(fn)",
+   "packages/common/utils/shared.utils.ts:8 isObject(fn)",
+   "packages/common/utils/shared.utils.ts:49 isUndefined(val)",
+   "packages/common/utils/cli-colors.util.ts:5 isColorAllowed()",
+   "packages/common/utils/cli-colors.util.ts:8 colorIfAllowed((text: string) => `\\x1B[1m${text}\\x1B[0m`)"
+  ],
+  "a constant holding a function, inside a function or class body": [
+   "packages/common/decorators/http/create-route-param-metadata.decorator.ts:42 isPipe(data)",
+   "packages/common/pipes/parse-array.pipe.ts:132 toClassInstance(targetArray[i])",
+   "packages/core/interceptors/interceptors-consumer.ts:34 nextFn(i + 1)",
+   "packages/core/interceptors/interceptors-consumer.ts:38 nextFn()",
+   "packages/core/router/sse-stream.ts:154 sanitize(message.type)"
+  ],
+  "a constructor, by super()": [
+   "packages/common/exceptions/bad-gateway.exception.ts:43 super(",
+   "packages/common/exceptions/bad-request.exception.ts:43 super(",
+   "packages/common/exceptions/conflict.exception.ts:43 super(",
+   "packages/common/exceptions/forbidden.exception.ts:43 super(",
+   "packages/common/exceptions/gateway-timeout.exception.ts:43 super("
+  ],
+  "a function expression, not held": [
+   "packages/common/services/console-logger.service.ts:427 yellow(context)",
+   "packages/common/services/console-logger.service.ts:475 color(message)",
+   "packages/common/services/console-logger.service.ts:501 yellow(formattedDiff)",
+   "packages/common/decorators/http/route-params.decorator.ts:124 createRouteParamDecorator(RouteParamtypes.RESPONSE)()",
+   "packages/common/decorators/http/route-params.decorator.ts:245 createPipesRouteParamDecorator(RouteParamtypes.FILE)("
+  ],
+  "a function type, elsewhere": [
+   "packages/common/module-utils/configurable-module.builder.ts:343 optionsFactory[",
+   "packages/core/middleware/middleware-module.ts:285 proxy(req, res, next)",
+   "packages/core/middleware/middleware-module.ts:352 router(path, middlewareFunction)",
+   "packages/core/router/router-execution-context.ts:160 fnCanActivate([req, res, next])",
+   "packages/microservices/server/server-kafka.ts:239 publish({"
+  ],
+  "a function, at the top of its file": [
+   "packages/common/services/console-logger.service.ts:121 Injectable()",
+   "packages/common/services/console-logger.service.ts:149 Optional()",
+   "packages/common/services/console-logger.service.ts:151 Optional()",
+   "packages/common/services/console-logger.service.ts:306 isLogLevelEnabled(level, logLevels)",
+   "packages/common/services/utils/filter-log-levels.util.ts:26 isLogLevel(sanitizedString)"
+  ],
+  "a function, inside a function or class body": [
+   "packages/core/injector/injector.ts:453 isOptionalFactoryDependency(item)",
+   "packages/core/injector/topology-tree/topology-tree.ts:20 walkNode(child, depth + 1)",
+   "packages/core/injector/topology-tree/topology-tree.ts:22 walkNode(this.root)",
+   "packages/platform-fastify/adapters/middie/fastify-middie.ts:149 cleanup()",
+   "packages/platform-fastify/adapters/middie/fastify-middie.ts:155 cleanup()"
+  ],
+  "a method": [
+   "packages/common/services/console-logger.service.ts:167 this.getInspectOptions()",
+   "packages/common/services/console-logger.service.ts:182 this.isLevelEnabled('log')",
+   "packages/common/services/console-logger.service.ts:185 this.getContextAndMessagesToPrint([",
+   "packages/common/services/console-logger.service.ts:189 this.printMessages(messages, context, 'log')",
+   "packages/common/services/console-logger.service.ts:200 this.isLevelEnabled('error')"
+  ],
+  "a method of a class expression": [
+   "packages/core/middleware/builder.ts:62 this.getRoutesFlatList(routes)",
+   "packages/core/middleware/builder.ts:84 this.getRoutesFlatList(routes)",
+   "packages/core/middleware/builder.ts:85 this.removeOverlappedRoutes(flattedRoutes)"
+  ],
+  "a method of a type literal": [
+   "packages/core/interceptors/interceptors-consumer.ts:87 innerSub?.unsubscribe()",
+   "packages/core/router/router-response-controller.ts:154 subscription?.unsubscribe()",
+   "packages/microservices/client/client-kafka.ts:137 this._producer.disconnect()",
+   "packages/microservices/client/client-kafka.ts:138 this._consumer.disconnect()",
+   "packages/microservices/client/client-kafka.ts:174 this._consumer.on("
+  ],
+  "a method of an interface": [
+   "packages/common/services/logger.service.ts:147 this.localInstance?.error(message, ...optionalParams)",
+   "packages/common/services/logger.service.ts:160 this.localInstance?.log(message, ...optionalParams)",
+   "packages/common/services/logger.service.ts:173 this.localInstance?.warn(message, ...optionalParams)",
+   "packages/common/services/logger.service.ts:186 this.localInstance?.debug?.(message, ...optionalParams)",
+   "packages/common/services/logger.service.ts:199 this.localInstance?.verbose?.(message, ...optionalParams)"
+  ],
+  "a parameter with a function type": [
+   "packages/core/injector/injector.ts:330 callback(deps)",
+   "packages/core/injector/injector.ts:414 callback(instances)",
+   "packages/core/router/router-proxy.ts:46 targetCallback(err, req, res, next)",
+   "packages/core/interceptors/interceptors-consumer.ts:23 next()",
+   "packages/core/interceptors/interceptors-consumer.ts:58 next()"
+  ],
+  "a property of a type literal with a function type": [
+   "packages/common/pipes/file/file-type.validator.ts:87 errorMessage({ file, config })",
+   "packages/common/pipes/file/max-file-size.validator.ts:56 errorMessage({ file, config })",
+   "packages/common/pipes/file/max-file-size.validator.ts:62 message(this.validationOptions.maxSize)",
+   "packages/core/injector/module.ts:396 instanceDecorator(value)",
+   "packages/core/nest-application.ts:499 this.appOptions.instrument!.instanceDecorator(instance)"
+  ],
+  "a property of an interface with a function type": [
+   "packages/common/file-stream/streamable-file.ts:25 res.end()",
+   "packages/common/file-stream/streamable-file.ts:30 res.send(err.message)",
+   "packages/common/pipes/parse-date.pipe.ts:65 this.options.default()",
+   "packages/core/services/reflector.service.ts:65 options.transform(metadataValue)",
+   "packages/core/helpers/external-context-creator.ts:145 getParamsMetadata(moduleKey, contextId, inquirerId)"
+  ],
+  "a property of an object literal holding a function": [
+   "packages/microservices/server/server-grpc.ts:468 next(m)",
+   "packages/microservices/server/server-grpc.ts:480 error(e)",
+   "packages/microservices/server/server-grpc.ts:483 complete()",
+   "packages/microservices/server/server-grpc.ts:484 cleanup()"
+  ],
+  "a static method": [
+   "packages/common/exceptions/bad-gateway.exception.ts:41 HttpException.extractDescriptionAndOptionsFrom(descriptionOrOptions)",
+   "packages/common/exceptions/bad-gateway.exception.ts:44 HttpException.createBody(",
+   "packages/common/exceptions/bad-request.exception.ts:41 HttpException.extractDescriptionAndOptionsFrom(descriptionOrOptions)",
+   "packages/common/exceptions/bad-request.exception.ts:44 HttpException.createBody(",
+   "packages/common/exceptions/conflict.exception.ts:41 HttpException.extractDescriptionAndOptionsFrom(descriptionOrOptions)"
+  ],
+  "a type alias for a function type": [
+   "packages/common/utils/cli-colors.util.ts:5 colorFn(text)",
+   "packages/core/router/router-proxy.ts:21 targetCallback(req, res, next)",
+   "packages/core/router/router-execution-context.ts:175 (fnHandleResponse as HandlerResponseBasicFn)(result, res, req)",
+   "packages/microservices/client/client-redis.ts:86 callback(type, ...args)",
+   "packages/microservices/client/client-redis.ts:211 callback('sub', ...args)"
+  ],
+  "a variable with a function type": [
+   "integration/microservices/src/mqtt/mqtt.controller.ts:105 Ctx()",
+   "integration/microservices/src/nats/nats.controller.ts:79 Ctx()",
+   "integration/microservices/src/nats/nats.controller.ts:90 Ctx()",
+   "integration/microservices/src/rmq/fanout-exchange-consumer-rmq.controller.ts:9 Ctx()",
+   "integration/microservices/src/rmq/rmq.controller.ts:97 Ctx()"
+  ],
+  "an abstract method": [
+   "packages/common/pipes/file/parse-file.pipe.ts:76 validator.isValid(file)",
+   "packages/common/pipes/file/parse-file.pipe.ts:79 validator.buildErrorMessage(file)",
+   "packages/core/helpers/context-creator.ts:29 this.createConcreteContext<T, R>(",
+   "packages/core/helpers/context-creator.ts:34 this.createConcreteContext<T, R>(classMetadata, contextId, inquirerId)",
+   "packages/core/helpers/context-creator.ts:35 this.createConcreteContext<T, R>("
+  ],
+  "ConstructorType": [
+   "packages/common/utils/merge-with-values.util.ts:10 super(...args)"
+  ],
+  "ConstructSignature": [
+   "integration/module-utils/src/integration.module.ts:14 super()"
+  ]
+ }
+}

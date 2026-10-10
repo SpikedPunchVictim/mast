@@ -1,0 +1,22 @@
+symbol|interface|Store|src/lib.ts:13
+symbol|type|Reader|src/lib.ts:18
+symbol|class|Base|src/lib.ts:22
+symbol|method|Base.run|src/lib.ts:23
+symbol|method|Base.go|src/lib.ts:24
+symbol|class|Impl|src/lib.ts:29
+symbol|method|Impl.run|src/lib.ts:30
+symbol|method|Impl.get|src/lib.ts:33
+symbol|function|plain|src/lib.ts:49
+symbol|function|top|src/lib.ts:50
+symbol|function|caller|src/use.ts:3
+edge|PARENT_OF|Base|Base.run||
+edge|PARENT_OF|Base|Base.go||
+edge|IMPLEMENTS|Impl|Store||
+edge|EXTENDS|Impl|Base||
+edge|PARENT_OF|Impl|Impl.run||
+edge|PARENT_OF|Impl|Impl.get||
+edge|POTENTIAL_CALL|caller|Base.run|line 10|parameter_type
+edge|POTENTIAL_CALL|caller|Impl.get|line 11|parameter_type
+edge|POTENTIAL_CALL|caller|plain|line 15|import
+edge|POTENTIAL_CALL|caller|top|line 16|import
+edge|POTENTIAL_CALL|Base.go|Base.run|line 25|this_method

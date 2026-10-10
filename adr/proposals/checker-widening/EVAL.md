@@ -159,3 +159,13 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `vscode.json`, `n8n.json` | vscode `src/tsconfig.json`; n8n over the six projects of s9, `--workspace-src` |
 | `fixture/`, `fixture.out.txt` | A module with a TypeScript namespace, a class and an interface, called through `import * as lib`: the symbol rows and call edges the build of `2dfc454` stores |
 
+
+## s15 — every call by what its callee is (`spikes/s15-callee-kinds/`)
+
+| File | What it is |
+|---|---|
+| `callee-kinds.mjs <corpus> <out.json> [--workspace-src] [--node-next] <tsconfig>...` | Every call expression by the declaration of the signature the compiler resolved: kind, how the call is written, distinct callees, and for a member of an interface how many classes name the interface in an `implements` clause. Sites, not pairs. Builds programs, reads no index. vscode needs `--max-old-space-size=12000`, n8n `14000` |
+| `vscode.json`, `n8n.json`, `nest.json`, `mast.json`, `directus.json` | vscode `src/tsconfig.json`; n8n over the six projects of s9, `--workspace-src`; nest the root `tsconfig.json`; this repository `tsconfig.json` and `tsconfig.test.json`; directus `api/tsconfig.json`, `--workspace-src --node-next` |
+| `directus-config-not-read.json` | directus without `--node-next`, kept to show the fallback is not what leaves 65% of its calls without a declaration |
+| `summary.mjs <result.json>...`, `summary.txt` | The table of the proposal, derived from the five results |
+| `fixture/`, `fixture.out.txt` | One callee of each kind and a call of each: the symbol rows and edges the build of `336cc6a` stores |
