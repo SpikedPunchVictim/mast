@@ -40,7 +40,7 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { workspacePackageDirs } from './workspace-packages.mjs';
-import { compareScorecards, emptyBuckets, formatComparison, formatScorecard, normalise, scoreSets } from './scorecard-lib.mjs';
+import { compareScorecards, emptyBuckets, formatComparison, formatScorecard, normalise, scoreSets, sourceBesideDeclaration } from './scorecard-lib.mjs';
 
 const SUITE_DIR = dirname(fileURLToPath(import.meta.url));
 const PUBLISHED = resolve(SUITE_DIR, '..', 'eval', 'results');
@@ -282,8 +282,21 @@ function runScore({ flags }) {
     const meant = decls.filter((d) => isTypeDecl(d) === (meaning === 'type'));
     return meant.length > 0 ? meant : decls;
   };
+  /**
+   * A declaration as the end of an edge. One in a `.d.ts` with a script beside it stands
+   * for the script's declaration of the same name, when mast has one: that is the code a
+   * call runs, and the file mast resolves the import to (D162).
+   */
+  function targetKeyOfDecl(decl) {
+    const key = keyOfDecl(decl);
+    if (key === null) return null;
+    const path = rel(decl.getSourceFile().fileName);
+    const script = sourceBesideDeclaration(path, (p) => allIndexedPaths.has(p));
+    const inScript = script + key.slice(path.length);
+    return script !== path && declared.has(inScript) ? inScript : key;
+  }
   const declaredKeysOf = (symbol, meaning = 'value') =>
-    [...new Set(declsOfMeaning(symbol?.declarations ?? [], meaning).map(keyOfDecl).filter((k) => k !== null && declared.has(k)))];
+    [...new Set(declsOfMeaning(symbol?.declarations ?? [], meaning).map(targetKeyOfDecl).filter((k) => k !== null && declared.has(k)))];
 
   const ref = {
     symbols: { function: [], class: [], method: [], interface: [], type: [], export: [] },
@@ -302,12 +315,14 @@ function runScore({ flags }) {
   /** The file a module specifier resolves to, as a path under the root, or null if the compiler finds none. */
   function fileOfSpecifier(specifier) {
     const file = checker.getSymbolAtLocation(specifier)?.declarations?.find(ts.isSourceFile);
-    return file === undefined ? null : rel(file.fileName);
+    return file === undefined ? null : sourceBesideDeclaration(rel(file.fileName), (p) => allIndexedPaths.has(p));
   }
   const indexedOrNull = (path) => (path !== null && allIndexedPaths.has(path) ? path : null);
 
+  /** What is called. A tagged template calls its tag. */
+  const calleeOf = (call) => (ts.isTaggedTemplateExpression(call) ? call.tag : call.expression);
   function shapeOf(call) {
-    const callee = call.expression;
+    const callee = calleeOf(call);
     if (ts.isNewExpression(call)) return 'new X()';
     if (ts.isIdentifier(callee)) return 'f()';
     if (ts.isPropertyAccessExpression(callee)) {
@@ -489,8 +504,9 @@ function runScore({ flags }) {
           }
         }
       }
-      if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
-        const callee = node.expression;
+      // A tagged template is a call of its tag, and mast stores it as one.
+      if (ts.isCallExpression(node) || ts.isNewExpression(node) || ts.isTaggedTemplateExpression(node)) {
+        const callee = calleeOf(node);
         const nameNode = ts.isIdentifier(callee) ? callee : ts.isPropertyAccessExpression(callee) ? callee.name : null;
         const caller = nameNode === null ? null : callerOf(node);
         if (nameNode === null) note('call whose callee is not a name or a property');
@@ -509,13 +525,13 @@ function runScore({ flags }) {
             const ctor = ctors.find((c) => c.body) ?? ctors[0];
             if (ctor) decls = [ctor];
           }
-          let targets = [...new Set(decls.map(keyOfDecl).filter((k) => k !== null && declared.has(k)))];
+          let targets = [...new Set(decls.map(targetKeyOfDecl).filter((k) => k !== null && declared.has(k)))];
           // The name is a variable, a parameter or a field that holds the thing called
           // (`const { X } = await import('./x')`, `const f = g`). The symbol is the
           // holder; the signature the compiler picked for the call says what is held.
           if (targets.length === 0 && decls.length > 0 && decls.every(isHolder)) {
             const held = heldBy(node);
-            const heldTargets = [...new Set(held.map(keyOfDecl).filter((k) => k !== null && declared.has(k)))];
+            const heldTargets = [...new Set(held.map(targetKeyOfDecl).filter((k) => k !== null && declared.has(k)))];
             if (heldTargets.length > 0) { targets = heldTargets; note('call through a variable, judged by its signature'); }
           }
           ref.calls.push({ caller, names, resolved: decls.length > 0, targets, shape: shapeOf(node) });

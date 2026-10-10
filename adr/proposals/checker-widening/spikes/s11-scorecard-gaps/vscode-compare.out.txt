@@ -1,0 +1,145 @@
+before: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/ns/vscode-after.json
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/gaps/vscode-card.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                              8153      8126      8124         2        27         0         0
+edge: IMPLEMENTS                           4907      4852      4852         0        55         0         0
+edge: PARENT_OF                           82674     82676     82660         0        14        16         0
+edge: POTENTIAL_CALL                     179712    149635    143969        47     35696         0      5619
+                                              .         .       +12        -6        -6         .        -6
+edge: RE_EXPORTS (to the declaration)      1415      1415      1405        10         0         0         0
+export * (file to file)                      86        86        86         0         0         0         0
+file: indexed                              8056      6483      6483         0      1573         0         0
+import: named binding                    152201    152201    152201         0         0         0         0
+import: the file it resolves to           90096     91378     90096         0         0         0      1282
+                                            -43         .       +43       -43       -43         .         .
+symbol flag: is_exported                 127667    127667    127588        79         0         0         0
+symbol: class                             12406     12407     12405         0         1         2         0
+symbol: export                             1730      1730      1730         0         0         0         0
+symbol: function                          16623     18193     16621         0         2      1572         0
+symbol: interface                         12223     12229     12223         0         0         6         0
+symbol: method                            81869     81885     81869         0         0        16         0
+symbol: one key, more than one row            0       116         0         0         0         0       116
+symbol: type                               4551      4555      4551         0         0         4         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> lacks (9)
+    src/vs/base/browser/markdownRenderer.ts:createMarkdownRenderer > src/vs/base/common/marked/marked.js:_Renderer.constructor
+    src/vs/base/browser/markdownRenderer.ts:createPlainTextRenderer > src/vs/base/common/marked/marked.js:_Renderer.listitem
+    src/vs/base/browser/markdownRenderer.ts:createPlainTextRenderer > src/vs/base/common/marked/marked.js:_Renderer.tablecell
+    src/vs/base/browser/markdownRenderer.ts:renderAsPlaintext > src/vs/base/common/marked/marked.js:marked
+    src/vs/base/browser/markdownRenderer.ts:renderMarkdown > src/vs/base/common/marked/marked.js:Marked.lexer
+    src/vs/base/browser/markdownRenderer.ts:renderMarkdown > src/vs/base/common/marked/marked.js:Marked.parser
+    src/vs/workbench/contrib/chat/browser/actions/chatTitleActions.ts:splitMarkdownAndCodeBlocks > src/vs/base/common/marked/marked.js:_Lexer.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/browser/walkThroughInput.ts:WalkThroughInput.resolve > src/vs/base/common/marked/marked.js:_Renderer.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/common/walkThroughContentProvider.ts:WalkThroughSnippetContentProvider.provideTextContent > src/vs/base/common/marked/marked.js:_Renderer.constructor
+  edge: POTENTIAL_CALL: lacks -> absent (15)
+    src/vs/base/browser/markdownRenderer.ts:completeBlockquotePattern > src/vs/base/common/marked/marked.d.ts:_Lexer.constructor
+    src/vs/base/browser/markdownRenderer.ts:createMarkdownRenderer > src/vs/base/common/marked/marked.d.ts:_Renderer.constructor
+    src/vs/base/browser/markdownRenderer.ts:createPlainTextRenderer > src/vs/base/common/marked/marked.d.ts:_Renderer.constructor
+    src/vs/base/browser/markdownRenderer.ts:createPlainTextRenderer > src/vs/base/common/marked/marked.d.ts:_Renderer.listitem
+    src/vs/base/browser/markdownRenderer.ts:createPlainTextRenderer > src/vs/base/common/marked/marked.d.ts:_Renderer.tablecell
+    src/vs/base/browser/markdownRenderer.ts:renderAsPlaintext > src/vs/base/common/marked/marked.d.ts:marked
+    src/vs/base/browser/markdownRenderer.ts:renderMarkdown > src/vs/base/common/marked/marked.d.ts:Marked.constructor
+    src/vs/base/browser/markdownRenderer.ts:renderMarkdown > src/vs/base/common/marked/marked.d.ts:Marked.lexer
+    src/vs/base/browser/markdownRenderer.ts:renderMarkdown > src/vs/base/common/marked/marked.d.ts:Marked.parser
+    src/vs/workbench/contrib/chat/browser/actions/chatTitleActions.ts:splitMarkdownAndCodeBlocks > src/vs/base/common/marked/marked.d.ts:_Lexer.constructor
+    src/vs/workbench/contrib/markdown/browser/markdownDocumentRenderer.ts:renderMarkdownDocument > src/vs/base/common/marked/marked.d.ts:Marked.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/browser/walkThroughInput.ts:WalkThroughInput.resolve > src/vs/base/common/marked/marked.d.ts:Marked.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/browser/walkThroughInput.ts:WalkThroughInput.resolve > src/vs/base/common/marked/marked.d.ts:_Renderer.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/common/walkThroughContentProvider.ts:WalkThroughSnippetContentProvider.provideTextContent > src/vs/base/common/marked/marked.d.ts:_Renderer.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/common/walkThroughContentProvider.ts:WalkThroughSnippetContentProvider.provideTextContent > src/vs/base/common/marked/marked.d.ts:marked
+  edge: POTENTIAL_CALL: unjudged -> agree (6)
+    extensions/copilot/src/extension/inlineEdits/vscode-node/components/inlineEditDebugComponent.ts:generateSTest > extensions/copilot/src/platform/inlineEdits/common/utils/tsExpr.ts:TsExpr.str
+    src/vs/base/browser/cssValue.ts:asCSSUrl > src/vs/base/browser/cssValue.ts:inline
+    src/vs/platform/theme/browser/iconsStyleSheet.ts:getIconsStyleSheet > src/vs/base/browser/cssValue.ts:inline
+    src/vs/workbench/contrib/terminal/browser/terminalService.ts:TerminalEditorStyle.updateStyles > src/vs/base/browser/cssValue.ts:inline
+    src/vs/workbench/services/themes/browser/fileIconThemeData.ts:FileIconThemeLoader.processIconThemeDocument > src/vs/base/browser/cssValue.ts:inline
+    src/vs/workbench/services/themes/browser/fileIconThemeData.ts:handleParentFolder > src/vs/base/browser/cssValue.ts:inline
+  edge: POTENTIAL_CALL: wrong -> agree (6)
+    src/vs/base/browser/markdownRenderer.ts:completeBlockquotePattern > src/vs/base/common/marked/marked.js:_Lexer.constructor
+    src/vs/base/browser/markdownRenderer.ts:createPlainTextRenderer > src/vs/base/common/marked/marked.js:_Renderer.constructor
+    src/vs/base/browser/markdownRenderer.ts:renderMarkdown > src/vs/base/common/marked/marked.js:Marked.constructor
+    src/vs/workbench/contrib/markdown/browser/markdownDocumentRenderer.ts:renderMarkdownDocument > src/vs/base/common/marked/marked.js:Marked.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/browser/walkThroughInput.ts:WalkThroughInput.resolve > src/vs/base/common/marked/marked.js:Marked.constructor
+    src/vs/workbench/contrib/welcomeWalkthrough/common/walkThroughContentProvider.ts:WalkThroughSnippetContentProvider.provideTextContent > src/vs/base/common/marked/marked.js:marked
+  import: the file it resolves to: lacks -> absent (43)
+    extensions/configuration-editing/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/emmet/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/git/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/github/src/test/index.ts '../../../../test/integration/electron/testrunner.js' => test/integration/electron/testrunner.d.ts
+    extensions/ipynb/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/markdown-language-features/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/notebook-renderers/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/vscode-api-tests/src/singlefolder-tests/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/vscode-api-tests/src/workspace-tests/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/vscode-colorize-perf-tests/src/index.ts '../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    extensions/vscode-colorize-tests/src/index.ts '../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.d.ts
+    src/vs/base/browser/domSanitize.ts './dompurify/dompurify.js' => src/vs/base/browser/dompurify/dompurify.d.ts
+    src/vs/base/browser/markdownRenderer.ts '../common/marked/marked.js' => src/vs/base/common/marked/marked.d.ts
+    src/vs/base/common/markdownLinks.ts './marked/marked.js' => src/vs/base/common/marked/marked.d.ts
+    src/vs/platform/extensionManagement/common/extensionGalleryService.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.d.ts
+    src/vs/platform/extensionManagement/common/extensionManagementCLI.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.d.ts
+    src/vs/platform/extensionManagement/common/extensionsScannerService.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.d.ts
+    src/vs/platform/extensionManagement/common/unsupportedExtensionsMigration.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.d.ts
+    src/vs/platform/extensionManagement/node/extensionDownloader.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.d.ts
+    src/vs/platform/extensionManagement/node/extensionManagementService.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.d.ts
+    ... 23 more, in the JSON
+  import: the file it resolves to: wrong -> agree (43)
+    extensions/configuration-editing/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/emmet/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/git/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/github/src/test/index.ts '../../../../test/integration/electron/testrunner.js' => test/integration/electron/testrunner.js
+    extensions/ipynb/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/markdown-language-features/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/notebook-renderers/src/test/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/vscode-api-tests/src/singlefolder-tests/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/vscode-api-tests/src/workspace-tests/index.ts '../../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/vscode-colorize-perf-tests/src/index.ts '../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    extensions/vscode-colorize-tests/src/index.ts '../../../test/integration/electron/testrunner' => test/integration/electron/testrunner.js
+    src/vs/base/browser/domSanitize.ts './dompurify/dompurify.js' => src/vs/base/browser/dompurify/dompurify.js
+    src/vs/base/browser/markdownRenderer.ts '../common/marked/marked.js' => src/vs/base/common/marked/marked.js
+    src/vs/base/common/markdownLinks.ts './marked/marked.js' => src/vs/base/common/marked/marked.js
+    src/vs/platform/extensionManagement/common/extensionGalleryService.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.js
+    src/vs/platform/extensionManagement/common/extensionManagementCLI.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.js
+    src/vs/platform/extensionManagement/common/extensionsScannerService.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.js
+    src/vs/platform/extensionManagement/common/unsupportedExtensionsMigration.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.js
+    src/vs/platform/extensionManagement/node/extensionDownloader.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.js
+    src/vs/platform/extensionManagement/node/extensionManagementService.ts '../../../base/common/semver/semver.js' => src/vs/base/common/semver/semver.js
+    ... 23 more, in the JSON
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction              18244     18245     18236         8         0         0         1
+                                                   .         .        +5        -5         .         .         .
+call edge, stored as field_type                11214     11214     11203        11         0         0         0
+call edge, stored as import                    33164     33164     33163         1         0         0         0
+                                                  +4         .        +5        -1         .         .        -4
+call edge, stored as new_expression             3777      3777      3772         5         0         0         0
+call edge, stored as parameter_type             3430      3430      3423         7         0         0         0
+call edge, stored as same_file                 14037     19651     14037         0         0         0      5614
+                                                  +1         .        +1         .         .         .        -1
+call edge, stored as static_method              7847      7847      7847         0         0         0         0
+                                                  +1         .        +1         .         .         .        -1
+call edge, stored as super_method               1850      1850      1850         0         0         0         0
+call edge, stored as this_method               50453     50457     50438        15         0         0         4
+call written as expr.m(), other file            7604        90        90         0      7514         0         0
+call written as expr.m(), same file              817         8         8         0       809         0         0
+call written as f(), other file                33022     29121     29121         0      3901         0         0
+call written as f(), same file                 14140     14037     14037         0       103         0         0
+                                                  +1        +1        +1         .         .         .         .
+call written as ident.m(), other file          26108     16466     16466         0      9642         0         0
+                                                  +5        +6        +6         .        -1         .         .
+call written as ident.m(), same file            4611      2533      2533         0      2078         0         0
+call written as new X(), other file            13920     13857     13857         0        63         0         0
+                                                   .        +5        +5         .        -5         .         .
+call written as new X(), same file              4389      4379      4379         0        10         0         0
+call written as super.m(), other file           1614      1586      1586         0        28         0         0
+call written as super.m(), same file             251       246       246         0         5         0         0
+call written as this.field.m(), other file     20204      9504      9504         0     10700         0         0
+call written as this.field.m(), same file       2495      1708      1708         0       787         0         0
+call written as this.m(), other file            6494      6451      6451         0        43         0         0
+call written as this.m(), same file            43996     43983     43983         0        13         0         0

@@ -60,7 +60,8 @@ commit that files it. The directory is left out of this repository's own index
 | `constructor-callers` | D122 (the stored edges agree; the defect is in `mast_callers`) |
 | `local-shadow` | D123 (`use.ts`), D124 (`loc.ts`) |
 | `namespace-import` | none: the calls rule 11 of MAST_SPEC §10.3.1 reads, and the ones it must leave (a local, a parameter or a callback parameter with the namespace's name) |
-| `js-beside-dts` | D162, a scorecard defect: an edge to a `.js` file that has a `.d.ts` beside it is counted as wrong |
+| `js-beside-dts` | D162, a scorecard defect, fixed: an edge to a `.js` file that has a `.d.ts` beside it was counted as wrong |
+| `tagged-template` | D165, a scorecard defect, fixed: a tagged template, bare, through a namespace import and with a tag a constant holds, was `unjudged` |
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
 (`adr/proposals/graph-reference/spikes/RESULTS.md`). `packages/cli` takes about 15 s and
@@ -143,6 +144,12 @@ part of the verdict, since they hold the same keys:
   class constructed, by the rule above: `const { X } = await import('./x'); new X()` reaches
   `X.constructor` when `X` declares one and `X` otherwise, not the constructor `X` inherits.
   A variable typed `{ new (): T }` keeps the signature, which is no indexed declaration.
+- A tagged template is a call of its tag (D165).
+- A declaration in a `.d.ts` (`.d.mts`, `.d.cts`) that has an indexed `.js` or `.jsx`
+  (`.mjs`, `.cjs`) beside it stands for the declaration of the same name in that script,
+  when mast has one: the script holds the code, and it is the file mast resolves the import
+  to. The same for the file an import resolves to (D162). A declaration file with no such
+  script, or whose script has no symbol of the name, is kept.
 - A stored edge the compiler does not have is `wrong` when every call of that name in the
   caller resolved, and `unjudged` when one did not.
 
@@ -173,7 +180,7 @@ numbers, and the parameter types `mast_signature` resolves when asked.
   `unjudged` (above) and not scored further.
 - `unjudged` holds a stored edge when any call of that name in the caller has no compiler
   symbol (a receiver typed `any`), and also correct edges from syntax the script does not
-  visit: tagged templates and decorators that are not calls.
+  visit: decorators that are not calls.
 - No tool's answer is scored. `mast_callers` returning nothing for a class merged with an
   interface, and its transitive walk stopping at a class with a constructor, are both
   `agree` here, since the stored edges are right.

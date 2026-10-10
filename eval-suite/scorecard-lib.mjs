@@ -167,3 +167,19 @@ export function formatComparison(comparison, { keysPerMove = 20 } = {}) {
   );
   return lines.join('\n');
 }
+
+const SCRIPTS_BESIDE = [['.d.ts', ['.js', '.jsx']], ['.d.mts', ['.mjs']], ['.d.cts', ['.cjs']]];
+
+/**
+ * The script a declaration file describes, when `hasFile` says one sits beside it, and
+ * `path` otherwise. The compiler names `lib.d.ts` for a call into `lib.js`; the function
+ * is in `lib.js`, and that is where mast's edge ends (D162).
+ */
+export function sourceBesideDeclaration(path, hasFile) {
+  for (const [declaration, scripts] of SCRIPTS_BESIDE) {
+    if (!path.endsWith(declaration)) continue;
+    const stem = path.slice(0, -declaration.length);
+    return scripts.map((extension) => stem + extension).find(hasFile) ?? path;
+  }
+  return path;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scoreSets, countsOf, compareScorecards, formatComparison } from '../scorecard-lib.mjs';
+import { scoreSets, countsOf, compareScorecards, formatComparison, sourceBesideDeclaration } from '../scorecard-lib.mjs';
 
 const card = (items) => ({ items });
 const meta = (m) => ({ root: 'r', tsconfig: 'tsconfig.json', prefix: '', scored_typescript_files: 3, ...m });
@@ -157,5 +157,32 @@ describe('formatComparison', () => {
     expect(text).toContain('agree -> lacks');
     expect(text).toContain('x');
     expect(text).toContain('FAIL');
+  });
+});
+
+// The compiler reads `lib.d.ts`; the code that runs, and that mast's edge ends in, is the
+// `lib.js` beside it (D162).
+describe('sourceBesideDeclaration', () => {
+  const has = (...paths) => (path) => paths.includes(path);
+
+  it.each([
+    ['src/lib.d.ts', 'src/lib.js'],
+    ['src/lib.d.ts', 'src/lib.jsx'],
+    ['src/lib.d.mts', 'src/lib.mjs'],
+    ['src/lib.d.cts', 'src/lib.cjs'],
+  ])('names the script beside a declaration file: %s -> %s', (declaration, script) => {
+    expect(sourceBesideDeclaration(declaration, has(script))).toBe(script);
+  });
+
+  it('keeps a declaration file that has no script beside it', () => {
+    expect(sourceBesideDeclaration('src/lib.d.ts', has('src/other.js'))).toBe('src/lib.d.ts');
+  });
+
+  it('keeps a file that is not a declaration file', () => {
+    expect(sourceBesideDeclaration('src/lib.ts', has('src/lib.js'))).toBe('src/lib.ts');
+  });
+
+  it('does not pair a `.d.mts` with a `.js`', () => {
+    expect(sourceBesideDeclaration('src/lib.d.mts', has('src/lib.js'))).toBe('src/lib.d.mts');
   });
 });

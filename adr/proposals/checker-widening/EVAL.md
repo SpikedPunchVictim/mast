@@ -124,3 +124,11 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `overlap.mjs <state dir> <mast repo with dist/> <out.json> [how many symbols]` | Asks `mast_callers` for the most-called single-declaration top-level names and, for each potential match, whether its chunk holds a verified call and what else it mentions. Reads a copy of the state dir |
 | `nest.json`, `n8n.json` | nest `c3bc75c97` and n8n `9d9e9bf9`, 200 names each, the build before the fix |
 | `nest-after.json`, `n8n-after.json` | The same indexes, the build with the fix |
+
+## s11 — two gaps in the scorecard (`spikes/s11-scorecard-gaps/`)
+
+| File | What it is |
+|---|---|
+| `shapes-old-and-new-scorecard.out.txt` | `compare` of the shapes corpus, one index, scored by the scorecard of `ca3d294` and by the fixed one |
+| `vscode-compare.out.txt` | The same for vscode `65f2c060`, the index of the namespace-rule build (before: the card `s10/vscode-cards-summary.json` counts) |
+| `n8n-cli-compare.out.txt` | `compare` of the `n8n-cli` baseline of `ca3d294` with the same index scored by the fixed scorecard |

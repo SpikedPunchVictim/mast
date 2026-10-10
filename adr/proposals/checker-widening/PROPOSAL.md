@@ -659,3 +659,30 @@ no entry of its own any more. The verified entry names the same symbol.
 list can be shorter than 50 while `potential_truncated` says more exist. The 101 entries
 on n8n and the 96 and 16 chunks still holding a verified call were not examined; a class
 chunk around a calling method is one kind that is kept on purpose.
+
+## Two gaps in the scorecard (D162, D165, 2026-10-10)
+
+Both were found by the vscode `compare` of the namespace rule, where right edges stopped
+the change.
+
+- **A `.js` with a `.d.ts` beside it** (D162). The reference named the declaration file,
+  mast the script. Now a declaration in such a file stands for the script's declaration of
+  the same name, when mast has one, and an import of it resolves to the script.
+- **A tagged template** (D165). The reference did not visit one, so mast's edge had nothing
+  to be compared with. It is now a call of its tag.
+
+Measured, the same index scored by the scorecard before and after
+(`spikes/s11-scorecard-gaps/`):
+
+| Corpus | Call edges wrong | Unjudged | Imports wrong |
+|---|---|---|---|
+| shapes corpus | 4 → 0 | 3 → 0 (the new `tagged-template` fixture) | 1 → 0 |
+| vscode `src/tsconfig.json` | 53 → 47 | 5,625 → 5,619 | 43 → 0 |
+| n8n `packages/cli` | 0 | 4 → 0 | 0 |
+| n8n `packages/core`, this repository | no key moved | | |
+
+Nothing that agreed was lost on any of them. On vscode the 15 pairs the reference had to
+`marked.d.ts` became 6 that agree and 9 mast lacks, now named in `marked.js`.
+
+Not examined: the 47 edges still wrong on vscode, and its 5,619 unjudged. Not looked at:
+what the checker pass writes for a call into a `.js` with a `.d.ts` beside it.
