@@ -1,4 +1,4 @@
-import type { ImportRecord } from '../ast/types.js';
+import { WHOLE_MODULE, type ImportRecord } from '../ast/types.js';
 import type { Db } from './db.js';
 import { pathPrefixUpperBound } from './path-range.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
@@ -156,6 +156,20 @@ export async function namesExportedThrough(db: Db, paths: readonly string[]): Pr
   return [...names];
 }
 
+/**
+ * Whether an import row binds a namespace (`import * as ns`, with or without a
+ * default beside it): its file can call any name of the module as `ns.name`.
+ */
+function bindsWholeModule(aliasesJson: string | null): boolean {
+  if (aliasesJson === null) return false;
+  try {
+    const aliases: unknown = JSON.parse(aliasesJson);
+    return typeof aliases === 'object' && aliases !== null && Object.values(aliases).includes(WHOLE_MODULE);
+  } catch {
+    return false; // malformed row binds nothing
+  }
+}
+
 export interface ImporterQuery {
   /** Names that changed, as stored: `fn`, `Class`, `Class.method`. */
   readonly names: readonly string[];
@@ -212,8 +226,9 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
 
   const reach = closure([...query.sources, ...found], adjacency(await loadStarRows(db), true));
   // A row that lists no name is `import * as ns` or an import for its effect.
-  // The first can call any of the names as `ns.name`, and the row does not say
-  // which of the two it is, so its file is resolved again either way.
+  // The first can call any of the names as `ns.name`. A row written since the
+  // local name is kept says which it is (`bindsWholeModule`, D166); one written
+  // before does not, so a row with no name is resolved again either way.
   const namesAny = (symbolsJson: string): boolean => {
     try {
       const symbols = JSON.parse(symbolsJson) as string[];
@@ -227,10 +242,10 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
     const rows = await db
       .selectFrom('imports as i')
       .innerJoin('files as f', 'f.id', 'i.file_id')
-      .select(['f.path', 'i.symbols'])
+      .select(['f.path', 'i.symbols', 'i.aliases'])
       .where('i.resolved_path', 'in', batch)
       .execute();
-    for (const row of rows) if (namesAny(row.symbols)) found.add(row.path);
+    for (const row of rows) if (namesAny(row.symbols) || bindsWholeModule(row.aliases)) found.add(row.path);
   }
   return [...found];
 }

@@ -1,0 +1,6 @@
+{"mode":"exit","directories":636,"opened_ms":20}
+real 0.11
+{"mode":"unref","directories":636,"opened_ms":19}
+real 27.16
+{"mode":"persistent-false","directories":636,"opened_ms":18}
+real 29.38

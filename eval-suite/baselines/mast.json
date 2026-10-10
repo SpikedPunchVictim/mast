@@ -1,9 +1,9 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-10T00:46:09.590Z",
+  "ran_at": "2026-10-10T01:26:33.742Z",
   "typescript": "5.9.3",
-  "label": "namespace imports, D156, D163, D164; this repository",
+  "label": "D166; this repository",
   "root": "mast",
   "tsconfig": "tsconfig.json",
   "prefix": "",
@@ -11,20 +11,20 @@
   "workspace_packages_mapped_to_source": 0,
   "scored_typescript_files": 101,
   "tsconfig_files": 84,
-  "corpus_hash": "1281d79a1bb13450c3560c2df826452a81a3edbf1ef62c180681e57840f6f72c",
+  "corpus_hash": "341aae00451553562c6f1f6d014e22621798f5109ffd60b10e5ee872b817b6a8",
   "program_source_files": 750,
   "repeated_symbol_rows": 0,
-  "wall_ms": 1774,
-  "peak_rss_mb": 463
+  "wall_ms": 1627,
+  "peak_rss_mb": 449
  },
  "notes": {
-  "call outside any declaration mast has a symbol for": 103,
+  "call outside any declaration mast has a symbol for": 106,
   "call through a variable, judged by its signature": 8,
   "call whose callee is not a name or a property": 14,
   "export default <expression>": 1,
   "named import with an alias": 2,
   "top-level destructuring declaration": 1,
-  "top-level variable that is not a function": 137
+  "top-level variable that is not a function": 138
  },
  "items": {
   "edge: EXTENDS": {
@@ -619,6 +619,7 @@
     "src/graph/importer-repair.ts:findFilesShadowedBy > src/graph/path-range.ts:pathPrefixUpperBound",
     "src/graph/importer-repair.ts:findImportersOfFiles > src/graph/sqliteBatch.ts:chunkValuesForSqlite",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:adjacency",
+    "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:bindsWholeModule",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:closure",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:loadStarRows",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/sqliteBatch.ts:chunkValuesForSqlite",
@@ -1274,6 +1275,7 @@
     "src/ast/extractors/typescript.ts { SymbolRecord } from '../types.js'",
     "src/ast/extractors/typescript.ts { SyntaxNode } from '../parser.js'",
     "src/ast/extractors/typescript.ts { Tree } from '../parser.js'",
+    "src/ast/extractors/typescript.ts { WHOLE_MODULE } from '../types.js'",
     "src/ast/extractors/typescript.ts { createHash } from 'node:crypto'",
     "src/ast/extractors/typescript.ts { extname } from 'node:path'",
     "src/ast/extractors/typescript.ts { getImportResolver } from '../../indexer/import-resolver.js'",
@@ -1536,6 +1538,7 @@
     "src/graph/db.ts { sql } from 'kysely'",
     "src/graph/importer-repair.ts { Db } from './db.js'",
     "src/graph/importer-repair.ts { ImportRecord } from '../ast/types.js'",
+    "src/graph/importer-repair.ts { WHOLE_MODULE } from '../ast/types.js'",
     "src/graph/importer-repair.ts { chunkRowsForSqlite } from './sqliteBatch.js'",
     "src/graph/importer-repair.ts { chunkValuesForSqlite } from './sqliteBatch.js'",
     "src/graph/importer-repair.ts { fieldNamesOf } from './class-fields.js'",
@@ -2775,6 +2778,7 @@
     "src/graph/importer-repair.ts:Hierarchy exported=true",
     "src/graph/importer-repair.ts:ImporterQuery exported=true",
     "src/graph/importer-repair.ts:adjacency exported=false",
+    "src/graph/importer-repair.ts:bindsWholeModule exported=false",
     "src/graph/importer-repair.ts:changedExports exported=true",
     "src/graph/importer-repair.ts:classKey exported=true",
     "src/graph/importer-repair.ts:classesAtOrBelow exported=true",
@@ -3513,6 +3517,7 @@
     "src/graph/db.ts:openDatabase",
     "src/graph/db.ts:readPragmaValue",
     "src/graph/importer-repair.ts:adjacency",
+    "src/graph/importer-repair.ts:bindsWholeModule",
     "src/graph/importer-repair.ts:changedExports",
     "src/graph/importer-repair.ts:classKey",
     "src/graph/importer-repair.ts:classesAtOrBelow",
@@ -4933,6 +4938,7 @@
     "src/graph/importer-repair.ts:changedExports > src/graph/importer-repair.ts:symmetricDifference",
     "src/graph/importer-repair.ts:classesAtOrBelow > src/graph/importer-repair.ts:classKey",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:adjacency",
+    "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:bindsWholeModule",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:closure",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:loadStarRows",
     "src/graph/importer-repair.ts:namesExportedThrough > src/graph/importer-repair.ts:adjacency",
@@ -5870,6 +5876,7 @@
     "src/graph/importer-repair.ts:changedExports > src/graph/importer-repair.ts:symmetricDifference",
     "src/graph/importer-repair.ts:classesAtOrBelow > src/graph/importer-repair.ts:classKey",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:adjacency",
+    "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:bindsWholeModule",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:closure",
     "src/graph/importer-repair.ts:findImportersOfNames > src/graph/importer-repair.ts:loadStarRows",
     "src/graph/importer-repair.ts:namesExportedThrough > src/graph/importer-repair.ts:adjacency",

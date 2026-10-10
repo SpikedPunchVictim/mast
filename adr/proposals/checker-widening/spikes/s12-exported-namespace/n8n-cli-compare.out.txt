@@ -1,0 +1,76 @@
+before: eval-suite/baselines/n8n-cli.json
+after:  eval-suite/out/n8n-cli.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+edge: PARENT_OF                            7565      7565      7565         0         0         0         0
+edge: POTENTIAL_CALL                      23834     20857     20857         0      2977         0         0
+                                              .       +42       +42         .       -42         .         .
+edge: RE_EXPORTS (to the declaration)       151       151       151         0         0         0         0
+export * (file to file)                      20        20        20         0         0         0         0
+file: indexed                              3029      1748      1748         0      1281         0         0
+import: named binding                     18316     18316     18316         0         0         0         0
+import: the file it resolves to           10257     10258     10257         0         0         0         1
+symbol flag: is_exported                  12824     12824     12824         0         0         0         0
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              174       174       174         0         0         0         0
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7561      7561      7561         0         0         0         0
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                976       976       976         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: lacks -> agree (42)
+    packages/cli/src/credentials-helper.ts:CredentialsHelper.applyDefaultsAndOverwrites > packages/workflow/src/node-helpers.ts:getNodeParameters
+    packages/cli/src/credentials-helper.ts:CredentialsHelper.getCredentialsProperties > packages/workflow/src/node-helpers.ts:mergeNodeProperties
+    packages/cli/src/credentials/credentials.service.ts:CredentialsService.redact > packages/workflow/src/node-helpers.ts:mergeNodeProperties
+    packages/cli/src/credentials/credentials.service.ts:CredentialsService.restoreHiddenDcrFields > packages/workflow/src/node-helpers.ts:getNodeParameters
+    packages/cli/src/evaluation.ee/test-runner/workflow-compiler.service.ts:WorkflowCompilerService.modelExpectsResourceLocator > packages/workflow/src/node-helpers.ts:displayParameter
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowCreated > packages/workflow/src/telemetry-helpers.ts:generateNodesGraph
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:extractLastExecutedNodeCredentialData
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:extractLastExecutedNodeStructuredOutputErrorInfo
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:generateNodesGraph
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:getNodeRole
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:getNodeTypeForName
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:resolveAIMetrics
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:resolveVectorStoreMetrics
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowPostExecute > packages/workflow/src/telemetry-helpers.ts:userInInstanceRanOutOfFreeAiCredits
+    packages/cli/src/events/relays/telemetry.event-relay.ts:TelemetryEventRelay.workflowSaved > packages/workflow/src/telemetry-helpers.ts:generateNodesGraph
+    packages/cli/src/manual-execution.service.ts:ManualExecutionService.runManually > packages/workflow/src/node-helpers.ts:isTool
+    packages/cli/src/modules/agents/agent-validation.service.ts:AgentValidationService.collectNodeToolIssues > packages/workflow/src/node-helpers.ts:displayParameter
+    packages/cli/src/modules/agents/agent-validation.service.ts:AgentValidationService.collectNodeToolIssues > packages/workflow/src/node-helpers.ts:getNodeParameters
+    packages/cli/src/modules/agents/json-config/reconcile-node-tool-gateway-credentials.ts:isCredentialDisplayed > packages/workflow/src/node-helpers.ts:displayParameter
+    packages/cli/src/modules/agents/json-config/reconcile-node-tool-gateway-credentials.ts:resolveNodeParameters > packages/workflow/src/node-helpers.ts:getNodeParameters
+    ... 22 more, in the JSON
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction               1758      1758      1758         0         0         0         0
+call edge, stored as field_type                 7003      7003      7003         0         0         0         0
+call edge, stored as import                     4678      4678      4678         0         0         0         0
+call edge, stored as new_expression              100       100       100         0         0         0         0
+call edge, stored as parameter_type              377       377       377         0         0         0         0
+call edge, stored as same_file                  1911      1911      1911         0         0         0         0
+call edge, stored as static_method               111       111       111         0         0         0         0
+                                                 +42       +42       +42         .         .         .         .
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4903      4903      4903         0         0         0         0
+call written as expr.m(), other file            1174         3         3         0      1171         0         0
+call written as expr.m(), same file                7         0         0         0         7         0         0
+call written as f(), other file                 4684      4604      4604         0        80         0         0
+call written as f(), same file                  1924      1911      1911         0        13         0         0
+call written as ident.m(), other file           1972       622       622         0      1350         0         0
+                                                   .       +42       +42         .       -42         .         .
+call written as ident.m(), same file              40        37        37         0         3         0         0
+call written as new X(), other file             1711      1708      1708         0         3         0         0
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7352      7003      7003         0       349         0         0
+call written as this.field.m(), same file          1         0         0         0         1         0         0
+call written as this.m(), other file             225       225       225         0         0         0         0
+call written as this.m(), same file             4678      4678      4678         0         0         0         0

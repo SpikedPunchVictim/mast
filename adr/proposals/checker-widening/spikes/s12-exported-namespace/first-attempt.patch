@@ -1,0 +1,441 @@
+diff --git a/src/ast/extractors/typescript.ts b/src/ast/extractors/typescript.ts
+index 87a5f24..b8012b2 100644
+--- a/src/ast/extractors/typescript.ts
++++ b/src/ast/extractors/typescript.ts
+@@ -3,6 +3,7 @@ import { extname } from 'node:path';
+ import { parseSource, type Tree, type SyntaxNode } from '../parser.js';
+ import type { LanguageExtractor, FileExtraction, ExtractorOptions, IdentifierRow, StarReExportRecord } from '../extractor.js';
+ import type { Chunk, ChunkType, ClassFieldNames, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution, ParamEntry } from '../types.js';
++import { WHOLE_MODULE } from '../types.js';
+ import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
+ import { getImportResolver } from '../../indexer/import-resolver.js';
+ 
+@@ -1391,7 +1392,8 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
+  * Handles named imports (`import { foo } from './bar'`) and default imports
+  * (`import foo from './bar'`, stored as the name `default` under the alias
+  * `foo`, D130). Side-effect imports (`import './side-effect'`) and namespace
+- * imports are recorded with an empty `symbols` array.
++ * imports are recorded with an empty `symbols` array; a namespace import has
++ * its local name in `aliases`, under `WHOLE_MODULE`.
+  *
+  * Specifier-to-file resolution (relative probing, tsconfig aliases, workspace
+  * packages) is NOT done here — it needs project context and is applied by
+@@ -1429,6 +1431,11 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
+         symbols.push('default');
+         aliases.set(defaultLocal, 'default');
+       }
++      // `import * as ns from` lists no name. The local name is kept, as the
++      // name of all of the module, for a file that goes on to export `ns`.
++      const namespaceImport = findChildByType(importClause, 'namespace_import');
++      const namespaceLocal = namespaceImport === null ? undefined : findChildByType(namespaceImport, 'identifier')?.text;
++      if (namespaceLocal !== undefined) aliases.set(namespaceLocal, WHOLE_MODULE);
+       const namedImports = findChildByType(importClause, 'named_imports');
+       if (namedImports !== null) {
+         for (const specifier of nodeNamedChildren(namedImports)) {
+diff --git a/src/ast/types.ts b/src/ast/types.ts
+index c7554d0..4d83360 100644
+--- a/src/ast/types.ts
++++ b/src/ast/types.ts
+@@ -76,6 +76,12 @@ export interface ClassFieldNames {
+   readonly static: readonly string[];
+ }
+ 
++/**
++ * What a namespace import's local name stands for in an import record's
++ * `aliases`: every export of the module. No export can have this name.
++ */
++export const WHOLE_MODULE = '*';
++
+ /** Stability hashes stored per chunk for incremental reindex optimisation. */
+ export interface ChunkHashes {
+   readonly chunk_id: string;
+@@ -113,8 +119,8 @@ export interface ImportRecord {
+   /**
+    * Local name to exported name, for each specifier written `{ a as b }`.
+    * `symbols` holds the exported name, which is what a change to the module is
+-   * matched on; this is what the importing file calls it. Absent when no
+-   * specifier is renamed.
++   * matched on; this is what the importing file calls it. A namespace import's
++   * local name is here too, under `WHOLE_MODULE`. Absent when there is neither.
+    */
+   readonly aliases?: Readonly<Record<string, string>>;
+   readonly isExternal: boolean;
+diff --git a/src/graph/importer-repair.ts b/src/graph/importer-repair.ts
+index 8798342..7404d46 100644
+--- a/src/graph/importer-repair.ts
++++ b/src/graph/importer-repair.ts
+@@ -1,4 +1,4 @@
+-import type { ImportRecord } from '../ast/types.js';
++import { WHOLE_MODULE, type ImportRecord } from '../ast/types.js';
+ import type { Db } from './db.js';
+ import { pathPrefixUpperBound } from './path-range.js';
+ import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
+@@ -34,6 +34,12 @@ export interface ExportSurface {
+   readonly markers: ReadonlySet<string>;
+   /** Paths the file re-exports with `export *`. */
+   readonly starTargets: ReadonlySet<string>;
++  /**
++   * Local names of the file's namespace imports. A file can export one
++   * (`export { ns }`), and a call `ns.f()` in a file that imports it is placed
++   * by the module the namespace is of.
++   */
++  readonly namespaces: ReadonlySet<string>;
+ }
+ 
+ /** The surface stored for `filePath`, or null when the file has no row. */
+@@ -56,13 +62,28 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
+     .where('r.from_file_id', '=', file.id)
+     .execute();
+ 
++  const imports = await db.selectFrom('imports').select('aliases').where('file_id', '=', file.id).where('aliases', 'is not', null).execute();
++
+   return {
++    namespaces: new Set(imports.flatMap((row) => namespaceLocalsOf(row.aliases))),
+     declared: new Set([...symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.is_exported === 1 ? '' : 'private '}${s.is_default_export === 1 ? 'default ' : ''}${s.is_static === 1 ? 'static ' : ''}${s.kind}`), ...fields]),
+     markers: new Set(symbols.filter((s) => s.kind === 'export').map((s) => s.name)),
+     starTargets: new Set(stars.map((s) => s.path)),
+   };
+ }
+ 
++/** The local names an import row's `aliases` binds to all of its module. */
++function namespaceLocalsOf(aliasesJson: string | null): string[] {
++  if (aliasesJson === null) return [];
++  try {
++    const aliases: unknown = JSON.parse(aliasesJson);
++    if (typeof aliases !== 'object' || aliases === null) return [];
++    return Object.entries(aliases).filter(([, exported]) => exported === WHOLE_MODULE).map(([local]) => local);
++  } catch {
++    return []; // malformed row binds nothing
++  }
++}
++
+ function symmetricDifference(a: ReadonlySet<string>, b: ReadonlySet<string>): string[] {
+   return [...[...a].filter((v) => !b.has(v)), ...[...b].filter((v) => !a.has(v))];
+ }
+@@ -70,7 +91,7 @@ function symmetricDifference(a: ReadonlySet<string>, b: ReadonlySet<string>): st
+ /** A `declared` entry of a row flagged as its file's default export. */
+ const IS_DEFAULT_ENTRY = /\|(?:private )?default /;
+ 
+-const EMPTY_SURFACE: ExportSurface = { declared: new Set(), markers: new Set(), starTargets: new Set() };
++const EMPTY_SURFACE: ExportSurface = { declared: new Set(), markers: new Set(), starTargets: new Set(), namespaces: new Set() };
+ 
+ /**
+  * The names whose meaning to an importer may differ between two surfaces of
+@@ -95,7 +116,9 @@ export function changedExports(
+   // when it appears, goes or moves to another declaration (D148).
+   const defaults = changed.some((entry) => IS_DEFAULT_ENTRY.test(entry)) ? ['default'] : [];
+   return {
+-    names: [...new Set([...declared, ...defaults, ...from.markers, ...to.markers])],
++    // A namespace the file may export counts as a marker does: which module it
++    // is of is not in the surface, so it is taken to have changed.
++    names: [...new Set([...declared, ...defaults, ...from.markers, ...to.markers, ...from.namespaces, ...to.namespaces])],
+     starTargets: symmetricDifference(from.starTargets, to.starTargets),
+   };
+ }
+@@ -177,60 +200,76 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
+   // file that imports `Base`.
+   const imported = new Set(query.names.map((name) => name.split('.', 1)[0] ?? name));
+ 
+-  // A name re-exported under another (`export { a as b }`) is imported as the
+-  // other, and that one may be re-exported under a third (D112).
+   const found = new Set<string>();
+-  for (let fresh = [...imported]; fresh.length > 0; ) {
+-    const next: string[] = [];
+-    for (const batch of chunkValuesForSqlite(fresh)) {
+-      const rows = await db
+-        .selectFrom('reexport_aliases as a')
+-        .innerJoin('files as f', 'f.id', 'a.file_id')
+-        .select(['f.path', 'a.exported_name'])
+-        .where('a.source_name', 'in', batch)
+-        .execute();
+-      for (const row of rows) {
+-        found.add(row.path);
+-        if (imported.has(row.exported_name)) continue;
+-        imported.add(row.exported_name);
+-        next.push(row.exported_name);
+-      }
+-    }
+-    fresh = next;
+-  }
+-  for (const batch of chunkValuesForSqlite([...imported])) {
+-    const rows = await db
+-      .selectFrom('symbols as s')
+-      .innerJoin('files as f', 'f.id', 's.file_id')
+-      .select('f.path')
+-      .distinct()
+-      .where('s.kind', '=', 'export')
+-      .where('s.name', 'in', batch)
+-      .execute();
+-    for (const row of rows) found.add(row.path);
+-  }
+-
+-  const reach = closure([...query.sources, ...found], adjacency(await loadStarRows(db), true));
+-  // A row that lists no name is `import * as ns` or an import for its effect.
+-  // The first can call any of the names as `ns.name`, and the row does not say
+-  // which of the two it is, so its file is resolved again either way.
++  const starRows = adjacency(await loadStarRows(db), true);
+   const namesAny = (symbolsJson: string): boolean => {
+     try {
+       const symbols = JSON.parse(symbolsJson) as string[];
++      // A row that lists no name is `import * as ns` or an import for its
++      // effect. The first can call any of the names as `ns.name`, and the
++      // file is resolved again either way.
+       return symbols.length === 0 || symbols.some((symbol) => imported.has(symbol));
+     } catch {
+       return false; // malformed row names nothing
+     }
+   };
+ 
+-  for (const batch of chunkValuesForSqlite([...reach])) {
+-    const rows = await db
+-      .selectFrom('imports as i')
+-      .innerJoin('files as f', 'f.id', 'i.file_id')
+-      .select(['f.path', 'i.symbols'])
+-      .where('i.resolved_path', 'in', batch)
+-      .execute();
+-    for (const row of rows) if (namesAny(row.symbols)) found.add(row.path);
++  // Each round can add names: a file found may bind the changed module as a
++  // namespace and export that, and its importers call through the namespace's
++  // name, which is no name of the module.
++  for (let fresh = [...imported]; fresh.length > 0; ) {
++    // A name re-exported under another (`export { a as b }`) is imported as
++    // the other, and that one may be re-exported under a third (D112).
++    for (let renamed = fresh; renamed.length > 0; ) {
++      const next: string[] = [];
++      for (const batch of chunkValuesForSqlite(renamed)) {
++        const rows = await db
++          .selectFrom('reexport_aliases as a')
++          .innerJoin('files as f', 'f.id', 'a.file_id')
++          .select(['f.path', 'a.exported_name'])
++          .where('a.source_name', 'in', batch)
++          .execute();
++        for (const row of rows) {
++          found.add(row.path);
++          if (imported.has(row.exported_name)) continue;
++          imported.add(row.exported_name);
++          next.push(row.exported_name);
++        }
++      }
++      renamed = next;
++    }
++    for (const batch of chunkValuesForSqlite([...imported])) {
++      const rows = await db
++        .selectFrom('symbols as s')
++        .innerJoin('files as f', 'f.id', 's.file_id')
++        .select('f.path')
++        .distinct()
++        .where('s.kind', '=', 'export')
++        .where('s.name', 'in', batch)
++        .execute();
++      for (const row of rows) found.add(row.path);
++    }
++
++    const namespaces: string[] = [];
++    const reach = closure([...query.sources, ...found], starRows);
++    for (const batch of chunkValuesForSqlite([...reach])) {
++      const rows = await db
++        .selectFrom('imports as i')
++        .innerJoin('files as f', 'f.id', 'i.file_id')
++        .select(['f.path', 'i.symbols', 'i.aliases'])
++        .where('i.resolved_path', 'in', batch)
++        .execute();
++      for (const row of rows) {
++        if (!namesAny(row.symbols)) continue;
++        found.add(row.path);
++        for (const local of namespaceLocalsOf(row.aliases)) {
++          if (imported.has(local)) continue;
++          imported.add(local);
++          namespaces.push(local);
++        }
++      }
++    }
++    fresh = namespaces;
+   }
+   return [...found];
+ }
+diff --git a/src/graph/populate.ts b/src/graph/populate.ts
+index ad6626e..1f761a1 100644
+--- a/src/graph/populate.ts
++++ b/src/graph/populate.ts
+@@ -1,5 +1,6 @@
+ import { sql, type Db } from './db.js';
+ import type { Chunk, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution } from '../ast/types.js';
++import { WHOLE_MODULE } from '../ast/types.js';
+ import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
+ import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
+ import { pathPrefixUpperBound } from './path-range.js';
+@@ -1610,8 +1611,15 @@ export async function resolveInFileOrReExportChain(
+   // or where every hop was an `export *`.
+   const dot = toName.indexOf('.');
+   if (dot !== -1) {
+-    const ownerId = await resolveInFileOrReExportChain(db, resolvedPath, toName.slice(0, dot));
+-    if (ownerId === null) return null;
++    const ownerName = toName.slice(0, dot);
++    const ownerId = await resolveInFileOrReExportChain(db, resolvedPath, ownerName);
++    if (ownerId === null) {
++      // The owner may be no type but a namespace the file exports
++      // (`import * as ns from './x'; export { ns };`): the member is then a
++      // name of that module.
++      const namespaceModule = await moduleOfExportedNamespace(db, targetFile.id, ownerName);
++      return namespaceModule === null ? null : resolveInFileOrReExportChain(db, namespaceModule, toName.slice(dot + 1), null, meaning);
++    }
+     // The member is stored under the name its type was declared with, which a
+     // renaming re-export (`export { Column as DslColumn }`) makes differ from
+     // the name the import uses (D105).
+@@ -1689,6 +1697,33 @@ export async function resolveInFileOrReExportChain(
+   return resolveThroughStarChain(db, targetFile.id, toName, meaning);
+ }
+ 
++/**
++ * The file a namespace import of `fileId` binds as `name`, when `name` is no
++ * symbol of the file: no declaration, and no name it re-exports. Whether the
++ * file exports the namespace is not stored; an import of `name` from it says
++ * so. A file that exports something else under the name has a row for it, and
++ * that is not the namespace.
++ */
++async function moduleOfExportedNamespace(db: Db, fileId: number, name: string): Promise<string | null> {
++  const row = await db.selectFrom('symbols').select('id').where('file_id', '=', fileId).where('name', '=', name).executeTakeFirst();
++  if (row !== undefined) return null;
++  const imports = await db
++    .selectFrom('imports')
++    .select(['aliases', 'resolved_path'])
++    .where('file_id', '=', fileId)
++    .where('aliases', 'is not', null)
++    .orderBy('module', 'asc')
++    .execute();
++  for (const imp of imports) {
++    if (imp.aliases === null) continue;
++    const aliases: unknown = JSON.parse(imp.aliases);
++    if (typeof aliases === 'object' && aliases !== null && Object.hasOwn(aliases, name) && Reflect.get(aliases, name) === WHOLE_MODULE) {
++      return imp.resolved_path;
++    }
++  }
++  return null;
++}
++
+ /** Bounded hop count for chained named re-exports (barrel re-exporting a barrel). */
+ const MAX_RE_EXPORT_HOPS = 5;
+ 
+diff --git a/src/indexer/__tests__/reexport-shapes.test.ts b/src/indexer/__tests__/reexport-shapes.test.ts
+index 19f909c..49d4d39 100644
+--- a/src/indexer/__tests__/reexport-shapes.test.ts
++++ b/src/indexer/__tests__/reexport-shapes.test.ts
+@@ -616,3 +616,118 @@ export function make(): unknown { return [new dom.Widget('a'), new dom.Plain()];
+     await expectEdges(dir, []);
+   });
+ });
++
++// `import * as dom from './b-dom'; export { dom };` and, in another file,
++// `import { dom } from './c-index'; dom.append()`. On n8n 746 calls are written
++// so (adr/proposals/checker-widening, s10).
++describe('calls through a namespace another file exports', () => {
++  let dir: string;
++
++  const LEAF = `export function append(): void {}\nexport const later = (): void => {};\n`;
++  const DECOY = `export function append(): void {}\n`;
++  const INDEX = `import * as dom from './b-dom.js';\nexport { dom };\n`;
++  const CONSUMER = `import { dom } from './c-index.js';\nexport function go(): void { dom.append(); dom.later(); }\n`;
++  const EXPECTED = [
++    'POTENTIAL_CALL src/z-consumer.ts:go -> src/b-dom.ts:append',
++    'POTENTIAL_CALL src/z-consumer.ts:go -> src/b-dom.ts:later',
++  ];
++
++  beforeEach(() => {
++    dir = makeProject('namespace-export');
++  });
++  afterEach(() => {
++    rmSync(dir, { recursive: true, force: true });
++  });
++
++  it('reach the file the namespace is of', async () => {
++    writeFiles(dir, { 'src/a-decoy.ts': DECOY, 'src/b-dom.ts': LEAF, 'src/c-index.ts': INDEX, 'src/z-consumer.ts': CONSUMER });
++
++    await expectEdges(dir, EXPECTED);
++  });
++
++  it('reach the file behind a star re-export of the namespace\'s module', async () => {
++    writeFiles(dir, {
++      'src/a-leaf.ts': LEAF,
++      'src/b-dom.ts': STAR('./a-leaf.js'),
++      'src/c-index.ts': INDEX,
++      'src/z-consumer.ts': CONSUMER,
++    });
++
++    await expectEdges(dir, EXPECTED.map((edge) => edge.replace('src/b-dom.ts', 'src/a-leaf.ts')));
++  });
++
++  it('store nothing when the name the file exports is not the namespace', async () => {
++    writeFiles(dir, {
++      'src/b-dom.ts': LEAF,
++      'src/c-index.ts': `import * as dom from './b-dom.js';\nimport { other } from 'some-package';\nexport { other as dom };\nexport const use = dom;\n`,
++      'src/z-consumer.ts': CONSUMER,
++    });
++
++    await expectEdges(dir, []);
++  });
++
++  const EDITS: readonly { name: string; before: Readonly<Record<string, string>>; edit: { path: string; content: string } }[] = [
++    {
++      name: 'the namespace\'s module loses a name',
++      before: { 'src/b-dom.ts': LEAF, 'src/c-index.ts': INDEX },
++      edit: { path: 'src/b-dom.ts', content: LEAF.replace('export function append', 'export function renamed') },
++    },
++    {
++      name: 'the namespace\'s module gains the name',
++      before: { 'src/b-dom.ts': `export const unrelated = 1;\n`, 'src/c-index.ts': INDEX },
++      edit: { path: 'src/b-dom.ts', content: LEAF },
++    },
++    {
++      name: 'the namespace is pointed at another module',
++      before: { 'src/b-dom.ts': LEAF, 'src/b-other.ts': LEAF, 'src/c-index.ts': INDEX },
++      edit: { path: 'src/c-index.ts', content: INDEX.replace('./b-dom.js', './b-other.js') },
++    },
++    {
++      name: 'the file starts to export the namespace',
++      before: { 'src/b-dom.ts': LEAF, 'src/c-index.ts': `import * as dom from './b-dom.js';\nexport const use = dom;\n` },
++      edit: { path: 'src/c-index.ts', content: INDEX },
++    },
++    {
++      name: 'a file two stars behind the namespace\'s module gains the name',
++      before: { 'src/a-leaf.ts': `export const unrelated = 1;\n`, 'src/b-dom.ts': STAR('./a-leaf.js'), 'src/c-index.ts': INDEX },
++      edit: { path: 'src/a-leaf.ts', content: LEAF },
++    },
++  ];
++  it.each(EDITS)('are the same as after a full index when $name', async ({ before, edit }) => {
++    writeFiles(dir, { ...before, 'src/z-consumer.ts': CONSUMER });
++    await indexFull(dir);
++
++    editFile(dir, edit.path, edit.content);
++    await indexIncremental(dir);
++
++    await expectGraphEqualsFullIndex(dir);
++  });
++});
++
++describe('zz review reproduction', () => {
++  let dir: string;
++  beforeEach(() => { dir = makeProject('zz-review'); });
++  afterEach(() => { rmSync(dir, { recursive: true, force: true }); });
++
++  it('A1: a private namespace of the same name in the barrel', async () => {
++    writeFiles(dir, {
++      'src/a-real.ts': `export function append(): void {}\n`,
++      'src/a-unrelated.ts': `export function append(): void {}\n`,
++      'src/b-ns.ts': `import * as dom from './a-real.js';\nexport { dom };\n`,
++      'src/c-index.ts': `import * as dom from './a-unrelated.js';\nexport * from './b-ns.js';\nexport const use = dom;\n`,
++      'src/z-consumer.ts': `import { dom } from './c-index.js';\nexport function go(): void { dom.append(); }\n`,
++    });
++    await expectEdges(dir, []);
++  });
++
++  it('B19b: a default and a namespace in one import, the module gains the name', async () => {
++    writeFiles(dir, {
++      'src/b-dom.ts': `export default 1;\n`,
++      'src/c-user.ts': `import def, * as dom from './b-dom.js';\nexport function go(): void { dom.append(); void def; }\n`,
++    });
++    await indexFull(dir);
++    editFile(dir, 'src/b-dom.ts', `export default 1;\nexport function append(): void {}\n`);
++    await indexIncremental(dir);
++    await expectGraphEqualsFullIndex(dir);
++  });
++});

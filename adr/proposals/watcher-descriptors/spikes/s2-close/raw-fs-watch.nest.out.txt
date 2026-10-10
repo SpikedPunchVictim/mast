@@ -1,0 +1,7 @@
+{"tree":"/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/nest-ref","directories":636,"files":2130,"of_each":636,"node":"v24.18.0","platform":"darwin"}
+{"what":"directories","handles":159,"open_ms":5,"close_ms":7051,"close_each_ms":{"first":131.69,"median":43.03,"last":0.08,"max":131.69}}
+{"what":"files","handles":159,"open_ms":7,"close_ms":0,"close_each_ms":{"first":0.01,"median":0,"last":0,"max":0.03}}
+{"what":"directories","handles":318,"open_ms":13,"close_ms":11286,"close_each_ms":{"first":115.87,"median":22.08,"last":0.04,"max":185.35}}
+{"what":"files","handles":318,"open_ms":9,"close_ms":1,"close_each_ms":{"first":0,"median":0,"last":0,"max":0}}
+{"what":"directories","handles":636,"open_ms":30,"close_ms":28795,"close_each_ms":{"first":102.67,"median":44.95,"last":0.03,"max":192.01}}
+{"what":"files","handles":636,"open_ms":17,"close_ms":1,"close_each_ms":{"first":0.01,"median":0,"last":0,"max":0.21}}

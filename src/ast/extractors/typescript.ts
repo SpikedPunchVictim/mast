@@ -3,6 +3,7 @@ import { extname } from 'node:path';
 import { parseSource, type Tree, type SyntaxNode } from '../parser.js';
 import type { LanguageExtractor, FileExtraction, ExtractorOptions, IdentifierRow, StarReExportRecord } from '../extractor.js';
 import type { Chunk, ChunkType, ClassFieldNames, Language, SymbolRecord, ImportRecord, EdgeRecord, CallerResolution, ParamEntry } from '../types.js';
+import { WHOLE_MODULE } from '../types.js';
 import { LocalTypeEnvironment } from '../../graph/local-type-env.js';
 import { getImportResolver } from '../../indexer/import-resolver.js';
 
@@ -1391,7 +1392,8 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
  * Handles named imports (`import { foo } from './bar'`) and default imports
  * (`import foo from './bar'`, stored as the name `default` under the alias
  * `foo`, D130). Side-effect imports (`import './side-effect'`) and namespace
- * imports are recorded with an empty `symbols` array.
+ * imports are recorded with an empty `symbols` array; a namespace import has
+ * its local name in `aliases`, under `WHOLE_MODULE`.
  *
  * Specifier-to-file resolution (relative probing, tsconfig aliases, workspace
  * packages) is NOT done here — it needs project context and is applied by
@@ -1429,6 +1431,11 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
         symbols.push('default');
         aliases.set(defaultLocal, 'default');
       }
+      // `import * as ns from` lists no name. The local name is kept, as the
+      // name of all of the module, for a file that goes on to export `ns`.
+      const namespaceImport = findChildByType(importClause, 'namespace_import');
+      const namespaceLocal = namespaceImport === null ? undefined : findChildByType(namespaceImport, 'identifier')?.text;
+      if (namespaceLocal !== undefined) aliases.set(namespaceLocal, WHOLE_MODULE);
       const namedImports = findChildByType(importClause, 'named_imports');
       if (namedImports !== null) {
         for (const specifier of nodeNamedChildren(namedImports)) {

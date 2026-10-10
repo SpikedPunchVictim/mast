@@ -610,6 +610,22 @@ export function make(): unknown { return [new dom.Widget('a'), new dom.Plain()];
     await expectGraphEqualsFullIndex(dir);
   });
 
+  // The row of `import d, * as dom` lists `default`, so it is known for a
+  // namespace import by the local name it keeps, not by listing nothing (D166).
+  it('are the same as after a full index when the import has a default beside the namespace', async () => {
+    writeFiles(dir, {
+      'src/b-dom.ts': `export default 1;\n`,
+      'src/z-consumer.ts': `import main, * as dom from './b-dom.js';\nexport function go(): void { dom.append(); void main; }\n`,
+    });
+    await indexFull(dir);
+
+    editFile(dir, 'src/b-dom.ts', `export default 1;\nexport function append(): void {}\n`);
+    await indexIncremental(dir);
+
+    await expectGraphEqualsFullIndex(dir);
+    await expectStoredEdges(dir, ['POTENTIAL_CALL src/z-consumer.ts:go -> src/b-dom.ts:append']);
+  });
+
   it('store nothing for a module that is not an indexed file', async () => {
     writeFiles(dir, { 'src/a-decoy.ts': DECOY, 'src/z-consumer.ts': consumer('some-package') });
 

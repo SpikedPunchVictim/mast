@@ -76,6 +76,12 @@ export interface ClassFieldNames {
   readonly static: readonly string[];
 }
 
+/**
+ * What a namespace import's local name stands for in an import record's
+ * `aliases`: every export of the module. No export can have this name.
+ */
+export const WHOLE_MODULE = '*';
+
 /** Stability hashes stored per chunk for incremental reindex optimisation. */
 export interface ChunkHashes {
   readonly chunk_id: string;
@@ -113,8 +119,8 @@ export interface ImportRecord {
   /**
    * Local name to exported name, for each specifier written `{ a as b }`.
    * `symbols` holds the exported name, which is what a change to the module is
-   * matched on; this is what the importing file calls it. Absent when no
-   * specifier is renamed.
+   * matched on; this is what the importing file calls it. A namespace import's
+   * local name is here too, under `WHOLE_MODULE`. Absent when there is neither.
    */
   readonly aliases?: Readonly<Record<string, string>>;
   readonly isExternal: boolean;

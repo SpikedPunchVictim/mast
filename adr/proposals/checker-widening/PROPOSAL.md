@@ -686,3 +686,65 @@ Nothing that agreed was lost on any of them. On vscode the 15 pairs the referenc
 
 Not examined: the 47 edges still wrong on vscode, and its 5,619 unjudged. Not looked at:
 what the checker pass writes for a call into a `.js` with a `.d.ts` beside it.
+
+## A namespace another file exports (2026-10-10): tried, withdrawn
+
+Left open by the namespace rule as "needs a stored record of what a namespace export
+stands for". An attempt to do it with no such record was written, measured, reviewed and
+taken out before any commit. The patch is `spikes/s12-exported-namespace/first-attempt.patch`.
+
+**What the 746 sites on n8n are.** The spike counted them as "a named import of a
+namespace". `packages/workflow/src/index.ts` has `import * as NodeHelpers from
+'./node-helpers';` and, further down, `export { LoggerProxy, NodeHelpers, ObservableObject,
+TelemetryHelpers };`. The form is an import that is then exported, not `export * as ns
+from`. n8n has 139 lines of the `from` form (text search); how many of the 746 sites go
+through one was not counted.
+
+**What is already there.** For `import { NodeHelpers } from 'n8n-workflow';
+NodeHelpers.getContext()` the extractor records a static call of `NodeHelpers.getContext`
+on that import, as for `Class.method()`. It finds nothing because `index.ts` has no symbol
+`NodeHelpers`.
+
+**The attempt.** The import row of a namespace import keeps its local name (`aliases`,
+`{ "NodeHelpers": "*" }`). When the owner of `Owner.member` did not resolve in the file
+the import names, and that file had no symbol called `Owner` and bound `Owner` with a
+namespace import, the member was looked up in that import's module.
+
+**Measured, with the attempt.** n8n, 80 projects: 52,982 call pairs that agree to 53,109,
+of which 4 are the tagged templates the scorecard now counts, so 123 from the rule; 0
+wrong (`spikes/s12-exported-namespace/n8n-after.json`). `packages/core` +17, `packages/cli`
++42. No other corpus has such a site.
+
+**Why it was withdrawn.** A reviewer was asked to find where it is wrong and did; two of
+the findings were reproduced here as failing tests before anything was decided.
+
+- *Wrong edges in code that compiles.* The lookup never knew that the file exports the
+  namespace. Its guard, "no symbol of that name in the file", is blind to everything mast
+  has no symbol for: a `const` object, an `enum`, a TypeScript `namespace`, a name that
+  arrives by `export *`. Reproduced: `c-index.ts` is `import * as dom from
+  './a-unrelated'; export * from './b-ns';` and `b-ns.ts` exports the real `dom`; the edge
+  went to `a-unrelated.ts`. Reported and not reproduced here: the same with `export *`
+  of a package, with `export * as dom from`, with `export { other as dom }` where `other`
+  is a namespace, and for a typed receiver (`c: Client`, `c.send()`), since the lookup
+  serves every `Type.member`.
+- *Repair reached unrelated files* (reported, read in the code, not reproduced): a
+  namespace's local name joined the changed names, and markers and aliases are looked up
+  by name over the whole index, so a common name (`utils`, `path`) pulled in every file
+  with a marker of that name and their importers. A file with a namespace import reported
+  a changed name on every edit.
+- *Incremental unlike full* (reported): when the namespace's module is created after the
+  index, and for `import d, * as ns` then `export { ns }`.
+
+n8n scored 0 wrong because it has none of these shapes, not because the rule was right.
+
+**What a rule needs.** A stored fact "this file exports name N, and N is all of module M",
+written by the extractor from `export { ns }` of a namespace import and from `export * as
+ns from`, which it can both see. Then the lookup asks that fact and nothing else, an
+`export *` passes it on as it passes a marker on, and repair follows it from M to the
+files that import N from that file. That is a new row and so a decision; it is not taken
+here.
+
+**Kept from the attempt.** The local name on the import row. It fixes D166: the row of
+`import d, * as ns` lists `default`, so repair did not know it for a namespace import and
+did not resolve its file again. One test, seen failing. An index built before has no local
+name on its rows; a row that lists no name is still resolved again, as before.

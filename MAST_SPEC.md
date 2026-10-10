@@ -344,7 +344,8 @@ CREATE TABLE IF NOT EXISTS imports (
   resolved_path TEXT,            -- NULL for external modules; populated by path resolver
   aliases       TEXT             -- JSON object, local name -> exported name, for `{ a as b }`,
                                  -- `import b from` (-> `default`) and `const { a: b } = await
-                                 -- import()`; NULL when no specifier is renamed. `symbols` keeps
+                                 -- import()`, and the local name of `import * as b` (-> `*`,
+                                 -- every export of the module); NULL when there is none. `symbols` keeps
                                  -- the exported name (since 1.4.0). A name written as a string
                                  -- (`{ "a b" as c }`) is stored without its quotes, here and in
                                  -- `symbols.name` and `reexport_aliases` (D139)
@@ -2381,6 +2382,7 @@ the indexer.
     (`construction`). A local or a parameter called `dom` is not the namespace, and there
     is then no edge by this rule.
 
+
 In every case the callee's file is found from the calling file's own evidence: a named or
 namespace import, followed through re-exporting index files to the declaration, or a
 declaration in the same file. A call is read wherever it sits in the declaration: nested functions,
@@ -2426,8 +2428,10 @@ the identifier match still lands in `identifier_fts` and surfaces as
 - **Through a namespace, anything but a call or `new` of one of its names.**
   `dom.Widget.create()` (a member of something the namespace holds), a parameter
   annotated `w: dom.Widget` followed by `w.render()`, and a namespace another file
-  exports (`export * as dom from './dom'` in an index file, then `import { dom }`):
-  mast has no symbol for a namespace, so nothing names what is behind it.
+  exports (`import * as dom from './dom'; export { dom };` or `export * as dom from
+  './dom'` in an index file, then `import { dom }`): nothing stored says a file exports
+  a namespace, and reading it from the import alone gave wrong edges
+  (adr/proposals/checker-widening, "A namespace another file exports").
 - **Factory return types without annotation.** `const repo = makeRepository(); repo.findById(id)`
   — `repo`'s type is inferred and the resolver does not run inference.
 - **DI container lookups.** `container.get(UserRepository).findById(id)` — the

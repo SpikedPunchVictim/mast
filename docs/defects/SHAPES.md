@@ -45,7 +45,7 @@ is the per-emit-site duplication CLAUDE.md §5.6 explicitly rejects. It stays a 
 
 ## S-02 — A guard whose condition is right for the case it was written for
 
-**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112, D115, D116, D117, D118, D119, D120, D121, D122, D123, D124, D127, D128, D130, D131, D132, D133, D137, D139, D142, D143, D144, D146, D148, D149, D150, D151, D152, D154, D156, D157, D159, D160, D162, D163, D164. **Rung**: brief — declined for promotion 2026-09-01, reason below.
+**Instances**: D006, D007, D019, D047, D048, D067, D073, D078, D086, D104, D105, D106, D107, D108, D109, D110, D111, D112, D115, D116, D117, D118, D119, D120, D121, D122, D123, D124, D127, D128, D130, D131, D132, D133, D137, D139, D142, D143, D144, D146, D148, D149, D150, D151, D152, D154, D156, D157, D159, D160, D162, D163, D164, D166. **Rung**: brief — declined for promotion 2026-09-01, reason below.
 
 Not a guard in the wrong *place* — a guard whose predicate is correct for the situation its author
 had in mind and silently wrong for the general one. D019's FTS guard fires on *was this file ever

@@ -132,3 +132,11 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `shapes-old-and-new-scorecard.out.txt` | `compare` of the shapes corpus, one index, scored by the scorecard of `ca3d294` and by the fixed one |
 | `vscode-compare.out.txt` | The same for vscode `65f2c060`, the index of the namespace-rule build (before: the card `s10/vscode-cards-summary.json` counts) |
 | `n8n-cli-compare.out.txt` | `compare` of the `n8n-cli` baseline of `ca3d294` with the same index scored by the fixed scorecard |
+
+## s12 — a namespace another file exports, withdrawn (`spikes/s12-exported-namespace/`)
+
+| File | What it is |
+|---|---|
+| `first-attempt.patch` | The attempt as it stood when it was reviewed, a diff of `src/` against `95788fa`. Not applied |
+| `n8n-after.json` | `s1/run.mjs ... --workspace-src --skip .` over a plain n8n index of the build with the attempt, scored by the scorecard with D162 and D165 fixed. Before is `s10-namespace-imports/n8n-after.json` |
+| `n8n-core-compare.out.txt`, `n8n-cli-compare.out.txt` | `compare` of the two baselines of `95788fa` with that index |

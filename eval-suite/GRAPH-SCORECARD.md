@@ -61,6 +61,7 @@ commit that files it. The directory is left out of this repository's own index
 | `local-shadow` | D123 (`use.ts`), D124 (`loc.ts`) |
 | `namespace-import` | none: the calls rule 11 of MAST_SPEC §10.3.1 reads, and the ones it must leave (a local, a parameter or a callback parameter with the namespace's name) |
 | `js-beside-dts` | D162, a scorecard defect, fixed: an edge to a `.js` file that has a `.d.ts` beside it was counted as wrong |
+| `namespace-export` | none: calls through a namespace another file exports, imported and then exported or in the `export * as` form. Not read; in the baseline as `lacks` |
 | `tagged-template` | D165, a scorecard defect, fixed: a tagged template, bare, through a namespace import and with a tag a constant holds, was `unjudged` |
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
