@@ -1,0 +1,54 @@
+write_spans: {"fts_del":0,"fts_ins":18601.906656000523,"commit":23020.815353999842,"rest":9038.489663998995,"txn":248.10702300099035,"lock":4810.459521999819}
+pragmas: {"cache_size":-16000,"mmap_size":0}
+base wall_s 155
+base db_bytes 978366464
+base symbols|class|12432
+base symbols|export|1730
+base symbols|function|18441
+base symbols|interface|12239
+base symbols|method|82778
+base symbols|type|4560
+base chunks|171214
+base edges|EXTENDS||8127
+base edges|IMPLEMENTS||4852
+base edges|PARENT_OF||82778
+base edges|POTENTIAL_CALL|construction|18257
+base edges|POTENTIAL_CALL|field_type|11214
+base edges|POTENTIAL_CALL|import|33165
+base edges|POTENTIAL_CALL|new_expression|3781
+base edges|POTENTIAL_CALL|parameter_type|3430
+base edges|POTENTIAL_CALL|same_file|19811
+base edges|POTENTIAL_CALL|static_method|7853
+base edges|POTENTIAL_CALL|super_method|1850
+base edges|POTENTIAL_CALL|this_method|50472
+base edges|RE_EXPORTS||1415
+base interface methods|4
+base call edges to an interface method|static_method|2
+write_spans: {"fts_del":0,"fts_ins":19686.290333000252,"commit":25898.220391999996,"rest":10881.0829069965,"txn":287.35396399991237,"lock":4664.152422000021}
+pragmas: {"cache_size":-16000,"mmap_size":0}
+patch wall_s 168
+patch db_bytes 1017774080
+patch symbols|class|12432
+patch symbols|export|1730
+patch symbols|function|18441
+patch symbols|interface|12239
+patch symbols|method|94447
+patch symbols|type|4560
+patch chunks|182883
+patch edges|EXTENDS||8127
+patch edges|IMPLEMENTS||4852
+patch edges|PARENT_OF||82778
+patch edges|POTENTIAL_CALL|construction|18257
+patch edges|POTENTIAL_CALL|field_type|38163
+patch edges|POTENTIAL_CALL|import|33165
+patch edges|POTENTIAL_CALL|new_expression|3781
+patch edges|POTENTIAL_CALL|parameter_type|10634
+patch edges|POTENTIAL_CALL|same_file|19811
+patch edges|POTENTIAL_CALL|static_method|7853
+patch edges|POTENTIAL_CALL|super_method|1850
+patch edges|POTENTIAL_CALL|this_method|50472
+patch edges|RE_EXPORTS||1415
+patch interface methods|11677
+patch call edges to an interface method|field_type|26961
+patch call edges to an interface method|parameter_type|7206
+patch call edges to an interface method|static_method|2

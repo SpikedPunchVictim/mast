@@ -966,3 +966,91 @@ bound on the sites with no implementation.
 **Not decided.** Nothing is built. What a caller of `store.get()` on `store: Store` should
 be given is a design question with at least three answers (a row for the interface
 method; an edge to the single implementing class; an edge to each), and none has a spike.
+
+## A row for each method of an interface (2026-10-10): spike only, nothing built
+
+The first of the three answers s15 left: a symbol row `Interface.method`, of kind
+`method`, for each `method_signature` of an interface. The patch is 30 lines in the
+extractor and none in the resolver (`spikes/s16-interface-method-rows/patch.diff`, on a
+scratch copy of `8647855`): `resolveQualifiedNameScoped` already takes
+`TypeName.methodName` and finds the row in the file the type is placed in, so the calls
+the `parameter_type` and `field_type` rules record for a receiver typed as an interface
+get a target. No other rule's edge count changed on any corpus (`index-*.out.txt`).
+
+**Prior decisions.** None found: a search of `adr/`, `MAST_SPEC.md`, `FINDINGS.md`, `docs/`
+and `GRAPH-SCORECARD.md` for interface members and method signatures has no hit outside
+s14 and s15.
+
+**What it stores** (one index run each, by the build of `8647855` and by the patched one).
+
+| | vscode | n8n | nest | this repository | directus |
+|---|---|---|---|---|---|
+| Rows added | 11,669 | 1,255 | 194 | 51 | 169 |
+| Chunks added | 11,669 | 1,255 | 194 | 51 | 169 |
+| Call edges to one of them | 34,167 | 692 | 117 | 42 | 47 |
+| `graph.db` grows by | 4.0% | 0.8% | 2.4% | 0.5% | 1.0% |
+| Index wall time, before and after | 155 s, 168 s | 78 s, 77 s | 4 s, 4 s | 2 s, 2 s | 10 s, 9 s |
+
+**Against the compiler** (the scorecard, with a method of a top-level interface keyed as a
+class's is; the same scorecard over both indexes, so the base is the control).
+
+| Call pairs | vscode, `src/tsconfig.json` | n8n, 80 projects | nest | this repository |
+|---|---|---|---|---|
+| agree, before | 143,969 | 53,122 | 3,675 | 977 |
+| agree, after | 177,954 | 53,814 | 3,792 | 1,019 |
+| newly agree | 33,985 | 692 | 117 | 42 |
+| newly wrong | 180 | 0 | 0 | 0 |
+| wrong before, gone | 13 | 0 | 0 | 0 |
+| newly lacking (in scope now that the row exists, not reached) | 22,448 | 5,739 | 253 | 22 |
+| share of the new pairs reached | 60.0% | 10.8% | 31.6% | 65.6% |
+
+n8n's base is the 53,122 and 0 wrong of s13, reproduced.
+
+**The 180 wrong edges are one shape: a receiver narrowed to a type that declares the
+method again** (`analyse.mjs`, `vscode-analysis.out.txt`, `vscode-newly-wrong.txt`). 176
+have a lacking pair of the same caller and method name, which is where the call goes; 142
+of those are `ICodeEditor` narrowed to `IActiveCodeEditor`
+(`if (this.editor.hasModel()) { this.editor.getModel() }`, where
+`hasModel(): this is IActiveCodeEditor` and `IActiveCodeEditor extends ICodeEditor`
+declares `getModel` again; read in `anchorSelect.ts:66`). The stored edge goes to the
+method of the declared type, and the compiler's to the same method of the narrowed one.
+Four have no such pair and were not explained. Whether an edge to the declared type's
+member is wrong for a caller list is a judgment and not a measurement: the scorecard
+counts it wrong, and the rule this proposal has kept is no edge over a wrong one. The same
+shape exists for a class narrowed by `instanceof`; how many of the 47 wrong edges vscode
+already had are that was not counted.
+
+The 13 that are gone were all edges to a method of `AbstractExtHostExtensionService`.
+Why the row removes them was not looked into.
+
+**What is not reached.** On vscode the lacking pairs are calls on a name whose type is
+not written (11,554 `ident.m()`), on an expression (5,655) and on a field (4,732). On n8n
+2,537 of the 5,739 are `this.m()`: a function whose `this` parameter is typed as an
+interface (`execute(this: IExecuteFunctions)`), which no rule reads. That is one form
+worth more on n8n than everything this patch reaches there, and it was not tried.
+
+**What the patch leaves undone, and would have to be designed.**
+
+- A method on the interface's own line is skipped: its chunk would share the interface's
+  chunk id. How many that is was not counted.
+- An overload is stored once. A property with a function type (`put: (k) => void`) is not
+  stored: 1,016 sites on vscode and 2,192 on n8n in s15.
+- An interface merged with a class of the same name gives two rows of one key: 3 keys on
+  vscode, and one `PARENT_OF` pair that agreed is now unjudged for it.
+- No `PARENT_OF` edge from the interface to its method is written.
+- Each method is a chunk whose text is also in the interface's chunk. What that does to
+  `mast_search` ranking was not measured.
+- `mast_callers` on a class's method does not list a caller that calls through the
+  interface; that caller is on the interface's method. No tool joins the two.
+- Incremental runs, edge repair and `mast_rename_impact` over the new rows were not run.
+- The scorecard's own symbol reference was not widened, so the new rows show as `extra`
+  and every comparison here exits 1 for that reason alone.
+
+**Limits.** One index run per arm, so the wall times are not a comparison (vscode's 155 s
+and 168 s were run one after the other on a machine doing other work). Directus was not
+scored: the compiler reads too little of it (s15). vscode and nest have no packages
+installed. The cards are not kept (vscode's is 11 MB compressed); the scripts and the
+commands in `EVAL.md` write them again.
+
+**Not decided.** Whether to build it, and if so whether an edge on a narrowed receiver is
+acceptable.

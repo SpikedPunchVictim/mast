@@ -169,3 +169,14 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `directus-config-not-read.json` | directus without `--node-next`, kept to show the fallback is not what leaves 65% of its calls without a declaration |
 | `summary.mjs <result.json>...`, `summary.txt` | The table of the proposal, derived from the five results |
 | `fixture/`, `fixture.out.txt` | One callee of each kind and a call of each: the symbol rows and edges the build of `336cc6a` stores |
+
+## s16 — a row for each method of an interface (`spikes/s16-interface-method-rows/`)
+
+| File | What it is |
+|---|---|
+| `patch.diff` | The spike's change on a scratch copy of `8647855`: the extractor stores `Interface.method`, and the scorecard keys a method of a top-level interface. Not applied to this tree |
+| `index-both.sh <base build> <patched build> <corpus> <state prefix>`, `index-<corpus>.out.txt` | One plain index by each build, one after the other: wall time, `graph.db` size, symbols by kind, chunks, edges by type and rule, and the call edges that end on a method of an interface |
+| `mast-compare.out.txt`, `nest-compare.out.txt`, `vscode-compare.out.txt` | `graph-scorecard.mjs compare` of the patched scorecard's card over the base index and over the patched one (`run --tsconfig tsconfig.json`; vscode `--tsconfig src/tsconfig.json`, `--max-old-space-size=14000`). Exit 1 each: the new rows are `extra` to a symbol reference that was not widened |
+| `n8n-base.json`, `n8n-patch.json` | `s1/run.mjs ... --workspace-src --skip .` from the scratch copy over the two n8n indexes |
+| `analyse.mjs <base card> <patched card>`, `<corpus>-analysis.out.txt` | The call pairs that changed bucket, by how the call is written and the rule that stored the edge; for each newly wrong edge, the target the compiler has for the same caller and method name |
+| `vscode-newly-wrong.txt` | The 180 keys |

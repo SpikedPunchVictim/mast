@@ -1,0 +1,57 @@
+diff --git a/eval-suite/graph-scorecard.mjs b/eval-suite/graph-scorecard.mjs
+index 7043f77..1f2edf2 100644
+--- a/eval-suite/graph-scorecard.mjs
++++ b/eval-suite/graph-scorecard.mjs
+@@ -262,6 +262,11 @@ function runScore({ flags }) {
+       const name = memberName(decl);
+       return name === null ? null : `${path}:${decl.parent.name.text}.${name}`;
+     }
++    // SPIKE s16: a method of a top-level interface is keyed as a class's is.
++    if (ts.isMethodSignature(decl) && ts.isInterfaceDeclaration(decl.parent) && isTopLevel(decl.parent)) {
++      const name = memberName(decl);
++      return name === null ? null : `${path}:${decl.parent.name.text}.${name}`;
++    }
+     if ((ts.isFunctionDeclaration(decl) || ts.isClassDeclaration(decl) || ts.isInterfaceDeclaration(decl) || ts.isTypeAliasDeclaration(decl)) && isTopLevel(decl) && decl.name) {
+       return `${path}:${decl.name.text}`;
+     }
+diff --git a/src/ast/extractors/typescript.ts b/src/ast/extractors/typescript.ts
+index 863d9dd..45be26c 100644
+--- a/src/ast/extractors/typescript.ts
++++ b/src/ast/extractors/typescript.ts
+@@ -416,6 +416,36 @@ function emitChunksForNode(
+         declarationHash: declHashOf(node, src),
+         bodyHash: bodyHashOf(node, src),
+       });
++      // SPIKE s16: a row for each method of the interface, named as a class's are.
++      const interfaceBody = node.childForFieldName('body');
++      if (interfaceBody !== null && name !== null) {
++        const seen = new Set<string>();
++        for (const member of nodeNamedChildren(interfaceBody)) {
++          if (nodeType(member) !== 'method_signature') continue;
++          const methodName = member.childForFieldName('name')?.text ?? null;
++          // An overload is one member. A member on the interface's own line would
++          // share the interface's chunk id.
++          if (methodName === null || seen.has(methodName) || nodeStartLine(member) === startLine) continue;
++          seen.add(methodName);
++          const mStart = nodeStartLine(member);
++          const mEnd = nodeEndLine(member);
++          chunks.push({
++            chunk_id: chunkId(filePath, mStart),
++            file_path: filePath,
++            start_line: mStart,
++            end_line: mEnd,
++            content: expandContent(lines, mStart, mEnd, contextLines),
++            chunk_type: 'method',
++            symbol_name: `${name}.${methodName}`,
++            parent_symbol: name,
++            is_exported: isExported,
++            language,
++            file_mtime: fileMtime,
++            declaration_hash: declHashOf(member, src),
++            body_hash: bodyHashOf(member, src),
++          });
++        }
++      }
+       break;
+     }
+ 

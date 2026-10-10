@@ -1,0 +1,52 @@
+write_spans: {"fts_del":0,"fts_ins":8869.005505000092,"commit":14050.880597000461,"rest":5386.210608000637,"txn":279.01389599961624,"lock":2765.665026999908}
+pragmas: {"cache_size":-16000,"mmap_size":0}
+base wall_s 78
+base db_bytes 447397888
+base symbols|class|5632
+base symbols|export|5612
+base symbols|function|16588
+base symbols|interface|4691
+base symbols|method|17690
+base symbols|type|5191
+base chunks|73385
+base edges|EXTENDS||1308
+base edges|IMPLEMENTS||1824
+base edges|PARENT_OF||17690
+base edges|POTENTIAL_CALL|construction|5172
+base edges|POTENTIAL_CALL|field_type|7740
+base edges|POTENTIAL_CALL|import|18563
+base edges|POTENTIAL_CALL|new_expression|330
+base edges|POTENTIAL_CALL|parameter_type|837
+base edges|POTENTIAL_CALL|same_file|9623
+base edges|POTENTIAL_CALL|static_method|683
+base edges|POTENTIAL_CALL|super_method|28
+base edges|POTENTIAL_CALL|this_method|10187
+base edges|RE_EXPORTS||4472
+base interface methods|0
+write_spans: {"fts_del":0,"fts_ins":9008.39094300036,"commit":13555.753642999774,"rest":5393.395091999571,"txn":270.4339690002487,"lock":2787.880576000069}
+pragmas: {"cache_size":-16000,"mmap_size":0}
+patch wall_s 77
+patch db_bytes 450916352
+patch symbols|class|5632
+patch symbols|export|5612
+patch symbols|function|16588
+patch symbols|interface|4691
+patch symbols|method|18945
+patch symbols|type|5191
+patch chunks|74640
+patch edges|EXTENDS||1308
+patch edges|IMPLEMENTS||1824
+patch edges|PARENT_OF||17690
+patch edges|POTENTIAL_CALL|construction|5172
+patch edges|POTENTIAL_CALL|field_type|8021
+patch edges|POTENTIAL_CALL|import|18563
+patch edges|POTENTIAL_CALL|new_expression|330
+patch edges|POTENTIAL_CALL|parameter_type|1248
+patch edges|POTENTIAL_CALL|same_file|9623
+patch edges|POTENTIAL_CALL|static_method|683
+patch edges|POTENTIAL_CALL|super_method|28
+patch edges|POTENTIAL_CALL|this_method|10187
+patch edges|RE_EXPORTS||4472
+patch interface methods|1255
+patch call edges to an interface method|field_type|281
+patch call edges to an interface method|parameter_type|411

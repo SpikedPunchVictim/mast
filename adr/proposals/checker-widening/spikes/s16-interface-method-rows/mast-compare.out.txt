@@ -1,0 +1,119 @@
+before: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/mast-base.json
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/mast-patch.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 8         8         8         0         0         0         0
+edge: IMPLEMENTS                              8         8         8         0         0         0         0
+edge: PARENT_OF                              62        62        62         0         0         0         0
+edge: POTENTIAL_CALL                       1069      1019      1019         0        50         0         0
+                                            +64       +42       +42         .       +22         .         .
+edge: RE_EXPORTS (to the declaration)        17        17        17         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+file: indexed                                86        86        86         0         0         0         0
+import: named binding                       807       807       807         0         0         0         0
+import: the file it resolves to             319       320       319         0         0         0         1
+symbol flag: is_exported                    882       882       882         0         0         0         0
+symbol: class                                30        30        30         0         0         0         0
+symbol: export                               21        21        21         0         0         0         0
+symbol: function                            516       516       516         0         0         0         0
+symbol: interface                           210       210       210         0         0         0         0
+symbol: method                               62       113        62         0         0        51         0
+                                              .       +51         .         .         .       +51         .
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                 64        64        64         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (42)
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts:caller > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store.get
+    src/cli/hook.ts:gatherFacts > src/cli/hook.ts:HookIo.fileExists
+    src/cli/hook.ts:gatherFacts > src/cli/hook.ts:HookIo.isDirectory
+    src/cli/hook.ts:gatherFacts > src/cli/hook.ts:HookIo.prime
+    src/cli/hook.ts:runHook > src/cli/hook.ts:HookIo.cwd
+    src/cli/hook.ts:runHook > src/cli/hook.ts:HookIo.readStdin
+    src/cli/hook.ts:runHook > src/cli/hook.ts:HookIo.warn
+    src/cli/hook.ts:runHook > src/cli/hook.ts:HookIo.write
+    src/cli/setup-cmd.ts:reportProblem > src/cli/setup-cmd.ts:SetupIo.err
+    src/cli/setup-cmd.ts:runHookSetup > src/cli/setup-cmd.ts:SetupIo.err
+    src/cli/setup-cmd.ts:runHookSetup > src/cli/setup-cmd.ts:SetupIo.fileExists
+    src/cli/setup-cmd.ts:runHookSetup > src/cli/setup-cmd.ts:SetupIo.out
+    src/cli/setup-cmd.ts:runHookSetup > src/cli/setup-cmd.ts:SetupIo.readFile
+    src/cli/setup-cmd.ts:runHookSetup > src/cli/setup-cmd.ts:SetupIo.removeFile
+    src/cli/setup-cmd.ts:runHookSetup > src/cli/setup-cmd.ts:SetupIo.writeFileAtomic
+    src/cli/setup-cmd.ts:runSetup > src/cli/setup-cmd.ts:SetupIo.err
+    src/cli/setup-static.ts:applyTextTarget > src/cli/setup-cmd.ts:SetupIo.out
+    src/cli/setup-static.ts:applyTextTarget > src/cli/setup-cmd.ts:SetupIo.removeFile
+    src/cli/setup-static.ts:applyTextTarget > src/cli/setup-cmd.ts:SetupIo.writeFileAtomic
+    src/cli/setup-static.ts:guarded > src/cli/setup-cmd.ts:SetupIo.err
+    ... 22 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> lacks (22)
+    src/ast/extract.ts:extractFile > src/ast/extractor.ts:LanguageExtractor.extract
+    src/ast/extractors/typescript.ts:TypeScriptExtractor.extract > src/indexer/import-resolver.ts:ImportResolver.resolve
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectHandle.classify
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectHandle.dispose
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectResolver.discoverProjects
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectResolver.loadProgram
+    src/graph/checker-resolver.ts:runCheckerPass > src/store/sqliteChunkStore.ts:ChunkStore.getAllChunks
+    src/indexer/index.ts:runIndexCounted > src/indexer/import-resolver.ts:ImportResolver.drainMiscased
+    src/indexer/index.ts:runIndexCounted > src/store/sqliteChunkStore.ts:ChunkStore.chunkCount
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.add
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.close
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.getWatched
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.onError
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.onFileEvent
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.onReady
+    src/mcp/server.ts:serve > src/indexer/watcher.ts:WatchHandle.stop
+    src/mcp/server.ts:serve > src/mcp/freshness-probe.ts:FreshnessProbe.refresh
+    src/mcp/tools/_helpers.ts:isIndexEmpty > src/store/sqliteChunkStore.ts:ChunkStore.chunkCount
+    src/mcp/tools/_helpers.ts:unindexedFilesField > src/mcp/freshness-probe.ts:FreshnessProbe.peekUnindexed
+    src/mcp/tools/exports.ts:registerExportsTool > src/store/sqliteChunkStore.ts:ChunkStore.getChunksByFilePath
+    ... 2 more, in the JSON
+  symbol: method: absent -> extra (51)
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store.get
+    src/ast/extractor.ts:LanguageExtractor.extract
+    src/ast/extractors/__tests__/fixtures/basic.ts:Greeter.greet
+    src/cli/hook.ts:HookIo.cwd
+    src/cli/hook.ts:HookIo.fileExists
+    src/cli/hook.ts:HookIo.isDirectory
+    src/cli/hook.ts:HookIo.prime
+    src/cli/hook.ts:HookIo.readStdin
+    src/cli/hook.ts:HookIo.warn
+    src/cli/hook.ts:HookIo.write
+    src/cli/setup-cmd.ts:SetupIo.directoryExists
+    src/cli/setup-cmd.ts:SetupIo.err
+    src/cli/setup-cmd.ts:SetupIo.fileExists
+    src/cli/setup-cmd.ts:SetupIo.out
+    src/cli/setup-cmd.ts:SetupIo.readFile
+    src/cli/setup-cmd.ts:SetupIo.removeFile
+    src/cli/setup-cmd.ts:SetupIo.writeFileAtomic
+    src/graph/checker-resolver.ts:TsProjectHandle.classify
+    src/graph/checker-resolver.ts:TsProjectHandle.dispose
+    src/graph/checker-resolver.ts:TsProjectResolver.discoverProjects
+    ... 31 more, in the JSON
+
+FAIL: 0 that agreed no longer do, 0 newly wrong, 51 newly unjudged or extra.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            25        25        25         0         0         0         0
+call edge, stored as import                 333       333       333         0         0         0         0
+call edge, stored as new_expression           7         7         7         0         0         0         0
+call edge, stored as parameter_type          61        61        61         0         0         0         0
+                                            +42       +42       +42         .         .         .         .
+call edge, stored as same_file              583       583       583         0         0         0         0
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              9         9         9         0         0         0         0
+call written as expr.m(), other file          5         0         0         0         5         0         0
+                                             +5         .         .         .        +5         .         .
+call written as f(), other file             337       333       333         0         4         0         0
+call written as f(), same file              584       583       583         0         1         0         0
+call written as ident.m(), other file        37        30        30         0         7         0         0
+                                            +27       +20       +20         .        +7         .         .
+call written as ident.m(), same file         71        38        38         0        33         0         0
+                                            +32       +22       +22         .       +10         .         .
+call written as new X(), other file          13        13        13         0         0         0         0
+call written as new X(), same file           12        12        12         0         0         0         0
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           9         9         9         0         0         0         0
+
+written: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/mast-cmp.json

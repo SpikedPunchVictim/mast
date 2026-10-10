@@ -1,0 +1,181 @@
+before: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/vscode-base.json.gz
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/vscode-patch.json.gz
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                              8153      8126      8124         2        27         0         0
+edge: IMPLEMENTS                           4907      4852      4852         0        55         0         0
+edge: PARENT_OF                           82674     82676     82660         0        14        16         0
+edge: POTENTIAL_CALL                     236312    183788    177954       214     58144         0      5620
+                                         +56600    +34153    +33985      +167    +22448         .        +1
+edge: RE_EXPORTS (to the declaration)      1415      1415      1405        10         0         0         0
+export * (file to file)                      86        86        86         0         0         0         0
+file: indexed                              8056      6483      6483         0      1573         0         0
+import: named binding                    152201    152201    152201         0         0         0         0
+import: the file it resolves to           90098     91380     90098         0         0         0      1282
+symbol flag: is_exported                 127667    127667    127588        79         0         0         0
+symbol: class                             12406     12407     12405         0         1         2         0
+symbol: export                             1730      1730      1730         0         0         0         0
+symbol: function                          16623     18193     16621         0         2      1572         0
+symbol: interface                         12223     12229     12223         0         0         6         0
+symbol: method                            81869     93551     81869         0         0     11682         0
+                                              .    +11666         .         .         .    +11666         .
+symbol: one key, more than one row            0       119         0         0         0         0       119
+                                              .        +3         .         .         .         .        +3
+symbol: type                               4551      4555      4551         0         0         4         0
+
+Keys that changed bucket:
+  edge: PARENT_OF: absent -> agree (1)
+    src/vs/platform/files/browser/webFileSystemAccess.ts:FileSystemObserver@89 > src/vs/platform/files/browser/webFileSystemAccess.ts:FileSystemObserver.observe@93
+  edge: PARENT_OF: agree -> absent (1)
+    src/vs/platform/files/browser/webFileSystemAccess.ts:FileSystemObserver@89 > src/vs/platform/files/browser/webFileSystemAccess.ts:FileSystemObserver.observe
+  edge: POTENTIAL_CALL: absent -> agree (33985)
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.createServer > extensions/copilot/src/platform/log/common/logService.ts:ILogger.trace
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.formatStreamResponse
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.generateFinalEvents
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.generateInitialEvents
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.getContentType
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.parseRequest
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/platform/endpoint/common/endpointProvider.ts:IEndpointProvider.getAllChatEndpoints
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/platform/log/common/logService.ts:ILogger.info
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.start > extensions/copilot/src/platform/log/common/logService.ts:ILogger.trace
+    extensions/copilot/src/extension/agents/vscode-node/askAgentProvider.ts:AskAgentProvider._buildCustomizedConfig > extensions/copilot/src/platform/configuration/common/configurationService.ts:IConfigurationService.getConfig
+    extensions/copilot/src/extension/agents/vscode-node/askAgentProvider.ts:AskAgentProvider._writeCacheFile > extensions/copilot/src/platform/filesystem/common/fileSystemService.ts:IFileSystemService.createDirectory
+    extensions/copilot/src/extension/agents/vscode-node/askAgentProvider.ts:AskAgentProvider._writeCacheFile > extensions/copilot/src/platform/filesystem/common/fileSystemService.ts:IFileSystemService.stat
+    extensions/copilot/src/extension/agents/vscode-node/askAgentProvider.ts:AskAgentProvider._writeCacheFile > extensions/copilot/src/platform/filesystem/common/fileSystemService.ts:IFileSystemService.writeFile
+    extensions/copilot/src/extension/agents/vscode-node/askAgentProvider.ts:AskAgentProvider._writeCacheFile > extensions/copilot/src/platform/log/common/logService.ts:ILogger.trace
+    extensions/copilot/src/extension/agents/vscode-node/exploreAgentProvider.ts:ExploreAgentProvider._buildCustomizedConfig > extensions/copilot/src/platform/configuration/common/configurationService.ts:IConfigurationService.getConfig
+    extensions/copilot/src/extension/agents/vscode-node/exploreAgentProvider.ts:ExploreAgentProvider._buildCustomizedConfig > extensions/copilot/src/platform/configuration/common/configurationService.ts:IConfigurationService.getNonExtensionConfig
+    extensions/copilot/src/extension/agents/vscode-node/exploreAgentProvider.ts:ExploreAgentProvider._writeCacheFile > extensions/copilot/src/platform/filesystem/common/fileSystemService.ts:IFileSystemService.createDirectory
+    extensions/copilot/src/extension/agents/vscode-node/exploreAgentProvider.ts:ExploreAgentProvider._writeCacheFile > extensions/copilot/src/platform/filesystem/common/fileSystemService.ts:IFileSystemService.stat
+    extensions/copilot/src/extension/agents/vscode-node/exploreAgentProvider.ts:ExploreAgentProvider._writeCacheFile > extensions/copilot/src/platform/filesystem/common/fileSystemService.ts:IFileSystemService.writeFile
+    extensions/copilot/src/extension/agents/vscode-node/exploreAgentProvider.ts:ExploreAgentProvider._writeCacheFile > extensions/copilot/src/platform/log/common/logService.ts:ILogger.trace
+    ... 33965 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> lacks (22448)
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.createServer > extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.extractAuthKey
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.createServer > extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapterFactory.createAdapter
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:LanguageModelServer.handleChatRequest > extensions/copilot/src/platform/networking/common/networking.ts:IChatEndpoint.makeChatRequest2
+    extensions/copilot/src/extension/agents/vscode-node/test/mockOctoKitService.ts:MockOctoKitService.getCustomAgents > extensions/copilot/src/platform/github/common/githubService.ts:IOctoKitService.getCurrentAuthedUser
+    extensions/copilot/src/extension/byok/node/openAIEndpoint.ts:OpenAIEndpoint._applyReasoningEffort > extensions/copilot/src/platform/configuration/common/configurationService.ts:IConfigurationService.getConfig
+    extensions/copilot/src/extension/byok/vscode-node/abstractLanguageModelChatProvider.ts:AbstractOpenAICompatibleLMProvider.getModelsFromEndpoint > extensions/copilot/src/platform/log/common/logService.ts:ILogger.error
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider._makeRequest > extensions/copilot/src/platform/log/common/logService.ts:ILogger.error
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider._makeRequest > extensions/copilot/src/platform/log/common/logService.ts:ILogger.info
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider._makeRequest > extensions/copilot/src/platform/log/common/logService.ts:ILogger.trace
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider.getAllModels > extensions/copilot/src/platform/log/common/logService.ts:ILogger.error
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider.provideLanguageModelChatResponse > extensions/copilot/src/platform/log/common/logService.ts:ILogger.error
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider.provideLanguageModelChatResponse > extensions/copilot/src/platform/otel/common/otelService.ts:ISpanHandle.end
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider.provideLanguageModelChatResponse > extensions/copilot/src/platform/otel/common/otelService.ts:ISpanHandle.setAttribute
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider.provideLanguageModelChatResponse > extensions/copilot/src/platform/otel/common/otelService.ts:ISpanHandle.setAttributes
+    extensions/copilot/src/extension/byok/vscode-node/anthropicProvider.ts:AnthropicLMProvider.provideLanguageModelChatResponse > extensions/copilot/src/platform/otel/common/otelService.ts:ISpanHandle.setStatus
+    extensions/copilot/src/extension/byok/vscode-node/azureProvider.ts:AzureBYOKModelProvider.migrateExistingConfigs > extensions/copilot/src/platform/configuration/common/configurationService.ts:IConfigurationService.setConfig
+    extensions/copilot/src/extension/byok/vscode-node/azureProvider.ts:AzureBYOKModelProvider.provideLanguageModelChatResponse > extensions/copilot/src/util/vs/platform/instantiation/common/instantiation.ts:IInstantiationService.createInstance
+    extensions/copilot/src/extension/byok/vscode-node/byokContribution.ts:BYOKContrib._buildProviders > extensions/copilot/src/util/vs/platform/instantiation/common/instantiation.ts:IInstantiationService.createInstance
+    extensions/copilot/src/extension/byok/vscode-node/customEndpointProvider.ts:CustomEndpointBYOKModelProvider.createOpenAIEndPoint > extensions/copilot/src/util/vs/platform/instantiation/common/instantiation.ts:IInstantiationService.createInstance
+    extensions/copilot/src/extension/byok/vscode-node/customOAIProvider.ts:AbstractCustomOAIBYOKModelProvider.createOpenAIEndPoint > extensions/copilot/src/util/vs/platform/instantiation/common/instantiation.ts:IInstantiationService.createInstance
+    ... 22428 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> unjudged (1)
+    extensions/copilot/src/extension/typescriptContext/serverPlugin/src/common/typescripts.ts:ReferencedByVisitor.constructor > extensions/copilot/src/extension/typescriptContext/serverPlugin/src/common/typescripts.ts:StateProvider.getImportedByState
+  edge: POTENTIAL_CALL: absent -> wrong (180)
+    extensions/copilot/src/extension/inlineEdits/vscode-node/parts/vscodeWorkspace.ts:getDocumentEdits > extensions/copilot/src/extension/inlineEdits/vscode-node/parts/vscodeWorkspace.ts:IVSCodeObservableDocument.toRange
+    src/vs/editor/contrib/anchorSelect/browser/anchorSelect.ts:SelectionAnchorController.goToSelectionAnchor > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/anchorSelect/browser/anchorSelect.ts:SelectionAnchorController.selectFromAnchorToCursor > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/bracketMatching/browser/bracketMatching.ts:BracketMatchingController._recomputeBrackets > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/bracketMatching/browser/bracketMatching.ts:BracketMatchingController.jumpToBracket > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/bracketMatching/browser/bracketMatching.ts:BracketMatchingController.removeBrackets > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/bracketMatching/browser/bracketMatching.ts:BracketMatchingController.selectToBracket > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/caretOperations/browser/transpose.ts:TransposeLettersAction.run > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/codeAction/browser/codeActionController.ts:CodeActionController.toCoords > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getDomNode
+    src/vs/editor/contrib/codeAction/browser/codeActionController.ts:CodeActionController.toCoords > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getScrolledVisiblePosition
+    src/vs/editor/contrib/codeAction/browser/codeActionModel.ts:CodeActionOracle._getRangeOfSelectionUnlessWhitespaceEnclosed > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/codelens/browser/codelensController.ts:CodeLensContribution._renderCodeLensSymbols > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/colorPicker/browser/hoverColorPicker/hoverColorPickerParticipant.ts:HoverColorPickerParticipant._computeAsync > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/colorPicker/browser/standaloneColorPicker/standaloneColorPickerParticipant.ts:StandaloneColorPickerParticipant.createColorHover > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/colorPicker/browser/standaloneColorPicker/standaloneColorPickerParticipant.ts:StandaloneColorPickerParticipant.updateEditorModel > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/comment/browser/comment.ts:CommentLineAction.run > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    src/vs/editor/contrib/contextmenu/browser/contextmenu.ts:ContextMenuController._doShowContextMenu > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getDomNode
+    src/vs/editor/contrib/contextmenu/browser/contextmenu.ts:ContextMenuController._doShowContextMenu > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getScrolledVisiblePosition
+    src/vs/editor/contrib/contextmenu/browser/contextmenu.ts:ContextMenuController._showScrollbarContextMenu > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getDomNode
+    src/vs/editor/contrib/contextmenu/browser/contextmenu.ts:ContextMenuController.showContextMenu > src/vs/editor/browser/editorBrowser.ts:ICodeEditor.getModel
+    ... 160 more, in the JSON
+  edge: POTENTIAL_CALL: wrong -> absent (13)
+    src/vs/workbench/api/common/extHostDebugService.ts:ExtHostDebugServiceBase.constructor > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getExtensionRegistry
+    src/vs/workbench/api/common/extHostDebugService.ts:ExtHostDebugServiceBase.getAdapterDescriptor > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getExtensionRegistry
+    src/vs/workbench/api/common/extHostExtensionService.ts:Extension.activate > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.activateByIdWithErrors
+    src/vs/workbench/api/common/extHostExtensionService.ts:Extension.exports > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getExtensionExports
+    src/vs/workbench/api/common/extHostExtensionService.ts:Extension.isActive > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.isActivated
+    src/vs/workbench/api/common/extHostGitExtensionService.ts:ExtHostGitExtensionService.$isGitExtensionAvailable > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getExtensionRegistry
+    src/vs/workbench/api/common/extHostGitExtensionService.ts:ExtHostGitExtensionService._ensureGitApi > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.activateByIdWithErrors
+    src/vs/workbench/api/common/extHostGitExtensionService.ts:ExtHostGitExtensionService._ensureGitApi > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getExtensionExports
+    src/vs/workbench/api/common/extHostRequireInterceptor.ts:RequireInterceptor.install > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getExtensionPathIndex
+    src/vs/workbench/api/common/extHostVariableResolverService.ts:ExtHostVariableResolverService.constructor > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getExtension
+    src/vs/workbench/api/common/extensionHostMain.ts:ExtensionHostMain.constructor > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.initialize
+    src/vs/workbench/api/common/extensionHostMain.ts:ExtensionHostMain.terminate > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.terminate
+    src/vs/workbench/api/node/extHostBrowserTunnelProxy.ts:NodeExtHostBrowserTunnelProxy.constructor > src/vs/workbench/api/common/extHostExtensionService.ts:AbstractExtHostExtensionService.getRemoteConnectionData
+  symbol: method: absent -> extra (11666)
+    extensions/copilot/src/extension/agentDebug/common/toolResultRenderer.ts:IToolResultContentRenderer.renderToolResultContent
+    extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.extractAuthKey
+    extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.formatStreamResponse
+    extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.generateFinalEvents
+    extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.generateInitialEvents
+    extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.getContentType
+    extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapter.parseRequest
+    extensions/copilot/src/extension/agents/node/adapters/types.ts:IProtocolAdapterFactory.createAdapter
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:ILanguageModelServer.getConfig
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:ILanguageModelServer.start
+    extensions/copilot/src/extension/agents/node/langModelServer.ts:ILanguageModelServer.stop
+    extensions/copilot/src/extension/agents/vscode-node/githubOrgChatResourcesService.ts:IGitHubOrgChatResourcesService.clearCache
+    extensions/copilot/src/extension/agents/vscode-node/githubOrgChatResourcesService.ts:IGitHubOrgChatResourcesService.getPreferredOrganizationName
+    extensions/copilot/src/extension/agents/vscode-node/githubOrgChatResourcesService.ts:IGitHubOrgChatResourcesService.listCachedFiles
+    extensions/copilot/src/extension/agents/vscode-node/githubOrgChatResourcesService.ts:IGitHubOrgChatResourcesService.readCacheFile
+    extensions/copilot/src/extension/agents/vscode-node/githubOrgChatResourcesService.ts:IGitHubOrgChatResourcesService.startPolling
+    extensions/copilot/src/extension/agents/vscode-node/githubOrgChatResourcesService.ts:IGitHubOrgChatResourcesService.writeCacheFile
+    extensions/copilot/src/extension/byok/common/byokProvider.ts:BYOKModelRegistry.getAllModels
+    extensions/copilot/src/extension/byok/common/byokProvider.ts:BYOKModelRegistry.registerModel
+    extensions/copilot/src/extension/byok/common/byokProvider.ts:BYOKModelRegistry.updateKnownModelsList
+    ... 11646 more, in the JSON
+  symbol: one key, more than one row: absent -> unjudged (3)
+    src/vs/platform/files/browser/webFileSystemAccess.ts:FileSystemObserver.observe
+    src/vs/workbench/services/search/common/searchExtTypes.ts:FileSearchProvider2.provideFileSearchResults
+    src/vs/workbench/services/search/common/searchExtTypes.ts:TextSearchProvider2.provideTextSearchResults
+
+FAIL: 1 that agreed no longer do, 180 newly wrong, 11670 newly unjudged or extra.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction              18244     18245     18236         8         0         0         1
+call edge, stored as field_type                38163     38163     38057       106         0         0         0
+                                              +26949    +26949    +26854       +95         .         .         .
+call edge, stored as import                    33164     33164     33163         1         0         0         0
+call edge, stored as new_expression             3777      3777      3772         5         0         0         0
+call edge, stored as parameter_type            10633     10634     10554        79         0         0         1
+                                               +7203     +7204     +7131       +72         .         .        +1
+call edge, stored as same_file                 14037     19651     14037         0         0         0      5614
+call edge, stored as static_method              7847      7847      7847         0         0         0         0
+call edge, stored as super_method               1850      1850      1850         0         0         0         0
+call edge, stored as this_method               50453     50457     50438        15         0         0         4
+call written as expr.m(), other file           13196       167       167         0     13029         0         0
+                                               +5592       +77       +77         .     +5515         .         .
+call written as expr.m(), same file              957         8         8         0       949         0         0
+                                                +140         .         .         .      +140         .         .
+call written as f(), other file                33507     29121     29121         0      4386         0         0
+                                                +485         .         .         .      +485         .         .
+call written as f(), same file                 14146     14037     14037         0       109         0         0
+                                                  +6         .         .         .        +6         .         .
+call written as ident.m(), other file          43825     23232     23232         0     20593         0         0
+                                              +17717     +6766     +6766         .    +10951         .         .
+call written as ident.m(), same file            5606      2925      2925         0      2681         0         0
+                                                +995      +392      +392         .      +603         .         .
+call written as new X(), other file            13920     13857     13857         0        63         0         0
+call written as new X(), same file              4389      4379      4379         0        10         0         0
+call written as super.m(), other file           1614      1586      1586         0        28         0         0
+call written as super.m(), same file             251       246       246         0         5         0         0
+call written as this.field.m(), other file     50830     35508     35508         0     15322         0         0
+                                              +30626    +26004    +26004         .     +4622         .         .
+call written as this.field.m(), same file       3351      2454      2454         0       897         0         0
+                                                +856      +746      +746         .      +110         .         .
+call written as this.m(), other file            6508      6451      6451         0        57         0         0
+                                                 +14         .         .         .       +14         .         .
+call written as this.m(), same file            43998     43983     43983         0        15         0         0
+                                                  +2         .         .         .        +2         .         .
+
+written: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/vscode-cmp.json

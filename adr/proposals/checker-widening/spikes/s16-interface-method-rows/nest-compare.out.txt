@@ -1,0 +1,127 @@
+before: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/nest-base.json
+after:  /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/nest-patch.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                               149       149       149         0         0         0         0
+edge: IMPLEMENTS                            120       120       120         0         0         0         0
+edge: PARENT_OF                            2598      2572      2572         0        26         0         0
+edge: POTENTIAL_CALL                       4403      3792      3792         0       611         0         0
+                                           +370      +117      +117         .      +253         .         .
+edge: RE_EXPORTS (to the declaration)        61        61        61         0         0         0         0
+export * (file to file)                     375       375       375         0         0         0         0
+file: indexed                               971       971       971         0         0         0         0
+import: named binding                      5642      5642      5642         0         0         0         0
+import: the file it resolves to            3103      3103      3103         0         0         0         0
+symbol flag: is_exported                   4299      4299      4299         0         0         0         0
+symbol: class                               884       884       884         0         0         0         0
+symbol: export                               76        76        76         0         0         0         0
+symbol: function                            294       294       294         0         0         0         0
+symbol: interface                           306       306       306         0         0         0         0
+symbol: method                             2550      2744      2550         0         0       194         0
+                                              .      +194         .         .         .      +194         .
+symbol: one key, more than one row            0         8         0         0         0         0         8
+symbol: type                                265       265       265         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (117)
+    integration/graphql-code-first/src/common/interceptors/data.interceptor.ts:DataInterceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    integration/hello-world/e2e/middleware-run-match-route.ts:TestModule.configure > packages/common/interfaces/middleware/middleware-consumer.interface.ts:MiddlewareConsumer.apply
+    integration/inspector/src/circular-hello/interceptors/logging.interceptor.ts:Interceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    integration/inspector/src/common/filters/http-exception.filter.ts:HttpExceptionFilter.catch > packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.switchToHttp
+    integration/inspector/src/common/guards/roles.guard.ts:RolesGuard.canActivate > packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.switchToHttp
+    integration/inspector/src/common/guards/roles.guard.ts:RolesGuard.canActivate > packages/common/interfaces/features/execution-context.interface.ts:ExecutionContext.getHandler
+    integration/inspector/src/common/interceptors/timeout.interceptor.ts:TimeoutInterceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    integration/inspector/src/core/core.module.ts:CoreModule.configure > packages/common/interfaces/middleware/middleware-consumer.interface.ts:MiddlewareConsumer.apply
+    integration/inspector/src/core/interceptors/logging.interceptor.ts:LoggingInterceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    integration/inspector/src/core/interceptors/transform.interceptor.ts:TransformInterceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    integration/inspector/src/request-chain/interceptors/logging.interceptor.ts:LoggingInterceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    integration/microservices/src/grpc-advanced/advanced.grpc.controller.ts:AdvancedGrpcController.call > packages/microservices/interfaces/client-grpc.interface.ts:ClientGrpc.getService
+    integration/microservices/src/grpc-advanced/advanced.grpc.controller.ts:AdvancedGrpcController.stream > packages/microservices/interfaces/client-grpc.interface.ts:ClientGrpc.getService
+    integration/microservices/src/grpc/grpc.controller.ts:GrpcController.call > packages/microservices/interfaces/client-grpc.interface.ts:ClientGrpc.getService
+    integration/microservices/src/grpc/grpc.controller.ts:GrpcController.callMultiSum > packages/microservices/interfaces/client-grpc.interface.ts:ClientGrpc.getService
+    integration/microservices/src/grpc/grpc.controller.ts:GrpcController.callMultiSum2 > packages/microservices/interfaces/client-grpc.interface.ts:ClientGrpc.getService
+    integration/microservices/src/grpc/grpc.controller.ts:GrpcController.callWithOptions > packages/microservices/interfaces/client-grpc.interface.ts:ClientGrpc.getService
+    integration/nest-application/global-prefix/src/app.module.ts:AppModule.configure > packages/common/interfaces/middleware/middleware-consumer.interface.ts:MiddlewareConsumer.apply
+    integration/nest-application/sse/src/app.controller.ts:PassthroughInterceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    integration/scopes/src/circular-hello/interceptors/logging.interceptor.ts:Interceptor.intercept > packages/common/interfaces/features/nest-interceptor.interface.ts:CallHandler.handle
+    ... 97 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> lacks (253)
+    integration/graphql-code-first/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/graphql-code-first/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.useGlobalPipes
+    integration/graphql-schema-first/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/hello-world/e2e/middleware-run-match-route.ts:TestModule.configure > packages/common/interfaces/middleware/middleware-config-proxy.interface.ts:MiddlewareConfigProxy.forRoutes
+    integration/hooks/src/enable-shutdown-hooks-main.ts:bootstrap > packages/common/interfaces/nest-application-context.interface.ts:INestApplicationContext.enableShutdownHooks
+    integration/hooks/src/enable-shutdown-hooks-main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/inspector/src/common/filters/http-exception.filter.ts:HttpExceptionFilter.catch > packages/common/interfaces/features/arguments-host.interface.ts:HttpArgumentsHost.getRequest
+    integration/inspector/src/common/filters/http-exception.filter.ts:HttpExceptionFilter.catch > packages/common/interfaces/features/arguments-host.interface.ts:HttpArgumentsHost.getResponse
+    integration/inspector/src/common/guards/roles.guard.ts:RolesGuard.canActivate > packages/common/interfaces/features/arguments-host.interface.ts:HttpArgumentsHost.getRequest
+    integration/inspector/src/core/core.module.ts:CoreModule.configure > packages/common/interfaces/middleware/middleware-config-proxy.interface.ts:MiddlewareConfigProxy.forRoutes
+    integration/lazy-modules/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/microservices/src/grpc/grpc.controller.ts:GrpcController.serializeError > packages/microservices/interfaces/client-grpc.interface.ts:ClientGrpc.getService
+    integration/microservices/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/mongoose/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/nest-application/global-prefix/src/app.module.ts:AppModule.configure > packages/common/interfaces/middleware/middleware-config-proxy.interface.ts:MiddlewareConfigProxy.forRoutes
+    integration/scopes/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/typeorm/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.listen
+    integration/versioning/src/app.module.ts:AppModule.configure > packages/common/interfaces/middleware/middleware-config-proxy.interface.ts:MiddlewareConfigProxy.forRoutes
+    integration/versioning/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.enableVersioning
+    integration/versioning/src/main.ts:bootstrap > packages/common/interfaces/nest-application.interface.ts:INestApplication.getUrl
+    ... 233 more, in the JSON
+  symbol: method: absent -> extra (194)
+    packages/common/interfaces/exceptions/exception-filter.interface.ts:ExceptionFilter.catch
+    packages/common/interfaces/exceptions/rpc-exception-filter.interface.ts:RpcExceptionFilter.catch
+    packages/common/interfaces/exceptions/ws-exception-filter.interface.ts:WsExceptionFilter.catch
+    packages/common/interfaces/external/transformer-package.interface.ts:TransformerPackage.classToPlain
+    packages/common/interfaces/external/transformer-package.interface.ts:TransformerPackage.plainToInstance
+    packages/common/interfaces/external/validator-package.interface.ts:ValidatorPackage.validate
+    packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.getArgByIndex
+    packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.getArgs
+    packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.getType
+    packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.switchToHttp
+    packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.switchToRpc
+    packages/common/interfaces/features/arguments-host.interface.ts:ArgumentsHost.switchToWs
+    packages/common/interfaces/features/arguments-host.interface.ts:HttpArgumentsHost.getNext
+    packages/common/interfaces/features/arguments-host.interface.ts:HttpArgumentsHost.getRequest
+    packages/common/interfaces/features/arguments-host.interface.ts:HttpArgumentsHost.getResponse
+    packages/common/interfaces/features/arguments-host.interface.ts:RpcArgumentsHost.getContext
+    packages/common/interfaces/features/arguments-host.interface.ts:RpcArgumentsHost.getData
+    packages/common/interfaces/features/arguments-host.interface.ts:WsArgumentsHost.getClient
+    packages/common/interfaces/features/arguments-host.interface.ts:WsArgumentsHost.getData
+    packages/common/interfaces/features/arguments-host.interface.ts:WsArgumentsHost.getPattern
+    ... 174 more, in the JSON
+
+FAIL: 0 that agreed no longer do, 0 newly wrong, 194 newly unjudged or extra.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction                391       391       391         0         0         0         0
+call edge, stored as field_type                  538       538       538         0         0         0         0
+                                                 +55       +55       +55         .         .         .         .
+call edge, stored as import                     1427      1427      1427         0         0         0         0
+call edge, stored as new_expression               31        31        31         0         0         0         0
+call edge, stored as parameter_type              141       141       141         0         0         0         0
+                                                 +62       +62       +62         .         .         .         .
+call edge, stored as same_file                   104       104       104         0         0         0         0
+call edge, stored as static_method               110       110       110         0         0         0         0
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                1034      1034      1034         0         0         0         0
+call written as expr.m(), other file              62         1         1         0        61         0         0
+                                                 +29        +1        +1         .       +28         .         .
+call written as f(), other file                 1447      1427      1427         0        20         0         0
+call written as f(), same file                   105       104       104         0         1         0         0
+call written as ident.m(), other file            583       271       271         0       312         0         0
+                                                +228       +60       +60         .      +168         .         .
+call written as ident.m(), same file              13        11        11         0         2         0         0
+                                                  +1        +1        +1         .         .         .         .
+call written as new X(), other file              380       379       379         0         1         0         0
+call written as new X(), same file                12        12        12         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file       725       525       525         0       200         0         0
+                                                 +93       +44       +44         .       +49         .         .
+call written as this.field.m(), same file         24        13        13         0        11         0         0
+                                                 +19       +11       +11         .        +8         .         .
+call written as this.m(), other file             146       143       143         0         3         0         0
+call written as this.m(), same file              890       890       890         0         0         0         0
+
+written: /Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/s16-cards/nest-cmp.json

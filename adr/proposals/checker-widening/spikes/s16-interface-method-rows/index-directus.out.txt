@@ -1,0 +1,52 @@
+write_spans: {"fts_del":0,"fts_ins":711.904277999988,"commit":1256.5548960000096,"rest":683.5411820000586,"txn":48.447820000027036,"lock":351.1908740000016}
+pragmas: {"cache_size":-16000,"mmap_size":0}
+base wall_s 10
+base db_bytes 39936000
+base symbols|class|191
+base symbols|export|273
+base symbols|function|2614
+base symbols|interface|388
+base symbols|method|1359
+base symbols|type|1265
+base chunks|8305
+base edges|EXTENDS||106
+base edges|IMPLEMENTS||28
+base edges|PARENT_OF||1359
+base edges|POTENTIAL_CALL|construction|378
+base edges|POTENTIAL_CALL|field_type|72
+base edges|POTENTIAL_CALL|import|2651
+base edges|POTENTIAL_CALL|new_expression|307
+base edges|POTENTIAL_CALL|parameter_type|10
+base edges|POTENTIAL_CALL|same_file|840
+base edges|POTENTIAL_CALL|static_method|26
+base edges|POTENTIAL_CALL|super_method|57
+base edges|POTENTIAL_CALL|this_method|760
+base edges|RE_EXPORTS||189
+base interface methods|0
+write_spans: {"fts_del":0,"fts_ins":721.7344960000025,"commit":1370.0646430000102,"rest":725.5188909999089,"txn":47.1904880000709,"lock":373.97483299999715}
+pragmas: {"cache_size":-16000,"mmap_size":0}
+patch wall_s 9
+patch db_bytes 40341504
+patch symbols|class|191
+patch symbols|export|273
+patch symbols|function|2614
+patch symbols|interface|388
+patch symbols|method|1528
+patch symbols|type|1265
+patch chunks|8474
+patch edges|EXTENDS||106
+patch edges|IMPLEMENTS||28
+patch edges|PARENT_OF||1359
+patch edges|POTENTIAL_CALL|construction|378
+patch edges|POTENTIAL_CALL|field_type|115
+patch edges|POTENTIAL_CALL|import|2651
+patch edges|POTENTIAL_CALL|new_expression|307
+patch edges|POTENTIAL_CALL|parameter_type|14
+patch edges|POTENTIAL_CALL|same_file|840
+patch edges|POTENTIAL_CALL|static_method|26
+patch edges|POTENTIAL_CALL|super_method|57
+patch edges|POTENTIAL_CALL|this_method|760
+patch edges|RE_EXPORTS||189
+patch interface methods|169
+patch call edges to an interface method|field_type|43
+patch call edges to an interface method|parameter_type|4

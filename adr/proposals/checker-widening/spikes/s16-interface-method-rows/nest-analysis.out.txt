@@ -1,0 +1,19 @@
+call pairs that changed bucket:
+     117 absent -> agree
+     253 absent -> lacks
+
+absent -> agree, by how the call is written:
+      61 call written as ident.m()
+      55 call written as this.field.m()
+       1 call written as expr.m()
+
+absent -> lacks, by how the call is written:
+     168 call written as ident.m()
+      57 call written as this.field.m()
+      28 call written as expr.m()
+
+absent -> agree, by the rule that stored the edge:
+      62 call edge, stored as parameter_type
+      55 call edge, stored as field_type
+
+absent -> wrong: 0; with no lacking pair of the same caller and method name: 0
