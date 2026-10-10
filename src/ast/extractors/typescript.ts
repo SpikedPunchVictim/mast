@@ -1402,6 +1402,7 @@ export function symbolsFromChunks(chunks: readonly Chunk[]): SymbolRecord[] {
 export function extractImports(parsedTree: Tree, _filePath: string): ImportRecord[] {
   const topLevel = nodeChildren(parsedTree.rootNode);
   const imports: ImportRecord[] = [];
+  const exportedLocals = localsExportedByName(topLevel);
 
   for (const node of topLevel) {
     if (nodeType(node) !== 'import_statement') continue;
@@ -1423,6 +1424,7 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
     // A Map, not an object: a local name may be `__proto__`, which assigned as
     // a key of an object sets its prototype and stores nothing (D139).
     const aliases = new Map<string, string>();
+    let exportedAs: readonly string[] = [];
     const importClause = findChildByType(node, 'import_clause');
     if (importClause !== null) {
       // `import X from` is `import { default as X } from` and is stored as it.
@@ -1436,6 +1438,9 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
       const namespaceImport = findChildByType(importClause, 'namespace_import');
       const namespaceLocal = namespaceImport === null ? undefined : findChildByType(namespaceImport, 'identifier')?.text;
       if (namespaceLocal !== undefined) aliases.set(namespaceLocal, WHOLE_MODULE);
+      // `import type * as ns` binds nothing that can be called through.
+      const isTypeOnly = nodeChildren(node).some((child) => nodeType(child) === 'type');
+      exportedAs = namespaceLocal === undefined || isTypeOnly ? [] : exportedLocals.get(namespaceLocal) ?? [];
       const namedImports = findChildByType(importClause, 'named_imports');
       if (namedImports !== null) {
         for (const specifier of nodeNamedChildren(namedImports)) {
@@ -1449,7 +1454,19 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
       }
     }
 
-    imports.push({ module, symbols, ...renamedBy(aliases), isExternal, resolvedPath });
+    imports.push({ module, symbols, ...renamedBy(aliases), ...(exportedAs.length > 0 ? { exportedAs } : {}), isExternal, resolvedPath });
+  }
+
+  // `export * as ns from './x'` binds nothing in the file and exports all of
+  // `./x` as `ns`. It gets an import row, which is where that is recorded and
+  // what keeps the path the specifier resolves to current.
+  for (const node of topLevel) {
+    if (nodeType(node) !== 'export_statement' || isTypeOnlyExport(node)) continue;
+    const exportedName = namespaceExportName(node);
+    const moduleNode = findChildByType(node, 'string');
+    if (exportedName === undefined || moduleNode === null) continue;
+    const module = moduleNode.text.slice(1, -1);
+    imports.push({ module, symbols: [], exportedAs: [exportedName], isExternal: !module.startsWith('.') && !module.startsWith('/'), resolvedPath: null });
   }
 
   // `const { X } = await import('./x')`, anywhere in the file: the file imports
@@ -1479,6 +1496,49 @@ export function extractImports(parsedTree: Tree, _filePath: string): ImportRecor
 }
 
 /** The `aliases` field of an import record, absent when nothing is renamed. */
+/** `ns` of `export * as ns from`, or undefined for any other statement. */
+function namespaceExportName(exportStatement: SyntaxNode): string | undefined {
+  const namespaceExport = findChildByType(exportStatement, 'namespace_export');
+  // Not the first child: a comment may stand before the name. A name written
+  // as a string is stored without its quotes, as an import of it is (D139).
+  const name = namespaceExport === null ? undefined : nodeNamedChildren(namespaceExport).find((child) => nodeType(child) !== 'comment');
+  if (name === undefined) return undefined;
+  return nodeType(name) === 'string' ? name.text.slice(1, -1) : name.text;
+}
+
+/**
+ * `export type { a }` and `export type * as ns from`: nothing that can be
+ * called. The grammar (tree-sitter-typescript 0.23.2) reads the `type` of the
+ * second as an error. Only an error that is the word counts.
+ */
+function isTypeOnlyExport(exportStatement: SyntaxNode): boolean {
+  return nodeChildren(exportStatement).some(
+    (child) => nodeType(child) === 'type' || (nodeType(child) === 'ERROR' && child.text === 'type'),
+  );
+}
+
+/**
+ * For each local name a top-level `export { local }` or `export { local as
+ * other }` names, the names it is exported under. Statements with a `from` and
+ * type-only ones are left out.
+ */
+function localsExportedByName(topLevel: readonly SyntaxNode[]): Map<string, string[]> {
+  const exported = new Map<string, string[]>();
+  for (const node of topLevel) {
+    if (nodeType(node) !== 'export_statement' || hasFromClause(node) || isTypeOnlyExport(node)) continue;
+    const clause = getWrappedDeclaration(node) === null ? findChildByType(node, 'export_clause') : null;
+    for (const spec of clause === null ? [] : nodeNamedChildren(clause)) {
+      if (nodeType(spec) !== 'export_specifier' || nodeChildren(spec).some((child) => nodeType(child) === 'type')) continue;
+      const local = specifierName(spec, 'name');
+      if (local === undefined) continue;
+      const names = exported.get(local) ?? [];
+      names.push(specifierName(spec, 'alias') ?? local);
+      exported.set(local, names);
+    }
+  }
+  return exported;
+}
+
 function renamedBy(aliases: ReadonlyMap<string, string>): { aliases?: Readonly<Record<string, string>> } {
   // `Object.fromEntries` defines each key as the object's own, `__proto__` too.
   return aliases.size > 0 ? { aliases: Object.fromEntries(aliases) } : {};

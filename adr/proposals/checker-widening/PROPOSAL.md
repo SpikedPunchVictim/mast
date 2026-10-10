@@ -748,3 +748,93 @@ here.
 `import d, * as ns` lists `default`, so repair did not know it for a namespace import and
 did not resolve its file again. One test, seen failing. An index built before has no local
 name on its rows; a row that lists no name is still resolved again, as before.
+
+## A namespace another file exports, with a stored record (2026-10-10)
+
+Decision taken (the user, 2026-10-10): the record asked for above is stored, in the
+unreleased schema 1.4.0 with no bump.
+
+**The record.** A column on the import row, `imports.exported_as`: a JSON array of the
+names under which the file exports all of the row's module. Written by the extractor for
+`import * as ns from './m'` followed by `export { ns }` or `export { ns as other }`, and
+for `export * as ns from './m'`, which gets an import row though it binds nothing in the
+file. A column and not a table, because the row already has what the record needs: the
+file the specifier resolves to, kept current by repair, and the lifetime of its file.
+Type-only forms record nothing (`export type { ns }`, `export { type ns }`, `export type
+* as`, `import type * as`).
+
+**The rule (MAST_SPEC §10.3.1, rule 12).** For `Owner.member` called on an imported name,
+the file the import names is asked whether it exports all of a module as `Owner`. If it
+does, `member` is resolved in that module as an import of it would be, and nothing else is
+tried. The answer comes from `exported_as` alone. Only when the import names the file that
+holds the row: a further `export *` or `export { ns } from` hop is not followed.
+
+**Repair.** A change in module M is a change of name N in every file that exports M as N,
+so that file joins the sources and N the changed names, to a fixpoint. The exported name is
+part of the import row's signature, since `export { ns }` can sit outside every chunk.
+
+**Measured** (`spikes/s13-exported-namespace-row/`, scorecard reference, final build):
+
+| Corpus | Call pairs that agree, before | After | Wrong after |
+|---|---|---|---|
+| n8n, 80 projects | 52,982, and 4 the scorecard now counts | 53,122 | 0 |
+| n8n `packages/core` | baseline of `26ee330` | +17 | 0 |
+| n8n `packages/cli` | baseline of `26ee330` | +53 | 0 |
+| shapes | 3 pairs `lacks` | 3 pairs `agree` | 0 |
+
+136 pairs on n8n come from the rule (edges stored as `static_method`, 547 to 683); the
+attempt above gave 123. The n8n index holds 628 import rows with the record, in 183
+files, 137 of them the `export * as` form, none unresolved. The 80-project score was run
+before and after the changes the review led to and is the same.
+
+**Review.** A reviewer was asked to break it, with the list of what broke the first
+attempt. All of those hold now (re-run by the reviewer: a private namespace import beside
+a star that supplies the name, `export { other as dom }`, a namespace exported under
+another name only, `export *` of a package, a typed receiver, the module created after
+the index, `import d, * as ns`). Incremental equalled full in every sequence it ran, in
+both file orders. What it found, each reproduced here or read in the code before anything was
+changed:
+
+- **A wrong edge the rule reaches but did not make (D167).** A default export in the file
+  an import names was reached by its declared name though a star in that file supplies
+  the name. Older than the rule; fixed in the same commit, with a shapes fixture.
+- **Four forms the extractor misread**, each losing an edge and none adding one: a comment
+  inside `export * /* c */ as ns`, a string name kept with its quotes, and `import type *
+  as ns; export { ns }` recorded as a namespace. Fixed, each with a test seen failing.
+  The fourth, `export * as ns from './m' with { ... }`, is not the rule's: the grammar
+  (tree-sitter-typescript 0.23.2) parses no `export ... from` with import attributes, so
+  `export * from './m' with { ... }` is lost the same way. Not fixed.
+- **Repair does needless work when the module matches no file.** With `export * as data
+  from './generated'` unresolved and 30 files importing `data`, a rename in an unrelated
+  file re-resolved 31 files (`repair-fan-out.out.txt`); 0 with the module resolved. The
+  clause that causes it is needed for a module created later that holds only `export *`
+  (a test, seen failing without it). Left as it is: n8n has no unresolved row.
+- **Parts no test held.** Six mutants survived the reviewer's run. Tests now kill the
+  exported name in the import signature, the unresolved rows in repair, the `from` check,
+  and the type-only import. One survivor was a stop for `ns.C.m()` that nothing can
+  reach, since the extractor emits no such name; the stop is removed and the form pinned
+  as not read. `findReExporters` reading the record is still held by no test; the
+  reviewer could not make it matter and neither was it tried here.
+- **The test dumps could not see the column.** `dumpGraph` in the test fixture and
+  `eval-suite/replay-check.mjs` now carry it.
+
+Reported and not reproduced here: on n8n, changing one name of a module exported whole
+re-resolves a median of 2 more files, at most 60 (`packages/workflow/src/node-helpers.ts`),
+by a replay of the loop over stored rows and not by an incremental run.
+
+**Not done, not measured.**
+
+- An index written by an earlier build of 1.4.0 has the column empty and is not rebuilt;
+  each file is filled in when it is next extracted. No such build was released.
+- What the rule costs an index run was not measured: the machine was too loaded for an
+  A/B. One more indexed lookup per `Owner.member` call that reaches the import's file.
+- `mast_dependencies` now lists the module of an `export * as`, with no names. The other
+  re-export forms still have no import row.
+- `exported_as` is also a field of `mast_rename_impact` output with another meaning (the
+  name a barrel exports a symbol under). The column was not renamed.
+- Not read: `new ns.C()`, `ns.C.m()`, a type written `ns.T`, a namespace reaching the
+  importer through a further hop, `export default`, `export =`, `export import`,
+  `export { type as ns }` of a namespace import called `type`.
+- `.mjs` holders get no import rows and `.jsx` consumers no call edges, both before this
+  rule (the reviewer's run), so the rule was not judged there. Not filed, not reproduced.
+

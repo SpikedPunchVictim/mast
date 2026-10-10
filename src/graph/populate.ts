@@ -4,6 +4,7 @@ import type { IdentifierRow, StarReExportRecord } from '../ast/extractor.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 import { pathPrefixUpperBound } from './path-range.js';
 import { markEdgeRepairsPending } from './importer-repair.js';
+import { namesExportedAs } from './exported-as.js';
 import { CURRENT_SCHEMA_VERSION } from '../store/config.js';
 import { fieldNamesOf } from './class-fields.js';
 
@@ -621,6 +622,7 @@ async function writePopulatedFileRows(
       module: string;
       symbols: string;
       aliases: string | null;
+      exported_as: string | null;
       is_external: 0 | 1;
       resolved_path: string | null;
     }[] = data.imports.map((imp) => ({
@@ -628,6 +630,7 @@ async function writePopulatedFileRows(
       module: imp.module,
       symbols: JSON.stringify(imp.symbols),
       aliases: imp.aliases === undefined ? null : JSON.stringify(imp.aliases),
+      exported_as: imp.exportedAs === undefined ? null : JSON.stringify(imp.exportedAs),
       is_external: imp.isExternal ? 1 : 0,
       resolved_path: imp.resolvedPath,
     }));
@@ -1610,6 +1613,17 @@ export async function resolveInFileOrReExportChain(
   // or where every hop was an `export *`.
   const dot = toName.indexOf('.');
   if (dot !== -1) {
+    // `ns.f()` on a name the file exports as all of a module is `f` of that
+    // module. Only for a call written on the name: a value of a type called
+    // `ns` is not the namespace.
+    if (side !== 'instance') {
+      const namespace = await moduleExportedAs(db, targetFile.id, toName.slice(0, dot));
+      if (namespace !== undefined) {
+        return namespace.resolvedPath === null
+          ? null
+          : resolveInFileOrReExportChain(db, namespace.resolvedPath, toName.slice(dot + 1), null, meaning);
+      }
+    }
     const ownerId = await resolveInFileOrReExportChain(db, resolvedPath, toName.slice(0, dot));
     if (ownerId === null) return null;
     // The member is stored under the name its type was declared with, which a
@@ -1653,16 +1667,21 @@ export async function resolveInFileOrReExportChain(
   // `export *`, took every caller of the public one (D120).
   const direct = await db
     .selectFrom('symbols')
-    .select('id')
+    .select(['id', 'is_default_export'])
     .where('name', '=', toName)
     .where('file_id', '=', targetFile.id)
     .where('kind', '!=', 'export')
     .where('is_exported', '=', 1)
+    .orderBy('is_default_export', 'asc')
     .orderBy(IS_A_TYPE, orderOf(meaning))
     .orderBy('line', 'asc')
     .orderBy('id', 'asc')
     .executeTakeFirst();
-  if (direct !== undefined) return declarationBehindLocalAlias(db, direct.id);
+  // The name a default export was declared with is not a name the file
+  // exports, and the row does not say whether the declaration is exported by
+  // name as well. So such a row is taken only when the file's re-exports do
+  // not supply the name (D167; D164 is the same behind a star).
+  if (direct !== undefined && direct.is_default_export === 0) return declarationBehindLocalAlias(db, direct.id);
 
   // Named re-export: a marker symbol (kind 'export') anchors a RE_EXPORTS
   // edge to the real declaration (§10.1).
@@ -1686,7 +1705,31 @@ export async function resolveInFileOrReExportChain(
   // Star re-export: no per-symbol marker exists, only a file-level
   // `re_export_files` row (§10.3). Walk the chain forward to the file that
   // actually declares `toName` — the recursive CTE from MAST_SPEC §6.3.
-  return resolveThroughStarChain(db, targetFile.id, toName, meaning);
+  const behindStar = await resolveThroughStarChain(db, targetFile.id, toName, meaning);
+  return behindStar !== null || direct === undefined ? behindStar : declarationBehindLocalAlias(db, direct.id);
+}
+
+/**
+ * The module that file `fileId` exports whole under `name`, or undefined when
+ * it exports no namespace of that name. `resolvedPath` is null for a module
+ * that is no indexed file.
+ *
+ * Read from the import rows' `exported_as` and from nothing else. A namespace
+ * import of the name that the file does not export says nothing about what
+ * `name` is to an importer: the file may get it from an `export *`, or export
+ * something else under it.
+ */
+async function moduleExportedAs(db: Db, fileId: number, name: string): Promise<{ resolvedPath: string | null } | undefined> {
+  const rows = await db
+    .selectFrom('imports')
+    .select(['exported_as', 'resolved_path'])
+    .where('file_id', '=', fileId)
+    .where('exported_as', 'is not', null)
+    .execute();
+  for (const row of rows) {
+    if (namesExportedAs(row.exported_as).includes(name)) return { resolvedPath: row.resolved_path };
+  }
+  return undefined;
 }
 
 /** Bounded hop count for chained named re-exports (barrel re-exporting a barrel). */

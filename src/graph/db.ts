@@ -164,6 +164,8 @@ interface ImportsTable {
   readonly symbols: string;
   /** JSON object, local name to exported name, for `{ a as b }`; null when none is renamed. */
   readonly aliases: string | null;
+  /** JSON string[]: the names under which the file exports all of the module; null when none. */
+  readonly exported_as: string | null;
   readonly is_external: BoolCol;
   /** Null for external modules; resolved real path for monorepo imports. */
   readonly resolved_path: string | null;
@@ -404,7 +406,8 @@ CREATE TABLE IF NOT EXISTS imports (
   symbols       TEXT NOT NULL,
   is_external   INTEGER NOT NULL DEFAULT 0,
   resolved_path TEXT,
-  aliases       TEXT
+  aliases       TEXT,
+  exported_as   TEXT
 );
 
 CREATE TABLE IF NOT EXISTS chunks (
@@ -629,6 +632,10 @@ export function openDatabase(stateDir: string, options: OpenDatabaseOptions = {}
     sqlite.prepare('PRAGMA table_info(imports)').all().map((c) => (c as { name: string }).name),
   );
   if (!importColumns.has('aliases')) sqlite.exec('ALTER TABLE imports ADD COLUMN aliases TEXT');
+  // `imports.exported_as` (schema 1.4.0), for the same reason. An index that an
+  // earlier build of 1.4.0 wrote (none was released) gets the column empty and
+  // is not rebuilt: its files are filled in as they are next extracted.
+  if (!importColumns.has('exported_as')) sqlite.exec('ALTER TABLE imports ADD COLUMN exported_as TEXT');
 
   // `symbols.fields` (schema 1.4.0, D115), for the same reason.
   const symbolColumns = new Set(

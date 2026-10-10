@@ -927,7 +927,7 @@ async function isFileUnchanged(
   const storedImports = await db
     .selectFrom('imports as i')
     .innerJoin('files as f', 'f.id', 'i.file_id')
-    .select(['i.module', 'i.symbols', 'i.aliases', 'i.is_external', 'i.resolved_path'])
+    .select(['i.module', 'i.symbols', 'i.aliases', 'i.exported_as', 'i.is_external', 'i.resolved_path'])
     .where('f.path', '=', filePath)
     .execute();
 
@@ -945,6 +945,8 @@ function importSignature(
     module: string;
     symbols?: readonly string[] | string;
     aliases?: Readonly<Record<string, string>> | string | null;
+    exportedAs?: readonly string[];
+    exported_as?: string | null;
     isExternal?: boolean;
     is_external?: number;
     resolvedPath?: string | null;
@@ -957,9 +959,12 @@ function importSignature(
       // Local names are part of the row: `{ a as b }` to `{ a as c }` changes
       // no exported name and, far from any declaration, no chunk.
       const aliases = typeof i.aliases === 'string' ? i.aliases : JSON.stringify(i.aliases ?? null);
+      // So is what the file exports the module as: `export { ns };` names no
+      // declaration and can sit outside every chunk.
+      const exportedAs = i.exported_as ?? (i.exportedAs === undefined ? '' : JSON.stringify(i.exportedAs));
       const external = i.isExternal ?? i.is_external === 1;
       const resolved = i.resolvedPath ?? i.resolved_path ?? '';
-      return `${i.module}|${symbols}|${aliases === 'null' ? '' : aliases}|${external ? 1 : 0}|${resolved}`;
+      return `${i.module}|${symbols}|${aliases === 'null' ? '' : aliases}|${exportedAs}|${external ? 1 : 0}|${resolved}`;
     })
     .sort()
     .join('\n');

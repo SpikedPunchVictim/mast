@@ -3,6 +3,7 @@ import type { Db } from './db.js';
 import { pathPrefixUpperBound } from './path-range.js';
 import { chunkRowsForSqlite, chunkValuesForSqlite } from './sqliteBatch.js';
 import { fieldNamesOf } from './class-fields.js';
+import { namesExportedAs } from './exported-as.js';
 
 // ---------------------------------------------------------------------------
 // Which files must be resolved again after other files changed what they
@@ -34,6 +35,12 @@ export interface ExportSurface {
   readonly markers: ReadonlySet<string>;
   /** Paths the file re-exports with `export *`. */
   readonly starTargets: ReadonlySet<string>;
+  /**
+   * `name|module` of every name the file exports as all of a module (`export *
+   * as ns from`, or a namespace import that is then exported). The module is
+   * the specifier as written: where it resolves to is the import row's to keep.
+   */
+  readonly namespaces: ReadonlySet<string>;
 }
 
 /** The surface stored for `filePath`, or null when the file has no row. */
@@ -56,7 +63,11 @@ export async function readExportSurface(db: Db, filePath: string): Promise<Expor
     .where('r.from_file_id', '=', file.id)
     .execute();
 
+  const importRows = await db.selectFrom('imports').select(['module', 'exported_as']).where('file_id', '=', file.id).where('exported_as', 'is not', null).execute();
+  const namespaces = importRows.flatMap((row) => namesExportedAs(row.exported_as).map((name) => `${name}|${row.module}`));
+
   return {
+    namespaces: new Set(namespaces),
     declared: new Set([...symbols.filter((s) => s.kind !== 'export').map((s) => `${s.name}|${s.is_exported === 1 ? '' : 'private '}${s.is_default_export === 1 ? 'default ' : ''}${s.is_static === 1 ? 'static ' : ''}${s.kind}`), ...fields]),
     markers: new Set(symbols.filter((s) => s.kind === 'export').map((s) => s.name)),
     starTargets: new Set(stars.map((s) => s.path)),
@@ -70,7 +81,7 @@ function symmetricDifference(a: ReadonlySet<string>, b: ReadonlySet<string>): st
 /** A `declared` entry of a row flagged as its file's default export. */
 const IS_DEFAULT_ENTRY = /\|(?:private )?default /;
 
-const EMPTY_SURFACE: ExportSurface = { declared: new Set(), markers: new Set(), starTargets: new Set() };
+const EMPTY_SURFACE: ExportSurface = { declared: new Set(), markers: new Set(), starTargets: new Set(), namespaces: new Set() };
 
 /**
  * The names whose meaning to an importer may differ between two surfaces of
@@ -94,8 +105,11 @@ export function changedExports(
   // name of its declaration, so that is the name its importers are found by
   // when it appears, goes or moves to another declaration (D148).
   const defaults = changed.some((entry) => IS_DEFAULT_ENTRY.test(entry)) ? ['default'] : [];
+  // A namespace the file exports counts when it appears, goes, or is all of
+  // another module.
+  const namespaces = symmetricDifference(from.namespaces, to.namespaces).map((entry) => entry.slice(0, entry.lastIndexOf('|')));
   return {
-    names: [...new Set([...declared, ...defaults, ...from.markers, ...to.markers])],
+    names: [...new Set([...declared, ...defaults, ...namespaces, ...from.markers, ...to.markers])],
     starTargets: symmetricDifference(from.starTargets, to.starTargets),
   };
 }
@@ -224,7 +238,35 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
     for (const row of rows) found.add(row.path);
   }
 
-  const reach = closure([...query.sources, ...found], adjacency(await loadStarRows(db), true));
+  const barrelsOf = adjacency(await loadStarRows(db), true);
+  let reach = closure([...query.sources, ...found], barrelsOf);
+  // A file that exports all of a module under a name (`exported_as`) passes
+  // every change of the module on as a change of that name: `ns.f()` in a file
+  // importing `ns` from it reaches what the module exports as `f`. So when the
+  // module is in reach, the name counts as changed and the exporting file as a
+  // source, and the same again from there. A row whose module matched no file
+  // is taken too: the file it was waiting for may be the one that changed, and
+  // the row says so only once its own file has been resolved again.
+  const namespaceRows = await db
+    .selectFrom('imports as i')
+    .innerJoin('files as f', 'f.id', 'i.file_id')
+    .select(['f.path', 'i.exported_as', 'i.resolved_path'])
+    .where('i.exported_as', 'is not', null)
+    .where('i.is_external', '=', 0)
+    .execute();
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const row of namespaceRows) {
+      if (row.resolved_path !== null && !reach.has(row.resolved_path)) continue;
+      for (const name of namesExportedAs(row.exported_as)) {
+        if (imported.has(name) && reach.has(row.path)) continue;
+        imported.add(name);
+        found.add(row.path);
+        grew = true;
+      }
+    }
+    if (grew) reach = closure([...query.sources, ...found], barrelsOf);
+  }
   // A row that lists no name is `import * as ns` or an import for its effect.
   // The first can call any of the names as `ns.name`. A row written since the
   // local name is kept says which it is (`bindsWholeModule`, D166); one written
@@ -440,6 +482,7 @@ export async function replaceImports(db: Db, filePath: string, imports: readonly
       module: imp.module,
       symbols: JSON.stringify(imp.symbols),
       aliases: imp.aliases === undefined ? null : JSON.stringify(imp.aliases),
+      exported_as: imp.exportedAs === undefined ? null : JSON.stringify(imp.exportedAs),
       is_external: imp.isExternal ? (1 as const) : (0 as const),
       resolved_path: imp.resolvedPath,
     }));
@@ -498,7 +541,8 @@ export async function countPendingEdgeRepairs(db: Db): Promise<number> {
 }
 
 /**
- * The members of `paths` that re-export anything, by name or by star.
+ * The members of `paths` that re-export anything: by name, by star, or a whole
+ * module under a name.
  *
  * Other files resolve through these, so a run resolves all of them before any
  * file that only imports, and never leaves one waiting: an importer resolved
@@ -523,7 +567,16 @@ export async function findReExporters(db: Db, paths: readonly string[]): Promise
       .distinct()
       .where('f.path', 'in', batch)
       .execute();
-    for (const row of [...byMarker, ...byStar]) found.add(row.path);
+    // A file that exports a namespace is resolved through as a barrel is.
+    const byNamespace = await db
+      .selectFrom('imports as i')
+      .innerJoin('files as f', 'f.id', 'i.file_id')
+      .select('f.path')
+      .distinct()
+      .where('i.exported_as', 'is not', null)
+      .where('f.path', 'in', batch)
+      .execute();
+    for (const row of [...byMarker, ...byStar, ...byNamespace]) found.add(row.path);
   }
   return found;
 }

@@ -461,7 +461,12 @@ function runScore({ flags }) {
             const symbol = resolveAlias(checker.getSymbolAtLocation(spec.name));
             ref.reExports.push({ marker: `${path}:${spec.name.text}`, resolved: (symbol?.declarations ?? []).length > 0, targets: declaredKeysOf(symbol) });
           }
-        } else if (stmt.moduleSpecifier) note('export * as namespace');
+        } else if (stmt.moduleSpecifier) {
+          note('export * as namespace');
+          // mast stores an import row for it, which is where it records what the
+          // name stands for. A type-only one gets none.
+          if (!stmt.isTypeOnly) ref.importFiles.push({ path, module: stmt.moduleSpecifier.text, target: fileOfSpecifier(stmt.moduleSpecifier) });
+        }
         else if (stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
           for (const spec of stmt.exportClause.elements) {
             // A named import that is then exported is a re-export with the `from` on

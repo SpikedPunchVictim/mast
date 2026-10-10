@@ -1,0 +1,79 @@
+before: /dev/fd/12
+after:  eval-suite/baselines/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 4         4         4         0         0         0         0
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              39        39        39         0         0         0         0
+edge: POTENTIAL_CALL                         78        70        70         0         8         0         0
+                                             +1        +4        +4         .        -3         .         .
+edge: RE_EXPORTS (to the declaration)         2         2         2         0         0         0         0
+export * (file to file)                       3         3         3         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+file: indexed                                50        50        50         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+import: named binding                        41        41        41         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+import: the file it resolves to              31        31        31         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol flag: is_exported                    141       141       141         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+symbol: class                                27        27        27         0         0         0         0
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             77        77        77         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+symbol: interface                             2         2         2         0         0         0         0
+symbol: method                               36        36        36         0         0         0         0
+symbol: one key, more than one row            0         4         0         0         0         0         4
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: POTENTIAL_CALL: absent -> agree (1)
+    packages/default-beside-star/src/use.ts:go > packages/default-beside-star/src/impl.ts:dz
+  edge: POTENTIAL_CALL: lacks -> agree (3)
+    packages/namespace-export/src/use.ts:throughExportStarAs > packages/namespace-export/src/helpers.ts:append
+    packages/namespace-export/src/use.ts:throughImportThenExport > packages/namespace-export/src/helpers.ts:append
+    packages/namespace-export/src/use.ts:throughImportThenExport > packages/namespace-export/src/helpers.ts:later
+  export * (file to file): absent -> agree (1)
+    packages/default-beside-star/src/both.ts => packages/default-beside-star/src/impl.ts
+  file: indexed: absent -> agree (3)
+    packages/default-beside-star/src/both.ts
+    packages/default-beside-star/src/impl.ts
+    packages/default-beside-star/src/use.ts
+  import: named binding: absent -> agree (1)
+    packages/default-beside-star/src/use.ts { dz } from './both'
+  import: the file it resolves to: absent -> agree (1)
+    packages/default-beside-star/src/use.ts './both' => packages/default-beside-star/src/both.ts
+  symbol flag: is_exported: absent -> agree (3)
+    packages/default-beside-star/src/both.ts:dz exported=true
+    packages/default-beside-star/src/impl.ts:dz exported=true
+    packages/default-beside-star/src/use.ts:go exported=true
+  symbol: function: absent -> agree (3)
+    packages/default-beside-star/src/both.ts:dz
+    packages/default-beside-star/src/impl.ts:dz
+    packages/default-beside-star/src/use.ts:go
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            19        19        19         0         0         0         0
+call edge, stored as import                  27        27        27         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call edge, stored as new_expression           2         2         2         0         0         0         0
+call edge, stored as parameter_type           6         6         6         0         0         0         0
+call edge, stored as same_file                4         4         4         0         0         0         0
+call edge, stored as static_method            7         7         7         0         0         0         0
+                                             +3        +3        +3         .         .         .         .
+call edge, stored as this_method              5         5         5         0         0         0         0
+call written as expr.m(), other file          2         0         0         0         2         0         0
+call written as f(), other file              22        22        22         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as f(), same file                4         4         4         0         0         0         0
+call written as ident.m(), other file        19        15        15         0         4         0         0
+                                              .        +3        +3         .        -3         .         .
+call written as ident.m(), same file          5         5         5         0         0         0         0
+call written as new X(), other file          16        14        14         0         2         0         0
+call written as new X(), same file            5         5         5         0         0         0         0
+call written as this.m(), same file           5         5         5         0         0         0         0

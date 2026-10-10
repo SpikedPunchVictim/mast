@@ -349,6 +349,12 @@ CREATE TABLE IF NOT EXISTS imports (
                                  -- the exported name (since 1.4.0). A name written as a string
                                  -- (`{ "a b" as c }`) is stored without its quotes, here and in
                                  -- `symbols.name` and `reexport_aliases` (D139)
+  exported_as   TEXT             -- JSON array of the names under which the file exports all of
+                                 -- the module: `ns` for `export * as ns from` (which gets a row
+                                 -- here though it binds nothing in the file) and for `import *
+                                 -- as ns` then `export { ns }`; NULL when there is none. The
+                                 -- only record that a name a file exports is a namespace
+                                 -- (since 1.4.0)
 );
 
 -- FTS5 with built-in content: stores content directly alongside the index structures.
@@ -2381,6 +2387,13 @@ the indexer.
     (stored with `resolution` `import`), and `new dom.Widget()` as `new Widget()` is
     (`construction`). A local or a parameter called `dom` is not the namespace, and there
     is then no edge by this rule.
+12. **Calls through a namespace another file exports.** `import { dom } from './index';
+    dom.append()`, where `index` has `export * as dom from './dom'` or `import * as dom
+    from './dom'; export { dom }` (under that name or another) → `append` as `./dom`
+    exports it. Read from the import row of `index` that records the export
+    (`imports.exported_as`) and from nothing else, and only when the import names the
+    file that holds that row. Stored with `resolution` `static_method`: the calling file
+    reads the same as a call of a static method on an imported class.
 
 
 In every case the callee's file is found from the calling file's own evidence: a named or
@@ -2427,10 +2440,13 @@ the identifier match still lands in `identifier_fts` and surfaces as
   `import * as orm` is read, by rule 11.
 - **Through a namespace, anything but a call or `new` of one of its names.**
   `dom.Widget.create()` (a member of something the namespace holds), a parameter
-  annotated `w: dom.Widget` followed by `w.render()`, and a namespace another file
-  exports (`import * as dom from './dom'; export { dom };` or `export * as dom from
-  './dom'` in an index file, then `import { dom }`): nothing stored says a file exports
-  a namespace, and reading it from the import alone gave wrong edges
+  annotated `w: dom.Widget` followed by `w.render()`, and `new dom.Widget()` when
+  `dom` is a namespace another file exports. Such a namespace is read by rule 12 only
+  where the import names the file that exports it: one that reaches the importer through
+  a further `export *` or `export { dom } from` is not followed, and nor is one exported
+  as `export default`, `export =` or `export import`. Nor is an `export * as ns from`
+  followed by import attributes (`with { ... }`), which the grammar does not parse, or
+  `export { type as ns }` where the namespace import is itself called `type`
   (adr/proposals/checker-widening, "A namespace another file exports").
 - **Factory return types without annotation.** `const repo = makeRepository(); repo.findById(id)`
   — `repo`'s type is inferred and the resolver does not run inference.

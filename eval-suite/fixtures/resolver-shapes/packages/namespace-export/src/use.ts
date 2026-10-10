@@ -1,6 +1,6 @@
-// Calls through a namespace another file exports. None is read: nothing stored says a
-// file exports a namespace (adr/proposals/checker-widening, "A namespace another file
-// exports"). The two forms are here so that a rule for them shows as `lacks -> agree`.
+// Calls through a namespace another file exports, in its two forms (MAST_SPEC §10.3.1,
+// rule 12). A member of a member is not read, and a parameter with the namespace's name
+// is not the namespace.
 import { helpers, viaFrom } from './index';
 export function throughImportThenExport(): void { helpers.append(); helpers.later(); }
 export function throughExportStarAs(): void { viaFrom.append(); }

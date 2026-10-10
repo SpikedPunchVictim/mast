@@ -59,9 +59,10 @@ commit that files it. The directory is left out of this repository's own index
 | `merged-class`, `same-name-rows` | D121 |
 | `constructor-callers` | D122 (the stored edges agree; the defect is in `mast_callers`) |
 | `local-shadow` | D123 (`use.ts`), D124 (`loc.ts`) |
+| `default-beside-star` | D167 |
 | `namespace-import` | none: the calls rule 11 of MAST_SPEC §10.3.1 reads, and the ones it must leave (a local, a parameter or a callback parameter with the namespace's name) |
 | `js-beside-dts` | D162, a scorecard defect, fixed: an edge to a `.js` file that has a `.d.ts` beside it was counted as wrong |
-| `namespace-export` | none: calls through a namespace another file exports, imported and then exported or in the `export * as` form. Not read; in the baseline as `lacks` |
+| `namespace-export` | none: calls through a namespace another file exports, imported and then exported or in the `export * as` form (rule 12), and a member of a member, which is not read and is in the baseline as `lacks` |
 | `tagged-template` | D165, a scorecard defect, fixed: a tagged template, bare, through a namespace import and with a tag a constant holds, was `unjudged` |
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
@@ -118,7 +119,7 @@ is from reading `src/graph/queries.ts` and `src/mcp/tools/`, on 2026-10-07.
 | `edge: IMPLEMENTS` | class to interface | `mast_implementors` | each `implements` type, the same way |
 | `edge: RE_EXPORTS (to the declaration)` | marker to the next marker or the declaration | `mast_rename_impact`, and the resolver's chain walk | the declaration the compiler reaches from the exported name; mast's chain is followed to its end first |
 | `export * (file to file)` | `re_export_files` | the same | the file each `export * from` resolves to |
-| `import: the file it resolves to` | `imports.resolved_path` | `mast_dependencies`, `mast_signature` (parameter types), incremental repair | the file the compiler resolves the specifier to |
+| `import: the file it resolves to` | `imports.resolved_path` | `mast_dependencies`, `mast_signature` (parameter types), incremental repair | the file the compiler resolves the specifier to, for each `import` and each `export * as ns from` that is not type-only (mast gives the second an import row, to record what `ns` stands for) |
 | `import: named binding` | `imports.symbols` | the same | each name in `import { ... }`, under the name the module exports, and each name destructured from `await import('...')` |
 | `edge: POTENTIAL_CALL` | caller to callee, one row per pair | `mast_callers`, `mast_rename_impact` | each call or `new` the compiler resolves to an indexed declaration, per caller |
 

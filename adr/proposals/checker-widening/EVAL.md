@@ -140,3 +140,14 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `first-attempt.patch` | The attempt as it stood when it was reviewed, a diff of `src/` against `95788fa`. Not applied |
 | `n8n-after.json` | `s1/run.mjs ... --workspace-src --skip .` over a plain n8n index of the build with the attempt, scored by the scorecard with D162 and D165 fixed. Before is `s10-namespace-imports/n8n-after.json` |
 | `n8n-core-compare.out.txt`, `n8n-cli-compare.out.txt` | `compare` of the two baselines of `95788fa` with that index |
+
+## s13 — a namespace another file exports, with a stored record (`spikes/s13-exported-namespace-row/`)
+
+| File | What it is |
+|---|---|
+| `n8n-after.json` | `s1/run.mjs ... --workspace-src --skip .` over a plain n8n index of the build as committed. Before is `s10-namespace-imports/n8n-after.json` |
+| `n8n-after-before-the-review.json` | The same over the index of the build before the review's changes |
+| `n8n-core-compare.out.txt`, `n8n-cli-compare.out.txt` | `compare` of the two baselines of `26ee330` with that index |
+| `shapes-compare.out.txt` | `compare` of the shapes baseline of `85eb507` with the one committed |
+| `repair-fan-out.mjs`, `lib.mjs`, `repair-fan-out.out.txt` | The reviewer's script: 30 importers of a namespace whose module is missing, resolved, or a plain import, and how many are resolved again after an unrelated rename. As written, with this session's paths in `lib.mjs` (`MAST_DIST` overrides the build) |
+

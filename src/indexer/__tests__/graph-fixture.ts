@@ -113,8 +113,8 @@ export async function dumpGraph(
         JOIN files a ON a.id = x.from_file_id JOIN files b ON b.id = x.to_file_id`.execute(db)
     ).rows;
     const importRows = (
-      await sql<{ f: string; m: string; s: string; x: number; p: string | null }>`
-        SELECT f.path AS f, i.module AS m, i.symbols AS s, i.is_external AS x,
+      await sql<{ f: string; m: string; s: string; a: string | null; x: number; p: string | null }>`
+        SELECT f.path AS f, i.module AS m, i.symbols AS s, i.exported_as AS a, i.is_external AS x,
                i.resolved_path AS p
         FROM imports i JOIN files f ON f.id = i.file_id`.execute(db)
     ).rows;
@@ -131,7 +131,7 @@ export async function dumpGraph(
       edges: [...new Set(edges)].sort(),
       stars: starRows.map((s) => `${s.f} => ${s.t}`).sort(),
       imports: importRows
-        .map((i) => `${i.f} <- ${i.m} ${i.s} -> ${i.p ?? (i.x === 1 ? 'external' : 'unresolved')}`)
+        .map((i) => `${i.f} <- ${i.m} ${i.s}${i.a === null ? '' : ` as ${i.a}`} -> ${i.p ?? (i.x === 1 ? 'external' : 'unresolved')}`)
         .sort(),
     };
   } finally {

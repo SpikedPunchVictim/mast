@@ -123,6 +123,13 @@ export interface ImportRecord {
    * local name is here too, under `WHOLE_MODULE`. Absent when there is neither.
    */
   readonly aliases?: Readonly<Record<string, string>>;
+  /**
+   * The names under which the file exports all of this module: `ns` for
+   * `export * as ns from`, and for `import * as ns from` followed by
+   * `export { ns }`. It is the only record that a name a file exports is a
+   * namespace, and of which module. Absent when there is none.
+   */
+  readonly exportedAs?: readonly string[];
   readonly isExternal: boolean;
   /** Resolved relative path for intra-monorepo imports; null for external. */
   readonly resolvedPath: string | null;

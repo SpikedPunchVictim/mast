@@ -45,6 +45,7 @@ describe('linesOf', () => {
   const changes = [
     ['the line of a call', 'edges', { cl: 9 }],
     ['an import alias', 'imports', { a: null }],
+    ['the name an import is exported as', 'imports', { ea: '["ns"]' }],
     ['a symbol export flag', 'symbols', { x: 0 }],
     ['a symbol line', 'symbols', { l: 5 }],
     ['a symbol declaration hash', 'symbols', { d: 'other' }],

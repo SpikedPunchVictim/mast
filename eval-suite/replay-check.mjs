@@ -129,7 +129,7 @@ export function linesOf({ edges, stars, imports, symbols, reexportAliases, unres
   return [
     ...edges.map((e) => `edge|${e.t}|${e.r}|${e.fp}:${e.fn}@${e.fl}|${e.tp}:${e.tn}@${e.tl}|${e.cl ?? ''}|${e.cx ?? ''}`),
     ...stars.map((s) => `star|${s.f}|${s.t}`),
-    ...imports.map((i) => `import|${i.f}|${i.m}|${i.s}|${i.x}|${i.p}|${i.a ?? ''}`),
+    ...imports.map((i) => `import|${i.f}|${i.m}|${i.s}|${i.x}|${i.p}|${i.a ?? ''}|${i.ea ?? ''}`),
     ...symbols.map((s) => `symbol|${s.k}|${s.p}:${s.n}@${s.l}|${s.x}|${s.d ?? ''}|${s.b ?? ''}`),
     ...reexportAliases.map((a) => `reexport_alias|${a.f}|${a.e}|${a.s}`),
     ...unresolvedStars.map((u) => `unresolved_star|${u.f}|${u.m}`),
@@ -165,7 +165,7 @@ async function dumpGraph(mast, stateDir) {
       JOIN files a ON a.id = x.from_file_id JOIN files b ON b.id = x.to_file_id`.execute(db);
     const imports = await sql`
       SELECT f.path AS f, i.module AS m, i.symbols AS s, i.is_external AS x, COALESCE(i.resolved_path, '') AS p,
-             i.aliases AS a
+             i.aliases AS a, i.exported_as AS ea
       FROM imports i JOIN files f ON f.id = i.file_id`.execute(db);
     const symbols = await sql`
       SELECT s.kind AS k, f.path AS p, s.name AS n, s.line AS l, s.is_exported AS x,
