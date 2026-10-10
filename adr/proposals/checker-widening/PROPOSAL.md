@@ -838,3 +838,44 @@ by a replay of the loop over stored rows and not by an incremental run.
 - `.mjs` holders get no import rows and `.jsx` consumers no call edges, both before this
   rule (the reviewer's run), so the rule was not judged there. Not filed, not reproduced.
 
+## `ns.C.m()` and a type written `ns.T`, measured (2026-10-10): spike only, nothing built
+
+The two forms the namespace rules leave. Before any design, what the sites are
+(`spikes/s14-namespace-members/members.mjs`, the compiler, sites and not pairs).
+
+| | vscode `65f2c060`, 8,063 files | n8n `9d9e9bf9`, six projects, 5,936 files |
+|---|---|---|
+| `ns.a.f()` sites | 1,255 | 95 |
+| of them: `a` a class, `f` a static method, in the corpus | 112 | 0 |
+| of them: `a` a TypeScript `namespace`, `f` in the corpus | 359 | 0 |
+| of them: `a` a constant holding an object literal | 317 | 0 |
+| of them: nothing resolved (a package that is not installed) | 226 | 0 |
+| `x.m()` where `x` is a parameter, local or `this.f` annotated `ns.T` | 1,161 | 68 |
+| of them: callee in the corpus | 677 | 1 |
+| of them: `T` a class, `m` a method, in the corpus | 278 | 1 |
+| of them: `T` an interface, callee in the corpus | 387 | 0 |
+
+The rest of n8n's sites have a callee outside the corpus. Directus, nest and this
+repository had no such site in s10 and were not run again.
+
+**The 6,678 type references are 677 calls.** s10 counted references to a type written
+`ns.T`. What a rule would gain is the method calls on a receiver annotated so, and on
+vscode those with a callee in the corpus are 677 sites.
+
+**What mast stores today** (`fixture/`, `fixture.out.txt`, the build of `2dfc454`): a
+function declared inside `export namespace X { ... }` has no symbol row, and neither has
+a method of an interface. So of the sites above, an edge has something to point at for
+the 112 static methods and the 278 methods of a class: 390 sites, on one corpus, of the
+803,996 calls s10 read there. The 359 namespace functions and the 387 interface sites
+need symbol rows that do not exist, for every way of reaching them and not only through
+a namespace import. That is a larger change with its own measurement.
+
+**Not decided.** Whether 390 sites on one corpus, and 1 on the second, is worth two more
+extractor forms. By the rule this proposal has followed (a second corpus before a rule),
+it is not yet. The larger gap this spike points at is the missing rows, which was not
+sized: how many calls in each corpus go to a function in a TypeScript namespace or to a
+method of an interface, by any route.
+
+s10's table gives 1,087 for "`ns.a.f()` and deeper"; its own counts sum to 1,255 `ns.a.f()`
+sites, 1,021 of them in the corpus, and 65 deeper. The 1,087 was not re-derived.
+

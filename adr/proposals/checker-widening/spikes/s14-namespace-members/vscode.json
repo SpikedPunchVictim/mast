@@ -1,0 +1,300 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/vscode-ref",
+ "workspace_src": false,
+ "programs": [
+  {
+   "tsconfig": "src/tsconfig.json",
+   "corpus_files_first_seen_here": 8063
+  }
+ ],
+ "corpus_files_read": 8063,
+ "counts": {
+  "ns.a.f() | a is a class | f is a static method | f in the corpus | a declared in the imported file": 73,
+  "ns.a.f() | a is a class | f is a static method | f in the corpus | a through a re-export": 39,
+  "ns.a.f() | a is a constant holding an object literal | f is a method of an interface | f in the corpus | a declared in the imported file": 189,
+  "ns.a.f() | a is a constant holding an object literal | f is a property of an object or interface | f in the corpus | a declared in the imported file": 128,
+  "ns.a.f() | a is a constant holding ArrayLiteralExpression | f is a method of an interface | f outside it | a declared in the imported file": 3,
+  "ns.a.f() | a is a constant holding CallExpression | f is a method | f in the corpus | a declared in the imported file": 10,
+  "ns.a.f() | a is a constant holding new X() | f is a getter | f in the corpus | a declared in the imported file": 15,
+  "ns.a.f() | a is a constant holding new X() | f is a method | f in the corpus | a declared in the imported file": 34,
+  "ns.a.f() | a is a constant holding new X() | f is a method of an interface | f in the corpus | a declared in the imported file": 35,
+  "ns.a.f() | a is a constant holding new X() | f is a method of an interface | f outside it | a declared in the imported file": 5,
+  "ns.a.f() | a is a constant holding new X() | f is a property of an object or interface | f in the corpus | a declared in the imported file": 1,
+  "ns.a.f() | a is a function | f is a constant, no initializer | f in the corpus | a declared in the imported file": 132,
+  "ns.a.f() | a is a TypeScript namespace | f is a constant holding a function | f in the corpus | a declared in the imported file": 1,
+  "ns.a.f() | a is a TypeScript namespace | f is a constant holding Identifier | f in the corpus | a declared in the imported file": 2,
+  "ns.a.f() | a is a TypeScript namespace | f is a function | f in the corpus | a declared in the imported file": 356,
+  "ns.a.f() | a is an enum | f is a function | f in the corpus | a declared in the imported file": 6,
+  "ns.a.f() | a is unresolved | f is unresolved | f unresolved": 226,
+  "x.m() with x: ns.T | x is a local | T is a class | m is a getter | m in the corpus": 4,
+  "x.m() with x: ns.T | x is a local | T is a class | m is a method | m in the corpus": 196,
+  "x.m() with x: ns.T | x is a local | T is a class | m is a property | m in the corpus": 1,
+  "x.m() with x: ns.T | x is a local | T is an interface | m is a method of an interface | m in the corpus": 1,
+  "x.m() with x: ns.T | x is a local | T is an interface | m is a property of an object or interface | m in the corpus": 1,
+  "x.m() with x: ns.T | x is a local | T is unresolved | m is unresolved | m unresolved": 204,
+  "x.m() with x: ns.T | x is a parameter | T is a class | m is a method | m in the corpus": 38,
+  "x.m() with x: ns.T | x is a parameter | T is a class | m is a property | m in the corpus": 1,
+  "x.m() with x: ns.T | x is a parameter | T is a type alias | m is a method of an interface | m in the corpus": 1,
+  "x.m() with x: ns.T | x is a parameter | T is a type alias | m is a method of an interface | m outside it": 5,
+  "x.m() with x: ns.T | x is a parameter | T is an interface | m is a method of an interface | m in the corpus": 60,
+  "x.m() with x: ns.T | x is a parameter | T is an interface | m is a property of an object or interface | m in the corpus": 27,
+  "x.m() with x: ns.T | x is a parameter | T is unresolved | m is unresolved | m unresolved": 235,
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is a class | m is a method | m in the corpus": 1,
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is a constant holding CallExpression | m is a method of an interface | m in the corpus": 3,
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is a type alias | m is a method of an interface | m in the corpus": 2,
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is an interface | m is a method | m in the corpus": 1,
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is an interface | m is a method of an interface | m in the corpus": 84,
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is an interface | m is a property of an object or interface | m in the corpus": 17,
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is unresolved | m is unresolved | m unresolved": 19,
+  "x.m() with x: ns.T | x is this.f, a field | T is a class | m is a method | m in the corpus": 43,
+  "x.m() with x: ns.T | x is this.f, a field | T is an interface | m is a method | m in the corpus": 1,
+  "x.m() with x: ns.T | x is this.f, a field | T is an interface | m is a method of an interface | m in the corpus": 173,
+  "x.m() with x: ns.T | x is this.f, a field | T is an interface | m is a property of an object or interface | m in the corpus": 22,
+  "x.m() with x: ns.T | x is this.f, a field | T is unresolved | m is unresolved | m unresolved": 21
+ },
+ "samples": {
+  "ns.a.f() | a is a class | f is a static method | f in the corpus | a declared in the imported file": [
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:1244 editorRange.Range.isIRange(suggestion.range)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:1954 editorRange.Range.lift(Range.from(item.range))",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:3670 editorRange.Range.areIntersectingOrTouching(variable.filterRange, Rang",
+   "src/vs/workbench/api/common/extHostTestItem.ts:74 editorRange.Range.lift(Convert.Range.from(r))",
+   "src/vs/base/browser/ui/breadcrumbs/breadcrumbsWidget.ts:124 dom.Dimension.equals(dim, this._dimension)"
+  ],
+  "ns.a.f() | a is a class | f is a static method | f in the corpus | a through a re-export": [
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:391 types.MarkdownString.isMarkdownString(markup)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:740 types.SnippetTextEdit.replace(range, new types.SnippetString(text))",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:742 types.TextEdit.replace(range, text)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:1727 types.NotebookCellData.validate(cell)",
+   "src/vs/workbench/api/common/extHostCommands.ts:197 extHostTypes.NotebookRange.isNotebookRange(value)"
+  ],
+  "ns.a.f() | a is a constant holding an object literal | f is a method of an interface | f in the corpus | a declared in the imported file": [
+   "src/vs/base/common/uri.ts:366 paths.win32.join(uriToFsPath(uri, true), ...pathFragment)",
+   "src/vs/base/common/uri.ts:368 paths.posix.join(uri.path, ...pathFragment)",
+   "src/vs/base/common/network.ts:201 paths.posix.join(serverBasePath ?? '/', getServerProductSegment(produc",
+   "src/vs/base/common/network.ts:209 paths.posix.join(this._serverRootPath, Schemas.vscodeRemoteResource)",
+   "src/vs/base/common/resources.ts:194 paths.posix.basename(resource.path, suffix)"
+  ],
+  "ns.a.f() | a is a constant holding an object literal | f is a property of an object or interface | f in the corpus | a declared in the imported file": [
+   "src/vs/base/browser/ui/actionbar/actionbar.ts:375 DOM.EventHelper.stop(e, true)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:205 dom.EventHelper.stop(e, true)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:228 dom.EventHelper.stop(e)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:238 dom.EventHelper.stop(e)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:249 dom.EventHelper.stop(e)"
+  ],
+  "ns.a.f() | a is a constant holding ArrayLiteralExpression | f is a method of an interface | f outside it | a declared in the imported file": [
+   "src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts:813 icons.allBreakpoints.map(b => `${ThemeIcon.asCSSSelector(b.regular)}`)",
+   "src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts:833 icons.allBreakpoints.map(b => ThemeIcon.asCSSSelector(b.disabled))",
+   "src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts:842 icons.allBreakpoints.map(b => ThemeIcon.asCSSSelector(b.unverified))"
+  ],
+  "ns.a.f() | a is a constant holding CallExpression | f is a method | f in the corpus | a declared in the imported file": [
+   "src/vs/workbench/contrib/chat/common/tools/languageModelToolsContribution.ts:42 extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<IRawToolC",
+   "src/vs/workbench/contrib/chat/common/tools/languageModelToolsContribution.ts:152 extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<IRawToolS",
+   "src/vs/workbench/contrib/chat/common/promptSyntax/chatPromptFilesContribution.ts:39 extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<IRawChatF",
+   "src/vs/workbench/contrib/chat/browser/chatParticipant.contribution.ts:85 extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<IRawChatP",
+   "src/vs/workbench/contrib/chat/common/plugins/agentPluginServiceImpl.ts:1018 extensionsRegistry.ExtensionsRegistry.registerExtensionPoint<IRawChatP"
+  ],
+  "ns.a.f() | a is a constant holding new X() | f is a getter | f in the corpus | a declared in the imported file": [
+   "src/vs/base/node/powershell.ts:139 pfs.Promises.readdir(powerShellInstallBaseDir)",
+   "src/vs/base/node/powershell.ts:212 pfs.Promises.readdir(msixAppDir)",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:316 pfs.Promises.rename(downloadPath, updatePackagePath, false /* no retry",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:388 pfs.Promises.readdir(cachePath)",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:424 pfs.Promises.writeFile(this.availableUpdate.updateFilePath, 'flag')"
+  ],
+  "ns.a.f() | a is a constant holding new X() | f is a method | f in the corpus | a declared in the imported file": [
+   "src/vs/base/node/processes.ts:71 pfs.Promises.exists(path)",
+   "src/vs/platform/externalTerminal/node/externalTerminalService.ts:301 pfs.Promises.exists('/etc/debian_version')",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:160 pfs.Promises.exists(updatingVersionPath)",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:165 pfs.Promises.exists(updatePackagePath)",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:281 pfs.Promises.exists(updatePackagePath)"
+  ],
+  "ns.a.f() | a is a constant holding new X() | f is a method of an interface | f in the corpus | a declared in the imported file": [
+   "src/vs/platform/jsonschemas/common/jsonContributionRegistry.ts:143 platform.Registry.add(Extensions.JSONContribution, jsonContributionReg",
+   "src/vs/platform/theme/common/colorUtils.ts:249 platform.Registry.add(Extensions.ColorContribution, colorRegistry)",
+   "src/vs/platform/theme/common/colorUtils.ts:370 platform.Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONCon",
+   "src/vs/platform/theme/common/iconRegistry.ts:303 platform.Registry.add(Extensions.IconContribution, iconRegistry)",
+   "src/vs/platform/theme/common/iconRegistry.ts:324 platform.Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONCon"
+  ],
+  "ns.a.f() | a is a constant holding new X() | f is a method of an interface | f outside it | a declared in the imported file": [
+   "src/vs/workbench/contrib/testing/browser/testingExplorerView.ts:624 icons.testingStatesToIcons.get(dominantState ?? TestResultState.Unset)",
+   "src/vs/workbench/contrib/testing/browser/testingExplorerView.ts:1599 icons.testingStatesToIcons.get(",
+   "src/vs/workbench/contrib/testing/browser/testResultsView/testResultsTree.ts:87 icons.testingStatesToIcons.get(",
+   "src/vs/workbench/contrib/testing/browser/testResultsView/testResultsTree.ts:174 icons.testingStatesToIcons.get(this.state)",
+   "src/vs/workbench/contrib/testing/browser/testResultsView/testResultsTree.ts:224 icons.testingStatesToIcons.get(TestResultState.Running)"
+  ],
+  "ns.a.f() | a is a constant holding new X() | f is a property of an object or interface | f in the corpus | a declared in the imported file": [
+   "src/vs/editor/standalone/common/monarch/monarchLexer.ts:412 languages.TokenizationRegistry.onDidChange((e) => {"
+  ],
+  "ns.a.f() | a is a function | f is a constant, no initializer | f in the corpus | a declared in the imported file": [
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:414 marked.marked.walkTokens(marked.marked.lexer(res.value), token => {",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:414 marked.marked.lexer(res.value)",
+   "src/vs/base/test/browser/markdownRenderer.test.ts:545 marked.marked.lexer(completeTable)",
+   "src/vs/base/test/browser/markdownRenderer.test.ts:552 marked.marked.lexer(incompleteTable)",
+   "src/vs/base/test/browser/markdownRenderer.test.ts:553 marked.marked.lexer(completeTable)"
+  ],
+  "ns.a.f() | a is a TypeScript namespace | f is a constant holding a function | f in the corpus | a declared in the imported file": [
+   "src/vs/workbench/contrib/testing/browser/codeCoverageDecorations.ts:760 coverUtils.labels.showingFilterFor(testItem.label)"
+  ],
+  "ns.a.f() | a is a TypeScript namespace | f is a constant holding Identifier | f in the corpus | a declared in the imported file": [
+   "src/vs/workbench/api/common/extHostTesting.ts:1277 Convert.TestTag.namespace(this.controllerId, tag.id)",
+   "src/vs/workbench/api/common/extHostTesting.ts:1330 Convert.TestTag.namespace(this.controllerId, _tag.id)"
+  ],
+  "ns.a.f() | a is a TypeScript namespace | f is a function | f in the corpus | a declared in the imported file": [
+   "src/vs/base/node/powershell.ts:93 pfs.SymlinkSupport.existsFile(this.exePath)",
+   "src/vs/base/node/powershell.ts:133 pfs.SymlinkSupport.existsDirectory(powerShellInstallBaseDir)",
+   "src/vs/base/node/powershell.ts:175 pfs.SymlinkSupport.existsFile(exePath)",
+   "src/vs/base/node/powershell.ts:202 pfs.SymlinkSupport.existsDirectory(msixAppDir)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:1349 languages.Command.is(part.command)"
+  ],
+  "ns.a.f() | a is an enum | f is a function | f in the corpus | a declared in the imported file": [
+   "src/vs/workbench/contrib/tasks/common/taskConfiguration.ts:922 Tasks.RevealKind.fromString(config.showOutput)",
+   "src/vs/workbench/contrib/tasks/common/taskConfiguration.ts:931 Tasks.RevealKind.fromString(presentation.reveal)",
+   "src/vs/workbench/contrib/tasks/common/taskConfiguration.ts:934 Tasks.RevealProblemKind.fromString(presentation.revealProblems)",
+   "src/vs/workbench/contrib/tasks/common/taskConfiguration.ts:940 Tasks.PanelKind.fromString(presentation.panel)",
+   "src/vs/workbench/contrib/tasks/common/taskConfiguration.ts:997 Tasks.ShellQuoting.from(value.quoting)"
+  ],
+  "ns.a.f() | a is unresolved | f is unresolved | f unresolved": [
+   "src/bootstrap-esm.ts:288 fs.promises.readFile(messagesFile)",
+   "src/bootstrap-esm.ts:295 fs.promises.writeFile(nlsConfig.languagePack.corruptMarkerFile, 'corru",
+   "src/bootstrap-esm.ts:304 fs.promises.readFile(nlsConfig.defaultMessagesFile)",
+   "src/vs/base/node/pfs.ts:65 fs.promises.rename(path, moveToPath)",
+   "src/vs/base/node/pfs.ts:84 fs.promises.rm(path, { recursive: true, force: true, maxRetries: 3 })"
+  ],
+  "x.m() with x: ns.T | x is a local | T is a class | m is a getter | m in the corpus": [
+   "src/vs/workbench/contrib/extensions/test/electron-browser/extensionsActions.test.ts:414 testObject.onDidChange(() => {",
+   "src/vs/workbench/contrib/extensions/test/electron-browser/extensionsActions.test.ts:437 testObject.onDidChange(() => {",
+   "src/vs/workbench/contrib/extensions/test/electron-browser/extensionsActions.test.ts:445 testObject.onDidChange(() => {",
+   "src/vs/workbench/contrib/extensions/test/electron-browser/extensionsActions.test.ts:1173 testObject.onDidChange(() => {"
+  ],
+  "x.m() with x: ns.T | x is a local | T is a class | m is a method | m in the corpus": [
+   "src/vs/base/test/common/collections.test.ts:61 setWithKey.add({ someProp: 'd' })",
+   "src/vs/base/test/common/collections.test.ts:63 setWithKey.has({ someProp: 'd' })",
+   "src/vs/base/test/common/collections.test.ts:67 setWithKey.has({ someProp: 'b' })",
+   "src/vs/base/test/common/collections.test.ts:68 setWithKey.delete({ someProp: 'b' })",
+   "src/vs/base/test/common/collections.test.ts:70 setWithKey.has({ someProp: 'b' })"
+  ],
+  "x.m() with x: ns.T | x is a local | T is a class | m is a property | m in the corpus": [
+   "src/vs/platform/markers/test/common/markerService.test.ts:116 service.onMarkerChanged(changedResources => {"
+  ],
+  "x.m() with x: ns.T | x is a local | T is an interface | m is a method of an interface | m in the corpus": [
+   "src/vs/editor/common/model/textModel.ts:120 factory.create(defaultEOL)"
+  ],
+  "x.m() with x: ns.T | x is a local | T is an interface | m is a property of an object or interface | m in the corpus": [
+   "src/vs/workbench/api/common/extHostChatSessions.ts:480 controller.refreshHandler(CancellationToken.None)"
+  ],
+  "x.m() with x: ns.T | x is a local | T is unresolved | m is unresolved | m unresolved": [
+   "src/vs/base/node/processes.ts:171 child.on('error', reject)",
+   "src/vs/base/node/processes.ts:172 child.on('exit', (code) => {",
+   "src/vs/server/node/remoteExtensionHostAgentServer.ts:530 localSocket.write(dataChunk.buffer)",
+   "src/vs/server/node/remoteExtensionHostAgentServer.ts:533 localSocket.on('end', () => remoteSocket.end())",
+   "src/vs/server/node/remoteExtensionHostAgentServer.ts:534 localSocket.on('close', () => remoteSocket.end())"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is a class | m is a method | m in the corpus": [
+   "src/vs/workbench/api/common/extHostDocumentData.ts:213 position.with(0, 0)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:651 value._allEntries()",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:657 value._allEntries()",
+   "src/vs/editor/browser/view/viewLayer.ts:278 e.hasChanged(EditorOption.layoutInfo)",
+   "src/vs/editor/browser/controller/mouseHandler.ts:212 e.hasChanged(EditorOption.layoutInfo)"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is a class | m is a property | m in the corpus": [
+   "src/vs/workbench/api/node/extHostTunnelService.ts:335 authority.makeConnection()"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is a type alias | m is a method of an interface | m in the corpus": [
+   "src/vs/workbench/contrib/chat/test/common/model/objectMutationLog.perf.test.ts:147 transform.equals(prev, curr)"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is a type alias | m is a method of an interface | m outside it": [
+   "src/vs/base/browser/markdownRenderer.ts:1044 tokens.slice(i)",
+   "src/vs/base/browser/markdownRenderer.ts:1059 tokens.slice(lastInterestingIdx + 1)",
+   "src/vs/base/browser/markdownRenderer.ts:1088 tokens.slice(0, i)",
+   "src/vs/base/browser/markdownRenderer.ts:1095 tokens.at(-1)",
+   "src/vs/workbench/api/common/extHost.api.impl.ts:322 selector.forEach(perform)"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is an interface | m is a method of an interface | m in the corpus": [
+   "src/vs/editor/common/model/textModel.ts:104 snapshot.read()",
+   "src/vs/editor/common/cursor/cursor.ts:967 command.getEditOperations(ctx.model, editOperationBuilder)",
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:1541 widget.getPosition()",
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:1544 widget.getId()",
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:1545 widget.getId()"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is an interface | m is a property of an object or interface | m in the corpus": [
+   "src/vs/workbench/api/common/extHostAuthentication.ts:146 provider.onDidChangeSessions(e => this._proxy.$sendDidChangeSessions(i",
+   "src/vs/workbench/api/common/extHostLanguageModels.ts:156 provider.onDidChangeLanguageModelChatInformation(() => {",
+   "src/vs/workbench/api/common/extHostChatSessions.ts:475 provider.onDidChangeChatSessionItems(() => {",
+   "src/vs/workbench/api/common/extHostChatSessions.ts:485 provider.onDidCommitChatSessionItem((e) => {",
+   "src/vs/workbench/api/common/extHostChatSessions.ts:624 provider.onDidChangeChatSessionOptions(evt => {"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is unresolved | m is unresolved | m unresolved": [
+   "src/vs/base/node/ports.ts:203 socket.removeAllListeners('connect')",
+   "src/vs/base/node/ports.ts:204 socket.removeAllListeners('error')",
+   "src/vs/base/node/ports.ts:205 socket.end()",
+   "src/vs/base/node/ports.ts:206 socket.destroy()",
+   "src/vs/base/node/ports.ts:207 socket.unref()"
+  ],
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is a class | m is a method | m in the corpus": [
+   "src/vs/workbench/api/browser/mainThreadLanguageFeatures.ts:1535 this.providerId.toString()"
+  ],
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is a constant holding CallExpression | m is a method of an interface | m in the corpus": [
+   "src/vs/editor/contrib/gotoSymbol/browser/peek/referencesWidget.ts:280 this._peekViewService.addExclusiveWidget(editor, this)",
+   "src/vs/workbench/contrib/callHierarchy/browser/callHierarchyPeek.ts:97 this._peekViewService.addExclusiveWidget(editor, this)",
+   "src/vs/workbench/contrib/typeHierarchy/browser/typeHierarchyPeek.ts:98 this._peekViewService.addExclusiveWidget(editor, this)"
+  ],
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is a type alias | m is a method of an interface | m in the corpus": [
+   "src/vs/workbench/contrib/chat/test/common/model/objectMutationLog.perf.test.ts:100 this._transform.extract(current)",
+   "src/vs/workbench/contrib/chat/test/common/model/objectMutationLog.perf.test.ts:108 this._transform.extract(current)"
+  ],
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is an interface | m is a method | m in the corpus": [
+   "src/vs/workbench/api/common/extHostDebugService.ts:1271 this.implementation.dispose()"
+  ],
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is an interface | m is a method of an interface | m in the corpus": [
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:2456 this._editor.hasModel()",
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:2462 this._editor.getModel()",
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:2466 this._editor.hasModel()",
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:2469 this._editor.getModel()",
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:2495 this._editor.changeDecorations((accessor) => {"
+  ],
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is an interface | m is a property of an object or interface | m in the corpus": [
+   "src/vs/editor/browser/widget/codeEditor/codeEditorWidget.ts:2447 this._editor.onDidChangeModelDecorations((e) => {",
+   "src/vs/workbench/contrib/comments/browser/commentReply.ts:260 this._commentThread.onDidChangeInput(input => {",
+   "src/vs/workbench/contrib/comments/browser/commentThreadHeader.ts:76 this._commentThread.onDidChangeComments(() => {",
+   "src/vs/workbench/contrib/comments/browser/commentThreadWidget.ts:264 this._commentThread.onDidChangeCanReply(() => {",
+   "src/vs/workbench/contrib/comments/browser/commentThreadWidget.ts:274 this._commentThread.onDidChangeComments(async _ => {"
+  ],
+  "x.m() with x: ns.T | x is this.f, a constructor parameter property | T is unresolved | m is unresolved | m unresolved": [
+   "src/vs/editor/common/model/tokens/treeSitter/treeSitterTree.ts:53 this._parser.delete()",
+   "src/vs/editor/common/model/tokens/treeSitter/treeSitterTree.ts:315 this._parser.reset()",
+   "src/vs/editor/common/model/tokens/treeSitter/treeSitterTree.ts:339 this._parser.parse((index: number, position?: TreeSitter.Point) => thi",
+   "src/vs/editor/common/model/tokens/treeSitter/treeSitterTokenizationImpl.ts:501 this._highlightingQueries.captures(tree.rootNode, { startPosition: { r",
+   "src/vs/platform/browserView/node/playwrightTab.ts:71 this.page.consoleMessages()"
+  ],
+  "x.m() with x: ns.T | x is this.f, a field | T is a class | m is a method | m in the corpus": [
+   "src/vs/editor/common/model/textModel.ts:706 this._options.equals(newOpts)",
+   "src/vs/editor/common/model/textModel.ts:710 this._options.createChangeEvent(newOpts)",
+   "src/vs/base/browser/ui/scrollbar/scrollbarArrow.ts:95 this._pointerdownRepeatTimer.cancelAndSet(() => this._onActivate(), 10",
+   "src/vs/base/browser/ui/scrollbar/scrollbarArrow.ts:99 this._pointerdownRepeatTimer.cancel()",
+   "src/vs/base/browser/ui/scrollbar/scrollbarArrow.ts:108 this._pointerdownRepeatTimer.cancel()"
+  ],
+  "x.m() with x: ns.T | x is this.f, a field | T is an interface | m is a method | m in the corpus": [
+   "src/vs/workbench/contrib/search/browser/patternInputWidget.ts:71 this.inputFocusTracker?.dispose()"
+  ],
+  "x.m() with x: ns.T | x is this.f, a field | T is an interface | m is a method of an interface | m in the corpus": [
+   "src/vs/editor/common/model/textModel.ts:149 this._source.read()",
+   "src/vs/editor/common/model/textModel.ts:332 this._buffer.getLineCount()",
+   "src/vs/editor/common/model/textModel.ts:333 this._buffer.getValueLengthInRange(new Range(1, 1, bufferLineCount, th",
+   "src/vs/editor/common/model/textModel.ts:333 this._buffer.getLineLength(bufferLineCount)",
+   "src/vs/editor/common/model/textModel.ts:459 this._buffer.equals(other)"
+  ],
+  "x.m() with x: ns.T | x is this.f, a field | T is an interface | m is a property of an object or interface | m in the corpus": [
+   "src/vs/workbench/contrib/notebook/common/model/notebookCellTextModel.ts:122 this._textBuffer.onDidChangeContent(() => {",
+   "src/vs/base/browser/ui/actionbar/actionbar.ts:212 this.focusTracker.onDidBlur(() => {",
+   "src/vs/base/browser/ui/actionbar/actionbar.ts:221 this.focusTracker.onDidFocus(() => this.updateFocusedItem())",
+   "src/vs/editor/browser/view.ts:954 this._domFocusTracker.onDidFocus(() => {",
+   "src/vs/editor/browser/view.ts:958 this._domFocusTracker.onDidBlur(() => {"
+  ],
+  "x.m() with x: ns.T | x is this.f, a field | T is unresolved | m is unresolved | m unresolved": [
+   "src/vs/platform/tunnel/node/tunnelService.ts:62 this._server.on('listening', this._listeningListener)",
+   "src/vs/platform/tunnel/node/tunnelService.ts:65 this._server.on('connection', this._connectionListener)",
+   "src/vs/platform/tunnel/node/tunnelService.ts:69 this._server.on('error', this._errorListener)",
+   "src/vs/platform/tunnel/node/tunnelService.ts:77 this._server.removeListener('listening', this._listeningListener)",
+   "src/vs/platform/tunnel/node/tunnelService.ts:78 this._server.removeListener('connection', this._connectionListener)"
+  ]
+ }
+}

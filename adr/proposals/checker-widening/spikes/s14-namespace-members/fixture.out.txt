@@ -1,0 +1,5 @@
+symbol|class|Kit
+symbol|method|Kit.make
+symbol|method|Kit.run
+symbol|interface|Shape
+edge|construction|Kit.make|Kit

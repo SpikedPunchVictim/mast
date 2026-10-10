@@ -1,0 +1,125 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref",
+ "workspace_src": true,
+ "programs": [
+  {
+   "tsconfig": "packages/cli/tsconfig.json",
+   "corpus_files_first_seen_here": 5304
+  },
+  {
+   "tsconfig": "packages/@n8n/db/tsconfig.json",
+   "corpus_files_first_seen_here": 363
+  },
+  {
+   "tsconfig": "packages/core/tsconfig.json",
+   "corpus_files_first_seen_here": 109
+  },
+  {
+   "tsconfig": "packages/@n8n/decorators/tsconfig.json",
+   "corpus_files_first_seen_here": 29
+  },
+  {
+   "tsconfig": "packages/@n8n/api-types/tsconfig.json",
+   "corpus_files_first_seen_here": 118
+  },
+  {
+   "tsconfig": "packages/@n8n/config/tsconfig.json",
+   "corpus_files_first_seen_here": 13
+  }
+ ],
+ "corpus_files_read": 5936,
+ "counts": {
+  "ns.a.f() | a is a class | f is a static method | f outside it": 9,
+  "ns.a.f() | a is a constant, no initializer | f is a method | f outside it": 12,
+  "ns.a.f() | a is a constant, no initializer | f is a property of an object or interface | f outside it": 65,
+  "ns.a.f() | a is a function | f is a method of an interface | f outside it | a declared in the imported file": 3,
+  "ns.a.f() | a is a TypeScript namespace | f is a function | f outside it": 6,
+  "x.m() with x: ns.T | x is a local | T is a class | m is a method | m in the corpus": 1,
+  "x.m() with x: ns.T | x is a local | T is a class | m is a method | m outside it": 22,
+  "x.m() with x: ns.T | x is a local | T is a type alias | m is a method | m outside it": 2,
+  "x.m() with x: ns.T | x is a parameter | T is a class | m is a method | m outside it": 4,
+  "x.m() with x: ns.T | x is a parameter | T is a constant, no initializer | m is a method of an interface | m outside it": 1,
+  "x.m() with x: ns.T | x is a parameter | T is a type alias | m is a method | m outside it": 5,
+  "x.m() with x: ns.T | x is a parameter | T is an interface | m is a property of an object or interface | m outside it": 6,
+  "x.m() with x: ns.T | x is this.f, a field | T is a class | m is a method | m outside it": 27
+ },
+ "samples": {
+  "ns.a.f() | a is a class | f is a static method | f outside it": [
+   "packages/cli/src/mfa/totp.service.ts:20 OTPAuth.Secret.fromBase32(secret)",
+   "packages/cli/src/mfa/totp.service.ts:32 OTPAuth.Secret.fromBase32(secret)",
+   "packages/cli/src/mfa/totp.service.ts:39 OTPAuth.TOTP.generate({",
+   "packages/cli/src/mfa/totp.service.ts:40 OTPAuth.Secret.fromBase32(secret)",
+   "packages/@n8n/ai-utilities/src/converters/message.ts:192 LangchainMessages.ToolMessage.isInstance(msg)"
+  ],
+  "ns.a.f() | a is a constant, no initializer | f is a method | f outside it": [
+   "packages/cli/src/metrics/prometheus/prometheus.service.ts:111 promClient.register.metrics()",
+   "packages/cli/src/expression-observability/expression-observability.provider.ts:89 promClient.register.getSingleMetric(promName)",
+   "packages/cli/src/expression-observability/__tests__/expression-observability.provider.test.ts:35 promClient.register.clear()",
+   "packages/cli/src/expression-observability/__tests__/expression-observability.provider.test.ts:64 promClient.register.metrics()",
+   "packages/cli/src/expression-observability/__tests__/expression-observability.provider.test.ts:78 promClient.register.getSingleMetric('n8n_expression_pool_acquired_tota"
+  ],
+  "ns.a.f() | a is a constant, no initializer | f is a property of an object or interface | f outside it": [
+   "packages/@n8n/config/src/configs/database.config.ts:92 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:119 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:202 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:214 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:226 z.coerce.number()"
+  ],
+  "ns.a.f() | a is a function | f is a method of an interface | f outside it | a declared in the imported file": [
+   "packages/cli/src/scaling/job-processor.ts:195 WorkflowExecuteAdditionalData.sendDataToUI.bind({",
+   "packages/cli/src/workflow-runner.ts:407 WorkflowExecuteAdditionalData.setExecutionStatus.bind({",
+   "packages/cli/src/workflow-runner.ts:411 WorkflowExecuteAdditionalData.sendDataToUI.bind({"
+  ],
+  "ns.a.f() | a is a TypeScript namespace | f is a function | f outside it": [
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4242 fs.promises.readFile(jsonPath, 'utf-8')",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4372 fs.promises.writeFile(f.path, f.content)",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4474 fs.promises.mkdir(d, { recursive: true })",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4531 fs.promises.rm(packageDir, { recursive: true, force: true })",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4539 fs.promises.writeFile(path.join(outputDir, 'index.ts'), indexContent)"
+  ],
+  "x.m() with x: ns.T | x is a local | T is a class | m is a method | m in the corpus": [
+   "packages/cli/src/__tests__/workflow-runner.test.ts:107 hooks.addHandler('workflowExecuteAfter', watcher.workflowExecuteAfter)"
+  ],
+  "x.m() with x: ns.T | x is a local | T is a class | m is a method | m outside it": [
+   "packages/workflow/src/schemas.ts:123 IDataObjectSchema.optional()",
+   "packages/workflow/src/schemas.ts:124 IDataObjectSchema.optional()",
+   "packages/workflow/src/schemas.ts:275 IN8nRequestOperationsSchema.optional()",
+   "packages/workflow/src/schemas.ts:276 INodeRequestOutputSchema.optional()",
+   "packages/workflow/src/schemas.ts:277 HttpRequestOptionsSchema.optional()"
+  ],
+  "x.m() with x: ns.T | x is a local | T is a type alias | m is a method | m outside it": [
+   "packages/workflow/src/from-ai-parse-utils.ts:100 schema.describe(`${schema.description ?? ''} ${placeholder.description",
+   "packages/workflow/src/from-ai-parse-utils.ts:104 schema.default(placeholder.defaultValue)"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is a class | m is a method | m outside it": [
+   "packages/@n8n/instance-ai/src/stream/map-chunk.ts:231 schema.safeParse(item)",
+   "packages/@n8n/instance-ai/src/stream/map-chunk.ts:239 schema.safeParse(value)",
+   "packages/cli/src/utils/compression.util.ts:218 zip.add(zipStream)",
+   "packages/cli/src/modules/dynamic-credentials.ee/credential-resolvers/identifiers/oauth2-metadata-http-client.ts:92 schema.parse(response.body)"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is a constant, no initializer | m is a method of an interface | m outside it": [
+   "packages/@n8n/telemetry/src/validate.ts:64 schema.unwrap()"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is a type alias | m is a method | m outside it": [
+   "packages/@n8n/api-types/src/agents/sanitize-agent-json-config.ts:126 schema.unwrap()",
+   "packages/@n8n/api-types/src/agents/sanitize-agent-json-config.ts:130 schema.unwrap()",
+   "packages/@n8n/api-types/src/agents/sanitize-agent-json-config.ts:134 schema.removeDefault()",
+   "packages/@n8n/api-types/src/agents/sanitize-agent-json-config.ts:138 schema.innerType()",
+   "packages/@n8n/instance-ai/src/agent/sanitize-mcp-schemas.ts:340 t.unwrap()"
+  ],
+  "x.m() with x: ns.T | x is a parameter | T is an interface | m is a property of an object or interface | m outside it": [
+   "packages/@n8n/api-types/src/agents/inline-agent-config.schema.ts:90 ctx.addIssue({",
+   "packages/@n8n/api-types/src/agents/inline-agent-config.schema.ts:100 ctx.addIssue({",
+   "packages/cli/src/modules/agents/integrations/integration-tool-schema.ts:164 ctx.addIssue({",
+   "packages/cli/src/modules/agents/integrations/integration-tool-schema.ts:189 ctx.addIssue({",
+   "packages/cli/src/modules/n8n-packages/spec/requirements.schema.ts:62 ctx.addIssue({"
+  ],
+  "x.m() with x: ns.T | x is this.f, a field | T is a class | m is a method | m outside it": [
+   "packages/cli/src/metrics/prometheus/webhook-and-form-metrics.service.ts:56 this.webhookHistogram?.observe(",
+   "packages/cli/src/metrics/prometheus/webhook-and-form-metrics.service.ts:76 this.formHistogram?.observe(",
+   "packages/cli/src/modules/log-streaming.ee/destinations/message-event-bus-destination-sentry.ee.ts:76 this.sentryClient.captureMessage(",
+   "packages/cli/src/modules/log-streaming.ee/destinations/message-event-bus-destination-sentry.ee.ts:125 this.sentryClient?.close()",
+   "packages/cli/src/controllers/e2e.controller.ts:422 this.coverageSession.connect()"
+  ]
+ }
+}

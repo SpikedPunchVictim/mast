@@ -151,3 +151,11 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `shapes-compare.out.txt` | `compare` of the shapes baseline of `85eb507` with the one committed |
 | `repair-fan-out.mjs`, `lib.mjs`, `repair-fan-out.out.txt` | The reviewer's script: 30 importers of a namespace whose module is missing, resolved, or a plain import, and how many are resolved again after an unrelated rename. As written, with this session's paths in `lib.mjs` (`MAST_DIST` overrides the build) |
 
+## s14 — `ns.a.f()` and receivers typed `ns.T` (`spikes/s14-namespace-members/`)
+
+| File | What it is |
+|---|---|
+| `members.mjs <corpus> <out.json> [--workspace-src] <tsconfig>...` | Every `ns.a.f()` by what `a` and `f` are, and every method call on a parameter, local or `this.f` whose written type is `ns.T`, by what `T` and the callee are. Sites, not pairs. Builds programs, reads no index |
+| `vscode.json`, `n8n.json` | vscode `src/tsconfig.json`; n8n over the six projects of s9, `--workspace-src` |
+| `fixture/`, `fixture.out.txt` | A module with a TypeScript namespace, a class and an interface, called through `import * as lib`: the symbol rows and call edges the build of `2dfc454` stores |
+
