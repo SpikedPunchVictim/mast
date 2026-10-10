@@ -547,7 +547,7 @@ describe('mast_callers', () => {
     };
     expect(res.summary).toEqual({
       verified_count: 1,
-      potential_count: 2,
+      potential_count: 1,
       transitive: false,
       checker_classified_non_call_site: 0,
       checker_classified_different_declaration: 0,
@@ -555,9 +555,9 @@ describe('mast_callers', () => {
     expect(res.verified_callers).toEqual([
       { file_path: 'calc.ts', line: 4, caller_symbol: 'double', context: 'return add(n, n);', resolution: 'import' },
     ]);
+    // `double` in calc.ts is the verified caller and is not listed again (D156).
     expect(res.potential_matches).toEqual([
       { file_path: 'math.ts', line: 1, context: 'add', reason: 'identifier_match_no_resolved_edge' },
-      { file_path: 'calc.ts', line: 3, context: 'double', reason: 'identifier_match_no_resolved_edge' },
     ]);
   });
 
@@ -832,12 +832,12 @@ describe('mast_rename_impact', () => {
     const res = await call('mast_rename_impact', { symbol: 'add' }) as RenameImpactResult;
     // The declaration chunk itself mentions `add` without a resolved edge —
     // on a rename it genuinely needs editing, so it belongs in the checklist.
-    // Same two matches mast_callers finds for `add` (see the "returns summary
+    // The same match mast_callers finds for `add` (see the "returns summary
     // with verified and potential counts" test above) — both tools share
-    // `collectPotentialMatches`.
+    // `collectPotentialMatches`. `double` in calc.ts is a verified caller and
+    // is not listed a second time (D156).
     expect(res.potential_matches).toEqual([
       { file_path: 'math.ts', line: 1, context: 'add', reason: 'identifier_match_no_resolved_edge' },
-      { file_path: 'calc.ts', line: 3, context: 'double', reason: 'identifier_match_no_resolved_edge' },
     ]);
     expect(res.summary.potential_count).toBe(res.potential_matches.length);
   });
@@ -1035,6 +1035,47 @@ describe('mast_efficiency', () => {
 // above): forcing staleness mutates on-disk mtimes and DB rows, which would
 // leak into the other describe blocks' line-number assertions.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// D156 — a caller reached through another caller covers nothing. Its chunk may
+// mention the name without a verified call of it, and that mention is still a
+// site to review.
+// ---------------------------------------------------------------------------
+
+describe('mast_callers — a transitive caller that mentions the name (D156)', () => {
+  let dir: string;
+  let db: ReturnType<typeof openDatabase>;
+  let callTool: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+
+  beforeAll(async () => {
+    dir = mkdtempSync(join(tmpdir(), 'mast-transitive-mention-'));
+    writeFileSync(join(dir, 'leaf.ts'), `export function leaf(): number { return 1; }\n`);
+    writeFileSync(join(dir, 'mid.ts'), `import { leaf } from './leaf';\nexport function mid(): number {\n  return leaf();\n}\n`);
+    // `outer` calls `mid` and holds `leaf` as a value: a caller of `leaf` only through `mid`.
+    writeFileSync(join(dir, 'outer.ts'), `import { leaf } from './leaf';\nimport { mid } from './mid';\nexport function outer(): unknown {\n  return [mid(), leaf];\n}\n`);
+    const config = resolveConfig({ projectRoot: dir });
+    await runIndex(config, { incremental: false });
+    db = openDatabase(config.resolved_state_dir);
+    const mock = createMockServer();
+    registerCallersTool(mock.server, { db, chunkStore: new SqliteChunkStore(db), config, sessionId: 'transitive-mention' });
+    callTool = mock.call;
+  });
+
+  afterAll(async () => {
+    await db.destroy();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('keeps it as a potential match when callers are followed', async () => {
+    const res = await callTool('mast_callers', { symbol: 'leaf', transitive: true }) as {
+      verified_callers: { caller_symbol: string }[];
+      potential_matches: { file_path: string; context: string }[];
+    };
+
+    expect(res.verified_callers.map((c) => c.caller_symbol).sort()).toEqual(['mid', 'outer']);
+    expect(res.potential_matches.filter((m) => m.file_path === 'outer.ts').map((m) => m.context)).toEqual(['outer']);
+  });
+});
 
 describe('F2 — file_busy_returning_stale_cache', () => {
   let busyTmpDir: string;

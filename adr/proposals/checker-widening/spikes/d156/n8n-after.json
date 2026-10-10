@@ -1,0 +1,1240 @@
+{
+ "state_dir": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/ns/n8n-state",
+ "symbols_with_a_duplicate": 11,
+ "totals": {
+  "symbols_asked": 200,
+  "verified": 6775,
+  "potential": 2189,
+  "potential_truncated_symbols": 44,
+  "potential_covered_by_a_verified_call": 16,
+  "covered_no_other_mention": 9,
+  "covered_only_further_calls": 1,
+  "covered_a_mention_that_is_not_a_call": 6,
+  "potential_not_covered_same_file_and_symbol_as_a_verified_caller": 101
+ },
+ "samples": {
+  "covered_only_further_calls": [
+   "createRunExecutionData: packages/core/src/execution-engine/workflow-execute.ts:115 private runExecutionData: IRunExecutionData = createRunExecutionData(),"
+  ],
+  "covered_a_mention_that_is_not_a_call": [
+   "ProjectScope: packages/cli/src/evaluation.ee/evaluation-collections.controller.ee.ts:40 * flag-off rather than 500ing. Runs after `@ProjectScope` so a user without",
+   "getBase: packages/cli/src/scaling/job-processor.ts:96 additionalData: ReturnType<typeof WorkflowExecuteAdditionalData.getBase> extends Promise<",
+   "userHasScopes: packages/cli/src/evaluation.ee/evaluation-dataset.service.ts:75 * the resolved data table's project explicitly. `userHasScopes` throws",
+   "patchThread: packages/@n8n/instance-ai/src/storage/planned-task-storage.ts:48 * Atomically read-modify-write the graph inside a single patchThread call.",
+   "getCurrentAuthenticationMethod: packages/cli/src/controllers/auth.controller.ts:59 getCurrentAuthenticationMethod: AuthProviderType,",
+   "loadAi: packages/@n8n/agents/src/runtime/loop/stream-sink.ts:68 experimental_transform?: ReturnType<ReturnType<typeof loadAi>['smoothStream']>;"
+  ],
+  "not_covered_same_symbol": [
+   "hasGlobalScope: packages/cli/src/modules/mcp/tools/workflow-builder/update-workflow.tool.ts:868 createUpdateWorkflowTool",
+   "hasGlobalScope: packages/cli/src/modules/mcp/tools/workflow-builder/update-workflow.tool.ts:958 createUpdateWorkflowTool",
+   "deepCopy: packages/frontend/editor-ui/src/app/composables/useCanvasOperations.ts:3289 useCanvasOperations",
+   "deepCopy: packages/frontend/editor-ui/src/features/ai/assistant/composables/useAIAssistantHelpers.ts:585 useAIAssistantHelpers",
+   "deepCopy: packages/frontend/editor-ui/src/features/ai/assistant/composables/useAIAssistantHelpers.ts:495 useAIAssistantHelpers",
+   "deepCopy: packages/@n8n/workflow-sdk/src/workflow-builder/workflow-import.ts:132 parseWorkflowJSON",
+   "deepCopy: packages/@n8n/workflow-sdk/src/workflow-builder/plugins/serializers/json-serializer.ts:131 serializeNode",
+   "createRunExecutionData: packages/frontend/editor-ui/src/app/composables/useRunWorkflow.ts:340 useRunWorkflow"
+  ]
+ },
+ "per_symbol": [
+  {
+   "name": "PrimaryGeneratedColumn",
+   "verified": 829,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "makeRestApiRequest",
+   "verified": 388,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "PrimaryColumn",
+   "verified": 374,
+   "potential": 20,
+   "covered": 0
+  },
+  {
+   "name": "ManyToOne",
+   "verified": 276,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "JoinColumn",
+   "verified": 193,
+   "potential": 30,
+   "covered": 0
+  },
+  {
+   "name": "GlobalScope",
+   "verified": 181,
+   "potential": 18,
+   "covered": 0
+  },
+  {
+   "name": "OneToMany",
+   "verified": 177,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "ManyToMany",
+   "verified": 168,
+   "potential": 19,
+   "covered": 0
+  },
+  {
+   "name": "Param",
+   "verified": 150,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "OneToOne",
+   "verified": 134,
+   "potential": 16,
+   "covered": 0
+  },
+  {
+   "name": "ProjectScope",
+   "verified": 132,
+   "potential": 15,
+   "covered": 1
+  },
+  {
+   "name": "JoinTable",
+   "verified": 113,
+   "potential": 27,
+   "covered": 0
+  },
+  {
+   "name": "Env",
+   "verified": 112,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "RestController",
+   "verified": 106,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "Index",
+   "verified": 104,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "hasGlobalScope",
+   "verified": 79,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "deepCopy",
+   "verified": 75,
+   "potential": 14,
+   "covered": 0
+  },
+  {
+   "name": "injectWorkflowDocumentStore",
+   "verified": 72,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "getConnectionHintNoticeField",
+   "verified": 61,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "Licensed",
+   "verified": 55,
+   "potential": 23,
+   "covered": 0
+  },
+  {
+   "name": "useToast",
+   "verified": 53,
+   "potential": 14,
+   "covered": 0
+  },
+  {
+   "name": "getMetadataArgsStorage",
+   "verified": 48,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "logWrapper",
+   "verified": 47,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "Redactable",
+   "verified": 46,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "getActiveCredentialType",
+   "verified": 43,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getHost",
+   "verified": 43,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "OnShutdown",
+   "verified": 41,
+   "potential": 26,
+   "covered": 1
+  },
+  {
+   "name": "createRunExecutionData",
+   "verified": 40,
+   "potential": 10,
+   "covered": 1
+  },
+  {
+   "name": "OnPubSubEvent",
+   "verified": 38,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "useWorkflowDocumentStore",
+   "verified": 38,
+   "potential": 22,
+   "covered": 0
+  },
+  {
+   "name": "getBase",
+   "verified": 35,
+   "potential": 6,
+   "covered": 1
+  },
+  {
+   "name": "IsNull",
+   "verified": 34,
+   "potential": 19,
+   "covered": 0
+  },
+  {
+   "name": "JsonColumn",
+   "verified": 34,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "generatePairedItemData",
+   "verified": 34,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "useWorkflowExecutionStateStore",
+   "verified": 33,
+   "potential": 25,
+   "covered": 0
+  },
+  {
+   "name": "BackendModule",
+   "verified": 32,
+   "potential": 39,
+   "covered": 0
+  },
+  {
+   "name": "UpdateDateColumn",
+   "verified": 32,
+   "potential": 13,
+   "covered": 0
+  },
+  {
+   "name": "userHasScopes",
+   "verified": 32,
+   "potential": 9,
+   "covered": 1
+  },
+  {
+   "name": "BreakingChangeRule",
+   "verified": 31,
+   "potential": 20,
+   "covered": 0
+  },
+  {
+   "name": "TableInheritance",
+   "verified": 31,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "Tree",
+   "verified": 31,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "TreeChildren",
+   "verified": 31,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "TreeParent",
+   "verified": 31,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "withTransaction",
+   "verified": 31,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "DateTimeColumn",
+   "verified": 30,
+   "potential": 12,
+   "covered": 0
+  },
+  {
+   "name": "assertValidTodoistId",
+   "verified": 29,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "CreateDateColumn",
+   "verified": 28,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "createConnectedTool",
+   "verified": 28,
+   "potential": 28,
+   "covered": 0
+  },
+  {
+   "name": "validateNodeParameters",
+   "verified": 28,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "makeN8nLlmFailedAttemptHandler",
+   "verified": 26,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "formatPemBlock",
+   "verified": 25,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "Unique",
+   "verified": 24,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "jsonStringify",
+   "verified": 24,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "mapConnectionsByDestination",
+   "verified": 24,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "useNDVStore",
+   "verified": 24,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "EventSubscriber",
+   "verified": 22,
+   "potential": 16,
+   "covered": 0
+  },
+  {
+   "name": "OnLeaderTakeover",
+   "verified": 22,
+   "potential": 21,
+   "covered": 2
+  },
+  {
+   "name": "createResultOk",
+   "verified": 22,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "createWorkflowDocumentId",
+   "verified": 22,
+   "potential": 34,
+   "covered": 0
+  },
+  {
+   "name": "DeleteDateColumn",
+   "verified": 21,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "Generated",
+   "verified": 21,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "OnLeaderStepdown",
+   "verified": 21,
+   "potential": 23,
+   "covered": 1
+  },
+  {
+   "name": "assertParamIsString",
+   "verified": 21,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "createErrorResponse",
+   "verified": 21,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "createProgressReporter",
+   "verified": 21,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "createResultError",
+   "verified": 21,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "createSuccessResponse",
+   "verified": 21,
+   "potential": 12,
+   "covered": 0
+  },
+  {
+   "name": "getProxyAgent",
+   "verified": 21,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "orchestratorAgentId",
+   "verified": 21,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "resolveCustomFieldsV2",
+   "verified": 20,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "extractResourceLocatorValue",
+   "verified": 19,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "sendErrorResponse",
+   "verified": 19,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "isResourceLocatorValue",
+   "verified": 18,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "toTableName",
+   "verified": 18,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "getNestedRecord",
+   "verified": 17,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "isNodeChain",
+   "verified": 17,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "RelationId",
+   "verified": 16,
+   "potential": 28,
+   "covered": 0
+  },
+  {
+   "name": "ViewColumn",
+   "verified": 16,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "ViewEntity",
+   "verified": 16,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "dbNowLiteral",
+   "verified": 16,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "getTracingConfig",
+   "verified": 16,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "isSafeObjectKey",
+   "verified": 16,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "randomString",
+   "verified": 16,
+   "potential": 15,
+   "covered": 0
+  },
+  {
+   "name": "stampItemIndexOnError",
+   "verified": 16,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "unsupportedQuery",
+   "verified": 16,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "useCanvasOperations",
+   "verified": 16,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "useNodeHelpers",
+   "verified": 16,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "createCompletionOption",
+   "verified": 15,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "createToolRegistry",
+   "verified": 15,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "getConnectedTools",
+   "verified": 15,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getResolvables",
+   "verified": 15,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getWorkflowState",
+   "verified": 15,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "injectWorkflowExecutionStateStore",
+   "verified": 15,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "isSafeObjectProperty",
+   "verified": 15,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "patchThread",
+   "verified": 15,
+   "potential": 27,
+   "covered": 1
+  },
+  {
+   "name": "scrubSecretsInText",
+   "verified": 15,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "validatePathSegment",
+   "verified": 15,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "VersionColumn",
+   "verified": 14,
+   "potential": 13,
+   "covered": 0
+  },
+  {
+   "name": "buildHttpProviderErrorContext",
+   "verified": 14,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "createEmptyRunExecutionData",
+   "verified": 14,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getCurrentAuthenticationMethod",
+   "verified": 14,
+   "potential": 9,
+   "covered": 1
+  },
+  {
+   "name": "getResourcePermissions",
+   "verified": 14,
+   "potential": 15,
+   "covered": 0
+  },
+  {
+   "name": "quoteSqlIdentifier",
+   "verified": 14,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "removeUndefinedValues",
+   "verified": 14,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "validateAirtopApiResponse",
+   "verified": 14,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "getAwsCredentials",
+   "verified": 13,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "getMcpWorkflow",
+   "verified": 13,
+   "potential": 13,
+   "covered": 0
+  },
+  {
+   "name": "isInputTarget",
+   "verified": 13,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "isUnconfiguredAgent",
+   "verified": 13,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "mergeMetadata",
+   "verified": 13,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "nodeNameToToolName",
+   "verified": 13,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "simplifyObjects",
+   "verified": 13,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "attachMetric",
+   "verified": 12,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "createRemediation",
+   "verified": 12,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "createVarRef",
+   "verified": 12,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "getDataTableProxyExecute",
+   "verified": 12,
+   "potential": 12,
+   "covered": 0
+  },
+  {
+   "name": "getFullApiResponse",
+   "verified": 12,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "getModel",
+   "verified": 12,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "integrationError",
+   "verified": 12,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "isHitlToolType",
+   "verified": 12,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "isNodeLog",
+   "verified": 12,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "markAgentDraftDirty",
+   "verified": 12,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "randomName",
+   "verified": 12,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "useMessage",
+   "verified": 12,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "validateFieldType",
+   "verified": 12,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "Credentials",
+   "verified": 11,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "WorkflowEntity",
+   "verified": 11,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "calculateWorkflowChecksum",
+   "verified": 11,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "diffAgentConfigParts",
+   "verified": 11,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "escapeString",
+   "verified": 11,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getRootDir",
+   "verified": 11,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "isObjectLiteral",
+   "verified": 11,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "logAiEvent",
+   "verified": 11,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "parseSchema",
+   "verified": 11,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "quoteIdentifier",
+   "verified": 11,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "raceWithAbort",
+   "verified": 11,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "reportProgress",
+   "verified": 11,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "LessThan",
+   "verified": 10,
+   "potential": 40,
+   "covered": 0
+  },
+  {
+   "name": "addFieldsToBody",
+   "verified": 10,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "applySections",
+   "verified": 10,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "assertCredentialAllowsUrl",
+   "verified": 10,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "createEvaluatorChain",
+   "verified": 10,
+   "potential": 19,
+   "covered": 0
+  },
+  {
+   "name": "createExecutionDataId",
+   "verified": 10,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "encodeCustomFieldsV2",
+   "verified": 10,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "generateComposite",
+   "verified": 10,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getBinaryDataFile",
+   "verified": 10,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "getOptionalOutputParser",
+   "verified": 10,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getPromptInputByType",
+   "verified": 10,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getThread",
+   "verified": 10,
+   "potential": 40,
+   "covered": 0
+  },
+  {
+   "name": "getWorkflowProjectDetailsSafe",
+   "verified": 10,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "hasPermission",
+   "verified": 10,
+   "potential": 29,
+   "covered": 0
+  },
+  {
+   "name": "incrementTokenCountFromUsage",
+   "verified": 10,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "issue",
+   "verified": 10,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "sourceControlFoldersExistCheck",
+   "verified": 10,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "useExecutionDataStore",
+   "verified": 10,
+   "potential": 12,
+   "covered": 0
+  },
+  {
+   "name": "useWorkflowHelpers",
+   "verified": 10,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "BeforeInsert",
+   "verified": 9,
+   "potential": 42,
+   "covered": 5
+  },
+  {
+   "name": "assertUserInput",
+   "verified": 9,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "calcSingleEvaluatorScore",
+   "verified": 9,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "caseDisplayPrompt",
+   "verified": 9,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "collectionsPath",
+   "verified": 9,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "createBuilderStreamingResponse",
+   "verified": 9,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "createUtmCampaignLink",
+   "verified": 9,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "decodeOutlookId",
+   "verified": 9,
+   "potential": 13,
+   "covered": 0
+  },
+  {
+   "name": "displayParameter",
+   "verified": 9,
+   "potential": 39,
+   "covered": 0
+  },
+  {
+   "name": "ensureRegistered",
+   "verified": 9,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "fixFieldType",
+   "verified": 9,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "getAgentConfigHash",
+   "verified": 9,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "getCommandHeader",
+   "verified": 9,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "getCurrentWorkflow",
+   "verified": 9,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getMainAuthField",
+   "verified": 9,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getMetadataFiltersValues",
+   "verified": 9,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "getNodeBaseName",
+   "verified": 9,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getNodeTypeForNode",
+   "verified": 9,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getPackagePrefix",
+   "verified": 9,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getProviderPrefix",
+   "verified": 9,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "getSendAndWaitConfig",
+   "verified": 9,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "getSourceFiles",
+   "verified": 9,
+   "potential": 33,
+   "covered": 0
+  },
+  {
+   "name": "invokeEvaluatorChain",
+   "verified": 9,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "isEventMessageOptionsWithType",
+   "verified": 9,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "loadAi",
+   "verified": 9,
+   "potential": 6,
+   "covered": 1
+  },
+  {
+   "name": "loadDaytona",
+   "verified": 9,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "parseToApiNodeOperationError",
+   "verified": 9,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "prepareInputItem",
+   "verified": 9,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "refreshWorkflowSourceFileBindingFromWorkflow",
+   "verified": 9,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "request",
+   "verified": 9,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "withCancelHandler",
+   "verified": 9,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "wrapLangChainParserError",
+   "verified": 9,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "InstanceBootstrappingError",
+   "verified": 8,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "OnLifecycleEvent",
+   "verified": 8,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "accumulateTokenUsage",
+   "verified": 8,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "activeLifecycleState",
+   "verified": 8,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "assertPathSegment",
+   "verified": 8,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "baseUrl",
+   "verified": 8,
+   "potential": 42,
+   "covered": 0
+  },
+  {
+   "name": "buildDateAnchors",
+   "verified": 8,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "calculateFiniteAverage",
+   "verified": 8,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "combineScopes",
+   "verified": 8,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "createAgentCredentialProvider",
+   "verified": 8,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "createAiProxyFetch",
+   "verified": 8,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "createModel",
+   "verified": 8,
+   "potential": 7,
+   "covered": 0
+  }
+ ]
+}

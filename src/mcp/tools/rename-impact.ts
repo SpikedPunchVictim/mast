@@ -85,7 +85,7 @@ export function registerRenameImpactTool(server: McpServer, ctx: AppContext): vo
           resolution: r.resolution as CallerResolution,
         }));
 
-        const potentialResult = await collectPotentialMatches(ctx.db, ctx.chunkStore, target.id, args.symbol, verified_callers);
+        const potentialResult = await collectPotentialMatches(ctx.db, ctx.chunkStore, target.id, args.symbol, verifiedRows);
         potential_matches = potentialResult.matches;
         checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
         checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;

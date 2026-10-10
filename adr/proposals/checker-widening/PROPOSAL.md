@@ -404,9 +404,9 @@ call is the edge the resolver already stores, so the pass writes 474.
 
 Found and not fixed:
 
-- **D156**, open: `mast_callers` and `mast_rename_impact` list a verified caller a second
-  time as a potential match. More decorator edges make more verified callers, so P2 makes
-  it more visible; it did not cause it.
+- **D156**, fixed 2026-10-10 (below): `mast_callers` and `mast_rename_impact` listed a
+  verified caller a second time as a potential match. More decorator edges make more
+  verified callers, so P2 made it more visible; it did not cause it.
 - **D158**, fixed in part in its own commit (`adr/proposals/watcher-descriptors/`): a `mast serve` holds one open file per watched file. Found because it
   stopped this work's tests; it is not part of the resolver.
 - A decorator with no parentheses has no edge (reserve, above).
@@ -508,3 +508,36 @@ This is a direction and not a figure. Three rounds on a loaded machine do not se
 20% cost from a 30% one, and where the time goes was not profiled: 7,068 more edges is 15%
 more edges, and every decorator is one more scope walked. A run on a quiet machine, and a
 profile, are owed before the number is quoted anywhere.
+
+## A caller listed twice (D156, 2026-10-10)
+
+`mast_callers` and `mast_rename_impact` left a chunk out of the potential matches only
+when it started on the line of a verified caller, and a verified caller's line is its call
+line. So the two matched only when the call was on the declaration's first line.
+
+**The spike** (`spikes/d156/overlap.mjs`): the 200 top-level names with the most stored
+calls into them and one declaration each, asked of the real tool, on nest and n8n.
+
+| | nest, before | after | n8n, before | after |
+|---|---|---|---|---|
+| Potential entries | 2,457 | 1,675 | 5,409 | 2,189 |
+| ...whose chunk holds a verified call | 692 | 96 | 2,980 | 16 |
+| ...naming the file and symbol of a verified caller, not covered | 186 | 0 | 357 | 101 |
+
+Of the chunks holding a verified call before the fix, 39 on nest and 128 on n8n also
+mention the name on a line that is not a call of it (an import, a type, a comment, the
+name as a value).
+
+**The rule.** A chunk is left out when a direct verified caller's symbol starts on the
+chunk's first line, or when the chunk is a later piece of that same symbol and holds the
+call line. The first version of the rule, a call line anywhere inside the chunk, would
+have dropped a class's chunk for a call in one of its methods; a test pins that it is
+kept. A transitive caller covers nothing.
+
+**Given up:** a chunk that is left out and also mentions the name without calling it has
+no entry of its own any more. The verified entry names the same symbol.
+
+**Not done:** the 50-row cap is applied to the search hits before this filter, so the
+list can be shorter than 50 while `potential_truncated` says more exist. The 101 entries
+on n8n and the 96 and 16 chunks still holding a verified call were not examined; a class
+chunk around a calling method is one kind that is kept on purpose.

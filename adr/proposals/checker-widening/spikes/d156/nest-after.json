@@ -1,0 +1,1246 @@
+{
+ "state_dir": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/d156/nest-state",
+ "symbols_with_a_duplicate": 25,
+ "totals": {
+  "symbols_asked": 200,
+  "verified": 1083,
+  "potential": 1675,
+  "potential_truncated_symbols": 17,
+  "potential_covered_by_a_verified_call": 96,
+  "covered_no_other_mention": 30,
+  "covered_only_further_calls": 56,
+  "covered_a_mention_that_is_not_a_call": 10,
+  "potential_not_covered_same_file_and_symbol_as_a_verified_caller": 0
+ },
+ "samples": {
+  "covered_only_further_calls": [
+   "Body: integration/microservices/src/kafka/kafka.controller.ts:32 @Body() data: number[],",
+   "Body: integration/inspector/src/cats/cats.controller.ts:12 async create(@Body() createCatDto: CreateCatDto)",
+   "Body: integration/microservices/src/grpc-advanced/advanced.grpc.controller.ts:32 call(@Body() id: number): Observable<number>",
+   "Body: integration/microservices/src/kafka-concurrent/kafka-concurrent.controller.ts:45 public mathSumSyncNumberWait(@Body() data: SumDto): Observable<string>",
+   "Body: integration/microservices/src/app.controller.ts:30 call(@Query('command') cmd, @Body() data: number[]): Observable<number>",
+   "Body: integration/inspector/src/database/database.controller.ts:17 create(@Body() createDatabaseDto: CreateDatabaseDto)",
+   "Body: integration/microservices/src/mqtt/mqtt.controller.ts:27 @Body() data: number[],",
+   "Body: integration/microservices/src/disconnected.controller.ts:14 call(@Body() options): Observable<number>",
+   "Body: integration/microservices/src/grpc/grpc.controller.ts:44 call(@Body() data: number[]): Observable<number>",
+   "Body: integration/inspector/src/users/users.controller.ts:17 create(@Body() createUserDto: CreateUserDto)",
+   "Body: integration/inspector/src/dogs/dogs.controller.ts:17 create(@Body() createDogDto: CreateDogDto)",
+   "Inject: integration/inspector/src/durable/durable.service.ts:7 constructor(@Inject(REQUEST) public readonly requestPayload: unknown)"
+  ],
+  "covered_a_mention_that_is_not_a_call": [
+   "SetMetadata: packages/core/services/reflector.service.ts:47 * Can be used as a strongly-typed alternative to `@SetMetadata`.",
+   "GuardsConsumer: packages/core/helpers/external-context-creator.ts:46 private readonly guardsConsumer: GuardsConsumer,",
+   "InterceptorsConsumer: packages/core/helpers/external-context-creator.ts:48 private readonly interceptorsConsumer: InterceptorsConsumer,",
+   "PipesConsumer: packages/core/helpers/external-context-creator.ts:51 private readonly pipesConsumer: PipesConsumer,",
+   "DatabaseConnection: integration/repl/src/database/database.connection.ts:4 class DatabaseConnection implements OnModuleDestroy {",
+   "ExceptionsHandler: packages/core/router/router-exception-filters.ts:26 ): ExceptionsHandler",
+   "ExternalExceptionsHandler: packages/core/exceptions/external-exception-filter-context.ts:25 ): ExternalExceptionsHandler",
+   "MiddlewareModule: packages/core/nest-application.ts:60 private readonly middlewareModule: MiddlewareModule",
+   "RpcExceptionsHandler: packages/microservices/context/exception-filters-context.ts:27 ): RpcExceptionsHandler",
+   "WsExceptionsHandler: packages/websockets/context/exception-filters-context.ts:16 ): WsExceptionsHandler"
+  ],
+  "not_covered_same_symbol": []
+ },
+ "per_symbol": [
+  {
+   "name": "Body",
+   "verified": 76,
+   "potential": 17,
+   "covered": 11
+  },
+  {
+   "name": "Inject",
+   "verified": 62,
+   "potential": 26,
+   "covered": 21
+  },
+  {
+   "name": "MessagePattern",
+   "verified": 60,
+   "potential": 14,
+   "covered": 0
+  },
+  {
+   "name": "isUndefined",
+   "verified": 54,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "isNil",
+   "verified": 51,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "HttpCode",
+   "verified": 46,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "isFunction",
+   "verified": 43,
+   "potential": 13,
+   "covered": 0
+  },
+  {
+   "name": "isString",
+   "verified": 42,
+   "potential": 21,
+   "covered": 0
+  },
+  {
+   "name": "Param",
+   "verified": 36,
+   "potential": 28,
+   "covered": 14
+  },
+  {
+   "name": "isObject",
+   "verified": 36,
+   "potential": 15,
+   "covered": 0
+  },
+  {
+   "name": "isEmpty",
+   "verified": 22,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "SubscribeMessage",
+   "verified": 21,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "loadPackage",
+   "verified": 21,
+   "potential": 11,
+   "covered": 1
+  },
+  {
+   "name": "UseInterceptors",
+   "verified": 20,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "addLeadingSlash",
+   "verified": 17,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "forwardRef",
+   "verified": 17,
+   "potential": 31,
+   "covered": 7
+  },
+  {
+   "name": "Query",
+   "verified": 15,
+   "potential": 35,
+   "covered": 8
+  },
+  {
+   "name": "UseGuards",
+   "verified": 15,
+   "potential": 14,
+   "covered": 0
+  },
+  {
+   "name": "Optional",
+   "verified": 14,
+   "potential": 43,
+   "covered": 7
+  },
+  {
+   "name": "EventPattern",
+   "verified": 12,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "WebSocketGateway",
+   "verified": 12,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "randomStringGenerator",
+   "verified": 11,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "Payload",
+   "verified": 10,
+   "potential": 40,
+   "covered": 4
+  },
+  {
+   "name": "MessageBody",
+   "verified": 9,
+   "potential": 11,
+   "covered": 5
+  },
+  {
+   "name": "Sse",
+   "verified": 9,
+   "potential": 41,
+   "covered": 2
+  },
+  {
+   "name": "getClassScope",
+   "verified": 9,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "HostParam",
+   "verified": 8,
+   "potential": 5,
+   "covered": 2
+  },
+  {
+   "name": "SetMetadata",
+   "verified": 8,
+   "potential": 3,
+   "covered": 1
+  },
+  {
+   "name": "isSymbol",
+   "verified": 8,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "GrpcMethod",
+   "verified": 7,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "MetadataScanner",
+   "verified": 7,
+   "potential": 32,
+   "covered": 0
+  },
+  {
+   "name": "Catch",
+   "verified": 6,
+   "potential": 47,
+   "covered": 0
+  },
+  {
+   "name": "assignMetadata",
+   "verified": 6,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "createPipesRouteParamDecorator",
+   "verified": 6,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "flatten",
+   "verified": 6,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "isDurable",
+   "verified": 6,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "ContextUtils",
+   "verified": 5,
+   "potential": 32,
+   "covered": 0
+  },
+  {
+   "name": "Version",
+   "verified": 5,
+   "potential": 45,
+   "covered": 0
+  },
+  {
+   "name": "extendArrayMetadata",
+   "verified": 5,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getNonTransientInstances",
+   "verified": 5,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getTransientInstances",
+   "verified": 5,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "isNumber",
+   "verified": 5,
+   "potential": 15,
+   "covered": 0
+  },
+  {
+   "name": "mixin",
+   "verified": 5,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "GrpcStreamMethod",
+   "verified": 4,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "GuardsConsumer",
+   "verified": 4,
+   "potential": 16,
+   "covered": 1
+  },
+  {
+   "name": "HandlerMetadataStorage",
+   "verified": 4,
+   "potential": 13,
+   "covered": 0
+  },
+  {
+   "name": "Header",
+   "verified": 4,
+   "potential": 22,
+   "covered": 0
+  },
+  {
+   "name": "InterceptorsConsumer",
+   "verified": 4,
+   "potential": 16,
+   "covered": 1
+  },
+  {
+   "name": "PipesConsumer",
+   "verified": 4,
+   "potential": 16,
+   "covered": 1
+  },
+  {
+   "name": "selectExceptionFilterMetadata",
+   "verified": 4,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "stringifyScope",
+   "verified": 4,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "stripEndSlash",
+   "verified": 4,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "validateEach",
+   "verified": 4,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "FileInterceptor",
+   "verified": 3,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "GrpcStreamCall",
+   "verified": 3,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "UploadedFile",
+   "verified": 3,
+   "potential": 5,
+   "covered": 1
+  },
+  {
+   "name": "createContextId",
+   "verified": 3,
+   "potential": 3,
+   "covered": 1
+  },
+  {
+   "name": "createGrpcMethodMetadata",
+   "verified": 3,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getInstanceName",
+   "verified": 3,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "isRouteExcluded",
+   "verified": 3,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "normalizePath",
+   "verified": 3,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "transformPatternToRoute",
+   "verified": 3,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "waitForInterceptorDelayedSseStat",
+   "verified": 3,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "waitForPromiseDelayedSseStat",
+   "verified": 3,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "BLOCKED_RMQ_MESSAGE",
+   "verified": 2,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "Bind",
+   "verified": 2,
+   "potential": 27,
+   "covered": 0
+  },
+  {
+   "name": "Global",
+   "verified": 2,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "IdentitySerializer",
+   "verified": 2,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "KafkaRequestSerializer",
+   "verified": 2,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "MqttRecordSerializer",
+   "verified": 2,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "NO_EVENT_HANDLER",
+   "verified": 2,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "ParseFilePipeBuilder",
+   "verified": 2,
+   "potential": 6,
+   "covered": 1
+  },
+  {
+   "name": "Render",
+   "verified": 2,
+   "potential": 31,
+   "covered": 0
+  },
+  {
+   "name": "RmqRecordSerializer",
+   "verified": 2,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "RouterMethodFactory",
+   "verified": 2,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "RouterProxy",
+   "verified": 2,
+   "potential": 14,
+   "covered": 0
+  },
+  {
+   "name": "UNKNOWN_DEPENDENCIES_MESSAGE",
+   "verified": 2,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "UNSUPPORTED_PATH_MESSAGE",
+   "verified": 2,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "WebSocketServer",
+   "verified": 2,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "containsPackageJson",
+   "verified": 2,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "createPipesWsParamDecorator",
+   "verified": 2,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "createRouteParamDecorator",
+   "verified": 2,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "flattenRoutePaths",
+   "verified": 2,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getBodyParserOptions",
+   "verified": 2,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "getDirs",
+   "verified": 2,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "getGrpcPackageDefinition",
+   "verified": 2,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "isColorAllowed",
+   "verified": 2,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "isConstructor",
+   "verified": 2,
+   "potential": 6,
+   "covered": 0
+  },
+  {
+   "name": "isLogLevelEnabled",
+   "verified": 2,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "isPlainObject",
+   "verified": 2,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "isRequestMethodAll",
+   "verified": 2,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "loadAdapter",
+   "verified": 2,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "mapToExcludeRoute",
+   "verified": 2,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "serializeSseLines",
+   "verified": 2,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "toDataString",
+   "verified": 2,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "Ack",
+   "verified": 1,
+   "potential": 11,
+   "covered": 1
+  },
+  {
+   "name": "CONTROLLER_MAPPING_MESSAGE",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "ClientsContainer",
+   "verified": 1,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "DatabaseConnection",
+   "verified": 1,
+   "potential": 4,
+   "covered": 1
+  },
+  {
+   "name": "DeepHashedModuleOpaqueKeyFactory",
+   "verified": 1,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "Dependencies",
+   "verified": 1,
+   "potential": 28,
+   "covered": 0
+  },
+  {
+   "name": "ExceptionHandler",
+   "verified": 1,
+   "potential": 16,
+   "covered": 0
+  },
+  {
+   "name": "ExceptionsHandler",
+   "verified": 1,
+   "potential": 24,
+   "covered": 1
+  },
+  {
+   "name": "ExternalErrorProxy",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "ExternalExceptionsHandler",
+   "verified": 1,
+   "potential": 8,
+   "covered": 1
+  },
+  {
+   "name": "FileTypeValidator",
+   "verified": 1,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "HttpAdapterHost",
+   "verified": 1,
+   "potential": 21,
+   "covered": 0
+  },
+  {
+   "name": "INVALID_CLASS_MESSAGE",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "INVALID_CLASS_SCOPE_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "INVALID_MIDDLEWARE_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "INVALID_MODULE_CONFIG_MESSAGE",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "INVALID_MODULE_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "IncomingRequestDeserializer",
+   "verified": 1,
+   "potential": 10,
+   "covered": 0
+  },
+  {
+   "name": "IncomingResponseDeserializer",
+   "verified": 1,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "InternalProvidersStorage",
+   "verified": 1,
+   "potential": 9,
+   "covered": 0
+  },
+  {
+   "name": "KafkaRequestDeserializer",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "KafkaResponseDeserializer",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "MODULE_INIT_MESSAGE",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "MaxFileSizeValidator",
+   "verified": 1,
+   "potential": 5,
+   "covered": 0
+  },
+  {
+   "name": "MicroservicesModule",
+   "verified": 1,
+   "potential": 18,
+   "covered": 0
+  },
+  {
+   "name": "MiddlewareModule",
+   "verified": 1,
+   "potential": 15,
+   "covered": 1
+  },
+  {
+   "name": "ModulesContainer",
+   "verified": 1,
+   "potential": 43,
+   "covered": 0
+  },
+  {
+   "name": "OrderCreatedEvent",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "ParamsTokenFactory",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "Public",
+   "verified": 1,
+   "potential": 50,
+   "covered": 0
+  },
+  {
+   "name": "ROUTE_MAPPED_MESSAGE",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "RQM_NO_EVENT_HANDLER",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "RQM_NO_MESSAGE_HANDLER",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "ReplLogger",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "RequestMapping",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "Roles",
+   "verified": 1,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "RouteParamsFactory",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "RpcExceptionsHandler",
+   "verified": 1,
+   "potential": 10,
+   "covered": 1
+  },
+  {
+   "name": "RpcParamsFactory",
+   "verified": 1,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "RpcProxy",
+   "verified": 1,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "SerializedGraph",
+   "verified": 1,
+   "potential": 32,
+   "covered": 0
+  },
+  {
+   "name": "SilentLogger",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "SocketsContainer",
+   "verified": 1,
+   "potential": 14,
+   "covered": 0
+  },
+  {
+   "name": "TestingInjector",
+   "verified": 1,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "TestingInstanceLoader",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "UNDEFINED_FORWARDREF_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "UNDEFINED_MODULE_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "UNKNOWN_EXPORT_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "UNKNOWN_REQUEST_MAPPING",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "USING_INVALID_CLASS_AS_A_MODULE_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "UseFilters",
+   "verified": 1,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "UsersRepository",
+   "verified": 1,
+   "potential": 11,
+   "covered": 0
+  },
+  {
+   "name": "VERSIONED_CONTROLLER_MAPPING_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "VERSIONED_ROUTE_MAPPED_MESSAGE",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "WsExceptionsHandler",
+   "verified": 1,
+   "potential": 10,
+   "covered": 1
+  },
+  {
+   "name": "WsParamsFactory",
+   "verified": 1,
+   "potential": 4,
+   "covered": 0
+  },
+  {
+   "name": "WsProxy",
+   "verified": 1,
+   "potential": 8,
+   "covered": 0
+  },
+  {
+   "name": "addExceptionFiltersMetadata",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "assignCustomParameterMetadata",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "assignToObject",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "assignToken",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "bindLast",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "callAppShutdownHook",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "callBeforeAppShutdownHook",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "callModuleBootstrapHook",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "callModuleDestroyHook",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "callModuleInitHook",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "compareElementAt",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "createClient",
+   "verified": 1,
+   "potential": 32,
+   "covered": 0
+  },
+  {
+   "name": "createPipesRpcParamDecorator",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "createServer",
+   "verified": 1,
+   "potential": 18,
+   "covered": 0
+  },
+  {
+   "name": "defineDefaultCommandsOnRepl",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "escape",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "executeNPMScriptInDirectory",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "fetchInterceptorDelayedSseStats",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "fetchPromiseDelayedSseStats",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "filterMiddleware",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "fmtBytesPerSec",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "fmtNum",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "fmtPct",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "frameworkEntry",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "generateOptionsInjectionToken",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getDependencyName",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "getFolders",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "getModuleName",
+   "verified": 1,
+   "potential": 7,
+   "covered": 0
+  },
+  {
+   "name": "hasBeforeApplicationShutdownHook",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "hasOnAppBootstrapHook",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "hasOnAppShutdownHook",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "hasOnModuleDestroyHook",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "hasOnModuleInitHook",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "isClassProvider",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "isCommentOnly",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "isDirectory",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "isFactoryProvider",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "isLogLevel",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "isMiddlewareClass",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "isOptionalFactoryDependency",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "isValueProvider",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "killChild",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "listAllCommands",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "mapToClass",
+   "verified": 1,
+   "potential": 1,
+   "covered": 0
+  },
+  {
+   "name": "middie",
+   "verified": 1,
+   "potential": 17,
+   "covered": 0
+  },
+  {
+   "name": "parseArgs",
+   "verified": 1,
+   "potential": 3,
+   "covered": 0
+  },
+  {
+   "name": "parseNumber",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  },
+  {
+   "name": "pctChange",
+   "verified": 1,
+   "potential": 2,
+   "covered": 0
+  }
+ ]
+}

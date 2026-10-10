@@ -87,7 +87,13 @@ export function registerCallersTool(server: McpServer, ctx: AppContext): void {
       let checkerClassifiedDifferentDeclaration = 0;
       let potentialTruncated: number | undefined;
       if (args.include_potential !== false) {
-        const potentialResult = await collectPotentialMatches(ctx.db, ctx.chunkStore, target.id, args.symbol, verified_callers);
+        // What accounts for a chunk is a direct call of the symbol in it. A
+        // caller reached through another may mention the name with no verified
+        // call of it, so the walk's rows are not used for this (D156).
+        const directRows = args.transitive === true
+          ? await queryVerifiedCallers(ctx.db, declarationsOf(symbols).map((s) => s.id), false)
+          : verifiedRows;
+        const potentialResult = await collectPotentialMatches(ctx.db, ctx.chunkStore, target.id, args.symbol, directRows);
         potential_matches = potentialResult.matches;
         checkerClassifiedNonCallSite = potentialResult.checkerClassifiedNonCallSite;
         checkerClassifiedDifferentDeclaration = potentialResult.checkerClassifiedDifferentDeclaration;

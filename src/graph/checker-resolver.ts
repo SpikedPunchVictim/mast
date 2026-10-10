@@ -4,7 +4,6 @@ import fg from 'fast-glob';
 import type { Db } from './db.js';
 import type { ChunkStore } from '../store/sqliteChunkStore.js';
 import type { ResolvedConfig } from '../store/config.js';
-import type { VerifiedCaller, CallerResolution } from '../ast/types.js';
 import { withLock } from '../store/lock.js';
 import { constructorIdsOf, queryVerifiedCallers, querySymbolByName } from './queries.js';
 import { collectPotentialMatchCandidates, type ChunkByIdSource, type CandidateChunkRecord } from '../search/potential-matches.js';
@@ -658,17 +657,10 @@ export async function runCheckerPass(
 
     for (const sym of allSymbols) {
       const verifiedRows = await queryVerifiedCallers(db, [sym.id], false);
-      const verified: VerifiedCaller[] = verifiedRows.map((r) => ({
-        file_path: r.file_path,
-        line: r.line,
-        caller_symbol: r.caller_symbol,
-        context: r.context,
-        resolution: r.resolution as CallerResolution,
-      }));
       // F10 (Stage 3): collectPotentialMatchCandidates now also returns an
       // optional truncatedMatchCount — Phase A has no use for it (it isn't a
       // tool-response summary), so it's destructured away and ignored here.
-      const { candidates } = await collectPotentialMatchCandidates(db, chunkSource, sym.name, verified);
+      const { candidates } = await collectPotentialMatchCandidates(db, chunkSource, sym.name, verifiedRows);
       for (const c of candidates) {
         const project = fileToProject.get(c.file_path);
         if (project === undefined) {

@@ -1,5 +1,5 @@
 import type { Db } from '../graph/db.js';
-import type { VerifiedCaller, PotentialMatch } from '../ast/types.js';
+import type { PotentialMatch } from '../ast/types.js';
 import { searchIdentifiers, countIdentifierMatches } from './fts.js';
 import { queryCheckerVerdicts } from '../graph/queries.js';
 
@@ -70,6 +70,33 @@ export interface PotentialMatchCandidate {
  */
 export const DEFAULT_RESULT_LIMIT = 50;
 
+/**
+ * A direct verified caller, as far as the collector reads it: the file, the
+ * line of the call, and the line the caller is declared on. A caller reached
+ * through another caller is not one: its chunk may mention the name without a
+ * verified call of it.
+ */
+export interface VerifiedCallSite {
+  readonly file_path: string;
+  readonly line: number;
+  readonly caller_line: number;
+  readonly caller_symbol: string;
+}
+
+/**
+ * Whether a verified call accounts for `chunk`: the chunk is where the caller
+ * is declared, or it is a piece of the caller and the call is on one of its
+ * lines. The first alone misses a call far down a caller long enough to be
+ * split. The call's line alone misses a decorator, which is written above the
+ * member it is a call from, and would take a class's chunk for a call made in
+ * one of its methods (D156).
+ */
+function isCoveredBy(chunk: CandidateChunkRecord, sites: readonly VerifiedCallSite[] | undefined): boolean {
+  return sites !== undefined && sites.some((site) =>
+    site.caller_line === chunk.start_line ||
+    (site.caller_symbol === chunk.symbol_name && site.line >= chunk.start_line && site.line <= chunk.end_line));
+}
+
 export interface PotentialMatchCandidatesResult {
   readonly candidates: readonly PotentialMatchCandidate[];
   /**
@@ -95,17 +122,21 @@ export async function collectPotentialMatchCandidates(
   db: Db,
   chunkSource: ChunkByIdSource,
   symbolName: string,
-  verified: readonly VerifiedCaller[],
+  verified: readonly VerifiedCallSite[],
   limit = DEFAULT_RESULT_LIMIT,
 ): Promise<PotentialMatchCandidatesResult> {
   const identRows = await searchIdentifiers(db, symbolName, limit);
   const chunks = await chunkSource.getChunksByIds(identRows.map((r) => r.chunk_id));
 
-  // Exclude chunk IDs already covered by the verified set.
-  const verifiedKeys = new Set(verified.map((c) => `${c.file_path}:${c.line}`));
+  const sitesByFile = new Map<string, VerifiedCallSite[]>();
+  for (const site of verified) {
+    const sites = sitesByFile.get(site.file_path) ?? [];
+    sites.push(site);
+    sitesByFile.set(site.file_path, sites);
+  }
   const candidates: PotentialMatchCandidate[] = [];
   for (const chunk of chunks) {
-    if (verifiedKeys.has(`${chunk.file_path}:${chunk.start_line}`)) continue;
+    if (isCoveredBy(chunk, sitesByFile.get(chunk.file_path))) continue;
     candidates.push({
       file_path: chunk.file_path,
       start_line: chunk.start_line,
@@ -157,7 +188,7 @@ export async function collectPotentialMatches(
   chunkSource: ChunkByIdSource,
   symbolId: number,
   symbolName: string,
-  verified: readonly VerifiedCaller[],
+  verified: readonly VerifiedCallSite[],
   limit = DEFAULT_RESULT_LIMIT,
 ): Promise<PotentialMatchesResult> {
   const { candidates, truncatedMatchCount } = await collectPotentialMatchCandidates(db, chunkSource, symbolName, verified, limit);

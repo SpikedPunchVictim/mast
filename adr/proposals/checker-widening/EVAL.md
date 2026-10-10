@@ -102,3 +102,11 @@ reference for it: `--root <nest> --tsconfig tsconfig.json`, one project.
 | `what-they-resolve-to.mjs` | Every decorator and call of a corpus, by what the compiler says the callee is: sites, not pairs |
 | `nest.json` | nest `c3bc75c97`, its root project |
 | `n8n.json` | n8n `9d9e9bf9`, six projects, `--workspace-src` |
+
+## D156 — a caller listed twice (`spikes/d156/`)
+
+| File | What it is |
+|---|---|
+| `overlap.mjs <state dir> <mast repo with dist/> <out.json> [how many symbols]` | Asks `mast_callers` for the most-called single-declaration top-level names and, for each potential match, whether its chunk holds a verified call and what else it mentions. Reads a copy of the state dir |
+| `nest.json`, `n8n.json` | nest `c3bc75c97` and n8n `9d9e9bf9`, 200 names each, the build before the fix |
+| `nest-after.json`, `n8n-after.json` | The same indexes, the build with the fix |

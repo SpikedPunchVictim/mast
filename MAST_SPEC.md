@@ -1694,7 +1694,10 @@ differently:
   receiver type but whose edge was later dropped by file-scoped resolution (e.g. an
   unresolvable import) — before F5 this set was confidently empty for essentially
   every method query (58% of symbols in the eval corpus), independent of whether a
-  real caller existed.
+  real caller existed. **A chunk a direct verified caller is in is not listed** (D156):
+  the chunk that starts on the caller's declaration line, and a later piece of the same
+  symbol that holds the call line. The chunk of a class is listed when the call is in
+  one of its methods, and a transitive caller leaves nothing out.
 
 **`summary.checker_classified_non_call_site` / `checker_classified_different_declaration`**
 count candidates the checker pass classified away — not a real call site (comment,

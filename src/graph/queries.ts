@@ -15,7 +15,10 @@ import type {
 
 export interface VerifiedCallerRow {
   file_path: string;
+  /** The line of the call, or of the caller's declaration for an edge with no call line. */
   line: number;
+  /** The line the caller is declared on, which is where its chunk starts. */
+  caller_line: number;
   caller_symbol: string;
   context: string;
   resolution: string;
@@ -56,6 +59,7 @@ export async function queryVerifiedCallers(
       .select([
         'f.path as file_path',
         lineExpr,
+        's.line as caller_line',
         's.name as caller_symbol',
         contextExpr,
         resolutionExpr,
@@ -119,6 +123,7 @@ export async function queryVerifiedCallers(
     .select([
       'f.path as file_path',
       sql<number>`COALESCE(c.call_line, s.line)`.as('line'),
+      's.line as caller_line',
       's.name as caller_symbol',
       sql<string>`COALESCE(c.context, '')`.as('context'),
       sql<string>`COALESCE(c.resolution, 'same_file')`.as('resolution'),
