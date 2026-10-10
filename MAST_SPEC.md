@@ -2598,6 +2598,17 @@ an interface that shares its name with a constant holding a class expression
 on an instance of that class, which are the class expression's to the compiler; the
 two differ only when the class's instances are not of the interface's type.
 
+**A `this` parameter.** A function may say what its `this` is:
+`function run(this: Context)`, or `execute(this: Context)` as a method. `this.m()` in
+it, and in an arrow inside it, is then a call on a receiver of that type, with the
+`resolution` of any other annotated parameter (`parameter_type`). In a method the
+class it is written in is not the receiver: neither `this.m()` nor `this.field.m()`
+is read against the class, whatever the parameter's type is (D170). One form is the
+exception: a type written with `typeof` the class, as in
+`static count<T>(this: { new (): T } & typeof BaseEntity)`, says the receiver is the
+class, and `this` stays the class. A member of a member of the parameter's type
+(`this.helpers.request()`) is not read.
+
 The walk also stops with no edge at a class that has a field of the name, the
 receiver's own class included: `handle = () => {}`, `declare handle: …` and
 `constructor(public handle: …)` each declare `handle`, and the call runs what

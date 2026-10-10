@@ -1,21 +1,21 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-10T07:51:11.853Z",
+  "ran_at": "2026-10-10T08:41:50.114Z",
   "typescript": "5.9.3",
-  "label": "interface methods",
+  "label": "this parameter",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
   "config_errors": [],
   "workspace_packages_mapped_to_source": 3,
-  "scored_typescript_files": 53,
-  "tsconfig_files": 52,
-  "corpus_hash": "d33dad223818cdcb4bc45df771a1d43d5823dc6d711414f9b481fc4216c6668e",
-  "program_source_files": 230,
+  "scored_typescript_files": 55,
+  "tsconfig_files": 54,
+  "corpus_hash": "8496a9a60eb16eef44370e80db7193de61b96ecc923be53dcd63652c35960d17",
+  "program_source_files": 232,
   "repeated_symbol_rows": 3,
-  "wall_ms": 463,
-  "peak_rss_mb": 317
+  "wall_ms": 437,
+  "peak_rss_mb": 318
  },
  "notes": {
   "call through a variable, judged by its signature": 2,
@@ -100,7 +100,15 @@
     "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.make",
     "packages/static-instance/src/st.ts:K > packages/static-instance/src/st.ts:K.save",
     "packages/static-instance/src/st.ts:P > packages/static-instance/src/st.ts:P.make",
-    "packages/static-instance/src/st.ts:P > packages/static-instance/src/st.ts:P.save"
+    "packages/static-instance/src/st.ts:P > packages/static-instance/src/st.ts:P.save",
+    "packages/this-parameter/src/types.ts:Client > packages/this-parameter/src/types.ts:Client.request",
+    "packages/this-parameter/src/types.ts:Context > packages/this-parameter/src/types.ts:Context.getInput",
+    "packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.build",
+    "packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.constructor",
+    "packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.execute",
+    "packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.getInput",
+    "packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.make",
+    "packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.plain"
    ],
    "wrong": [],
    "lacks": [],
@@ -185,7 +193,14 @@
     "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make",
     "packages/tagged-template/src/use.ts:bare > packages/tagged-template/src/tag.ts:css",
     "packages/tagged-template/src/use.ts:heldByAConstant > packages/tagged-template/src/tag.ts:html",
-    "packages/tagged-template/src/use.ts:viaNamespace > packages/tagged-template/src/tag.ts:css"
+    "packages/tagged-template/src/use.ts:viaNamespace > packages/tagged-template/src/tag.ts:css",
+    "packages/this-parameter/src/use.ts:Node.build > packages/this-parameter/src/use.ts:Node.make",
+    "packages/this-parameter/src/use.ts:Node.execute > packages/this-parameter/src/types.ts:Context.getInput",
+    "packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/types.ts:Client",
+    "packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/use.ts:Node.constructor",
+    "packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/types.ts:Client.request",
+    "packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/use.ts:Node.getInput",
+    "packages/this-parameter/src/use.ts:run > packages/this-parameter/src/types.ts:Context.getInput"
    ],
    "wrong": [
     "packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:Editor.getModel"
@@ -277,6 +292,8 @@
     "packages/static-instance/src/st.ts",
     "packages/tagged-template/src/tag.ts",
     "packages/tagged-template/src/use.ts",
+    "packages/this-parameter/src/types.ts",
+    "packages/this-parameter/src/use.ts",
     "packages/ui/src/components/Button.ts",
     "packages/ui/src/index.ts"
    ],
@@ -331,7 +348,9 @@
     "packages/same-name-rows/src/user.ts { Handler } from './a'",
     "packages/same-name-rows/src/user.ts { K } from './a'",
     "packages/tagged-template/src/use.ts { css } from './tag'",
-    "packages/tagged-template/src/use.ts { html } from './tag'"
+    "packages/tagged-template/src/use.ts { html } from './tag'",
+    "packages/this-parameter/src/use.ts { Client } from './types'",
+    "packages/this-parameter/src/use.ts { Context } from './types'"
    ],
    "wrong": [],
    "lacks": [],
@@ -371,7 +390,8 @@
     "packages/new-binding/src/user.ts './lib' => packages/new-binding/src/lib.ts",
     "packages/property-override/src/child.ts './base' => packages/property-override/src/base.ts",
     "packages/same-name-rows/src/user.ts './a' => packages/same-name-rows/src/a.ts",
-    "packages/tagged-template/src/use.ts './tag' => packages/tagged-template/src/tag.ts"
+    "packages/tagged-template/src/use.ts './tag' => packages/tagged-template/src/tag.ts",
+    "packages/this-parameter/src/use.ts './types' => packages/this-parameter/src/types.ts"
    ],
    "wrong": [],
    "lacks": [],
@@ -541,6 +561,18 @@
     "packages/tagged-template/src/use.ts:bare exported=true",
     "packages/tagged-template/src/use.ts:heldByAConstant exported=true",
     "packages/tagged-template/src/use.ts:viaNamespace exported=true",
+    "packages/this-parameter/src/types.ts:Client exported=true",
+    "packages/this-parameter/src/types.ts:Client.request exported=true",
+    "packages/this-parameter/src/types.ts:Context exported=true",
+    "packages/this-parameter/src/types.ts:Context.getInput exported=true",
+    "packages/this-parameter/src/use.ts:Node exported=true",
+    "packages/this-parameter/src/use.ts:Node.build exported=true",
+    "packages/this-parameter/src/use.ts:Node.constructor exported=true",
+    "packages/this-parameter/src/use.ts:Node.execute exported=true",
+    "packages/this-parameter/src/use.ts:Node.getInput exported=true",
+    "packages/this-parameter/src/use.ts:Node.make exported=true",
+    "packages/this-parameter/src/use.ts:Node.plain exported=true",
+    "packages/this-parameter/src/use.ts:run exported=true",
     "packages/ui/src/components/Button.ts:Button exported=true",
     "packages/ui/src/index.ts:Button exported=true"
    ],
@@ -579,7 +611,9 @@
     "packages/property-override/src/child.ts:Over",
     "packages/same-name-rows/src/a.ts:K",
     "packages/static-instance/src/st.ts:K",
-    "packages/static-instance/src/st.ts:P"
+    "packages/static-instance/src/st.ts:P",
+    "packages/this-parameter/src/types.ts:Client",
+    "packages/this-parameter/src/use.ts:Node"
    ],
    "wrong": [],
    "lacks": [],
@@ -675,6 +709,7 @@
     "packages/tagged-template/src/use.ts:bare",
     "packages/tagged-template/src/use.ts:heldByAConstant",
     "packages/tagged-template/src/use.ts:viaNamespace",
+    "packages/this-parameter/src/use.ts:run",
     "packages/ui/src/components/Button.ts:Button",
     "packages/ui/src/index.ts:Button"
    ],
@@ -692,7 +727,8 @@
     "packages/interface-method/src/types.ts:Source",
     "packages/interface-method/src/types.ts:Store",
     "packages/merged-class/src/emitter.ts:Emitter",
-    "packages/merged-class/src/emitter.ts:Events"
+    "packages/merged-class/src/emitter.ts:Events",
+    "packages/this-parameter/src/types.ts:Context"
    ],
    "wrong": [],
    "lacks": [],
@@ -749,7 +785,15 @@
     "packages/static-instance/src/st.ts:K.make",
     "packages/static-instance/src/st.ts:K.save",
     "packages/static-instance/src/st.ts:P.make",
-    "packages/static-instance/src/st.ts:P.save"
+    "packages/static-instance/src/st.ts:P.save",
+    "packages/this-parameter/src/types.ts:Client.request",
+    "packages/this-parameter/src/types.ts:Context.getInput",
+    "packages/this-parameter/src/use.ts:Node.build",
+    "packages/this-parameter/src/use.ts:Node.constructor",
+    "packages/this-parameter/src/use.ts:Node.execute",
+    "packages/this-parameter/src/use.ts:Node.getInput",
+    "packages/this-parameter/src/use.ts:Node.make",
+    "packages/this-parameter/src/use.ts:Node.plain"
    ],
    "wrong": [],
    "lacks": [],
@@ -800,7 +844,9 @@
     "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo",
     "packages/property-override/src/child.ts:K.make@16 > packages/property-override/src/child.ts:K",
     "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K",
-    "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
+    "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P",
+    "packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/types.ts:Client",
+    "packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/use.ts:Node.constructor"
    ],
    "wrong": [],
    "lacks": [],
@@ -810,7 +856,8 @@
   "call edge, stored as field_type": {
    "agree": [
     "packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:Editor.hasModel",
-    "packages/interface-method/src/use.ts:ByField.run > packages/interface-method/src/types.ts:Store.get"
+    "packages/interface-method/src/use.ts:ByField.run > packages/interface-method/src/types.ts:Store.get",
+    "packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/types.ts:Client.request"
    ],
    "wrong": [
     "packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:Editor.getModel"
@@ -876,7 +923,9 @@
     "packages/interface-method/src/use.ts:merged > packages/interface-method/src/types.ts:Merged.added",
     "packages/interface-method/src/use.ts:merged > packages/interface-method/src/types.ts:Merged.both",
     "packages/property-override/src/child.ts:outer > packages/property-override/src/child.ts:Over.m",
-    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save"
+    "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save",
+    "packages/this-parameter/src/use.ts:Node.execute > packages/this-parameter/src/types.ts:Context.getInput",
+    "packages/this-parameter/src/use.ts:run > packages/this-parameter/src/types.ts:Context.getInput"
    ],
    "wrong": [],
    "lacks": [],
@@ -916,7 +965,9 @@
     "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@17",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc@26",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
-    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save"
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
+    "packages/this-parameter/src/use.ts:Node.build > packages/this-parameter/src/use.ts:Node.make",
+    "packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/use.ts:Node.getInput"
    ],
    "wrong": [],
    "lacks": [],
@@ -1036,7 +1087,8 @@
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B",
-    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo"
+    "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo",
+    "packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/types.ts:Client"
    ],
    "wrong": [],
    "lacks": [
@@ -1052,7 +1104,8 @@
     "packages/namespace-import/src/dom.ts:Widget.create > packages/namespace-import/src/dom.ts:Widget.constructor",
     "packages/property-override/src/child.ts:K.make@16 > packages/property-override/src/child.ts:K",
     "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K",
-    "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
+    "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P",
+    "packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/use.ts:Node.constructor"
    ],
    "wrong": [],
    "lacks": [],
@@ -1062,12 +1115,23 @@
   "call written as this.field.m(), other file": {
    "agree": [
     "packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:Editor.hasModel",
-    "packages/interface-method/src/use.ts:ByField.run > packages/interface-method/src/types.ts:Store.get"
+    "packages/interface-method/src/use.ts:ByField.run > packages/interface-method/src/types.ts:Store.get",
+    "packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/types.ts:Client.request"
    ],
    "wrong": [],
    "lacks": [
     "packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:ActiveEditor.getModel"
    ],
+   "extra": [],
+   "unjudged": []
+  },
+  "call written as this.m(), other file": {
+   "agree": [
+    "packages/this-parameter/src/use.ts:Node.execute > packages/this-parameter/src/types.ts:Context.getInput",
+    "packages/this-parameter/src/use.ts:run > packages/this-parameter/src/types.ts:Context.getInput"
+   ],
+   "wrong": [],
+   "lacks": [],
    "extra": [],
    "unjudged": []
   },
@@ -1077,7 +1141,9 @@
     "packages/property-override/src/child.ts:K.inst > packages/property-override/src/child.ts:K.make@17",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.acc@26",
     "packages/property-override/src/child.ts:Over.use > packages/property-override/src/child.ts:Over.m",
-    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save"
+    "packages/static-instance/src/st.ts:K.inst > packages/static-instance/src/st.ts:P.save",
+    "packages/this-parameter/src/use.ts:Node.build > packages/this-parameter/src/use.ts:Node.make",
+    "packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/use.ts:Node.getInput"
    ],
    "wrong": [],
    "lacks": [],

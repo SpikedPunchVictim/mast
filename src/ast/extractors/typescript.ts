@@ -1993,7 +1993,20 @@ function emitCallEdges(
 ): void {
   const env = new LocalTypeEnvironment();
   seedFileScope(env);
-  for (const b of classScopeBindings) env.recordReceiverType(b.receiver, b.type, b.resolution);
+  // A `this` parameter says what `this` is, whatever it is typed as: the class
+  // the method is written in is then not the receiver, and its fields are not
+  // the receiver's (D170).
+  // Not when the type is written with `typeof` the class, as typeorm's statics
+  // are (`this: { new (): T } & typeof BaseEntity`): that says it is the class.
+  const thisParam = paramsNode === null ? undefined : nodeNamedChildren(paramsNode).find((param) => findChildByType(param, 'this') !== null);
+  const className = classScopeBindings.find((b) => b.receiver === 'this')?.type;
+  const thisType = thisParam === undefined ? '' : findChildByType(thisParam, 'type_annotation')?.text ?? '';
+  const isTheClass = className !== undefined && thisType.split(/[^\w$]+/).some((word, i, words) => word === className && words[i - 1] === 'typeof');
+  const dropsClassThis = thisParam !== undefined && !isTheClass;
+  for (const b of classScopeBindings) {
+    const isOfThis = b.receiver === 'this' || b.receiver.startsWith('this.');
+    if (!(dropsClassThis && isOfThis)) env.recordReceiverType(b.receiver, b.type, b.resolution);
+  }
   if (paramsNode !== null) {
     for (const b of collectParamBindings(paramsNode)) env.recordReceiverType(b.receiver, b.type, b.resolution);
   }
@@ -2107,7 +2120,8 @@ function collectParamBindings(paramsNode: SyntaxNode): ReceiverBinding[] {
     const pt = nodeType(param);
     if (pt !== 'required_parameter' && pt !== 'optional_parameter') continue;
     if (findChildByType(param, 'accessibility_modifier') !== null) continue; // handled as a field
-    const name = findChildByType(param, 'identifier')?.text ?? null;
+    // `this: T` says what `this` is in the function, in place of the class it is written in.
+    const name = findChildByType(param, 'identifier')?.text ?? findChildByType(param, 'this')?.text ?? null;
     const type = annotationTypeName(param);
     if (name !== null && type !== null) bindings.push({ receiver: name, type, resolution: 'parameter_type' });
   }

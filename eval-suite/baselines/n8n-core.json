@@ -1,7 +1,7 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-10T07:52:53.048Z",
+  "ran_at": "2026-10-10T08:33:24.319Z",
   "typescript": "5.9.3",
   "label": "interface methods",
   "root": "n8n-ref",
@@ -14,8 +14,8 @@
   "corpus_hash": "198b715210b0497e0055446c9b802e30e539d7ece7fe5f2653f11ee9d10f0273",
   "program_source_files": 3119,
   "repeated_symbol_rows": 0,
-  "wall_ms": 3951,
-  "peak_rss_mb": 783
+  "wall_ms": 3541,
+  "peak_rss_mb": 839
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 62,

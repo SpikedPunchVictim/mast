@@ -190,3 +190,12 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `shapes-compare.out.txt`, `mast-compare.out.txt`, `n8n-core-compare.out.txt`, `n8n-cli-compare.out.txt` | `graph-scorecard.mjs compare` of each new card with the baseline it replaced. shapes exits 1 for the accepted edge on a narrowed receiver and for the fixture's merged class and interface, a key with two rows; this repository for an import of the s14 fixture that is newly `unjudged` |
 | `n8n-80.json` | The 80-project union. Its base is `s16-interface-method-rows/n8n-base.json` |
 | `nest-analysis.out.txt`, `vscode-analysis.out.txt` | `s16-interface-method-rows/analyse.mjs <s16 base card> <new card>`: the call pairs that changed bucket. The base cards were made by s16's patched scorecard over the index of `8647855` and are not kept |
+
+## s18 — a `this` parameter (`spikes/s18-this-parameter/`)
+
+| File | What it is |
+|---|---|
+| `shapes-compare.out.txt`, `mast-compare.out.txt`, `n8n-core-compare.out.txt`, `n8n-cli-compare.out.txt` | `graph-scorecard.mjs compare` of each new card with the baseline it replaced (s17's). Made with `s17-interface-method-rows-built/run-all.sh`; the shapes card was made again after the fixture gained its last case |
+| `n8n-80.json` | The 80-project union with the final build. Its base is `s17-interface-method-rows-built/n8n-80.json` |
+| `n8n-80-first-cut.json` | The same with the first cut, which dropped the class's `this` for any `this` parameter: 32 pairs written `this.m()`, same file, no longer agree |
+| `vscode-analysis.out.txt` | `s16-interface-method-rows/analyse.mjs <s17 card> <new card>`. The cards are not kept |

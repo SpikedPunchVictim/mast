@@ -1140,3 +1140,50 @@ watcher over the new rows. Directus was not scored (s15).
 
 **Next, not started.** A function whose `this` parameter is typed as an interface
 (`execute(this: IExecuteFunctions)`): 2,537 of n8n's lacking pairs in s16.
+
+## A `this` parameter (2026-10-10): built
+
+The form s16 left: `execute(this: IExecuteFunctions)`, where `this.m()` is a call on a
+receiver of the parameter's type. 2,539 of n8n's lacking pairs were `this.m()` to another
+file after the interface rows (`s17-interface-method-rows-built/n8n-80.json`).
+
+**Prior decisions.** None: a search of `adr/`, `MAST_SPEC.md`, `FINDINGS.md` and the
+ledger for a `this` parameter has no hit outside s16 and s17.
+
+**What changed.** `collectParamBindings` reads a parameter named `this` as it reads any
+annotated parameter, so `this` is bound to the type's name with `parameter_type`. In a
+method, the class's own `this` and `this.field` bindings are dropped for that scope
+(MAST_SPEC §10.3.1). No spike apart from the build: the change is a dozen lines in the extractor, and
+the measurement below is the one a spike would have made.
+
+**Against the compiler** (`spikes/s18-this-parameter/`; the base is s17's cards).
+
+| Call pairs | n8n, 80 projects | vscode | nest | this repository |
+|---|---|---|---|---|
+| newly agree | 606 | 2 | 0 | 2 |
+| newly wrong | 0 | 0 | 0 | 0 |
+| wrong before, gone | 0 | 6 | 0 | 0 |
+| agreed before, not now | 0 | 0 | 0 | 0 |
+| agree, after | 54,420 | 177,960 | 3,792 | 1,035 |
+
+On n8n `this.m()` to another file went from 1,188 agreeing and 2,539 lacking to 1,794
+and 1,933. Why the other 1,933 are not reached was not looked into; a method the
+parameter's type inherits from one of two parents is one cause the walk has by design.
+This repository's two are calls in the new shapes fixture, which its tsconfig reads.
+
+**A defect the tests found, D170.** A method with a `this` parameter had its calls on
+`this` stored to the class it is written in. The six wrong edges gone from vscode are
+that: statics of `DomWidget` and `ConvenientObservable.flatten`.
+
+**The first cut lost 32 right edges, and the corpus caught it.** It dropped the class's
+bindings for a `this` parameter of any type. typeorm's statics in n8n are written
+`static count<T>(this: { new (): T } & typeof BaseEntity)`, where the receiver is the
+class: `this.m()` in the same file went from 8,997 agreeing to 8,965
+(`n8n-80-first-cut.json`), though the union's total rose and the `packages/cli` and
+`packages/core` comparisons passed. A type written with `typeof` the class now leaves
+`this` as the class. The union total alone would not have shown it: it was read by call
+form.
+
+**Not done.** No adversarial review pass was run on this change. A `this` parameter typed
+`this: typeof Other` or with a type that has no one name binds nothing, so those calls
+have no edge. A nested function with its own `this` parameter is not read.

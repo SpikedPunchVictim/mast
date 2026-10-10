@@ -1,0 +1,120 @@
+before: eval-suite/baselines/shapes.json
+after:  $T/s18b/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 6         6         6         0         0         0         0
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              60        60        60         0         0         0         0
+                                             +8        +8        +8         .         .         .         .
+edge: POTENTIAL_CALL                         94        85        84         1         9         0         0
+                                             +7        +7        +7         .         .         .         .
+edge: RE_EXPORTS (to the declaration)         2         2         2         0         0         0         0
+export * (file to file)                       3         3         3         0         0         0         0
+file: indexed                                54        54        54         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+import: named binding                        47        47        47         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+import: the file it resolves to              33        33        33         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol flag: is_exported                    175       175       175         0         0         0         0
+                                            +12       +12       +12         .         .         .         .
+symbol: class                                31        31        31         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             80        80        80         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: interface                             9         9         9         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol: method                               57        57        57         0         0         0         0
+                                             +8        +8        +8         .         .         .         .
+symbol: one key, more than one row            0         5         0         0         0         0         5
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: PARENT_OF: absent -> agree (8)
+    packages/this-parameter/src/types.ts:Client > packages/this-parameter/src/types.ts:Client.request
+    packages/this-parameter/src/types.ts:Context > packages/this-parameter/src/types.ts:Context.getInput
+    packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.build
+    packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.constructor
+    packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.execute
+    packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.getInput
+    packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.make
+    packages/this-parameter/src/use.ts:Node > packages/this-parameter/src/use.ts:Node.plain
+  edge: POTENTIAL_CALL: absent -> agree (7)
+    packages/this-parameter/src/use.ts:Node.build > packages/this-parameter/src/use.ts:Node.make
+    packages/this-parameter/src/use.ts:Node.execute > packages/this-parameter/src/types.ts:Context.getInput
+    packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/types.ts:Client
+    packages/this-parameter/src/use.ts:Node.make > packages/this-parameter/src/use.ts:Node.constructor
+    packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/types.ts:Client.request
+    packages/this-parameter/src/use.ts:Node.plain > packages/this-parameter/src/use.ts:Node.getInput
+    packages/this-parameter/src/use.ts:run > packages/this-parameter/src/types.ts:Context.getInput
+  file: indexed: absent -> agree (2)
+    packages/this-parameter/src/types.ts
+    packages/this-parameter/src/use.ts
+  import: named binding: absent -> agree (2)
+    packages/this-parameter/src/use.ts { Client } from './types'
+    packages/this-parameter/src/use.ts { Context } from './types'
+  import: the file it resolves to: absent -> agree (1)
+    packages/this-parameter/src/use.ts './types' => packages/this-parameter/src/types.ts
+  symbol flag: is_exported: absent -> agree (12)
+    packages/this-parameter/src/types.ts:Client exported=true
+    packages/this-parameter/src/types.ts:Client.request exported=true
+    packages/this-parameter/src/types.ts:Context exported=true
+    packages/this-parameter/src/types.ts:Context.getInput exported=true
+    packages/this-parameter/src/use.ts:Node exported=true
+    packages/this-parameter/src/use.ts:Node.build exported=true
+    packages/this-parameter/src/use.ts:Node.constructor exported=true
+    packages/this-parameter/src/use.ts:Node.execute exported=true
+    packages/this-parameter/src/use.ts:Node.getInput exported=true
+    packages/this-parameter/src/use.ts:Node.make exported=true
+    packages/this-parameter/src/use.ts:Node.plain exported=true
+    packages/this-parameter/src/use.ts:run exported=true
+  symbol: class: absent -> agree (2)
+    packages/this-parameter/src/types.ts:Client
+    packages/this-parameter/src/use.ts:Node
+  symbol: function: absent -> agree (1)
+    packages/this-parameter/src/use.ts:run
+  symbol: interface: absent -> agree (1)
+    packages/this-parameter/src/types.ts:Context
+  symbol: method: absent -> agree (8)
+    packages/this-parameter/src/types.ts:Client.request
+    packages/this-parameter/src/types.ts:Context.getInput
+    packages/this-parameter/src/use.ts:Node.build
+    packages/this-parameter/src/use.ts:Node.constructor
+    packages/this-parameter/src/use.ts:Node.execute
+    packages/this-parameter/src/use.ts:Node.getInput
+    packages/this-parameter/src/use.ts:Node.make
+    packages/this-parameter/src/use.ts:Node.plain
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction                 21        21        21         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .
+call edge, stored as field_type                    4         4         3         1         0         0         0
+                                                  +1        +1        +1         .         .         .         .
+call edge, stored as import                       27        27        27         0         0         0         0
+call edge, stored as new_expression                2         2         2         0         0         0         0
+call edge, stored as parameter_type               13        13        13         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .
+call edge, stored as same_file                     4         4         4         0         0         0         0
+call edge, stored as static_method                 7         7         7         0         0         0         0
+call edge, stored as this_method                   7         7         7         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .
+call written as expr.m(), other file               2         0         0         0         2         0         0
+call written as f(), other file                   22        22        22         0         0         0         0
+call written as f(), same file                     4         4         4         0         0         0         0
+call written as ident.m(), other file             24        20        20         0         4         0         0
+call written as ident.m(), same file               5         5         5         0         0         0         0
+call written as new X(), other file               17        15        15         0         2         0         0
+                                                  +1        +1        +1         .         .         .         .
+call written as new X(), same file                 6         6         6         0         0         0         0
+                                                  +1        +1        +1         .         .         .         .
+call written as this.field.m(), other file         4         3         3         0         1         0         0
+                                                  +1        +1        +1         .         .         .         .
+call written as this.m(), other file               2         2         2         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .
+call written as this.m(), same file                7         7         7         0         0         0         0
+                                                  +2        +2        +2         .         .         .         .

@@ -65,6 +65,7 @@ commit that files it. The directory is left out of this repository's own index
 | `namespace-export` | none: calls through a namespace another file exports, imported and then exported or in the `export * as` form (rule 12), and a member of a member, which is not read and is in the baseline as `lacks` |
 | `tagged-template` | D165, a scorecard defect, fixed: a tagged template, bare, through a namespace import and with a tag a constant holds, was `unjudged` |
 | `interface-method` | none: calls on a parameter and a field typed as an interface, on an interface above it, and on a class merged with an interface (MAST_SPEC §10.1, the methods of an interface). A receiver narrowed to an interface that declares the method again has its edge on the declared type's method: that is in the baseline as `wrong`, and was accepted (`adr/proposals/checker-widening/PROPOSAL.md`, "A row for each method of an interface, built") |
+| `this-parameter` | D170: a method with a `this` parameter had its calls on `this` stored to the class it is written in. Also the calls the parameter now reaches, from a function and from an arrow in it (MAST_SPEC §10.3.1) |
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
 (`adr/proposals/graph-reference/spikes/RESULTS.md`). `packages/cli` takes about 15 s and

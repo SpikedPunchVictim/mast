@@ -1,7 +1,7 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-10T07:51:15.933Z",
+  "ran_at": "2026-10-10T08:31:48.102Z",
   "typescript": "5.9.3",
   "label": "interface methods",
   "root": "mast",
@@ -11,11 +11,11 @@
   "workspace_packages_mapped_to_source": 0,
   "scored_typescript_files": 107,
   "tsconfig_files": 86,
-  "corpus_hash": "c18dca491a7ddf72100837bf5c34294416bf860aab10867d470176f40ff3ee4c",
+  "corpus_hash": "1b537aeda745be288c438487cad6d5f128b6d2c3573df57262b5cc8a5fa20fc7",
   "program_source_files": 756,
   "repeated_symbol_rows": 0,
-  "wall_ms": 1587,
-  "peak_rss_mb": 498
+  "wall_ms": 1885,
+  "peak_rss_mb": 437
  },
  "notes": {
   "call outside any declaration mast has a symbol for": 107,
@@ -285,7 +285,9 @@
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:calleeLine",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:collectCallSites",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:collectParamBindings",
+    "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:findChildByType",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:localDeclarations",
+    "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:nodeNamedChildren",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:nodeType",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:ownParamNames",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:parseCallee",
@@ -5056,7 +5058,9 @@
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:calleeLine",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:collectCallSites",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:collectParamBindings",
+    "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:findChildByType",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:localDeclarations",
+    "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:nodeNamedChildren",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:nodeType",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:ownParamNames",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:parseCallee",
@@ -6046,7 +6050,9 @@
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:calleeLine",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:collectCallSites",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:collectParamBindings",
+    "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:findChildByType",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:localDeclarations",
+    "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:nodeNamedChildren",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:nodeType",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:ownParamNames",
     "src/ast/extractors/typescript.ts:emitCallEdges > src/ast/extractors/typescript.ts:parseCallee",
