@@ -1,0 +1,44 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/nest-ref",
+ "workspace_src": false,
+ "programs": [
+  {
+   "tsconfig": "tsconfig.json",
+   "corpus_files_first_seen_here": 971
+  }
+ ],
+ "corpus_files_read": 971,
+ "counts": {
+  "all calls and news": 8277,
+  "new ns.C() | import * as ns | unresolved | unresolved": 2,
+  "ns.f() | import * as ns | unresolved | unresolved": 27,
+  "type reference ns.T | import * as ns | unresolved": 29
+ },
+ "samples": {
+  "all calls and news": [
+   "packages/common/decorators/core/bind.decorator.ts:17 decorators.forEach((fn, index) => fn(target, key, index))",
+   "packages/common/decorators/core/bind.decorator.ts:17 fn(target, key, index)",
+   "packages/common/interfaces/version-options.interface.ts:8 Symbol('VERSION_NEUTRAL')",
+   "packages/common/utils/shared.utils.ts:5 isNil(fn)",
+   "packages/common/utils/shared.utils.ts:8 isObject(fn)"
+  ],
+  "new ns.C() | import * as ns | unresolved | unresolved": [
+   "packages/microservices/client/client-tcp.ts:111 new net.Socket()",
+   "integration/mongoose/src/cats/schemas/cat.schema.ts:3 new mongoose.Schema({"
+  ],
+  "ns.f() | import * as ns | unresolved | unresolved": [
+   "packages/microservices/server/server-tcp.ts:181 net.createServer(this.bindHandler.bind(this))",
+   "packages/platform-express/adapters/express-adapter.ts:225 express.static(path, options)",
+   "packages/platform-express/adapters/express-adapter.ts:227 express.static(path, options)",
+   "packages/platform-express/adapters/express-adapter.ts:275 https.createServer(",
+   "packages/platform-express/adapters/express-adapter.ts:280 http.createServer(this.getInstance())"
+  ],
+  "type reference ns.T | import * as ns | unresolved": [
+   "packages/microservices/external/kafka.interface.ts:62 tls.ConnectionOptions",
+   "packages/microservices/external/kafka.interface.ts:79 tls.ConnectionOptions",
+   "packages/microservices/external/kafka.interface.ts:83 net.Socket",
+   "packages/microservices/client/client-tcp.ts:100 net.Socket",
+   "packages/microservices/server/server-tcp.ts:193 net.Server"
+  ]
+ }
+}

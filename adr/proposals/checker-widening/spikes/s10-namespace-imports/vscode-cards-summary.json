@@ -1,0 +1,101 @@
+{
+ "before": {
+  "meta": {
+   "ran_at": "2026-10-10T00:20:54.132Z",
+   "typescript": "5.9.3",
+   "label": "vscode 65f2c060, before namespace imports",
+   "root": "vscode-ref",
+   "tsconfig": "src/tsconfig.json",
+   "prefix": "",
+   "config_errors": [],
+   "workspace_packages_mapped_to_source": 0,
+   "scored_typescript_files": 9830,
+   "tsconfig_files": 8056,
+   "corpus_hash": "bb7a264fadb1d877bd29c47fcd025403514dba0e08e24c102124a46acf7efb11",
+   "program_source_files": 9952,
+   "repeated_symbol_rows": 824,
+   "wall_ms": 62939,
+   "peak_rss_mb": 2668
+  },
+  "call_edges": {
+   "agree": 139715,
+   "wrong": 47,
+   "lacks": 39944,
+   "extra": 0,
+   "unjudged": 5621
+  },
+  "notes": {
+   "call outside any declaration mast has a symbol for": 79232,
+   "call through a variable, judged by its signature": 3769,
+   "call whose callee is not a name or a property": 9552,
+   "enum": 1885,
+   "export * as namespace": 2,
+   "export default <expression>": 224,
+   "export { a as b } of a name with no symbol kind": 2,
+   "import for side effects": 2055,
+   "named import with an alias": 971,
+   "namespace import": 3704,
+   "namespace or module declaration": 888,
+   "top-level destructuring declaration": 20,
+   "top-level variable that is not a function": 12853
+  }
+ },
+ "after": {
+  "meta": {
+   "ran_at": "2026-10-10T00:22:03.122Z",
+   "typescript": "5.9.3",
+   "label": "vscode 65f2c060, after namespace imports",
+   "root": "vscode-ref",
+   "tsconfig": "src/tsconfig.json",
+   "prefix": "",
+   "config_errors": [],
+   "workspace_packages_mapped_to_source": 0,
+   "scored_typescript_files": 9830,
+   "tsconfig_files": 8056,
+   "corpus_hash": "bb7a264fadb1d877bd29c47fcd025403514dba0e08e24c102124a46acf7efb11",
+   "program_source_files": 9952,
+   "repeated_symbol_rows": 824,
+   "wall_ms": 64263,
+   "peak_rss_mb": 2937
+  },
+  "call_edges": {
+   "agree": 143957,
+   "wrong": 53,
+   "lacks": 35702,
+   "extra": 0,
+   "unjudged": 5625
+  },
+  "notes": {
+   "call outside any declaration mast has a symbol for": 79232,
+   "call through a variable, judged by its signature": 3769,
+   "call whose callee is not a name or a property": 9552,
+   "enum": 1885,
+   "export * as namespace": 2,
+   "export default <expression>": 224,
+   "export { a as b } of a name with no symbol kind": 2,
+   "import for side effects": 2055,
+   "named import with an alias": 971,
+   "namespace import": 3704,
+   "namespace or module declaration": 888,
+   "top-level destructuring declaration": 20,
+   "top-level variable that is not a function": 12853
+  }
+ },
+ "newly_wrong": [
+  "src/vs/base/browser/markdownRenderer.ts:completeBlockquotePattern > src/vs/base/common/marked/marked.js:_Lexer.constructor",
+  "src/vs/base/browser/markdownRenderer.ts:createPlainTextRenderer > src/vs/base/common/marked/marked.js:_Renderer.constructor",
+  "src/vs/base/browser/markdownRenderer.ts:renderMarkdown > src/vs/base/common/marked/marked.js:Marked.constructor",
+  "src/vs/workbench/contrib/markdown/browser/markdownDocumentRenderer.ts:renderMarkdownDocument > src/vs/base/common/marked/marked.js:Marked.constructor",
+  "src/vs/workbench/contrib/welcomeWalkthrough/browser/walkThroughInput.ts:WalkThroughInput.resolve > src/vs/base/common/marked/marked.js:Marked.constructor",
+  "src/vs/workbench/contrib/welcomeWalkthrough/common/walkThroughContentProvider.ts:WalkThroughSnippetContentProvider.provideTextContent > src/vs/base/common/marked/marked.js:marked"
+ ],
+ "newly_unjudged": [
+  "src/vs/platform/theme/browser/iconsStyleSheet.ts:getIconsStyleSheet > src/vs/base/browser/cssValue.ts:inline",
+  "src/vs/workbench/contrib/terminal/browser/terminalService.ts:TerminalEditorStyle.updateStyles > src/vs/base/browser/cssValue.ts:inline",
+  "src/vs/workbench/services/themes/browser/fileIconThemeData.ts:FileIconThemeLoader.processIconThemeDocument > src/vs/base/browser/cssValue.ts:inline",
+  "src/vs/workbench/services/themes/browser/fileIconThemeData.ts:handleParentFolder > src/vs/base/browser/cssValue.ts:inline"
+ ],
+ "lacks_to_agree": 4242,
+ "agree_lost": [],
+ "note": "The two scorecards are 180 MB each and are not kept. Before is the build of 3ca0c9b, after is the namespace-import change. vscode 65f2c060, src/tsconfig.json, nothing installed."
+}

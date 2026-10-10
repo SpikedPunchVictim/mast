@@ -1168,6 +1168,25 @@ function namedImportBindings(topLevel: readonly SyntaxNode[]): Map<string, Impor
   return bindings;
 }
 
+/**
+ * The file's namespace imports by local name: `ns` of `import * as ns from
+ * './x'` and of `import d, * as ns from './x'`, with the specifier as written.
+ * The first import of a local name wins, as for a named import.
+ */
+function namespaceImportModules(topLevel: readonly SyntaxNode[]): Map<string, string> {
+  const modules = new Map<string, string>();
+  for (const node of topLevel) {
+    if (nodeType(node) !== 'import_statement') continue;
+    const importClause = findChildByType(node, 'import_clause');
+    const namespaceImport = importClause === null ? null : findChildByType(importClause, 'namespace_import');
+    const local = namespaceImport === null ? undefined : findChildByType(namespaceImport, 'identifier')?.text;
+    const moduleNode = findChildByType(node, 'string');
+    if (local === undefined || moduleNode === null) continue;
+    if (!modules.has(local)) modules.set(local, moduleNode.text.slice(1, -1));
+  }
+  return modules;
+}
+
 export interface NamedReExport {
   /** Name the barrel exposes (`bar` in `export { foo as bar } from './x'`). */
   readonly exportedName: string;
@@ -1497,6 +1516,7 @@ export function extractEdges(
   // `importBindings` keeps what that name is in its module (D106).
   const importBindings = namedImportBindings(topLevel);
   const importedNames = [...importBindings.keys()];
+  const namespaceModules = namespaceImportModules(topLevel);
   const sameFileNames: string[] = [];
   for (const node of topLevel) {
     if (nodeType(node) === 'import_statement') continue;
@@ -1508,6 +1528,7 @@ export function extractEdges(
 
   const seedFileScope = (env: LocalTypeEnvironment): void => {
     for (const n of importedNames) env.recordImport(n);
+    for (const [local, module] of namespaceModules) env.recordNamespaceImport(local, module);
     for (const n of sameFileNames) env.recordSameFileSymbol(n);
   };
 
@@ -1814,7 +1835,7 @@ function emitCallEdges(
       onCallSite?.('unparseable_callee');
       continue;
     }
-    const linked = resolveCallSite(env, site, parsed, names);
+    const linked = resolveCallSite(env, site, parsed, names, isConstruction);
     // `new X()` is placed like a bare call of `X` (an import or a same-file
     // declaration) and stored as a construction, so the graph writer can
     // choose between the class and its constructor.
@@ -1990,6 +2011,10 @@ function localDeclarations(bodyNode: SyntaxNode): LocalDeclaration[] {
     let innerFn = fn;
     if (NESTED_FUNCTION_TYPES.has(t)) {
       for (const name of declaredParams(node).keys()) found.push({ name, scope: node, isNestedParam: true, constructed: null, imported: null });
+      // `function f() {}` as an expression binds `f` inside itself only, as a
+      // parameter would (D163).
+      const ownName = FUNCTION_EXPRESSION_TYPES.has(t) ? node.childForFieldName('name')?.text : undefined;
+      if (ownName !== undefined) found.push({ name: ownName, scope: node, isNestedParam: true, constructed: null, imported: null });
       innerBlock = node;
       innerFn = node;
     } else if (BLOCK_SCOPE_TYPES.has(t)) {
@@ -2180,7 +2205,9 @@ function namesBoundBy(pattern: SyntaxNode): string[] {
 
 const NAMED_LOCAL_DECLARATION_TYPES = new Set([
   'function_declaration', 'generator_function_declaration', 'class_declaration', 'abstract_class_declaration',
+  'enum_declaration',
 ]);
+const FUNCTION_EXPRESSION_TYPES = new Set(['function_expression', 'generator_function']);
 /** Where a call goes: the name, how it was read, and the module when a dynamic import names it. */
 interface ResolvedCall {
   readonly callee: string;
@@ -2198,6 +2225,7 @@ function resolveCallSite(
   site: CallSite,
   parsed: { receiver: string | null; method: string },
   names: ScopeNames,
+  isConstruction = false,
 ): ResolvedCall | null {
   const { receiver, method } = parsed;
   if (receiver === null) return resolveName(env, method, site.call, names);
@@ -2205,6 +2233,15 @@ function resolveCallSite(
   const root = receiver.split('.')[0] ?? receiver;
   if (site.ownThis && (root === 'this' || root === 'super')) return null;
   const declared = visibleDeclaration(names.declarations, root, site.call);
+  // `ns.f()` and `new ns.C()` through `import * as ns` name `f` and `C` of the
+  // module, as a named import of them would. A local or a parameter called
+  // `ns` is not the namespace.
+  const isShadowed = declared !== null || site.nestedParams.has(root) || names.ownParams.has(root);
+  const namespaceModule = receiver === root && !isShadowed ? env.namespaceModule(root) : undefined;
+  if (namespaceModule !== undefined) return { callee: method, resolution: 'import', importModule: namespaceModule };
+  // `new a.B()` is read through a namespace and through nothing else: the
+  // rules below are for a method called on `a`, which `B` is not.
+  if (isConstruction) return null;
   if (declared !== null && !declared.isNestedParam) {
     if (receiver !== root) return null;
     // A local is what its declaration made it: a name of a module, an instance
@@ -2252,10 +2289,19 @@ function resolveName(env: LocalTypeEnvironment, name: string, at: SyntaxNode, na
   return names.ownParams.has(name) ? null : env.resolveCall(null, name);
 }
 
-/** The class a `new` expression names, as a bare callee, or null for `new a.B()` and the like. */
-function parseConstructed(expr: SyntaxNode): { receiver: null; method: string } | null {
+/**
+ * The class a `new` expression names: a bare callee for `new X()`, `B` on the
+ * receiver `a` for `new a.B()`, and null for anything else.
+ */
+function parseConstructed(expr: SyntaxNode): { receiver: string | null; method: string } | null {
   const ctor = expr.childForFieldName('constructor') ?? expr.namedChildren[0] ?? null;
-  return ctor !== null && nodeType(ctor) === 'identifier' ? { receiver: null, method: ctor.text } : null;
+  if (ctor === null) return null;
+  if (nodeType(ctor) === 'identifier') return { receiver: null, method: ctor.text };
+  if (nodeType(ctor) !== 'member_expression') return null;
+  const object = ctor.childForFieldName('object');
+  const property = ctor.childForFieldName('property')?.text;
+  if (object === null || property === undefined || nodeType(object) !== 'identifier') return null;
+  return { receiver: object.text, method: property };
 }
 
 /** Extract `{ receiver, method }` from a call expression, or null if unhandled. */

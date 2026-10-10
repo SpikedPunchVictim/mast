@@ -166,7 +166,7 @@ export interface ImporterQuery {
 /**
  * Paths of the files to resolve again: those that re-export one of `names` by
  * name, and those that import one from a source or from a barrel that reaches
- * a source.
+ * a source — by name, or as a whole (`import * as ns`).
  *
  * Call it once the star rows of every re-written file are back in place; the
  * barrels are found by walking them.
@@ -211,9 +211,13 @@ export async function findImportersOfNames(db: Db, query: ImporterQuery): Promis
   }
 
   const reach = closure([...query.sources, ...found], adjacency(await loadStarRows(db), true));
+  // A row that lists no name is `import * as ns` or an import for its effect.
+  // The first can call any of the names as `ns.name`, and the row does not say
+  // which of the two it is, so its file is resolved again either way.
   const namesAny = (symbolsJson: string): boolean => {
     try {
-      return (JSON.parse(symbolsJson) as string[]).some((symbol) => imported.has(symbol));
+      const symbols = JSON.parse(symbolsJson) as string[];
+      return symbols.length === 0 || symbols.some((symbol) => imported.has(symbol));
     } catch {
       return false; // malformed row names nothing
     }

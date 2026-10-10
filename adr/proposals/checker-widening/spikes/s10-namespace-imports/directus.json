@@ -1,0 +1,52 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/directus-ref",
+ "workspace_src": true,
+ "programs": [
+  {
+   "tsconfig": "api/tsconfig.json",
+   "corpus_files_first_seen_here": 1486
+  }
+ ],
+ "corpus_files_read": 1486,
+ "counts": {
+  "all calls and news": 63561,
+  "ns.f() | import * as ns | in the corpus | a function | declared in the imported file": 2,
+  "ns.f() | import * as ns | in the corpus | a variable holding the result of a call | declared in the imported file": 12,
+  "ns.f() | import * as ns | unresolved | unresolved": 8,
+  "type reference ns.T | import * as ns | unresolved": 8
+ },
+ "samples": {
+  "all calls and news": [
+   "packages/env/src/constants/defaults.ts:7 resolve(cwd(), '.env')",
+   "packages/env/src/constants/defaults.ts:7 cwd()",
+   "packages/env/src/utils/get-config-path.ts:9 resolve(path as string)",
+   "packages/env/src/constants/type-map.ts:104 Object.entries(TYPE_MAP).map(([name, value]) => [",
+   "packages/env/src/constants/type-map.ts:104 Object.entries(TYPE_MAP)"
+  ],
+  "ns.f() | import * as ns | in the corpus | a function | declared in the imported file": [
+   "api/src/services/assets.ts:299 TransformationUtils.resolvePreset(transformation, file)",
+   "api/src/services/assets.ts:305 TransformationUtils.maybeExtractFormat(transforms)"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding the result of a call | declared in the imported file": [
+   "api/src/middleware/error-handler.test.ts:134 errorHandlerMod.errorHandler(error1, mockRequest, mockResponse, nextFu",
+   "api/src/middleware/error-handler.test.ts:149 errorHandlerMod.errorHandler([error1, error2], mockRequest, mockRespon",
+   "api/src/middleware/error-handler.test.ts:170 errorHandlerMod.errorHandler([error1, new Error()], mockRequest, mockR",
+   "api/src/middleware/error-handler.test.ts:178 errorHandlerMod.errorHandler(error1, mockRequest, mockResponse, nextFu",
+   "api/src/middleware/error-handler.test.ts:184 errorHandlerMod.errorHandler([error1, error1], mockRequest, mockRespon"
+  ],
+  "ns.f() | import * as ns | unresolved | unresolved": [
+   "api/src/auth/drivers/saml.ts:28 samlify.setSchemaValidator(validator)",
+   "api/src/auth/drivers/saml.ts:40 samlify.ServiceProvider(getConfigFromEnv(`AUTH_${config['provider'].to",
+   "api/src/auth/drivers/saml.ts:41 samlify.IdentityProvider(getConfigFromEnv(`AUTH_${config['provider'].t",
+   "api/src/server.ts:38 http.createServer(await createApp())",
+   "api/src/controllers/assets.ts:98 z"
+  ],
+  "type reference ns.T | import * as ns | unresolved": [
+   "api/src/auth/drivers/saml.ts:31 samlify.ServiceProviderInstance",
+   "api/src/auth/drivers/saml.ts:32 samlify.IdentityProviderInstance",
+   "api/src/utils/get-address.ts:4 http.Server",
+   "api/src/server.ts:37 http.Server",
+   "api/src/server.ts:42 http.IncomingMessage"
+  ]
+ }
+}

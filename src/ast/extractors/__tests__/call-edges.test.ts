@@ -124,14 +124,20 @@ describe('extractEdges — POTENTIAL_CALL', () => {
       `)).toEqual([]);
     });
 
-    it('is not read when it is parenthesised or reached through a namespace import', () => {
+    it('is not read when it is parenthesised', () => {
       expect(pairs(`
-        import * as orm from './orm';
         import { Make } from './lib';
         @(Make())
-        @orm.Entity()
         export class User {}
       `)).toEqual([]);
+    });
+
+    it('is read through a namespace import, as any call through one is', () => {
+      expect(pairs(`
+        import * as orm from './orm';
+        @orm.Entity()
+        export class User {}
+      `)).toEqual(['User -> Entity']);
     });
 
     it('does not read this in its arguments as the instance', () => {
@@ -788,5 +794,107 @@ describe('extractEdges — a name declared in a block, read by block (D117, D123
         const { Agent } = await import('./remote'); const a = new Agent(); a.go();
       }
     `)).toEqual(['f -> ./remote:Agent', 'f -> ./remote:Agent.go']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A call through a namespace import (adr/proposals/checker-widening, s10).
+// `import * as ns from './x'; ns.f()` calls the `f` that `./x` exports, as
+// `import { f } from './x'; f()` does. On vscode that is 14,137 call sites.
+// ---------------------------------------------------------------------------
+
+describe('extractEdges — a call through a namespace import', () => {
+  const calls = (src: string): string[] =>
+    potentialCalls(edgesOf(src)).map((e) => `${e.fromName} -> ${e.importModule ?? '(none)'}:${e.toName} (${e.resolution ?? ''})`);
+
+  it('reads `ns.f()` as a call of the name `f` of the module', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(): void { dom.append(); }
+    `)).toEqual(['go -> ./dom:append (import)']);
+  });
+
+  it('reads `new ns.C()` as a construction of the name `C` of the module', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(): unknown { return new dom.Widget(); }
+    `)).toEqual(['go -> ./dom:Widget (construction)']);
+  });
+
+  it('reads it in a method of a class', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export class View { render(): void { dom.append(); } }
+    `)).toEqual(['View.render -> ./dom:append (import)']);
+  });
+
+  it('reads the namespace of an import that also has a default', () => {
+    expect(calls(`
+      import main, * as dom from './dom';
+      export function go(): void { dom.append(); }
+    `)).toEqual(['go -> ./dom:append (import)']);
+  });
+
+  it('stores nothing when a local has the namespace\'s name', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(other: unknown): void { const dom = other as any; dom.append(); }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing when a parameter has the namespace\'s name', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(dom: any): void { dom.append(); new dom.Widget(); }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing when a callback parameter has the namespace\'s name', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(items: any[]): void { items.forEach((dom) => { dom.append(); }); }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing when an enum declared in the function has the namespace\'s name', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(): void { enum dom { append } (dom as any).append(); dom.append(); }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing when the function expression the call is in has the namespace\'s name', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(): unknown { return function dom(): void { dom.append(); }; }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing for a named import when the function expression the call is in has its name', () => {
+    expect(calls(`
+      import { append } from './dom';
+      export function go(): unknown { return function append(): void { append(); }; }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing for a named import when an enum declared in the function has its name', () => {
+    expect(calls(`
+      import { Kind } from './dom';
+      export function go(): void { enum Kind { a } Kind(); }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing for a call of a member of something the namespace holds', () => {
+    expect(calls(`
+      import * as dom from './dom';
+      export function go(): void { dom.Widget.create(); }
+    `)).toEqual([]);
+  });
+
+  it('stores nothing for `new a.B()` when `a` is a named import', () => {
+    expect(calls(`
+      import { dom } from './dom';
+      export function go(): unknown { return new dom.Widget(); }
+    `)).toEqual([]);
   });
 });

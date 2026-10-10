@@ -1,0 +1,220 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/vscode-ref",
+ "workspace_src": false,
+ "programs": [
+  {
+   "tsconfig": "src/tsconfig.json",
+   "corpus_files_first_seen_here": 8063
+  }
+ ],
+ "corpus_files_read": 8063,
+ "counts": {
+  "all calls and news": 803996,
+  "deeper | import * as ns | in the corpus | a method | through a re-export": 64,
+  "deeper | import * as ns | outside it | a method": 1,
+  "new ns.a.C() | import * as ns | in the corpus | a variable, no initializer | declared in the imported file": 2,
+  "new ns.C() | import * as ns | in the corpus | a class | declared in the imported file": 624,
+  "new ns.C() | import * as ns | in the corpus | a class | through a re-export": 413,
+  "new ns.C() | import * as ns | unresolved | unresolved": 4,
+  "ns.a.f() | import * as ns | in the corpus | a function | declared in the imported file": 362,
+  "ns.a.f() | import * as ns | in the corpus | a method | declared in the imported file": 337,
+  "ns.a.f() | import * as ns | in the corpus | a method | through a re-export": 43,
+  "ns.a.f() | import * as ns | in the corpus | a property | declared in the imported file": 129,
+  "ns.a.f() | import * as ns | in the corpus | a variable holding a function | declared in the imported file": 1,
+  "ns.a.f() | import * as ns | in the corpus | a variable holding Identifier | declared in the imported file": 2,
+  "ns.a.f() | import * as ns | in the corpus | a variable, no initializer | declared in the imported file": 132,
+  "ns.a.f() | import * as ns | in the corpus | GetAccessor | declared in the imported file": 15,
+  "ns.a.f() | import * as ns | outside it | a method": 8,
+  "ns.a.f() | import * as ns | unresolved | unresolved": 226,
+  "ns.f() | import * as ns | in the corpus | a function | declared in the imported file": 14137,
+  "ns.f() | import * as ns | in the corpus | a function | through a re-export": 1,
+  "ns.f() | import * as ns | in the corpus | a variable holding a function | declared in the imported file": 89,
+  "ns.f() | import * as ns | in the corpus | a variable holding ParenthesizedExpression | declared in the imported file": 368,
+  "ns.f() | import * as ns | in the corpus | a variable holding PropertyAccessExpression | declared in the imported file": 80,
+  "ns.f() | import * as ns | in the corpus | a variable holding the result of a call | declared in the imported file": 271,
+  "ns.f() | import * as ns | in the corpus | a variable, no initializer | declared in the imported file": 79,
+  "ns.f() | import * as ns | in the corpus | BindingElement | declared in the imported file": 269,
+  "ns.f() | import * as ns | unresolved | unresolved": 4462,
+  "type reference ns.T | import * as ns | in the corpus": 6678,
+  "type reference ns.T | import * as ns | unresolved": 364
+ },
+ "samples": {
+  "all calls and news": [
+   "src/vs/base/common/collections.ts:23 Object.create(null)",
+   "src/vs/base/common/collections.ts:25 groupFn(element)",
+   "src/vs/base/common/collections.ts:30 target.push(element)",
+   "src/vs/base/common/collections.ts:36 new Map<K, V[]>()",
+   "src/vs/base/common/collections.ts:38 groupFn(element)"
+  ],
+  "deeper | import * as ns | in the corpus | a method | through a re-export": [
+   "src/vs/workbench/api/browser/mainThreadSearch.ts:41 Constants.SearchContext.hasAIResultProvider.bindTo(this.contextKeyServ",
+   "src/vs/workbench/api/browser/mainThreadSearch.ts:49 Constants.SearchContext.hasAIResultProvider.bindTo(this.contextKeyServ",
+   "src/vs/workbench/api/browser/mainThreadSearch.ts:64 Constants.SearchContext.hasAIResultProvider.bindTo(this.contextKeyServ",
+   "src/vs/workbench/contrib/search/browser/searchWidget.ts:199 Constants.SearchContext.ReplaceActiveKey.bindTo(this.contextKeyService",
+   "src/vs/workbench/contrib/search/browser/searchWidget.ts:200 Constants.SearchContext.SearchInputBoxFocusedKey.bindTo(this.contextKe"
+  ],
+  "deeper | import * as ns | outside it | a method": [
+   "src/vs/workbench/api/common/extHostApiCommands.ts:371 typeConverters.InlayHint.to.bind(undefined, converter)"
+  ],
+  "new ns.a.C() | import * as ns | in the corpus | a variable, no initializer | declared in the imported file": [
+   "src/vs/workbench/contrib/welcomeWalkthrough/common/walkThroughContentProvider.ts:87 new marked.marked.Renderer()",
+   "src/vs/workbench/contrib/welcomeWalkthrough/browser/walkThroughInput.ts:119 new marked.marked.Renderer()"
+  ],
+  "new ns.C() | import * as ns | in the corpus | a class | declared in the imported file": [
+   "src/vs/editor/common/core/cursorColumns.ts:44 new strings.GraphemeIterator(text)",
+   "src/vs/editor/common/core/cursorColumns.ts:63 new strings.CodePointIterator(text)",
+   "src/vs/editor/common/core/cursorColumns.ts:89 new strings.GraphemeIterator(lineContent)",
+   "src/vs/editor/common/model/textModel.ts:208 new model.TextModelResolvedOptions({",
+   "src/vs/editor/common/model/textModel.ts:218 new model.TextModelResolvedOptions(options)"
+  ],
+  "new ns.C() | import * as ns | in the corpus | a class | through a re-export": [
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:103 new types.Position(selectionStartLineNumber - 1, selectionStartColumn ",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:104 new types.Position(positionLineNumber - 1, positionColumn - 1)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:105 new types.Selection(start, end)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:144 new types.Range(startLineNumber - 1, startColumn - 1, endLineNumber - ",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:158 new types.Location(URI.revive(location.uri), Range.to(location.range))"
+  ],
+  "new ns.C() | import * as ns | unresolved | unresolved": [
+   "src/vs/base/node/ports.ts:38 new net.Socket()",
+   "src/vs/platform/tunnel/test/node/selfSignedCert.test.ts:47 new crypto.X509Certificate(cert.cert)",
+   "src/vs/platform/tunnel/test/node/selfSignedCert.test.ts:53 new crypto.X509Certificate(cert.cert)",
+   "src/vs/platform/tunnel/test/node/selfSignedCert.test.ts:61 new crypto.X509Certificate(cert.cert)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | a function | declared in the imported file": [
+   "src/vs/base/node/powershell.ts:93 pfs.SymlinkSupport.existsFile(this.exePath)",
+   "src/vs/base/node/powershell.ts:133 pfs.SymlinkSupport.existsDirectory(powerShellInstallBaseDir)",
+   "src/vs/base/node/powershell.ts:175 pfs.SymlinkSupport.existsFile(exePath)",
+   "src/vs/base/node/powershell.ts:202 pfs.SymlinkSupport.existsDirectory(msixAppDir)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:1349 languages.Command.is(part.command)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | a method | declared in the imported file": [
+   "src/vs/base/common/uri.ts:366 paths.win32.join(uriToFsPath(uri, true), ...pathFragment)",
+   "src/vs/base/common/uri.ts:368 paths.posix.join(uri.path, ...pathFragment)",
+   "src/vs/base/common/network.ts:201 paths.posix.join(serverBasePath ?? '/', getServerProductSegment(produc",
+   "src/vs/base/common/network.ts:209 paths.posix.join(this._serverRootPath, Schemas.vscodeRemoteResource)",
+   "src/vs/base/common/resources.ts:194 paths.posix.basename(resource.path, suffix)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | a method | through a re-export": [
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:391 types.MarkdownString.isMarkdownString(markup)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:740 types.SnippetTextEdit.replace(range, new types.SnippetString(text))",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:742 types.TextEdit.replace(range, text)",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:1727 types.NotebookCellData.validate(cell)",
+   "src/vs/workbench/api/common/extHostCommands.ts:197 extHostTypes.NotebookRange.isNotebookRange(value)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | a property | declared in the imported file": [
+   "src/vs/base/browser/ui/actionbar/actionbar.ts:375 DOM.EventHelper.stop(e, true)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:205 dom.EventHelper.stop(e, true)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:228 dom.EventHelper.stop(e)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:238 dom.EventHelper.stop(e)",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:249 dom.EventHelper.stop(e)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | a variable holding a function | declared in the imported file": [
+   "src/vs/workbench/contrib/testing/browser/codeCoverageDecorations.ts:760 coverUtils.labels.showingFilterFor(testItem.label)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | a variable holding Identifier | declared in the imported file": [
+   "src/vs/workbench/api/common/extHostTesting.ts:1277 Convert.TestTag.namespace(this.controllerId, tag.id)",
+   "src/vs/workbench/api/common/extHostTesting.ts:1330 Convert.TestTag.namespace(this.controllerId, _tag.id)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | a variable, no initializer | declared in the imported file": [
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:414 marked.marked.walkTokens(marked.marked.lexer(res.value), token => {",
+   "src/vs/workbench/api/common/extHostTypeConverters.ts:414 marked.marked.lexer(res.value)",
+   "src/vs/base/test/browser/markdownRenderer.test.ts:545 marked.marked.lexer(completeTable)",
+   "src/vs/base/test/browser/markdownRenderer.test.ts:552 marked.marked.lexer(incompleteTable)",
+   "src/vs/base/test/browser/markdownRenderer.test.ts:553 marked.marked.lexer(completeTable)"
+  ],
+  "ns.a.f() | import * as ns | in the corpus | GetAccessor | declared in the imported file": [
+   "src/vs/base/node/powershell.ts:139 pfs.Promises.readdir(powerShellInstallBaseDir)",
+   "src/vs/base/node/powershell.ts:212 pfs.Promises.readdir(msixAppDir)",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:316 pfs.Promises.rename(downloadPath, updatePackagePath, false /* no retry",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:388 pfs.Promises.readdir(cachePath)",
+   "src/vs/platform/update/electron-main/updateService.win32.ts:424 pfs.Promises.writeFile(this.availableUpdate.updateFilePath, 'flag')"
+  ],
+  "ns.a.f() | import * as ns | outside it | a method": [
+   "src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts:813 icons.allBreakpoints.map(b => `${ThemeIcon.asCSSSelector(b.regular)}`)",
+   "src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts:833 icons.allBreakpoints.map(b => ThemeIcon.asCSSSelector(b.disabled))",
+   "src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts:842 icons.allBreakpoints.map(b => ThemeIcon.asCSSSelector(b.unverified))",
+   "src/vs/workbench/contrib/testing/browser/testingExplorerView.ts:624 icons.testingStatesToIcons.get(dominantState ?? TestResultState.Unset)",
+   "src/vs/workbench/contrib/testing/browser/testingExplorerView.ts:1599 icons.testingStatesToIcons.get("
+  ],
+  "ns.a.f() | import * as ns | unresolved | unresolved": [
+   "src/bootstrap-esm.ts:288 fs.promises.readFile(messagesFile)",
+   "src/bootstrap-esm.ts:295 fs.promises.writeFile(nlsConfig.languagePack.corruptMarkerFile, 'corru",
+   "src/bootstrap-esm.ts:304 fs.promises.readFile(nlsConfig.defaultMessagesFile)",
+   "src/vs/base/node/pfs.ts:65 fs.promises.rename(path, moveToPath)",
+   "src/vs/base/node/pfs.ts:84 fs.promises.rm(path, { recursive: true, force: true, maxRetries: 3 })"
+  ],
+  "ns.f() | import * as ns | in the corpus | a function | declared in the imported file": [
+   "src/vs/base/common/platform.ts:106 nls.getNLSLanguage()",
+   "src/vs/base/common/equals.ts:39 arrays.equals(a, b, itemEquals ?? strictEquals)",
+   "src/vs/base/common/equals.ts:47 arrays.equals(a, b, itemEquals ?? strictEquals)",
+   "src/vs/base/common/network.ts:230 errors.onUnexpectedExternalError(err)",
+   "src/vs/base/common/resources.ts:174 extpath.isEqualOrParent(originalFSPath(base), originalFSPath(parentCan"
+  ],
+  "ns.f() | import * as ns | in the corpus | a function | through a re-export": [
+   "src/vs/workbench/contrib/webview/browser/themeing.ts:64 colorRegistry.getColorRegistry()"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding a function | declared in the imported file": [
+   "src/vs/base/browser/ui/scrollbar/scrollbarArrow.ts:83 dom.addStandardDisposableListener(this.bgDomNode, dom.EventType.POINTE",
+   "src/vs/base/browser/ui/scrollbar/scrollbarArrow.ts:84 dom.addStandardDisposableListener(this.domNode, dom.EventType.POINTER_",
+   "src/vs/base/browser/ui/contextview/contextview.ts:265 DOM.addStandardDisposableListener(this.container!, event, e => {",
+   "src/vs/base/browser/ui/contextview/contextview.ts:271 DOM.addStandardDisposableListener(this.container!, event, e => {",
+   "src/vs/base/browser/ui/selectBox/selectBoxCustom.ts:213 dom.addStandardDisposableListener(this.selectElement, 'change', (e) =>"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding ParenthesizedExpression | declared in the imported file": [
+   "src/vs/base/common/network.ts:375 paths.join(rootUriOrPath, uriOrModule)",
+   "src/vs/base/common/resources.ts:207 paths.dirname(originalFSPath(resource))",
+   "src/vs/base/common/resources.ts:226 paths.normalize(originalFSPath(resource))",
+   "src/vs/base/common/resources.ts:240 paths.relative(originalFSPath(from), originalFSPath(to))",
+   "src/vs/base/common/resources.ts:262 paths.resolve(originalFSPath(base), path)"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding PropertyAccessExpression | declared in the imported file": [
+   "src/bootstrap-esm.ts:260 performance.mark('code/willLoadNls')",
+   "src/bootstrap-esm.ts:311 performance.mark('code/didLoadNls')",
+   "src/bootstrap-fork.ts:10 performance.mark('code/fork/start')",
+   "src/vs/base/common/path.ts:225 process.cwd()",
+   "src/vs/base/common/path.ts:232 process.cwd()"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding the result of a call | declared in the imported file": [
+   "src/vs/base/node/id.ts:87 uuid.generateUuid()",
+   "src/vs/base/node/id.ts:126 uuid.generateUuid()",
+   "src/vs/workbench/contrib/notebook/common/model/notebookCellTextModel.ts:519 UUID.generateUuid()",
+   "src/vs/workbench/contrib/debug/common/debugSource.ts:57 resources.basenameOrAuthority(this.uri)",
+   "src/vs/workbench/contrib/debug/common/debugSource.ts:124 resources.basenameOrAuthority(modelUri)"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable, no initializer | declared in the imported file": [
+   "src/vs/base/browser/touch.ts:310 DomUtils.scheduleAtNextAnimationFrame(targetWindow, () => {",
+   "src/vs/base/browser/ui/scrollbar/scrollableElement.ts:678 dom.scheduleAtNextAnimationFrame(dom.getWindow(element), callback)",
+   "src/vs/base/browser/ui/scrollbar/scrollableElement.ts:723 dom.scheduleAtNextAnimationFrame(dom.getWindow(element), callback)",
+   "src/vs/base/browser/markdownRenderer.ts:724 marked.parse(value, { async: false, renderer })",
+   "src/vs/base/browser/markdownRenderer.ts:982 marked.lexer(list.raw.trim() + ' &nbsp;')"
+  ],
+  "ns.f() | import * as ns | in the corpus | BindingElement | declared in the imported file": [
+   "src/vs/base/browser/globalPointerMoveMonitor.ts:88 dom.getWindow(initialElement)",
+   "src/vs/base/browser/ui/widget.ts:15 dom.getWindow(domNode)",
+   "src/vs/base/browser/ui/widget.ts:19 dom.getWindow(domNode)",
+   "src/vs/base/browser/ui/widget.ts:23 dom.getWindow(domNode)",
+   "src/vs/base/browser/ui/widget.ts:27 dom.getWindow(domNode)"
+  ],
+  "ns.f() | import * as ns | unresolved | unresolved": [
+   "src/bootstrap-node.ts:54 path.dirname(process.execPath)",
+   "src/bootstrap-node.ts:103 path.join(import.meta.dirname, '../node_modules')",
+   "src/bootstrap-node.ts:184 path.dirname(p)",
+   "src/bootstrap-node.ts:188 path.dirname(path.join(process.env.HOMEDRIVE, process.env.HOMEPATH))",
+   "src/bootstrap-node.ts:188 path.join(process.env.HOMEDRIVE, process.env.HOMEPATH)"
+  ],
+  "type reference ns.T | import * as ns | in the corpus": [
+   "src/vs/base/common/platform.ts:86 nls.INLSConfiguration",
+   "src/vs/base/common/buffer.ts:326 streams.ReadableStream<VSBuffer>",
+   "src/vs/base/common/buffer.ts:330 streams.ReadableBufferedStream<VSBuffer>",
+   "src/vs/base/common/buffer.ts:345 streams.ReadableStream<VSBuffer>",
+   "src/vs/base/common/buffer.ts:349 streams.ReadableStreamEvents<Uint8Array | string>"
+  ],
+  "type reference ns.T | import * as ns | unresolved": [
+   "src/vs/base/node/pfs.ts:250 fs.Stats",
+   "src/vs/base/node/pfs.ts:267 fs.Stats",
+   "src/vs/base/node/ports.ts:201 net.Socket",
+   "src/vs/base/parts/ipc/node/ipc.net.ts:21 http.IncomingMessage",
+   "src/vs/platform/log/node/spdlogLog.ts:20 spdlog.Logger"
+  ]
+ }
+}

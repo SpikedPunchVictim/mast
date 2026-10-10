@@ -1,0 +1,43 @@
+{
+ "corpus": "/Users/spikedpunchvictim/projects/mast",
+ "workspace_src": false,
+ "programs": [
+  {
+   "tsconfig": "tsconfig.json",
+   "corpus_files_first_seen_here": 84
+  }
+ ],
+ "corpus_files_read": 84,
+ "counts": {
+  "all calls and news": 4729,
+  "ns.f() | a default import that is a namespace | outside it | a function": 1,
+  "ns.f() | a named import of a namespace | outside it | a function": 73,
+  "type reference ns.T | a named import of a namespace | outside it": 10
+ },
+ "samples": {
+  "all calls and news": [
+   "src/env.ts:14 z.object({",
+   "src/env.ts:16 z.string().min(1).optional()",
+   "src/env.ts:16 z.string().min(1)",
+   "src/env.ts:16 z.string()",
+   "src/user-error.ts:12 super(message)"
+  ],
+  "ns.f() | a default import that is a namespace | outside it | a function": [
+   "src/store/lock.ts:142 lockfile.lock(marker, {"
+  ],
+  "ns.f() | a named import of a namespace | outside it | a function": [
+   "src/env.ts:14 z.object({",
+   "src/env.ts:16 z.string()",
+   "src/store/index-stamp.ts:60 z.looseObject({",
+   "src/store/index-stamp.ts:61 z.string()",
+   "src/store/index-stamp.ts:62 z.string()"
+  ],
+  "type reference ns.T | a named import of a namespace | outside it": [
+   "src/env.ts:19 z.infer<typeof ConfigEnvSchema>",
+   "src/cli/setup-plan.ts:68 z.infer<typeof rootShape>",
+   "src/cli/setup-plan.ts:69 z.infer<typeof groupShape>",
+   "src/cli/setup-plan.ts:70 z.infer<typeof flatEntryShape>",
+   "src/cli/setup-plan.ts:72 z.ZodType"
+  ]
+ }
+}

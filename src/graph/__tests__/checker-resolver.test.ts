@@ -737,8 +737,12 @@ describe('a decorator on a member is that member\'s call', () => {
       compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', strict: true, experimentalDecorators: true },
       include: ['*.ts'],
     }));
+    // The decorators below are reached through a namespace another file
+    // exports, which the heuristic resolver does not follow, so the edges are
+    // the pass's own. (Through \`import * as lib\` it reads them itself.)
+    writeFileSync(join(tmpDir, 'ns.ts'), `export * as lib from './lib';\n`);
     writeFileSync(join(tmpDir, 'others.ts'), [
-      `import * as lib from './lib';`,
+      `import { lib } from './ns';`,
       `@lib.Before()`,
       `export class OnClass {}`,
       `export class OnField {`,
@@ -864,8 +868,11 @@ describe('a decorator on a member — the member is found by its line, not its n
       `  return () => undefined;`,
       `}`,
     ].join('\n') + '\n');
+    // Reached through a namespace another file exports, which the heuristic
+    // resolver does not follow: every edge here is the pass's own.
+    writeFileSync(join(tmpDir, 'ns.ts'), `export * as lib from './lib';\n`);
     for (const [name, lines] of Object.entries(FILES)) {
-      writeFileSync(join(tmpDir, name), [`import * as lib from './lib';`, ...lines].join('\n') + '\n');
+      writeFileSync(join(tmpDir, name), [`import { lib } from './ns';`, ...lines].join('\n') + '\n');
     }
     writeFileSync(join(tmpDir, 'tsconfig.json'), JSON.stringify({
       compilerOptions: { module: 'NodeNext', moduleResolution: 'NodeNext', target: 'ES2022', strict: true, experimentalDecorators: true },

@@ -1,0 +1,19 @@
+== before
+  wrong  src/named.ts:named > src/lib.js:Lexer.constructor
+  wrong  src/named.ts:named > src/lib.js:parse
+  lacks  src/named.ts:named > src/lib.d.ts:Lexer.constructor
+  lacks  src/named.ts:named > src/lib.d.ts:parse
+  lacks  src/ns.ts:viaNamespace > src/lib.d.ts:Lexer.constructor
+  lacks  src/ns.ts:viaNamespace > src/lib.d.ts:parse
+  unjudged  src/tag.ts:taggedBare > src/lib.js:parse
+== after
+  wrong  src/named.ts:named > src/lib.js:Lexer.constructor
+  wrong  src/named.ts:named > src/lib.js:parse
+  wrong  src/ns.ts:viaNamespace > src/lib.js:Lexer.constructor
+  wrong  src/ns.ts:viaNamespace > src/lib.js:parse
+  lacks  src/named.ts:named > src/lib.d.ts:Lexer.constructor
+  lacks  src/named.ts:named > src/lib.d.ts:parse
+  lacks  src/ns.ts:viaNamespace > src/lib.d.ts:Lexer.constructor
+  lacks  src/ns.ts:viaNamespace > src/lib.d.ts:parse
+  unjudged  src/ns.ts:tagged > src/lib.js:parse
+  unjudged  src/tag.ts:taggedBare > src/lib.js:parse

@@ -2375,10 +2375,15 @@ the indexer.
    one, the class otherwise.
 10. **Static calls.** `UserRepository.create()` where `UserRepository` is a name the file
     imports or declares → the symbol `UserRepository.create`, if the declaring file has it.
+11. **Calls through a namespace import.** `import * as dom from './dom'; dom.append()` →
+    `append` as `./dom` exports it, as `import { append } from './dom'; append()` is
+    (stored with `resolution` `import`), and `new dom.Widget()` as `new Widget()` is
+    (`construction`). A local or a parameter called `dom` is not the namespace, and there
+    is then no edge by this rule.
 
-In every case the callee's file is found from the calling file's own evidence: a named
-import, followed through re-exporting index files to the declaration, or a declaration
-in the same file. A call is read wherever it sits in the declaration: nested functions,
+In every case the callee's file is found from the calling file's own evidence: a named or
+namespace import, followed through re-exporting index files to the declaration, or a
+declaration in the same file. A call is read wherever it sits in the declaration: nested functions,
 object-literal methods, parameter defaults and class field initializers included.
 
 A decorator written as a call is a call. `@Service()` on a class is a call from the class
@@ -2416,8 +2421,13 @@ the identifier match still lands in `identifier_fts` and surfaces as
   holding a function (`export const Get = RouteFactory('get')`): a top-level constant
   that is not a function has no symbol. When a type of the same name is declared beside
   the constant, the edge goes to the type's row, as for any call of such a name (see
-  "A lookup by name" below). `@(expr)` and a decorator reached through a namespace import
-  (`@orm.Entity()`) are not read either.
+  "A lookup by name" below). `@(expr)` is not read either. `@orm.Entity()` through
+  `import * as orm` is read, by rule 11.
+- **Through a namespace, anything but a call or `new` of one of its names.**
+  `dom.Widget.create()` (a member of something the namespace holds), a parameter
+  annotated `w: dom.Widget` followed by `w.render()`, and a namespace another file
+  exports (`export * as dom from './dom'` in an index file, then `import { dom }`):
+  mast has no symbol for a namespace, so nothing names what is behind it.
 - **Factory return types without annotation.** `const repo = makeRepository(); repo.findById(id)`
   — `repo`'s type is inferred and the resolver does not run inference.
 - **DI container lookups.** `container.get(UserRepository).findById(id)` — the

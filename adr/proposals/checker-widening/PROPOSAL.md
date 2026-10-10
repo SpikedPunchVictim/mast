@@ -509,6 +509,124 @@ This is a direction and not a figure. Three rounds on a loaded machine do not se
 more edges, and every decorator is one more scope walked. A run on a quiet machine, and a
 profile, are owed before the number is quoted anywhere.
 
+## Calls through a namespace import (2026-10-10)
+
+Next in the agreed order after P2. Before it, `import * as ns from './x'; ns.f()` stored no
+edge: the import row has no names, so nothing placed `f`.
+
+### The spike (`spikes/s10-namespace-imports/`)
+
+`sites.mjs` asks the compiler, for every call and `new` whose callee is a chain of names
+rooted in a module namespace, what is called. Sites, not pairs. Callees declared in the
+corpus only.
+
+| | n8n, six projects | vscode | directus `api` | nest | this repository |
+|---|---|---|---|---|---|
+| Calls and `new`s read | 391,673 | 803,996 | 63,561 | 8,277 | 4,729 |
+| `ns.f()` through `import * as ns`, to a function or a constant holding one | 303 | 14,227 | 2 | 0 | 0 |
+| `ns.f()` through `import * as ns`, to another kind of constant or binding | 5 | 1,067 | 12 | 0 | 0 |
+| `new ns.C()` through `import * as ns` | 1 | 1,037 | 0 | 0 | 0 |
+| `ns.a.f()` and deeper through `import * as ns` | 0 | 1,087 | 0 | 0 | 0 |
+| `ns.f()` where `ns` is a named import of a namespace another file exports | 746 | 0 | 0 | 0 | 0 |
+| Type references written `ns.T` | 67 | 6,678 | 0 | 0 | 0 |
+
+Three things the first count (309 on n8n, in s9) did not show:
+
+1. **It is a vscode-sized gap, not an n8n-sized one.** n8n writes named imports. vscode
+   writes `import * as dom` throughout: 15,264 sites of the two simple forms.
+2. **n8n's larger namespace form is another one.** 746 sites go through
+   `import { NodeHelpers } from 'n8n-workflow'`, where the package's index file has
+   `export * as NodeHelpers from './node-helpers'`. mast stores nothing for that line
+   (D096), so the rule below cannot place these. Not built here.
+3. **Nearly all of it is declared in the imported file** (vscode: 14,137 of 14,138 calls
+   to a function). The re-export chain matters on n8n only (73 of 303).
+
+### The change
+
+Rule 11 of MAST_SPEC §10.3.1. The extractor collects the file's namespace imports by local
+name. A call `ns.f()` or `new ns.C()` whose `ns` is one of them, and is not a local, a
+parameter or a nested function's parameter at that point, is recorded as a call of `f`
+(`resolution` `import`) or a construction of `C`, with the import's module. From there it
+is placed as a named import of the same name is: the import row gives the file, and the
+lookup follows re-exports. Nothing new is stored and the schema is unchanged.
+
+`new a.B()` was not parsed at all before. It is now parsed, and read through a namespace
+only.
+
+Tests, each seen failing first: nine in `call-edges.test.ts` (the two forms, a method
+scope, an import with a default beside the namespace, three kinds of shadowing, the member
+of a member, `new a.B()` on a named import) and four in `reexport-shapes.test.ts` (the
+imported file with a decoy beside it, a star re-export, an incremental run after the
+imported file is edited, an external module). The P2 test that pinned `@orm.Entity()` as
+not read now pins it as read. Two checker test files used a namespace import as their
+example of a call the heuristic resolver does not read; they now use a namespace another
+file exports, which it still does not.
+
+### Measured
+
+| Corpus | Call pairs that agree, before | after | Wrong | Extra |
+|---|---|---|---|---|
+| n8n, 80 projects (`s1/run.mjs`) | 52,857 | 52,982 (+125) | 0 | 0 |
+| vscode `src/tsconfig.json` (scorecard) | 139,715 | 143,957 (+4,242) | 47 → 53 | 0 |
+| shapes corpus, `namespace-import` | 1 | 6 | 0 | 0 |
+| this repository | no pair moved | | | |
+
+On vscode 4,242 pairs went from `lacks` to `agree` and none that agreed was lost
+(`vscode-cards-summary.json`). `compare` still fails there, on 6 newly wrong and 4 newly
+unjudged edges. Both were run down on a fixture scored by the build before and the build
+after (`js-beside-dts.sh`):
+
+- **The 6 wrong** all end in `src/vs/base/common/marked/marked.js`, which has
+  `marked.d.ts` beside it. The compiler names the declaration file and mast names the
+  file the code is in. The build before gives the same verdict for a named import of such
+  a module. It is the scorecard's, filed as D162, open; the edges are to the right
+  functions.
+- **The 4 unjudged** are tagged templates, `css.inline\`...\``. tree-sitter reads a tagged
+  template as a call, so mast stores an edge, and the reference does not count one. The
+  build before does the same for a bare `inline\`...\``. A tagged template does call its
+  tag; this is a gap in the reference, noted with the other scorecard gaps.
+
+vscode was indexed and scored with nothing installed. Its 9,643 pairs still lacking under
+`ident.m()`, other file, were not broken down.
+
+### The review, before the commit
+
+A reviewer was given the diff and asked to find where the rule is wrong. Each finding was
+reproduced as a failing test before anything was changed.
+
+- **An incremental run left the importer's edges out of date.** An incremental run finds
+  the files to resolve again by the names their import rows list, and the row of a
+  namespace import lists none. In 10 of the reviewer's 28 edits the stored graph differed
+  from a full index: two kept an edge to the wrong file (a named re-export pointed at
+  another file; the imported file gaining a name its star also supplies), eight lacked
+  edges (the imported file, or one behind it, gaining the name). The same edits with a
+  named import were equal. Fixed in `findImportersOfNames`: a row that lists no name is
+  taken to import every name. Such a row is also what `import './x'` leaves, so a file
+  that imports another for its effect is resolved again when that one's exports change;
+  this costs time and stores nothing wrong. Nine tests in `reexport-shapes.test.ts`, all
+  failing without the fix. This was caught before it was committed, so it has no ledger
+  row.
+- **Two shadows the scope walk did not know** (D163, older than the rule): a function
+  expression's own name, and an `enum` declared in the function. Fixed, four tests.
+- **A default export behind a star** (D164, older than the rule, in the placing of every
+  imported name): fixed for code that compiles, one test.
+
+Reported and not acted on: wrong edges in code with two declarations of one local name,
+which does not compile; a `using` declaration as a shadow, not reproduced here.
+
+### Left open
+
+- **A namespace another file exports** (`export * as ns from`, then `import { ns }`): 746
+  sites on n8n, none on the other four. It needs a stored record of what a namespace
+  export stands for, which D096 removed because the record it had was wrong. That is a
+  new stored row and a decision of its own.
+- **`ns.C.m()`**: 1,087 sites on vscode of `ns.a.f()` and deeper, 362 to a function (a
+  TypeScript `namespace` inside the module) and 380 to a method. Not read.
+- **A type written `ns.T`**: 6,678 references on vscode. A parameter annotated so gives
+  its method calls no edge. Not measured as pairs.
+- **Not measured:** what the rule costs an index. It adds one map per file and one lookup
+  per member call.
+
 ## A caller listed twice (D156, 2026-10-10)
 
 `mast_callers` and `mast_rename_impact` left a chunk out of the potential matches only

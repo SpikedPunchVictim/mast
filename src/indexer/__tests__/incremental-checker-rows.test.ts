@@ -64,9 +64,11 @@ describe('checker rows across an incremental run', () => {
     writeFiles(dir, {
       'src/edited.ts': `export function fn(): number { return 1; }\nexport function run(): void {}\n`,
       'src/kept.ts': `export function go(): void {}\n`,
-      // `run` and `go` are reached through an object, which the heuristic
-      // resolver does not follow: these are the calls a checker pass adds.
-      'src/zz-caller.ts': `import * as edited from './edited.js';\nimport * as kept from './kept.js';\nimport { fn } from './edited.js';\nexport function use(): number { edited.run(); kept.go(); return fn(); }\n`,
+      // `run` and `go` are reached through a namespace another file exports,
+      // which the heuristic resolver does not follow: these are the calls a
+      // checker pass adds.
+      'src/ns.ts': `export * as edited from './edited.js';\nexport * as kept from './kept.js';\n`,
+      'src/zz-caller.ts': `import { edited, kept } from './ns.js';\nimport { fn } from './edited.js';\nexport function use(): number { edited.run(); kept.go(); return fn(); }\n`,
     });
     await indexFull(dir);
     db = openDatabase(configFor(dir).resolved_state_dir);

@@ -1,0 +1,256 @@
+{
+ "corpus": "/Users/spikedpunchvictim/.claude/jobs/ce306a60/tmp/n8n-ref",
+ "workspace_src": true,
+ "programs": [
+  {
+   "tsconfig": "packages/cli/tsconfig.json",
+   "corpus_files_first_seen_here": 5304
+  },
+  {
+   "tsconfig": "packages/@n8n/db/tsconfig.json",
+   "corpus_files_first_seen_here": 363
+  },
+  {
+   "tsconfig": "packages/core/tsconfig.json",
+   "corpus_files_first_seen_here": 109
+  },
+  {
+   "tsconfig": "packages/@n8n/decorators/tsconfig.json",
+   "corpus_files_first_seen_here": 29
+  },
+  {
+   "tsconfig": "packages/@n8n/api-types/tsconfig.json",
+   "corpus_files_first_seen_here": 118
+  },
+  {
+   "tsconfig": "packages/@n8n/config/tsconfig.json",
+   "corpus_files_first_seen_here": 13
+  }
+ ],
+ "corpus_files_read": 5936,
+ "counts": {
+  "all calls and news": 391673,
+  "new ns.C() | a default import that is a namespace | outside it | a class": 89,
+  "new ns.C() | a named import of a namespace | outside it | a class": 1,
+  "new ns.C() | import * as ns | in the corpus | a class | through a re-export": 1,
+  "new ns.C() | import * as ns | outside it | a class": 12,
+  "ns.a.f() | a default import that is a namespace | outside it | a method": 12,
+  "ns.a.f() | a default import that is a namespace | outside it | a property": 1,
+  "ns.a.f() | a named import of a namespace | outside it | a property": 64,
+  "ns.a.f() | import * as ns | outside it | a function": 6,
+  "ns.a.f() | import * as ns | outside it | a method": 12,
+  "ns.f() | a default import that is a namespace | outside it | a function": 88,
+  "ns.f() | a default import that is a namespace | outside it | a variable, no initializer": 583,
+  "ns.f() | a named import of a namespace | in the corpus | a function": 716,
+  "ns.f() | a named import of a namespace | in the corpus | a variable holding a function": 5,
+  "ns.f() | a named import of a namespace | in the corpus | a variable holding Identifier": 25,
+  "ns.f() | a named import of a namespace | outside it | a function": 328,
+  "ns.f() | a named import of a namespace | outside it | a variable, no initializer": 6108,
+  "ns.f() | import * as ns | in the corpus | a function | declared in the imported file": 201,
+  "ns.f() | import * as ns | in the corpus | a function | through a re-export": 2,
+  "ns.f() | import * as ns | in the corpus | a variable holding a function | declared in the imported file": 29,
+  "ns.f() | import * as ns | in the corpus | a variable holding a function | through a re-export": 71,
+  "ns.f() | import * as ns | in the corpus | a variable holding Identifier | declared in the imported file": 5,
+  "ns.f() | import * as ns | outside it | a function": 92,
+  "ns.f() | import * as ns | outside it | a method": 101,
+  "ns.f() | import * as ns | outside it | a property": 21,
+  "ns.f() | import * as ns | outside it | a variable, no initializer": 1,
+  "type reference ns.T | a default import that is a namespace | outside it": 175,
+  "type reference ns.T | a named import of a namespace | outside it": 947,
+  "type reference ns.T | import * as ns | in the corpus": 67,
+  "type reference ns.T | import * as ns | outside it": 218
+ },
+ "samples": {
+  "all calls and news": [
+   "packages/@n8n/constants/src/scheduler.ts:27 Object.values(ScheduledJobKind)",
+   "packages/@n8n/constants/src/scheduler.ts:49 Object.values(RecurringCronUnit)",
+   "packages/@n8n/constants/src/scheduler.ts:93 Object.values(ScheduledTaskStatus)",
+   "packages/@n8n/config/src/custom-types.ts:3 super()",
+   "packages/@n8n/config/src/custom-types.ts:4 str.split(delimiter)"
+  ],
+  "new ns.C() | a default import that is a namespace | outside it | a class": [
+   "packages/cli/src/metrics/prometheus/webhook-and-form-metrics.service.ts:28 new promClient.Histogram({",
+   "packages/cli/src/metrics/prometheus/webhook-and-form-metrics.service.ts:37 new promClient.Histogram({",
+   "packages/cli/src/metrics/prometheus/active-workflow-metrics.service.ts:38 new promClient.Gauge({",
+   "packages/cli/src/metrics/prometheus/cache-metrics.service.ts:31 new promClient.Counter({",
+   "packages/cli/src/metrics/prometheus/db-pool-metrics.service.ts:26 new promClient.Gauge({"
+  ],
+  "new ns.C() | a named import of a namespace | outside it | a class": [
+   "packages/cli/src/modules/agents/builder/agents-builder-tools.service.ts:157 new z.ZodError(["
+  ],
+  "new ns.C() | import * as ns | in the corpus | a class | through a re-export": [
+   "packages/cli/src/__tests__/workflow-runner.test.ts:106 new core.ExecutionLifecycleHooks('webhook', execution.id, workflow)"
+  ],
+  "new ns.C() | import * as ns | outside it | a class": [
+   "packages/cli/src/mfa/totp.service.ts:7 new OTPAuth.Secret()",
+   "packages/cli/src/mfa/totp.service.ts:19 new OTPAuth.TOTP({",
+   "packages/cli/src/mfa/totp.service.ts:31 new OTPAuth.TOTP({",
+   "packages/@n8n/ai-utilities/src/converters/message.ts:325 new LangchainMessages.SystemMessage({",
+   "packages/@n8n/ai-utilities/src/converters/message.ts:331 new LangchainMessages.HumanMessage({"
+  ],
+  "ns.a.f() | a default import that is a namespace | outside it | a method": [
+   "packages/cli/src/metrics/prometheus/prometheus.service.ts:111 promClient.register.metrics()",
+   "packages/cli/src/expression-observability/expression-observability.provider.ts:89 promClient.register.getSingleMetric(promName)",
+   "packages/cli/src/expression-observability/__tests__/expression-observability.provider.test.ts:35 promClient.register.clear()",
+   "packages/cli/src/expression-observability/__tests__/expression-observability.provider.test.ts:64 promClient.register.metrics()",
+   "packages/cli/src/expression-observability/__tests__/expression-observability.provider.test.ts:78 promClient.register.getSingleMetric('n8n_expression_pool_acquired_tota"
+  ],
+  "ns.a.f() | a default import that is a namespace | outside it | a property": [
+   "packages/@n8n/config/src/configs/executions.config.ts:60 z.coerce.number()"
+  ],
+  "ns.a.f() | a named import of a namespace | outside it | a property": [
+   "packages/@n8n/config/src/configs/database.config.ts:92 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:119 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:202 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:214 z.coerce.number()",
+   "packages/@n8n/config/src/configs/database.config.ts:226 z.coerce.number()"
+  ],
+  "ns.a.f() | import * as ns | outside it | a function": [
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4242 fs.promises.readFile(jsonPath, 'utf-8')",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4372 fs.promises.writeFile(f.path, f.content)",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4474 fs.promises.mkdir(d, { recursive: true })",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4531 fs.promises.rm(packageDir, { recursive: true, force: true })",
+   "packages/@n8n/workflow-sdk/src/generate-types/generate-types.ts:4539 fs.promises.writeFile(path.join(outputDir, 'index.ts'), indexContent)"
+  ],
+  "ns.a.f() | import * as ns | outside it | a method": [
+   "packages/cli/src/mfa/totp.service.ts:20 OTPAuth.Secret.fromBase32(secret)",
+   "packages/cli/src/mfa/totp.service.ts:32 OTPAuth.Secret.fromBase32(secret)",
+   "packages/cli/src/mfa/totp.service.ts:39 OTPAuth.TOTP.generate({",
+   "packages/cli/src/mfa/totp.service.ts:40 OTPAuth.Secret.fromBase32(secret)",
+   "packages/cli/src/scaling/job-processor.ts:195 WorkflowExecuteAdditionalData.sendDataToUI.bind({"
+  ],
+  "ns.f() | a default import that is a namespace | outside it | a function": [
+   "packages/workflow/src/execution-context.ts:12 z.lazy(() =>",
+   "packages/workflow/src/execution-context.ts:13 z.union([",
+   "packages/workflow/src/execution-context.ts:14 z.string()",
+   "packages/workflow/src/execution-context.ts:15 z.number()",
+   "packages/workflow/src/execution-context.ts:16 z.boolean()"
+  ],
+  "ns.f() | a default import that is a namespace | outside it | a variable, no initializer": [
+   "packages/@n8n/config/src/configs/collaboration.config.ts:5 z.enum(['off', 'local', 'server'])",
+   "packages/@n8n/config/src/configs/executions.config.ts:83 z.enum(['regular', 'queue'])",
+   "packages/@n8n/config/src/configs/expression-engine.config.ts:5 z.enum(['legacy', 'vm'])",
+   "packages/@n8n/config/src/configs/expression-engine.config.ts:52 z.number({ coerce: true })",
+   "packages/@n8n/config/src/configs/expression-engine.config.ts:56 z.number({ coerce: true })"
+  ],
+  "ns.f() | a named import of a namespace | in the corpus | a function": [
+   "packages/core/src/execution-engine/node-execution-context/utils/extract-value.ts:27 NodeHelpers.findDisplayedProperty(",
+   "packages/cli/src/node-types.ts:49 NodeHelpers.getVersionedNodeType(nodeType.type, version)",
+   "packages/cli/src/node-types.ts:95 NodeHelpers.getVersionedNodeType(node.type, version)",
+   "packages/cli/src/node-types.ts:99 NodeHelpers.getVersionedNodeType(node.type, version)",
+   "packages/cli/src/node-types.ts:242 NodeHelpers.getVersionedNodeType(nodeType.type, nodeTypeVersion)"
+  ],
+  "ns.f() | a named import of a namespace | in the corpus | a variable holding a function": [
+   "packages/@n8n/backend-common/src/logging/logger.ts:68 LoggerProxy.init(this)",
+   "packages/cli/src/events/relays/telemetry.event-relay.ts:1314 TelemetryHelpers.userInInstanceRanOutOfFreeAiCredits(runData)",
+   "packages/cli/test/global-setup.ts:16 testDb.getBootstrapDBOptions()",
+   "packages/core/src/execution-engine/__tests__/active-workflow-triggers.test.ts:54 LoggerProxy.init(mock())",
+   "packages/core/src/execution-engine/__tests__/poll-trigger-executor.test.ts:16 LoggerProxy.init(mock())"
+  ],
+  "ns.f() | a named import of a namespace | in the corpus | a variable holding Identifier": [
+   "packages/@n8n/backend-network/src/http/http-proxy.ts:11 LoggerProxy.debug('Installing global HTTP proxy agents', {",
+   "packages/core/src/execution-engine/node-execution-context/utils/execution-metadata.ts:38 Logger.error('Custom data key over 50 characters long. Truncating to 5",
+   "packages/core/src/execution-engine/node-execution-context/utils/execution-metadata.ts:41 Logger.error('Custom data value over 512 characters long. Truncating t",
+   "packages/core/src/execution-engine/node-execution-context/utils/custom-data.ts:31 LoggerProxy.debug(e.message)",
+   "packages/core/src/execution-engine/node-execution-context/utils/custom-data.ts:42 LoggerProxy.debug(e.message)"
+  ],
+  "ns.f() | a named import of a namespace | outside it | a function": [
+   "packages/workflow/src/from-ai-parse-utils.ts:58 z.custom<Record<string, unknown> | unknown[]>(",
+   "packages/workflow/src/schemas.ts:88 z.custom<object>(",
+   "packages/workflow/src/schemas.ts:161 z.custom<",
+   "packages/workflow/src/schemas.ts:234 z.custom<",
+   "packages/workflow/src/schemas.ts:260 z.custom<"
+  ],
+  "ns.f() | a named import of a namespace | outside it | a variable, no initializer": [
+   "packages/@n8n/config/src/configs/auth.config.ts:5 z.enum(['strict', 'lax', 'none'])",
+   "packages/@n8n/config/src/configs/cache.config.ts:6 z.enum(['memory', 'redis', 'auto'])",
+   "packages/@n8n/config/src/configs/database.config.ts:6 z.enum(['query', 'error', 'schema', 'warn', 'info', 'log', 'all'])",
+   "packages/@n8n/config/src/configs/database.config.ts:140 z.enum(['sqlite', 'postgresdb'])",
+   "packages/@n8n/config/src/configs/endpoints.config.ts:220 z.string()"
+  ],
+  "ns.f() | import * as ns | in the corpus | a function | declared in the imported file": [
+   "packages/workflow/src/workflow-data-proxy.ts:167 NodeHelpers.getContext(that.runExecutionData!, 'node', node)",
+   "packages/workflow/src/workflow-data-proxy.ts:182 NodeHelpers.getContext(that.runExecutionData!, 'node', node)",
+   "packages/workflow/src/workflow-data-proxy.ts:247 NodeHelpers.getNodeParameters(",
+   "packages/workflow/src/workflow.ts:109 NodeHelpers.getNodeParameters(",
+   "packages/workflow/src/workflow.ts:127 ObservableObject.create(parameters.staticData || {}, undefined, {"
+  ],
+  "ns.f() | import * as ns | in the corpus | a function | through a re-export": [
+   "packages/@n8n/workflow-sdk/src/validation/node-parameter-schema/schema-validator.ts:725 schemaHelpers.resolveSchema({ ...cfg, isToolNode })",
+   "packages/@n8n/workflow-sdk/src/validation/node-parameter-schema/schema-validator.ts:726 schemaHelpers.resolveOneOfSchemas({ ...cfg, isToolNode })"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding a function | declared in the imported file": [
+   "packages/cli/src/workflows/workflows.controller.ts:150 utils.toError(maybeError)",
+   "packages/cli/src/workflows/workflows.controller.ts:726 utils.toError(maybeError)",
+   "packages/cli/src/commands/base-command.ts:258 CrashJournal.init()",
+   "packages/cli/src/commands/base-command.ts:264 CrashJournal.cleanup()",
+   "packages/cli/src/modules/ldap.ee/__tests__/helpers.test.ts:14 helpers.createFilter('(uid=alice)', '')"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding a function | through a re-export": [
+   "packages/cli/src/modules/data-table/__tests__/data-table-aggregate.controller.integration.test.ts:25 utils.setupTestServer({",
+   "packages/cli/src/modules/data-table/__tests__/data-table-column-rename.controller.integration.test.ts:27 utils.setupTestServer({",
+   "packages/cli/src/modules/data-table/__tests__/data-table-csv.controller.integration.test.ts:29 utils.setupTestServer({",
+   "packages/cli/src/modules/data-table/__tests__/data-table-uploads.controller.integration.test.ts:9 utils.setupTestServer({",
+   "packages/cli/src/modules/data-table/__tests__/data-table.controller.integration.test.ts:38 utils.setupTestServer({"
+  ],
+  "ns.f() | import * as ns | in the corpus | a variable holding Identifier | declared in the imported file": [
+   "packages/workflow/src/utils.ts:230 LoggerProxy.error('Error while replacing circular references: ' + erro",
+   "packages/workflow/src/safe-regex.ts:94 LoggerProxy.warn('Using native regular expression engine without timeo",
+   "packages/workflow/src/expression.ts:301 LoggerProxy.error('Failed to release expression isolate', { error })",
+   "packages/workflow/src/node-parameters/filter-parameter.ts:446 LoggerProxy.warn(`Unknown filter parameter operator \"${operator.type}:",
+   "packages/workflow/src/node-parameters/filter-parameter.ts:533 LoggerProxy.warn(`Unknown filter combinator \"${value.combinator as str"
+  ],
+  "ns.f() | import * as ns | outside it | a function": [
+   "packages/workflow/src/workflow-data-proxy.ts:831 jmespath.search({ ...data }, query)",
+   "packages/workflow/src/workflow-data-proxy.ts:833 jmespath.search(data, query)",
+   "packages/workflow/src/jmespath-query.ts:26 jmespath.search({ ...(data as Record<string, unknown>) }, query)",
+   "packages/workflow/src/jmespath-query.ts:29 jmespath.search(data as Parameters<typeof jmespath.search>[0], query)",
+   "packages/@n8n/typeorm/src/platform/PlatformTools.ts:39 fs.existsSync(pathStr)"
+  ],
+  "ns.f() | import * as ns | outside it | a method": [
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:23 path.join('dist', 'bundle', 'runtime.iife.js')",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:68 path.dirname(dir)",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:70 path.join(dir, BUNDLE_RELATIVE_PATH)",
+   "packages/@n8n/expression-runtime/src/bridge/isolated-vm-bridge.ts:72 path.dirname(dir)",
+   "packages/@n8n/backend-common/src/utils/path-util.ts:10 path.resolve(parentPath)"
+  ],
+  "ns.f() | import * as ns | outside it | a property": [
+   "packages/cli/src/manual-execution.service.ts:63 a.ok(node, `Could not find a node named \"${startNode.name}\" in the wor",
+   "packages/cli/src/manual-execution.service.ts:125 a.ok(",
+   "packages/cli/src/manual-execution.service.ts:181 a.ok(",
+   "packages/cli/src/task-runners/task-managers/data-request-response-stripper.ts:96 a.ok(chunk)",
+   "packages/core/src/data-deduplication-service.ts:29 assert.ok("
+  ],
+  "ns.f() | import * as ns | outside it | a variable, no initializer": [
+   "packages/@n8n/typeorm/src/util/DirectoryExportedClassesLoader.ts:31 glob.sync(PlatformTools.pathNormalize(dir))"
+  ],
+  "type reference ns.T | a default import that is a namespace | outside it": [
+   "packages/@n8n/config/src/configs/collaboration.config.ts:7 z.infer<typeof crdtModeSchema>",
+   "packages/@n8n/config/src/configs/executions.config.ts:85 z.infer<typeof executionModeSchema>",
+   "packages/@n8n/config/src/configs/security.config.ts:83 z.infer<typeof crossOriginOpenerPolicySchema>",
+   "packages/workflow/src/execution-context.ts:12 z.ZodType<JsonValue>",
+   "packages/workflow/src/execution-context.ts:44 z.output<typeof SecureArtifactsSchemaV1>"
+  ],
+  "type reference ns.T | a named import of a namespace | outside it": [
+   "packages/@n8n/config/src/decorators.ts:14 z.ZodType<unknown>",
+   "packages/@n8n/config/src/configs/auth.config.ts:7 z.infer<typeof samesiteSchema>",
+   "packages/@n8n/config/src/configs/cache.config.ts:7 z.infer<typeof cacheBackendSchema>",
+   "packages/@n8n/config/src/configs/database.config.ts:7 z.infer<typeof dbLoggingOptionsSchema>",
+   "packages/@n8n/config/src/configs/database.config.ts:141 z.infer<typeof dbTypeSchema>"
+  ],
+  "type reference ns.T | import * as ns | in the corpus": [
+   "packages/@n8n/instance-ai/src/index.ts:257 TraceReplayMod.IdRemapper",
+   "packages/@n8n/instance-ai/src/index.ts:261 TraceReplayMod.TraceIndex",
+   "packages/@n8n/instance-ai/src/index.ts:265 TraceReplayMod.TraceWriter",
+   "packages/@n8n/instance-ai/src/index.ts:324 StorageMod.ThreadIterationLogStorage",
+   "packages/@n8n/instance-ai/src/index.ts:328 StorageMod.ThreadTaskStorage"
+  ],
+  "type reference ns.T | import * as ns | outside it": [
+   "packages/workflow/src/interfaces.ts:1548 express.Request",
+   "packages/workflow/src/interfaces.ts:1549 express.Response",
+   "packages/workflow/src/interfaces.ts:2360 express.Request<",
+   "packages/workflow/src/interfaces.ts:3535 express.Response",
+   "packages/workflow/src/interfaces.ts:3664 express.Response"
+  ]
+ }
+}

@@ -1753,6 +1753,10 @@ async function resolveThroughStarChain(
     .where('s.name', '=', toName)
     // An `export *` passes on what the file exports and nothing else (D120).
     .where('s.is_exported', '=', 1)
+    // An `export *` does not pass on a default export, and the row does not say
+    // whether its declaration is exported by name as well. So a row that is a
+    // default export is taken only when no other file has the name (D164).
+    .orderBy('s.is_default_export', 'asc')
     // By path, not by file id: when two files behind the stars have the name,
     // the one chosen must not depend on which was written last. A re-written
     // file gets a new id, so id order made an edit to one of them move every

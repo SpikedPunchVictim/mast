@@ -20,6 +20,19 @@ export class LocalTypeEnvironment {
   /** Receiver expression (`repo`, `this.repo`) → its resolved type name. */
   private readonly receiverTypes = new Map<string, { type: string; resolution: CallerResolution }>();
 
+  /** `import * as ns from './x'`, by local name: the module's specifier as written. */
+  private readonly namespaceModules = new Map<string, string>();
+
+  /** `import * as ns from './x'` → `ns.f()` is a call of the `f` that `./x` exports. */
+  recordNamespaceImport(localName: string, module: string): void {
+    if (!this.namespaceModules.has(localName)) this.namespaceModules.set(localName, module);
+  }
+
+  /** The module a namespace import bound `localName` to, or undefined when none did. */
+  namespaceModule(localName: string): string | undefined {
+    return this.namespaceModules.get(localName);
+  }
+
   /** `import { handleLogin } from './h'` → bare call `handleLogin()` resolves. */
   recordImport(localName: string): void {
     if (!this.bareCallables.has(localName)) this.bareCallables.set(localName, 'import');

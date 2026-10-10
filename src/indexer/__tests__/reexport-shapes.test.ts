@@ -435,3 +435,184 @@ describe('a private declaration with the name of an import', () => {
     await expectEdges(dir, ['POTENTIAL_CALL src/m-barrel.ts:Client.send -> src/m-barrel.ts:helper']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// A call through a namespace import reaches the file the import names, or the
+// file behind its re-exports, and not another file that declares the name
+// (adr/proposals/checker-widening, s10).
+// ---------------------------------------------------------------------------
+
+describe('a default export behind a star re-export', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = makeProject('default-behind-star');
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  // `export *` passes on every export but the default one, so the name the
+  // function was declared with is not a name of the barrel (D164).
+  it('is not reached by the name it was declared with when another file exports that name', async () => {
+    writeFiles(dir, {
+      'src/a-default.ts': `export default function dz(): void {}\n`,
+      'src/b-named.ts': `export function dz(): void {}\n`,
+      'src/c-barrel.ts': `${STAR('./a-default.js')}${STAR('./b-named.js')}`,
+      'src/z-consumer.ts': `import { dz } from './c-barrel.js';\nexport function go(): void { dz(); }\n`,
+    });
+
+    await expectEdges(dir, ['POTENTIAL_CALL src/z-consumer.ts:go -> src/b-named.ts:dz']);
+  });
+});
+
+describe('calls through a namespace import', () => {
+  let dir: string;
+
+  const LEAF = `export function append(): void {}
+export class Widget { constructor(readonly id: string) {} }
+export class Plain {}
+export const later = (): void => {};
+`;
+  const DECOY = `export function append(): void {}
+export class Widget { constructor(readonly id: string) {} }
+`;
+  const consumer = (entry: string): string => `import * as dom from '${entry}';
+export function go(): void { dom.append(); dom.later(); }
+export function make(): unknown { return [new dom.Widget('a'), new dom.Plain()]; }
+`;
+  const EXPECTED = [
+    'POTENTIAL_CALL src/z-consumer.ts:go -> src/b-dom.ts:append',
+    'POTENTIAL_CALL src/z-consumer.ts:go -> src/b-dom.ts:later',
+    'POTENTIAL_CALL src/z-consumer.ts:make -> src/b-dom.ts:Plain',
+    'POTENTIAL_CALL src/z-consumer.ts:make -> src/b-dom.ts:Widget.constructor',
+  ];
+
+  beforeEach(() => {
+    dir = makeProject('namespace-import');
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('reach the file the import names', async () => {
+    writeFiles(dir, { 'src/a-decoy.ts': DECOY, 'src/b-dom.ts': LEAF, 'src/z-consumer.ts': consumer('./b-dom.js') });
+
+    await expectEdges(dir, EXPECTED);
+  });
+
+  it('reach the file behind a star re-export', async () => {
+    writeFiles(dir, {
+      'src/a-decoy.ts': DECOY,
+      'src/b-dom.ts': LEAF,
+      'src/c-barrel.ts': STAR('./b-dom.js'),
+      'src/z-consumer.ts': consumer('./c-barrel.js'),
+    });
+
+    await expectEdges(dir, EXPECTED);
+  });
+
+  it('are the same after the imported file is edited as after a full index', async () => {
+    writeFiles(dir, { 'src/a-decoy.ts': DECOY, 'src/b-dom.ts': LEAF, 'src/z-consumer.ts': consumer('./b-dom.js') });
+    await indexFull(dir);
+
+    editFile(dir, 'src/b-dom.ts', LEAF.replace('export function append', 'export function renamed'));
+    await indexIncremental(dir);
+
+    await expectGraphEqualsFullIndex(dir);
+    await expectStoredEdges(dir, EXPECTED.filter((edge) => !edge.endsWith(':append')));
+  });
+
+  // An import row for a namespace lists no name, so an incremental run cannot
+  // find its file by the names that changed. Each of these left the stored
+  // graph unlike a full index (review of the rule, 2026-10-10).
+  it('follow a named re-export that is pointed at another file', async () => {
+    writeFiles(dir, {
+      'src/b-dom.ts': LEAF,
+      'src/b-other.ts': LEAF,
+      'src/c-barrel.ts': `export { append, later, Widget, Plain } from './b-dom.js';\n`,
+      'src/z-consumer.ts': consumer('./c-barrel.js'),
+    });
+    await indexFull(dir);
+
+    editFile(dir, 'src/c-barrel.ts', `export { append, later, Widget, Plain } from './b-other.js';\n`);
+    await indexIncremental(dir);
+
+    await expectGraphEqualsFullIndex(dir);
+    await expectStoredEdges(dir, EXPECTED.map((edge) => edge.replace('src/b-dom.ts', 'src/b-other.ts')));
+  });
+
+  it('go to a name the imported file gains over the one behind its star', async () => {
+    writeFiles(dir, {
+      'src/b-dom.ts': LEAF,
+      'src/c-barrel.ts': STAR('./b-dom.js'),
+      'src/z-consumer.ts': consumer('./c-barrel.js'),
+    });
+    await indexFull(dir);
+
+    editFile(dir, 'src/c-barrel.ts', `${STAR('./b-dom.js')}export function append(): void {}\n`);
+    await indexIncremental(dir);
+
+    await expectGraphEqualsFullIndex(dir);
+    await expectStoredEdges(dir, EXPECTED.map((edge) => edge.replace('src/b-dom.ts:append', 'src/c-barrel.ts:append')));
+  });
+
+  it('appear when the imported file gains the name', async () => {
+    writeFiles(dir, { 'src/b-dom.ts': `export const unrelated = 1;\n`, 'src/z-consumer.ts': consumer('./b-dom.js') });
+    await indexFull(dir);
+
+    editFile(dir, 'src/b-dom.ts', LEAF);
+    await indexIncremental(dir);
+
+    await expectGraphEqualsFullIndex(dir);
+    await expectStoredEdges(dir, EXPECTED);
+  });
+
+  const NAMED = `export { append, later, Widget, Plain } from './b-dom.js';\n`;
+  const EDITS: readonly { name: string; before: Readonly<Record<string, string>>; edit: { path: string; content: string } }[] = [
+    {
+      name: 'the file two stars away gains the name',
+      before: { 'src/a-leaf.ts': `export const unrelated = 1;\n`, 'src/b-dom.ts': STAR('./a-leaf.js'), 'src/c-barrel.ts': STAR('./b-dom.js') },
+      edit: { path: 'src/a-leaf.ts', content: LEAF },
+    },
+    {
+      name: 'the imported file gains a star',
+      before: { 'src/b-dom.ts': LEAF, 'src/c-barrel.ts': `export const unrelated = 1;\n` },
+      edit: { path: 'src/c-barrel.ts', content: STAR('./b-dom.js') },
+    },
+    {
+      name: 'the imported file gains a named re-export',
+      before: { 'src/b-dom.ts': LEAF, 'src/c-barrel.ts': `export const unrelated = 1;\n` },
+      edit: { path: 'src/c-barrel.ts', content: NAMED },
+    },
+    {
+      name: 'the file behind a named re-export gains the name',
+      before: { 'src/b-dom.ts': `export const unrelated = 1;\n`, 'src/c-barrel.ts': NAMED },
+      edit: { path: 'src/b-dom.ts', content: LEAF },
+    },
+    {
+      name: 'a declaration the imported file had gains its export keyword',
+      before: { 'src/c-barrel.ts': LEAF.replaceAll('export ', '') },
+      edit: { path: 'src/c-barrel.ts', content: LEAF },
+    },
+    {
+      name: 'the imported file gains a default export of the same name',
+      before: { 'src/c-barrel.ts': `export const unrelated = 1;\n` },
+      edit: { path: 'src/c-barrel.ts', content: `export default function append(): void {}\n` },
+    },
+  ];
+  it.each(EDITS)('are the same as after a full index when $name', async ({ before, edit }) => {
+    writeFiles(dir, { ...before, 'src/z-consumer.ts': consumer('./c-barrel.js') });
+    await indexFull(dir);
+
+    editFile(dir, edit.path, edit.content);
+    await indexIncremental(dir);
+
+    await expectGraphEqualsFullIndex(dir);
+  });
+
+  it('store nothing for a module that is not an indexed file', async () => {
+    writeFiles(dir, { 'src/a-decoy.ts': DECOY, 'src/z-consumer.ts': consumer('some-package') });
+
+    await expectEdges(dir, []);
+  });
+});

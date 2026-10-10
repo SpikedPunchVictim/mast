@@ -59,6 +59,8 @@ commit that files it. The directory is left out of this repository's own index
 | `merged-class`, `same-name-rows` | D121 |
 | `constructor-callers` | D122 (the stored edges agree; the defect is in `mast_callers`) |
 | `local-shadow` | D123 (`use.ts`), D124 (`loc.ts`) |
+| `namespace-import` | none: the calls rule 11 of MAST_SPEC §10.3.1 reads, and the ones it must leave (a local, a parameter or a callback parameter with the namespace's name) |
+| `js-beside-dts` | D162, a scorecard defect: an edge to a `.js` file that has a `.d.ts` beside it is counted as wrong |
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
 (`adr/proposals/graph-reference/spikes/RESULTS.md`). `packages/cli` takes about 15 s and

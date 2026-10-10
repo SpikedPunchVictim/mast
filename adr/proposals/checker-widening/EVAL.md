@@ -95,6 +95,20 @@ reference for it: `--root <nest> --tsconfig tsconfig.json`, one project.
 | `cats.out.txt` | Its output |
 | `card-with-node_modules.json`, `card-without-node_modules.json` | The two scorecards |
 
+## s10 — calls through a namespace import (`spikes/s10-namespace-imports/`)
+
+Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.json`), vscode
+`65f2c060` (`src/tsconfig.json`), this repository. All copies with nothing installed.
+
+| File | What it is |
+|---|---|
+| `sites.mjs <corpus> <out.json> [--workspace-src] <tsconfig>...` | Every call and `new` whose callee is a chain rooted in a module namespace, by how the file got the namespace, how the call is written, what the compiler says is called, and whether that is declared in the imported file. Sites, not pairs. Builds programs, reads no index |
+| `n8n.json`, `nest.json`, `directus.json`, `vscode.json`, `mast.json` | Its output: n8n over the six projects of s9, the others over one project each |
+| `n8n-after.json` | `s1/run.mjs ... --workspace-src --skip .` over a plain n8n index of the build with the rule. Before is `s6-decorators/n8n-after.json` |
+| `vscode-compare.out.txt` | `graph-scorecard.mjs compare` of vscode indexed by the build of `3ca0c9b` and by the build with the rule |
+| `vscode-cards-summary.json` | The counts of the two scorecards, which are 180 MB each and not kept, and the keys newly wrong and newly unjudged |
+| `js-beside-dts.sh <work> <mast before> <mast after>`, `js-beside-dts.out.txt` | A module that is `lib.js` with `lib.d.ts`, called through a named and a namespace import and as a tagged template, scored by both builds (D162) |
+
 ## s9 — the forms P2 does not read (`spikes/s9-decorators-not-read/`)
 
 | File | What it is |

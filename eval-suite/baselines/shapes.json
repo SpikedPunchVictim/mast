@@ -1,27 +1,28 @@
 {
  "check": "eval-suite/graph-scorecard",
  "meta": {
-  "ran_at": "2026-10-09T16:25:40.826Z",
+  "ran_at": "2026-10-10T00:46:10.825Z",
   "typescript": "5.9.3",
-  "label": "resolver shapes, d149",
+  "label": "namespace imports, D156, D163, D164; shapes",
   "root": "resolver-shapes",
   "tsconfig": "tsconfig.json",
   "prefix": "",
   "config_errors": [],
   "workspace_packages_mapped_to_source": 3,
-  "scored_typescript_files": 37,
-  "tsconfig_files": 37,
-  "corpus_hash": "a233bfbd56a6020b3fb1c9d1d6a707a06389350d287239d5d8f91c9b0f46c8c5",
-  "program_source_files": 214,
+  "scored_typescript_files": 43,
+  "tsconfig_files": 42,
+  "corpus_hash": "45537b9d3de570ecfc6438cdaff4817bddce8f3c24c01e3e17dfe3af1e74616d",
+  "program_source_files": 220,
   "repeated_symbol_rows": 3,
-  "wall_ms": 395,
-  "peak_rss_mb": 317
+  "wall_ms": 419,
+  "peak_rss_mb": 318
  },
  "notes": {
   "call through a variable, judged by its signature": 2,
   "call whose callee is not a name or a property": 3,
   "export default <expression>": 2,
-  "named import with an alias": 5
+  "named import with an alias": 5,
+  "namespace import": 4
  },
  "items": {
   "edge: EXTENDS": {
@@ -53,9 +54,12 @@
     "packages/constructor-callers/src/lib.ts:Widget > packages/constructor-callers/src/lib.ts:Widget.paint",
     "packages/default-import/src/shape.ts:RealShape > packages/default-import/src/shape.ts:RealShape.area",
     "packages/default-import/src/shape.ts:Shape > packages/default-import/src/shape.ts:Shape.area",
+    "packages/js-beside-dts/src/lib.d.ts:Lexer > packages/js-beside-dts/src/lib.d.ts:Lexer.constructor",
     "packages/local-shadow/src/repo.ts:Repo > packages/local-shadow/src/repo.ts:Repo.find",
     "packages/merged-class/src/emitter.ts:Emitter@3 > packages/merged-class/src/emitter.ts:Emitter.constructor",
     "packages/merged-class/src/emitter.ts:Emitter@3 > packages/merged-class/src/emitter.ts:Emitter.emit",
+    "packages/namespace-import/src/dom.ts:Widget > packages/namespace-import/src/dom.ts:Widget.constructor",
+    "packages/namespace-import/src/dom.ts:Widget > packages/namespace-import/src/dom.ts:Widget.create",
     "packages/new-binding/src/lib.ts:A > packages/new-binding/src/lib.ts:A.run",
     "packages/new-binding/src/lib.ts:B > packages/new-binding/src/lib.ts:B.run",
     "packages/new-binding/src/lib.ts:Repo > packages/new-binding/src/lib.ts:Repo.save",
@@ -116,6 +120,12 @@
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
     "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/namespace-import/src/dom.ts:Widget.create > packages/namespace-import/src/dom.ts:Widget.constructor",
+    "packages/namespace-import/src/use.ts:blockShadow > packages/namespace-import/src/dom.ts:append",
+    "packages/namespace-import/src/use.ts:calls > packages/namespace-import/src/dom.ts:append",
+    "packages/namespace-import/src/use.ts:calls > packages/namespace-import/src/dom.ts:later",
+    "packages/namespace-import/src/use.ts:news > packages/namespace-import/src/dom.ts:Plain",
+    "packages/namespace-import/src/use.ts:news > packages/namespace-import/src/dom.ts:Widget.constructor",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
@@ -141,8 +151,25 @@
     "packages/static-instance/src/st.ts:f > packages/static-instance/src/st.ts:P.save",
     "packages/static-instance/src/st.ts:g > packages/static-instance/src/st.ts:P.make"
    ],
-   "wrong": [],
-   "lacks": [],
+   "wrong": [
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.js:Lexer.constructor",
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.js:parse",
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.js:Lexer.constructor",
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.js:parse"
+   ],
+   "lacks": [
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.d.ts:Lexer.constructor",
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.d.ts:parse",
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.d.ts:Lexer.constructor",
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.d.ts:parse",
+    "packages/namespace-import/src/use.ts:blockShadow > packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:callbackShadow > packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:localShadow > packages/namespace-import/src/other.ts:Widget",
+    "packages/namespace-import/src/use.ts:localShadow > packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:paramShadow > packages/namespace-import/src/other.ts:Widget",
+    "packages/namespace-import/src/use.ts:paramShadow > packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:viaStatic > packages/namespace-import/src/dom.ts:Widget.create"
+   ],
    "extra": [],
    "unjudged": []
   },
@@ -158,7 +185,8 @@
   },
   "export * (file to file)": {
    "agree": [
-    "packages/barrel-private/src/barrel.ts => packages/barrel-private/src/real.ts"
+    "packages/barrel-private/src/barrel.ts => packages/barrel-private/src/real.ts",
+    "packages/namespace-import/src/barrel.ts => packages/namespace-import/src/dom.ts"
    ],
    "wrong": [],
    "lacks": [],
@@ -189,12 +217,17 @@
     "packages/dynamic-import-block/src/local.ts",
     "packages/dynamic-import-block/src/remote.ts",
     "packages/dynamic-import-block/src/user.ts",
+    "packages/js-beside-dts/src/use.ts",
     "packages/local-shadow/src/loc.ts",
     "packages/local-shadow/src/repo.ts",
     "packages/local-shadow/src/use.ts",
     "packages/local-shadow/src/useloc.ts",
     "packages/merged-class/src/emitter.ts",
     "packages/merged-class/src/user.ts",
+    "packages/namespace-import/src/barrel.ts",
+    "packages/namespace-import/src/dom.ts",
+    "packages/namespace-import/src/other.ts",
+    "packages/namespace-import/src/use.ts",
     "packages/new-binding/src/lib.ts",
     "packages/new-binding/src/user.ts",
     "packages/property-override/src/base.ts",
@@ -236,6 +269,8 @@
     "packages/dynamic-import-block/src/held.ts { named } from './arrow'",
     "packages/dynamic-import-block/src/user.ts { run } from './local'",
     "packages/dynamic-import-block/src/user.ts { run } from './remote'",
+    "packages/js-beside-dts/src/use.ts { Lexer } from './lib.js'",
+    "packages/js-beside-dts/src/use.ts { parse } from './lib.js'",
     "packages/local-shadow/src/use.ts { Repo } from './repo'",
     "packages/local-shadow/src/use.ts { pick } from './repo'",
     "packages/local-shadow/src/useloc.ts { b } from './loc'",
@@ -274,12 +309,19 @@
     "packages/local-shadow/src/use.ts './repo' => packages/local-shadow/src/repo.ts",
     "packages/local-shadow/src/useloc.ts './loc' => packages/local-shadow/src/loc.ts",
     "packages/merged-class/src/user.ts './emitter' => packages/merged-class/src/emitter.ts",
+    "packages/namespace-import/src/use.ts './barrel' => packages/namespace-import/src/barrel.ts",
+    "packages/namespace-import/src/use.ts './dom' => packages/namespace-import/src/dom.ts",
+    "packages/namespace-import/src/use.ts './other' => packages/namespace-import/src/other.ts",
     "packages/new-binding/src/user.ts './lib' => packages/new-binding/src/lib.ts",
     "packages/property-override/src/child.ts './base' => packages/property-override/src/base.ts",
     "packages/same-name-rows/src/user.ts './a' => packages/same-name-rows/src/a.ts"
    ],
-   "wrong": [],
-   "lacks": [],
+   "wrong": [
+    "packages/js-beside-dts/src/use.ts './lib.js' => packages/js-beside-dts/src/lib.js"
+   ],
+   "lacks": [
+    "packages/js-beside-dts/src/use.ts './lib.js' => packages/js-beside-dts/src/lib.d.ts"
+   ],
    "extra": [],
    "unjudged": []
   },
@@ -334,6 +376,11 @@
     "packages/dynamic-import-block/src/local.ts:run exported=true",
     "packages/dynamic-import-block/src/remote.ts:run exported=true",
     "packages/dynamic-import-block/src/user.ts:main exported=true",
+    "packages/js-beside-dts/src/lib.d.ts:Lexer exported=true",
+    "packages/js-beside-dts/src/lib.d.ts:Lexer.constructor exported=true",
+    "packages/js-beside-dts/src/lib.d.ts:parse exported=true",
+    "packages/js-beside-dts/src/use.ts:named exported=true",
+    "packages/js-beside-dts/src/use.ts:viaNamespace exported=true",
     "packages/local-shadow/src/loc.ts:a exported=false",
     "packages/local-shadow/src/loc.ts:b exported=true",
     "packages/local-shadow/src/repo.ts:Repo exported=true",
@@ -347,6 +394,21 @@
     "packages/merged-class/src/emitter.ts:Emitter.emit exported=true",
     "packages/merged-class/src/emitter.ts:Events exported=true",
     "packages/merged-class/src/user.ts:build exported=true",
+    "packages/namespace-import/src/dom.ts:Plain exported=true",
+    "packages/namespace-import/src/dom.ts:Widget exported=true",
+    "packages/namespace-import/src/dom.ts:Widget.constructor exported=true",
+    "packages/namespace-import/src/dom.ts:Widget.create exported=true",
+    "packages/namespace-import/src/dom.ts:append exported=true",
+    "packages/namespace-import/src/dom.ts:later exported=true",
+    "packages/namespace-import/src/other.ts:Widget exported=true",
+    "packages/namespace-import/src/other.ts:append exported=true",
+    "packages/namespace-import/src/use.ts:blockShadow exported=true",
+    "packages/namespace-import/src/use.ts:callbackShadow exported=true",
+    "packages/namespace-import/src/use.ts:calls exported=true",
+    "packages/namespace-import/src/use.ts:localShadow exported=true",
+    "packages/namespace-import/src/use.ts:news exported=true",
+    "packages/namespace-import/src/use.ts:paramShadow exported=true",
+    "packages/namespace-import/src/use.ts:viaStatic exported=true",
     "packages/new-binding/src/lib.ts:A exported=true",
     "packages/new-binding/src/lib.ts:A.run exported=true",
     "packages/new-binding/src/lib.ts:B exported=true",
@@ -408,8 +470,12 @@
     "packages/default-import/src/shape.ts:RealShape",
     "packages/default-import/src/shape.ts:Shape",
     "packages/default-import/src/use.ts:Square",
+    "packages/js-beside-dts/src/lib.d.ts:Lexer",
     "packages/local-shadow/src/repo.ts:Repo",
     "packages/merged-class/src/emitter.ts:Emitter",
+    "packages/namespace-import/src/dom.ts:Plain",
+    "packages/namespace-import/src/dom.ts:Widget",
+    "packages/namespace-import/src/other.ts:Widget",
     "packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/lib.ts:B",
     "packages/new-binding/src/lib.ts:Repo",
@@ -469,6 +535,9 @@
     "packages/dynamic-import-block/src/local.ts:run",
     "packages/dynamic-import-block/src/remote.ts:run",
     "packages/dynamic-import-block/src/user.ts:main",
+    "packages/js-beside-dts/src/lib.d.ts:parse",
+    "packages/js-beside-dts/src/use.ts:named",
+    "packages/js-beside-dts/src/use.ts:viaNamespace",
     "packages/local-shadow/src/loc.ts:a",
     "packages/local-shadow/src/loc.ts:b",
     "packages/local-shadow/src/repo.ts:pick",
@@ -476,6 +545,16 @@
     "packages/local-shadow/src/use.ts:g",
     "packages/local-shadow/src/useloc.ts:h",
     "packages/merged-class/src/user.ts:build",
+    "packages/namespace-import/src/dom.ts:append",
+    "packages/namespace-import/src/dom.ts:later",
+    "packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:blockShadow",
+    "packages/namespace-import/src/use.ts:callbackShadow",
+    "packages/namespace-import/src/use.ts:calls",
+    "packages/namespace-import/src/use.ts:localShadow",
+    "packages/namespace-import/src/use.ts:news",
+    "packages/namespace-import/src/use.ts:paramShadow",
+    "packages/namespace-import/src/use.ts:viaStatic",
     "packages/new-binding/src/user.ts:switchCases",
     "packages/new-binding/src/user.ts:twoBlocks",
     "packages/new-binding/src/user.ts:twoCallbacks",
@@ -514,9 +593,12 @@
     "packages/constructor-callers/src/lib.ts:Widget.paint",
     "packages/default-import/src/shape.ts:RealShape.area",
     "packages/default-import/src/shape.ts:Shape.area",
+    "packages/js-beside-dts/src/lib.d.ts:Lexer.constructor",
     "packages/local-shadow/src/repo.ts:Repo.find",
     "packages/merged-class/src/emitter.ts:Emitter.constructor",
     "packages/merged-class/src/emitter.ts:Emitter.emit",
+    "packages/namespace-import/src/dom.ts:Widget.constructor",
+    "packages/namespace-import/src/dom.ts:Widget.create",
     "packages/new-binding/src/lib.ts:A.run",
     "packages/new-binding/src/lib.ts:B.run",
     "packages/new-binding/src/lib.ts:Repo.save",
@@ -574,6 +656,9 @@
     "packages/constructor-callers/src/mk.ts:makeWith > packages/constructor-callers/src/cls.ts:WithCtor.constructor",
     "packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:RealShape",
     "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/namespace-import/src/dom.ts:Widget.create > packages/namespace-import/src/dom.ts:Widget.constructor",
+    "packages/namespace-import/src/use.ts:news > packages/namespace-import/src/dom.ts:Plain",
+    "packages/namespace-import/src/use.ts:news > packages/namespace-import/src/dom.ts:Widget.constructor",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
@@ -583,7 +668,10 @@
     "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K",
     "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
    ],
-   "wrong": [],
+   "wrong": [
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.js:Lexer.constructor",
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.js:Lexer.constructor"
+   ],
    "lacks": [],
    "extra": [],
    "unjudged": []
@@ -607,9 +695,15 @@
     "packages/dynamic-import-block/src/user.ts:main > packages/dynamic-import-block/src/local.ts:run",
     "packages/local-shadow/src/use.ts:f > packages/local-shadow/src/repo.ts:pick",
     "packages/local-shadow/src/useloc.ts:h > packages/local-shadow/src/loc.ts:a",
+    "packages/namespace-import/src/use.ts:blockShadow > packages/namespace-import/src/dom.ts:append",
+    "packages/namespace-import/src/use.ts:calls > packages/namespace-import/src/dom.ts:append",
+    "packages/namespace-import/src/use.ts:calls > packages/namespace-import/src/dom.ts:later",
     "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler@7"
    ],
-   "wrong": [],
+   "wrong": [
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.js:parse",
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.js:parse"
+   ],
    "lacks": [],
    "extra": [],
    "unjudged": []
@@ -675,6 +769,15 @@
    "extra": [],
    "unjudged": []
   },
+  "call written as expr.m(), other file": {
+   "agree": [],
+   "wrong": [],
+   "lacks": [
+    "packages/namespace-import/src/use.ts:viaStatic > packages/namespace-import/src/dom.ts:Widget.create"
+   ],
+   "extra": [],
+   "unjudged": []
+  },
   "call written as f(), other file": {
    "agree": [
     "packages/app/src/main.ts:main > packages/core/src/client/index.ts:connect",
@@ -697,7 +800,9 @@
     "packages/same-name-rows/src/user.ts:top2 > packages/same-name-rows/src/a.ts:Handler@7"
    ],
    "wrong": [],
-   "lacks": [],
+   "lacks": [
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.d.ts:parse"
+   ],
    "extra": [],
    "unjudged": []
   },
@@ -719,12 +824,21 @@
     "packages/barrel-private/src/user.ts:use2 > packages/barrel-private/src/real.ts:Client.send",
     "packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:RealShape.area",
     "packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:Shape.area",
+    "packages/namespace-import/src/use.ts:blockShadow > packages/namespace-import/src/dom.ts:append",
+    "packages/namespace-import/src/use.ts:calls > packages/namespace-import/src/dom.ts:append",
+    "packages/namespace-import/src/use.ts:calls > packages/namespace-import/src/dom.ts:later",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B.run",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:B.run",
     "packages/same-name-rows/src/user.ts:top > packages/same-name-rows/src/a.ts:K.make@3"
    ],
    "wrong": [],
-   "lacks": [],
+   "lacks": [
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.d.ts:parse",
+    "packages/namespace-import/src/use.ts:blockShadow > packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:callbackShadow > packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:localShadow > packages/namespace-import/src/other.ts:append",
+    "packages/namespace-import/src/use.ts:paramShadow > packages/namespace-import/src/other.ts:append"
+   ],
    "extra": [],
    "unjudged": []
   },
@@ -748,6 +862,8 @@
     "packages/constructor-callers/src/mk.ts:makeWith > packages/constructor-callers/src/cls.ts:WithCtor.constructor",
     "packages/default-import/src/use.ts:use > packages/default-import/src/shape.ts:RealShape",
     "packages/merged-class/src/user.ts:build > packages/merged-class/src/emitter.ts:Emitter.constructor",
+    "packages/namespace-import/src/use.ts:news > packages/namespace-import/src/dom.ts:Plain",
+    "packages/namespace-import/src/use.ts:news > packages/namespace-import/src/dom.ts:Widget.constructor",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:A",
     "packages/new-binding/src/user.ts:switchCases > packages/new-binding/src/lib.ts:B",
     "packages/new-binding/src/user.ts:twoBlocks > packages/new-binding/src/lib.ts:A",
@@ -755,12 +871,18 @@
     "packages/new-binding/src/user.ts:twoCallbacks > packages/new-binding/src/lib.ts:Repo"
    ],
    "wrong": [],
-   "lacks": [],
+   "lacks": [
+    "packages/js-beside-dts/src/use.ts:named > packages/js-beside-dts/src/lib.d.ts:Lexer.constructor",
+    "packages/js-beside-dts/src/use.ts:viaNamespace > packages/js-beside-dts/src/lib.d.ts:Lexer.constructor",
+    "packages/namespace-import/src/use.ts:localShadow > packages/namespace-import/src/other.ts:Widget",
+    "packages/namespace-import/src/use.ts:paramShadow > packages/namespace-import/src/other.ts:Widget"
+   ],
    "extra": [],
    "unjudged": []
   },
   "call written as new X(), same file": {
    "agree": [
+    "packages/namespace-import/src/dom.ts:Widget.create > packages/namespace-import/src/dom.ts:Widget.constructor",
     "packages/property-override/src/child.ts:K.make@16 > packages/property-override/src/child.ts:K",
     "packages/same-name-rows/src/a.ts:K.make@3 > packages/same-name-rows/src/a.ts:K",
     "packages/static-instance/src/st.ts:P.make > packages/static-instance/src/st.ts:P"
