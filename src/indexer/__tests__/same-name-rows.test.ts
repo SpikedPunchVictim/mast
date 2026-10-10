@@ -87,6 +87,7 @@ export class Loud extends Emitter {}
       'EXTENDS src/z.ts:Loud@4 -> src/a.ts:Emitter@4',
       'PARENT_OF src/a.ts:Emitter@4 -> src/a.ts:Emitter.constructor@5',
       'PARENT_OF src/a.ts:Emitter@4 -> src/a.ts:Emitter.emit@6',
+      'PARENT_OF src/a.ts:Events@1 -> src/a.ts:Events.on@1',
       'POTENTIAL_CALL src/z.ts:build@2 -> src/a.ts:Emitter.constructor@5',
       'POTENTIAL_CALL src/z.ts:fire@3 -> src/a.ts:Emitter.emit@6',
     ], ALL);
@@ -108,6 +109,7 @@ export function build(): Emitter { return new Emitter(); }
       'EXTENDS src/a.ts:Emitter@3 -> src/a.ts:Base@2',
       'EXTENDS src/a.ts:Emitter@6 -> src/a.ts:Events@1',
       'PARENT_OF src/a.ts:Emitter@3 -> src/a.ts:Emitter.emit@4',
+      'PARENT_OF src/a.ts:Events@1 -> src/a.ts:Events.on@1',
       'POTENTIAL_CALL src/a.ts:build@7 -> src/a.ts:Emitter@3',
     ], ALL);
   });
@@ -124,6 +126,8 @@ export interface Row extends B {}
     await expectEdgeRows(dir, [
       'EXTENDS src/a.ts:Row@3 -> src/a.ts:A@1',
       'EXTENDS src/a.ts:Row@4 -> src/a.ts:B@2',
+      'PARENT_OF src/a.ts:A@1 -> src/a.ts:A.a@1',
+      'PARENT_OF src/a.ts:B@2 -> src/a.ts:B.b@2',
     ], ALL);
   });
 

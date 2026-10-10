@@ -1,0 +1,228 @@
+before: eval-suite/baselines/mast.json
+after:  $T/s17/mast.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 8         8         8         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+edge: IMPLEMENTS                              8         8         8         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+edge: PARENT_OF                             114       114       114         0         0         0         0
+                                            +60       +60       +60         .         .         .         .
+edge: POTENTIAL_CALL                       1083      1033      1033         0        50         0         0
+                                            +84       +62       +62         .       +22         .         .
+edge: RE_EXPORTS (to the declaration)        17        17        17         0         0         0         0
+export * (file to file)                       4         4         4         0         0         0         0
+file: indexed                                86        86        86         0         0         0         0
+import: named binding                       807       807       807         0         0         0         0
+                                             +8        +8        +8         .         .         .         .
+import: the file it resolves to             319       320       319         0         0         0         1
+                                             +1        +2        +1         .         .         .        +1
+symbol flag: is_exported                    938       938       938         0         0         0         0
+                                            +76       +76       +76         .         .         .         .
+symbol: class                                30        30        30         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+symbol: export                               21        21        21         0         0         0         0
+symbol: function                            520       520       520         0         0         0         0
+                                             +9        +9        +9         .         .         .         .
+symbol: interface                           210       210       210         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: method                              114       114       114         0         0         0         0
+                                            +60       +60       +60         .         .         .         .
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                 64        64        64         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+
+Keys that changed bucket:
+  edge: EXTENDS: absent -> agree (1)
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base
+  edge: IMPLEMENTS: absent -> agree (1)
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store
+  edge: PARENT_OF: absent -> agree (60)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit > adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit.make
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit > adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit.run
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Shape > adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Shape.draw
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H > adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H.constructor
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H > adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H.go
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.go
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.run
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl.get
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl.run
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store.get
+    src/ast/extractor.ts:LanguageExtractor > src/ast/extractor.ts:LanguageExtractor.extract
+    src/ast/extractors/__tests__/fixtures/basic.ts:Greeter > src/ast/extractors/__tests__/fixtures/basic.ts:Greeter.greet
+    src/cli/hook.ts:HookIo > src/cli/hook.ts:HookIo.cwd
+    src/cli/hook.ts:HookIo > src/cli/hook.ts:HookIo.fileExists
+    src/cli/hook.ts:HookIo > src/cli/hook.ts:HookIo.isDirectory
+    src/cli/hook.ts:HookIo > src/cli/hook.ts:HookIo.prime
+    src/cli/hook.ts:HookIo > src/cli/hook.ts:HookIo.readStdin
+    src/cli/hook.ts:HookIo > src/cli/hook.ts:HookIo.warn
+    src/cli/hook.ts:HookIo > src/cli/hook.ts:HookIo.write
+    src/cli/setup-cmd.ts:SetupIo > src/cli/setup-cmd.ts:SetupIo.directoryExists
+    ... 40 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> agree (68)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit.make > adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.go > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.run
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts:caller > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.run
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts:caller > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl.get
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts:caller > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store.get
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts:caller > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:plain
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts:caller > adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:top
+    src/ast/extractors/typescript.ts:emitChunksForNode > src/ast/extractors/typescript.ts:interfaceMethodsOf
+    src/ast/extractors/typescript.ts:emitInterfaceEdges > src/ast/extractors/typescript.ts:findChildByType
+    src/ast/extractors/typescript.ts:emitInterfaceEdges > src/ast/extractors/typescript.ts:interfaceMethodsOf
+    src/ast/extractors/typescript.ts:emitInterfaceEdges > src/ast/extractors/typescript.ts:nodeNamedChildren
+    src/ast/extractors/typescript.ts:emitInterfaceEdges > src/ast/extractors/typescript.ts:nodeStartLine
+    src/ast/extractors/typescript.ts:emitInterfaceEdges > src/ast/extractors/typescript.ts:typeRefName
+    src/ast/extractors/typescript.ts:extractEdges > src/ast/extractors/typescript.ts:emitInterfaceEdges
+    src/ast/extractors/typescript.ts:extractSignatures > src/ast/extractors/typescript.ts:interfaceMethodsOf
+    src/ast/extractors/typescript.ts:interfaceMethodName > src/ast/extractors/typescript.ts:nodeType
+    src/ast/extractors/typescript.ts:interfaceMethodsOf > src/ast/extractors/typescript.ts:interfaceMethodName
+    src/ast/extractors/typescript.ts:interfaceMethodsOf > src/ast/extractors/typescript.ts:methodNamesDeclaredElsewhere
+    src/ast/extractors/typescript.ts:interfaceMethodsOf > src/ast/extractors/typescript.ts:nodeNamedChildren
+    src/ast/extractors/typescript.ts:methodNamesDeclaredElsewhere > src/ast/extractors/typescript.ts:findChildByType
+    ... 48 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> lacks (22)
+    src/ast/extract.ts:extractFile > src/ast/extractor.ts:LanguageExtractor.extract
+    src/ast/extractors/typescript.ts:TypeScriptExtractor.extract > src/indexer/import-resolver.ts:ImportResolver.resolve
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectHandle.classify
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectHandle.dispose
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectResolver.discoverProjects
+    src/graph/checker-resolver.ts:runCheckerPass > src/graph/checker-resolver.ts:TsProjectResolver.loadProgram
+    src/graph/checker-resolver.ts:runCheckerPass > src/store/sqliteChunkStore.ts:ChunkStore.getAllChunks
+    src/indexer/index.ts:runIndexCounted > src/indexer/import-resolver.ts:ImportResolver.drainMiscased
+    src/indexer/index.ts:runIndexCounted > src/store/sqliteChunkStore.ts:ChunkStore.chunkCount
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.add
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.close
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.getWatched
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.onError
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.onFileEvent
+    src/indexer/watcher.ts:startWatchMode > src/indexer/watcher.ts:FsWatcher.onReady
+    src/mcp/server.ts:serve > src/indexer/watcher.ts:WatchHandle.stop
+    src/mcp/server.ts:serve > src/mcp/freshness-probe.ts:FreshnessProbe.refresh
+    src/mcp/tools/_helpers.ts:isIndexEmpty > src/store/sqliteChunkStore.ts:ChunkStore.chunkCount
+    src/mcp/tools/_helpers.ts:unindexedFilesField > src/mcp/freshness-probe.ts:FreshnessProbe.peekUnindexed
+    src/mcp/tools/exports.ts:registerExportsTool > src/store/sqliteChunkStore.ts:ChunkStore.getChunksByFilePath
+    ... 2 more, in the JSON
+  edge: POTENTIAL_CALL: agree -> absent (6)
+    src/ast/extractors/typescript.ts:emitInterfaceExtends > src/ast/extractors/typescript.ts:findChildByType
+    src/ast/extractors/typescript.ts:emitInterfaceExtends > src/ast/extractors/typescript.ts:nodeNamedChildren
+    src/ast/extractors/typescript.ts:emitInterfaceExtends > src/ast/extractors/typescript.ts:nodeStartLine
+    src/ast/extractors/typescript.ts:emitInterfaceExtends > src/ast/extractors/typescript.ts:typeRefName
+    src/ast/extractors/typescript.ts:extractEdges > src/ast/extractors/typescript.ts:emitInterfaceExtends
+    src/graph/populate.ts:resolveInheritedMember > src/graph/class-fields.ts:fieldNamesOf
+  import: named binding: absent -> agree (8)
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { Base } from './lib.js'
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { Geo } from './lib.js'
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { Impl } from './lib.js'
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { Reader } from './lib.js'
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { Store } from './lib.js'
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { plain } from './lib.js'
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { tools } from './lib.js'
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts { top } from './lib.js'
+  import: the file it resolves to: absent -> agree (1)
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts './lib.js' => adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts
+  import: the file it resolves to: absent -> unjudged (1)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts './lib' => adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts
+  symbol flag: is_exported: absent -> agree (77)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit.make exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit.run exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Shape exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Shape.draw exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H.constructor exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H.go exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:a exported=true
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:b exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.go exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.run exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl.get exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl.run exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Reader exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store.get exported=true
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:plain exported=true
+    ... 57 more, in the JSON
+  symbol flag: is_exported: agree -> absent (1)
+    src/ast/extractors/typescript.ts:emitInterfaceExtends exported=false
+  symbol: class: absent -> agree (4)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl
+  symbol: function: absent -> agree (10)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:a
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:b
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:plain
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:top
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/use.ts:caller
+    src/ast/extractors/typescript.ts:emitInterfaceEdges
+    src/ast/extractors/typescript.ts:interfaceMethodName
+    src/ast/extractors/typescript.ts:interfaceMethodsOf
+    src/ast/extractors/typescript.ts:methodNamesDeclaredElsewhere
+    src/graph/populate.ts:declaresField
+  symbol: function: agree -> absent (1)
+    src/ast/extractors/typescript.ts:emitInterfaceExtends
+  symbol: interface: absent -> agree (2)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Shape
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store
+  symbol: method: absent -> agree (60)
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit.make
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Kit.run
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/lib.ts:Shape.draw
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H.constructor
+    adr/proposals/checker-widening/spikes/s14-namespace-members/fixture/src/use.ts:H.go
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.go
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Base.run
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl.get
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Impl.run
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Store.get
+    src/ast/extractor.ts:LanguageExtractor.extract
+    src/ast/extractors/__tests__/fixtures/basic.ts:Greeter.greet
+    src/cli/hook.ts:HookIo.cwd
+    src/cli/hook.ts:HookIo.fileExists
+    src/cli/hook.ts:HookIo.isDirectory
+    src/cli/hook.ts:HookIo.prime
+    src/cli/hook.ts:HookIo.readStdin
+    src/cli/hook.ts:HookIo.warn
+    src/cli/hook.ts:HookIo.write
+    src/cli/setup-cmd.ts:SetupIo.directoryExists
+    ... 40 more, in the JSON
+  symbol: type: absent -> agree (1)
+    adr/proposals/checker-widening/spikes/s15-callee-kinds/fixture/src/lib.ts:Reader
+
+FAIL: 0 that agreed no longer do, 0 newly wrong, 1 newly unjudged or extra.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction            25        25        25         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call edge, stored as import                 333       333       333         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+call edge, stored as new_expression           7         7         7         0         0         0         0
+call edge, stored as parameter_type          61        61        61         0         0         0         0
+                                            +44       +44       +44         .         .         .         .
+call edge, stored as same_file              597       597       597         0         0         0         0
+                                            +14       +14       +14         .         .         .         .
+call edge, stored as super_method             1         1         1         0         0         0         0
+call edge, stored as this_method              9         9         9         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as expr.m(), other file          5         0         0         0         5         0         0
+                                             +5         .         .         .        +5         .         .
+call written as f(), other file             337       333       333         0         4         0         0
+                                             +2        +2        +2         .         .         .         .
+call written as f(), same file              598       597       597         0         1         0         0
+                                            +14       +14       +14         .         .         .         .
+call written as ident.m(), other file        37        30        30         0         7         0         0
+                                            +29       +22       +22         .        +7         .         .
+call written as ident.m(), same file         71        38        38         0        33         0         0
+                                            +32       +22       +22         .       +10         .         .
+call written as new X(), other file          13        13        13         0         0         0         0
+call written as new X(), same file           12        12        12         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+call written as super.m(), other file         1         1         1         0         0         0         0
+call written as this.m(), same file           9         9         9         0         0         0         0
+                                             +1        +1        +1         .         .         .         .

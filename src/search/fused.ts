@@ -313,6 +313,9 @@ interface KeptEntry {
  *   the `{ parent_symbol }` hint lands on the highest-ranked such method;
  * - a `method` is dropped when its class's shell is already kept — its
  *   qualified name is appended to the shell's `{ methods_matched }` hint;
+ * - a method of an interface is dropped in the same way when the interface is
+ *   already kept. The interface is never dropped: its chunk is the declaration,
+ *   properties included, and a shell is only an outline;
  * - methods never suppress each other, and classes are matched by
  *   file_path + class name so same-named classes in different files
  *   never collapse.
@@ -326,12 +329,23 @@ export function dedupShellMethodCollisions(
 ): Array<{ chunk: ChunkRecord; related: RelatedHint | undefined }> {
   const kept: KeptEntry[] = [];
   const keptShellByClass = new Map<string, KeptEntry>();
+  const keptInterfaces: KeptEntry[] = [];
   const firstKeptMethodByClass = new Map<string, KeptEntry>();
   // NUL never appears in paths or identifiers, so the key cannot collide.
   const classKey = (filePath: string, className: string): string => `${filePath}\u0000${className}`;
 
   for (const c of candidates) {
     if (kept.length >= limit) break;
+
+    // An interface holds the text of its methods, so one kept first stands for
+    // them. It is never dropped for a method: it also holds its properties,
+    // which no method chunk does.
+    if (c.chunk_type === 'interface' && c.symbol_name !== null) {
+      const entry: KeptEntry = { chunk: c };
+      kept.push(entry);
+      keptInterfaces.push(entry);
+      continue;
+    }
 
     if (c.chunk_type === 'class_shell' && c.symbol_name !== null) {
       const key = classKey(c.file_path, c.symbol_name);
@@ -348,6 +362,13 @@ export function dedupShellMethodCollisions(
     }
 
     if (c.chunk_type === 'method' && c.parent_symbol !== null) {
+      // The lines say which declaration the method is in: a class may share the interface's name.
+      const owner = keptInterfaces.find((i) => i.chunk.file_path === c.file_path && i.chunk.symbol_name === c.parent_symbol
+        && i.chunk.start_line <= c.start_line && c.end_line <= i.chunk.end_line);
+      if (owner !== undefined) {
+        if (c.symbol_name !== null) (owner.methodsMatched ??= []).push(c.symbol_name);
+        continue;
+      }
       const key = classKey(c.file_path, c.parent_symbol);
       const shell = keptShellByClass.get(key);
       if (shell !== undefined) {

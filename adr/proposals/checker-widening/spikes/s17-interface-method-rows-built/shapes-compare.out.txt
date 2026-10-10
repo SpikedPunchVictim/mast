@@ -1,0 +1,152 @@
+before: eval-suite/baselines/shapes.json
+after:  $T/s17/shapes.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                 6         6         6         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              52        52        52         0         0         0         0
+                                            +13       +13       +13         .         .         .         .
+edge: POTENTIAL_CALL                         87        78        77         1         9         0         0
+                                             +9        +8        +7        +1        +1         .         .
+edge: RE_EXPORTS (to the declaration)         2         2         2         0         0         0         0
+export * (file to file)                       3         3         3         0         0         0         0
+file: indexed                                52        52        52         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+import: named binding                        45        45        45         0         0         0         0
+                                             +4        +4        +4         .         .         .         .
+import: the file it resolves to              32        32        32         0         0         0         0
+                                             +1        +1        +1         .         .         .         .
+symbol flag: is_exported                    163       163       163         0         0         0         0
+                                            +22       +22       +22         .         .         .         .
+symbol: class                                29        29        29         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             79        79        79         0         0         0         0
+                                             +2        +2        +2         .         .         .         .
+symbol: interface                             8         8         8         0         0         0         0
+                                             +6        +6        +6         .         .         .         .
+symbol: method                               49        49        49         0         0         0         0
+                                            +13       +13       +13         .         .         .         .
+symbol: one key, more than one row            0         5         0         0         0         0         5
+                                              .        +1         .         .         .         .        +1
+symbol: type                                  1         1         1         0         0         0         0
+
+Keys that changed bucket:
+  edge: EXTENDS: absent -> agree (2)
+    packages/interface-method/src/types.ts:ActiveEditor > packages/interface-method/src/types.ts:Editor
+    packages/interface-method/src/types.ts:Source > packages/interface-method/src/types.ts:Readable
+  edge: PARENT_OF: absent -> agree (13)
+    packages/interface-method/src/types.ts:ActiveEditor > packages/interface-method/src/types.ts:ActiveEditor.getModel
+    packages/interface-method/src/types.ts:Editor > packages/interface-method/src/types.ts:Editor.getModel
+    packages/interface-method/src/types.ts:Editor > packages/interface-method/src/types.ts:Editor.hasModel
+    packages/interface-method/src/types.ts:Merged@23 > packages/interface-method/src/types.ts:Merged.both
+    packages/interface-method/src/types.ts:Merged@26 > packages/interface-method/src/types.ts:Merged.added
+    packages/interface-method/src/types.ts:Readable > packages/interface-method/src/types.ts:Readable.read
+    packages/interface-method/src/types.ts:Store > packages/interface-method/src/types.ts:Store.get
+    packages/interface-method/src/types.ts:Store > packages/interface-method/src/types.ts:Store.has
+    packages/interface-method/src/types.ts:Store > packages/interface-method/src/types.ts:Store.size
+    packages/interface-method/src/use.ts:ByField > packages/interface-method/src/use.ts:ByField.constructor
+    packages/interface-method/src/use.ts:ByField > packages/interface-method/src/use.ts:ByField.narrowed
+    packages/interface-method/src/use.ts:ByField > packages/interface-method/src/use.ts:ByField.run
+    packages/merged-class/src/emitter.ts:Events > packages/merged-class/src/emitter.ts:Events.on
+  edge: POTENTIAL_CALL: absent -> agree (7)
+    packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:Editor.hasModel
+    packages/interface-method/src/use.ts:ByField.run > packages/interface-method/src/types.ts:Store.get
+    packages/interface-method/src/use.ts:byParam > packages/interface-method/src/types.ts:Readable.read
+    packages/interface-method/src/use.ts:byParam > packages/interface-method/src/types.ts:Store.get
+    packages/interface-method/src/use.ts:byParam > packages/interface-method/src/types.ts:Store.has
+    packages/interface-method/src/use.ts:merged > packages/interface-method/src/types.ts:Merged.added
+    packages/interface-method/src/use.ts:merged > packages/interface-method/src/types.ts:Merged.both
+  edge: POTENTIAL_CALL: absent -> lacks (1)
+    packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:ActiveEditor.getModel
+  edge: POTENTIAL_CALL: absent -> wrong (1)
+    packages/interface-method/src/use.ts:ByField.narrowed > packages/interface-method/src/types.ts:Editor.getModel
+  file: indexed: absent -> agree (2)
+    packages/interface-method/src/types.ts
+    packages/interface-method/src/use.ts
+  import: named binding: absent -> agree (4)
+    packages/interface-method/src/use.ts { Editor } from './types'
+    packages/interface-method/src/use.ts { Merged } from './types'
+    packages/interface-method/src/use.ts { Source } from './types'
+    packages/interface-method/src/use.ts { Store } from './types'
+  import: the file it resolves to: absent -> agree (1)
+    packages/interface-method/src/use.ts './types' => packages/interface-method/src/types.ts
+  symbol flag: is_exported: absent -> agree (22)
+    packages/interface-method/src/types.ts:ActiveEditor exported=true
+    packages/interface-method/src/types.ts:ActiveEditor.getModel exported=true
+    packages/interface-method/src/types.ts:Editor exported=true
+    packages/interface-method/src/types.ts:Editor.getModel exported=true
+    packages/interface-method/src/types.ts:Editor.hasModel exported=true
+    packages/interface-method/src/types.ts:Merged exported=true
+    packages/interface-method/src/types.ts:Merged.added exported=true
+    packages/interface-method/src/types.ts:Merged.both exported=true
+    packages/interface-method/src/types.ts:Readable exported=true
+    packages/interface-method/src/types.ts:Readable.read exported=true
+    packages/interface-method/src/types.ts:Source exported=true
+    packages/interface-method/src/types.ts:Store exported=true
+    packages/interface-method/src/types.ts:Store.get exported=true
+    packages/interface-method/src/types.ts:Store.has exported=true
+    packages/interface-method/src/types.ts:Store.size exported=true
+    packages/interface-method/src/use.ts:ByField exported=true
+    packages/interface-method/src/use.ts:ByField.constructor exported=true
+    packages/interface-method/src/use.ts:ByField.narrowed exported=true
+    packages/interface-method/src/use.ts:ByField.run exported=true
+    packages/interface-method/src/use.ts:byParam exported=true
+    ... 2 more, in the JSON
+  symbol: class: absent -> agree (2)
+    packages/interface-method/src/types.ts:Merged
+    packages/interface-method/src/use.ts:ByField
+  symbol: function: absent -> agree (2)
+    packages/interface-method/src/use.ts:byParam
+    packages/interface-method/src/use.ts:merged
+  symbol: interface: absent -> agree (6)
+    packages/interface-method/src/types.ts:ActiveEditor
+    packages/interface-method/src/types.ts:Editor
+    packages/interface-method/src/types.ts:Merged
+    packages/interface-method/src/types.ts:Readable
+    packages/interface-method/src/types.ts:Source
+    packages/interface-method/src/types.ts:Store
+  symbol: method: absent -> agree (13)
+    packages/interface-method/src/types.ts:ActiveEditor.getModel
+    packages/interface-method/src/types.ts:Editor.getModel
+    packages/interface-method/src/types.ts:Editor.hasModel
+    packages/interface-method/src/types.ts:Merged.added
+    packages/interface-method/src/types.ts:Merged.both
+    packages/interface-method/src/types.ts:Readable.read
+    packages/interface-method/src/types.ts:Store.get
+    packages/interface-method/src/types.ts:Store.has
+    packages/interface-method/src/types.ts:Store.size
+    packages/interface-method/src/use.ts:ByField.constructor
+    packages/interface-method/src/use.ts:ByField.narrowed
+    packages/interface-method/src/use.ts:ByField.run
+    packages/merged-class/src/emitter.ts:Events.on
+  symbol: one key, more than one row: absent -> unjudged (1)
+    packages/interface-method/src/types.ts:Merged
+
+FAIL: 0 that agreed no longer do, 1 newly wrong, 1 newly unjudged or extra.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction                 19        19        19         0         0         0         0
+call edge, stored as field_type                    3         3         2         1         0         0         0
+                                                  +3        +3        +2        +1         .         .         .
+call edge, stored as import                       27        27        27         0         0         0         0
+call edge, stored as new_expression                2         2         2         0         0         0         0
+call edge, stored as parameter_type               11        11        11         0         0         0         0
+                                                  +5        +5        +5         .         .         .         .
+call edge, stored as same_file                     4         4         4         0         0         0         0
+call edge, stored as static_method                 7         7         7         0         0         0         0
+call edge, stored as this_method                   5         5         5         0         0         0         0
+call written as expr.m(), other file               2         0         0         0         2         0         0
+call written as f(), other file                   22        22        22         0         0         0         0
+call written as f(), same file                     4         4         4         0         0         0         0
+call written as ident.m(), other file             24        20        20         0         4         0         0
+                                                  +5        +5        +5         .         .         .         .
+call written as ident.m(), same file               5         5         5         0         0         0         0
+call written as new X(), other file               16        14        14         0         2         0         0
+call written as new X(), same file                 5         5         5         0         0         0         0
+call written as this.field.m(), other file         3         2         2         0         1         0         0
+                                                  +3        +2        +2         .        +1         .         .
+call written as this.m(), same file                5         5         5         0         0         0         0

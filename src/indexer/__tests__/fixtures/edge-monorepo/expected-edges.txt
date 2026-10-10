@@ -43,3 +43,7 @@ POTENTIAL_CALL packages/core/src/logger.ts:createLogger -> packages/core/src/log
 # packages/core/src/memory-store.ts
 IMPLEMENTS packages/core/src/memory-store.ts:MemoryStore -> packages/core/src/ports.ts:Store
 PARENT_OF packages/core/src/memory-store.ts:MemoryStore -> packages/core/src/memory-store.ts:MemoryStore.get
+
+# The methods of the two interfaces
+PARENT_OF packages/app/src/handler.ts:Handler -> packages/app/src/handler.ts:Handler.run
+PARENT_OF packages/core/src/ports.ts:Store -> packages/core/src/ports.ts:Store.get

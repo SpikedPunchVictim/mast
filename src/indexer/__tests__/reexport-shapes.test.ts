@@ -805,14 +805,14 @@ describe('calls through a namespace another file exports', () => {
     await expectEdges(dir, []);
   });
 
-  it('store nothing for a method called on a value of a type with the namespace\'s name', async () => {
+  it('leave a method called on a value of a type with the namespace\'s name to the type', async () => {
     writeFiles(dir, {
       'src/b-dom.ts': LEAF,
       'src/c-index.ts': `${EXPORT_FROM}export interface dom { append(): void }\n`,
       'src/z-consumer.ts': `import { dom } from './c-index.js';\nexport function go(d: dom): void { d.append(); }\n`,
     });
 
-    await expectEdges(dir, []);
+    await expectEdges(dir, ['POTENTIAL_CALL src/z-consumer.ts:go -> src/c-index.ts:dom.append']);
   });
 
   it('store nothing when the module is not an indexed file', async () => {

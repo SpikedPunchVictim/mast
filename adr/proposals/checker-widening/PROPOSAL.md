@@ -1054,3 +1054,89 @@ commands in `EVAL.md` write them again.
 
 **Not decided.** Whether to build it, and if so whether an edge on a narrowed receiver is
 acceptable.
+
+## A row for each method of an interface, built (2026-10-10)
+
+Decided after s16: an edge to the declared type's method on a narrowed receiver is
+acceptable, and the rows are built before the `this:`-parameter form is tried.
+
+**What is stored.** For each `method_signature` of a top-level interface: a `method`
+chunk and symbol row `Interface.method`, a `PARENT_OF` edge from the interface, and a
+signature for `mast_signature`. The interface's row lists its properties in
+`symbols.fields`. No resolver rule was added: the `parameter_type` and `field_type`
+rules and the inherited-member walk reach the rows as they reach a class's
+(MAST_SPEC §10.1, §10.2, §10.3.1). What s16's patch left undone, and how each ended:
+
+| Left undone by the spike | Built as |
+|---|---|
+| A method on the interface's own line was skipped | Stored. A one-line class's members already share the declaration's chunk id |
+| An interface merged with a class gave two rows of one key | A method the class of that name declares, or an earlier declaration of the interface has, is stored once. vscode's keys with more than one row: 116, as before |
+| No `PARENT_OF` edge | Written |
+| Each method chunk repeated the interface's text; search not looked at | The method's chunk is the member and its comment, with no context lines. A method ranking below its interface is folded into the interface's hit; the interface is never dropped for a method |
+| Incremental runs, repair, `mast_rename_impact` not run | Two incremental tests; the reviewer's eight edit sequences each equal to a full index (not kept: scratch fixtures); `mast_callers` and `mast_rename_impact` driven on a fixture by hand |
+| The scorecard's symbol reference was not widened | Widened: methods and accessors of a top-level interface, one per name |
+| A property with a function type is not stored | Unchanged: it is a field, and stops the inherited walk |
+
+A getter or setter written in an interface (`get size(): number;`) is a
+`method_signature` to tree-sitter and is stored, once for the pair. Found on n8n
+`packages/cli`, where two such rows were `extra` until the scorecard's reference counted
+them.
+
+**Against the compiler** (`spikes/s17-interface-method-rows-built/`; one index run each by
+the final build). The base is s16's: the same corpora indexed by the build of `8647855`.
+
+| Call pairs | vscode, `src/tsconfig.json` | n8n, 80 projects | nest | this repository | n8n `packages/cli` | n8n `packages/core` |
+|---|---|---|---|---|---|---|
+| newly agree | 33,989 | 692 | 117 | not comparable | 111 | 29 |
+| newly wrong | 176 | 0 | 0 | 0 | 0 | 0 |
+| wrong before, gone | 13 | 0 | 0 | 0 | 0 | 0 |
+| newly lacking | 22,446 | 5,739 | 253 | 22 | 265 | 50 |
+| agree, after | 177,958 | 53,814 | 3,792 | 1,033 | 20,979 | 1,000 |
+
+This repository's baseline was older than the s14 and s15 fixtures, which are in its
+tsconfig, so its 68 newly agreeing pairs are not all interface methods and no figure is
+given. Symbols, `is_exported` and `PARENT_OF` agree in full on the four baselines. On
+vscode three method rows are `extra`: they are in
+`extensions/copilot/.../serverPlugin/src/common/typescripts.ts`, whose interfaces were
+already `extra` in the base card.
+
+**The 176 wrong edges on vscode** all have a lacking pair of the same caller and method
+name (`vscode-analysis.out.txt`), which is where the compiler has the call. 142 are
+`ICodeEditor` where the compiler has `IActiveCodeEditor`, and 22 `INotebookEditor` where
+it has `IActiveNotebookEditor` or its delegate: the narrowed receiver of s16. The other
+12 are an interface where the compiler has a class or another interface
+(`IAction.run`, the compiler has `MenuItemAction.run`, 5); their sources were not read.
+The spike had 180; why four are gone was not looked into, and neither were the 13 that
+were wrong before.
+
+**Found by the review before commit** (an adversarial pass given the diff and the built
+CLI; each reproduced before it was acted on).
+
+- A property in a second declaration of the receiver's type did not stop the inherited
+  walk. Older than this change for a class merged with an interface: D168, fixed.
+- A type parameter or a nested declaration with a top-level type's name is taken for
+  it. Older than this change for a class: D169, open. Not counted on a real corpus.
+- With context lines, a one-line method chunk held its neighbours, and a search for a
+  property returned three methods and dropped the interface. Fixed as in the table.
+- A method of a class folded under an interface of the class's name in a search. Fixed:
+  the method's lines must be inside the interface's.
+- The scorecard threw on an interface called `toString`. Fixed.
+- An interface sharing its name with a constant holding a class expression takes the
+  calls on that class's instances. Left, and written in MAST_SPEC §10.3.1: the edge is
+  wrong only when the class's instances are not of the interface's type.
+- An interface's method is not stored when a class of its name has a *static* member of
+  that name, so that call has no edge. Left: a missed edge, not a wrong one.
+- A quoted member name (`'a-b'(): void`) is keyed with its quotes by mast and without by
+  the scorecard, for a class as for an interface. Left.
+
+**An index already built.** Schema 1.4.0 has been in no release, and an index of 1.3.0
+(v0.4.1) is rebuilt. An index written by an earlier build of this branch gets the rows
+file by file as files change, or at once with a full index.
+
+**Not measured.** Index time (one run per corpus, on a machine doing other work: vscode
+194 s here, 168 s in s16). What the extra chunks do to `mast_search` ranking on a real
+corpus: the folding and the chunk text were tested on fixtures only. `mast serve`'s
+watcher over the new rows. Directus was not scored (s15).
+
+**Next, not started.** A function whose `this` parameter is typed as an interface
+(`execute(this: IExecuteFunctions)`): 2,537 of n8n's lacking pairs in s16.

@@ -314,6 +314,36 @@ describe('dedupShellMethodCollisions', () => {
     expect(kept[0]!.related).toEqual({ methods_matched: ['Circle.area', 'Circle.perimeter'] });
   });
 
+  it('treats an interface and its methods as a class shell and its methods', () => {
+    const shape = fakeRec({ chunk_id: 'iface', chunk_type: 'interface', symbol_name: 'Shape', file_path: 'models.ts' });
+    const area = fakeRec({ chunk_id: 'm-area', chunk_type: 'method', symbol_name: 'Shape.area', parent_symbol: 'Shape', file_path: 'models.ts' });
+
+    const interfaceFirst = dedupShellMethodCollisions([shape, area], 10);
+
+    expect(interfaceFirst.map((k) => [k.chunk.chunk_id, k.related])).toEqual([['iface', { methods_matched: ['Shape.area'] }]]);
+  });
+
+  // An interface's chunk is the whole declaration, properties included, where a
+  // class's shell is an outline of what its method chunks hold.
+  it('keeps an interface that ranks below one of its methods', () => {
+    const shape = fakeRec({ chunk_id: 'iface', chunk_type: 'interface', symbol_name: 'Shape', file_path: 'models.ts' });
+    const area = fakeRec({ chunk_id: 'm-area', chunk_type: 'method', symbol_name: 'Shape.area', parent_symbol: 'Shape', file_path: 'models.ts', start_line: 2, end_line: 2 });
+
+    const kept = dedupShellMethodCollisions([area, shape], 10);
+
+    expect(kept.map((k) => [k.chunk.chunk_id, k.related])).toEqual([['m-area', undefined], ['iface', undefined]]);
+  });
+
+  it('does not fold a method of a class under an interface of the class\'s name', () => {
+    const widget = fakeRec({ chunk_id: 'iface', chunk_type: 'interface', symbol_name: 'Widget', file_path: 'w.ts', start_line: 4, end_line: 7 });
+    const render = fakeRec({ chunk_id: 'm-render', chunk_type: 'method', symbol_name: 'Widget.render', parent_symbol: 'Widget', file_path: 'w.ts', start_line: 2, end_line: 2 });
+    const repaint = fakeRec({ chunk_id: 'm-repaint', chunk_type: 'method', symbol_name: 'Widget.repaint', parent_symbol: 'Widget', file_path: 'w.ts', start_line: 6, end_line: 6 });
+
+    const kept = dedupShellMethodCollisions([widget, render, repaint], 10);
+
+    expect(kept.map((k) => [k.chunk.chunk_id, k.related])).toEqual([['iface', { methods_matched: ['Widget.repaint'] }], ['m-render', undefined]]);
+  });
+
   it('attaches the shell-suppression hint to the highest-ranked method only', () => {
     const kept = dedupShellMethodCollisions(
       [circleMethod('area'), circleMethod('perimeter'), circleShell()],

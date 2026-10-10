@@ -2137,6 +2137,7 @@ declaration. Line-based splitting is a fallback, not the primary strategy.
 | `method_definition` (inside class) | `method` | `ClassName.methodName` | class name | inherits from class **and** non-`private` |
 | `abstract_method_signature`, `method_signature` (inside class) | `method` | `ClassName.methodName` | class name | as above. A method with no body: `abstract m(): T;` or `m?(): T;`. An overload beside its implementation is not a symbol of its own (D107) |
 | `interface_declaration` | `interface` | interface name | `null` | has `export` modifier |
+| `method_signature` (inside a top-level interface) | `method` | `InterfaceName.methodName` | interface name | inherits from the interface. Overloads are one symbol, and so are a getter and a setter (`get size(): number;`). Not stored when a class of the interface's name in the file has a method of the name (static or not, a getter, a setter), or an earlier declaration of the interface has it. A property with a function type (`put: () => void`) is a field, not a method |
 | `type_alias_declaration` | `type` | type name | `null` | has `export` modifier |
 | `export_statement` wrapping any above | inherits inner | inherits inner | inherits inner | `true` |
 | `ambient_declaration` wrapping any above (`declare class`, `declare interface`, `declare type`, `declare const`), with or without `export` | inherits inner | inherits inner | inherits inner | as the inner declaration would be without `declare` (D109) |
@@ -2179,8 +2180,21 @@ lines). For class-heavy codebases the token savings move from "marginal" to
 "material." Chunk count for a class-heavy 5K-file repo grows from ~6K to ~20–30K;
 SQLite (chunks table + FTS5) handles this fine at sub-100MB index size.
 
-**Interfaces and type aliases are NOT decomposed.** Their members are signatures
-already (no bodies to split), so the interface or type alias remains a single chunk.
+**An interface stays one chunk, and each of its methods is a chunk as well.** The
+`interface` chunk holds the whole declaration, as before. Each `method_signature` of
+a top-level interface is also a `method` chunk of that one member, named
+`InterfaceName.methodName`, so that a call on a receiver typed as the interface has a
+row to point at (§10.3.1). The interface is the parent of its methods (`PARENT_OF`),
+and the row of each declaration of it lists that declaration's properties in
+`symbols.fields`, as a class's row does. A method's chunk is the member and the
+comment above it, with no `context_lines` around it: the lines around a member are
+other members. In `mast_search`, a method that ranks below its interface is folded
+into the interface's hit (`methods_matched`), as a class's method is into the
+shell's. The interface is never dropped for a method that ranks above it, as a
+shell is: its chunk is the only one with its properties. An interface nested in a
+namespace or a function has no chunk of its own, and its methods have none either.
+**Type aliases are NOT decomposed**: `type T = { m(): void }` is one chunk and `m`
+has no row.
 
 **Anonymous default exports** (`export default function () {}`, `export default {}`):
 `symbol_name` is set to the filename without extension (e.g., `handler` for
@@ -2304,7 +2318,8 @@ For `mast_signature` and the signature field in `mast_exports`:
 1. Locate the declaration node by symbol name via tree-sitter query.
 2. Extract node text up to (not including) the `statement_block` child (`{ ... }` body).
 3. For interfaces and type aliases: the full declaration is the signature — no body
-   exists to strip.
+   exists to strip. For a method of an interface (`Store.get`): the member without its
+   closing `;` or `,`; of overloads, the first.
 4. Walk backwards from the declaration's start byte to find the immediately preceding
    `comment` node. Accept `/** ... */` (TSDoc) or `// ...` (line comment). Include
    as `doc`.
@@ -2557,6 +2572,31 @@ has two (the name after `extends` matched an interface and a class, say), and
 at a class it has already passed. `EXTENDS` edges are therefore written before
 any call is resolved (`insertGraphEdges`), so the result does not depend on
 the order files were walked in.
+
+**A receiver typed as an interface.** The same rules apply, with the interface in
+the class's place. `store.get()` with `store: Store` goes to `Store.get`, the method
+of the interface, because that is what the call is written against; which class
+runs is not known from the call, and `mast_implementors Store` lists the candidates.
+A call on a receiver typed as the class goes to the class's method, as before, so
+`mast_callers MemoryStore.get` does not list the calls made through `Store`: ask for
+`Store.get` as well. When the interface does not declare the method, its `EXTENDS`
+edge is followed as a class's is, and stops as a class's does: at an interface that
+extends two (`interface File extends Readable, Closable`), and at one that declares
+the name as a property, in any of its declarations in the file (D168).
+
+Three edges this writes differ from the compiler's. When the receiver is narrowed to
+a subtype that declares the method again (`if (editor.hasModel()) editor.getModel()`
+with `hasModel(): this is ActiveEditor`), the compiler's target is the subtype's
+method and the edge goes to the method of the declared type. The declared type's
+method is the one the subtype's overrides, and the edge is kept
+(adr/proposals/checker-widening, "A row for each method of an interface, built").
+The other two are defects. A type parameter, or a class or interface declared inside
+a function, that has the name of a top-level class or interface is taken for it
+(D169, open; it was so for a class before interfaces had methods to point at). And
+an interface that shares its name with a constant holding a class expression
+(`interface E { on(): void }` beside `const E = class { on() {} }`) takes the calls
+on an instance of that class, which are the class expression's to the compiler; the
+two differ only when the class's instances are not of the interface's type.
 
 The walk also stops with no edge at a class that has a field of the name, the
 receiver's own class included: `handle = () => {}`, `declare handle: …` and

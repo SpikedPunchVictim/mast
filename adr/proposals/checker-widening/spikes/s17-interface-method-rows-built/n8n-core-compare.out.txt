@@ -1,0 +1,152 @@
+before: eval-suite/baselines/n8n-core.json
+after:  $T/s17/n8n-core.json
+
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+edge: EXTENDS                                32        32        32         0         0         0         0
+edge: IMPLEMENTS                             21        21        21         0         0         0         0
+edge: PARENT_OF                             549       549       549         0         0         0         0
+                                            +14       +14       +14         .         .         .         .
+edge: POTENTIAL_CALL                       1204      1000      1000         0       204         0         0
+                                            +79       +29       +29         .       +50         .         .
+edge: RE_EXPORTS (to the declaration)        92        92        92         0         0         0         0
+export * (file to file)                      30        30        30         0         0         0         0
+file: indexed                               246       147       147         0        99         0         0
+import: named binding                      1377      1377      1377         0         0         0         0
+import: the file it resolves to             435       436       435         0         0         0         1
+symbol flag: is_exported                    902       902       902         0         0         0         0
+                                            +14       +14       +14         .         .         .         .
+symbol: class                                72        72        72         0         0         0         0
+symbol: export                               99        99        99         0         0         0         0
+symbol: function                            217       217       217         0         0         0         0
+symbol: interface                            18        18        18         0         0         0         0
+symbol: method                              549       549       549         0         0         0         0
+                                            +14       +14       +14         .         .         .         .
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                 46        46        46         0         0         0         0
+
+Keys that changed bucket:
+  edge: PARENT_OF: absent -> agree (14)
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider > packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getActiveKey
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider > packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getKeyById
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider > packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getLegacyKey
+    packages/core/src/encryption/interface.ts:CipherWrapper > packages/core/src/encryption/interface.ts:CipherWrapper.decrypt
+    packages/core/src/encryption/interface.ts:CipherWrapper > packages/core/src/encryption/interface.ts:CipherWrapper.encrypt
+    packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier > packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier.done
+    packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier > packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier.return
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getProviderNames
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getSecret
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getSecretNames
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasProvider
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasSecret
+    packages/core/src/observability/tracing/tracing.ts:Tracer > packages/core/src/observability/tracing/tracing.ts:Tracer.startNewTraceSpan
+    packages/core/src/observability/tracing/tracing.ts:Tracer > packages/core/src/observability/tracing/tracing.ts:Tracer.startSpan
+  edge: POTENTIAL_CALL: absent -> agree (29)
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.copyByFileId > packages/@n8n/blob-storage/src/types.ts:ByteStore.copy
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.copyByFilePath > packages/@n8n/blob-storage/src/types.ts:ByteStore.write
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.deleteManyByFileId > packages/@n8n/blob-storage/src/types.ts:ByteStore.delete
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.getAsBuffer > packages/@n8n/blob-storage/src/types.ts:ByteStore.read
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.getAsStream > packages/@n8n/blob-storage/src/types.ts:ByteStore.readStream
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.getMetadata > packages/@n8n/blob-storage/src/types.ts:ByteStore.getMetadata
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.getMetadata > packages/@n8n/blob-storage/src/types.ts:ByteStore.read
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.getPath > packages/@n8n/blob-storage/src/types.ts:ByteStore.getAbsolutePath
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.init > packages/@n8n/blob-storage/src/types.ts:ByteStore.init
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.rename > packages/@n8n/blob-storage/src/types.ts:ByteStore.rename
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.store > packages/@n8n/blob-storage/src/types.ts:ByteStore.write
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.storeMetadata > packages/@n8n/blob-storage/src/types.ts:ByteStore.write
+    packages/core/src/data-deduplication-service.ts:DataDeduplicationService.checkProcessedAndRecord > packages/workflow/src/interfaces.ts:IDataDeduplicator.checkProcessedAndRecord
+    packages/core/src/data-deduplication-service.ts:DataDeduplicationService.checkProcessedItemsAndRecord > packages/workflow/src/interfaces.ts:IDataDeduplicator.checkProcessedAndRecord
+    packages/core/src/data-deduplication-service.ts:DataDeduplicationService.clearAllProcessedItems > packages/workflow/src/interfaces.ts:IDataDeduplicator.clearAllProcessedItems
+    packages/core/src/data-deduplication-service.ts:DataDeduplicationService.getProcessedDataCount > packages/workflow/src/interfaces.ts:IDataDeduplicator.getProcessedDataCount
+    packages/core/src/data-deduplication-service.ts:DataDeduplicationService.removeProcessed > packages/workflow/src/interfaces.ts:IDataDeduplicator.removeProcessed
+    packages/core/src/execution-engine/external-secrets-proxy.ts:ExternalSecretsProxy.getSecret > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getSecret
+    packages/core/src/execution-engine/external-secrets-proxy.ts:ExternalSecretsProxy.hasProvider > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasProvider
+    packages/core/src/execution-engine/external-secrets-proxy.ts:ExternalSecretsProxy.hasSecret > packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasSecret
+    ... 9 more, in the JSON
+  edge: POTENTIAL_CALL: absent -> lacks (50)
+    packages/core/src/binary-data/blob.manager.ts:BinaryDataBlobManager.deleteBinaryDataDirs > packages/@n8n/blob-storage/src/types.ts:ByteStore.deletePrefix
+    packages/core/src/encryption/encryption-key-proxy.ts:EncryptionKeyProxy.getActiveKey > packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getActiveKey
+    packages/core/src/encryption/encryption-key-proxy.ts:EncryptionKeyProxy.getKeyById > packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getKeyById
+    packages/core/src/encryption/encryption-key-proxy.ts:EncryptionKeyProxy.getLegacyKey > packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getLegacyKey
+    packages/core/src/execution-engine/active-workflow-triggers.ts:ActiveWorkflowTriggers.activatePollTrigger > packages/workflow/src/interfaces.ts:IPollFunctions.getNodeParameter
+    packages/core/src/execution-engine/execution-context-hook-registry.service.ts:ExecutionContextHookRegistry.getHookForTriggerType > packages/@n8n/decorators/src/context-establishment/context-establishment-hook.ts:IContextEstablishmentHook.isApplicableToTriggerNode
+    packages/core/src/execution-engine/execution-context-hook-registry.service.ts:ExecutionContextHookRegistry.init > packages/@n8n/decorators/src/context-establishment/context-establishment-hook.ts:IContextEstablishmentHook.init
+    packages/core/src/execution-engine/execution-context.service.ts:ExecutionContextService.augmentExecutionContextWithHooks > packages/@n8n/decorators/src/context-establishment/context-establishment-hook.ts:IContextEstablishmentHook.execute
+    packages/core/src/execution-engine/execution-context.service.ts:ExecutionContextService.augmentSubExecutionContext > packages/@n8n/decorators/src/context-establishment/context-establishment-hook.ts:IContextEstablishmentHook.execute
+    packages/core/src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.getRunnerStatus > packages/workflow/src/interfaces.ts:IWorkflowExecuteAdditionalData.getRunnerStatus
+    packages/core/src/execution-engine/node-execution-context/base-execute-context.ts:BaseExecuteContext.startJob > packages/workflow/src/interfaces.ts:IWorkflowExecuteAdditionalData.startRunnerTask
+    packages/core/src/execution-engine/node-execution-context/execute-context.ts:ExecuteContext.getRuntimeCredential > packages/workflow/src/interfaces.ts:IWorkflowExecuteAdditionalData.getRuntimeCredential
+    packages/core/src/execution-engine/node-execution-context/execute-single-context.ts:ExecuteSingleContext.getRuntimeCredential > packages/workflow/src/interfaces.ts:IWorkflowExecuteAdditionalData.getRuntimeCredential
+    packages/core/src/execution-engine/node-execution-context/load-options-context.ts:LoadOptionsContext.getCurrentNodeParameter > packages/workflow/src/interfaces.ts:INodeTypes.getByNameAndVersion
+    packages/core/src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getCredentials > packages/workflow/src/interfaces.ts:INodeTypes.getByNameAndVersion
+    packages/core/src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext._getNodeParameter > packages/workflow/src/interfaces.ts:INodeTypes.getByNameAndVersion
+    packages/core/src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.getKnownNodeTypes > packages/workflow/src/interfaces.ts:INodeTypes.getKnownTypes
+    packages/core/src/execution-engine/node-execution-context/node-execution-context.ts:NodeExecutionContext.nodeType > packages/workflow/src/interfaces.ts:INodeTypes.getByNameAndVersion
+    packages/core/src/execution-engine/node-execution-context/utils/extract-value.ts:executeRegexExtractValue > packages/workflow/src/safe-regex.ts:RegexEngine.exec
+    packages/core/src/execution-engine/node-execution-context/utils/file-system-helper-functions.ts:openWithoutFollowingSymlinkedAncestors > packages/workflow/src/interfaces.ts:PinnedDirectory.close
+    ... 30 more, in the JSON
+  symbol flag: is_exported: absent -> agree (14)
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getActiveKey exported=true
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getKeyById exported=true
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getLegacyKey exported=true
+    packages/core/src/encryption/interface.ts:CipherWrapper.decrypt exported=true
+    packages/core/src/encryption/interface.ts:CipherWrapper.encrypt exported=true
+    packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier.done exported=false
+    packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier.return exported=false
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getProviderNames exported=true
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getSecret exported=true
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getSecretNames exported=true
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasProvider exported=true
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasSecret exported=true
+    packages/core/src/observability/tracing/tracing.ts:Tracer.startNewTraceSpan exported=true
+    packages/core/src/observability/tracing/tracing.ts:Tracer.startSpan exported=true
+  symbol: method: absent -> agree (14)
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getActiveKey
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getKeyById
+    packages/core/src/encryption/encryption-key-proxy.ts:IEncryptionKeyProvider.getLegacyKey
+    packages/core/src/encryption/interface.ts:CipherWrapper.decrypt
+    packages/core/src/encryption/interface.ts:CipherWrapper.encrypt
+    packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier.done
+    packages/core/src/execution-engine/__tests__/mock-node-types.ts:NodeModifier.return
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getProviderNames
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getSecret
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.getSecretNames
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasProvider
+    packages/core/src/execution-engine/external-secrets-proxy.ts:IExternalSecretsManager.hasSecret
+    packages/core/src/observability/tracing/tracing.ts:Tracer.startNewTraceSpan
+    packages/core/src/observability/tracing/tracing.ts:Tracer.startSpan
+
+PASS: nothing that agreed was lost, and nothing new is wrong or unconfirmed.
+
+Broken down (not part of the verdict; the same keys under mast's label or the shape of the call):
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged   (after, change)
+call edge, stored as construction                162       162       162         0         0         0         0
+call edge, stored as field_type                  105       105       105         0         0         0         0
+                                                 +25       +25       +25         .         .         .         .
+call edge, stored as import                      212       212       212         0         0         0         0
+call edge, stored as new_expression               14        14        14         0         0         0         0
+call edge, stored as parameter_type               63        63        63         0         0         0         0
+                                                  +4        +4        +4         .         .         .         .
+call edge, stored as same_file                   140       140       140         0         0         0         0
+call edge, stored as static_method                26        26        26         0         0         0         0
+call edge, stored as super_method                  7         7         7         0         0         0         0
+call edge, stored as this_method                 271       271       271         0         0         0         0
+call written as expr.m(), other file              74         0         0         0        74         0         0
+                                                 +19         .         .         .       +19         .         .
+call written as expr.m(), same file                2         0         0         0         2         0         0
+call written as f(), other file                  214       212       212         0         2         0         0
+                                                  +1         .         .         .        +1         .         .
+call written as f(), same file                   140       140       140         0         0         0         0
+call written as ident.m(), other file            185        97        97         0        88         0         0
+                                                 +13        +4        +4         .        +9         .         .
+call written as ident.m(), same file               6         6         6         0         0         0         0
+call written as new X(), other file              152       152       152         0         0         0         0
+call written as new X(), same file                10        10        10         0         0         0         0
+call written as super.m(), other file              7         7         7         0         0         0         0
+call written as this.field.m(), other file       124        98        98         0        26         0         0
+                                                 +29       +18       +18         .       +11         .         .
+call written as this.field.m(), same file         10         7         7         0         3         0         0
+                                                 +10        +7        +7         .        +3         .         .
+call written as this.m(), other file              37        28        28         0         9         0         0
+                                                  +7         .         .         .        +7         .         .
+call written as this.m(), same file              243       243       243         0         0         0         0

@@ -1295,6 +1295,9 @@ function memberSideOf(edge: EdgeRecord): MemberSide | null {
  * the name. A field has no symbol row and is still the nearest declaration:
  * the call runs what the field holds, which is not stored (D115). A call that
  * reaches statics is stopped by a static field, every other by an instance one.
+ * The fields are those of every row of the name in the file: a class merged
+ * with an interface, and an interface declared twice, declare a property in
+ * either row.
  *
  * Reads edges other files wrote, so `insertGraphEdges` writes every structural
  * edge before any call.
@@ -1317,16 +1320,16 @@ async function resolveInheritedMember(
     ? await resolveSameFileScoped(db, fromFileId, className)
     : await resolveQualifiedNameScoped(db, fromFileId, placeImport, className);
   if (current === null) return null;
-  const own = await db.selectFrom('symbols').select('fields').where('id', '=', current).executeTakeFirst();
-  if (fieldNamesOf(own?.fields ?? null)[side].includes(member.slice(1))) return null;
+  const own = await db.selectFrom('symbols').select(['name', 'file_id']).where('id', '=', current).executeTakeFirst();
+  if (own === undefined || await declaresField(db, own.file_id, own.name, side, member.slice(1))) return null;
 
   const passed = new Set<number>();
   while (current !== null && !passed.has(current)) {
     passed.add(current);
-    const parents: { id: number; name: string; file_id: number; fields: string | null }[] = await db
+    const parents: { id: number; name: string; file_id: number }[] = await db
       .selectFrom('edges as e')
       .innerJoin('symbols as p', 'p.id', 'e.to_id')
-      .select(['p.id', 'p.name', 'p.file_id', 'p.fields'])
+      .select(['p.id', 'p.name', 'p.file_id'])
       .where('e.from_id', '=', current)
       .where('e.edge_type', '=', 'EXTENDS')
       .limit(2)
@@ -1335,10 +1338,16 @@ async function resolveInheritedMember(
     if (parent === undefined || parents.length > 1) return null;
     const declared = await resolveSameFileScoped(db, parent.file_id, `${parent.name}${member}`, side);
     if (declared !== null) return declared;
-    if (fieldNamesOf(parent.fields)[side].includes(member.slice(1))) return null;
+    if (await declaresField(db, parent.file_id, parent.name, side, member.slice(1))) return null;
     current = parent.id;
   }
   return null;
+}
+
+/** Whether a row called `name` in the file lists `field` among its fields of that side. */
+async function declaresField(db: Db, fileId: number, name: string, side: MemberSide, field: string): Promise<boolean> {
+  const rows = await db.selectFrom('symbols').select('fields').where('file_id', '=', fileId).where('name', '=', name).execute();
+  return rows.some((row) => fieldNamesOf(row.fields)[side].includes(field));
 }
 
 /** A row's static flag, with a row written before the column existed read as not static. */

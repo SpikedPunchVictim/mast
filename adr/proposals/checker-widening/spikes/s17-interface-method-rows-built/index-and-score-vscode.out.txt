@@ -1,0 +1,64 @@
+files: 10180 indexed, 0 skipped  chunks: +182880 -0  duration: 193569ms
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged
+edge: EXTENDS                              8153      8126      8124         2        27         0         0
+edge: IMPLEMENTS                           4907      4852      4852         0        55         0         0
+edge: PARENT_OF                           94337     94342     94323         0        14        19         0
+edge: POTENTIAL_CALL                     236310    183788    177958       210     58142         0      5620
+edge: RE_EXPORTS (to the declaration)      1415      1415      1405        10         0         0         0
+export * (file to file)                      86        86        86         0         0         0         0
+file: indexed                              8056      6483      6483         0      1573         0         0
+import: named binding                    152201    152201    152201         0         0         0         0
+import: the file it resolves to           90098     91380     90098         0         0         0      1282
+symbol flag: is_exported                 139330    139330    139251        79         0         0         0
+symbol: class                             12406     12407     12405         0         1         2         0
+symbol: export                             1730      1730      1730         0         0         0         0
+symbol: function                          16623     18193     16621         0         2      1572         0
+symbol: interface                         12223     12229     12223         0         0         6         0
+symbol: method                            93532     93551     93532         0         0        19         0
+symbol: one key, more than one row            0       116         0         0         0         0       116
+symbol: type                               4551      4555      4551         0         0         4         0
+
+Calls, broken down:
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged
+call edge, stored as construction              18244     18245     18236         8         0         0         1
+call edge, stored as field_type                38163     38163     38061       102         0         0         0
+call edge, stored as import                    33164     33164     33163         1         0         0         0
+call edge, stored as new_expression             3777      3777      3772         5         0         0         0
+call edge, stored as parameter_type            10633     10634     10554        79         0         0         1
+call edge, stored as same_file                 14037     19651     14037         0         0         0      5614
+call edge, stored as static_method              7847      7847      7847         0         0         0         0
+call edge, stored as super_method               1850      1850      1850         0         0         0         0
+call edge, stored as this_method               50453     50457     50438        15         0         0         4
+call written as expr.m(), other file           13195       167       167         0     13028         0         0
+call written as expr.m(), same file              957         8         8         0       949         0         0
+call written as f(), other file                33507     29121     29121         0      4386         0         0
+call written as f(), same file                 14146     14037     14037         0       109         0         0
+call written as ident.m(), other file          43825     23232     23232         0     20593         0         0
+call written as ident.m(), same file            5606      2925      2925         0      2681         0         0
+call written as new X(), other file            13920     13857     13857         0        63         0         0
+call written as new X(), same file              4389      4379      4379         0        10         0         0
+call written as super.m(), other file           1614      1586      1586         0        28         0         0
+call written as super.m(), same file             251       246       246         0         5         0         0
+call written as this.field.m(), other file     50830     35509     35509         0     15321         0         0
+call written as this.field.m(), same file       3354      2457      2457         0       897         0         0
+call written as this.m(), other file            6508      6451      6451         0        57         0         0
+call written as this.m(), same file            43998     43983     43983         0        15         0         0
+
+Seen by the compiler and given no line item:
+    79330  call outside any declaration mast has a symbol for
+     4934  call through a variable, judged by its signature
+     9552  call whose callee is not a name or a property
+     1885  enum
+        2  export * as namespace
+      224  export default <expression>
+        2  export { a as b } of a name with no symbol kind
+     2055  import for side effects
+      971  named import with an alias
+     3704  namespace import
+      888  namespace or module declaration
+       20  top-level destructuring declaration
+    12853  top-level variable that is not a function
+
+{"ran_at":"2026-10-10T08:01:44.182Z","typescript":"5.9.3","label":"interface methods","root":"vscode-ref","tsconfig":"src/tsconfig.json","prefix":"","config_errors":[],"workspace_packages_mapped_to_source":0,"scored_typescript_files":9830,"tsconfig_files":8056,"corpus_hash":"bb7a264fadb1d877bd29c47fcd025403514dba0e08e24c102124a46acf7efb11","program_source_files":9952,"repeated_symbol_rows":824,"wall_ms":60777,"peak_rss_mb":2942}
+written: $T/s17/vscode.json.gz

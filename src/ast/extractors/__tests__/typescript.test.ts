@@ -92,6 +92,17 @@ describe('TypeScriptExtractor – basic.ts', () => {
     expect(c?.is_exported).toBe(true);
   });
 
+  // A member is a line, and its neighbours are other members: with context a
+  // search for one member's name would match the chunk of the next.
+  it('gives the chunk of a method of an interface its own lines and its comment, with no context', () => {
+    const src = `export interface SessionStore {\n  ttlMillis: number;\n  /** Reads a key. */\n  get(key: string): string;\n  put(key: string): void;\n}\n`;
+    const chunks = extractor.extractChunks(parseSource(src, '.ts'), src, 'store.ts', 0, 3, THRESHOLD);
+
+    const get = chunks.find((c) => c.symbol_name === 'SessionStore.get');
+    expect(get?.content).toBe('  /** Reads a key. */\n  get(key: string): string;');
+    expect(chunks.find((c) => c.symbol_name === 'SessionStore.put')?.content).toBe('  put(key: string): void;');
+  });
+
   it('emits an interface chunk', () => {
     const c = chunks.find((ch) => ch.symbol_name === 'Greeter');
     expect(c).toBeDefined();

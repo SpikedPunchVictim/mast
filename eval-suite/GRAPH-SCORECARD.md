@@ -64,6 +64,7 @@ commit that files it. The directory is left out of this repository's own index
 | `js-beside-dts` | D162, a scorecard defect, fixed: an edge to a `.js` file that has a `.d.ts` beside it was counted as wrong |
 | `namespace-export` | none: calls through a namespace another file exports, imported and then exported or in the `export * as` form (rule 12), and a member of a member, which is not read and is in the baseline as `lacks` |
 | `tagged-template` | D165, a scorecard defect, fixed: a tagged template, bare, through a namespace import and with a tag a constant holds, was `unjudged` |
+| `interface-method` | none: calls on a parameter and a field typed as an interface, on an interface above it, and on a class merged with an interface (MAST_SPEC §10.1, the methods of an interface). A receiver narrowed to an interface that declares the method again has its edge on the declared type's method: that is in the baseline as `wrong`, and was accepted (`adr/proposals/checker-widening/PROPOSAL.md`, "A row for each method of an interface, built") |
 
 The n8n copy has to have its workspace packages built, as for the graph-reference spike
 (`adr/proposals/graph-reference/spikes/RESULTS.md`). `packages/cli` takes about 15 s and
@@ -108,13 +109,13 @@ is from reading `src/graph/queries.ts` and `src/mcp/tools/`, on 2026-10-07.
 | `file: indexed` | `files` | every tool | each TypeScript file the tsconfig names under the prefix. A file mast indexes and the tsconfig does not name is not counted |
 | `symbol: function` | `symbols`, kind `function` | `mast_signature`, `mast_project_skeleton`, `mast_callers` | top-level function declarations, and top-level variables initialized with an arrow function |
 | `symbol: class` | kind `class` | the same | top-level class declarations |
-| `symbol: method` | kind `method`, named `Class.member` | the same | methods, constructors, getters and setters of a top-level class |
+| `symbol: method` | kind `method`, named `Class.member` or `Interface.member` | the same | methods, constructors, getters and setters of a top-level class, and the methods of a top-level interface (since 2026-10-10). A method an interface shares with a class of its name in the file, or with an earlier declaration of the interface, is counted once |
 | `symbol: interface` | kind `interface` | the same, and `mast_implementors` | top-level interface declarations |
 | `symbol: type` | kind `type` | the same | top-level type aliases |
 | `symbol: export` | kind `export`, a marker | `mast_rename_impact` (barrel rows) | each name in `export { ... } from '...'`, and each named import exported by a clause with no `from` |
 | `symbol: one key, more than one row` | two declaration rows of one `path:name` | whichever tool looks the name up | nothing: every such key is `unjudged`, and so is every edge with one at either end. A getter and setter of one property are not counted |
 | `symbol flag: is_exported` | `symbols.is_exported` | `mast_project_skeleton` | the `export` modifier, or a later `export { name }`; a member is exported when its class is and it is not private |
-| `edge: PARENT_OF` | class to member | `mast_callers` (a class's callers include its constructor's), `mast_implementors` | one per member above |
+| `edge: PARENT_OF` | class or interface to member | `mast_callers` (a class's callers include its constructor's), `mast_implementors` | one per member above |
 | `edge: EXTENDS` | class or interface to its parent | no tool directly; the resolver follows it for a call of an inherited member (since 2026-10-08), and repair reads it | each `extends` type the compiler resolves to an indexed declaration |
 | `edge: IMPLEMENTS` | class to interface | `mast_implementors` | each `implements` type, the same way |
 | `edge: RE_EXPORTS (to the declaration)` | marker to the next marker or the declaration | `mast_rename_impact`, and the resolver's chain walk | the declaration the compiler reaches from the exported name; mast's chain is followed to its end first |

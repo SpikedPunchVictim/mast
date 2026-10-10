@@ -1,0 +1,46 @@
+call pairs that changed bucket:
+   33989 absent -> agree
+   22446 absent -> lacks
+       1 absent -> unjudged
+     176 absent -> wrong
+      13 wrong -> absent
+
+absent -> agree, by how the call is written:
+   26754 call written as this.field.m()
+    7158 call written as ident.m()
+      77 call written as expr.m()
+
+absent -> lacks, by how the call is written:
+   11554 call written as ident.m()
+    5654 call written as expr.m()
+    4731 call written as this.field.m()
+     491 call written as f()
+      16 call written as this.m()
+
+absent -> agree, by the rule that stored the edge:
+   26858 call edge, stored as field_type
+    7131 call edge, stored as parameter_type
+
+absent -> wrong: 176; with no lacking pair of the same caller and method name: 0
+     117 stored ICodeEditor.getModel, the compiler has IActiveCodeEditor.getModel
+      12 stored ICodeEditor._getViewModel, the compiler has IActiveCodeEditor._getViewModel
+       8 stored ICodeEditor.getDomNode, the compiler has IActiveCodeEditor.getDomNode
+       5 stored IAction.run, the compiler has MenuItemAction.run
+       5 stored INotebookEditor.getCellIndex, the compiler has IActiveNotebookEditor.getCellIndex
+       5 stored INotebookEditor.cellAt, the compiler has IActiveNotebookEditor.cellAt
+       5 stored INotebookEditor.getViewModel, the compiler has IActiveNotebookEditor.getViewModel
+       4 stored ICodeEditor.getScrolledVisiblePosition, the compiler has IActiveCodeEditor.getScrolledVisiblePosition
+       3 stored INotebookEditor.getFocus, the compiler has IActiveNotebookEditor.getFocus
+       1 stored IVSCodeObservableDocument.toRange, the compiler has VSCodeObservableNotebookDocument.toRange
+       1 stored ICodeEditor.getLineDecorations, the compiler has IActiveCodeEditor.getLineDecorations
+       1 stored IFileSystemProvider.copy, the compiler has IFileSystemProviderWithFileFolderCopyCapability.copy
+       1 stored IModifiedFileEntryChangeHunk.accept, the compiler has DiffHunkWidget.accept
+       1 stored IModifiedFileEntryChangeHunk.reject, the compiler has DiffHunkWidget.reject
+       1 stored ICodeEditor.getModel, the compiler has IDebugService.getModel
+       1 stored IExpressionContainer.getSession, the compiler has ExpressionContainer.getSession
+       1 stored INotebookEditor.getCellIndex, the compiler has IActiveNotebookEditorDelegate.getCellIndex
+       1 stored INotebookEditor.getFocus, the compiler has IActiveNotebookEditorDelegate.getFocus
+       1 stored INotebookEditor.getNextVisibleCellIndex, the compiler has IActiveNotebookEditorDelegate.getNextVisibleCellIndex
+       1 stored INotebookEditor.cellAt, the compiler has IActiveNotebookEditorDelegate.cellAt
+       1 stored IEditorPane.getScrollPosition, the compiler has IEditorPaneWithScrolling.getScrollPosition
+       1 stored IDragAndDropData.getData, the compiler has ElementsDragAndDropData.getData

@@ -1,0 +1,51 @@
+files: 54 indexed, 0 skipped  chunks: +175 -0  duration: 147ms
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged
+edge: EXTENDS                                 6         6         6         0         0         0         0
+edge: IMPLEMENTS                              0         0         0         0         0         0         0
+edge: PARENT_OF                              52        52        52         0         0         0         0
+edge: POTENTIAL_CALL                         87        78        77         1         9         0         0
+edge: RE_EXPORTS (to the declaration)         2         2         2         0         0         0         0
+export * (file to file)                       3         3         3         0         0         0         0
+file: indexed                                52        52        52         0         0         0         0
+import: named binding                        45        45        45         0         0         0         0
+import: the file it resolves to              32        32        32         0         0         0         0
+symbol flag: is_exported                    163       163       163         0         0         0         0
+symbol: class                                29        29        29         0         0         0         0
+symbol: export                                2         2         2         0         0         0         0
+symbol: function                             79        79        79         0         0         0         0
+symbol: interface                             8         8         8         0         0         0         0
+symbol: method                               49        49        49         0         0         0         0
+symbol: one key, more than one row            0         5         0         0         0         0         5
+symbol: type                                  1         1         1         0         0         0         0
+
+Calls, broken down:
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged
+call edge, stored as construction                 19        19        19         0         0         0         0
+call edge, stored as field_type                    3         3         2         1         0         0         0
+call edge, stored as import                       27        27        27         0         0         0         0
+call edge, stored as new_expression                2         2         2         0         0         0         0
+call edge, stored as parameter_type               11        11        11         0         0         0         0
+call edge, stored as same_file                     4         4         4         0         0         0         0
+call edge, stored as static_method                 7         7         7         0         0         0         0
+call edge, stored as this_method                   5         5         5         0         0         0         0
+call written as expr.m(), other file               2         0         0         0         2         0         0
+call written as f(), other file                   22        22        22         0         0         0         0
+call written as f(), same file                     4         4         4         0         0         0         0
+call written as ident.m(), other file             24        20        20         0         4         0         0
+call written as ident.m(), same file               5         5         5         0         0         0         0
+call written as new X(), other file               16        14        14         0         2         0         0
+call written as new X(), same file                 5         5         5         0         0         0         0
+call written as this.field.m(), other file         3         2         2         0         1         0         0
+call written as this.m(), same file                5         5         5         0         0         0         0
+
+Seen by the compiler and given no line item:
+        2  call through a variable, judged by its signature
+        3  call whose callee is not a name or a property
+        1  export * as namespace
+        2  export default <expression>
+        5  named import with an alias
+        6  namespace import
+
+{"ran_at":"2026-10-10T07:51:11.853Z","typescript":"5.9.3","label":"interface methods","root":"resolver-shapes","tsconfig":"tsconfig.json","prefix":"","config_errors":[],"workspace_packages_mapped_to_source":3,"scored_typescript_files":53,"tsconfig_files":52,"corpus_hash":"d33dad223818cdcb4bc45df771a1d43d5823dc6d711414f9b481fc4216c6668e","program_source_files":230,"repeated_symbol_rows":3,"wall_ms":463,"peak_rss_mb":317}
+written: $T/s17/shapes.json

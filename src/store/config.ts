@@ -13,7 +13,9 @@ import { UserError } from '../user-error.js';
 // fixes of October 2026 (docs/defects/LEDGER.md, up to D112) changed which
 // edges and star rows a file gets. A file is only re-written when it changes,
 // so without the bump an old index keeps its old rows for every file nobody
-// edits, and answers from them.
+// edits, and answers from them. A method of an interface has a row of its
+// own since 2026-10-10, under the same number: 1.4.0 was in no release, and
+// an index of 1.3.0 is rebuilt.
 //
 // 1.3.0 (F5, Stage 3): identifier_fts rows now carry QUALIFIED compound
 // strings ("Class.method") appended after the bare-identifier bag — see

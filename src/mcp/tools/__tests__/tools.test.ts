@@ -448,6 +448,12 @@ describe('mast_signature', () => {
     expect(result.signature).toContain('add');
   });
 
+  it('returns the signature of a method of an interface', async () => {
+    const res = await call('mast_signature', { symbol: 'Shape.area' }) as { results: Array<{ signature: string; return_type: string | null }> };
+
+    expect(res.results.map((r) => [r.signature, r.return_type])).toEqual([['area(): number', 'number']]);
+  });
+
   it('file_path narrows to one result', async () => {
     const res = await call('mast_signature', { symbol: 'add', file_path: 'math.ts' }) as { results: Array<{ file_path: string }> };
     expect(res.results.every((r) => r.file_path === 'math.ts')).toBe(true);
@@ -896,7 +902,7 @@ describe('mast_status', () => {
     // wall-clock or environment-dependent, so they are pinned exactly rather
     // than merely bounded.
     expect(res.indexed_files).toBe(7);
-    expect(res.chunk_count).toBe(80);
+    expect(res.chunk_count).toBe(82);
     expect(res.stale_files).toBe(0);
     expect(res.index_fresh).toBe(true);
   });

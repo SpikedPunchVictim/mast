@@ -910,6 +910,8 @@ Who calls a given symbol, split into verified callers (from the symbol graph) an
 
 **Why:** Impact analysis before a refactor requires knowing who depends on a symbol. Verified callers are graph-resolved (definitive, no false positives from name collisions). Potential matches are identifier-FTS hits where the call wasn't statically resolvable — they may be false positives but are worth reviewing. Separating the two lets the assistant reason about confidence: if `verified_count` is 3 and `potential_count` is 0, the refactor scope is well-understood. If `potential_count` is 15, there's more uncertainty. Running `mast index --checker` upgrades some potential matches to verified edges (or drops non-call-site noise) — the `checker_classified_*` counts report how many, and are 0 when the checker pass has never run.
 
+**A method called through an interface.** A call on a receiver typed as an interface (`store.get()` with `store: Store`) is a caller of `Store.get`, the method of the interface, and not of the `get` of a class that implements it: the call does not say which class runs. Before changing `MemoryStore.get`, ask for the callers of `Store.get` as well; `mast_implementors Store` gives the classes in the other direction.
+
 ---
 
 ### `mast_dependencies`

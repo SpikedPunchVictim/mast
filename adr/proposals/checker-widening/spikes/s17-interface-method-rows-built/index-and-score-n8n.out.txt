@@ -1,0 +1,123 @@
+files: 13985 indexed, 0 skipped  chunks: +74640 -0  duration: 92485ms
+phases: {"walk":356,"parse":41464,"write":38053,"edges":12536,"finalise":72}
+write_spans: {"fts_del":0,"fts_ins":10146.243680999647,"commit":16725.43681799977,"rest":6897.472722000751,"txn":464.395526001598,"lock":3611.484138000124}
+pragmas: {"cache_size":-16000,"mmap_size":0}
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged
+edge: EXTENDS                                32        32        32         0         0         0         0
+edge: IMPLEMENTS                             21        21        21         0         0         0         0
+edge: PARENT_OF                             549       549       549         0         0         0         0
+edge: POTENTIAL_CALL                       1204      1000      1000         0       204         0         0
+edge: RE_EXPORTS (to the declaration)        92        92        92         0         0         0         0
+export * (file to file)                      30        30        30         0         0         0         0
+file: indexed                               246       147       147         0        99         0         0
+import: named binding                      1377      1377      1377         0         0         0         0
+import: the file it resolves to             435       436       435         0         0         0         1
+symbol flag: is_exported                    902       902       902         0         0         0         0
+symbol: class                                72        72        72         0         0         0         0
+symbol: export                               99        99        99         0         0         0         0
+symbol: function                            217       217       217         0         0         0         0
+symbol: interface                            18        18        18         0         0         0         0
+symbol: method                              549       549       549         0         0         0         0
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                 46        46        46         0         0         0         0
+
+Calls, broken down:
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged
+call edge, stored as construction                162       162       162         0         0         0         0
+call edge, stored as field_type                  105       105       105         0         0         0         0
+call edge, stored as import                      212       212       212         0         0         0         0
+call edge, stored as new_expression               14        14        14         0         0         0         0
+call edge, stored as parameter_type               63        63        63         0         0         0         0
+call edge, stored as same_file                   140       140       140         0         0         0         0
+call edge, stored as static_method                26        26        26         0         0         0         0
+call edge, stored as super_method                  7         7         7         0         0         0         0
+call edge, stored as this_method                 271       271       271         0         0         0         0
+call written as expr.m(), other file              74         0         0         0        74         0         0
+call written as expr.m(), same file                2         0         0         0         2         0         0
+call written as f(), other file                  214       212       212         0         2         0         0
+call written as f(), same file                   140       140       140         0         0         0         0
+call written as ident.m(), other file            185        97        97         0        88         0         0
+call written as ident.m(), same file               6         6         6         0         0         0         0
+call written as new X(), other file              152       152       152         0         0         0         0
+call written as new X(), same file                10        10        10         0         0         0         0
+call written as super.m(), other file              7         7         7         0         0         0         0
+call written as this.field.m(), other file       124        98        98         0        26         0         0
+call written as this.field.m(), same file         10         7         7         0         3         0         0
+call written as this.m(), other file              37        28        28         0         9         0         0
+call written as this.m(), same file              243       243       243         0         0         0         0
+
+Seen by the compiler and given no line item:
+       62  call outside any declaration mast has a symbol for
+        2  call through a variable, judged by its signature
+       46  call whose callee is not a name or a property
+        1  enum
+        2  export default <expression>
+        1  import for side effects
+       16  named import with an alias
+       11  namespace import
+        4  namespace or module declaration
+      107  top-level variable that is not a function
+
+{"ran_at":"2026-10-10T07:52:53.048Z","typescript":"5.9.3","label":"interface methods","root":"n8n-ref","tsconfig":"packages/core/tsconfig.json","prefix":"packages/core/","config_errors":[],"workspace_packages_mapped_to_source":67,"scored_typescript_files":156,"tsconfig_files":246,"corpus_hash":"198b715210b0497e0055446c9b802e30e539d7ece7fe5f2653f11ee9d10f0273","program_source_files":3119,"repeated_symbol_rows":0,"wall_ms":3951,"peak_rss_mb":783}
+written: $T/s17/n8n-core.json
+line item                             reference      mast     agree     wrong     lacks     extra  unjudged
+edge: EXTENDS                               336       336       336         0         0         0         0
+edge: IMPLEMENTS                            202       202       202         0         0         0         0
+edge: PARENT_OF                            7716      7716      7716         0         0         0         0
+edge: POTENTIAL_CALL                      24210     20979     20979         0      3231         0         0
+edge: RE_EXPORTS (to the declaration)       151       151       151         0         0         0         0
+export * (file to file)                      20        20        20         0         0         0         0
+file: indexed                              3029      1748      1748         0      1281         0         0
+import: named binding                     18316     18316     18316         0         0         0         0
+import: the file it resolves to           10257     10258     10257         0         0         0         1
+symbol flag: is_exported                  12975     12975     12975         0         0         0         0
+symbol: class                              1141      1141      1141         0         0         0         0
+symbol: export                              174       174       174         0         0         0         0
+symbol: function                           2407      2407      2407         0         0         0         0
+symbol: interface                           739       739       739         0         0         0         0
+symbol: method                             7712      7712      7712         0         0         0         0
+symbol: one key, more than one row            0         0         0         0         0         0         0
+symbol: type                                976       976       976         0         0         0         0
+
+Calls, broken down:
+
+line item                                  reference      mast     agree     wrong     lacks     extra  unjudged
+call edge, stored as construction               1758      1758      1758         0         0         0         0
+call edge, stored as field_type                 7055      7055      7055         0         0         0         0
+call edge, stored as import                     4678      4678      4678         0         0         0         0
+call edge, stored as new_expression              100       100       100         0         0         0         0
+call edge, stored as parameter_type              436       436       436         0         0         0         0
+call edge, stored as same_file                  1911      1911      1911         0         0         0         0
+call edge, stored as static_method               122       122       122         0         0         0         0
+call edge, stored as super_method                 16        16        16         0         0         0         0
+call edge, stored as this_method                4903      4903      4903         0         0         0         0
+call written as expr.m(), other file            1277         3         3         0      1274         0         0
+call written as expr.m(), same file               27         0         0         0        27         0         0
+call written as f(), other file                 4684      4604      4604         0        80         0         0
+call written as f(), same file                  1924      1911      1911         0        13         0         0
+call written as ident.m(), other file           2127       673       673         0      1454         0         0
+call written as ident.m(), same file              68        56        56         0        12         0         0
+call written as new X(), other file             1711      1708      1708         0         3         0         0
+call written as new X(), same file                50        50        50         0         0         0         0
+call written as super.m(), other file             16        16        16         0         0         0         0
+call written as this.field.m(), other file      7398      7045      7045         0       353         0         0
+call written as this.field.m(), same file         24        10        10         0        14         0         0
+call written as this.m(), other file             226       225       225         0         1         0         0
+call written as this.m(), same file             4678      4678      4678         0         0         0         0
+
+Seen by the compiler and given no line item:
+     4965  call outside any declaration mast has a symbol for
+      146  call through a variable, judged by its signature
+      802  call whose callee is not a name or a property
+        3  enum
+       30  export default <expression>
+       97  import for side effects
+      113  named import with an alias
+       71  namespace import
+       48  namespace or module declaration
+        7  top-level destructuring declaration
+     1606  top-level variable that is not a function
+
+{"ran_at":"2026-10-10T07:53:09.215Z","typescript":"5.9.3","label":"interface methods","root":"n8n-ref","tsconfig":"packages/cli/tsconfig.json","prefix":"packages/cli/","config_errors":[],"workspace_packages_mapped_to_source":67,"scored_typescript_files":1758,"tsconfig_files":3029,"corpus_hash":"8eb64b26d2896eeaf36bf7f35719d4b09c7448adf183a792bd03511455e71620","program_source_files":9589,"repeated_symbol_rows":4,"wall_ms":15947,"peak_rss_mb":1594}
+written: $T/s17/n8n-cli.json

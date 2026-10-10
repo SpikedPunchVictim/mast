@@ -180,3 +180,13 @@ Corpora: n8n `9d9e9bf9`, nest `c3bc75c97`, directus `bac54f5` (`api/tsconfig.jso
 | `n8n-base.json`, `n8n-patch.json` | `s1/run.mjs ... --workspace-src --skip .` from the scratch copy over the two n8n indexes |
 | `analyse.mjs <base card> <patched card>`, `<corpus>-analysis.out.txt` | The call pairs that changed bucket, by how the call is written and the rule that stored the edge; for each newly wrong edge, the target the compiler has for the same caller and method name |
 | `vscode-newly-wrong.txt` | The 180 keys |
+
+## s17 — a row for each method of an interface, built (`spikes/s17-interface-method-rows-built/`)
+
+| File | What it is |
+|---|---|
+| `run-all.sh <mast repo> <scratch dir> <n8n copy> <nest copy> <vscode copy>` | Indexes the shapes corpus, this repository, n8n, nest and vscode with the repo's `dist/` and scores each (`graph-scorecard.mjs run`; n8n also over 80 projects with `s1-cost-yield/run.mjs`). Writes to the scratch directory only |
+| `index-and-score-<corpus>.out.txt` | The index line and the scorecard's printed card for each. Paths are written `$T` (the scratch directory) and `$R` (this repository) |
+| `shapes-compare.out.txt`, `mast-compare.out.txt`, `n8n-core-compare.out.txt`, `n8n-cli-compare.out.txt` | `graph-scorecard.mjs compare` of each new card with the baseline it replaced. shapes exits 1 for the accepted edge on a narrowed receiver and for the fixture's merged class and interface, a key with two rows; this repository for an import of the s14 fixture that is newly `unjudged` |
+| `n8n-80.json` | The 80-project union. Its base is `s16-interface-method-rows/n8n-base.json` |
+| `nest-analysis.out.txt`, `vscode-analysis.out.txt` | `s16-interface-method-rows/analyse.mjs <s16 base card> <new card>`: the call pairs that changed bucket. The base cards were made by s16's patched scorecard over the index of `8647855` and are not kept |

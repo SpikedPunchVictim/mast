@@ -400,6 +400,7 @@ function emitChunksForNode(
 
     case 'interface_declaration': {
       const name = node.childForFieldName('name')?.text ?? null;
+      const interfaceBody = node.childForFieldName('body');
       pushChunks(chunks, {
         chunkType: 'interface',
         symbolName: name,
@@ -415,7 +416,37 @@ function emitChunksForNode(
         language,
         declarationHash: declHashOf(node, src),
         bodyHash: bodyHashOf(node, src),
+        classFields: classFieldsOf(interfaceBody),
       });
+
+      // Method chunks, named as a class's are. A call on a receiver typed as
+      // the interface is resolved to the member of the interface (§10.3.1).
+      if (name !== null) {
+        for (const member of interfaceMethodsOf(node)) {
+          const methodName = member.childForFieldName('name')?.text ?? '';
+          const mStart = nodeStartLine(member);
+          const mEnd = nodeEndLine(member);
+          // No context: the lines around a member are other members, and with
+          // them a search for one member's name matches its neighbours' chunks.
+          const comment = member.previousNamedSibling;
+          const contentStart = comment !== null && nodeType(comment) === 'comment' && nodeEndLine(comment) === mStart - 1 ? nodeStartLine(comment) : mStart;
+          chunks.push({
+            chunk_id: chunkId(filePath, mStart),
+            file_path: filePath,
+            start_line: mStart,
+            end_line: mEnd,
+            content: expandContent(lines, contentStart, mEnd, 0),
+            chunk_type: 'method',
+            symbol_name: `${name}.${methodName}`,
+            parent_symbol: name,
+            is_exported: isExported,
+            language,
+            file_mtime: fileMtime,
+            declaration_hash: declHashOf(member, src),
+            body_hash: bodyHashOf(member, src),
+          });
+        }
+      }
       break;
     }
 
@@ -495,6 +526,8 @@ interface PushChunksOpts {
   language: Language;
   declarationHash?: string;
   bodyHash?: string;
+  /** The fields of the declaration, kept on the chunk its symbol is read from. */
+  classFields?: { readonly class_fields?: ClassFieldNames };
 }
 
 /**
@@ -521,6 +554,7 @@ function pushChunks(chunks: Chunk[], opts: PushChunksOpts): void {
       file_mtime: fileMtime,
       declaration_hash: opts.declarationHash,
       body_hash: opts.bodyHash,
+      ...opts.classFields,
     });
     return;
   }
@@ -548,7 +582,7 @@ function pushChunks(chunks: Chunk[], opts: PushChunksOpts): void {
       file_mtime: fileMtime,
       declaration_hash: opts.declarationHash,
       body_hash: opts.bodyHash,
-      ...(subIndex > 0 ? { continues_declaration: true as const } : {}),
+      ...(subIndex > 0 ? { continues_declaration: true as const } : opts.classFields),
     });
 
     if (subEnd >= endLine) break;
@@ -683,6 +717,11 @@ export function extractSignatures(tree: Tree, src: string): ExtractedSignature[]
             typeNames: [],
             doc: getLeadingComment(docHost, root, src),
           });
+          // None for a type alias: it has no `method_signature` of its own.
+          const docParent = decl.childForFieldName('body') ?? decl;
+          for (const member of interfaceMethodsOf(decl)) {
+            out.push(signatureFor(`${name}.${member.childForFieldName('name')?.text ?? ''}`, member, member, docParent, src));
+          }
         }
         break;
       }
@@ -874,6 +913,63 @@ function isMethodMember(member: SyntaxNode, classBody: SyntaxNode): boolean {
   return !nodeNamedChildren(classBody).some(
     (other) => nodeType(other) === 'method_definition' && other.childForFieldName('name')?.text === name,
   );
+}
+
+/**
+ * The methods of an interface that are symbols: each `method_signature` of its
+ * body, once however many overloads it is written as.
+ *
+ * Not one that a class of the interface's name declares in the same file, nor
+ * one an earlier declaration of the interface has. They are one merged
+ * declaration, and two rows of one name in one file cannot be told apart by a
+ * caller's record; where there is a class, its method is the code a call runs.
+ * A property with a function type is a field, as it is in a class (D115).
+ */
+function interfaceMethodsOf(interfaceNode: SyntaxNode): SyntaxNode[] {
+  const body = interfaceNode.childForFieldName('body');
+  const name = interfaceNode.childForFieldName('name')?.text ?? null;
+  if (body === null || name === null) return [];
+  const taken = methodNamesDeclaredElsewhere(interfaceNode, name);
+  const methods: SyntaxNode[] = [];
+  for (const member of nodeNamedChildren(body)) {
+    const methodName = interfaceMethodName(member);
+    if (methodName === null || taken.has(methodName)) continue;
+    taken.add(methodName);
+    methods.push(member);
+  }
+  return methods;
+}
+
+/** The name of an interface member that is a method, or null for any other member. */
+function interfaceMethodName(member: SyntaxNode): string | null {
+  return nodeType(member) === 'method_signature' ? member.childForFieldName('name')?.text ?? null : null;
+}
+
+/**
+ * The method names that the top-level class called `name`, and the top-level
+ * interfaces of that name written before `interfaceNode`, declare in its file.
+ */
+function methodNamesDeclaredElsewhere(interfaceNode: SyntaxNode, name: string): Set<string> {
+  let root = interfaceNode;
+  while (root.parent !== null) root = root.parent;
+  const names = new Set<string>();
+  let isBefore = true;
+  for (const topLevel of nodeNamedChildren(root)) {
+    const decl = topLevelDeclaration(topLevel);
+    if (decl === null) continue;
+    if (decl.startIndex === interfaceNode.startIndex) isBefore = false;
+    if (decl.childForFieldName('name')?.text !== name) continue;
+    const type = nodeType(decl);
+    const body = decl.childForFieldName('body') ?? findChildByType(decl, 'class_body');
+    if (body === null) continue;
+    for (const member of nodeNamedChildren(body)) {
+      const memberName = type === 'class_declaration' || type === 'abstract_class_declaration'
+        ? (isMethodMember(member, body) ? member.childForFieldName('name')?.text ?? null : null)
+        : type === 'interface_declaration' && isBefore ? interfaceMethodName(member) : null;
+      if (memberName !== null) names.add(memberName);
+    }
+  }
+  return names;
 }
 
 /**
@@ -1607,7 +1703,7 @@ export function extractEdges(
     if (t === 'class_declaration' || t === 'abstract_class_declaration') {
       emitClassEdges(declNode, edges, seedFileScope, lines, onCallSite);
     } else if (t === 'interface_declaration') {
-      emitInterfaceExtends(declNode, edges);
+      emitInterfaceEdges(declNode, edges);
     } else if (t === 'function_declaration' || t === 'generator_function_declaration') {
       const name = declNode.childForFieldName('name')?.text ?? null;
       const body = declNode.childForFieldName('body');
@@ -1798,10 +1894,19 @@ function emitDecoratorEdges(
   }
 }
 
-/** interface extends interface(s). */
-function emitInterfaceExtends(ifaceNode: SyntaxNode, edges: EdgeRecord[]): void {
+/** PARENT_OF for each method of an interface, and EXTENDS for each interface it extends. */
+function emitInterfaceEdges(ifaceNode: SyntaxNode, edges: EdgeRecord[]): void {
   const name = ifaceNode.childForFieldName('name')?.text ?? null;
   if (name === null) return;
+  for (const member of interfaceMethodsOf(ifaceNode)) {
+    edges.push({
+      fromName: name,
+      fromLine: nodeStartLine(ifaceNode),
+      toName: `${name}.${member.childForFieldName('name')?.text ?? ''}`,
+      toLine: nodeStartLine(member),
+      edgeType: 'PARENT_OF',
+    });
+  }
   const extendsClause = findChildByType(ifaceNode, 'extends_type_clause')
     ?? findChildByType(ifaceNode, 'extends_clause');
   if (extendsClause === null) return;

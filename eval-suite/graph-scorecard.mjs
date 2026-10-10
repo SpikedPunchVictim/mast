@@ -233,13 +233,20 @@ function runScore({ flags }) {
   const isTopLevel = (node) => node.parent !== undefined && ts.isSourceFile(node.parent);
   // A computed name (`[Symbol.iterator]`) is kept as written.
   const memberName = (m) => (ts.isConstructorDeclaration(m) ? 'constructor' : !m.name ? null : ts.isIdentifier(m.name) || ts.isStringLiteral(m.name) || ts.isPrivateIdentifier(m.name) ? m.name.text : m.name.getText());
+  /** The names of the members of the top-level class called `name` in a file. */
+  const classMemberNames = (sf, name) => sf.statements
+    .filter((stmt) => ts.isClassDeclaration(stmt) && stmt.name?.text === name)
+    .flatMap((stmt) => stmt.members.filter(isMember).map(memberName).filter((n) => n !== null));
   const isMember = (m) => ts.isMethodDeclaration(m) || ts.isConstructorDeclaration(m) || ts.isGetAccessorDeclaration(m) || ts.isSetAccessorDeclaration(m);
+  // `get size(): number;` in an interface is an accessor to the compiler and is stored as a method is.
+  const isInterfaceMethod = (m) => ts.isMethodSignature(m) || ts.isGetAccessorDeclaration(m) || ts.isSetAccessorDeclaration(m);
 
   /**
    * The `path:name` a declaration would have as a mast symbol, by the rules of MAST_SPEC
-   * §10.1 (top-level functions, classes, interfaces, type aliases and variables, and the
-   * members of a top-level class), or null for anything else: a nested function, an
-   * interface member, a parameter. Whether mast has it is a separate question.
+   * §10.1 (top-level functions, classes, interfaces, type aliases and variables, the
+   * members of a top-level class and the methods of a top-level interface), or null for
+   * anything else: a nested function, a property of an interface, a parameter. Whether
+   * mast has it is a separate question.
    */
   function keyOfDecl(decl) {
     const key = baseKeyOfDecl(decl);
@@ -259,6 +266,12 @@ function runScore({ flags }) {
   function baseKeyOfDecl(decl) {
     const path = rel(decl.getSourceFile().fileName);
     if (isMember(decl) && ts.isClassDeclaration(decl.parent) && isTopLevel(decl.parent) && decl.parent.name) {
+      const name = memberName(decl);
+      return name === null ? null : `${path}:${decl.parent.name.text}.${name}`;
+    }
+    // A method of a top-level interface is keyed as a class's is. One the class of the
+    // interface's name also declares has the class's key, which is the same key.
+    if (isInterfaceMethod(decl) && ts.isInterfaceDeclaration(decl.parent) && isTopLevel(decl.parent)) {
       const name = memberName(decl);
       return name === null ? null : `${path}:${decl.parent.name.text}.${name}`;
     }
@@ -381,6 +394,8 @@ function runScore({ flags }) {
     const exportedLocally = new Set();
     const aliases = [];
     const publicMembers = [];
+    // A Map: an interface may be called `toString`.
+    const interfaceMethodsSeen = new Map();
     const add = (kind, name, isExported) => {
       const key = `${path}:${name}`;
       ref.symbols[kind].push(key);
@@ -391,7 +406,23 @@ function runScore({ flags }) {
 
     for (const stmt of sf.statements) {
       if (ts.isFunctionDeclaration(stmt) && stmt.name) add('function', stmt.name.text, hasExport(stmt));
-      else if (ts.isInterfaceDeclaration(stmt)) add('interface', stmt.name.text, hasExport(stmt));
+      else if (ts.isInterfaceDeclaration(stmt)) {
+        const interfaceName = stmt.name.text;
+        add('interface', interfaceName, hasExport(stmt));
+        // A method is one symbol however many overloads it has, and however many
+        // declarations of the interface have it; one that a class of the interface's
+        // name declares is the class's (MAST_SPEC §10.1).
+        const taken = interfaceMethodsSeen.get(interfaceName) ?? new Set(classMemberNames(sf, interfaceName));
+        interfaceMethodsSeen.set(interfaceName, taken);
+        for (const m of stmt.members) {
+          const name = isInterfaceMethod(m) ? memberName(m) : null;
+          if (name === null || taken.has(name)) continue;
+          taken.add(name);
+          add('method', `${interfaceName}.${name}`, hasExport(stmt));
+          publicMembers.push({ className: interfaceName, key: `${path}:${interfaceName}.${name}` });
+          ref.parentOf.push(pairKey(keyOfDecl(stmt), keyOfDecl(m)));
+        }
+      }
       else if (ts.isTypeAliasDeclaration(stmt)) add('type', stmt.name.text, hasExport(stmt));
       else if (ts.isClassDeclaration(stmt) && stmt.name) {
         const className = stmt.name.text;
